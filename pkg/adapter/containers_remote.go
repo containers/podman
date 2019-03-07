@@ -127,7 +127,7 @@ func (c *Container) Name() string {
 	return c.config.Name
 }
 
-// StopContainers stops requested containers using CLI inputs.
+// StopContainers stops requested containers using varlink.
 // Returns the list of stopped container ids, map of failed to stop container ids + errors, or any non-container error
 func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopValues) ([]string, map[string]error, error) {
 	var (
@@ -175,27 +175,24 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 	return ok, failures, nil
 }
 
-// RemoveContainer removes container(s) based on CLI inputs.
+// RemoveContainer removes container(s) based on varlink inputs.
 func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var (
 		ok       = []string{}
 		failures = map[string]error{}
 	)
 
-	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
-	if err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
-			return ok, failures, nil
-		}
-		return ok, failures, err
-	}
-
 	for _, id := range ids {
-		removed, err := iopodman.RemoveContainer().Call(r.Conn, id, cli.Force, cli.Volumes)
+		_, err := iopodman.RemoveContainer().Call(r.Conn, id, cli.Force, cli.Volumes)
 		if err != nil {
 			failures[id] = err
 		} else {
-			ok = append(ok, removed)
+			ok = append(ok, id)
 		}
 	}
 	return ok, failures, nil

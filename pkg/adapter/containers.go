@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/pkg/errors"
@@ -55,63 +56,75 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 		timeout = &t
 	}
 
-	var (
-		ok       = []string{}
-		failures = map[string]error{}
-	)
+	maxWorkers := shared.DefaultPoolSize("stop")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum stop workers to %d", maxWorkers)
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
-		return ok, failures, err
+		return nil, nil, err
 	}
 
+	pool := shared.NewPool("stop", maxWorkers, len(ctrs))
 	for _, c := range ctrs {
 		if timeout == nil {
 			t := c.StopTimeout()
 			timeout = &t
-			logrus.Debugf("Set timeout to container %s default (%d)", c.ID(), *timeout)
+			logrus.Debugf("Set stop timeout to container %s default (%d)", c.ID(), *timeout)
 		}
-		if err := c.StopWithTimeout(*timeout); err == nil {
-			ok = append(ok, c.ID())
-		} else if errors.Cause(err) == libpod.ErrCtrStopped {
-			ok = append(ok, c.ID())
-			logrus.Debugf("Container %s is already stopped", c.ID())
-		} else {
-			failures[c.ID()] = err
-		}
+
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				err := c.StopWithTimeout(*timeout)
+				if err != nil {
+					if errors.Cause(err) == libpod.ErrCtrStopped {
+						logrus.Debugf("Container %s is already stopped", c.ID())
+						return nil
+					}
+				}
+				return err
+			},
+		})
 	}
-	return ok, failures, nil
+	return pool.Run()
 }
 
 // KillContainers sends signal to container(s) based on CLI inputs.
 // Returns list of successful id(s), map of failed id(s) + error, or error not from container
 func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillValues, signal syscall.Signal) ([]string, map[string]error, error) {
-	var (
-		ok       = []string{}
-		failures = map[string]error{}
-	)
+	maxWorkers := shared.DefaultPoolSize("kill")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum kill workers to %d", maxWorkers)
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
-		return ok, failures, err
+		return nil, nil, err
 	}
 
+	pool := shared.NewPool("kill", maxWorkers, len(ctrs))
 	for _, c := range ctrs {
-		if err := c.Kill(uint(signal)); err == nil {
-			ok = append(ok, c.ID())
-		} else {
-			failures[c.ID()] = err
-		}
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				return c.Kill(uint(signal))
+			},
+		})
 	}
-	return ok, failures, nil
+	return pool.Run()
 }
 
 // RemoveContainers removes container(s) based on CLI inputs.
 func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
-	var (
-		ok       = []string{}
-		failures = map[string]error{}
-	)
+	maxWorkers := shared.DefaultPoolSize("rm")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
@@ -119,17 +132,19 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 		if cli.Force && len(cli.InputArgs) > 0 && errors.Cause(err) == libpod.ErrNoSuchCtr {
 			r.RemoveContainersFromStorage(cli.InputArgs)
 		}
-		return ok, failures, err
+		return nil, nil, err
 	}
 
+	pool := shared.NewPool("rm", maxWorkers, len(ctrs))
 	for _, c := range ctrs {
-		if err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes); err != nil {
-			failures[c.ID()] = err
-		} else {
-			ok = append(ok, c.ID())
-		}
+		pool.Add(shared.Job{
+			c.ID(),
+			func() error {
+				return r.RemoveContainer(ctx, c, cli.Force, cli.Volumes)
+			},
+		})
 	}
-	return ok, failures, nil
+	return pool.Run()
 }
 
 // WaitOnContainers waits for all given container(s) to stop
