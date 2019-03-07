@@ -13,7 +13,7 @@ var (
 	healthcheckRunCommand     cliconfig.HealthCheckValues
 	healthcheckRunDescription = "run the health check of a container"
 	_healthcheckrunCommand    = &cobra.Command{
-		Use:     "run CONTAINER",
+		Use:     "run [flags] CONTAINER",
 		Short:   "run the health check of a container",
 		Long:    healthcheckRunDescription,
 		Example: `podman healthcheck run mywebapp`,
