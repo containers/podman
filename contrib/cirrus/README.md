@@ -33,6 +33,17 @@ task (pass or fail) is set based on the exit status of the last script to execut
    the vendor.conf, the code and the vendored packages in ./vendor are in sync
    at all times.
 
+### ``meta`` Task
+
+***N/B: Steps below are performed by automation***
+
+1. Launch a container built from definition in ``./contrib/imgts``.
+
+2. Update VM Image metadata to help track usage across all automation.
+
+4. Always exits successfully unless there's a major problem.
+
+
 ### ``testing`` Task
 
 ***N/B: Steps below are performed by automation***
