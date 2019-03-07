@@ -254,3 +254,42 @@ grep johndoe /etc/subuid /etc/subgid
 /etc/subuid:johndoe:200000:1001
 /etc/subgid:johndoe:200000:1001
 ```
+
+### 11) Changing the location of the Graphroot leads to permission denied
+
+When I change the graphroot storage location in storage.conf, the next time I
+run podman I get an error like:
+
+```
+# podman run -p 5000:5000 -it centos bash
+
+bash: error while loading shared libraries: /lib64/libc.so.6: cannot apply additional memory protection after relocation: Permission denied
+```
+
+For example, the admin sets up a spare disk to be mounted at `/src/containers`,
+and points storage.conf at this directory.
+
+
+#### Symptom
+
+SELinux blocks containers from using random locations for overlay storage.
+These directories need to be labeled with the same labels as if the content was
+under /var/lib/containers/storage.
+
+#### Solution
+
+Tell SELinux about the new containers storage by setting up an equivalence record.
+This tells SELinux to label content under the new path, as if it was stored
+under `/var/lib/containers/storage`.
+
+```
+semanage fcontext -a -e /var/lib/containers /srv/containers
+restorecon -R -v /src/containers
+```
+
+The semanage command above tells SELinux to setup the default labeling of
+`/srv/containers` to match `/var/lib/containers`.  The `restorecon` command
+tells SELinux to apply the labels to the actual content.
+
+Now all new content created in these directories will automatically be created
+with the correct label.
