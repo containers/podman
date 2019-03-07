@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -311,7 +311,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"kernel-memory", "",
 		"Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)",
 	)
-	createFlags.StringSliceP(
+	createFlags.StringArrayP(
 		"label", "l", []string{},
 		"Set metadata on container (default [])",
 	)
