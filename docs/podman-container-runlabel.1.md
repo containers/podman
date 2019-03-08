@@ -12,6 +12,7 @@ podman-container-runlabel - Execute Image Label Method
 [**--rootfs**=*ROOTFS*]
 [**--set**=*NAME*=*VALUE*]
 [**--storage**]
+[**--replace**]
 LABEL IMAGE [ARG...]
 
 # DESCRIPTION
@@ -84,6 +85,11 @@ Print usage statement
 **--quiet, -q**
 
 Suppress output information when pulling images
+
+**--replace**
+
+If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be
+created from this image.
 
 **--signature-policy="PATHNAME"**
 

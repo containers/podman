@@ -416,14 +416,15 @@ type RmiValues struct {
 type RunlabelValues struct {
 	PodmanCommand
 	Authfile        string
-	Display         bool
 	CertDir         string
 	Creds           string
+	Display         bool
 	Name            string
 	Opt1            string
 	Opt2            string
 	Opt3            string
 	Quiet           bool
+	Replace         bool
 	SignaturePolicy string
 	TlsVerify       bool
 }
