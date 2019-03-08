@@ -243,15 +243,17 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 	containerConfig.Name = containerYAML.Name
 	containerConfig.Tty = containerYAML.TTY
 	containerConfig.WorkDir = containerYAML.WorkingDir
-	if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
-		containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
-	}
-	if containerYAML.SecurityContext.Privileged != nil {
-		containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
-	}
+	if containerConfig.SecurityOpts != nil {
+		if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
+			containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+		}
+		if containerYAML.SecurityContext.Privileged != nil {
+			containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
+		}
 
-	if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
-		containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+		if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
+			containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+		}
 	}
 
 	containerConfig.Command = containerYAML.Command
@@ -268,7 +270,9 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 	// disabled in code review per mheon
 	//containerConfig.PidMode = ns.PidMode(namespaces["pid"])
 	containerConfig.UsernsMode = ns.UsernsMode(namespaces["user"])
-
+	if len(containerConfig.WorkDir) == 0 {
+		containerConfig.WorkDir = "/"
+	}
 	if len(containerYAML.Env) > 0 {
 		envs = make(map[string]string)
 	}
