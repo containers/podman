@@ -2453,6 +2453,7 @@ _podman_container_runlabel() {
 	 -h
 	 -q
 	 --quiet
+	 --replace
 	 --tls-verify
   "
 

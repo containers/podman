@@ -414,6 +414,7 @@ type RunlabelValues struct {
 	Opt2            string
 	Opt3            string
 	Quiet           bool
+	Replace         bool
 	SignaturePolicy string
 	TlsVerify       bool
 }

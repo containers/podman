@@ -56,6 +56,7 @@ func init() {
 
 	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
+	flags.BoolVar(&runlabelCommand.Replace, "replace", false, "remove a container with a similar name before executing the label")
 	flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
 
@@ -149,6 +150,17 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
 		if c.Display {
 			return nil
+		}
+	}
+
+	if len(c.Name) > 0 && c.Replace {
+		// we need to check if a container with the same name already exists
+		ctr, err := runtime.LookupContainer(c.Name)
+		if err == nil {
+			// a container with the same name exists, remove it
+			if err := runtime.RemoveContainer(ctx, ctr, true, true); err != nil {
+				return err
+			}
 		}
 	}
 	return utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...)

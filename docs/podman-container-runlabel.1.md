@@ -7,11 +7,15 @@ podman-container-runlabel - Execute Image Label Method
 # SYNOPSIS
 **podman container runlabel**
 [**-h**|**--help**]
+[**--authfile**]
+[**--cert-dir**]
+[**--creds**]
 [**--display**]
 [**-n**][**--name**[=*NAME*]]
-[**--rootfs**=*ROOTFS*]
-[**--set**=*NAME*=*VALUE*]
-[**--storage**]
+[**-q**][**--quiet**]
+[**--replace**]
+[**--signature-policy**]
+[**--tls-verify**]
 LABEL IMAGE [ARG...]
 
 # DESCRIPTION
@@ -84,6 +88,11 @@ Print usage statement
 **--quiet, -q**
 
 Suppress output information when pulling images
+
+**--replace**
+
+If a container with the same name exists in local storage, it will be removed prior
+to executing the label command.
 
 **--signature-policy="PATHNAME"**
 
