@@ -16,7 +16,6 @@ LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${DESTDIR}/etc
-ETCDIR_LIBPOD ?= ${ETCDIR}/crio
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh) varlink exclude_graphdriver_devicemapper
@@ -28,7 +27,6 @@ CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
-OCIUMOUNTINSTALLDIR=$(PREFIX)/share/oci-umount/oci-umount.d
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
@@ -242,10 +240,9 @@ install.man: docs
 	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(MANDIR)/man1
 
 install.config:
-	install ${SELINUXOPT} -d -m 755 $(SHAREDIR_CONTAINERS) $(ETCDIR_LIBPOD) $(OCIUMOUNTINSTALLDIR)
+	install ${SELINUXOPT} -d -m 755 $(SHAREDIR_CONTAINERS)
 	install ${SELINUXOPT} -m 644 libpod.conf $(SHAREDIR_CONTAINERS)/libpod.conf
-	install ${SELINUXOPT} -m 644 seccomp.json $(ETCDIR_LIBPOD)/seccomp.json
-	install ${SELINUXOPT} -m 644 crio-umount.conf $(OCIUMOUNTINSTALLDIR)/crio-umount.conf
+	install ${SELINUXOPT} -m 644 seccomp.json $(SHAREDIR_CONTAINERS)/seccomp.json
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
