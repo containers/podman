@@ -229,6 +229,7 @@ func BecomeRootInUserNS() (bool, int, error) {
 	}
 	defer r.Close()
 	defer w.Close()
+	defer w.Write([]byte("0"))
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
 	pid := int(pidC)
