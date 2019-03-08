@@ -337,3 +337,43 @@ func IsImageNotFound(err error) bool {
 func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
 	return r.Runtime.HealthCheck(c.InputArgs[0])
 }
+
+// JoinOrCreateRootlessPod joins the specified pod if it is running or it creates a new user namespace
+// if the pod is stopped
+func (r *LocalRuntime) JoinOrCreateRootlessPod(pod *Pod) (bool, int, error) {
+	if os.Geteuid() == 0 {
+		return false, 0, nil
+	}
+	opts := rootless.Opts{
+		Argument: pod.ID(),
+	}
+
+	inspect, err := pod.Inspect()
+	if err != nil {
+		return false, 0, err
+	}
+	for _, ctr := range inspect.Containers {
+		prevCtr, err := r.LookupContainer(ctr.ID)
+		if err != nil {
+			return false, -1, err
+		}
+		s, err := prevCtr.State()
+		if err != nil {
+			return false, -1, err
+		}
+		if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
+			continue
+		}
+		data, err := ioutil.ReadFile(prevCtr.Config().ConmonPidFile)
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", prevCtr.Config().ConmonPidFile)
+		}
+		conmonPid, err := strconv.Atoi(string(data))
+		if err != nil {
+			return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
+		}
+		return rootless.JoinDirectUserAndMountNSWithOpts(uint(conmonPid), &opts)
+	}
+
+	return rootless.BecomeRootInUserNSWithOpts(&opts)
+}
