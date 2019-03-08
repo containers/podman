@@ -190,7 +190,7 @@ var _ = Describe("Podman load", func() {
 		load.WaitWithDefaultTimeout()
 		Expect(load.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"images", "-f", "label", "hello:world"})
+		result := podmanTest.Podman([]string{"images", "hello:world"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
 		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
@@ -216,7 +216,7 @@ var _ = Describe("Podman load", func() {
 		load.WaitWithDefaultTimeout()
 		Expect(load.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"images", "-f", "label", "hello:latest"})
+		result := podmanTest.Podman([]string{"images", "hello:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
 		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
@@ -241,7 +241,7 @@ var _ = Describe("Podman load", func() {
 		load.WaitWithDefaultTimeout()
 		Expect(load.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"images", "-f", "label", "load:latest"})
+		result := podmanTest.Podman([]string{"images", "load:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.LineInOutputContains("docker")).To(Not(BeTrue()))
 		Expect(result.LineInOutputContains("localhost")).To(BeTrue())
