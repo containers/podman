@@ -69,6 +69,18 @@ var _ = Describe("Podman pod create", func() {
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
 
+	It("podman start infra container different image", func() {
+		session := podmanTest.Podman([]string{"pod", "create", "--infra-image", BB})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"pod", "start", podID})
+		session.WaitWithDefaultTimeout()
+		// If we use the default entry point, we should exit with no error
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman infra container namespaces", func() {
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
