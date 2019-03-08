@@ -592,7 +592,7 @@ func parseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	}
 
 	// LABEL VARIABLES
-	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringSlice("label"))
+	labels, err := getAllLabels(c.StringSlice("label-file"), c.StringArray("label"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}

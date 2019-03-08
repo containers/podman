@@ -321,7 +321,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"kernel-memory", "",
 		"Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)",
 	)
-	createFlags.StringSliceP(
+	createFlags.StringArrayP(
 		"label", "l", []string{},
 		"Set metadata on container (default [])",
 	)
