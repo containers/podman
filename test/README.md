@@ -43,6 +43,11 @@ Build ginkgo and install it under $GOPATH/bin with the following command:
 ```
 GOPATH=~/go make .install.ginkgo
 ```
+If your PATH does not include $GOPATH/bin, you might consider adding it.
+
+```
+PATH=$PATH:$GOPATH/bin
+```
 
 # Integration Tests
 Test suite for integration test for podman command line. It has its own structs:
@@ -63,21 +68,38 @@ GOPATH=~/go ginkgo -v test/e2e/.
 Note the trailing period on the command above. Also, **-v** invokes verbose mode.  That
 switch is optional.
 
+
+### Running a single file of integration tests
 You can run a single file of integration tests using the go test command:
 
 ```
 GOPATH=~/go go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
 ```
 
-#### Run all tests like PAPR
-You can closely emulate the PAPR run for Fedora with the following command:
+### Running a single integration test
+Before running the test suite, you have to declare which test you want run in the test
+file itself. Consider the following actual test:
+```
+It("podman inspect bogus pod", func() {
+		session := podmanTest.Podman([]string{"pod", "inspect", "foobar"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+```
+
+To mark this as the test you want run, you simply change the *It* description to *FIt*. Please note how
+both the `F` and `I` are capitalized.
+
+You can run a single integration test using the same command we used to run all the tests in a single
+file.
 
 ```
-make integration.fedora
+GOPATH=~/go go test -v test/e2e/libpod_suite_test.go test/e2e/common_test.go test/e2e/config.go test/e2e/config_amd64.go test/e2e/your_test.go
 ```
 
-This will run lint, git-validation, and gofmt tests and then execute unit and integration
-tests as well.
+*Note*: Be sure you remove the `F` from the tests before committing your changes or you will skip all tests
+in that file except the one with the `FIt` denotation.
+
 
 ### Run tests in a container
 In case you have issue running the tests locally on your machine, you can run
