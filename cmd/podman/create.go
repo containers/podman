@@ -893,7 +893,16 @@ func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *l
 				}
 				return false, -1, errors.Errorf("dependency container %s is not running", ctr.ID())
 			}
-			return rootless.JoinNS(uint(pid), 0)
+
+			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+			if err != nil {
+				return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+			}
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			return rootless.JoinDirectUserAndMountNS(uint(conmonPid))
 		}
 	}
 	return rootless.BecomeRootInUserNS()
