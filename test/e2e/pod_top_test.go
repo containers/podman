@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -24,14 +25,15 @@ var _ = Describe("Podman top", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman pod top without pod name or id", func() {
@@ -127,6 +129,13 @@ var _ = Describe("Podman top", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		for i := 0; i < 10; i++ {
+			fmt.Println("Waiting for containers to be running .... ")
+			if podmanTest.NumberOfContainersRunning() == 2 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))

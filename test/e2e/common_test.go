@@ -3,11 +3,15 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/containers/storage"
 
 	"github.com/containers/libpod/pkg/inspect"
 	. "github.com/containers/libpod/test/utils"
@@ -40,12 +44,31 @@ type PodmanTestIntegration struct {
 	SignaturePolicyPath string
 	CgroupManager       string
 	Host                HostOS
+	Timings             []string
 }
+
+var LockTmpDir string
 
 // PodmanSessionIntegration sturct for command line session
 type PodmanSessionIntegration struct {
 	*PodmanSession
 }
+
+type testResult struct {
+	name   string
+	length float64
+}
+
+type testResultsSorted []testResult
+
+func (a testResultsSorted) Len() int      { return len(a) }
+func (a testResultsSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+type testResultsSortedLength struct{ testResultsSorted }
+
+func (a testResultsSorted) Less(i, j int) bool { return a[i].length < a[j].length }
+
+var testResults []testResult
 
 // TestLibpod ginkgo master function
 func TestLibpod(t *testing.T) {
@@ -60,7 +83,7 @@ func TestLibpod(t *testing.T) {
 	RunSpecs(t, "Libpod Suite")
 }
 
-var _ = BeforeSuite(func() {
+var _ = SynchronizedBeforeSuite(func() []byte {
 	//Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
@@ -72,6 +95,7 @@ var _ = BeforeSuite(func() {
 			os.Exit(1)
 		}
 	}
+
 	for _, image := range CACHE_IMAGES {
 		if err := podman.CreateArtifact(image); err != nil {
 			fmt.Printf("%q\n", err)
@@ -91,6 +115,68 @@ var _ = BeforeSuite(func() {
 			os.Exit(1)
 		}
 		f.Close()
+	}
+	path, err := ioutil.TempDir("", "libpodlock")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return []byte(path)
+}, func(data []byte) {
+	LockTmpDir = string(data)
+})
+
+func (p *PodmanTestIntegration) Setup() {
+	cwd, _ := os.Getwd()
+	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
+	p.ArtifactPath = ARTIFACT_DIR
+}
+
+//var _ = BeforeSuite(func() {
+//	cwd, _ := os.Getwd()
+//	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
+//	podman := PodmanTestCreate("/tmp")
+//	podman.ArtifactPath = ARTIFACT_DIR
+//	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
+//		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
+//			fmt.Printf("%q\n", err)
+//			os.Exit(1)
+//		}
+//	}
+//})
+// for _, image := range CACHE_IMAGES {
+// 	if err := podman.CreateArtifact(image); err != nil {
+// 		fmt.Printf("%q\n", err)
+// 		os.Exit(1)
+// 	}
+// }
+// host := GetHostDistributionInfo()
+// if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
+// 	f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
+// 	if err != nil {
+// 		fmt.Println("Unable to enable userspace on RHEL 7")
+// 		os.Exit(1)
+// 	}
+// 	_, err = f.WriteString("15000")
+// 	if err != nil {
+// 		fmt.Println("Unable to enable userspace on RHEL 7")
+// 		os.Exit(1)
+// 	}
+// 	f.Close()
+// }
+// path, err := ioutil.TempDir("", "libpodlock")
+// if err != nil {
+// 	fmt.Println(err)
+// 	os.Exit(1)
+// }
+// LockTmpDir = path
+//})
+
+var _ = AfterSuite(func() {
+	sort.Sort(testResultsSortedLength{testResults})
+	fmt.Println("integration timing results")
+	for _, result := range testResults {
+		fmt.Printf("%s\t\t%f\n", result.name, result.length)
 	}
 })
 
@@ -219,4 +305,20 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
+}
+
+func processTestResult(f GinkgoTestDescription) {
+	tr := testResult{length: f.Duration.Seconds(), name: f.TestText}
+	testResults = append(testResults, tr)
+}
+
+func GetPortLock(port string) storage.Locker {
+	lockFile := filepath.Join(LockTmpDir, port)
+	lock, err := storage.GetLockfile(lockFile)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	lock.Lock()
+	return lock
 }

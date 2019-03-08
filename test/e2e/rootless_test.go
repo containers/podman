@@ -45,14 +45,15 @@ var _ = Describe("Podman rootless", func() {
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.CgroupManager = "cgroupfs"
 		podmanTest.StorageOptions = ROOTLESS_STORAGE_OPTIONS
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman rootless help|version", func() {

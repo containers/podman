@@ -24,6 +24,7 @@ var _ = Describe("Podman pod create", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 		podmanTest.RestoreArtifact(infra)
 	})
@@ -31,8 +32,8 @@ var _ = Describe("Podman pod create", func() {
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman pod container share Namespaces", func() {

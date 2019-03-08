@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -25,6 +24,7 @@ var _ = Describe("Podman pod create", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 		podmanTest.RestoreArtifact(infra)
 	})
@@ -32,8 +32,8 @@ var _ = Describe("Podman pod create", func() {
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman create infra container", func() {
@@ -209,8 +209,7 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
-		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", fedoraMinimal, "curl", "localhost"})
+		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "localhost"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})

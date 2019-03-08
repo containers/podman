@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strconv"
 
@@ -44,14 +43,15 @@ var _ = Describe("Podman search", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman search", func() {
@@ -134,6 +134,9 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+
 		podmanTest.RestoreArtifact(registry)
 		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
@@ -157,6 +160,8 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
@@ -180,6 +185,8 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry4", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
@@ -212,6 +219,8 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry5", registry})
 		registry.WaitWithDefaultTimeout()
@@ -243,6 +252,8 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry6", registry})
 		registry.WaitWithDefaultTimeout()
@@ -274,6 +285,8 @@ var _ = Describe("Podman search", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
 		podmanTest.RestoreArtifact(registry)
 		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry7", registry})
 		registryLocal.WaitWithDefaultTimeout()

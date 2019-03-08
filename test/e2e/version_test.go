@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -27,8 +26,8 @@ var _ = Describe("Podman version", func() {
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman version", func() {

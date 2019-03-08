@@ -25,14 +25,15 @@ var _ = Describe("Podman ps", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman pod ps no pods", func() {

@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -25,6 +24,7 @@ var _ = Describe("Podman run", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
@@ -34,8 +34,8 @@ var _ = Describe("Podman run", func() {
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run selinux", func() {

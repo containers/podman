@@ -28,14 +28,15 @@ var _ = Describe("Podman ps", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman ps no containers", func() {
@@ -271,8 +272,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
-		session = podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "pwd"})
+		session = podmanTest.Podman([]string{"run", "-d", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 

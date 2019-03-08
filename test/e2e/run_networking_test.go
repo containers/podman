@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -25,14 +24,15 @@ var _ = Describe("Podman run networking", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run network connection with default bridge", func() {

@@ -5,7 +5,6 @@ package integration
 import (
 	"os"
 
-	"fmt"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,14 +23,15 @@ var _ = Describe("Podman UserNS support", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman uidmapping and gidmapping", func() {

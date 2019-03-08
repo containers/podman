@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
@@ -23,14 +22,15 @@ var _ = Describe("Podman inspect", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman inspect alpine image", func() {
@@ -57,7 +57,7 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "--no-trunc", ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(strings.Trim(result.OutputToString(), "sha256:")).To(Equal(session.OutputToString()))
+		Expect(strings.Contains(result.OutputToString(), session.OutputToString()))
 	})
 
 	It("podman inspect specified type", func() {

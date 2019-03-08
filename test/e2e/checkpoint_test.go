@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"os/exec"
@@ -27,6 +26,7 @@ var _ = Describe("Podman checkpoint", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
@@ -53,8 +53,8 @@ var _ = Describe("Podman checkpoint", func() {
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman checkpoint bogus container", func() {
