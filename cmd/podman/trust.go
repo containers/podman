@@ -14,6 +14,7 @@ var (
 			Use:   "trust",
 			Short: "Manage container image trust policy",
 			Long:  trustDescription,
+			RunE:  commandRunE(),
 		},
 	}
 )

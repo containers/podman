@@ -11,6 +11,7 @@ var healthcheckCommand = cliconfig.PodmanCommand{
 		Use:   "healthcheck",
 		Short: "Manage Healthcheck",
 		Long:  healthcheckDescription,
+		RunE:  commandRunE(),
 	},
 }
 

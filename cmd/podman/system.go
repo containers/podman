@@ -13,6 +13,7 @@ var (
 			Use:   "system",
 			Short: "Manage podman",
 			Long:  systemDescription,
+			RunE:  commandRunE(),
 		},
 	}
 )

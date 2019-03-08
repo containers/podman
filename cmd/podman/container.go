@@ -15,6 +15,7 @@ var (
 			Short:            "Manage Containers",
 			Long:             containerDescription,
 			TraverseChildren: true,
+			RunE:             commandRunE(),
 		},
 	}
 

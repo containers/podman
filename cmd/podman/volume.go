@@ -12,6 +12,7 @@ var volumeCommand = cliconfig.PodmanCommand{
 		Use:   "volume",
 		Short: "Manage volumes",
 		Long:  volumeDescription,
+		RunE:  commandRunE(),
 	},
 }
 var volumeSubcommands = []*cobra.Command{

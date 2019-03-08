@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/spf13/cobra"
 	"os"
 	"strings"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -65,6 +65,16 @@ func noSubArgs(c *cobra.Command, args []string) error {
 		return errors.Errorf("`%s` takes no arguments", c.CommandPath())
 	}
 	return nil
+}
+
+func commandRunE() func(*cobra.Command, []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 {
+			return errors.Errorf("unrecognized command `%s %s`\nTry '%s --help' for more information.", cmd.CommandPath(), args[0], cmd.CommandPath())
+		} else {
+			return errors.Errorf("missing command '%s COMMAND'\nTry '%s --help' for more information.", cmd.CommandPath(), cmd.CommandPath())
+		}
+	}
 }
 
 // getAllOrLatestContainers tries to return the correct list of containers
@@ -537,7 +547,7 @@ Description:
 // This blocks the desplaying of the global options. The main podman
 // command should not use this.
 func UsageTemplate() string {
-	return `Usage:{{if .Runnable}}
+	return `Usage:{{if (and .Runnable (not .HasAvailableSubCommands))}}
   {{.UseLine}}{{end}}{{if .HasAvailableSubCommands}}
   {{.CommandPath}} [command]{{end}}{{if gt (len .Aliases) 0}}
 
