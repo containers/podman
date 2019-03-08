@@ -277,6 +277,8 @@ reexec_in_user_namespace (int ready)
       _exit (EXIT_FAILURE);
     }
   close (ready);
+  if (b != '1')
+    _exit (EXIT_FAILURE);
 
   if (syscall_setresgid (0, 0, 0) < 0)
     {
