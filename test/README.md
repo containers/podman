@@ -105,3 +105,7 @@ You can run the test with following command:
 ```
 make localsystem
 ```
+
+## Contributing to system tests
+
+Please see [the TODO list of needed workflows/tests](system/TODO.md).
