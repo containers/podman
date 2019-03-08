@@ -4,11 +4,14 @@ package libpod
 
 import (
 	"context"
+	"strings"
 
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -17,7 +20,7 @@ const (
 	IDTruncLength = 12
 )
 
-func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string) (*Container, error) {
+func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string, config *v1.ImageConfig) (*Container, error) {
 
 	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
@@ -27,8 +30,23 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	isRootless := rootless.IsRootless()
 
+	entryCmd := []string{r.config.InfraCommand}
+	// default to entrypoint in image if there is one
+	if len(config.Entrypoint) > 0 {
+		entryCmd = config.Entrypoint
+	}
+	if len(config.Env) > 0 {
+		for _, nameValPair := range config.Env {
+			nameValSlice := strings.Split(nameValPair, "=")
+			if len(nameValSlice) < 2 {
+				return nil, errors.Errorf("Invalid environment variable structure in pause image")
+			}
+			g.AddProcessEnv(nameValSlice[0], nameValSlice[1])
+		}
+	}
+
 	g.SetRootReadonly(true)
-	g.SetProcessArgs([]string{r.config.InfraCommand})
+	g.SetProcessArgs(entryCmd)
 
 	if isRootless {
 		g.RemoveMount("/dev/pts")
@@ -79,5 +97,5 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makeInfraContainer(ctx, p, imageName, imageID)
+	return r.makeInfraContainer(ctx, p, imageName, imageID, newImage.Config)
 }
