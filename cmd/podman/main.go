@@ -65,19 +65,20 @@ var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_exportCommand:  true,
 	//// `info` must be executed in an user namespace.
 	//// If this change, please also update libpod.refreshRootless()
-	_loginCommand:   true,
-	_logoutCommand:  true,
-	_mountCommand:   true,
-	_killCommand:    true,
-	_pauseCommand:   true,
-	_podKillCommand: true,
-	_restartCommand: true,
-	_runCommand:     true,
-	_unpauseCommand: true,
-	_searchCommand:  true,
-	_statsCommand:   true,
-	_stopCommand:    true,
-	_topCommand:     true,
+	_loginCommand:    true,
+	_logoutCommand:   true,
+	_mountCommand:    true,
+	_killCommand:     true,
+	_pauseCommand:    true,
+	_podKillCommand:  true,
+	_podStatsCommand: true,
+	_restartCommand:  true,
+	_runCommand:      true,
+	_unpauseCommand:  true,
+	_searchCommand:   true,
+	_statsCommand:    true,
+	_stopCommand:     true,
+	_topCommand:      true,
 }
 
 var rootCmd = &cobra.Command{

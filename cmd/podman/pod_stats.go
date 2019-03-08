@@ -53,6 +53,11 @@ func init() {
 }
 
 func podStatsCmd(c *cliconfig.PodStatsValues) error {
+
+	if os.Geteuid() != 0 {
+		return errors.New("stats is not supported in rootless mode")
+	}
+
 	format := c.Format
 	all := c.All
 	latest := c.Latest
