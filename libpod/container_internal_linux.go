@@ -26,6 +26,7 @@ import (
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -366,6 +367,18 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// For private volumes any root propagation value should work.
 	rootPropagation := ""
 	for _, m := range mounts {
+		// We need to remove all symlinks from tmpfs mounts.
+		// Runc and other runtimes may choke on them.
+		// Easy solution: use securejoin to do a scoped evaluation of
+		// the links, then trim off the mount prefix.
+		if m.Type == "tmpfs" {
+			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error resolving symlinks for mount destination %s", m.Destination)
+			}
+			trimmedPath := strings.TrimPrefix(finalPath, strings.TrimSuffix(c.state.Mountpoint, "/"))
+			m.Destination = trimmedPath
+		}
 		g.AddMount(m)
 		for _, opt := range m.Options {
 			switch opt {
