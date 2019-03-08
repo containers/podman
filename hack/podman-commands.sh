@@ -35,6 +35,9 @@ function podman_man() {
         #   | [podman-cmd(1)\[(podman-cmd.1.md)   | Description ... |
         # For all such, print the 'cmd' portion (the one in brackets).
         sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/$1.1.md
+
+        # Special case: there is no podman-help man page, nor need for such.
+        echo "help"
     elif [ "$@" = "podman-image-trust" ]; then
         # Special case: set and show aren't actually in a table in the man page
         echo set

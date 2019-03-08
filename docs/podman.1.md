@@ -137,6 +137,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-exec(1)](podman-exec.1.md)        | Execute a command in a running container.                                      |
 | [podman-export(1)](podman-export.1.md)    | Export a container's filesystem contents as a tar archive.                     |
 | [podman-generate(1)](podman-generate.1.md)| Generate structured data based for a containers and pods.                      |
+| [podman-healthcheck(1)](podman-healthcheck.1.md)| Manage healthchecks for containers                                       |
 | [podman-history(1)](podman-history.1.md)  | Show the history of an image.                                                  |
 | [podman-image(1)](podman-image.1.md)      | Manage Images.                                                                 |
 | [podman-images(1)](podman-images.1.md)    | List images in local storage.                                                  |
