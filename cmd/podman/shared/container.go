@@ -665,6 +665,14 @@ func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]s
 			return envmap["OPT2"]
 		case "OPT3":
 			return envmap["OPT3"]
+		case "PWD":
+			// I would prefer to use os.getenv but it appears PWD is not in the os env list
+			d, err := os.Getwd()
+			if err != nil {
+				logrus.Error("unable to determine current working directory")
+				return ""
+			}
+			return d
 		}
 		return ""
 	}
