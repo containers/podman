@@ -67,6 +67,13 @@ env:
     RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1548099756"
 
     ####
+    #### Default to NOT running in rootless-testing mode
+    ####
+    ROOTLESS_USER:
+    ROOTLESS_UID:
+    ROOTLESS_GID:
+
+    ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
     ####
     # Freenode IRC credentials for posting status messages
@@ -94,7 +101,7 @@ env:
         CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
         CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
         CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
-        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID
+        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER ROOTLESS_UID ROOTLESS_GID
 
 
 # Every *_task runs in parallel in separate VMsd. The name prefix only for reference
@@ -218,6 +225,36 @@ testing_task:
         - $SCRIPT_BASE/unit_test.sh
 
     integration_test_script: $SCRIPT_BASE/integration_test.sh
+
+
+# This task executes tests as a regular user on a system
+rootless_testing_task:
+
+    depends_on:
+        - "gating"
+        - "build_each_commit"
+
+    gce_instance:
+        image_project: "libpod-218412"
+        zone: "us-central1-a"  # Required by Cirrus for the time being
+        cpu: 2
+        memory: "4Gb"
+        disk: 200
+        # A matrix could be used here, for now just one VM
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+
+    env:
+        ROOTLESS_USER: "olympiclongjumpingwithjesus"
+        ROOTLESS_UID: 123456
+        ROOTLESS_GID: 123456
+
+    timeout_in: 120m
+
+    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
+    rootless_test_script: >-
+        ssh $ROOTLESS_USER@localhost
+        -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no
+        $CIRRUS_WORKING_DIR/$SCRIPT_BASE/rootless_test.sh
 
 
 # Because system tests are stored within the repository, it is sometimes

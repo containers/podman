@@ -63,6 +63,26 @@ task (pass or fail) is set based on the exit status of the last script to execut
    Total execution time is capped at 2-hours (includes all the above)
    but this script normally completes in less than an hour.
 
+### ``rootless_testing`` Task
+
+***N/B: Steps below are performed by automation***
+
+1. After `gating` passes, spin up one VM per
+   `matrix: image_name` item. Once accessible, ``ssh``
+   into each VM as the `root` user.
+
+2. ``setup_environment.sh``: Configure root's `.bash_profile`
+   the same as for other tasks.  However, also add a regular
+   user account, chown all the source code to them.  Set up
+   fresh ssh pub/priv. keys for the root user, adding the
+   public part to the user's `authorized_keys` file.
+
+3. As root, call ssh to connect to localhost as the user,
+   and run the ``rootless_test.sh`` script from the source
+   tree.  This is needed so the user has a clean process tree
+   and environment - i.e. without `sudo`, `su`, `runuser`,
+   etc. in the mix.  From here, all testing as the user may
+   be performed.
 
 ### ``optional_testing`` Task
 
