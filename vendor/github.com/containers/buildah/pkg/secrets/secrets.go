@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -176,7 +177,7 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
-		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir); err != nil {
+		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPrefix, mountLabel, uid, gid); err != nil {
 			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
@@ -264,12 +265,15 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error {
+func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, mountLabel string, uid, gid int) error {
 	secretsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
-		if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
+		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil {
 			return errors.Wrapf(err, "making container directory on host failed")
+		}
+		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
+			return errors.Wrap(err, "error applying correct labels")
 		}
 	}
 	fipsFile := filepath.Join(ctrDirOnHost, "system-fips")
@@ -284,7 +288,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir string) error 
 
 	if !mountExists(*mounts, secretsDir) {
 		m := rspec.Mount{
-			Source:      ctrDirOnHost,
+			Source:      filepath.Join(mountPrefix, secretsDir),
 			Destination: secretsDir,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},

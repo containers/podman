@@ -22,27 +22,23 @@ const (
 	// BaseImageFakeName is the "name" of a source image which we interpret
 	// as "no image".
 	BaseImageFakeName = imagebuilder.NoBaseImageSpecifier
-
-	// minimumTruncatedIDLength is the minimum length of an identifier that
-	// we'll accept as possibly being a truncated image ID.
-	minimumTruncatedIDLength = 3
 )
 
-func pullAndFindImage(ctx context.Context, store storage.Store, transport string, imageName string, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
+func pullAndFindImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options BuilderOptions, sc *types.SystemContext) (*storage.Image, types.ImageReference, error) {
 	pullOptions := PullOptions{
 		ReportWriter:  options.ReportWriter,
 		Store:         store,
 		SystemContext: options.SystemContext,
 		BlobDirectory: options.PullBlobDirectory,
 	}
-	ref, err := pullImage(ctx, store, transport, imageName, pullOptions, sc)
+	ref, err := pullImage(ctx, store, srcRef, pullOptions, sc)
 	if err != nil {
-		logrus.Debugf("error pulling image %q: %v", imageName, err)
+		logrus.Debugf("error pulling image %q: %v", transports.ImageName(srcRef), err)
 		return nil, nil, err
 	}
 	img, err := is.Transport.GetStoreImage(store, ref)
 	if err != nil {
-		logrus.Debugf("error reading pulled image %q: %v", imageName, err)
+		logrus.Debugf("error reading pulled image %q: %v", transports.ImageName(srcRef), err)
 		return nil, nil, errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(ref))
 	}
 	return img, ref, nil
@@ -112,19 +108,36 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 
 	failures := []failure{}
 	for _, image := range candidates {
-		var err error
-		if len(image) >= minimumTruncatedIDLength {
-			if img, err := store.Image(image); err == nil && img != nil && strings.HasPrefix(img.ID, image) {
-				ref, err := is.Transport.ParseStoreReference(store, img.ID)
-				if err != nil {
-					return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
-				}
-				return ref, transport, img, nil
+		if transport == "" {
+			img, err := store.Image(image)
+			if err != nil {
+				logrus.Debugf("error looking up known-local image %q: %v", image, err)
+				failures = append(failures, failure{resolvedImageName: image, err: err})
+				continue
 			}
+			ref, err := is.Transport.ParseStoreReference(store, img.ID)
+			if err != nil {
+				return nil, "", nil, errors.Wrapf(err, "error parsing reference to image %q", img.ID)
+			}
+			return ref, transport, img, nil
+		}
+
+		trans := transport
+		if transport != util.DefaultTransport {
+			trans = trans + ":"
+		}
+		srcRef, err := alltransports.ParseImageName(trans + image)
+		if err != nil {
+			logrus.Debugf("error parsing image name %q: %v", trans+image, err)
+			failures = append(failures, failure{
+				resolvedImageName: image,
+				err:               errors.Wrapf(err, "error parsing attempted image name %q", trans+image),
+			})
+			continue
 		}
 
 		if options.PullPolicy == PullAlways {
-			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, transport, image, options, systemContext)
+			pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
 			if err != nil {
 				logrus.Debugf("unable to pull and read image %q: %v", image, err)
 				failures = append(failures, failure{resolvedImageName: image, err: err})
@@ -133,35 +146,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 			return pulledReference, transport, pulledImg, nil
 		}
 
-		srcRef, err := alltransports.ParseImageName(image)
-		if err != nil {
-			if transport == "" {
-				logrus.Debugf("error parsing image name %q: %v", image, err)
-				failures = append(failures, failure{
-					resolvedImageName: image,
-					err:               errors.Wrapf(err, "error parsing image name"),
-				})
-				continue
-			}
-			logrus.Debugf("error parsing image name %q as given, trying with transport %q: %v", image, transport, err)
-
-			trans := transport
-			if transport != util.DefaultTransport {
-				trans = trans + ":"
-			}
-			srcRef2, err := alltransports.ParseImageName(trans + image)
-			if err != nil {
-				logrus.Debugf("error parsing image name %q: %v", transport+image, err)
-				failures = append(failures, failure{
-					resolvedImageName: image,
-					err:               errors.Wrapf(err, "error parsing attempted image name %q", transport+image),
-				})
-				continue
-			}
-			srcRef = srcRef2
-		}
-
-		destImage, err := localImageNameForReference(ctx, store, srcRef, options.FromImage)
+		destImage, err := localImageNameForReference(ctx, store, srcRef)
 		if err != nil {
 			return nil, "", nil, errors.Wrapf(err, "error computing local image name for %q", transports.ImageName(srcRef))
 		}
@@ -187,7 +172,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 			continue
 		}
 
-		pulledImg, pulledReference, err := pullAndFindImage(ctx, store, transport, image, options, systemContext)
+		pulledImg, pulledReference, err := pullAndFindImage(ctx, store, srcRef, options, systemContext)
 		if err != nil {
 			logrus.Debugf("unable to pull and read image %q: %v", image, err)
 			failures = append(failures, failure{resolvedImageName: image, err: err})
