@@ -665,18 +665,21 @@ func (c *Container) makeBindMounts() error {
 
 	if !netDisabled {
 		// If /etc/resolv.conf and /etc/hosts exist, delete them so we
-		// will recreate
-		if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
+		// will recreate. Only do this if we aren't sharing them with
+		// another container.
+		if c.config.NetNsCtr == "" {
+			if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+					return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
+				}
+				delete(c.state.BindMounts, "/etc/resolv.conf")
 			}
-			delete(c.state.BindMounts, "/etc/resolv.conf")
-		}
-		if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return errors.Wrapf(err, "error removing container %s hosts", c.ID())
+			if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
+				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+					return errors.Wrapf(err, "error removing container %s hosts", c.ID())
+				}
+				delete(c.state.BindMounts, "/etc/hosts")
 			}
-			delete(c.state.BindMounts, "/etc/hosts")
 		}
 
 		if c.config.NetNsCtr != "" {
