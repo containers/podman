@@ -12,6 +12,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -34,9 +35,24 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
 	if config != nil {
+		setEntrypoint := false
 		// default to entrypoint in image if there is one
 		if len(config.Entrypoint) > 0 {
 			entryCmd = config.Entrypoint
+			setEntrypoint = true
+		}
+		if len(config.Cmd) > 0 {
+			// We can't use the default pause command, since we're
+			// sourcing from the image. If we didn't already set an
+			// entrypoint, set one now.
+			if !setEntrypoint {
+				// Use the Docker default "/bin/sh -c"
+				// entrypoint, as we're overriding command.
+				// If an image doesn't want this, it can
+				// override entrypoint too.
+				entryCmd = []string{"/bin/sh", "-c"}
+			}
+			entryCmd = append(entryCmd, config.Cmd...)
 		}
 		if len(config.Env) > 0 {
 			for _, nameValPair := range config.Env {
@@ -51,6 +67,8 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	g.SetRootReadonly(true)
 	g.SetProcessArgs(entryCmd)
+
+	logrus.Debugf("Using %q as infra container entrypoint", entryCmd)
 
 	if isRootless {
 		g.RemoveMount("/dev/pts")
