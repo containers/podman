@@ -31,9 +31,6 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	isRootless := rootless.IsRootless()
 
 	entryCmd := []string{r.config.InfraCommand}
-	if config == nil {
-
-	}
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
 	if config != nil {
