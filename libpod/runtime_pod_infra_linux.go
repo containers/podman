@@ -31,17 +31,24 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	isRootless := rootless.IsRootless()
 
 	entryCmd := []string{r.config.InfraCommand}
-	// default to entrypoint in image if there is one
-	if len(config.Entrypoint) > 0 {
-		entryCmd = config.Entrypoint
+	if config == nil {
+
 	}
-	if len(config.Env) > 0 {
-		for _, nameValPair := range config.Env {
-			nameValSlice := strings.Split(nameValPair, "=")
-			if len(nameValSlice) < 2 {
-				return nil, errors.Errorf("Invalid environment variable structure in pause image")
+	// I've seen circumstances where config is being passed as nil.
+	// Let's err on the side of safety and make sure it's safe to use.
+	if config != nil {
+		// default to entrypoint in image if there is one
+		if len(config.Entrypoint) > 0 {
+			entryCmd = config.Entrypoint
+		}
+		if len(config.Env) > 0 {
+			for _, nameValPair := range config.Env {
+				nameValSlice := strings.Split(nameValPair, "=")
+				if len(nameValSlice) < 2 {
+					return nil, errors.Errorf("Invalid environment variable structure in pause image")
+				}
+				g.AddProcessEnv(nameValSlice[0], nameValSlice[1])
 			}
-			g.AddProcessEnv(nameValSlice[0], nameValSlice[1])
 		}
 	}
 
@@ -97,5 +104,5 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makeInfraContainer(ctx, p, imageName, imageID, newImage.Config)
+	return r.makeInfraContainer(ctx, p, imageName, imageID, data.Config)
 }
