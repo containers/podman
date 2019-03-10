@@ -92,5 +92,5 @@ func (r *Runtime) getTail(fromStart, stream bool) (*tail.Tail, error) {
 		seek.Whence = 0
 		reopen = false
 	}
-	return tail.TailFile(r.config.EventsLogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek})
+	return tail.TailFile(r.config.EventsLogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek, Logger: tail.DiscardingLogger})
 }

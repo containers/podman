@@ -1,13 +1,13 @@
 % podman-logs(1)
 
 ## NAME
-podman\-logs - Fetch the logs of a container
+podman\-logs - Fetch the logs of one or more containers
 
 ## SYNOPSIS
-**podman** **logs** [*options*] *container*
+**podman** **logs** [*options*] *container* [*container...*]
 
 ## DESCRIPTION
-The podman logs command batch-retrieves whatever logs are present for a container at the time of execution.
+The podman logs command batch-retrieves whatever logs are present for one or more containers at the time of execution.
 This does not guarantee execution order when combined with podman run (i.e. your run may not have generated
 any logs at the time you execute podman logs
 

@@ -19,6 +19,14 @@ type StringResponse (
     message: string
 )
 
+type LogLine (
+    device: string,
+    parseLogType : string,
+    time: string,
+    msg: string,
+    cid: string
+)
+
 # ContainerChanges describes the return struct for ListContainerChanges
 type ContainerChanges (
    changed: []string,
@@ -521,6 +529,8 @@ method ListContainerProcesses(name: string, opts: []string) -> (container: []str
 # The container logs are returned as an array of strings.  GetContainerLogs will honor the streaming
 # capability of varlink if the client invokes it.
 method GetContainerLogs(name: string) -> (container: []string)
+
+method GetContainersLogs(names: []string, follow: bool, latest: bool, since: string, tail: int, timestamps: bool) -> (log: LogLine)
 
 # ListContainerChanges takes a name or ID of a container and returns changes between the container and
 # its base image. It returns a struct of changed, deleted, and added path names.
