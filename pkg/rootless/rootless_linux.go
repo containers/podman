@@ -61,6 +61,11 @@ func SkipStorageSetup() bool {
 	return skipStorageSetup
 }
 
+// Argument returns the argument that was set for the rootless session.
+func Argument() string {
+	return os.Getenv("_LIBPOD_ROOTLESS_ARG")
+}
+
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
 	uidEnv := os.Getenv("_LIBPOD_ROOTLESS_UID")
@@ -135,8 +140,16 @@ func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
 
 // JoinDirectUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
-// the conmon process.
+// the conmon process.  It is a convenience function for JoinDirectUserAndMountNSWithOpts
+// with a default configuration.
 func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
+	return JoinDirectUserAndMountNSWithOpts(pid, nil)
+}
+
+// JoinDirectUserAndMountNSWithOpts re-exec podman in a new userNS and join the user and
+// mount namespace of the specified PID without looking up its parent.  Useful to join
+// directly the conmon process.
+func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
@@ -152,6 +165,12 @@ func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
 		return false, -1, err
 	}
 	defer userNS.Close()
+
+	if opts != nil && opts.Argument != "" {
+		if err := os.Setenv("_LIBPOD_ROOTLESS_ARG", opts.Argument); err != nil {
+			return false, -1, err
+		}
+	}
 
 	pidC := C.reexec_userns_join(C.int(userNS.Fd()), C.int(mountNS.Fd()))
 	if int(pidC) < 0 {
@@ -211,8 +230,16 @@ func getMinimumIDs(p string) int {
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
-// process.
+// process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
 func BecomeRootInUserNS() (bool, int, error) {
+	return BecomeRootInUserNSWithOpts(nil)
+}
+
+// BecomeRootInUserNSWithOpts re-exec podman in a new userNS.  It returns whether podman was
+// re-execute into a new user namespace and the return code from the re-executed podman process.
+// If podman was re-executed the caller needs to propagate the error code returned by the child
+// process.
+func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -230,6 +257,12 @@ func BecomeRootInUserNS() (bool, int, error) {
 	defer r.Close()
 	defer w.Close()
 	defer w.Write([]byte("0"))
+
+	if opts != nil && opts.Argument != "" {
+		if err := os.Setenv("_LIBPOD_ROOTLESS_ARG", opts.Argument); err != nil {
+			return false, -1, err
+		}
+	}
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
 	pid := int(pidC)
