@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -183,6 +184,15 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 		defer os.Remove(file)
 		source = file
 	}
+	// if it's stdin, buffer it, too
+	if source == "-" {
+		file, err := downloadFromFile(os.Stdin)
+		if err != nil {
+			return "", err
+		}
+		defer os.Remove(file)
+		source = file
+	}
 
 	newImage, err := r.imageRuntime.Import(ctx, source, reference, writer, image.SigningOptions{}, config)
 	if err != nil {
@@ -211,6 +221,25 @@ func downloadFromURL(source string) (string, error) {
 	_, err = io.Copy(outFile, response.Body)
 	if err != nil {
 		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
+	}
+
+	return outFile.Name(), nil
+}
+
+// donwloadFromFile reads all of the content from the reader and temporarily
+// saves in it /var/tmp/importxyz, which is deleted after the image is imported
+func downloadFromFile(reader *os.File) (string, error) {
+	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	if err != nil {
+		return "", errors.Wrap(err, "error creating file")
+	}
+	defer outFile.Close()
+
+	logrus.Debugf("saving %s to %s", reader.Name(), outFile.Name())
+
+	_, err = io.Copy(outFile, reader)
+	if err != nil {
+		return "", errors.Wrapf(err, "error saving %s to %s", reader.Name(), outFile.Name())
 	}
 
 	return outFile.Name(), nil
