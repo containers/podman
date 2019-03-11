@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -91,7 +92,7 @@ func loadCmd(c *cliconfig.LoadValues) error {
 			input = outFile.Name()
 		}
 	}
-	if err := validateFileName(input); err != nil {
+	if err := parse.ValidateFileName(input); err != nil {
 		return err
 	}
 

@@ -136,3 +136,5 @@ func CreatePortBindings(ports []string) ([]ocicni.PortMapping, error) {
 	}
 	return portBindings, nil
 }
+
+var DefaultKernelNamespaces = "cgroup,ipc,net,uts"

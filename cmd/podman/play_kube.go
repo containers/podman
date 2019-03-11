@@ -111,7 +111,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 	podOptions = append(podOptions, libpod.WithPodName(podName))
 	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
 
-	nsOptions, err := shared.GetNamespaceOptions(strings.Split(DefaultKernelNamespaces, ","))
+	nsOptions, err := shared.GetNamespaceOptions(strings.Split(shared.DefaultKernelNamespaces, ","))
 	if err != nil {
 		return err
 	}
@@ -174,7 +174,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 				return errors.Errorf("Directories are the only supported HostPath type")
 			}
 		}
-		if err := validateVolumeHostDir(hostPath.Path); err != nil {
+		if err := shared.ValidateVolumeHostDir(hostPath.Path); err != nil {
 			return errors.Wrapf(err, "Error in parsing HostPath in YAML")
 		}
 		fmt.Println(volume.Name)
@@ -190,7 +190,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		if err != nil {
 			return err
 		}
-		ctr, err := createContainerFromCreateConfig(runtime, createConfig, ctx, pod)
+		ctr, err := shared.CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 		if err != nil {
 			return err
 		}
@@ -286,7 +286,7 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
-		if err := validateVolumeCtrDir(volume.MountPath); err != nil {
+		if err := shared.ValidateVolumeCtrDir(volume.MountPath); err != nil {
 			return nil, errors.Wrapf(err, "error in parsing MountPath")
 		}
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", host_path, volume.MountPath))

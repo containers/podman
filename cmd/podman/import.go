@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -67,7 +68,7 @@ func importCmd(c *cliconfig.ImportValues) error {
 		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
 	}
 
-	if err := validateFileName(source); err != nil {
+	if err := parse.ValidateFileName(source); err != nil {
 		return err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -70,7 +71,7 @@ func exportCmd(c *cliconfig.ExportValues) error {
 		}
 	}
 
-	if err := validateFileName(output); err != nil {
+	if err := parse.ValidateFileName(output); err != nil {
 		return err
 	}
 	return runtime.Export(args[0], output)

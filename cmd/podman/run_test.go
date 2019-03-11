@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/inspect"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/go-units"
@@ -80,7 +81,7 @@ func getRuntimeSpec(c *cliconfig.PodmanCommand) (*spec.Spec, error) {
 		createConfig, err := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
 	*/
 	ctx := getContext()
-	createConfig, err := parseCreateOpts(ctx, c, nil, "alpine", generateAlpineImageData())
+	createConfig, err := shared.ParseCreateOpts(ctx, c, nil, "alpine", generateAlpineImageData())
 	if err != nil {
 		return nil, err
 	}
