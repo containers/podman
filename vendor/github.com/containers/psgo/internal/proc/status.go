@@ -21,7 +21,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/containers/psgo/internal/types"
 	"github.com/pkg/errors"
 )
 
@@ -207,11 +206,11 @@ func readStatusDefault(pid string) ([]string, error) {
 }
 
 // ParseStatus parses the /proc/$pid/status file and returns a *Status.
-func ParseStatus(ctx *types.PsContext, pid string) (*Status, error) {
+func ParseStatus(pid string, joinUserNS bool) (*Status, error) {
 	var lines []string
 	var err error
 
-	if ctx.JoinUserNS {
+	if joinUserNS {
 		lines, err = readStatusUserNS(pid)
 	} else {
 		lines, err = readStatusDefault(pid)

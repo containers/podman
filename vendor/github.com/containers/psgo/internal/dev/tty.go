@@ -31,12 +31,9 @@ type TTY struct {
 	Path string
 }
 
-// cache TTYs to avoid redundant lookups
-var devices *[]TTY
-
 // FindTTY return the corresponding TTY to the ttyNr or nil of non could be
 // found.
-func FindTTY(ttyNr uint64) (*TTY, error) {
+func FindTTY(ttyNr uint64, devices *[]TTY) (*TTY, error) {
 	// (man 5 proc) The minor device number is contained in the combination
 	// of bits 31 to 20 and 7 to 0; the major device number is in bits 15
 	// to 8.
@@ -44,7 +41,7 @@ func FindTTY(ttyNr uint64) (*TTY, error) {
 	min := (ttyNr & 0xFF) | ((ttyNr >> 20) & 0xFFF)
 
 	if devices == nil {
-		devs, err := getTTYs()
+		devs, err := TTYs()
 		if err != nil {
 			return nil, err
 		}
@@ -70,8 +67,8 @@ func minDevNum(rdev uint64) uint64 {
 	return (rdev & 0xff) | ((rdev >> 12) & 0xfff00)
 }
 
-// getTTYs parses /dev for tty and pts devices.
-func getTTYs() (*[]TTY, error) {
+// TTYs parses /dev for tty and pts devices.
+func TTYs() (*[]TTY, error) {
 	devDir, err := os.Open("/dev/")
 	if err != nil {
 		return nil, err
