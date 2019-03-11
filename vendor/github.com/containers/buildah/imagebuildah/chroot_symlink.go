@@ -24,9 +24,7 @@ func init() {
 	reexec.Register(symlinkModifiedTime, resolveSymlinkTimeModified)
 }
 
-// main() for grandparent subprocess.  Its main job is to shuttle stdio back
-// and forth, managing a pseudo-terminal if we want one, for our child, the
-// parent subprocess.
+// main() for resolveSymlink()'s subprocess.
 func resolveChrootedSymlinks() {
 	status := 0
 	flag.Parse()
@@ -57,9 +55,9 @@ func resolveChrootedSymlinks() {
 	os.Exit(status)
 }
 
-// ResolveSymLink (in the grandparent process) resolves any symlink in filename
+// resolveSymlink uses a child subprocess to resolve any symlinks in filename
 // in the context of rootdir.
-func ResolveSymLink(rootdir, filename string) (string, error) {
+func resolveSymlink(rootdir, filename string) (string, error) {
 	// The child process expects a chroot and one path that
 	// will be consulted relative to the chroot directory and evaluated
 	// for any symbolic links present.
@@ -253,7 +251,7 @@ func hasSymlink(path string) (bool, string, error) {
 	}
 	// if the symlink points to a relative path, prepend the path till now to the resolved path
 	if !filepath.IsAbs(targetDir) {
-		targetDir = filepath.Join(path, targetDir)
+		targetDir = filepath.Join(filepath.Dir(path), targetDir)
 	}
 	// run filepath.Clean to remove the ".." from relative paths
 	return true, filepath.Clean(targetDir), nil
