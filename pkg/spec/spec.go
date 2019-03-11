@@ -454,10 +454,6 @@ func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
-	if config.PidMode.IsHost() && rootless.IsRootless() {
-		return
-	}
-
 	if !config.Privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
@@ -469,8 +465,13 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			"/proc/sched_debug",
 			"/proc/scsi",
 			"/sys/firmware",
+			"/sys/fs/selinux",
 		} {
 			g.AddLinuxMaskedPaths(mp)
+		}
+
+		if config.PidMode.IsHost() && rootless.IsRootless() {
+			return
 		}
 
 		for _, rp := range []string{
