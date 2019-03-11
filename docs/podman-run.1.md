@@ -170,8 +170,7 @@ Detached mode: run the container in the background and print the new container I
 
 At any time you can run **podman ps** in
 the other shell to view a list of the running containers. You can reattach to a
-detached container with **podman attach**. If you choose to run a container in
-the detached mode, then you cannot use the **-rm** option.
+detached container with **podman attach**.
 
 When attached in the tty mode, you can detach from the container (and leave it
 running) using a configurable key sequence. The default sequence is `CTRL-p CTRL-q`.
