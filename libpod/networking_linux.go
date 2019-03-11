@@ -139,10 +139,15 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer ctr.rootlessSlirpSyncR.Close()
 	defer ctr.rootlessSlirpSyncW.Close()
 
-	path, err := exec.LookPath("slirp4netns")
-	if err != nil {
-		logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
-		return nil
+	path := r.config.NetworkCmdPath
+
+	if path == "" {
+		var err error
+		path, err = exec.LookPath("slirp4netns")
+		if err != nil {
+			logrus.Errorf("could not find slirp4netns, the network namespace won't be configured: %v", err)
+			return nil
+		}
 	}
 
 	syncR, syncW, err := os.Pipe()

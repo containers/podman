@@ -217,6 +217,8 @@ type RuntimeConfig struct {
 	EnablePortReservation bool `toml:"enable_port_reservation"`
 	// EnableLabeling indicates wether libpod will support container labeling
 	EnableLabeling bool `toml:"label"`
+	// NetworkCmdPath is the path to the slirp4netns binary
+	NetworkCmdPath string `toml:"network_cmd_path"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
