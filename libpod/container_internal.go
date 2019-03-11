@@ -1086,7 +1086,7 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 			return nil
 		}
