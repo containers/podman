@@ -52,6 +52,7 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Mem_free:        host["MemFree"].(int64),
 		Mem_total:       host["MemTotal"].(int64),
 		Swap_free:       host["SwapFree"].(int64),
+		Swap_total:      host["SwapTotal"].(int64),
 		Arch:            host["arch"].(string),
 		Cpus:            int64(host["cpus"].(int)),
 		Hostname:        host["hostname"].(string),
