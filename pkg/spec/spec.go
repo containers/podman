@@ -298,6 +298,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	blockAccessToKernelFilesystems(config, &g)
+	if !inUserNS {
+		g.AddLinuxMaskedPaths("/proc/keys")
+	}
 
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit != 0 {
@@ -354,6 +357,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		seccompConfig, err := getSeccompConfig(config, configSpec)
 		if err != nil {
 			return nil, err
+		}
+		if inUserNS {
+			seccompConfig.Syscalls = append(seccompConfig.Syscalls, spec.LinuxSyscall{Names: []string{"keyctl", "add_key", "request_key"}, Action: spec.ActAllow})
 		}
 		configSpec.Linux.Seccomp = seccompConfig
 	}
@@ -472,7 +478,6 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 		for _, mp := range []string{
 			"/proc/acpi",
 			"/proc/kcore",
-			"/proc/keys",
 			"/proc/latency_stats",
 			"/proc/timer_list",
 			"/proc/timer_stats",
