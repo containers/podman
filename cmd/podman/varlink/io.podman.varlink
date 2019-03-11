@@ -656,7 +656,7 @@ method RemoveContainer(name: string, force: bool, removeVolumes: bool) -> (conta
 method DeleteStoppedContainers() -> (containers: []string)
 
 # ListImages returns information about the images that are currently in storage.
-# See also [InspectImage](InspectImage).
+# See also [InspectImage](#InspectImage).
 method ListImages() -> (images: []Image)
 
 # GetImage returns information about a single image in storage.
