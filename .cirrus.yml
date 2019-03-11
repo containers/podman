@@ -217,14 +217,9 @@ testing_task:
 
     # Every *_script runs in sequence, for each task. The name prefix is for
     # WebUI reference.  The values may be strings...
-    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
-
-    # ...or lists of strings
-    unit_test_script:
-        - go version
-        - $SCRIPT_BASE/unit_test.sh
-
-    integration_test_script: $SCRIPT_BASE/integration_test.sh
+    setup_environment_script: $SCRIPT_BASE/notice_master_failure.sh $SCRIPT_BASE/setup_environment.sh
+    unit_test_script: $SCRIPT_BASE/notice_master_failure.sh $SCRIPT_BASE/unit_test.sh
+    integration_test_script: $SCRIPT_BASE/notice_master_failure.sh $SCRIPT_BASE/integration_test.sh
 
 
 # This task executes tests as a regular user on a system
@@ -250,9 +245,9 @@ rootless_testing_task:
 
     timeout_in: 120m
 
-    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
+    setup_environment_script: $SCRIPT_BASE/notice_master_failure.sh $SCRIPT_BASE/setup_environment.sh
     rootless_test_script: >-
-        ssh $ROOTLESS_USER@localhost
+        $SCRIPT_BASE/notice_master_failure.sh ssh $ROOTLESS_USER@localhost
         -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no
         $CIRRUS_WORKING_DIR/$SCRIPT_BASE/rootless_test.sh
 
