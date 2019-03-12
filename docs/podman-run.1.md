@@ -524,8 +524,19 @@ To find the mapping between the host ports and the exposed ports, use `podman po
 
 **--pull**=*true*|*false*
 
-If an image already exists in the local storage, but it is out of date with the
-respective image in its source repository, update the image before creating the container.
+When the flag is enabled, attempt to pull the latest image from the registries listed
+in registries.conf if a local image does not exist or the image is newer than the one in storage.
+Raise an error if the image is not in any listed registry and is not present locally.
+
+If the flag is disabled (with --pull=false), do not pull the image from the registry,
+use only the local version.
+
+Default is *false*
+
+**--pull-always**=*true*|*false*
+
+Pull the image from the first registry it is found in as listed in registries.conf.
+Raise an error if not found in the registries, even if the image is present locally.
 
 **--quiet, -q**
 

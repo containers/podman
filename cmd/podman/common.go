@@ -427,6 +427,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Publish all exposed ports to random ports on the host interface",
 	)
 	createFlags.Bool(
+		"pull-always", false,
+		"Pull the image, even if a version is present",
+	)
+	createFlags.Bool(
 		"pull", false,
 		"Update the image if it exists in storage but is older than its source (default false)",
 	)
