@@ -640,7 +640,7 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 			}
 			imageID = newImage[0].ID()
 		} else {
-			newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", output, &dockerRegistryOptions, so, false, nil)
+			newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", output, &dockerRegistryOptions, so, false, nil, false)
 			if err != nil {
 				c <- errors.Wrapf(err, "unable to pull %s", name)
 			}

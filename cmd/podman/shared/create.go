@@ -75,7 +75,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			writer = os.Stderr
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, c.InputArgs[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false, nil)
+		newImage, err := runtime.ImageRuntime().New(ctx, c.InputArgs[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false, nil, c.Bool("pull"))
 		if err != nil {
 			return nil, nil, err
 		}

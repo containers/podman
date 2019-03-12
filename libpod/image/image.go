@@ -143,7 +143,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string, update bool) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -154,22 +154,39 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		Local:        false,
 		imageruntime: ir,
 	}
+
+	if signaturePolicyPath == "" {
+		signaturePolicyPath = ir.SignaturePolicyPath
+	}
+
+	var imageName []string
+	var err error
+
 	if !forcePull {
 		localImage, err := newImage.getLocalImage()
+		if update {
+			if err != nil {
+				return nil, errors.Wrapf(err, "Can't update an image that isn't in local storage")
+			}
+			// check if it needs updating, and if so update it
+			imageName, err = ir.pullImageFromHeuristicSourceIfNecessary(ctx, localImage, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+		}
+		// If we actually called pullImageFromHeuristicSourceIfNecessary,
+		// and err was returned nil, then we don't need to update the local image.
+		// Hence, this if statement being separated from the above statement
 		if err == nil {
 			newImage.Local = true
 			newImage.image = localImage
 			return &newImage, nil
 		}
 	}
-
-	// The image is not local
-	if signaturePolicyPath == "" {
-		signaturePolicyPath = ir.SignaturePolicyPath
-	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to pull %s", name)
+	// We have yet to find any imageNames (we didn't attempt to update a local image)
+	if len(imageName) == 0 {
+		// The image is not local
+		imageName, err = ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to pull %s", name)
+		}
 	}
 
 	newImage.InputName = imageName[0]

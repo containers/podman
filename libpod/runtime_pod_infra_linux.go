@@ -107,7 +107,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil, false)
 	if err != nil {
 		return nil, err
 	}

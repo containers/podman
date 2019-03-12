@@ -39,7 +39,6 @@ var _ = Describe("Podman run", func() {
 		processTestResult(f)
 
 	})
-
 	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -762,5 +761,41 @@ USER mail`
 		session := podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", "--no-hosts", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
+	})
+
+	It("podman run --pull from local registry", func() {
+		if podmanTest.Host.Arch == "ppc64le" {
+			Skip("No registry image for ppc64le")
+		}
+		lock := GetPortLock("5000")
+		defer lock.Unlock()
+		podmanTest.RestoreArtifact(registry)
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+			Skip("Can not start docker registry.")
+		}
+
+		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push.WaitWithDefaultTimeout()
+		Expect(push.ExitCode()).To(Equal(0))
+
+		// get my-alpine in local storage
+		run := podmanTest.Podman([]string{"run", "--rm", "localhost:5000/my-alpine", "ls"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+
+		// update it
+		push = podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push.WaitWithDefaultTimeout()
+		Expect(push.ExitCode()).To(Equal(0))
+
+		// run and pull updated image
+		run = podmanTest.Podman([]string{"run", "--pull", "true", "--rm", "localhost:5000/my-alpine", "ls"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+		Expect(run.LineInOutputContains("Yup")).To(BeTrue())
 	})
 })

@@ -100,7 +100,7 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 
 // New calls into local storage to look for an image in local storage or to pull it
 func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
-	img, err := r.Runtime.ImageRuntime().New(ctx, name, signaturePolicyPath, authfile, writer, dockeroptions, signingoptions, forcePull, label)
+	img, err := r.Runtime.ImageRuntime().New(ctx, name, signaturePolicyPath, authfile, writer, dockeroptions, signingoptions, forcePull, label, false)
 	if err != nil {
 		return nil, err
 	}

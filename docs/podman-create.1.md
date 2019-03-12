@@ -530,6 +530,11 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
+**--pull**=*true*|*false*
+
+If an image already exists in the local storage, but it is out of date with the
+respective image in its source repository, update the image before creating the container.
+
 **--quiet, -q**
 
 Suppress output information when pulling images
