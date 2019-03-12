@@ -44,6 +44,7 @@ There are other equivalents for these tools
 | `docker container`|[`podman container`](./docs/podman-container.1.md) |
 | `docker create`  | [`podman create`](./docs/podman-create.1.md)    |
 | `docker diff`    | [`podman diff`](./docs/podman-diff.1.md)        |
+| `docker events`  | [`podman events`](./docs/podman-events.1.md)    |
 | `docker export`  | [`podman export`](./docs/podman-export.1.md)    |
 | `docker history` | [`podman history`](./docs/podman-history.1.md)  |
 | `docker image`   | [`podman image`](./docs/podman-image.1.md)        |
@@ -89,7 +90,6 @@ Those Docker commands currently do not have equivalents in `podman`:
 
 | Missing command | Description|
 | :--- | :--- |
-| `docker events`   ||
 | `docker network`  ||
 | `docker node`     ||
 | `docker plugin`   | podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|

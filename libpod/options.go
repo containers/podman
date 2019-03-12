@@ -286,7 +286,6 @@ func WithTmpDir(dir string) RuntimeOption {
 		if rt.valid {
 			return ErrRuntimeFinalized
 		}
-
 		rt.config.TmpDir = dir
 		rt.configuredFrom.libpodTmpDirSet = true
 

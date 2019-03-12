@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
@@ -228,6 +229,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, err
 		}
 	}
+	ctr.newContainerEvent(events.Create)
 	return ctr, nil
 }
 
@@ -239,7 +241,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
 	return r.removeContainer(ctx, c, force, removeVolume)
 }
 
@@ -430,6 +431,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
+	c.newContainerEvent(events.Remove)
 	return cleanupErr
 }
 

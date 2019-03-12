@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -73,7 +74,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if err := r.state.AddVolume(volume); err != nil {
 		return nil, errors.Wrapf(err, "error adding volume to state")
 	}
-
+	defer volume.newVolumeEvent(events.Create)
 	return volume, nil
 }
 
@@ -118,7 +119,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		return errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
 	}
 
+	defer v.newVolumeEvent(events.Remove)
 	logrus.Debugf("Removed volume %s", v.Name())
-
 	return nil
 }

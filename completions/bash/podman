@@ -2438,6 +2438,22 @@ _podman_play_kube() {
     esac
 }
 
+_podman_events() {
+    local options_with_args="
+     --help
+     --h
+     --filter
+     --format
+     --since
+     --until
+    "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
 _podman_container_runlabel() {
     local options_with_args="
      --authfile
@@ -3027,6 +3043,7 @@ _podman_podman() {
     cp
     create
     diff
+    events
     exec
     export
     generate

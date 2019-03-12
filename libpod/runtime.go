@@ -223,6 +223,9 @@ type RuntimeConfig struct {
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
+
+	// EventsLogFilePath is where the events log is stored.
+	EventsLogFilePath string `toml:-"events_logfile_path"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -459,7 +462,6 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 			}
 		}
 	}
-
 	return runtime, nil
 }
 
@@ -535,6 +537,7 @@ func NewRuntimeFromConfig(configPath string, options ...RuntimeOption) (runtime 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(runtime *Runtime) (err error) {
+	runtime.config.EventsLogFilePath = filepath.Join(runtime.config.TmpDir, "events", "events.log")
 
 	// Backward compatibility for `runtime_path`
 	if runtime.config.RuntimePath != nil {
@@ -736,6 +739,9 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Setting signaturepolicypath
 	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
+	// Set logfile path for events
+	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
+
 	defer func() {
 		if err != nil && store != nil {
 			// Don't forcibly shut down
@@ -765,6 +771,14 @@ func makeRuntime(runtime *Runtime) (err error) {
 		// The directory is allowed to exist
 		if !os.IsExist(err) {
 			return errors.Wrapf(err, "error creating tmpdir %s", runtime.config.TmpDir)
+		}
+	}
+
+	// Create events log dir
+	if err := os.MkdirAll(filepath.Dir(runtime.config.EventsLogFilePath), 0700); err != nil {
+		// The directory is allowed to exist
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating events dirs %s", filepath.Dir(runtime.config.EventsLogFilePath))
 		}
 	}
 

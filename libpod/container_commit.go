@@ -8,6 +8,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
 	is "github.com/containers/image/storage"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -177,5 +178,6 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err != nil {
 		return nil, err
 	}
+	defer c.newContainerEvent(events.Commit)
 	return c.runtime.imageRuntime.NewFromLocal(id)
 }

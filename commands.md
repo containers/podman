@@ -19,6 +19,7 @@
 | [podman-cp(1)](/docs/podman-cp.1.md)                     | Copy files/folders between a container and the local filesystem           ||
 | [podman-create(1)](/docs/podman-create.1.md)             | Create a new container                                                    ||
 | [podman-diff(1)](/docs/podman-diff.1.md)                 | Inspect changes on a container or image's filesystem                      |[![...](/docs/play.png)](https://asciinema.org/a/FXfWB9CKYFwYM4EfqW3NSZy1G)|
+| [podman-events(1)](/docs/podman-events.1.md)             | Monitor Podman events                                                      ||
 | [podman-exec(1)](/docs/podman-exec.1.md)                 | Execute a command in a running container
 | [podman-export(1)](/docs/podman-export.1.md)             | Export container's filesystem contents as a tar archive                   |[![...](/docs/play.png)](https://asciinema.org/a/913lBIRAg5hK8asyIhhkQVLtV)|
 | [podman-generate(1)](/docs/podman-generate.1.md)         | Generate structured output based on Podman containers and pods | |

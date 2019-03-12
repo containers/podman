@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -824,7 +825,7 @@ func (c *Container) init(ctx context.Context) error {
 	if err := c.save(); err != nil {
 		return err
 	}
-
+	defer c.newContainerEvent(events.Init)
 	return c.completeNetworkSetup()
 }
 
@@ -1022,7 +1023,6 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 			return err
 		}
 	}
-
 	return c.start()
 }
 
