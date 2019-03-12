@@ -39,14 +39,22 @@ import (
 	"github.com/containers/psgo/internal/dev"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/containers/psgo/internal/process"
-	"github.com/containers/psgo/internal/types"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
+type psContext struct {
+	// Processes in the container.
+	containersProcesses []*process.Process
+	// Processes on the host.  Used to map those to the ones running in the container.
+	hostProcesses []*process.Process
+	// tty and pty devices.
+	ttys *[]dev.TTY
+}
+
 // processFunc is used to map a given aixFormatDescriptor to a corresponding
 // function extracting the desired data from a process.
-type processFunc func(*process.Process) (string, error)
+type processFunc func(*process.Process, *psContext) (string, error)
 
 // aixFormatDescriptor as mentioned in the ps(1) manpage.  A given descriptor
 // can either be specified via its code (e.g., "%C") or its normal representation
@@ -98,13 +106,6 @@ var (
 
 	// ErrUnkownDescriptor is returned when an unknown descriptor is parsed.
 	ErrUnkownDescriptor = errors.New("unknown descriptor")
-
-	// hostProcesses are the processes on the host.  It should only be used
-	// in the context of containers and is meant to display data of the
-	// container processes from the host's (i.e., calling process) view.
-	// Currently, all host processes contain only the required data from
-	// /proc/$pid/status.
-	hostProcesses []*process.Process
 
 	aixFormatDescriptors = []aixFormatDescriptor{
 		{
@@ -282,11 +283,16 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 		return nil, err
 	}
 
+	ctx := new(psContext)
+
 	// extract data from host processes only on-demand / when at least one
 	// of the specified descriptors requires host data
 	for _, d := range aixDescriptors {
 		if d.onHost {
-			setHostProcesses(pid)
+			ctx.hostProcesses, err = hostProcesses(pid)
+			if err != nil {
+				return nil, err
+			}
 			break
 		}
 	}
@@ -330,18 +336,17 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 			return
 		}
 
-		ctx := types.PsContext{
-			// join the user NS if the pid's user NS is different
-			// to the caller's user NS.
-			JoinUserNS: currentUserNs != pidUserNs,
-		}
-		processes, err := process.FromPIDs(&ctx, pids)
+		// join the user NS if the pid's user NS is different
+		// to the caller's user NS.
+		joinUserNS := currentUserNs != pidUserNs
+
+		ctx.containersProcesses, err = process.FromPIDs(pids, joinUserNS)
 		if err != nil {
 			dataErr = err
 			return
 		}
 
-		data, dataErr = processDescriptors(aixDescriptors, processes)
+		data, dataErr = processDescriptors(aixDescriptors, ctx)
 	}()
 	wg.Wait()
 
@@ -417,43 +422,41 @@ func ProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) 
 		return nil, err
 	}
 
-	ctx := types.PsContext{JoinUserNS: false}
-	processes, err := process.FromPIDs(&ctx, pids)
+	ctx := new(psContext)
+	ctx.containersProcesses, err = process.FromPIDs(pids, false)
 	if err != nil {
 		return nil, err
 	}
 
-	return processDescriptors(aixDescriptors, processes)
+	return processDescriptors(aixDescriptors, ctx)
 }
 
-// setHostProcesses sets `hostProcesses`.
-func setHostProcesses(pid string) error {
+// hostProcesses returns all processes running in the current namespace.
+func hostProcesses(pid string) ([]*process.Process, error) {
 	// get processes
 	pids, err := proc.GetPIDsFromCgroup(pid)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	ctx := types.PsContext{JoinUserNS: false}
-	processes, err := process.FromPIDs(&ctx, pids)
+	processes, err := process.FromPIDs(pids, false)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// set the additional host data
 	for _, p := range processes {
 		if err := p.SetHostData(); err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	hostProcesses = processes
-	return nil
+	return processes, nil
 }
 
 // processDescriptors calls each `procFn` of all formatDescriptors on each
 // process and returns an array of tab-separated strings.
-func processDescriptors(formatDescriptors []aixFormatDescriptor, processes []*process.Process) ([][]string, error) {
+func processDescriptors(formatDescriptors []aixFormatDescriptor, ctx *psContext) ([][]string, error) {
 	data := [][]string{}
 	// create header
 	header := []string{}
@@ -463,10 +466,10 @@ func processDescriptors(formatDescriptors []aixFormatDescriptor, processes []*pr
 	data = append(data, header)
 
 	// dispatch all descriptor functions on each process
-	for _, proc := range processes {
+	for _, proc := range ctx.containersProcesses {
 		pData := []string{}
 		for _, desc := range formatDescriptors {
-			dataStr, err := desc.procFn(proc)
+			dataStr, err := desc.procFn(proc, ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -480,8 +483,8 @@ func processDescriptors(formatDescriptors []aixFormatDescriptor, processes []*pr
 
 // findHostProcess returns the corresponding process from `hostProcesses` or
 // nil if non is found.
-func findHostProcess(p *process.Process) *process.Process {
-	for _, hp := range hostProcesses {
+func findHostProcess(p *process.Process, ctx *psContext) *process.Process {
+	for _, hp := range ctx.hostProcesses {
 		// We expect the host process to be in another namespace, so
 		// /proc/$pid/status.NSpid must have at least two entries.
 		if len(hp.Status.NSpid) < 2 {
@@ -499,78 +502,78 @@ func findHostProcess(p *process.Process) *process.Process {
 // processGROUP returns the effective group ID of the process.  This will be
 // the textual group ID, if it can be optained, or a decimal representation
 // otherwise.
-func processGROUP(p *process.Process) (string, error) {
+func processGROUP(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupGID(p.Status.Gids[1])
 }
 
 // processRGROUP returns the real group ID of the process.  This will be
 // the textual group ID, if it can be optained, or a decimal representation
 // otherwise.
-func processRGROUP(p *process.Process) (string, error) {
+func processRGROUP(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupGID(p.Status.Gids[0])
 }
 
 // processPPID returns the parent process ID of process p.
-func processPPID(p *process.Process) (string, error) {
+func processPPID(p *process.Process, ctx *psContext) (string, error) {
 	return p.Status.PPid, nil
 }
 
 // processUSER returns the effective user name of the process.  This will be
 // the textual user ID, if it can be optained, or a decimal representation
 // otherwise.
-func processUSER(p *process.Process) (string, error) {
+func processUSER(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupUID(p.Status.Uids[1])
 }
 
 // processRUSER returns the effective user name of the process.  This will be
 // the textual user ID, if it can be optained, or a decimal representation
 // otherwise.
-func processRUSER(p *process.Process) (string, error) {
+func processRUSER(p *process.Process, ctx *psContext) (string, error) {
 	return process.LookupUID(p.Status.Uids[0])
 }
 
 // processName returns the name of process p in the format "[$name]".
-func processName(p *process.Process) (string, error) {
+func processName(p *process.Process, ctx *psContext) (string, error) {
 	return fmt.Sprintf("[%s]", p.Status.Name), nil
 }
 
 // processARGS returns the command of p with all its arguments.
-func processARGS(p *process.Process) (string, error) {
+func processARGS(p *process.Process, ctx *psContext) (string, error) {
 	// ps (1) returns "[$name]" if command/args are empty
 	if p.CmdLine[0] == "" {
-		return processName(p)
+		return processName(p, ctx)
 	}
 	return strings.Join(p.CmdLine, " "), nil
 }
 
 // processCOMM returns the command name (i.e., executable name) of process p.
-func processCOMM(p *process.Process) (string, error) {
+func processCOMM(p *process.Process, ctx *psContext) (string, error) {
 	// ps (1) returns "[$name]" if command/args are empty
 	if p.CmdLine[0] == "" {
-		return processName(p)
+		return processName(p, ctx)
 	}
 	spl := strings.Split(p.CmdLine[0], "/")
 	return spl[len(spl)-1], nil
 }
 
 // processNICE returns the nice value of process p.
-func processNICE(p *process.Process) (string, error) {
+func processNICE(p *process.Process, ctx *psContext) (string, error) {
 	return p.Stat.Nice, nil
 }
 
 // processPID returns the process ID of process p.
-func processPID(p *process.Process) (string, error) {
+func processPID(p *process.Process, ctx *psContext) (string, error) {
 	return p.Pid, nil
 }
 
 // processPGID returns the process group ID of process p.
-func processPGID(p *process.Process) (string, error) {
+func processPGID(p *process.Process, ctx *psContext) (string, error) {
 	return p.Stat.Pgrp, nil
 }
 
 // processPCPU returns how many percent of the CPU time process p uses as
 // a three digit float as string.
-func processPCPU(p *process.Process) (string, error) {
+func processPCPU(p *process.Process, ctx *psContext) (string, error) {
 	elapsed, err := p.ElapsedTime()
 	if err != nil {
 		return "", err
@@ -585,7 +588,7 @@ func processPCPU(p *process.Process) (string, error) {
 }
 
 // processETIME returns the elapsed time since the process was started.
-func processETIME(p *process.Process) (string, error) {
+func processETIME(p *process.Process, ctx *psContext) (string, error) {
 	elapsed, err := p.ElapsedTime()
 	if err != nil {
 		return "", nil
@@ -594,7 +597,7 @@ func processETIME(p *process.Process) (string, error) {
 }
 
 // processTIME returns the cumulative CPU time of process p.
-func processTIME(p *process.Process) (string, error) {
+func processTIME(p *process.Process, ctx *psContext) (string, error) {
 	cpu, err := p.CPUTime()
 	if err != nil {
 		return "", err
@@ -603,13 +606,13 @@ func processTIME(p *process.Process) (string, error) {
 }
 
 // processTTY returns the controlling tty (terminal) of process p.
-func processTTY(p *process.Process) (string, error) {
+func processTTY(p *process.Process, ctx *psContext) (string, error) {
 	ttyNr, err := strconv.ParseUint(p.Stat.TtyNr, 10, 64)
 	if err != nil {
 		return "", nil
 	}
 
-	tty, err := dev.FindTTY(ttyNr)
+	tty, err := dev.FindTTY(ttyNr, ctx.ttys)
 	if err != nil {
 		return "", nil
 	}
@@ -623,7 +626,7 @@ func processTTY(p *process.Process) (string, error) {
 
 // processVSZ returns the virtual memory size of process p in KiB (1024-byte
 // units).
-func processVSZ(p *process.Process) (string, error) {
+func processVSZ(p *process.Process, ctx *psContext) (string, error) {
 	vmsize, err := strconv.Atoi(p.Stat.Vsize)
 	if err != nil {
 		return "", err
@@ -653,41 +656,41 @@ func parseCAP(cap string) (string, error) {
 // processCAPAMB returns the set of ambient capabilties associated with
 // process p.  If all capabilties are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
-func processCAPAMB(p *process.Process) (string, error) {
+func processCAPAMB(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapAmb)
 }
 
 // processCAPINH returns the set of inheritable capabilties associated with
 // process p.  If all capabilties are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
-func processCAPINH(p *process.Process) (string, error) {
+func processCAPINH(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapInh)
 }
 
 // processCAPPRM returns the set of permitted capabilties associated with
 // process p.  If all capabilties are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
-func processCAPPRM(p *process.Process) (string, error) {
+func processCAPPRM(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapPrm)
 }
 
 // processCAPEFF returns the set of effective capabilties associated with
 // process p.  If all capabilties are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
-func processCAPEFF(p *process.Process) (string, error) {
+func processCAPEFF(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapEff)
 }
 
 // processCAPBND returns the set of bounding capabilties associated with
 // process p.  If all capabilties are set, "full" is returned.  If no
 // capability is enabled, "none" is returned.
-func processCAPBND(p *process.Process) (string, error) {
+func processCAPBND(p *process.Process, ctx *psContext) (string, error) {
 	return parseCAP(p.Status.CapBnd)
 }
 
 // processSECCOMP returns the seccomp mode of the process (i.e., disabled,
 // strict or filter) or "?" if /proc/$pid/status.seccomp has a unknown value.
-func processSECCOMP(p *process.Process) (string, error) {
+func processSECCOMP(p *process.Process, ctx *psContext) (string, error) {
 	switch p.Status.Seccomp {
 	case "0":
 		return "disabled", nil
@@ -702,14 +705,14 @@ func processSECCOMP(p *process.Process) (string, error) {
 
 // processLABEL returns the process label of process p or "?" if the system
 // doesn't support labeling.
-func processLABEL(p *process.Process) (string, error) {
+func processLABEL(p *process.Process, ctx *psContext) (string, error) {
 	return p.Label, nil
 }
 
 // processHPID returns the PID of the corresponding host process of the
 // (container) or "?" if no corresponding process could be found.
-func processHPID(p *process.Process) (string, error) {
-	if hp := findHostProcess(p); hp != nil {
+func processHPID(p *process.Process, ctx *psContext) (string, error) {
+	if hp := findHostProcess(p, ctx); hp != nil {
 		return hp.Pid, nil
 	}
 	return "?", nil
@@ -717,8 +720,8 @@ func processHPID(p *process.Process) (string, error) {
 
 // processHUSER returns the effective user ID of the corresponding host process
 // of the (container) or "?" if no corresponding process could be found.
-func processHUSER(p *process.Process) (string, error) {
-	if hp := findHostProcess(p); hp != nil {
+func processHUSER(p *process.Process, ctx *psContext) (string, error) {
+	if hp := findHostProcess(p, ctx); hp != nil {
 		return hp.Huser, nil
 	}
 	return "?", nil
@@ -727,14 +730,14 @@ func processHUSER(p *process.Process) (string, error) {
 // processHGROUP returns the effective group ID of the corresponding host
 // process of the (container) or "?" if no corresponding process could be
 // found.
-func processHGROUP(p *process.Process) (string, error) {
-	if hp := findHostProcess(p); hp != nil {
+func processHGROUP(p *process.Process, ctx *psContext) (string, error) {
+	if hp := findHostProcess(p, ctx); hp != nil {
 		return hp.Hgroup, nil
 	}
 	return "?", nil
 }
 
 // processState returns the process state of process p.
-func processState(p *process.Process) (string, error) {
+func processState(p *process.Process, ctx *psContext) (string, error) {
 	return p.Status.State, nil
 }
