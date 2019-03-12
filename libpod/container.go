@@ -234,6 +234,8 @@ type ContainerConfig struct {
 	// These include the SHM mount.
 	// These must be unmounted before the container's rootfs is unmounted.
 	Mounts []string `json:"mounts,omitempty"`
+	// NamedVolumes lists the named volumes to mount into the container.
+	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
 
 	// Security Config
 
@@ -366,6 +368,18 @@ type ContainerConfig struct {
 
 	// HealtchCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
+}
+
+// ContainerNamedVolume is a named volume that will be mounted into the
+// container.
+type ContainerNamedVolume struct {
+	// Name is the name of the volume to mount in.
+	// Must resolve to a valid volume present in this Podman.
+	Name string `json:"volumeName"`
+	// Dest is the mount's destination
+	Dest string `json:"dest"`
+	// Options are fstab style mount options
+	Options []string `json:"options,omitempty"`
 }
 
 // ContainerStatus returns a string representation for users

@@ -1255,6 +1255,38 @@ func withIsInfra() CtrCreateOption {
 	}
 }
 
+// WithNamedVolumes adds the given named volumes to the container.
+func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		destinations := make(map[string]bool)
+
+		for _, vol := range volumes {
+			// First check if libpod has the volumes
+			_, err := ctr.runtime.GetVolume(vol.Name)
+			if err != nil {
+				return errors.Wrapf(err, "error retrieving volume %s to add to container", vol.Name)
+			}
+
+			if _, ok := destinations[vol.Dest]; ok {
+				return errors.Wrapf(err, "two volumes found with destination %s", vol.Dest)
+			}
+			destinations[vol.Dest] = true
+
+			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
+				Name:    vol.Name,
+				Dest:    vol.Dest,
+				Options: vol.Options,
+			})
+		}
+
+		return nil
+	}
+}
+
 // Volume Creation Options
 
 // WithVolumeName sets the name of the volume.
