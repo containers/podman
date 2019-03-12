@@ -7,9 +7,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/trust"

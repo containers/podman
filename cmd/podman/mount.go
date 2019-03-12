@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	of "github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	of "github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"

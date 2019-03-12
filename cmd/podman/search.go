@@ -3,9 +3,9 @@ package main
 import (
 	"strings"
 
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/formats"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
