@@ -293,3 +293,21 @@ tells SELinux to apply the labels to the actual content.
 
 Now all new content created in these directories will automatically be created
 with the correct label.
+
+### 12) Running Podman inside a container causes container crashes and inconsistent states
+
+Running Podman in a container and forwarding some, but not all, of the required host directories can cause inconsistent container behavior.
+
+#### Symptom
+
+After creating a container with Podman's storage directories mounted in from the host and running Podman inside a container, all containers show their state as "configured" or "created", even if they were running or stopped.
+
+#### Solution
+
+When running Podman inside a container, it is recommended to mount at a minimum `/var/lib/containers/storage/` as a volume.
+Typically, you will not mount in the host version of the directory, but if you wish to share containers with the host, you can do so.
+If you do mount in the host's `/var/lib/containers/storage`, however, you must also mount in the host's `/var/run/libpod` and `/var/run/containers/storage` directories.
+Not doing this will cause Podman in the container to detect that temporary files have been cleared, leading it to assume a system restart has taken place.
+This can cause Podman to reset container states and lose track of running containers.
+
+For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.
