@@ -41,7 +41,7 @@ func SkipStorageSetup() bool {
 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
-func JoinNS(pid uint) (bool, int, error) {
+func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
