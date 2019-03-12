@@ -287,7 +287,26 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.Bool(
 		"help", false, "",
 	)
-
+	createFlags.String(
+		"healthcheck-command", "",
+		"set a healthcheck command for the container ('none' disables the existing healthcheck)",
+	)
+	createFlags.String(
+		"healthcheck-interval", "30s",
+		"set an interval for the healthchecks",
+	)
+	createFlags.Uint(
+		"healthcheck-retries", 3,
+		"the number of retries allowed before a healthcheck is considered to be unhealthy",
+	)
+	createFlags.String(
+		"healthcheck-start-period", "0s",
+		"the initialization time needed for a container to bootstrap",
+	)
+	createFlags.String(
+		"healthcheck-timeout", "30s",
+		"the maximum time allowed to complete the healthcheck before an interval is considered failed",
+	)
 	createFlags.StringP(
 		"hostname", "h", "",
 		"Set container hostname",

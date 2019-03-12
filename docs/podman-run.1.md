@@ -264,6 +264,23 @@ The example maps gids 0-2000 in the container to the gids 30000-31999 on the hos
 
 Add additional groups to run as
 
+**--healthchech**=""
+
+Set or alter a healthcheck for a container.  The value must be of the format of:
+
+ `[OPTIONS] CMD command`
+
+ where options can be any of the follow:
+ * --interval=DURATION (default: 30s)
+ * --timeout=DURATION (default: 30s)
+ * --start-period=DURATION (default: 0s)
+ * --retries=N (default: 3)
+
+Note: options are *not* required.
+
+The command is a command to be executed inside your container that determines your container health.  The
+command is required.
+
 **--hostname**=""
 
 Container host name

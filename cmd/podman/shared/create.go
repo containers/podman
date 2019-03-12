@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -26,6 +27,7 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
+	"github.com/google/shlex"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
@@ -40,8 +42,7 @@ func getContext() context.Context {
 
 func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
-		hasHealthCheck bool
-		healthCheck    *manifest.Schema2HealthConfig
+		healthCheck *manifest.Schema2HealthConfig
 	)
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(ctx, "createContainer")
@@ -89,18 +90,31 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 			imageName = newImage.ID()
 		}
 
-		// add healthcheck if it exists AND is correct mediatype
-		_, mediaType, err := newImage.Manifest(ctx)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "unable to determine mediatype of image %s", newImage.ID())
-		}
-		if mediaType == manifest.DockerV2Schema2MediaType {
-			healthCheck, err = newImage.GetHealthCheck(ctx)
-			if err != nil {
-				return nil, nil, errors.Wrapf(err, "unable to get healthcheck for %s", c.InputArgs[0])
-			}
-			if healthCheck != nil {
-				hasHealthCheck = true
+		var healthCheckCommandInput string
+		// if the user disabled the healthcheck with "none", we skip adding it
+		healthCheckCommandInput = c.String("healthcheck-command")
+
+		// the user didnt disable the healthcheck but did pass in a healthcheck command
+		// now we need to make a healthcheck from the commandline input
+		if healthCheckCommandInput != "none" {
+			if len(healthCheckCommandInput) > 0 {
+				healthCheck, err = makeHealthCheckFromCli(c)
+				if err != nil {
+					return nil, nil, errors.Wrapf(err, "unable to create healthcheck")
+				}
+			} else {
+				// the user did not disable the health check and did not pass in a healthcheck
+				// command as input.  so now we add healthcheck if it exists AND is correct mediatype
+				_, mediaType, err := newImage.Manifest(ctx)
+				if err != nil {
+					return nil, nil, errors.Wrapf(err, "unable to determine mediatype of image %s", newImage.ID())
+				}
+				if mediaType == manifest.DockerV2Schema2MediaType {
+					healthCheck, err = newImage.GetHealthCheck(ctx)
+					if err != nil {
+						return nil, nil, errors.Wrapf(err, "unable to get healthcheck for %s", c.InputArgs[0])
+					}
+				}
 			}
 		}
 	}
@@ -111,7 +125,6 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 
 	// Because parseCreateOpts does derive anything from the image, we add health check
 	// at this point. The rest is done by WithOptions.
-	createConfig.HasHealthCheck = hasHealthCheck
 	createConfig.HealthCheck = healthCheck
 
 	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, nil)
@@ -834,4 +847,59 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 var defaultEnvVariables = map[string]string{
 	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	"TERM": "xterm",
+}
+
+func makeHealthCheckFromCli(c *cliconfig.PodmanCommand) (*manifest.Schema2HealthConfig, error) {
+	inCommand := c.String("healthcheck-command")
+	inInterval := c.String("healthcheck-interval")
+	inRetries := c.Uint("healthcheck-retries")
+	inTimeout := c.String("healthcheck-timeout")
+	inStartPeriod := c.String("healthcheck-start-period")
+
+	// Every healthcheck requires a command
+	if len(inCommand) == 0 {
+		return nil, errors.New("Must define a healthcheck command for all healthchecks")
+	}
+
+	cmd, err := shlex.Split(inCommand)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse healthcheck command")
+	}
+	hc := manifest.Schema2HealthConfig{
+		Test: cmd,
+	}
+	intervalDuration, err := time.ParseDuration(inInterval)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid healthcheck-interval %s ", inInterval)
+	}
+
+	if intervalDuration < time.Duration(time.Second*1) {
+		return nil, errors.New("healthcheck-interval must be at least 1 second")
+	}
+
+	hc.Interval = intervalDuration
+
+	if inRetries < 1 {
+		return nil, errors.New("healthcheck-retries must be greater than 0.")
+	}
+
+	timeoutDuration, err := time.ParseDuration(inTimeout)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid healthcheck-timeout %s", inTimeout)
+	}
+	if timeoutDuration < time.Duration(time.Second*1) {
+		return nil, errors.New("healthcheck-timeout must be at least 1 second")
+	}
+	hc.Timeout = timeoutDuration
+
+	startPeriodDuration, err := time.ParseDuration(inStartPeriod)
+	if err != nil {
+		return nil, errors.Wrapf(err, "invalid healthcheck-start-period %s", inStartPeriod)
+	}
+	if startPeriodDuration < time.Duration(0) {
+		return nil, errors.New("healthcheck-start-period must be a 0 seconds or greater")
+	}
+	hc.StartPeriod = startPeriodDuration
+
+	return &hc, nil
 }

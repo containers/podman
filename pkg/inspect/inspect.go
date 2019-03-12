@@ -3,11 +3,12 @@ package inspect
 import (
 	"time"
 
+	"github.com/containers/image/manifest"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go/v1"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // ContainerData holds the podman inspect data for a container
@@ -78,24 +79,25 @@ type HostConfig struct {
 
 // CtrConfig holds information about the container configuration
 type CtrConfig struct {
-	Hostname     string              `json:"Hostname"`
-	DomainName   string              `json:"Domainname"` //TODO
-	User         specs.User          `json:"User"`
-	AttachStdin  bool                `json:"AttachStdin"`  //TODO
-	AttachStdout bool                `json:"AttachStdout"` //TODO
-	AttachStderr bool                `json:"AttachStderr"` //TODO
-	Tty          bool                `json:"Tty"`
-	OpenStdin    bool                `json:"OpenStdin"`
-	StdinOnce    bool                `json:"StdinOnce"` //TODO
-	Env          []string            `json:"Env"`
-	Cmd          []string            `json:"Cmd"`
-	Image        string              `json:"Image"`
-	Volumes      map[string]struct{} `json:"Volumes"`
-	WorkingDir   string              `json:"WorkingDir"`
-	Entrypoint   string              `json:"Entrypoint"`
-	Labels       map[string]string   `json:"Labels"`
-	Annotations  map[string]string   `json:"Annotations"`
-	StopSignal   uint                `json:"StopSignal"`
+	Hostname     string                        `json:"Hostname"`
+	DomainName   string                        `json:"Domainname"` //TODO
+	User         specs.User                    `json:"User"`
+	AttachStdin  bool                          `json:"AttachStdin"`  //TODO
+	AttachStdout bool                          `json:"AttachStdout"` //TODO
+	AttachStderr bool                          `json:"AttachStderr"` //TODO
+	Tty          bool                          `json:"Tty"`
+	OpenStdin    bool                          `json:"OpenStdin"`
+	StdinOnce    bool                          `json:"StdinOnce"` //TODO
+	Env          []string                      `json:"Env"`
+	Cmd          []string                      `json:"Cmd"`
+	Image        string                        `json:"Image"`
+	Volumes      map[string]struct{}           `json:"Volumes"`
+	WorkingDir   string                        `json:"WorkingDir"`
+	Entrypoint   string                        `json:"Entrypoint"`
+	Labels       map[string]string             `json:"Labels"`
+	Annotations  map[string]string             `json:"Annotations"`
+	StopSignal   uint                          `json:"StopSignal"`
+	Healthcheck  *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 }
 
 // LogConfig holds the log information for a container
@@ -178,18 +180,19 @@ type ContainerInspectData struct {
 
 // ContainerInspectState represents the state of a container.
 type ContainerInspectState struct {
-	OciVersion string    `json:"OciVersion"`
-	Status     string    `json:"Status"`
-	Running    bool      `json:"Running"`
-	Paused     bool      `json:"Paused"`
-	Restarting bool      `json:"Restarting"` // TODO
-	OOMKilled  bool      `json:"OOMKilled"`
-	Dead       bool      `json:"Dead"`
-	Pid        int       `json:"Pid"`
-	ExitCode   int32     `json:"ExitCode"`
-	Error      string    `json:"Error"` // TODO
-	StartedAt  time.Time `json:"StartedAt"`
-	FinishedAt time.Time `json:"FinishedAt"`
+	OciVersion  string             `json:"OciVersion"`
+	Status      string             `json:"Status"`
+	Running     bool               `json:"Running"`
+	Paused      bool               `json:"Paused"`
+	Restarting  bool               `json:"Restarting"` // TODO
+	OOMKilled   bool               `json:"OOMKilled"`
+	Dead        bool               `json:"Dead"`
+	Pid         int                `json:"Pid"`
+	ExitCode    int32              `json:"ExitCode"`
+	Error       string             `json:"Error"` // TODO
+	StartedAt   time.Time          `json:"StartedAt"`
+	FinishedAt  time.Time          `json:"FinishedAt"`
+	Healthcheck HealthCheckResults `json:"Healthcheck,omitempty"`
 }
 
 // NetworkSettings holds information about the newtwork settings of the container
@@ -226,4 +229,26 @@ type ImageResult struct {
 	Size         *uint64
 	Labels       map[string]string
 	Dangling     bool
+}
+
+// HealthCheckResults describes the results/logs from a healthcheck
+type HealthCheckResults struct {
+	// Status healthy or unhealthy
+	Status string `json:"Status"`
+	// FailingStreak is the number of consecutive failed healthchecks
+	FailingStreak int `json:"FailingStreak"`
+	// Log describes healthcheck attempts and results
+	Log []HealthCheckLog `json:"Log"`
+}
+
+// HealthCheckLog describes the results of a single healthcheck
+type HealthCheckLog struct {
+	// Start time as string
+	Start string `json:"Start"`
+	// End time as a string
+	End string `json:"End"`
+	// Exitcode is 0 or 1
+	ExitCode int `json:"ExitCode"`
+	// Output is the stdout/stderr from the healthcheck command
+	Output string `json:"Output"`
 }

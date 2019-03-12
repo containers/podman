@@ -523,6 +523,7 @@ func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *inspect.C
 			StopSignal:  config.StopSignal,
 			Cmd:         config.Spec.Process.Args,
 			Entrypoint:  strings.Join(createArtifact.Entrypoint, " "),
+			Healthcheck: config.HealthCheckConfig,
 		},
 	}
 	return data, nil
