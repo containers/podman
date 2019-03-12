@@ -19,6 +19,20 @@ var (
 		},
 	}
 
+	contInspectSubCommand  cliconfig.InspectValues
+	_contInspectSubCommand = &cobra.Command{
+		Use:   strings.Replace(_inspectCommand.Use, "| IMAGE", "", 1),
+		Short: "Display the configuration of a container",
+		Long:  `Displays the low-level information on a container identified by name or ID.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			contInspectSubCommand.InputArgs = args
+			contInspectSubCommand.GlobalFlags = MainGlobalOpts
+			return inspectCmd(&contInspectSubCommand)
+		},
+		Example: `podman container inspect myCtr
+  podman container inspect -l --format '{{.Id}} {{.Config.Labels}}'`,
+	}
+
 	listSubCommand  cliconfig.PsValues
 	_listSubCommand = &cobra.Command{
 		Use:     strings.Replace(_psCommand.Use, "ps", "list", 1),
@@ -37,12 +51,15 @@ var (
 	// Commands that are universally implemented.
 	containerCommands = []*cobra.Command{
 		_containerExistsCommand,
-		_inspectCommand,
+		_contInspectSubCommand,
 		_listSubCommand,
 	}
 )
 
 func init() {
+	contInspectSubCommand.Command = _contInspectSubCommand
+	inspectInit(&contInspectSubCommand)
+
 	listSubCommand.Command = _listSubCommand
 	psInit(&listSubCommand)
 

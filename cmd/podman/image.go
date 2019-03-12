@@ -31,6 +31,19 @@ var (
 		Example: strings.Replace(_imagesCommand.Example, "podman images", "podman image list", -1),
 	}
 
+	inspectSubCommand  cliconfig.InspectValues
+	_inspectSubCommand = &cobra.Command{
+		Use:   strings.Replace(_inspectCommand.Use, "CONTAINER | ", "", 1),
+		Short: "Display the configuration of an image",
+		Long:  `Displays the low-level information on an image identified by name or ID.`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inspectSubCommand.InputArgs = args
+			inspectSubCommand.GlobalFlags = MainGlobalOpts
+			return inspectCmd(&inspectSubCommand)
+		},
+		Example: `podman image inspect alpine`,
+	}
+
 	rmSubCommand  cliconfig.RmiValues
 	_rmSubCommand = &cobra.Command{
 		Use:   strings.Replace(_rmiCommand.Use, "rmi", "rm", 1),
@@ -52,7 +65,7 @@ var imageSubCommands = []*cobra.Command{
 	_imagesSubCommand,
 	_imageExistsCommand,
 	_importCommand,
-	_inspectCommand,
+	_inspectSubCommand,
 	_loadCommand,
 	_pruneImagesCommand,
 	_pullCommand,
@@ -68,6 +81,9 @@ func init() {
 
 	imagesSubCommand.Command = _imagesSubCommand
 	imagesInit(&imagesSubCommand)
+
+	inspectSubCommand.Command = _inspectSubCommand
+	inspectInit(&inspectSubCommand)
 
 	imageCommand.SetUsageTemplate(UsageTemplate())
 	imageCommand.AddCommand(imageSubCommands...)

@@ -6,6 +6,10 @@ podman\-inspect - Display a container or image's configuration
 ## SYNOPSIS
 **podman inspect** [*options*] *name* ...
 
+**podman image inspect** [*options*] *image*
+
+**podman container inspect** [*options*] *container*
+
 ## DESCRIPTION
 This displays the low-level information on containers and images identified by name or ID. By default, this will render
 all results in a JSON array. If the container and image have the same name, this will return container JSON for
@@ -16,6 +20,7 @@ unspecified type. If a format is specified, the given template will be executed 
 **--type, t="TYPE"**
 
 Return JSON for the specified type.  Type can be 'container', 'image' or 'all' (default: all)
+(Only meaningful when invoked as *podman inspect*)
 
 **--format, -f="FORMAT"**
 
@@ -27,7 +32,7 @@ The keys of the returned JSON can be used as the values for the --format flag (s
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
-The latest option is not supported on the remote client.
+The latest option is not supported on the remote client or when invoked as *podman image inspect*.
 
 **--size, -s**
 
@@ -94,12 +99,12 @@ overlay
 ```
 
 ```
-# podman inspect --format "size: {{.Size}}" alpine
+# podman image inspect --format "size: {{.Size}}" alpine
 size:   4405240
 ```
 
 ```
-podman inspect --latest --format {{.EffectiveCaps}}
+podman container inspect --latest --format {{.EffectiveCaps}}
 [CAP_CHOWN CAP_DAC_OVERRIDE CAP_FSETID CAP_FOWNER CAP_MKNOD CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SETFCAP CAP_SETPCAP CAP_NET_BIND_SERVICE CAP_SYS_CHROOT CAP_KILL CAP_AUDIT_WRITE]
 ```
 

@@ -27,7 +27,7 @@ var (
 	inspectDescription = `This displays the low-level information on containers and images identified by name or ID.
 
   If given a name that matches both a container and an image, this command inspects the container.  By default, this will render all results in a JSON array.`
-	_inspectCommand = &cobra.Command{
+	_inspectCommand = cobra.Command{
 		Use:   "inspect [flags] CONTAINER | IMAGE",
 		Short: "Display the configuration of a container or image",
 		Long:  inspectDescription,
@@ -42,16 +42,34 @@ var (
 	}
 )
 
+func inspectInit(command *cliconfig.InspectValues) {
+	command.SetHelpTemplate(HelpTemplate())
+	command.SetUsageTemplate(UsageTemplate())
+	flags := command.Flags()
+	flags.StringVarP(&command.Format, "format", "f", "", "Change the output format to a Go template")
+
+	// -t flag applicable only to 'podman inspect', not 'image/container inspect'
+	ambiguous := strings.Contains(command.Use, "|")
+	if ambiguous {
+		flags.StringVarP(&command.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (image or container)")
+	}
+
+	if strings.Contains(command.Use, "CONTAINER") {
+		containers_only := " (containers only)"
+		if !ambiguous {
+			containers_only = ""
+			command.TypeObject = inspectTypeContainer
+		}
+		flags.BoolVarP(&command.Latest, "latest", "l", false, "Act on the latest container podman is aware of"+containers_only)
+		flags.BoolVarP(&command.Size, "size", "s", false, "Display total file size"+containers_only)
+		markFlagHiddenForRemoteClient("latest", flags)
+	} else {
+		command.TypeObject = inspectTypeImage
+	}
+}
 func init() {
-	inspectCommand.Command = _inspectCommand
-	inspectCommand.SetHelpTemplate(HelpTemplate())
-	inspectCommand.SetUsageTemplate(UsageTemplate())
-	flags := inspectCommand.Flags()
-	flags.StringVarP(&inspectCommand.TypeObject, "type", "t", inspectAll, "Return JSON for specified type, (e.g image, container or task)")
-	flags.StringVarP(&inspectCommand.Format, "format", "f", "", "Change the output format to a Go template")
-	flags.BoolVarP(&inspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of if the type is a container")
-	flags.BoolVarP(&inspectCommand.Size, "size", "s", false, "Display total file size if the type is container")
-	markFlagHiddenForRemoteClient("latest", flags)
+	inspectCommand.Command = &_inspectCommand
+	inspectInit(&inspectCommand)
 }
 
 func inspectCmd(c *cliconfig.InspectValues) error {
