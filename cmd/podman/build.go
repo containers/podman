@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -81,6 +83,26 @@ func getDockerfiles(files []string) []string {
 		}
 	}
 	return dockerfiles
+}
+
+func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
+	var ret []buildah.NamespaceOption
+	if c.Network != "" {
+		if c.Network == "host" {
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+				Host: true,
+			})
+		} else if c.Network[0] == '/' {
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+				Path: c.Network,
+			})
+		} else {
+			return nil, fmt.Errorf("unsupported configuration network=%s", c.Network)
+		}
+	}
+	return ret, nil
 }
 
 func buildCmd(c *cliconfig.BuildValues) error {
@@ -227,6 +249,11 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		}
 	}
 
+	nsValues, err := getNsValues(c)
+	if err != nil {
+		return err
+	}
+
 	buildOpts := buildah.CommonBuildOptions{
 		AddHost:      c.AddHost,
 		CgroupParent: c.CgroupParent,
@@ -257,6 +284,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		IIDFile:                 c.Iidfile,
 		Labels:                  c.Label,
 		Layers:                  layers,
+		NamespaceOptions:        nsValues,
 		NoCache:                 c.NoCache,
 		Out:                     stdout,
 		Output:                  output,
