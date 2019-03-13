@@ -1,6 +1,6 @@
 // +build linux,seccomp
 
-package seccomp
+package seccomp // import "github.com/docker/docker/profiles/seccomp"
 
 import (
 	"github.com/docker/docker/api/types"
@@ -315,13 +315,13 @@ func DefaultProfile() *types.Seccomp {
 				"stat64",
 				"statfs",
 				"statfs64",
+				"statx",
 				"symlink",
 				"symlinkat",
 				"sync",
 				"sync_file_range",
 				"syncfs",
 				"sysinfo",
-				"syslog",
 				"tee",
 				"tgkill",
 				"time",
@@ -355,6 +355,13 @@ func DefaultProfile() *types.Seccomp {
 			},
 			Action: types.ActAllow,
 			Args:   []*types.Arg{},
+		},
+		{
+			Names:  []string{"ptrace"},
+			Action: types.ActAllow,
+			Includes: types.Filter{
+				MinKernel: "4.8",
+			},
 		},
 		{
 			Names:  []string{"personality"},
@@ -491,6 +498,7 @@ func DefaultProfile() *types.Seccomp {
 				"setdomainname",
 				"sethostname",
 				"setns",
+				"syslog",
 				"umount",
 				"umount2",
 				"unshare",
@@ -627,6 +635,28 @@ func DefaultProfile() *types.Seccomp {
 			Args:   []*types.Arg{},
 			Includes: types.Filter{
 				Caps: []string{"CAP_SYS_TTY_CONFIG"},
+			},
+		},
+		{
+			Names: []string{
+				"get_mempolicy",
+				"mbind",
+				"set_mempolicy",
+			},
+			Action: types.ActAllow,
+			Args:   []*types.Arg{},
+			Includes: types.Filter{
+				Caps: []string{"CAP_SYS_NICE"},
+			},
+		},
+		{
+			Names: []string{
+				"syslog",
+			},
+			Action: types.ActAllow,
+			Args:   []*types.Arg{},
+			Includes: types.Filter{
+				Caps: []string{"CAP_SYSLOG"},
 			},
 		},
 	}

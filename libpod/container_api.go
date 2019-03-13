@@ -14,7 +14,7 @@ import (
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/daemon/caps"
+	"github.com/docker/docker/oci/caps"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

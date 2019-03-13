@@ -71,7 +71,7 @@ type TarOptions struct {
 	NoLchown         bool
 	UIDMaps          []idtools.IDMap
 	GIDMaps          []idtools.IDMap
-	ChownOpts        *idtools.IDPair
+	ChownOpts        *idtools.Identity
 	IncludeSourceDir bool
 	// WhiteoutFormat is the expected on disk format for whiteout files.
 	// This format will be converted to the standard format on pack
@@ -292,9 +292,9 @@ type tarAppender struct {
 	Buffer    *bufio.Writer
 
 	// for hardlink mapping
-	SeenFiles  map[uint64]string
-	IDMappings *idtools.IDMappings
-	ChownOpts  *idtools.IDPair
+	SeenFiles       map[uint64]string
+	IdentityMapping *idtools.IdentityMapping
+	ChownOpts       *idtools.Identity
 
 	// For packing and unpacking whiteout files in the
 	// non standard format. The whiteout files defined
@@ -303,13 +303,13 @@ type tarAppender struct {
 	WhiteoutConverter tarWhiteoutConverter
 }
 
-func newTarAppender(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarAppender {
+func newTarAppender(idMapping *idtools.IdentityMapping, writer io.Writer, chownOpts *idtools.Identity) *tarAppender {
 	return &tarAppender{
-		SeenFiles:  make(map[uint64]string),
-		TarWriter:  tar.NewWriter(writer),
-		Buffer:     pools.BufioWriter32KPool.Get(nil),
-		IDMappings: idMapping,
-		ChownOpts:  chownOpts,
+		SeenFiles:       make(map[uint64]string),
+		TarWriter:       tar.NewWriter(writer),
+		Buffer:          pools.BufioWriter32KPool.Get(nil),
+		IdentityMapping: idMapping,
+		ChownOpts:       chownOpts,
 	}
 }
 
@@ -364,12 +364,12 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	//by the kernel and already have proper ownership relative to the host
 	if !isOverlayWhiteout &&
 		!strings.HasPrefix(filepath.Base(hdr.Name), WhiteoutPrefix) &&
-		!ta.IDMappings.Empty() {
-		fileIDPair, err := getFileUIDGID(fi.Sys())
+		!ta.IdentityMapping.Empty() {
+		fileIdentity, err := getFileIdentity(fi.Sys())
 		if err != nil {
 			return err
 		}
-		hdr.Uid, hdr.Gid, err = ta.IDMappings.ToContainer(fileIDPair)
+		hdr.Uid, hdr.Gid, err = ta.IdentityMapping.ToContainer(fileIdentity)
 		if err != nil {
 			return err
 		}

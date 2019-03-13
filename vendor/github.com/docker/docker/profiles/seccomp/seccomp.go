@@ -1,6 +1,6 @@
 // +build linux
 
-package seccomp
+package seccomp // import "github.com/docker/docker/profiles/seccomp"
 
 import (
 	"encoding/json"
@@ -8,8 +8,8 @@ import (
 	"fmt"
 
 	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/pkg/stringutils"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/docker/docker/pkg/parsers/kernel"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 )
 
@@ -37,6 +37,17 @@ var nativeToSeccomp = map[string]types.Arch{
 	"mipsel64":    types.ArchMIPSEL64,
 	"mipsel64n32": types.ArchMIPSEL64N32,
 	"s390x":       types.ArchS390X,
+}
+
+// inSlice tests whether a string is contained in a slice of strings or not.
+// Comparison is case sensitive
+func inSlice(slice []string, s string) bool {
+	for _, ss := range slice {
+		if s == ss {
+			return true
+		}
+	}
+	return false
 }
 
 func setupSeccomp(config *types.Seccomp, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
@@ -89,27 +100,41 @@ Loop:
 	// Loop through all syscall blocks and convert them to libcontainer format after filtering them
 	for _, call := range config.Syscalls {
 		if len(call.Excludes.Arches) > 0 {
-			if stringutils.InSlice(call.Excludes.Arches, arch) {
+			if inSlice(call.Excludes.Arches, arch) {
 				continue Loop
 			}
 		}
 		if len(call.Excludes.Caps) > 0 {
 			for _, c := range call.Excludes.Caps {
-				if stringutils.InSlice(rs.Process.Capabilities.Effective, c) {
+				if inSlice(rs.Process.Capabilities.Bounding, c) {
 					continue Loop
 				}
 			}
 		}
+		if call.Excludes.MinKernel != "" {
+			if ok, err := kernelGreaterEqualThan(call.Excludes.MinKernel); err != nil {
+				return nil, err
+			} else if ok {
+				continue Loop
+			}
+		}
 		if len(call.Includes.Arches) > 0 {
-			if !stringutils.InSlice(call.Includes.Arches, arch) {
+			if !inSlice(call.Includes.Arches, arch) {
 				continue Loop
 			}
 		}
 		if len(call.Includes.Caps) > 0 {
 			for _, c := range call.Includes.Caps {
-				if !stringutils.InSlice(rs.Process.Capabilities.Effective, c) {
+				if !inSlice(rs.Process.Capabilities.Bounding, c) {
 					continue Loop
 				}
+			}
+		}
+		if call.Includes.MinKernel != "" {
+			if ok, err := kernelGreaterEqualThan(call.Includes.MinKernel); err != nil {
+				return nil, err
+			} else if !ok {
+				continue Loop
 			}
 		}
 
@@ -147,4 +172,20 @@ func createSpecsSyscall(name string, action types.Action, args []*types.Arg) spe
 		newCall.Args = append(newCall.Args, newArg)
 	}
 	return newCall
+}
+
+var currentKernelVersion *kernel.VersionInfo
+
+func kernelGreaterEqualThan(v string) (bool, error) {
+	version, err := kernel.ParseRelease(v)
+	if err != nil {
+		return false, err
+	}
+	if currentKernelVersion == nil {
+		currentKernelVersion, err = kernel.GetKernelVersion()
+		if err != nil {
+			return false, err
+		}
+	}
+	return kernel.CompareKernelVersion(*version, *currentKernelVersion) <= 0, nil
 }

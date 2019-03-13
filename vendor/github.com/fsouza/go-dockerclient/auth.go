@@ -32,6 +32,9 @@ type AuthConfiguration struct {
 	// see https://godoc.org/github.com/docker/docker/api/types#AuthConfig
 	// It can be used in place of password not in conjunction with it
 	IdentityToken string `json:"identitytoken,omitempty"`
+
+	// RegistryToken can be supplied with the registrytoken
+	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
 // AuthConfigurations represents authentication options to use for the
@@ -50,6 +53,7 @@ type dockerConfig struct {
 	Auth          string `json:"auth"`
 	Email         string `json:"email"`
 	IdentityToken string `json:"identitytoken"`
+	RegistryToken string `json:"registrytoken"`
 }
 
 // NewAuthConfigurationsFromFile returns AuthConfigurations from a path containing JSON
@@ -162,6 +166,11 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 			authConfig.IdentityToken = conf.IdentityToken
 		}
 
+		// if registrytoken provided then zero the password and set it
+		if conf.RegistryToken != "" {
+			authConfig.Password = ""
+			authConfig.RegistryToken = conf.RegistryToken
+		}
 		c.Configs[reg] = authConfig
 	}
 
