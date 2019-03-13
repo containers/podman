@@ -11,7 +11,8 @@ var (
 	eventsCommand     cliconfig.EventValues
 	eventsDescription = "Monitor podman events"
 	_eventsCommand    = &cobra.Command{
-		Use:   "events [flags]",
+		Use:   "events",
+		Args:  noSubArgs,
 		Short: "show podman events",
 		Long:  eventsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
