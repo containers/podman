@@ -22,6 +22,9 @@ ooe.sh sudo subscription-manager repos \
     --enable=rhel-7-server-extras-rpms \
     --enable=rhel-server-rhscl-7-rpms
 
+sudo sed -r -i -e 's/^notify_only=.+/notify_only=0/g' \
+    /etc/yum/pluginconf.d/search-disabled-repos.conf
+
 ooe.sh sudo yum -y update
 
 ooe.sh sudo yum -y install \
@@ -66,7 +69,6 @@ ooe.sh sudo yum -y install \
     python34-psutil \
     python34-pytoml \
     python34-PyYAML \
-    runc \
     skopeo-containers \
     unzip \
     vim \
@@ -75,13 +77,15 @@ ooe.sh sudo yum -y install \
 
 install_scl_git
 
+install_conmon
+
+install_runc
+
+install_criu
+
 install_cni_plugins
 
 install_buildah
-
-install_conmon
-
-install_criu
 
 install_packer_copied_files
 

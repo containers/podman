@@ -19,9 +19,13 @@ CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
 CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
 SPECIALMODE="${SPECIALMODE:-none}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
-ROOTLESS_USER="${ROOTLESS_USER:-}"
-ROOTLESS_UID="${ROOTLESS_UID:-}"
-ROOTLESS_GID="${ROOTLESS_GID:-}"
+
+if [[ "$USER" == "root" ]]
+then
+    ROOTLESS_USER="${ROOTLESS_USER:-}"
+else
+    ROOTLESS_USER="${ROOTLESS_USER:-$USER}"
+fi
 
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
@@ -34,6 +38,23 @@ then
     # Make sure this is always loaded
     source "$HOME/$ENVLIB"
 fi
+
+# Space separated list of environment variables to unset before testing
+UNSET_ENV_VARS='
+    GCP_PROJECT_ID GCE_SSH_USERNAME SERVICE_ACCOUNT RHSM_COMMAND BUILT_IMAGE_SUFFIX
+    IRCID RHEL_BASE_IMAGE FAH_BASE_IMAGE FEDORA_BASE_IMAGE CENTOS_BASE_IMAGE
+    UBUNTU_BASE_IMAGE PACKER_VER PACKER_BUILDS RUNC_COMMIT CRIU_COMMIT
+    CRIO_COMMIT CNI_COMMIT FEDORA_CNI_COMMIT PACKER_BASE SCRIPT_BASE
+    CIRRUS_SHELL CIRRUS_WORKING_DIR ENVLIB CIRRUS_CI
+    CI_NODE_INDEX CI_NODE_TOTAL CIRRUS_BASE_BRANCH CIRRUS_BASE_SHA
+    CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_CHANGE_IN_REPO CIRRUS_CLONE_DEPTH
+    CIRRUS_COMMIT_MESSAGE CIRRUS_CHANGE_MESSAGE CIRRUS_REPO_CLONE_HOST
+    CIRRUS_DEFAULT_BRANCH CIRRUS_PR CIRRUS_TAG CIRRUS_OS CIRRUS_TASK_NAME
+    CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
+    CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
+    CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS
+    XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER
+'
 
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
@@ -126,12 +147,14 @@ os_release_id() {
     eval "$(egrep -m 1 '^ID=' /etc/os-release | tr -d \' | tr -d \")"
     echo "$ID"
 }
+export OS_RELEASE_ID="$(os_release_id)"
 
 # Return a GCE image-name compatible string representation of distribution major version
 os_release_ver() {
     eval "$(egrep -m 1 '^VERSION_ID=' /etc/os-release | tr -d \' | tr -d \")"
     echo "$VERSION_ID" | cut -d '.' -f 1
 }
+export OS_RELEASE_VER="$(os_release_VER)"
 
 bad_os_id_ver() {
     echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $ARGS"
@@ -158,6 +181,10 @@ ircmsg() {
 setup_rootless() {
     req_env_var ROOTLESS_USER GOSRC ENVLIB
 
+    make install.catatonit
+    go get github.com/onsi/ginkgo/ginkgo
+    go get github.com/onsi/gomega/...
+
     if passwd --status $ROOTLESS_USER
     then
         echo "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
@@ -180,7 +207,8 @@ setup_rootless() {
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
 
     echo "creating ssh keypair for $USER"
-    ssh-keygen -P "" -f $HOME/.ssh/id_rsa
+    [[ -r "$HOME/.ssh/id_rsa" ]] || \
+        ssh-keygen -P "" -f "$HOME/.ssh/id_rsa"
 
     echo "Allowing ssh key for $ROOTLESS_USER"
     (umask 077 && mkdir "/home/$ROOTLESS_USER/.ssh")
@@ -199,11 +227,14 @@ setup_rootless() {
     install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0700 \
         "$HOME/$ENVLIB" "/home/$ROOTLESS_USER/$ENVLIB"
 
+    # Allow the tests to run
+    echo "export ROOTLESS_USER=$ROOTLESS_USER" >> "/home/$ROOTLESS_USER/$ENVLIB"
+
     echo "Configuring user's go environment variables"
     su --login --command 'go env' $ROOTLESS_USER | \
         while read envline
         do
-            X=$(echo "export $envline" | tee -a "/home/$ROOTLESS_USER/.bash_profile") && echo "$X"
+            X=$(echo "export $envline" >> "/home/$ROOTLESS_USER/$ENVLIB")
         done
 }
 
@@ -242,6 +273,10 @@ install_cni_plugins() {
 }
 
 install_runc_from_git(){
+    req_env_var "
+        GOPATH $GOPATH
+        OS_RELEASE_ID $OS_RELEASE_ID
+    "
     wd=$(pwd)
     DEST="$GOPATH/src/github.com/opencontainers/runc"
     rm -rf "$DEST"
@@ -249,7 +284,12 @@ install_runc_from_git(){
     cd "$DEST"
     ooe.sh git fetch origin --tags
     ooe.sh git checkout -q "$RUNC_COMMIT"
-    ooe.sh make static BUILDTAGS="seccomp apparmor selinux"
+    if [[ "${OS_RELEASE_ID}" == "ubuntu" ]]
+    then
+        ooe.sh make static BUILDTAGS="seccomp apparmor"
+    else
+        ooe.sh make BUILDTAGS="seccomp selinux"
+    fi
     sudo install -m 755 runc /usr/bin/runc
     cd $wd
 }

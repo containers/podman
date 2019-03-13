@@ -26,6 +26,7 @@ env:
     # Command to prefix every output line with a timestamp
     # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
     TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
+    BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
 
     ####
     #### Cache-image names to test with
@@ -88,22 +89,6 @@ env:
     GCE_SSH_USERNAME: cirrus-ci
     # Name where this repositories cloud resources are located
     GCP_PROJECT_ID: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-
-    # Space separated list of environment variables to unset before testing
-    UNSET_ENV_VARS: >-
-        GCP_PROJECT_ID GCE_SSH_USERNAME SERVICE_ACCOUNT RHSM_COMMAND BUILT_IMAGE_SUFFIX
-        IRCID RHEL_BASE_IMAGE FAH_BASE_IMAGE FEDORA_BASE_IMAGE CENTOS_BASE_IMAGE
-        UBUNTU_BASE_IMAGE PACKER_VER PACKER_BUILDS RUNC_COMMIT CRIU_COMMIT
-        CRIO_COMMIT CNI_COMMIT FEDORA_CNI_COMMIT PACKER_BASE SCRIPT_BASE
-        CIRRUS_SHELL CIRRUS_WORKING_DIR ENVLIB BUILT_IMAGE_SUFFIX CIRRUS_CI
-        CI_NODE_INDEX CI_NODE_TOTAL CIRRUS_BASE_BRANCH CIRRUS_BASE_SHA
-        CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_CHANGE_IN_REPO CIRRUS_CLONE_DEPTH
-        CIRRUS_COMMIT_MESSAGE CIRRUS_CHANGE_MESSAGE CIRRUS_REPO_CLONE_HOST
-        CIRRUS_DEFAULT_BRANCH CIRRUS_PR CIRRUS_TAG CIRRUS_OS CIRRUS_TASK_NAME
-        CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
-        CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
-        CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
-        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER
 
 
 # Default VM to use unless set or modified by task
@@ -401,10 +386,6 @@ test_build_cache_images_task:
     # VMs created by packer are not cleaned up by cirrus, must allow task to complete
     auto_cancellation: $CI != "true"
 
-    env:
-        # Unique to this specific run of _all_ tasks
-        BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
-
     gce_instance:
         image_project: "libpod-218412"
         zone: "us-central1-a"
@@ -421,7 +402,7 @@ test_build_cache_images_task:
 
 
 # Test building of new cache-images for future PR testing, in this PR.
-test_built_images_task:
+verify_test_built_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != 'master' &&
@@ -432,13 +413,6 @@ test_built_images_task:
     depends_on:
         - "gating"
         - "test_build_cache_images"
-
-    # VMs created by packer are not cleaned up by cirrus, must allow task to complete
-    auto_cancellation: $CI != "true"
-
-    env:
-        # Unique to this specific run of _all_ tasks
-        BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
 
     gce_instance:
         matrix:
@@ -455,11 +429,7 @@ test_built_images_task:
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    rootless_testing_script:
-        - export ROOTLESS_USER=yarrpilferingpirate
-        - export ROOTLESS_UID=234567
-        - export ROOTLESS_GID=234567
-        - cd $GOSRC && $SCRIPT_BASE/setup_and_run_rootless.sh |& ${TIMESTAMP}
+    rootless_testing_script: '$SCRIPT_BASE/resetup_and_run_rootless.sh |& ${TIMESTAMP}'
 
 
 # Build new cache-images for future PR testing, but only after a PR merge.
@@ -524,6 +494,7 @@ success_task:
         - "special_testing"
         - "optional_testing"
         - "test_build_cache_images"
+        - "verify_test_built_images"
         - "build_cache_images"
 
     env:

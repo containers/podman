@@ -59,7 +59,6 @@ ooe.sh sudo yum -y install \
     python3-dateutil \
     python3-psutil \
     python3-pytoml \
-    runc \
     skopeo-containers \
     unzip \
     vim \
@@ -68,13 +67,15 @@ ooe.sh sudo yum -y install \
 
 install_scl_git
 
+install_conmon
+
+install_runc
+
+install_criu
+
 install_cni_plugins
 
 install_buildah
-
-install_conmon
-
-install_criu
 
 install_packer_copied_files
 

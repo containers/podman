@@ -124,29 +124,54 @@ in the PR description, add the magic string:  ``***CIRRUS: TEST IMAGES***``
        This is a retained as a secondary method for tracking/auditing
        creation of VM images, should it ever be needed.
 
-***Manual Steps:***  In order to utilize built images, their names must be upated
-in ``.cirrus.yml``.  For example, if the image ``blah-1234`` was produced above:
+### ``verify_test_built_images`` Task
+
+Only runs following successful ``test_build_cache_images_task`` task.  Uses
+images following the standard naming format; ***however, only runs a limited
+sub-set of automated tests***.  Validating newly built images fully, requires
+updating ``.cirrus.yml``.
+
+***Manual Steps:***  Assuming `verify_test_built_images` passes, then
+you'll find the new image names displayed at the end of the
+`test_build_cache_images_task` in the `build_vm_images` output.
+For example:
+
+```
+...cut...
+==> Builds finished. The artifacts of successful builds are:
+--> rhel-7: A disk image was created: rhel-7-libpod-5699523102900224
+--> rhel-7:
+--> ubuntu-18: A disk image was created: ubuntu-18-libpod-5699523102900224
+--> ubuntu-18:
+--> fedora-29: A disk image was created: fedora-29-libpod-5699523102900224
+--> fedora-29:
+--> fedora-28: A disk image was created: fedora-28-libpod-5699523102900224
+```
+
+An updated (or new) pull-request with this change, will utilize
+the new cache-images:
+
 
 ```yaml
 env:
+    ...cut...
     ####
     #### Cache-image names to test with
     ###
-    BLAH_CACHE_IMAGE_NAME: "blah-1234"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-5699523102900224"
+    ...cut...
 ```
 
-A new pull-request with that change, will run tasks utilizing that image.
+Take care to also update the PR description if any 'magic' phrases were used
+(they affect which tests run).  In other words, you'll likely want to
+remove the ``***CIRRUS: TEST IMAGES***`` string - otherwise Cirrus-CI will
+simply build new and test again.
 
 
-### ``test_built_images`` Task
-
-Only runs following successful ``test_build_cache_images_task`` task.  Uses
-images following the standard naming format, with execution of
-the 'gate', 'testing' and 'rootless_testing' scripts.  Validating the images
-suitability for wide-spread use.
-
-
-### ``cache_images`` Task
+### ``build_cache_images`` Task  *(Deprecated)*
 
 Exactly the same as ``test_build_cache_images_task`` task, but only runs on
 the master branch.  Requires a magic string to be in the `HEAD`

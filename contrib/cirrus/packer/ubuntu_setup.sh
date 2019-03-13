@@ -90,9 +90,9 @@ ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
 ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
 ooe.sh sudo update-grub
 
-install_runc
-
 install_conmon
+
+install_runc
 
 install_criu
 
