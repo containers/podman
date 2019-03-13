@@ -5,7 +5,7 @@ import (
 
 	"github.com/containers/image/pkg/docker/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/common"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -54,7 +54,7 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 	}
 	authfile := getAuthFile(c.Authfile)
 
-	sc := common.GetSystemContext("", authfile, false)
+	sc := image.GetSystemContext("", authfile, false)
 
 	if c.All {
 		if err := config.RemoveAllAuthentication(sc); err != nil {

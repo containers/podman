@@ -11,7 +11,6 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/common"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
@@ -127,7 +126,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 	} else {
 		authfile := getAuthFile(c.String("authfile"))
 		spec := image
-		systemContext := common.GetSystemContext("", authfile, false)
+		systemContext := image2.GetSystemContext("", authfile, false)
 		srcRef, err := alltransports.ParseImageName(spec)
 		if err != nil {
 			dockerTransport := "docker://"

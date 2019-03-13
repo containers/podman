@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -204,6 +205,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
 		// could be trying to pull from registry with short name
