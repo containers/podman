@@ -1765,7 +1765,9 @@ func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetwo
 	var netconf, undo []*libcni.NetworkConfigList
 
 	if isolation == IsolationOCIRootless {
-		return setupRootlessNetwork(pid)
+		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil && !ns.Host {
+			return setupRootlessNetwork(pid)
+		}
 	}
 	// Scan for CNI configuration files.
 	confdir := options.CNIConfigDir
