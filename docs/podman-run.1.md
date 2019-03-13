@@ -173,7 +173,7 @@ the other shell to view a list of the running containers. You can reattach to a
 detached container with **podman attach**.
 
 When attached in the tty mode, you can detach from the container (and leave it
-running) using a configurable key sequence. The default sequence is `CTRL-p CTRL-q`.
+running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl-q`.
 You configure the key sequence using the **--detach-keys** option or a configuration file.
 See **config-json(5)** for documentation on using a configuration file.
 

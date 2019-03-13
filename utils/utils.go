@@ -93,7 +93,7 @@ var ErrDetach = errors.New("detached from container")
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
 	if len(keys) == 0 {
-		// Default keys : ctrl-p ctrl-q
+		// Default keys : ctrl-p,ctrl-q
 		keys = []byte{16, 17}
 	}
 
