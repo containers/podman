@@ -34,7 +34,7 @@ var (
 %s`, getDescriptorString())
 
 	_topCommand = &cobra.Command{
-		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTIOS]",
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS]",
 		Short: "Display the running processes of a container",
 		Long:  topDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
