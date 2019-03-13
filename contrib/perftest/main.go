@@ -103,7 +103,11 @@ func main() {
 		}
 		fmt.Printf("image %s not found locally, fetching from remote registry..\n", *testImageName)
 
-		testImage, err = client.ImageRuntime().New(ctx, *testImageName, "", "", writer, &dockerRegistryOptions, image2.SigningOptions{}, false, nil)
+		imageConfig := client.ImageRuntime().DefaultNewImageConfig(*testImageName)
+		imageConfig.Writer = writer
+		imageConfig.DockerOptions = &dockerRegistryOptions
+		imageConfig.SigningOptions = image2.SigningOptions{}
+		testImage, err = client.ImageRuntime().New(ctx, imageConfig, false, false)
 		if err != nil {
 			logrus.Fatal(err)
 		}

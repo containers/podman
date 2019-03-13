@@ -201,26 +201,28 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
-func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, config *PullConfig) ([]string, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromHeuristicSource")
 	defer span.Finish()
-	sc := GetSystemContext(signaturePolicyPath, authfile, false)
-	goal, err := ir.getPullGoalFromHeuristicSource(ctx, sc, inputName)
+	sc := GetSystemContext(config.SignaturePolicyPath, config.Authfile, false)
+	goal, err := ir.getPullGoalFromHeuristicSource(ctx, sc, config.Name)
 	if err != nil {
 		return nil, err
 	}
-	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, label)
+	return ir.doPullImage(ctx, sc, *goal, config.Writer, config.SigningOptions, config.DockerOptions, config.Label)
 }
 
 // pullImageFromHeuristicSourceIfNecessary checks an image is out of date with its source,
 // and if so, pulls an updated image.
-func (ir *Runtime) pullImageFromHeuristicSourceIfNecessary(ctx context.Context, localImg *storage.Image, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+// Rather than search for the name in config, use the names of localImg, so we don't have to
+// refind the transport and reconstruct the correct name.
+func (ir *Runtime) pullImageFromHeuristicSourceIfNecessary(ctx context.Context, localImg *storage.Image, config *PullConfig) ([]string, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromHeuristicSourceIfNecessary")
 	defer span.Finish()
 
 	var inspectErrors *multierror.Error
 
-	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	sc := GetSystemContext(config.SignaturePolicyPath, config.Authfile, false)
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	var goal *pullGoal
 	for _, name := range localImg.Names {
@@ -235,40 +237,37 @@ func (ir *Runtime) pullImageFromHeuristicSourceIfNecessary(ctx context.Context, 
 
 	found := false
 	for _, imageInfo := range goal.refPairs {
-		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
-			io.WriteString(writer, fmt.Sprintf("Checking if image is up to date with %s...", imageInfo.image))
+		if config.Writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
+			logrus.Debugf("Checking if image is up to date with %s", imageInfo.image)
 		}
 
-		upToDate, err := checkRemoteImageIsUpToDate(ctx, label, localImg.Created, imageInfo, sc)
+		upToDate, err := checkRemoteImageIsUpToDateAndHasLabel(ctx, config.Label, &localImg.Created, imageInfo, sc)
 		if err != nil {
 			inspectErrors = multierror.Append(inspectErrors, err)
 			continue
 		}
 		if upToDate {
 			// we don't need to update our image.
-			if writer != nil {
-				io.WriteString(writer, " Yup using local image.\n")
-			}
 			return nil, nil
 		}
 		// Image was found and needs updating, break to pull the image
-		if writer != nil {
-			io.WriteString(writer, " Nope, updating image.\n")
-			found = true
+		if config.Writer != nil {
+			logrus.Debugf("%s is not up to date with remote image, updating\n", config.Name)
 		}
+		found = true
 		break
 	}
 	if !found {
-		return nil, errors.Wrapf(inspectErrors, "Image was not found in any registry")
+		return nil, errors.Wrapf(inspectErrors, "%s was not found in any registry", config.Name)
 	}
 
 	// We can now update the image
-	imgs, pullErrors := ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, label)
+	imgs, pullErrors := ir.doPullImage(ctx, sc, *goal, config.Writer, config.SigningOptions, config.DockerOptions, config.Label)
 	inspectErrors = multierror.Append(inspectErrors, pullErrors)
 	return imgs, inspectErrors
 }
 
-// Helper function for getting a pullGoal heuristically
+// getPullGoalFromHeuristicSource determines what image(s) to try to pull based on inputName, which is heuristically parsed and may involve configured registries.
 func (ir *Runtime) getPullGoalFromHeuristicSource(ctx context.Context, sc *types.SystemContext, inputName string) (*pullGoal, error) {
 	var goal *pullGoal
 	srcRef, err := alltransports.ParseImageName(inputName)
@@ -423,33 +422,39 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 	if err != nil {
 		return err
 	}
-	return isLabelInInspect(label, remoteInspect.Labels, imageInfo.image)
+	return ensureImageHasLabel(label, imageInfo.image, remoteInspect)
 }
 
-// checkRemoteImageIsUpToDate checks if the remote image has a specific label. If not, an error is returned.
+// checkRemoteImageIsUpToDateAndHasLabel checks if the remote image has a specific label. If not, an error is returned.
 // Then it checks if an source reference is newer than lastUpdated, or the time an image we are checking was last updated.
 // It returns false if lastUpdate is older than the source image, true otherwise
-func checkRemoteImageIsUpToDate(ctx context.Context, label *string, lastUpdated time.Time, imageInfo pullRefPair, sc *types.SystemContext) (bool, error) {
-	labelImage, err := imageInfo.srcRef.NewImage(ctx, sc)
+func checkRemoteImageIsUpToDateAndHasLabel(ctx context.Context, label *string, lastUpdated *time.Time, imageInfo pullRefPair, sc *types.SystemContext) (bool, error) {
+	remoteImage, err := imageInfo.srcRef.NewImage(ctx, sc)
 	if err != nil {
 		return false, err
 	}
-	remoteInspect, err := labelImage.Inspect(ctx)
+	remoteInspect, err := remoteImage.Inspect(ctx)
 	if err != nil {
 		return false, err
 	}
 	if label != nil {
-		if err = isLabelInInspect(*label, remoteInspect.Labels, imageInfo.image); err != nil {
+		if err = ensureImageHasLabel(*label, imageInfo.image, remoteInspect); err != nil {
 			return false, err
 		}
 	}
-	return !remoteInspect.Created.After(lastUpdated), nil
+	// unconditionally pull the image if either the current or remote image have no
+	// created time
+	if remoteInspect.Created == nil || lastUpdated == nil {
+		return true, nil
+	}
+	// otherwise, only update if we need to
+	return !remoteInspect.Created.After(*lastUpdated), nil
 }
 
 // checks if a label is in the labels map passed in from an image.Inspect
-func isLabelInInspect(label string, labels map[string]string, name string) error {
+func ensureImageHasLabel(label, name string, remoteInspect *types.ImageInspectInfo) error {
 	// Labels are case insensitive; so we iterate instead of simple lookup
-	for k := range labels {
+	for k := range remoteInspect.Labels {
 		if strings.ToLower(label) == strings.ToLower(k) {
 			return nil
 		}

@@ -78,6 +78,17 @@ type InfoImage struct {
 	Layers []LayerInfo
 }
 
+// PullConfig is a configuration for a new image to be passed into runtime.New
+type PullConfig struct {
+	Name                string
+	SignaturePolicyPath string
+	Authfile            string
+	Writer              io.Writer
+	DockerOptions       *DockerRegistryOptions
+	SigningOptions      SigningOptions
+	Label               *string
+}
+
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
 var ErrRepoTagNotFound = errors.New("unable to match user input to any specific repotag")
 
@@ -141,22 +152,35 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 	return &image, nil
 }
 
+// DefaultPullConfig returns a default new image config for runtime.New()
+func (ir *Runtime) DefaultPullConfig(name string) *PullConfig {
+	imgCtx := new(PullConfig)
+	imgCtx.Name = name
+	imgCtx.SignaturePolicyPath = ""
+	imgCtx.Authfile = ""
+	imgCtx.Writer = nil
+	imgCtx.DockerOptions = nil
+	imgCtx.SigningOptions = SigningOptions{}
+	imgCtx.Label = nil
+	return imgCtx
+}
+
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string, update bool) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, config *PullConfig, forcePull, update bool) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
 
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
-		InputName:    name,
+		InputName:    config.Name,
 		Local:        false,
 		imageruntime: ir,
 	}
 
-	if signaturePolicyPath == "" {
-		signaturePolicyPath = ir.SignaturePolicyPath
+	if config.SignaturePolicyPath == "" {
+		config.SignaturePolicyPath = ir.SignaturePolicyPath
 	}
 
 	var imageName []string
@@ -165,11 +189,8 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if !forcePull {
 		localImage, err := newImage.getLocalImage()
 		if update {
-			if err != nil {
-				return nil, errors.Wrapf(err, "Can't update an image that isn't in local storage")
-			}
 			// check if it needs updating, and if so update it
-			imageName, err = ir.pullImageFromHeuristicSourceIfNecessary(ctx, localImage, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+			imageName, err = ir.pullImageFromHeuristicSourceIfNecessary(ctx, localImage, config)
 		}
 		// If we actually called pullImageFromHeuristicSourceIfNecessary,
 		// and err was returned nil, then we don't need to update the local image.
@@ -183,16 +204,16 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	// We have yet to find any imageNames (we didn't attempt to update a local image)
 	if len(imageName) == 0 {
 		// The image is not local
-		imageName, err = ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+		imageName, err = ir.pullImageFromHeuristicSource(ctx, config)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to pull %s", name)
+			return nil, errors.Wrapf(err, "unable to pull %s", config.Name)
 		}
 	}
 
 	newImage.InputName = imageName[0]
 	img, err := newImage.getLocalImage()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
+		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", config.Name)
 	}
 	newImage.image = img
 	return &newImage, nil

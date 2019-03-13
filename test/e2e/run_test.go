@@ -763,7 +763,7 @@ USER mail`
 		Expect(session.ExitCode()).ToNot(Equal(0))
 	})
 
-	It("podman run --pull from local registry", func() {
+	It("podman run --update from local registry", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
@@ -792,8 +792,8 @@ USER mail`
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
-		// run and pull updated image
-		run = podmanTest.Podman([]string{"run", "--pull", "true", "--rm", "localhost:5000/my-alpine", "ls"})
+		// run and update updated image
+		run = podmanTest.Podman([]string{"run", "--update", "true", "--rm", "localhost:5000/my-alpine", "ls"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		Expect(run.LineInOutputContains("Yup")).To(BeTrue())

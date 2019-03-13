@@ -505,7 +505,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.Bool(
 		"update", false,
-		"Update the image if it exists in storage but is older than its source (default false)",
+		"Update the image from registries if a newer version is available",
 	)
 	createFlags.StringP(
 		"user", "u", "",

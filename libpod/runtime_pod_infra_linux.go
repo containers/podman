@@ -6,7 +6,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -107,7 +106,8 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil, false)
+	imgConfig := r.ImageRuntime().DefaultPullConfig(r.config.InfraImage)
+	newImage, err := r.ImageRuntime().New(ctx, imgConfig, false, false)
 	if err != nil {
 		return nil, err
 	}

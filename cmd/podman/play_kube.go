@@ -183,8 +183,15 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		volumes[volume.Name] = hostPath.Path
 	}
 
+	imageConfig := runtime.ImageRuntime().DefaultPullConfig("")
+	imageConfig.SignaturePolicyPath = c.SignaturePolicy
+	imageConfig.Authfile = c.Authfile
+	imageConfig.Writer = writer
+	imageConfig.DockerOptions = &dockerRegistryOptions
+	imageConfig.SigningOptions = image.SigningOptions{}
 	for _, container := range podYAML.Spec.Containers {
-		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, false, nil, false)
+		imageConfig.Name = container.Image
+		newImage, err := runtime.ImageRuntime().New(ctx, imageConfig, false, false)
 		if err != nil {
 			return err
 		}

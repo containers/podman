@@ -112,7 +112,13 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return err
 		}
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, false, nil, false)
+
+		config := runtime.ImageRuntime().DefaultPullConfig(signimage)
+		config.SignaturePolicyPath = rtc.SignaturePolicyPath
+		config.Writer = os.Stderr
+		config.SigningOptions = image.SigningOptions{SignBy: signby}
+
+		newImage, err := runtime.ImageRuntime().New(getContext(), config, false, false)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}

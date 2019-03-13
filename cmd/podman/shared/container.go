@@ -693,7 +693,15 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 			registryCreds = creds
 		}
 		dockerRegistryOptions.DockerRegistryCreds = registryCreds
-		newImage, err = runtime.ImageRuntime().New(ctx, runlabelImage, signaturePolicyPath, authfile, output, &dockerRegistryOptions, image.SigningOptions{}, false, &label, false)
+
+		config := runtime.ImageRuntime().DefaultPullConfig(runlabelImage)
+		config.SignaturePolicyPath = signaturePolicyPath
+		config.Authfile = authfile
+		config.Writer = output
+		config.DockerOptions = &dockerRegistryOptions
+		config.Label = &label
+
+		newImage, err = runtime.ImageRuntime().New(ctx, config, false, false)
 	} else {
 		newImage, err = runtime.ImageRuntime().NewFromLocal(runlabelImage)
 	}

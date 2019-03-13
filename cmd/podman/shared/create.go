@@ -15,7 +15,6 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
@@ -75,7 +74,11 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			writer = os.Stderr
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, c.InputArgs[0], rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, c.Bool("pull-always"), nil, c.Bool("update"))
+		imageConfig := runtime.ImageRuntime().DefaultPullConfig(c.InputArgs[0])
+		imageConfig.SignaturePolicyPath = rtc.SignaturePolicyPath
+		imageConfig.Writer = writer
+
+		newImage, err := runtime.ImageRuntime().New(ctx, imageConfig, c.Bool("pull-always"), c.Bool("update"))
 		if err != nil {
 			return nil, nil, err
 		}
