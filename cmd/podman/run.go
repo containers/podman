@@ -166,6 +166,10 @@ func runCmd(c *cliconfig.RunValues) error {
 		exitCode = int(ecode)
 	}
 
+	if c.IsSet("rm") {
+		runtime.RemoveContainer(ctx, ctr, false, true)
+	}
+
 	return nil
 }
 
