@@ -1734,7 +1734,6 @@ _podman_container_run() {
 		--pod
 		--publish -p
 		--pull-always
-		--pull
 		--runtime
 		--rootfs
 		--security-opt
@@ -1748,6 +1747,7 @@ _podman_container_run() {
 		--systemd
 		--uidmap
 		--ulimit
+		--update
 		--user -u
 		--userns
 		--uts

@@ -430,10 +430,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"pull-always", false,
 		"Pull the image, even if a version is present",
 	)
-	createFlags.Bool(
-		"pull", false,
-		"Update the image if it exists in storage but is older than its source (default false)",
-	)
 	createFlags.BoolP(
 		"quiet", "q", false,
 		"Suppress output information when pulling images",
@@ -506,6 +502,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.StringSlice(
 		"ulimit", []string{},
 		"Ulimit options (default [])",
+	)
+	createFlags.Bool(
+		"update", false,
+		"Update the image if it exists in storage but is older than its source (default false)",
 	)
 	createFlags.StringP(
 		"user", "u", "",

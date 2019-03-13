@@ -530,17 +530,6 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
-**--pull**=*true*|*false*
-
-When the flag is enabled, attempt to pull the latest image from the registries listed
-in registries.conf if a local image does not exist or the image is newer than the one in storage.
-Raise an error if the image is not in any listed registry and is not present locally.
-
-If the flag is disabled (with --pull=false), do not pull the image from the registry,
-use only the local version.
-
-Default is *false*
-
 **--pull-always**=*true*|*false*
 
 Pull the image from the first registry it is found in as listed in registries.conf.
@@ -689,6 +678,14 @@ The following example maps uids 0-2000 in the container to the uids 30000-31999 
 **--ulimit**=[]
 
 Ulimit options
+
+**--update**=*true*|*false*
+
+When the flag is enabled, attempt to pull the latest image from the registries listed
+in registries.conf if a local image does not exist or the image is newer than the one in storage.
+Raise an error if the image is not in any listed registry and is not present locally.
+
+Default is *false*
 
 **--user**, **-u**=""
 
