@@ -137,6 +137,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-cp(1)](podman-cp.1.md)            | Copy files/folders between a container and the local filesystem.               |
 | [podman-create(1)](podman-create.1.md)    | Create a new container.                                                        |
 | [podman-diff(1)](podman-diff.1.md)        | Inspect changes on a container or image's filesystem.                          |
+| [podman-events(1)](podman-events.1.md)    | Monitor Podman events                                                          |
 | [podman-exec(1)](podman-exec.1.md)        | Execute a command in a running container.                                      |
 | [podman-export(1)](podman-export.1.md)    | Export a container's filesystem contents as a tar archive.                     |
 | [podman-generate(1)](podman-generate.1.md)| Generate structured data based for a containers and pods.                      |
