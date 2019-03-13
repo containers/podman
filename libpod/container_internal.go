@@ -211,6 +211,9 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 
 	c.state.Exited = true
 
+	// Write an event for the container's death
+	c.newContainerExitedEvent(c.state.ExitCode)
+
 	return nil
 }
 
@@ -947,6 +950,8 @@ func (c *Container) start() error {
 	logrus.Debugf("Started container %s", c.ID())
 
 	c.state.State = ContainerStateRunning
+
+	defer c.newContainerEvent(events.Start)
 
 	return c.save()
 }

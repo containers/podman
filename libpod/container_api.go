@@ -89,7 +89,6 @@ func (c *Container) Start(ctx context.Context, recursive bool) (err error) {
 	}
 
 	// Start the container
-	defer c.newContainerEvent(events.Start)
 	return c.start()
 }
 
@@ -127,7 +126,6 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 		}
 		close(attachChan)
 	}()
-	c.newContainerEvent(events.Start)
 	c.newContainerEvent(events.Attach)
 	return attachChan, nil
 }

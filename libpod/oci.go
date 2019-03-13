@@ -477,7 +477,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
 	// If not using runc, we don't need to do most of this.
 	if !useRunc {
 		// If the container's not running, nothing to do.
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != ContainerStateRunning && ctr.state.State != ContainerStatePaused {
 			return nil
 		}
 

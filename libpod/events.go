@@ -19,6 +19,19 @@ func (c *Container) newContainerEvent(status events.Status) {
 	}
 }
 
+// newContainerExitedEvent creates a new event for a container's death
+func (c *Container) newContainerExitedEvent(exitCode int32) {
+	e := events.NewEvent(events.Exited)
+	e.ID = c.ID()
+	e.Name = c.Name()
+	e.Image = c.config.RootfsImageName
+	e.Type = events.Container
+	e.ContainerExitCode = int(exitCode)
+	if err := e.Write(c.runtime.config.EventsLogFilePath); err != nil {
+		logrus.Errorf("unable to write event to %s", c.runtime.config.EventsLogFilePath)
+	}
+}
+
 // newPodEvent creates a new event for a libpod pod
 func (p *Pod) newPodEvent(status events.Status) {
 	e := events.NewEvent(status)
