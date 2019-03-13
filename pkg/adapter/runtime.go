@@ -259,7 +259,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	if err != nil {
 		return errors.Wrapf(err, "error parsing namespace-related options")
 	}
-	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command)
+	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command, options.Isolation)
 	if err != nil {
 		return errors.Wrapf(err, "error parsing ID mapping options")
 	}

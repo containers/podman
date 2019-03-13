@@ -27,11 +27,11 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/builder/dockerfile/parser"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
+	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -510,20 +510,21 @@ func (b *Executor) Run(run imagebuilder.Run, config docker.Config) error {
 		stdin = devNull
 	}
 	options := buildah.RunOptions{
-		Hostname:   config.Hostname,
-		Runtime:    b.runtime,
-		Args:       b.runtimeArgs,
-		NoPivot:    os.Getenv("BUILDAH_NOPIVOT") != "",
-		Mounts:     convertMounts(b.transientMounts),
-		Env:        config.Env,
-		User:       config.User,
-		WorkingDir: config.WorkingDir,
-		Entrypoint: config.Entrypoint,
-		Cmd:        config.Cmd,
-		Stdin:      stdin,
-		Stdout:     b.out,
-		Stderr:     b.err,
-		Quiet:      b.quiet,
+		Hostname:         config.Hostname,
+		Runtime:          b.runtime,
+		Args:             b.runtimeArgs,
+		NoPivot:          os.Getenv("BUILDAH_NOPIVOT") != "",
+		Mounts:           convertMounts(b.transientMounts),
+		Env:              config.Env,
+		User:             config.User,
+		WorkingDir:       config.WorkingDir,
+		Entrypoint:       config.Entrypoint,
+		Cmd:              config.Cmd,
+		Stdin:            stdin,
+		Stdout:           b.out,
+		Stderr:           b.err,
+		Quiet:            b.quiet,
+		NamespaceOptions: b.namespaceOptions,
 	}
 	if config.NetworkDisabled {
 		options.ConfigureNetwork = buildah.NetworkDisabled

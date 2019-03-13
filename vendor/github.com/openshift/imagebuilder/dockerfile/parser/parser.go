@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/docker/docker/builder/dockerfile/command"
+	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/docker/docker/pkg/system"
 	"github.com/pkg/errors"
 )
@@ -91,6 +91,9 @@ var (
 // DefaultEscapeToken is the default escape token
 const DefaultEscapeToken = '\\'
 
+// defaultPlatformToken is the platform assumed for the build if not explicitly provided
+var defaultPlatformToken = runtime.GOOS
+
 // Directive is the structure used during a build run to hold the state of
 // parsing directives.
 type Directive struct {
@@ -140,7 +143,7 @@ func (d *Directive) possibleParserDirective(line string) error {
 	if len(tecMatch) != 0 {
 		for i, n := range tokenEscapeCommand.SubexpNames() {
 			if n == "escapechar" {
-				if d.escapeSeen {
+				if d.escapeSeen == true {
 					return errors.New("only one escape parser directive can be used")
 				}
 				d.escapeSeen = true
@@ -149,13 +152,14 @@ func (d *Directive) possibleParserDirective(line string) error {
 		}
 	}
 
-	// Only recognise a platform token if LCOW is supported
+	// TODO @jhowardmsft LCOW Support: Eventually this check can be removed,
+	// but only recognise a platform token if running in LCOW mode.
 	if system.LCOWSupported() {
 		tpcMatch := tokenPlatformCommand.FindStringSubmatch(strings.ToLower(line))
 		if len(tpcMatch) != 0 {
 			for i, n := range tokenPlatformCommand.SubexpNames() {
 				if n == "platform" {
-					if d.platformSeen {
+					if d.platformSeen == true {
 						return errors.New("only one platform parser directive can be used")
 					}
 					d.platformSeen = true
@@ -173,6 +177,7 @@ func (d *Directive) possibleParserDirective(line string) error {
 func NewDefaultDirective() *Directive {
 	directive := Directive{}
 	directive.setEscapeToken(string(DefaultEscapeToken))
+	directive.setPlatformToken(defaultPlatformToken)
 	return &directive
 }
 
@@ -237,10 +242,8 @@ func newNodeFromLine(line string, directive *Directive) (*Node, error) {
 type Result struct {
 	AST         *Node
 	EscapeToken rune
-	// TODO @jhowardmsft - see https://github.com/moby/moby/issues/34617
-	// This next field will be removed in a future update for LCOW support.
-	OS       string
-	Warnings []string
+	Platform    string
+	Warnings    []string
 }
 
 // PrintWarnings to the writer
@@ -287,10 +290,6 @@ func Parse(rwc io.Reader) (*Result, error) {
 			}
 			currentLine++
 
-			if isComment(scanner.Bytes()) {
-				// original line was a comment (processLine strips comments)
-				continue
-			}
 			if isEmptyContinuationLine(bytesRead) {
 				hasEmptyContinuationLine = true
 				continue
@@ -320,7 +319,7 @@ func Parse(rwc io.Reader) (*Result, error) {
 		AST:         root,
 		Warnings:    warnings,
 		EscapeToken: d.escapeToken,
-		OS:          d.platformToken,
+		Platform:    d.platformToken,
 	}, nil
 }
 
@@ -332,12 +331,8 @@ func trimWhitespace(src []byte) []byte {
 	return bytes.TrimLeftFunc(src, unicode.IsSpace)
 }
 
-func isComment(line []byte) bool {
-	return tokenComment.Match(trimWhitespace(line))
-}
-
 func isEmptyContinuationLine(line []byte) bool {
-	return len(trimWhitespace(line)) == 0
+	return len(trimComments(trimWhitespace(line))) == 0
 }
 
 var utf8bom = []byte{0xEF, 0xBB, 0xBF}

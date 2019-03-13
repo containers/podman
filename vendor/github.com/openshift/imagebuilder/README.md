@@ -1,4 +1,4 @@
-Docker / OCI Image Builder
+OCI Image Builder
 ==========================
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/openshift/imagebuilder)](https://goreportcard.com/report/github.com/openshift/imagebuilder)
@@ -6,22 +6,22 @@ Docker / OCI Image Builder
 [![Travis](https://travis-ci.org/openshift/imagebuilder.svg?branch=master)](https://travis-ci.org/openshift/imagebuilder)
 [![Join the chat at freenode:openshift-dev](https://img.shields.io/badge/irc-freenode%3A%20%23openshift--dev-blue.svg)](http://webchat.freenode.net/?channels=%23openshift-dev)
 
-Note: this library is beta and may contain bugs that prevent images from being identical to Docker build.  Test your images (and add to our conformance suite)!
+Please test your images (and add to our conformance suite)!
 
-This library supports using the Dockerfile syntax to build Docker
-compatible images, without invoking Docker build. It is intended to give
-clients more control over how a Docker build is run, including:
+This library supports using the Dockerfile syntax to build OCI & Docker
+compatible images, without invoking a container build command such as `buildah bud` or `docker build`. It is intended to give
+clients more control over how they build container images, including:
 
 * Instead of building one layer per line, run all instructions in the
   same container
-* Set Docker HostConfig settings like network and memory controls that
-  are not available when running Docker builds
+* Set HostConfig settings like network and memory controls that
+  are not available when running container builds
 * Mount external files into the build that are not persisted as part of
   the final image (i.e. "secrets")
 * If there are no RUN commands in the Dockerfile, the container is created
   and committed, but never started.
 
-The final image should be 99.9% compatible with regular docker builds,
+The final image should be 99.9% compatible with regular container builds,
 but bugs are always possible.
 
 Future goals include:
@@ -53,9 +53,6 @@ $ imagebuilder --mount ~/secrets/private.key:/etc/keys/private.key path/to/my/co
 ```
 
 Any processes in the Dockerfile will have access to `/etc/keys/private.key`, but that file will not be part of the committed image.
-
-Running `--mount` requires Docker 1.10 or newer, as it uses a Docker volume to hold the mounted files and the volume API was not
-available in earlier versions.
 
 You can also customize which Dockerfile is run, or run multiple Dockerfiles in sequence (the FROM is ignored on
 later files):
