@@ -34,7 +34,7 @@ func init() {
 	loadCommand.SetHelpTemplate(HelpTemplate())
 	loadCommand.SetUsageTemplate(UsageTemplate())
 	flags := loadCommand.Flags()
-	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file, default is STDIN")
+	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file instead of from terminal")
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
 

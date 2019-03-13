@@ -46,7 +46,7 @@ func init() {
 	flags.StringVar(&searchCommand.Format, "format", "", "Change the output format to a Go template")
 	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 }
 
 func searchCmd(c *cliconfig.SearchValues) error {

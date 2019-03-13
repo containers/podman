@@ -35,7 +35,7 @@ func init() {
 	flags := attachCommand.Flags()
 	flags.StringVar(&attachCommand.DetachKeys, "detach-keys", "", "Override the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.BoolVar(&attachCommand.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
-	flags.BoolVar(&attachCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process (default true)")
+	flags.BoolVar(&attachCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVarP(&attachCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	markFlagHiddenForRemoteClient("latest", flags)
 }

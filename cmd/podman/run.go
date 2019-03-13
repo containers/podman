@@ -44,7 +44,7 @@ func init() {
 	runCommand.SetUsageTemplate(UsageTemplate())
 	flags := runCommand.Flags()
 	flags.SetInterspersed(false)
-	flags.Bool("sig-proxy", true, "Proxy received signals to the process (default true)")
+	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
 	getCreateFlags(&runCommand.PodmanCommand)
 }
 

@@ -313,7 +313,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"image-volume", "bind",
-		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind')",
+		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore'",
 	)
 	createFlags.Bool(
 		"init", false,
@@ -374,7 +374,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.Int64(
 		"memory-swappiness", -1,
-		"Tune container memory swappiness (0 to 100) (default -1)",
+		"Tune container memory swappiness (0 to 100, or -1 for system default)",
 	)
 	createFlags.String(
 		"name", "",

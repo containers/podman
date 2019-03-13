@@ -36,7 +36,7 @@ func init() {
 	exportCommand.SetHelpTemplate(HelpTemplate())
 	exportCommand.SetUsageTemplate(UsageTemplate())
 	flags := exportCommand.Flags()
-	flags.StringVarP(&exportCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
+	flags.StringVarP(&exportCommand.Output, "output", "o", "/dev/stdout", "Write to a file instead of terminal")
 }
 
 // exportCmd saves a container to a tarball on disk

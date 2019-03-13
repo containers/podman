@@ -58,7 +58,7 @@ func init() {
 	flags := saveCommand.Flags()
 	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&saveCommand.Format, "format", v2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
-	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file, default is STDOUT")
+	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file instead of terminal")
 	flags.BoolVarP(&saveCommand.Quiet, "quiet", "q", false, "Suppress the output")
 }
 
