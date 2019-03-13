@@ -6,7 +6,7 @@ import (
 	"context"
 )
 
-func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force, prune bool) error {
+func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {
 	return ErrNotImplemented
 }
 

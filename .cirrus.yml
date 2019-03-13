@@ -135,8 +135,10 @@ gating_task:
     # This task builds Podman with different buildtags to ensure the build does
     # not break.
     build_script:
+        - '/usr/local/bin/entrypoint.sh clean podman'
+        - '/usr/local/bin/entrypoint.sh clean podman-remote'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp"'
-
+        - '/usr/local/bin/entrypoint.sh clean podman-remote-darwin'
 
 build_each_commit_task:
 
