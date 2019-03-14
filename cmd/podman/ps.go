@@ -494,6 +494,14 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			}
 			return false
 		}, nil
+	case "health":
+		return func(c *libpod.Container) bool {
+			hcStatus, err := c.HealthCheckStatus()
+			if err != nil {
+				return false
+			}
+			return hcStatus == filterValue
+		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }

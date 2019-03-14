@@ -833,6 +833,12 @@ func (c *Container) init(ctx context.Context) error {
 	if err := c.save(); err != nil {
 		return err
 	}
+	if c.config.HealthCheckConfig != nil {
+		if err := c.createTimer(); err != nil {
+			logrus.Error(err)
+		}
+	}
+
 	defer c.newContainerEvent(events.Init)
 	return c.completeNetworkSetup()
 }
@@ -955,6 +961,15 @@ func (c *Container) start() error {
 	logrus.Debugf("Started container %s", c.ID())
 
 	c.state.State = ContainerStateRunning
+
+	if c.config.HealthCheckConfig != nil {
+		if err := c.updateHealthStatus(HealthCheckStarting); err != nil {
+			logrus.Error(err)
+		}
+		if err := c.startTimer(); err != nil {
+			logrus.Error(err)
+		}
+	}
 
 	defer c.newContainerEvent(events.Start)
 
@@ -1122,6 +1137,13 @@ func (c *Container) cleanup(ctx context.Context) error {
 	defer span.Finish()
 
 	logrus.Debugf("Cleaning up container %s", c.ID())
+
+	// Remove healthcheck unit/timer file if it execs
+	if c.config.HealthCheckConfig != nil {
+		if err := c.removeTimer(); err != nil {
+			logrus.Error(err)
+		}
+	}
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {

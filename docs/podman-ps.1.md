@@ -100,6 +100,7 @@ Valid filters are listed below:
 | before          | [ID] or [Name] Containers created before this container             |
 | since           | [ID] or [Name] Containers created since this container              |
 | volume          | [VolumeName] or [MountpointDestination] Volume mounted in container |
+| health          | [Status] healthy or unhealthy                                       |
 
 **--help**, **-h**
 
