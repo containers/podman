@@ -162,9 +162,9 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	var cmd *exec.Cmd
 	if havePortMapping {
 		// if we need ports to be mapped from the host, create a API socket to use for communicating with slirp4netns.
-		cmd = exec.Command(path, "--mtu", "65520", "-c", "-e", "3", "-r", "4", "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID), "tap0")
+		cmd = exec.Command(path, "--disable-host-loopback", "--mtu", "65520", "-c", "-e", "3", "-r", "4", "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID), "tap0")
 	} else {
-		cmd = exec.Command(path, "--mtu", "65520", "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+		cmd = exec.Command(path, "--disable-host-loopback", "--mtu", "65520", "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
 	}
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
