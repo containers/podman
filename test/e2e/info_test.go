@@ -41,7 +41,7 @@ var _ = Describe("Podman Info", func() {
 	})
 	It("podman system info json output", func() {
 		session := podmanTest.Podman([]string{"system", "info", "--format=json"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
