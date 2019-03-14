@@ -1212,3 +1212,70 @@ func (i *Image) newImageEvent(status events.Status) {
 		logrus.Infof("unable to write event to %s", i.imageruntime.EventsLogFilePath)
 	}
 }
+
+// LayerInfo keeps information of single layer
+type LayerInfo struct {
+	// Layer ID
+	ID string
+	// Parent ID of current layer.
+	ParentID string
+	// ChildID of current layer.
+	// there can be multiple children in case of fork
+	ChildID []string
+	// RepoTag will have image repo names, if layer is top layer of image
+	RepoTags []string
+	// Size stores Uncompressed size of layer.
+	Size int64
+}
+
+// GetLayersMapWithImageInfo returns map of image-layers, with associated information like RepoTags, parent and list of child layers.
+func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, error) {
+
+	// Memory allocated to store map of layers with key LayerID.
+	// Map will build dependency chain with ParentID and ChildID(s)
+	layerInfoMap := make(map[string]*LayerInfo)
+
+	// scan all layers & fill size and parent id for each layer in layerInfoMap
+	layers, err := imageruntime.store.Layers()
+	if err != nil {
+		return nil, err
+	}
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if !ok {
+			layerInfoMap[layer.ID] = &LayerInfo{
+				ID:       layer.ID,
+				Size:     layer.UncompressedSize,
+				ParentID: layer.Parent,
+			}
+		} else {
+			return nil, fmt.Errorf("detected multiple layers with the same ID %q", layer.ID)
+		}
+	}
+
+	// scan all layers & add all childs for each layers to layerInfo
+	for _, layer := range layers {
+		_, ok := layerInfoMap[layer.ID]
+		if ok {
+			if layer.Parent != "" {
+				layerInfoMap[layer.Parent].ChildID = append(layerInfoMap[layer.Parent].ChildID, layer.ID)
+			}
+		} else {
+			return nil, fmt.Errorf("lookup error: layer-id  %s, not found", layer.ID)
+		}
+	}
+
+	// Add the Repo Tags to Top layer of each image.
+	imgs, err := imageruntime.store.Images()
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range imgs {
+		e, ok := layerInfoMap[img.TopLayer]
+		if !ok {
+			return nil, fmt.Errorf("top-layer for image %s not found local store", img.ID)
+		}
+		e.RepoTags = append(e.RepoTags, img.Names...)
+	}
+	return layerInfoMap, nil
+}
