@@ -42,6 +42,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by id", func() {
+		SkipIfRootless()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -60,6 +61,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by id with TERM", func() {
+		SkipIfRootless()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -74,6 +76,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill a pod by name", func() {
+		SkipIfRootless()
 		_, ec, podid := podmanTest.CreatePod("test1")
 		Expect(ec).To(Equal(0))
 
@@ -102,6 +105,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill latest pod", func() {
+		SkipIfRootless()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -127,6 +131,7 @@ var _ = Describe("Podman pod kill", func() {
 	})
 
 	It("podman pod kill all", func() {
+		SkipIfRootless()
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 

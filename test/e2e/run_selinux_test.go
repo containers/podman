@@ -112,6 +112,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman test selinux label /run/secrets", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", fedoraMinimal, "ls", "-dZ", "/run/secrets"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -144,6 +145,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman test selinux --privileged label /run/secrets", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--privileged", fedoraMinimal, "ls", "-dZ", "/run/secrets"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

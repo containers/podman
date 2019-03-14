@@ -305,6 +305,7 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps test with port range", func() {
+		SkipIfRootless()
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

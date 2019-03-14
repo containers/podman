@@ -47,6 +47,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on a complex local image name", func() {
+		SkipIfRootless()
 		imageName := strings.TrimPrefix(nginx, "quay.io/")
 		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
@@ -185,6 +186,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run limits test", func() {
+		SkipIfRootless()
 		podmanTest.RestoreArtifact(fedoraMinimal)
 		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
 		session.WaitWithDefaultTimeout()
@@ -211,6 +213,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with volume flag", func() {
+		SkipIfRootless()
 		Skip("Skip until we diagnose the regression of volume mounts")
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
@@ -275,6 +278,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run sysctl test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -282,6 +286,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run blkio-weight test", func() {
+		SkipIfRootless()
 		if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
 			Skip("Kernel does not support blkio.weight")
 		}
@@ -292,6 +297,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run device-read-bps test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -299,6 +305,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run device-write-bps test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -306,6 +313,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run device-read-iops test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -313,6 +321,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run device-write-iops test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -416,6 +425,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with FIPS mode secrets", func() {
+		SkipIfRootless()
 		fipsFile := "/etc/system-fips"
 		err = ioutil.WriteFile(fipsFile, []byte{}, 0755)
 		Expect(err).To(BeNil())
@@ -430,6 +440,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run without group-add", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -437,6 +448,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with group-add", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--group-add=audio", "--group-add=nogroup", "--group-add=777", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -444,6 +456,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with user (default)", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -458,6 +471,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with user (integer, in /etc/passwd)", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=8", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -465,6 +479,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with user (username)", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--user=mail", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

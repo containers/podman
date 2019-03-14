@@ -18,6 +18,8 @@ func SkipIfRemote() {
 	ginkgo.Skip("This function is not enabled for remote podman")
 }
 
+func SkipIfRootless() {}
+
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
 	p.StopVarlink()

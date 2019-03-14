@@ -69,9 +69,9 @@ env:
     ####
     #### Default to NOT running in rootless-testing mode
     ####
-    ROOTLESS_USER:
-    ROOTLESS_UID:
-    ROOTLESS_GID:
+    ROOTLESS_USER: ""
+    ROOTLESS_UID: ""
+    ROOTLESS_GID: ""
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.

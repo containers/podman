@@ -45,6 +45,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged CapEff", func() {
+		SkipIfRootless()
 		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
 		Expect(cap.ExitCode()).To(Equal(0))
 
@@ -55,6 +56,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman cap-add CapEff", func() {
+		SkipIfRootless()
 		cap := SystemExec("grep", []string{"CapEff", "/proc/self/status"})
 		Expect(cap.ExitCode()).To(Equal(0))
 
@@ -80,6 +82,7 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("podman privileged should inherit host devices", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--privileged", ALPINE, "ls", "-l", "/dev"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

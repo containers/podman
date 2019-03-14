@@ -99,6 +99,7 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with network portbindings", func() {
+		SkipIfRootless()
 		name := "test"
 		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "80:80"})
 		session.WaitWithDefaultTimeout()

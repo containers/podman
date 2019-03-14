@@ -19,6 +19,7 @@ var _ = Describe("Podman stats", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
