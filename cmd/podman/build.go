@@ -52,7 +52,7 @@ func init() {
 	buildCommand.SetHelpTemplate(HelpTemplate())
 	buildCommand.SetUsageTemplate(UsageTemplate())
 	flags := buildCommand.Flags()
-	flags.SetInterspersed(false)
+	flags.SetInterspersed(true)
 
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
 	flag := budFlags.Lookup("pull")

@@ -34,6 +34,13 @@ echo ########################################################
 
 
 echo ########################################################
+echo test "build directory before other options create a tag"
+echo ########################################################
+TARGET=tagged-image
+podman build $HOME/test/build/from-scratch --quiet=True -t $TARGET
+podman images | grep tagged-image
+
+echo ########################################################
 echo test "build-preserve-subvolumes"
 echo ########################################################
   TARGET=volume-image
