@@ -241,6 +241,12 @@ type runtimeConfiguredFrom struct {
 	libpodStaticDirSet    bool
 	libpodTmpDirSet       bool
 	volPathSet            bool
+	conmonPath            bool
+	conmonEnvVars         bool
+	ociRuntimes           bool
+	runtimePath           bool
+	cniPluginDir          bool
+	noPivotRoot           bool
 }
 
 var (
@@ -434,6 +440,24 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 		if tmpConfig.VolumePath != "" {
 			runtime.configuredFrom.volPathSet = true
 		}
+		if tmpConfig.ConmonPath != nil {
+			runtime.configuredFrom.conmonPath = true
+		}
+		if tmpConfig.ConmonEnvVars != nil {
+			runtime.configuredFrom.conmonEnvVars = true
+		}
+		if tmpConfig.OCIRuntimes != nil {
+			runtime.configuredFrom.ociRuntimes = true
+		}
+		if tmpConfig.RuntimePath != nil {
+			runtime.configuredFrom.runtimePath = true
+		}
+		if tmpConfig.CNIPluginDir != nil {
+			runtime.configuredFrom.cniPluginDir = true
+		}
+		if tmpConfig.NoPivotRoot {
+			runtime.configuredFrom.noPivotRoot = true
+		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
@@ -453,12 +477,24 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			}
 
 			// Cherry pick the settings we want from the global configuration
-			runtime.config.ConmonPath = tmpConfig.ConmonPath
-			runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
-			runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
-			runtime.config.RuntimePath = tmpConfig.RuntimePath
-			runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
-			runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
+			if !runtime.configuredFrom.conmonPath {
+				runtime.config.ConmonPath = tmpConfig.ConmonPath
+			}
+			if !runtime.configuredFrom.conmonEnvVars {
+				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			}
+			if !runtime.configuredFrom.ociRuntimes {
+				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
+			}
+			if !runtime.configuredFrom.runtimePath {
+				runtime.config.RuntimePath = tmpConfig.RuntimePath
+			}
+			if !runtime.configuredFrom.cniPluginDir {
+				runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
+			}
+			if !runtime.configuredFrom.noPivotRoot {
+				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
+			}
 			break
 		}
 	}
