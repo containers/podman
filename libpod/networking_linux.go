@@ -134,6 +134,15 @@ type slirp4netnsCmd struct {
 	Args    slirp4netnsCmdArg `json:"arguments"`
 }
 
+func checkSlirpFlags(path string) (bool, bool, error) {
+	cmd := exec.Command(path, "--help")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, false, err
+	}
+	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), nil
+}
+
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer ctr.rootlessSlirpSyncR.Close()
@@ -159,13 +168,24 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	apiSocket := filepath.Join(r.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
-	var cmd *exec.Cmd
+
+	cmdArgs := []string{}
 	if havePortMapping {
-		// if we need ports to be mapped from the host, create a API socket to use for communicating with slirp4netns.
-		cmd = exec.Command(path, "--disable-host-loopback", "--mtu", "65520", "-c", "-e", "3", "-r", "4", "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID), "tap0")
-	} else {
-		cmd = exec.Command(path, "--disable-host-loopback", "--mtu", "65520", "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+		cmdArgs = append(cmdArgs, "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID))
 	}
+	dhp, mtu, err := checkSlirpFlags(path)
+	if err != nil {
+		return errors.Wrapf(err, "error checking slirp4netns binary %s", path)
+	}
+	if dhp {
+		cmdArgs = append(cmdArgs, "--disable-host-loopback")
+	}
+	if mtu {
+		cmdArgs = append(cmdArgs, "--mtu", "65520")
+	}
+	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
+
+	cmd := exec.Command(path, cmdArgs...)
 
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
