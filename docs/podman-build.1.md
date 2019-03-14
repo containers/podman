@@ -209,7 +209,7 @@ Write the image ID to the file.
 Sets the configuration for IPC namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new IPC namespace should be created, or it can be "host" to indicate
-that the IPC namespace in which `buildah` itself is being run should be reused,
+that the IPC namespace in which `podman` itself is being run should be reused,
 or it can be the path to an IPC namespace which is already in use by
 another process.
 
@@ -269,7 +269,7 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 Sets the configuration for network namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new network namespace should be created, or it can be "host" to indicate
-that the network namespace in which `buildah` itself is being run should be
+that the network namespace in which `podman` itself is being run should be
 reused, or it can be the path to a network namespace which is already in use by
 another process.
 
@@ -282,7 +282,7 @@ Do not use existing cached images for the container build. Build from the start 
 Sets the configuration for PID namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new PID namespace should be created, or it can be "host" to indicate
-that the PID namespace in which `buildah` itself is being run should be reused,
+that the PID namespace in which `podman` itself is being run should be reused,
 or it can be the path to a PID namespace which is already in use by another
 process.
 
@@ -398,7 +398,7 @@ include:
 Sets the configuration for user namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new user namespace should be created, it can be "host" to indicate that
-the user namespace in which `buildah` itself is being run should be reused, or
+the user namespace in which `podman` itself is being run should be reused, or
 it can be the path to an user namespace which is already in use by another
 process.
 
@@ -452,7 +452,7 @@ in the `/etc/subuid` file which correspond to the specified user.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 If --userns-gid-map-group is specified, but --userns-uid-map-user is not
-specified, `buildah` will assume that the specified group name is also a
+specified, `podman` will assume that the specified group name is also a
 suitable user name to use as the default setting for this option.
 
 **--userns-gid-map-group** *group*
@@ -463,7 +463,7 @@ in the `/etc/subgid` file which correspond to the specified group.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 If --userns-uid-map-user is specified, but --userns-gid-map-group is not
-specified, `buildah` will assume that the specified user name is also a
+specified, `podman` will assume that the specified user name is also a
 suitable group name to use as the default setting for this option.
 
 **--uts** *how*
@@ -471,7 +471,7 @@ suitable group name to use as the default setting for this option.
 Sets the configuration for UTS namespaces when the handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new UTS namespace should be created, or it can be "host" to indicate
-that the UTS namespace in which `buildah` itself is being run should be reused,
+that the UTS namespace in which `podman` itself is being run should be reused,
 or it can be the path to a UTS namespace which is already in use by another
 process.
 
