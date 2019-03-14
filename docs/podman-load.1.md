@@ -4,7 +4,7 @@
 podman\-load - Load an image from docker archive
 
 ## SYNOPSIS
-**podman load** *name*[:*tag*|@*digest*]
+**podman load** [ARCHIVE]
 
 ## DESCRIPTION
 **podman load** copies an image from either **docker-archive** or **oci-archive** stored

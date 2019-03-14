@@ -1429,5 +1429,9 @@ func (c *Container) copyWithTarFromImage(src, dest string) error {
 	}
 	a := archive.NewDefaultArchiver()
 	source := filepath.Join(mountpoint, src)
+
+	if err = c.copyOwnerAndPerms(source, dest); err != nil {
+		return err
+	}
 	return a.CopyWithTar(source, dest)
 }

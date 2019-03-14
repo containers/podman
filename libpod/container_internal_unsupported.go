@@ -35,3 +35,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) error {
 	return ErrNotImplemented
 }
+
+func (c *Container) copyOwnerAndPerms(source, dest string) error {
+	return nil
+}
