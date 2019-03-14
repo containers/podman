@@ -1,0 +1,34 @@
+# This file specifies the *_test.go files to retain in addition to 'common'
+# FIXME: STUB: These should be properly divided up based on runtime
+attach_test.go
+checkpoint_test.go
+commit_test.go
+cp_test.go
+create_staticip_test.go
+create_test.go
+diff_test.go
+events_test.go
+exec_test.go
+exists_test.go
+export_test.go
+generate_kube_test.go
+healthcheck_run_test.go
+history_test.go
+images_test.go
+import_test.go
+info_test.go
+inspect_test.go
+kill_test.go
+load_test.go
+logs_test.go
+mount_test.go
+namespace_test.go
+pause_test.go
+pod_create_test.go
+pod_infra_container_test.go
+pod_inspect_test.go
+pod_kill_test.go
+pod_pause_test.go
+pod_ps_test.go
+pod_restart_test.go
+pod_rm_test.go

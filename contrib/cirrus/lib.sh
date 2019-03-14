@@ -120,6 +120,55 @@ bad_os_id_ver() {
     exit 42
 }
 
+_ei_ginkgo_tests() {
+    req_env_var "
+        1 $1
+        2 $2
+        @ $@
+        GOSRC $GOSRC
+    "
+    cd "$GOSRC"
+    OP=$1
+    shift
+    GINKGO_DIRPATH="$1"
+    shift
+    OP_FILENAMES="$(cat $@ | grep -v '#' | tr [[:space:]] '\\n' | sort -u)"
+    echo "$OP ginkgo tests in $GINKGO_DIRPATH matching contents of $@"
+    for test_filepath in $(ls -1 $GINKGO_DIRPATH/*_test.go)
+    do
+        if [[ "$OP" == "include" ]]
+        then
+            KEEPIT=1  # do not remove it
+            echo "$OP_FILEPATHS" | \
+                grep -q "$(basename $test_filepath)" && KEEPIT=0  # remove
+        elif [[ "$OP" == "exclude" ]]
+        then
+            KEEPIT=0  # remove it
+            echo "$OP_FILEPATHS" | \
+                grep -q "$(basename $test_filepath)" || KEEPIT=1  # keep
+        else
+            echo "Expecting 'include' or 'exclude' as first argument"
+            exit 45
+        fi
+
+        if ((KEEPIT))
+        then
+            [[ "$OP" == "exclude" ]] || echo "    Including $test_filepath"
+        else
+            [[ "$OP" == "include" ]] || echo "    Excluding $test_filepath"
+            rm -f "$test_filepath"
+        fi
+    done
+}
+
+include_ginkgo_tests() {
+    _ei_ginkgo_tests include $@
+}
+
+exclude_ginkgo_tests() {
+    _ei_ginkgo_tests exclude $@
+}
+
 run_rootless() {
     if [[ -z "$ROOTLESS_USER" ]] && [[ -z "$ROOTLESS_UID" ]] && [[ -z "$ROOTLESS_GID" ]]
     then

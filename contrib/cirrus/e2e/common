@@ -1,0 +1,4 @@
+# This file specifies the *_test.go files to retain for all stages
+common_test.go
+libpod_suite_test.go
+libpod_suite_remoteclient_test.go

@@ -1,0 +1,29 @@
+# This file specifies the *_test.go files to retain in addition to 'common'
+# FIXME: STUB: These should be properly divided up based on runtime
+pod_start_test.go
+pod_stats_test.go
+pod_stop_test.go
+pod_top_test.go
+port_test.go
+prune_test.go
+ps_test.go
+pull_test.go
+push_test.go
+refresh_test.go
+restart_test.go
+rmi_test.go
+rm_test.go
+rootless_test.go
+run_cgroup_parent_test.go
+run_cleanup_test.go
+run_cpu_test.go
+run_device_test.go
+run_dns_test.go
+run_entrypoint_test.go
+run_exit_test.go
+runlabel_test.go
+run_memory_test.go
+run_networking_test.go
+run_ns_test.go
+run_passwd_test.go
+run_privileged_test.go

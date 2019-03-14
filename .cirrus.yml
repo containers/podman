@@ -188,9 +188,8 @@ meta_task:
 
     script: /usr/local/bin/entrypoint.sh
 
-
 # This task does the unit and integration testing for every platform
-testing_task:
+unit_testing_task:
 
     depends_on:
         - "gating"
@@ -210,23 +209,44 @@ testing_task:
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
-            # TODO: Make these work (also optional_testing_task below)
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
+    timeout_in: 30m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh'
+    unit_test_script: '$SCRIPT_BASE/unit_test.sh'
+
+
+# This task does the unit and integration testing for every platform
+integration_testing_task:
+
+    depends_on:
+        - "gating"
+        - "build_each_commit"
+        - "unit_testing"
+
+    env:
+        matrix:
+            TEST_SET: '1_3'
+            TEST_SET: '2_3'
+            TEST_SET: '3_3'
+
+    gce_instance:
+        image_project: "libpod-218412"
+        zone: "us-central1-a"  # Required by Cirrus for the time being
+        cpu: 2
+        memory: "4Gb"
+        disk: 200  # see https://developers.google.com/compute/docs/disks#performance
+        # Generate multiple parallel tasks, covering all possible
+        # 'matrix' combinations.
+        matrix:
+            # Images are generated separately, from build_images_task (below)
+            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
-    # Every *_script runs in sequence, for each task. The name prefix is for
-    # WebUI reference.  The values may be strings...
-    setup_environment_script: $SCRIPT_BASE/setup_environment.sh
-
-    # ...or lists of strings
-    unit_test_script:
-        - go version
-        - $SCRIPT_BASE/unit_test.sh
-
-    integration_test_script: $SCRIPT_BASE/integration_test.sh
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh'
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh'
 
 
 # This task executes tests as a regular user on a system
@@ -338,7 +358,8 @@ success_task:
     depends_on:  # ignores any dependent task conditions
         - "gating"
         - "vendor_check"
-        - "testing"
+        - "unit_testing"
+        - "integration_testing"
         - "optional_testing"
         - "cache_images"
 
