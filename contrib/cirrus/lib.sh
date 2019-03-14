@@ -103,6 +103,15 @@ clean_env() {
     unset -v UNSET_ENV_VARS $UNSET_ENV_VARS || true  # don't fail on read-only
 }
 
+die() {
+    req_env_var "
+        1 $1
+        2 $2
+    "
+    echo "$2"
+    exit $1
+}
+
 # Return a GCE image-name compatible string representation of distribution name
 os_release_id() {
     eval "$(egrep -m 1 '^ID=' /etc/os-release | tr -d \' | tr -d \")"
@@ -136,14 +145,14 @@ stub() {
 ircmsg() {
     req_env_var "
         CIRRUS_TASK_ID $CIRRUS_TASK_ID
-        1 $1
+        @ $@
     "
     # Sometimes setup_environment.sh didn't run
     SCRIPT="$(dirname $0)/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
     NICK="${NICK:0:15}"  # Any longer will break things
     set +e
-    $SCRIPT $NICK $1
+    $SCRIPT $NICK $@
     echo "Ignoring exit($?)"
     set -e
 }
