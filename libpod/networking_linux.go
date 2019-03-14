@@ -215,8 +215,11 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				if pid != cmd.Process.Pid {
 					continue
 				}
-				if status.Exited() || status.Signaled() {
+				if status.Exited() {
 					return errors.New("slirp4netns failed")
+				}
+				if status.Signaled() {
+					return errors.New("slirp4netns killed by signal")
 				}
 				continue
 			}
