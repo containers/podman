@@ -80,6 +80,7 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to local registry with authorization", func() {
+		SkipIfRootless()
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}

@@ -42,6 +42,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on valid container", func() {
+		SkipIfRootless()
 		podmanTest.RestoreArtifact(healthcheck)
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck})
 		session.WaitWithDefaultTimeout()

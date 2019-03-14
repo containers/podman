@@ -104,6 +104,10 @@ parse_args(){
     then
         DEPS="PACKAGE_DEPS=false SOURCE_DEPS=true"
         IMAGE_NAME="$2"
+    elif [[ "$1" == "-r" ]]
+    then
+        DEPS="ROOTLESS_USER=madcowdog ROOTLESS_UID=3210 ROOTLESS_GID=3210"
+        IMAGE_NAME="$2"
     else  # no -s or -p
         DEPS="$(get_env_vars)"
         IMAGE_NAME="$1"

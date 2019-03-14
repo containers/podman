@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -213,7 +214,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	if os.Getenv("STORAGE_OPTIONS") != "" {
 		storageOptions = os.Getenv("STORAGE_OPTIONS")
 	}
+
 	cgroupManager := CGROUP_MANAGER
+	if rootless.IsRootless() {
+		cgroupManager = "cgroupfs"
+	}
 	if os.Getenv("CGROUP_MANAGER") != "" {
 		cgroupManager = os.Getenv("CGROUP_MANAGER")
 	}

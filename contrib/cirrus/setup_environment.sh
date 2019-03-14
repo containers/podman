@@ -79,6 +79,10 @@ then
     if run_rootless
     then
         setup_rootless
+        make install.catatonit
+        go get github.com/onsi/ginkgo/ginkgo
+        go get github.com/onsi/gomega/...
+        dnf -y update runc
     else
         # Includes some $HOME relative details
         go env | while read envline

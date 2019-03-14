@@ -170,30 +170,36 @@ record_timestamp() {
 setup_rootless() {
     req_env_var "
         ROOTLESS_USER $ROOTLESS_USER
-        ROOTLESS_UID $ROOTLESS_UID
-        ROOTLESS_GID $ROOTLESS_GID
+        #ROOTLESS_UID $ROOTLESS_UID
+        #ROOTLESS_GID $ROOTLESS_GID
         GOSRC $GOSRC
         ENVLIB $ENVLIB
     "
     echo "creating $ROOTLESS_UID:$ROOTLESS_GID $ROOTLESS_USER user"
-    groupadd -g $ROOTLESS_GID $ROOTLESS_USER
-    useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
-    chown -R $ROOTLESS_UID:$ROOTLESS_GID "$GOSRC"
+    #groupadd -g $ROOTLESS_GID $ROOTLESS_USER
+    #useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
+    useradd --create-home $ROOTLESS_USER
+    chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
 
     echo "creating ssh keypair for $USER"
     ssh-keygen -P "" -f $HOME/.ssh/id_rsa
 
     echo "Allowing ssh key for $ROOTLESS_USER"
     (umask 077 && mkdir "/home/$ROOTLESS_USER/.ssh")
-    chown -R $ROOTLESS_UID:$ROOTLESS_GID "/home/$ROOTLESS_USER/.ssh"
-    install -o $ROOTLESS_UID -g $ROOTLESS_GID -m 0600 \
+    chown -R $ROOTLESS_USER:$ROOTLESS_USER "/home/$ROOTLESS_USER/.ssh"
+    install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0600 \
         "$HOME/.ssh/id_rsa.pub" "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+    # Makes debugging easier
+    cat /root/.ssh/authorized_keys >> "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+
+    echo "Configuring subuid and subgid"
+    echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | tee -a /etc/subuid >> /etc/subgid
 
     echo "Setting permissions on automation files"
     chmod 666 "$TIMESTAMPS_FILEPATH"
 
     echo "Copying $HOME/$ENVLIB"
-    install -o $ROOTLESS_UID -g $ROOTLESS_GID -m 0700 \
+    install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0700 \
         "$HOME/$ENVLIB" "/home/$ROOTLESS_USER/$ENVLIB"
 
     echo "Configuring user's go environment variables"
