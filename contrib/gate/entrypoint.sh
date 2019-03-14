@@ -10,6 +10,6 @@
 # Working from a copy avoids needing to perturb the actual source files
 mkdir -p "$GOSRC"
 /usr/bin/rsync --recursive --links --quiet --safe-links \
-               --perms --times "${SRCPATH}/" "${GOSRC}/"
+               --perms --times --delete "${SRCPATH}/" "${GOSRC}/"
 cd "$GOSRC"
 make "$@"

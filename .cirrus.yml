@@ -109,6 +109,7 @@ gating_task:
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
+        GOSRC: "/go/src/github.com/containers/libpod"
 
     # Runs within Cirrus's "community cluster"
     container:
@@ -119,17 +120,20 @@ gating_task:
     timeout_in: 20m
 
     gate_script:
+        # N/B: entrypoint.sh resets $GOSRC (same as make clean)
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
         - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/test/test_dot_cirrus_yaml.py'
 
     # This task builds Podman with different buildtags to ensure the build does
-    # not break.
+    # not break.  It also verifies all sub-commands have man pages.
     build_script:
-        - '/usr/local/bin/entrypoint.sh clean podman'
+        - '/usr/local/bin/entrypoint.sh podman'
+        - 'cd $GOSRC && ./hack/podman-commands.sh'
+        # N/B: need 'clean' so some commited files are re-generated.
         - '/usr/local/bin/entrypoint.sh clean podman-remote'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp"'
-        - '/usr/local/bin/entrypoint.sh clean podman-remote-darwin'
+        - '/usr/local/bin/entrypoint.sh podman-remote-darwin'
 
     on_failure:
         master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
@@ -178,13 +182,12 @@ build_each_commit_task:
         cpu: 2
         memory: "4Gb"
         disk: 40
-        matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
-    script:
-        - '$SCRIPT_BASE/setup_environment.sh'
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh'
+    build_each_commit_script:
         - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH'
         - 'env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH'
 
