@@ -58,7 +58,7 @@ var _ = Describe("Podman commit", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		check := podmanTest.Podman([]string{"container", "inspect", "foobar.com/test1-image:latest"})
+		check := podmanTest.Podman([]string{"image", "inspect", "foobar.com/test1-image:latest"})
 		check.WaitWithDefaultTimeout()
 		data := check.InspectImageJSON()
 		Expect(StringInSlice("foobar.com/test1-image:latest", data[0].RepoTags)).To(BeTrue())
