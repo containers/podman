@@ -34,7 +34,7 @@ func init() {
 	loadCommand.SetHelpTemplate(HelpTemplate())
 	loadCommand.SetUsageTemplate(UsageTemplate())
 	flags := loadCommand.Flags()
-	flags.StringVarP(&loadCommand.Input, "input", "i", "/dev/stdin", "Read from archive file instead of from terminal")
+	flags.StringVarP(&loadCommand.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
 	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
 
@@ -64,7 +64,10 @@ func loadCmd(c *cliconfig.LoadValues) error {
 	if runtime.Remote && len(input) == 0 {
 		return errors.New("the remote client requires you to load via -i and a tarball")
 	}
-	if input == "/dev/stdin" {
+	if len(input) == 0 {
+		input = "/dev/stdin"
+		c.Input = input
+
 		fi, err := os.Stdin.Stat()
 		if err != nil {
 			return err

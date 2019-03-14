@@ -36,7 +36,7 @@ func init() {
 	exportCommand.SetHelpTemplate(HelpTemplate())
 	exportCommand.SetUsageTemplate(UsageTemplate())
 	flags := exportCommand.Flags()
-	flags.StringVarP(&exportCommand.Output, "output", "o", "/dev/stdout", "Write to a file instead of terminal")
+	flags.StringVarP(&exportCommand.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 }
 
 // exportCmd saves a container to a tarball on disk
@@ -60,15 +60,16 @@ func exportCmd(c *cliconfig.ExportValues) error {
 	}
 
 	output := c.Output
-	if runtime.Remote && (output == "/dev/stdout" || len(output) == 0) {
+	if runtime.Remote && len(output) == 0 {
 		return errors.New("remote client usage must specify an output file (-o)")
 	}
 
-	if output == "/dev/stdout" {
+	if len(output) == 0 {
 		file := os.Stdout
 		if logrus.IsTerminal(file) {
 			return errors.Errorf("refusing to export to terminal. Use -o flag or redirect")
 		}
+		output = "/dev/stdout"
 	}
 
 	if err := parse.ValidateFileName(output); err != nil {

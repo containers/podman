@@ -58,7 +58,7 @@ func init() {
 	flags := saveCommand.Flags()
 	flags.BoolVar(&saveCommand.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&saveCommand.Format, "format", v2s2Archive, "Save image to oci-archive, oci-dir (directory with oci manifest type), docker-archive, docker-dir (directory with v2s2 manifest type)")
-	flags.StringVarP(&saveCommand.Output, "output", "o", "/dev/stdout", "Write to a file instead of terminal")
+	flags.StringVarP(&saveCommand.Output, "output", "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 	flags.BoolVarP(&saveCommand.Quiet, "quiet", "q", false, "Suppress the output")
 }
 
@@ -79,14 +79,14 @@ func saveCmd(c *cliconfig.SaveValues) error {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
 	}
 
-	output := c.Output
-	if output == "/dev/stdout" {
+	if len(c.Output) == 0 {
 		fi := os.Stdout
 		if logrus.IsTerminal(fi) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
+		c.Output = "/dev/stdout"
 	}
-	if err := parse.ValidateFileName(output); err != nil {
+	if err := parse.ValidateFileName(c.Output); err != nil {
 		return err
 	}
 	return runtime.SaveImage(getContext(), c)
