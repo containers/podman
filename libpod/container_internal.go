@@ -337,11 +337,13 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	// Set the default Entrypoint and Command
-	if c.config.Entrypoint == nil {
-		c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
-	}
-	if c.config.Command == nil {
-		c.config.Command = containerInfo.Config.Config.Cmd
+	if containerInfo.Config != nil {
+		if c.config.Entrypoint == nil {
+			c.config.Entrypoint = containerInfo.Config.Config.Entrypoint
+		}
+		if c.config.Command == nil {
+			c.config.Command = containerInfo.Config.Config.Cmd
+		}
 	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
