@@ -83,9 +83,23 @@ func searchCmd(c *cliconfig.SearchValues) error {
 	if len(results) == 0 {
 		return nil
 	}
-	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: genSearchOutputMap()}
+	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: searchHeaderMap()}
 	formats.Writer(out).Out()
 	return nil
+}
+
+// searchHeaderMap returns the headers of a SearchResult.
+func searchHeaderMap() map[string]string {
+	s := new(image.SearchResult)
+	v := reflect.Indirect(reflect.ValueOf(s))
+	values := make(map[string]string, v.NumField())
+
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Type().Field(i).Name
+		value := key
+		values[key] = strings.ToUpper(splitCamelCase(value))
+	}
+	return values
 }
 
 func genSearchFormat(format string) string {
