@@ -820,6 +820,10 @@ type ContainerCheckpointOptions struct {
 	// Import tells the API to read the checkpoint image from
 	// the filename set in TargetFile
 	TargetFile string
+	// Name tells the API that during restore from an exported
+	// checkpoint archive a new name should be used for the
+	// restored container
+	Name string
 }
 
 // Checkpoint checkpoints a container

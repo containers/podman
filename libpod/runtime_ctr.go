@@ -76,6 +76,14 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		if err := JSONDeepCopy(config, ctr.config); err != nil {
 			return nil, errors.Wrapf(err, "error copying container config for restore")
 		}
+		// If the ID is empty a new name for the restored container was requested
+		if ctr.config.ID == "" {
+			ctr.config.ID = stringid.GenerateNonCryptoID()
+			// Fixup ExitCommand with new ID
+			ctr.config.ExitCommand[len(ctr.config.ExitCommand)-1] = ctr.config.ID
+		}
+		// Reset the log path to point to the default
+		ctr.config.LogPath = ""
 	}
 
 	ctr.config.Spec = new(spec.Spec)
@@ -189,11 +197,16 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 	}
 
 	if restore {
-		// Remove information about /dev/shm mount
+		// Remove information about bind mount
 		// for new container from imported checkpoint
 		g := generate.Generator{Config: ctr.config.Spec}
 		g.RemoveMount("/dev/shm")
 		ctr.config.ShmDir = ""
+		g.RemoveMount("/etc/resolv.conf")
+		g.RemoveMount("/etc/hostname")
+		g.RemoveMount("/etc/hosts")
+		g.RemoveMount("/run/.containerenv")
+		g.RemoveMount("/run/secrets")
 	}
 
 	// Set up storage for the container

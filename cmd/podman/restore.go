@@ -45,6 +45,7 @@ func init() {
 	flags.BoolVarP(&restoreCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Restore a container with established TCP connections")
 	flags.StringVarP(&restoreCommand.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
+	flags.StringVarP(&restoreCommand.Name, "name", "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -64,6 +65,15 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 		Keep:           c.Keep,
 		TCPEstablished: c.TcpEstablished,
 		TargetFile:     c.Import,
+		Name:           c.Name,
+	}
+
+	if c.Import == "" && c.Name != "" {
+		return errors.Errorf("--name can only used with --import")
+	}
+
+	if c.Name != "" && c.TcpEstablished {
+		return errors.Errorf("--tcp-established cannot be used with --name")
 	}
 
 	if (c.Import != "") && (c.All || c.Latest) {

@@ -41,7 +41,7 @@ func crImportFromJSON(filePath string, v interface{}) error {
 
 // crImportCheckpoint it the function which imports the information
 // from checkpoint tarball and re-creates the container from that information
-func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input string) ([]*libpod.Container, error) {
+func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input string, name string) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
 	archiveFile, err := os.Open(input)
@@ -85,6 +85,18 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 		return nil, errors.Errorf("Cannot import checkpoints of containers with named volumes or dependencies")
 	}
 
+	ctrID := config.ID
+	newName := false
+
+	// Check if the restored container gets a new name
+	if name != "" {
+		config.ID = ""
+		config.Name = name
+		newName = true
+	}
+
+	ctrName := config.Name
+
 	// The code to load the images is copied from create.go
 	var writer io.Writer
 	// In create.go this only set if '--quiet' does not exist.
@@ -108,6 +120,24 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	var containers []*libpod.Container
 	if container == nil {
 		return nil, nil
+	}
+
+	containerConfig := container.Config()
+	if containerConfig.Name != ctrName {
+		return nil, errors.Errorf("Name of restored container (%s) does not match requested name (%s)", containerConfig.Name, ctrName)
+	}
+
+	if newName == false {
+		// Only check ID for a restore with the same name.
+		// Using -n to request a new name for the restored container, will also create a new ID
+		if containerConfig.ID != ctrID {
+			return nil, errors.Errorf("ID of restored container (%s) does not match requested ID (%s)", containerConfig.ID, ctrID)
+		}
+	}
+
+	// Check if the ExitCommand points to the correct container ID
+	if containerConfig.ExitCommand[len(containerConfig.ExitCommand)-1] != containerConfig.ID {
+		return nil, errors.Errorf("'ExitCommandID' uses ID %s instead of container ID %s", containerConfig.ExitCommand[len(containerConfig.ExitCommand)-1], containerConfig.ID)
 	}
 
 	containers = append(containers, container)

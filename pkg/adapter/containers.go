@@ -539,7 +539,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, 
 	})
 
 	if c.Import != "" {
-		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import)
+		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import, c.Name)
 	} else if c.All {
 		containers, err = r.GetContainers(filterFuncs...)
 	} else {

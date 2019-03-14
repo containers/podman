@@ -376,9 +376,20 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
+		// Restore container a second time with different name
+		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz", "-n", "restore_again"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
 		result = podmanTest.Podman([]string{"rm", "-fa"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove("/tmp/checkpoint.tar.gz")
 	})
 })

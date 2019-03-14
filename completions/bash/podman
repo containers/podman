@@ -857,6 +857,8 @@ _podman_container_restore() {
      local options_with_args="
      -i
      --import
+     -n
+     --name
      "
      local boolean_options="
 	  -a

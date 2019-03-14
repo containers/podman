@@ -428,6 +428,7 @@ type RestoreValues struct {
 	Latest         bool
 	TcpEstablished bool
 	Import         string
+	Name           string
 }
 
 type RmValues struct {
