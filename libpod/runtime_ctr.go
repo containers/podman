@@ -171,7 +171,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}()
 
 	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
-		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
+		ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
 	}
 
 	// Go through the volume mounts and check for named volumes
