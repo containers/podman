@@ -1403,22 +1403,6 @@ func getExcludedCGroups() (excludes []string) {
 	return
 }
 
-// namedVolumes returns named volumes for the container
-func (c *Container) namedVolumes() ([]string, error) {
-	var volumes []string
-	for _, vol := range c.config.Spec.Mounts {
-		if strings.HasPrefix(vol.Source, c.runtime.config.VolumePath) {
-			volume := strings.TrimPrefix(vol.Source, c.runtime.config.VolumePath+"/")
-			split := strings.Split(volume, "/")
-			volume = split[0]
-			if _, err := c.runtime.state.Volume(volume); err == nil {
-				volumes = append(volumes, volume)
-			}
-		}
-	}
-	return volumes, nil
-}
-
 // this should be from chrootarchive.
 func (c *Container) copyWithTarFromImage(src, dest string) error {
 	mountpoint, err := c.mount()

@@ -195,6 +195,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err := c.makeBindMounts(); err != nil {
 		return nil, err
 	}
+
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
 	for i := range g.Config.Mounts {
@@ -218,6 +219,23 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
 	g.SetLinuxMountLabel(c.MountLabel())
+
+	// Add named volumes
+	for _, namedVol := range c.config.NamedVolumes {
+		volume, err := c.runtime.GetVolume(namedVol.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
+		}
+		mountPoint := volume.MountPoint()
+		volMount := spec.Mount{
+			Type:        "bind",
+			Source:      mountPoint,
+			Destination: namedVol.Dest,
+			Options:     namedVol.Options,
+		}
+		g.AddMount(volMount)
+	}
+
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
 		newMount := spec.Mount{

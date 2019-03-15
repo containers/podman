@@ -98,14 +98,12 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if !force {
 			return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
 		}
-		// If using force, log the warning that the volume is being used by at least one container
-		logrus.Warnf("volume %s is being used by the following container(s): %s", v.Name(), depsStr)
-		// Remove the container dependencies so we can go ahead and delete the volume
-		for _, dep := range deps {
-			if err := r.state.RemoveVolCtrDep(v, dep); err != nil {
-				return errors.Wrapf(err, "unable to remove container dependency %q from volume %q while trying to delete volume by force", dep, v.Name())
-			}
-		}
+
+		// TODO: force-removing a volume makes *no sense*
+		// I do not believe we should be allowing this at all.
+		// For now, return angry errors.
+		// TODO: need to do something more sane in this case
+		return errors.Wrapf(ErrVolumeBeingUsed, "TODO: FIXME - still refusing to remove because force-removing an in-use volume is not good.")
 	}
 
 	// Set volume as invalid so it can no longer be used

@@ -249,11 +249,8 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	}
 
 	// Add container to volume dependencies
-	for _, vol := range ctr.config.Spec.Mounts {
-		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
-			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
-			s.addCtrToVolDependsMap(ctr.ID(), volName)
-		}
+	for _, vol := range ctr.config.NamedVolumes {
+		s.addCtrToVolDependsMap(ctr.ID(), vol.Name)
 	}
 
 	return nil
@@ -306,12 +303,9 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 		s.removeCtrFromDependsMap(ctr.ID(), depCtr)
 	}
 
-	// Remove container from volume dependencies
-	for _, vol := range ctr.config.Spec.Mounts {
-		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
-			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
-			s.removeCtrFromVolDependsMap(ctr.ID(), volName)
-		}
+	// Remove this container from volume dependencies
+	for _, vol := range ctr.config.NamedVolumes {
+		s.removeCtrFromVolDependsMap(ctr.ID(), vol.Name)
 	}
 
 	return nil
@@ -488,22 +482,6 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	}
 
 	delete(s.volumes, volume.Name())
-
-	return nil
-}
-
-// RemoveVolCtrDep updates the container dependencies of the volume
-func (s *InMemoryState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
-	if !volume.valid {
-		return errors.Wrapf(ErrVolumeRemoved, "volume with name %s is not valid", volume.Name())
-	}
-
-	if _, ok := s.volumes[volume.Name()]; !ok {
-		return errors.Wrapf(ErrNoSuchVolume, "volume with name %s doesn't exists in state", volume.Name())
-	}
-
-	// Remove container that is using this volume
-	s.removeCtrFromVolDependsMap(ctrID, volume.Name())
 
 	return nil
 }

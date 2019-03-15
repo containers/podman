@@ -371,7 +371,7 @@ type ContainerConfig struct {
 }
 
 // ContainerNamedVolume is a named volume that will be mounted into the
-// container.
+// container. Each named volume is a libpod Volume present in the state.
 type ContainerNamedVolume struct {
 	// Name is the name of the volume to mount in.
 	// Must resolve to a valid volume present in this Podman.
@@ -500,6 +500,22 @@ func (c *Container) ShmSize() int64 {
 // StaticDir returns the directory used to store persistent container files
 func (c *Container) StaticDir() string {
 	return c.config.StaticDir
+}
+
+// NamedVolumes returns the container's named volumes.
+// The name of each is guaranteed to point to a valid libpod Volume present in
+// the state.
+func (c *Container) NamedVolumes() []*ContainerNamedVolume {
+	volumes := []*ContainerNamedVolume{}
+	for _, vol := range c.config.NamedVolumes {
+		newVol := new(ContainerNamedVolume)
+		newVol.Name = vol.Name
+		newVol.Dest = vol.Dest
+		newVol.Options = vol.Options
+		volumes = append(volumes, newVol)
+	}
+
+	return volumes
 }
 
 // Privileged returns whether the container is privileged
