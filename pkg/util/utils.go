@@ -297,6 +297,9 @@ func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 		err                      error
 	)
 	storageOpts := storage.DefaultStoreOptions
+	if !rootless.IsRootless() {
+		storageOpts = storage.StoreOptions{}
+	}
 	if rootless.IsRootless() {
 		storageOpts, err = GetRootlessStorageOpts()
 		if err != nil {
