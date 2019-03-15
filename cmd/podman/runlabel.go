@@ -10,9 +10,11 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -45,6 +47,7 @@ func init() {
 	flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&runlabelCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVar(&runlabelCommand.Display, "display", false, "Preview the command that the label would run")
+	flags.BoolVar(&runlabelCommand.Replace, "replace", false, "Replace existing container with a new one from the image")
 	flags.StringVar(&runlabelCommand.Name, "name", "", "Assign a name to the container")
 
 	flags.StringVar(&runlabelCommand.Opt1, "opt1", "", "Optional parameter to pass for install")
@@ -146,10 +149,33 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return err
 	}
 	if !c.Quiet {
-		fmt.Printf("Command: %s\n", strings.Join(cmd, " "))
+		fmt.Printf("command: %s\n", strings.Join(cmd, " "))
 		if c.Display {
 			return nil
 		}
 	}
+
+	// If container already exists && --replace given -- Nuke it
+	if c.Replace {
+		for i, entry := range cmd {
+			if entry == "--name" {
+				name := cmd[i+1]
+				ctr, err := runtime.LookupContainer(name)
+				if err != nil {
+					if errors.Cause(err) != libpod.ErrNoSuchCtr {
+						logrus.Debugf("Error occurred searching for container %s: %s", name, err.Error())
+						return err
+					}
+				} else {
+					logrus.Debugf("Runlabel --replace option given. Container %s will be deleted. The new container will be named %s", ctr.ID(), name)
+					if err := runtime.RemoveContainer(ctx, ctr, true, false); err != nil {
+						return err
+					}
+				}
+				break
+			}
+		}
+	}
+
 	return utils.ExecCmdWithStdStreams(stdIn, stdOut, stdErr, env, cmd[0], cmd[1:]...)
 }
