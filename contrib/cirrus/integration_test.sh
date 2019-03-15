@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+set -ex
 source $(dirname $0)/lib.sh
 
 req_env_var "
@@ -14,7 +14,6 @@ record_timestamp "integration test start"
 
 clean_env
 
-cd $GOSRC
 case "$TEST_SET" in
     1_3) ;&  #  Continue to the next item
     2_3) include_ginkgo_tests ./test/e2e ./$SCRIPT_BASE/e2e/common ./$SCRIPT_BASE/e2e/$TEST_SET ;;
