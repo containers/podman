@@ -505,10 +505,6 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-	if err := makeRuntime(runtime); err != nil {
-		return nil, err
-	}
-
 	if !foundConfig && rootlessConfigPath != "" {
 		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
 		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
@@ -522,6 +518,9 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 				os.Remove(rootlessConfigPath)
 			}
 		}
+	}
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
 	}
 	return runtime, nil
 }
