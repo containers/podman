@@ -472,6 +472,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
+%{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_datadir}/containers/%{repo}.conf
