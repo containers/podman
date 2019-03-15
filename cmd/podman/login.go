@@ -45,7 +45,7 @@ func init() {
 	flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
 	flags.BoolVar(&loginCommand.GetLogin, "get-login", true, "Return the current login user for the registry")
 	flags.StringVarP(&loginCommand.Password, "password", "p", "", "Password for registry")
-	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries (default: true)")
+	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
 	flags.BoolVar(&loginCommand.StdinPassword, "password-stdin", false, "Take the password from stdin")
 

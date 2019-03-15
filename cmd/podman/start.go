@@ -41,7 +41,7 @@ func init() {
 	flags.StringVar(&startCommand.DetachKeys, "detach-keys", "", "Override the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.BoolVarP(&startCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&startCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.BoolVar(&startCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process (default true if attaching, false otherwise)")
+	flags.BoolVar(&startCommand.SigProxy, "sig-proxy", false, "Proxy received signals to the process (default true if attaching, false otherwise)")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
@@ -62,14 +62,10 @@ func startCmd(c *cliconfig.StartValues) error {
 		return errors.Errorf("you cannot start and attach multiple containers at once")
 	}
 
-	sigProxy := c.SigProxy
+	sigProxy := c.SigProxy || attach
 
 	if sigProxy && !attach {
-		if c.Flag("sig-proxy").Changed {
-			return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
-		} else {
-			sigProxy = false
-		}
+		return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
 	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
