@@ -982,3 +982,20 @@ func (c *Container) generatePasswd() (string, error) {
 	}
 	return passwdFile, nil
 }
+
+func (c *Container) copyOwnerAndPerms(source, dest string) error {
+	info, err := os.Stat(source)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "cannot stat `%s`", dest)
+	}
+	if err := os.Chmod(dest, info.Mode()); err != nil {
+		return errors.Wrapf(err, "cannot chmod `%s`", dest)
+	}
+	if err := os.Chown(dest, int(info.Sys().(*syscall.Stat_t).Uid), int(info.Sys().(*syscall.Stat_t).Gid)); err != nil {
+		return errors.Wrapf(err, "cannot chown `%s`", dest)
+	}
+	return nil
+}
