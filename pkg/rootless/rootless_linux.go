@@ -72,7 +72,7 @@ func GetRootlessUID() int {
 		u, _ := strconv.Atoi(uidEnv)
 		return u
 	}
-	return os.Getuid()
+	return os.Geteuid()
 }
 
 func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {

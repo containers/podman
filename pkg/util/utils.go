@@ -190,15 +190,15 @@ func GetRootlessRuntimeDir() (string, error) {
 		tmpDir := filepath.Join("/run", "user", uid)
 		os.MkdirAll(tmpDir, 0700)
 		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
 			runtimeDir = tmpDir
 		}
 	}
 	if runtimeDir == "" {
-		tmpDir := filepath.Join(os.TempDir(), "user", uid)
+		tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("libpod-rundir-%s", uid))
 		os.MkdirAll(tmpDir, 0700)
 		st, err := os.Stat(tmpDir)
-		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Getuid() && st.Mode().Perm() == 0700 {
+		if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
 			runtimeDir = tmpDir
 		}
 	}
