@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"os"
+
 	"github.com/containers/libpod/libpod/events"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
@@ -85,7 +87,7 @@ func (r *Runtime) Events(fromStart, stream bool, options []events.EventFilter, e
 
 func (r *Runtime) getTail(fromStart, stream bool) (*tail.Tail, error) {
 	reopen := true
-	seek := tail.SeekInfo{Offset: 0, Whence: 2}
+	seek := tail.SeekInfo{Offset: 0, Whence: os.SEEK_END}
 	if fromStart || !stream {
 		seek.Whence = 0
 		reopen = false
