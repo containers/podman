@@ -527,6 +527,24 @@ func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container,
 	return libpod.ErrNotImplemented
 }
 
+// Pods retrieves all pods
+// Filters can be provided which will determine which pods are included in the
+// output. Multiple filters are handled by ANDing their output, so only pods
+// matching all filters are returned
+func (r *LocalRuntime) Pods(filters ...libpod.PodFilter) ([]*libpod.Pod, error) {
+	return nil, libpod.ErrNotImplemented
+}
+
+// RemovePod removes a pod
+// If removeCtrs is specified, containers will be removed
+// Otherwise, a pod that is not empty will return an error and not be removed
+// If force is specified with removeCtrs, all containers will be stopped before
+// being removed
+// Otherwise, the pod will not be removed if any containers are running
+func (r *LocalRuntime) RemovePod(ctx context.Context, p *libpod.Pod, removeCtrs, force bool) error {
+	return libpod.ErrNotImplemented
+}
+
 // CreateVolume creates a volume over a varlink connection for the remote client
 func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCreateValues, labels, opts map[string]string) (string, error) {
 	cvOpts := iopodman.VolumeCreateOpts{

@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	stopped = "Stopped"
-	running = "Running"
-	paused  = "Paused"
-	exited  = "Exited"
-	errored = "Error"
-	created = "Created"
+	PodStateStopped = "Stopped"
+	PodStateRunning = "Running"
+	PodStatePaused  = "Paused"
+	PodStateExited  = "Exited"
+	PodStateErrored = "Error"
+	PodStateCreated = "Created"
 )
 
 // GetPodStatus determines the status of the pod based on the
@@ -24,7 +24,7 @@ const (
 func GetPodStatus(pod *libpod.Pod) (string, error) {
 	ctrStatuses, err := pod.Status()
 	if err != nil {
-		return errored, err
+		return PodStateErrored, err
 	}
 	return CreatePodStatusResults(ctrStatuses)
 }
@@ -32,44 +32,44 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 func CreatePodStatusResults(ctrStatuses map[string]libpod.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
-		return created, nil
+		return PodStateCreated, nil
 	}
 	statuses := map[string]int{
-		stopped: 0,
-		running: 0,
-		paused:  0,
-		created: 0,
-		errored: 0,
+		PodStateStopped: 0,
+		PodStateRunning: 0,
+		PodStatePaused:  0,
+		PodStateCreated: 0,
+		PodStateErrored: 0,
 	}
 	for _, ctrStatus := range ctrStatuses {
 		switch ctrStatus {
 		case libpod.ContainerStateExited:
 			fallthrough
 		case libpod.ContainerStateStopped:
-			statuses[stopped]++
+			statuses[PodStateStopped]++
 		case libpod.ContainerStateRunning:
-			statuses[running]++
+			statuses[PodStateRunning]++
 		case libpod.ContainerStatePaused:
-			statuses[paused]++
+			statuses[PodStatePaused]++
 		case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
-			statuses[created]++
+			statuses[PodStateCreated]++
 		default:
-			statuses[errored]++
+			statuses[PodStateErrored]++
 		}
 	}
 
-	if statuses[running] > 0 {
-		return running, nil
-	} else if statuses[paused] == ctrNum {
-		return paused, nil
-	} else if statuses[stopped] == ctrNum {
-		return exited, nil
-	} else if statuses[stopped] > 0 {
-		return stopped, nil
-	} else if statuses[errored] > 0 {
-		return errored, nil
+	if statuses[PodStateRunning] > 0 {
+		return PodStateRunning, nil
+	} else if statuses[PodStatePaused] == ctrNum {
+		return PodStatePaused, nil
+	} else if statuses[PodStateStopped] == ctrNum {
+		return PodStateExited, nil
+	} else if statuses[PodStateStopped] > 0 {
+		return PodStateStopped, nil
+	} else if statuses[PodStateErrored] > 0 {
+		return PodStateErrored, nil
 	}
-	return created, nil
+	return PodStateCreated, nil
 }
 
 // GetNamespaceOptions transforms a slice of kernel namespaces

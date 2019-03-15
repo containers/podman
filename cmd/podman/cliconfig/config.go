@@ -159,6 +159,11 @@ type PruneContainersValues struct {
 	Force bool
 }
 
+type PrunePodsValues struct {
+	PodmanCommand
+	Force bool
+}
+
 type ImportValues struct {
 	PodmanCommand
 	Change  []string

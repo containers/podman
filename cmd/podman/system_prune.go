@@ -59,6 +59,7 @@ func pruneSystemCmd(c *cliconfig.SystemPruneValues) error {
 		fmt.Printf(`
 WARNING! This will remove:
         - all stopped containers%s
+        - all stopped pods
         - all dangling images
         - all build cache
 Are you sure you want to continue? [y/N] `, volumeString)
@@ -77,9 +78,17 @@ Are you sure you want to continue? [y/N] `, volumeString)
 	}
 	defer runtime.Shutdown(false)
 
+	rmWorkers := shared.Parallelize("rm")
 	ctx := getContext()
 	fmt.Println("Deleted Containers")
-	lasterr := pruneContainers(runtime, ctx, shared.Parallelize("rm"), false, false)
+	lasterr := pruneContainers(runtime, ctx, rmWorkers, false, false)
+	fmt.Println("Deleted Pods")
+	if err := prunePods(runtime, ctx, rmWorkers, true); err != nil {
+		if lasterr != nil {
+			logrus.Errorf("%q", lasterr)
+		}
+		lasterr = err
+	}
 	if c.Bool("volumes") {
 		fmt.Println("Deleted Volumes")
 		err := volumePrune(runtime, getContext())
