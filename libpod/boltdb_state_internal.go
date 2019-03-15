@@ -146,10 +146,11 @@ func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string
 				return nil
 			}
 
-			// If DB value is the empty string, check that the
-			// runtime value is the default
-			if string(keyBytes) == "" && defaultValue != "" &&
-				runtimeValue == defaultValue {
+			// If DB value is the empty string, we ought to be fine.
+			// (Though I'm honestly not sure how we got this far
+			// with an empty-string DB config)
+			if string(keyBytes) == "" {
+				logrus.Warnf("Database stored empty configuration for %s - unable to validate", fieldName)
 				return nil
 			}
 
