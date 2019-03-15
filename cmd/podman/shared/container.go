@@ -3,11 +3,11 @@ package shared
 import (
 	"context"
 	"fmt"
-	"github.com/google/shlex"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,6 +21,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
+	"github.com/google/shlex"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -583,18 +584,93 @@ func getCgroup(spec *specs.Spec) string {
 	return cgroup
 }
 
+func comparePorts(i, j ocicni.PortMapping) bool {
+	if i.ContainerPort != j.ContainerPort {
+		return i.ContainerPort < j.ContainerPort
+	}
+
+	if i.HostIP != j.HostIP {
+		return i.HostIP < j.HostIP
+	}
+
+	if i.HostPort != j.HostPort {
+		return i.HostPort < j.HostPort
+	}
+
+	return i.Protocol < j.Protocol
+}
+
+// returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
+// e.g 0.0.0.0:1000-1006->1000-1006/tcp
+func formatGroup(key string, start, last int32) string {
+	parts := strings.Split(key, "/")
+	groupType := parts[0]
+	var ip string
+	if len(parts) > 1 {
+		ip = parts[0]
+		groupType = parts[1]
+	}
+	group := strconv.Itoa(int(start))
+	if start != last {
+		group = fmt.Sprintf("%s-%d", group, last)
+	}
+	if ip != "" {
+		group = fmt.Sprintf("%s:%s->%s", ip, group, group)
+	}
+	return fmt.Sprintf("%s/%s", group, groupType)
+}
+
 // portsToString converts the ports used to a string of the from "port1, port2"
+// also groups continuous list of ports in readable format.
 func portsToString(ports []ocicni.PortMapping) string {
+	type portGroup struct {
+		first int32
+		last  int32
+	}
 	var portDisplay []string
 	if len(ports) == 0 {
 		return ""
 	}
+	//Sort the ports, so grouping continuous ports become easy.
+	sort.Slice(ports, func(i, j int) bool {
+		return comparePorts(ports[i], ports[j])
+	})
+
+	// portGroupMap is used for grouping continuous ports
+	portGroupMap := make(map[string]*portGroup)
+	var groupKeyList []string
+
 	for _, v := range ports {
+
 		hostIP := v.HostIP
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+		// if hostPort and containerPort are not same, consider as individual port.
+		if v.ContainerPort != v.HostPort {
+			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
+			continue
+		}
+
+		portMapKey := fmt.Sprintf("%s/%s", hostIP, v.Protocol)
+
+		portgroup, ok := portGroupMap[portMapKey]
+		if !ok {
+			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
+			// this list is required to travese portGroupMap
+			groupKeyList = append(groupKeyList, portMapKey)
+			continue
+		}
+
+		if portgroup.last == (v.ContainerPort - 1) {
+			portgroup.last = v.ContainerPort
+			continue
+		}
+	}
+	// for each portMapKey, format group list and appned to output string
+	for _, portKey := range groupKeyList {
+		group := portGroupMap[portKey]
+		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
 	}
 	return strings.Join(portDisplay, ", ")
 }
