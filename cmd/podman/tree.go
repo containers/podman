@@ -23,7 +23,7 @@ var (
 
 	treeDescription = "Prints layer hierarchy of an image in a tree format"
 	_treeCommand    = &cobra.Command{
-		Use:   "tree",
+		Use:   "tree [flags] IMAGE",
 		Short: treeDescription,
 		Long:  treeDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
