@@ -12,8 +12,7 @@ NOR="$(echo -n -e '\x0f')"
 if [[ "$CIRRUS_BRANCH" =~ "master" ]]
 then
     BURL="https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
-    echo "Monitoring execution of $CIRRUS_TASK_NAME and notifying on failure"
-    MSG="${RED}[Action Recommended]: ${NOR}Post-merge testing ${RED}$CIRRUS_BRANCH failed${NOR} in $CIRRUS_TASK_NAME on $(os_release_id)-$(os_release_ver): $BURL.  Please investigate, and re-run if appropriate."
+    ircmsg "${RED}[Action Recommended]: ${NOR}Post-merge testing ${RED}$CIRRUS_BRANCH failed${NOR} in $CIRRUS_TASK_NAME on $(os_release_id)-$(os_release_ver): $BURL.  Please investigate, and re-run if appropriate."
 fi
 
 # This script assumed to be executed on failure
