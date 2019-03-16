@@ -89,4 +89,6 @@ then
     fi
 fi
 
+show_env_vars
+
 record_timestamp "env. setup end"
