@@ -303,4 +303,18 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(podid))
 
 	})
+
+	It("podman ps test with port range", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-dt", "-p", "1000-1006:1000-1006", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:1000-1006"))
+	})
 })
