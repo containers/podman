@@ -1129,6 +1129,15 @@ KillMode=process
 WantedBy=multi-user.target
 ```
 
+### Configuring Storage Options from the command line
+
+Podman allows for the configuration of storage by changing the values
+in the /etc/container/storage.conf or by using global options.  This
+shows how to setup and use fuse-overlayfs for a one time run of busybox
+using global options.
+
+podman --log-level=debug --storage-driver overlay --storage-opt "overlay.mount_program=/usr/bin/fuse-overlayfs" run busybox /bin/sh
+
 ### Rootless Containers
 
 Podman runs as a non root user on most systems. This feature requires that a new enough version of shadow-utils
