@@ -183,6 +183,7 @@ func waitPidsStop(pids []int, timeout time.Duration) error {
 
 func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	var files []*os.File
+	notifySCTP := false
 	for _, i := range ports {
 		switch i.Protocol {
 		case "udp":
@@ -217,6 +218,12 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
 			}
 			files = append(files, f)
+			break
+		case "sctp":
+			if !notifySCTP {
+				notifySCTP = true
+				logrus.Warnf("port reservation for SCTP is not supported")
+			}
 			break
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)
