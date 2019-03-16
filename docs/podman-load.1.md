@@ -1,22 +1,24 @@
 % podman-load(1)
 
 ## NAME
-podman\-load - Load an image from docker archive
+podman\-load - Load an image from a container image archive into container storage
 
 ## SYNOPSIS
-**podman load** [ARCHIVE]
+**podman load** [*name*[:*tag*]]
 
 ## DESCRIPTION
-**podman load** copies an image from either **docker-archive** or **oci-archive** stored
-on the local machine. **podman load** reads from stdin by default or a file if the **input** flag is set.
-The **quiet** flag suppresses the output when set.
+**podman load** loads an image from either an **oci-archive** or **docker-archive** stored on the local machine into container storage. **podman load** reads from stdin by default or a file if the **input** option is set.
+You can also specify a name for the image if the archive does not contain a named reference, of if you want an additonal name for the local image.
+
+The **quiet** option suppresses the progress output when set.
 Note: `:` is a restricted character and cannot be part of the file name.
+
 
 **podman [GLOBAL OPTIONS]**
 
 **podman load [GLOBAL OPTIONS]**
 
-**podman load [OPTIONS] NAME[:TAG|@DIGEST]**
+**podman load [OPTIONS] NAME[:TAG]**
 
 ## OPTIONS
 
@@ -28,7 +30,7 @@ The remote client requires the use of this option.
 
 **--quiet, -q**
 
-Suppress the output
+Suppress the progress output
 
 **--signature-policy="PATHNAME"**
 
@@ -75,7 +77,7 @@ Loaded image:  registry.fedoraproject.org/fedora:latest
 ```
 
 ## SEE ALSO
-podman(1), podman-save(1), crio(8)
+podman(1), podman-save(1), podman-tag(1), crio(8)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
