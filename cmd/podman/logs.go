@@ -1,27 +1,24 @@
 package main
 
 import (
-	"os"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/logs"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
 	logsCommand     cliconfig.LogsValues
-	logsDescription = `Retrieves logs for a container.
+	logsDescription = `Retrieves logs for one or more containers.
 
   This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs.
 `
 	_logsCommand = &cobra.Command{
-		Use:   "logs [flags] CONTAINER",
+		Use:   "logs [flags] CONTAINER [CONTAINER...]",
 		Short: "Fetch the logs of a container",
 		Long:  logsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -29,9 +26,19 @@ var (
 			logsCommand.GlobalFlags = MainGlobalOpts
 			return logsCmd(&logsCommand)
 		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 && logsCommand.Latest {
+				return errors.New("no containers can be specified when using 'latest'")
+			}
+			if !logsCommand.Latest && len(args) < 1 {
+				return errors.New("specify at least one container name or ID to log")
+			}
+			return nil
+		},
 		Example: `podman logs ctrID
   podman logs --tail 2 mywebserver
-  podman logs --follow=true --since 10m ctrID`,
+  podman logs --follow=true --since 10m ctrID
+  podman logs mywebserver mydbserver`,
 	}
 )
 
@@ -54,19 +61,13 @@ func init() {
 }
 
 func logsCmd(c *cliconfig.LogsValues) error {
-	var ctr *libpod.Container
 	var err error
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	args := c.InputArgs
-	if len(args) != 1 && !c.Latest {
-		return errors.Errorf("'podman logs' requires exactly one container name/ID")
-	}
 
 	sinceTime := time.Time{}
 	if c.Flag("since").Changed {
@@ -78,7 +79,7 @@ func logsCmd(c *cliconfig.LogsValues) error {
 		sinceTime = since
 	}
 
-	opts := &logs.LogOptions{
+	opts := &libpod.LogOptions{
 		Details:    c.Details,
 		Follow:     c.Follow,
 		Since:      sinceTime,
@@ -86,30 +87,5 @@ func logsCmd(c *cliconfig.LogsValues) error {
 		Timestamps: c.Timestamps,
 	}
 
-	if c.Latest {
-		ctr, err = runtime.GetLatestContainer()
-	} else {
-		ctr, err = runtime.LookupContainer(args[0])
-	}
-	if err != nil {
-		return err
-	}
-
-	logPath := ctr.LogPath()
-
-	state, err := ctr.State()
-	if err != nil {
-		return err
-	}
-
-	// If the log file does not exist yet and the container is in the
-	// Configured state, it has never been started before and no logs exist
-	// Exit cleanly in this case
-	if _, err := os.Stat(logPath); err != nil {
-		if state == libpod.ContainerStateConfigured {
-			logrus.Debugf("Container has not been started, no logs exist yet")
-			return nil
-		}
-	}
-	return logs.ReadLogs(logPath, ctr, opts)
+	return runtime.Log(c, opts)
 }

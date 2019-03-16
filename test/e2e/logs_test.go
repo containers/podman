@@ -4,6 +4,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -34,7 +35,6 @@ var _ = Describe("Podman logs", func() {
 
 	})
 
-	//sudo bin/podman run -it --rm fedora-minimal bash -c 'for a in `seq 5`; do echo hello; done'
 	It("podman logs for container", func() {
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()
@@ -105,5 +105,31 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
+
+	It("podman logs latest and container name should fail", func() {
+		results := podmanTest.Podman([]string{"logs", "-l", "foobar"})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).ToNot(Equal(0))
+	})
+
+	It("podman logs two containers and should display short container IDs", func() {
+		log1 := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		log1.WaitWithDefaultTimeout()
+		Expect(log1.ExitCode()).To(Equal(0))
+		cid1 := log1.OutputToString()
+
+		log2 := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		log2.WaitWithDefaultTimeout()
+		Expect(log2.ExitCode()).To(Equal(0))
+		cid2 := log2.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", cid1, cid2})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+
+		output := results.OutputToStringArray()
+		Expect(len(output)).To(Equal(6))
+		Expect(strings.Contains(output[0], cid1[:12]) || strings.Contains(output[0], cid2[:12])).To(BeTrue())
 	})
 })

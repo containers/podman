@@ -4,7 +4,9 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -126,4 +128,29 @@ func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.Wait
 		}
 	}
 	return ok, failures, err
+}
+
+// Log logs one or more containers
+func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
+	var wg sync.WaitGroup
+	options.WaitGroup = &wg
+	if len(c.InputArgs) > 1 {
+		options.Multi = true
+	}
+	logChannel := make(chan *libpod.LogLine, int(c.Tail)*len(c.InputArgs)+1)
+	containers, err := shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
+	if err != nil {
+		return err
+	}
+	if err := r.Runtime.Log(containers, options, logChannel); err != nil {
+		return err
+	}
+	go func() {
+		wg.Wait()
+		close(logChannel)
+	}()
+	for line := range logChannel {
+		fmt.Println(line.String(options))
+	}
+	return nil
 }

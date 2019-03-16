@@ -5,18 +5,19 @@ package adapter
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/sirupsen/logrus"
-
-	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/varlink/go/varlink"
 )
 
 // Inspect returns an inspect struct from varlink
@@ -222,4 +223,42 @@ func BatchContainerOp(ctr *Container, opts shared.PsOptions) (shared.BatchContai
 		// Size: size,
 	}
 	return bcs, nil
+}
+
+// Logs one or more containers over a varlink connection
+func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
+	//GetContainersLogs
+	reply, err := iopodman.GetContainersLogs().Send(r.Conn, uint64(varlink.More), c.InputArgs, c.Follow, c.Latest, options.Since.Format(time.RFC3339Nano), int64(c.Tail), c.Timestamps)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get container logs")
+	}
+	if len(c.InputArgs) > 1 {
+		options.Multi = true
+	}
+	for {
+		log, flags, err := reply()
+		if err != nil {
+			return err
+		}
+		if log.Time == "" && log.Msg == "" {
+			// We got a blank log line which can signal end of stream
+			break
+		}
+		lTime, err := time.Parse(time.RFC3339Nano, log.Time)
+		if err != nil {
+			return errors.Wrapf(err, "unable to parse time of log %s", log.Time)
+		}
+		logLine := libpod.LogLine{
+			Device:       log.Device,
+			ParseLogType: log.ParseLogType,
+			Time:         lTime,
+			Msg:          log.Msg,
+			CID:          log.Cid,
+		}
+		fmt.Println(logLine.String(options))
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	return nil
 }

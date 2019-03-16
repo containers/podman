@@ -1,6 +1,7 @@
 package main
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
@@ -79,7 +80,10 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		return err
 	}
 	format := genSearchFormat(c.Format)
-	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: results[0].HeaderMap()}
+	if len(results) == 0 {
+		return nil
+	}
+	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: genSearchOutputMap()}
 	formats.Writer(out).Out()
 	return nil
 }
@@ -98,4 +102,17 @@ func searchToGeneric(params []image.SearchResult) (genericParams []interface{}) 
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return genericParams
+}
+
+func genSearchOutputMap() map[string]string {
+	io := image.SearchResult{}
+	v := reflect.Indirect(reflect.ValueOf(io))
+	values := make(map[string]string)
+
+	for i := 0; i < v.NumField(); i++ {
+		key := v.Type().Field(i).Name
+		value := key
+		values[key] = strings.ToUpper(splitCamelCase(value))
+	}
+	return values
 }

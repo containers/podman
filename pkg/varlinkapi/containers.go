@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sync"
 	"syscall"
 	"time"
 
@@ -601,4 +602,57 @@ func ContainerStatsToLibpodContainerStats(stats iopodman.ContainerStats) libpod.
 		PIDs:        uint64(stats.Pids),
 	}
 	return cstats
+}
+
+// GetContainersLogs is the varlink endpoint to obtain one or more container logs
+func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string, follow, latest bool, since string, tail int64, timestamps bool) error {
+	var wg sync.WaitGroup
+	if call.WantsMore() {
+		call.Continues = true
+	}
+	sinceTime, err := time.Parse(time.RFC3339Nano, since)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	options := libpod.LogOptions{
+		Follow:     follow,
+		Since:      sinceTime,
+		Tail:       uint64(tail),
+		Timestamps: timestamps,
+	}
+
+	options.WaitGroup = &wg
+	if len(names) > 1 {
+		options.Multi = true
+	}
+	logChannel := make(chan *libpod.LogLine, int(tail)*len(names)+1)
+	containers, err := shortcuts.GetContainersByContext(false, latest, names, i.Runtime)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if err := i.Runtime.Log(containers, &options, logChannel); err != nil {
+		return err
+	}
+	go func() {
+		wg.Wait()
+		close(logChannel)
+	}()
+	for line := range logChannel {
+		call.ReplyGetContainersLogs(newPodmanLogLine(line))
+		if !call.Continues {
+			break
+		}
+
+	}
+	return call.ReplyGetContainersLogs(iopodman.LogLine{})
+}
+
+func newPodmanLogLine(line *libpod.LogLine) iopodman.LogLine {
+	return iopodman.LogLine{
+		Device:       line.Device,
+		ParseLogType: line.ParseLogType,
+		Time:         line.Time.Format(time.RFC3339Nano),
+		Msg:          line.Msg,
+		Cid:          line.CID,
+	}
 }
