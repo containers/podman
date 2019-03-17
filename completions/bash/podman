@@ -2205,6 +2205,7 @@ _podman_ps() {
      --format
      --last -n
      --sort
+     --watch -w
      "
      local boolean_options="
 	  --all -a

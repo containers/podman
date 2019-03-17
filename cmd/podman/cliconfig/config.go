@@ -357,6 +357,7 @@ type PsValues struct {
 	Size      bool
 	Sort      string
 	Sync      bool
+	Watch     uint
 }
 
 type PullValues struct {

@@ -113,6 +113,10 @@ In some cases, a container's state in the runtime can become out of sync with Po
 This will update Podman's state based on what the OCI runtime reports.
 Forcibly syncing is much slower, but can resolve inconsistent state issues.
 
+**--watch, -w**
+
+Refresh the output with current containers on an interval in seconds.
+
 ## EXAMPLES
 
 ```
