@@ -311,34 +311,35 @@ func GetDefaultStoreOptions() (storage.StoreOptions, error) {
 		storageOpts = storage.StoreOptions{}
 		storage.ReloadConfigurationFile(storageConf, &storageOpts)
 	}
-
-	if rootless.IsRootless() {
-		if os.IsNotExist(err) {
-			os.MkdirAll(filepath.Dir(storageConf), 0755)
-			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
-			}
-
-			tomlConfiguration := getTomlStorage(&storageOpts)
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tomlConfiguration); err != nil {
-				os.Remove(storageConf)
-			}
-		} else if err == nil {
-			// If the file did not specify a graphroot or runroot,
-			// set sane defaults so we don't try and use root-owned
-			// directories
-			if storageOpts.RunRoot == "" {
-				storageOpts.RunRoot = defaultRootlessRunRoot
-			}
-			if storageOpts.GraphRoot == "" {
-				storageOpts.GraphRoot = defaultRootlessGraphRoot
-			}
+	if rootless.IsRootless() && err == nil {
+		// If the file did not specify a graphroot or runroot,
+		// set sane defaults so we don't try and use root-owned
+		// directories
+		if storageOpts.RunRoot == "" {
+			storageOpts.RunRoot = defaultRootlessRunRoot
+		}
+		if storageOpts.GraphRoot == "" {
+			storageOpts.GraphRoot = defaultRootlessGraphRoot
 		}
 	}
 	return storageOpts, nil
+}
+
+// WriteStorageConfigFile writes the configuration to a file
+func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
+	os.MkdirAll(filepath.Dir(storageConf), 0755)
+	file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err != nil {
+		return errors.Wrapf(err, "cannot open %s", storageConf)
+	}
+	tomlConfiguration := getTomlStorage(storageOpts)
+	defer file.Close()
+	enc := toml.NewEncoder(file)
+	if err := enc.Encode(tomlConfiguration); err != nil {
+		os.Remove(storageConf)
+		return err
+	}
+	return nil
 }
 
 // StorageConfigFile returns the path to the storage config file used
