@@ -75,6 +75,7 @@ var cmdsNotRequiringRootless = map[*cobra.Command]bool{
 	_podKillCommand:  true,
 	_podStatsCommand: true,
 	_podStopCommand:  true,
+	_podTopCommand:   true,
 	_restartCommand:  true,
 	_rmCommand:       true,
 	_runCommand:      true,

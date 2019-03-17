@@ -138,6 +138,21 @@ var _ = Describe("Podman rootless", func() {
 			cmd.WaitWithDefaultTimeout()
 			Expect(cmd.ExitCode()).To(Equal(0))
 			Expect(cmd.LineInOutputContains("hello")).To(BeTrue())
+
+			args = []string{"pod", "top", podId}
+			cmd = rootlessTest.PodmanAsUser(args, 1000, 1000, "", env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Not(Equal(0)))
+
+			args = []string{"run", "--pod", podId, "-d", "--rootfs", mountPath, "sleep", "100"}
+			cmd = rootlessTest.PodmanAsUser(args, 1000, 1000, "", env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
+
+			args = []string{"pod", "top", podId}
+			cmd = rootlessTest.PodmanAsUser(args, 1000, 1000, "", env)
+			cmd.WaitWithDefaultTimeout()
+			Expect(cmd.ExitCode()).To(Equal(0))
 		}
 		runInRootlessContext(f)
 	})
