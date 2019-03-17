@@ -243,7 +243,6 @@ install.man: docs
 install.config:
 	install ${SELINUXOPT} -d -m 755 $(SHAREDIR_CONTAINERS)
 	install ${SELINUXOPT} -m 644 libpod.conf $(SHAREDIR_CONTAINERS)/libpod.conf
-	install ${SELINUXOPT} -m 644 seccomp.json $(SHAREDIR_CONTAINERS)/seccomp.json
 
 install.completions:
 	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
