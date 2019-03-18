@@ -346,12 +346,14 @@ cache_images_task:
 # Post message to IRC if everything passed
 success_task:
 
+    only_if: $CIRRUS_BRANCH != 'master'
+
     depends_on:  # ignores any dependent task conditions
         - "gating"
-        - "vendor_check"
+        - "build_each_commit_task"
         - "testing"
+        - "rootless_testing_task"
         - "optional_testing"
-        - "cache_images"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
