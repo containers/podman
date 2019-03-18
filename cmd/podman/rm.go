@@ -195,5 +195,10 @@ func rmCmd(c *cliconfig.RmValues) error {
 			exitCode = 1
 		}
 	}
+
+	if failureCnt > 0 {
+		exitCode = 125
+	}
+
 	return err
 }

@@ -139,9 +139,23 @@ var _ = Describe("Podman rm", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 
 	})
+
 	It("podman rm bogus container", func() {
 		session := podmanTest.Podman([]string{"rm", "bogus"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
+	})
+	It("podman rm bogus container and a running container", func() {
+		session := podmanTest.RunTopContainer("test1")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"rm", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		session = podmanTest.Podman([]string{"rm", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 })
