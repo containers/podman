@@ -79,12 +79,6 @@ then
     if run_rootless
     then
         setup_rootless
-    else
-        # Includes some $HOME relative details
-        go env | while read envline
-        do
-            X=$(echo "export $envline" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
-        done
     fi
 fi
 

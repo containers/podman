@@ -188,6 +188,13 @@ setup_rootless() {
     chown -R $ROOTLESS_UID:$ROOTLESS_GID "/home/$ROOTLESS_USER/.ssh"
     install -o $ROOTLESS_UID -g $ROOTLESS_GID -m 0600 \
         "$HOME/.ssh/id_rsa.pub" "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+    # Makes debugging easier
+    cat /root/.ssh/authorized_keys >> "/home/$ROOTLESS_USER/.ssh/authorized_keys"
+
+    echo "Configuring subuid and subgid"
+    grep -q "${ROOTLESS_USER}" /etc/subuid || \
+        echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | \
+            tee -a /etc/subuid >> /etc/subgid
 
     echo "Setting permissions on automation files"
     chmod 666 "$TIMESTAMPS_FILEPATH"

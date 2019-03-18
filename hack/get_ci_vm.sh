@@ -19,6 +19,7 @@ PROJECT="libpod-218412"
 GOSRC="/var/tmp/go/src/github.com/containers/libpod"
 GCLOUD_IMAGE=${GCLOUD_IMAGE:-quay.io/cevich/gcloud_centos:latest}
 GCLOUD_SUDO=${GCLOUD_SUDO-sudo}
+ROOTLESS_USER="madcowdog"
 
 # Shared tmp directory between container and us
 TMPDIR=$(mktemp -d --tmpdir $(basename $0)_tmpdir_XXXXXX)
@@ -69,7 +70,9 @@ image_hints() {
 
 show_usage() {
     echo -e "\n${RED}ERROR: $1${NOR}"
-    echo -e "${YEL}Usage: $(basename $0) [-s | -p] <image_name>${NOR}\n"
+    echo -e "${YEL}Usage: $(basename $0) [-s | -p | -r] <image_name>${NOR}"
+    echo "Use -s / -p to select source or package based dependencies"
+    echo -e "Use -r to setup and run tests as a regular user.\n"
     if [[ -r ".cirrus.yml" ]]
     then
         echo -e "${YEL}Some possible image_name values (from .cirrus.yml):${NOR}"
@@ -103,6 +106,10 @@ parse_args(){
     elif [[ "$1" == "-s" ]]
     then
         DEPS="PACKAGE_DEPS=false SOURCE_DEPS=true"
+        IMAGE_NAME="$2"
+    elif [[ "$1" == "-r" ]]
+    then
+        DEPS="ROOTLESS_USER=$ROOTLESS_USER ROOTLESS_UID=3210 ROOTLESS_GID=3210"
         IMAGE_NAME="$2"
     else  # no -s or -p
         DEPS="$(get_env_vars)"
@@ -209,4 +216,8 @@ echo -e "\n${YEL}Executing environment setup${NOR}"
 showrun $SSH_CMD --command "$SETUP_CMD"
 
 echo -e "\n${YEL}Connecting to $VMNAME ${RED}(option to delete VM upon logout).${NOR}\n"
+if [[ "$1" == "-r" ]]
+then
+    SSH_CMD="$PGCLOUD compute ssh $ROOTLESS_USER@$VMNAME"
+fi
 showrun $SSH_CMD -- -t "cd $GOSRC && exec env $DEPS bash -il"
