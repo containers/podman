@@ -148,6 +148,15 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 69ed779d8ef9f  redis:alpine  "redis-server"  25 hours ago  Created                   6379/tcp  k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1
 02f65160e14ca  redis:alpine  "redis-server"  19 hours ago  Exited (-1) 19 hours ago  6379/tcp  k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0
 ```
+
+```
+$ podman ps
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS            PORTS                                                   NAMES
+4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes ago  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
+92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes ago  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
+
+```
+
 ## ps
 Print a list of containers
 
