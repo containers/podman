@@ -158,6 +158,7 @@ type ContainerInspectData struct {
 	HostsPath       string                 `json:"HostsPath"`
 	StaticDir       string                 `json:"StaticDir"`
 	LogPath         string                 `json:"LogPath"`
+	ConmonPidFile   string                 `json:"ConmonPidFile"`
 	Name            string                 `json:"Name"`
 	RestartCount    int32                  `json:"RestartCount"` //TODO
 	Driver          string                 `json:"Driver"`

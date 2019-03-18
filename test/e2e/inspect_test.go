@@ -66,6 +66,16 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman inspect container with GO format for ConmonPidFile", func() {
+		SkipIfRemote()
+		session, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman inspect container with size", func() {
 		SkipIfRemote()
 		_, ec, _ := podmanTest.RunLsContainer("")
