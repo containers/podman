@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -186,7 +187,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		if err != nil {
 			return err
 		}
-		createConfig, err := kubeContainerToCreateConfig(container, runtime, newImage, namespaces, volumes)
+		createConfig, err := kubeContainerToCreateConfig(ctx, container, runtime, newImage, namespaces, volumes)
 		if err != nil {
 			return err
 		}
@@ -231,7 +232,7 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Runtime, newImage *image2.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image2.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		envs            map[string]string
@@ -243,6 +244,14 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 	containerConfig.Name = containerYAML.Name
 	containerConfig.Tty = containerYAML.TTY
 	containerConfig.WorkDir = containerYAML.WorkingDir
+
+	imageData, _ := newImage.Inspect(ctx)
+
+	containerConfig.User = "0"
+	if imageData != nil {
+		containerConfig.User = imageData.Config.User
+	}
+
 	if containerConfig.SecurityOpts != nil {
 		if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
 			containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
@@ -280,6 +289,7 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 	for _, e := range containerYAML.Env {
 		envs[e.Name] = e.Value
 	}
+	containerConfig.Env = envs
 
 	for _, volume := range containerYAML.VolumeMounts {
 		host_path, exists := volumes[volume.Name]
@@ -291,6 +301,5 @@ func kubeContainerToCreateConfig(containerYAML v1.Container, runtime *libpod.Run
 		}
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", host_path, volume.MountPath))
 	}
-	containerConfig.Env = envs
 	return &containerConfig, nil
 }
