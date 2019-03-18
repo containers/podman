@@ -57,8 +57,8 @@ func generateKubeYAMLCmd(c *cliconfig.GenerateKubeValues) error {
 		return errors.Wrapf(libpod.ErrNotImplemented, "rootless users")
 	}
 	args := c.InputArgs
-	if len(args) > 1 || (len(args) < 1 && !c.Bool("latest")) {
-		return errors.Errorf("you must provide one container|pod ID or name or --latest")
+	if len(args) != 1 {
+		return errors.Errorf("you must provide exactly one container|pod ID or name")
 	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)

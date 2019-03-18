@@ -25,7 +25,7 @@ var (
 	podStatsDescription = `For each specified pod this command will display percentage of CPU, memory, network I/O, block I/O and PIDs for containers in one the pods.`
 
 	_podStatsCommand = &cobra.Command{
-		Use:   "stats [flags] POD [POD...]",
+		Use:   "stats [flags] [POD...]",
 		Short: "Display a live stream of resource usage statistics for the containers in one or more pods",
 		Long:  podStatsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
