@@ -111,7 +111,7 @@ func getLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 		Whence: whence,
 	}
 
-	t, err := tail.TailFile(path, tail.Config{Poll: true, Follow: options.Follow, Location: &seek, Logger: tail.DiscardingLogger})
+	t, err := tail.TailFile(path, tail.Config{Poll: true, Follow: options.Follow, MustExist: true, Location: &seek, Logger: tail.DiscardingLogger})
 	return t, logTail, err
 }
 
