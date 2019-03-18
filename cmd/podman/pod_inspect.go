@@ -14,7 +14,7 @@ var (
 	podInspectCommand     cliconfig.PodInspectValues
 	podInspectDescription = `Display the configuration for a pod by name or id
 
-  By default, this will render all results in a JSON array. If the container and image have the same name, this command returns the container JSON.`
+  By default, this will render all results in a JSON array.`
 
 	_podInspectCommand = &cobra.Command{
 		Use:   "inspect [flags] POD",
@@ -34,7 +34,7 @@ func init() {
 	podInspectCommand.SetHelpTemplate(HelpTemplate())
 	podInspectCommand.SetUsageTemplate(UsageTemplate())
 	flags := podInspectCommand.Flags()
-	flags.BoolVarP(&podInspectCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVarP(&podInspectCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
