@@ -132,4 +132,14 @@ var _ = Describe("Podman logs", func() {
 		Expect(len(output)).To(Equal(6))
 		Expect(strings.Contains(output[0], cid1[:12]) || strings.Contains(output[0], cid2[:12])).To(BeTrue())
 	})
+
+	It("podman logs on a created container should result in 0 exit code", func() {
+		session := podmanTest.Podman([]string{"create", "-dt", "--name", "log", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(BeZero())
+
+		results := podmanTest.Podman([]string{"logs", "log"})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(BeZero())
+	})
 })

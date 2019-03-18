@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -54,6 +55,10 @@ func (r *Runtime) Log(containers []*Container, options *LogOptions, logChannel c
 func (c *Container) ReadLog(options *LogOptions, logChannel chan *LogLine) error {
 	t, tailLog, err := getLogFile(c.LogPath(), options)
 	if err != nil {
+		// If the log file does not exist, this is not fatal.
+		if os.IsNotExist(errors.Cause(err)) {
+			return nil
+		}
 		return errors.Wrapf(err, "unable to read log file %s for %s ", c.ID(), c.LogPath())
 	}
 	options.WaitGroup.Add(1)
@@ -111,7 +116,7 @@ func getLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 		Whence: whence,
 	}
 
-	t, err := tail.TailFile(path, tail.Config{Poll: true, Follow: options.Follow, Location: &seek, Logger: tail.DiscardingLogger})
+	t, err := tail.TailFile(path, tail.Config{MustExist: true, Poll: true, Follow: options.Follow, Location: &seek, Logger: tail.DiscardingLogger})
 	return t, logTail, err
 }
 
