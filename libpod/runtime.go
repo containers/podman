@@ -505,23 +505,32 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-	if err := makeRuntime(runtime); err != nil {
-		return nil, err
-	}
-
-	if !foundConfig && rootlessConfigPath != "" {
-		os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
-		file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-		if err != nil && !os.IsExist(err) {
-			return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
-		}
-		if err == nil {
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(runtime.config); err != nil {
-				os.Remove(rootlessConfigPath)
+	if rootlessConfigPath != "" {
+		// storage.conf
+		storageConfFile := util.StorageConfigFile()
+		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
+				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
 			}
 		}
+
+		if !foundConfig {
+			os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
+			file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			if err != nil && !os.IsExist(err) {
+				return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+			}
+			if err == nil {
+				defer file.Close()
+				enc := toml.NewEncoder(file)
+				if err := enc.Encode(runtime.config); err != nil {
+					os.Remove(rootlessConfigPath)
+				}
+			}
+		}
+	}
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
 	}
 	return runtime, nil
 }
