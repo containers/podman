@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -43,6 +44,9 @@ func versionCmd(c *cliconfig.VersionValues) error {
 
 	versionOutputFormat := c.Format
 	if versionOutputFormat != "" {
+		if strings.Join(strings.Fields(versionOutputFormat), "") == "{{json.}}" {
+			versionOutputFormat = formats.JSONString
+		}
 		var out formats.Writer
 		switch versionOutputFormat {
 		case formats.JSONString:
