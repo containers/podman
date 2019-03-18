@@ -28,15 +28,15 @@ env:
     #### Cache-image names to test with
     ###
     ACTIVE_CACHE_IMAGE_NAMES: >-
-        fedora-29-libpod-d6d53e40
-        fedora-28-libpod-d6d53e40
-        ubuntu-18-libpod-d6d53e40
-        rhel-7-libpod-7f4cd1f7
+        fedora-28-libpod-6318419153518592
+        fedora-29-libpod-6318419153518592
+        ubuntu-18-libpod-6318419153518592
+        rhel-7-libpod-6318419153518592
         image-builder-image-1541772081
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-d6d53e40"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-d6d53e40"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-d6d53e40"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-7f4cd1f7"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-6318419153518592"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-6318419153518592"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-6318419153518592"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-6318419153518592"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
