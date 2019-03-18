@@ -36,4 +36,24 @@ var _ = Describe("Podman version", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
 	})
+
+	It("podman version --format json", func() {
+		session := podmanTest.Podman([]string{"version", "--format", "json"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman version --format json", func() {
+		session := podmanTest.Podman([]string{"version", "--format", "{{ json .}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman version --format GO template", func() {
+		session := podmanTest.Podman([]string{"version", "--format", "{{ .Version }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
