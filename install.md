@@ -268,7 +268,6 @@ registries = []
 # If you need to block pull access from a registry, uncomment the section below
 # and add the registries fully-qualified name.
 #
-# Docker only
 [registries.block]
 registries = []
 ```

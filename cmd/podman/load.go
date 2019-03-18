@@ -5,21 +5,24 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
 	loadCommand cliconfig.LoadValues
 
-	loadDescription = "Loads the image from docker-archive stored on the local machine."
-	_loadCommand    = &cobra.Command{
-		Use:   "load [flags] [PATH]",
-		Short: "Load an image from docker archive",
+	loadDescription = "Loads an image from a locally stored archive (tar file) into container storage."
+
+	_loadCommand = &cobra.Command{
+		Use:   "load [flags] [NAME[:TAG]]",
+		Short: "Load an image from container archive",
 		Long:  loadDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loadCommand.InputArgs = args
@@ -60,48 +63,42 @@ func loadCmd(c *cliconfig.LoadValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	input := c.Input
-	if runtime.Remote && len(input) == 0 {
-		return errors.New("the remote client requires you to load via -i and a tarball")
-	}
-	if len(input) == 0 {
-		input = "/dev/stdin"
-		c.Input = input
-
-		fi, err := os.Stdin.Stat()
-		if err != nil {
+	if len(c.Input) > 0 {
+		if err := parse.ValidateFileName(c.Input); err != nil {
 			return err
 		}
-		// checking if loading from pipe
-		if !fi.Mode().IsRegular() {
-			outFile, err := ioutil.TempFile("/var/tmp", "podman")
-			if err != nil {
-				return errors.Errorf("error creating file %v", err)
-			}
-			defer os.Remove(outFile.Name())
-			defer outFile.Close()
-
-			inFile, err := os.OpenFile(input, 0, 0666)
-			if err != nil {
-				return errors.Errorf("error reading file %v", err)
-			}
-			defer inFile.Close()
-
-			_, err = io.Copy(outFile, inFile)
-			if err != nil {
-				return errors.Errorf("error copying file %v", err)
-			}
-
-			input = outFile.Name()
+	} else {
+		if terminal.IsTerminal(int(os.Stdin.Fd())) {
+			return errors.Errorf("cannot read from terminal. Use command-line redirection or the --input flag.")
 		}
-	}
-	if err := parse.ValidateFileName(input); err != nil {
-		return err
+		outFile, err := ioutil.TempFile("/var/tmp", "podman")
+		if err != nil {
+			return errors.Errorf("error creating file %v", err)
+		}
+		defer os.Remove(outFile.Name())
+		defer outFile.Close()
+
+		_, err = io.Copy(outFile, os.Stdin)
+		if err != nil {
+			return errors.Errorf("error copying file %v", err)
+		}
+
+		c.Input = outFile.Name()
 	}
 
 	names, err := runtime.LoadImage(getContext(), imageName, c)
 	if err != nil {
 		return err
+	}
+	if len(imageName) > 0 {
+		split := strings.Split(names, ",")
+		newImage, err := runtime.NewImageFromLocal(split[0])
+		if err != nil {
+			return err
+		}
+		if err := newImage.TagImage(imageName); err != nil {
+			return errors.Wrapf(err, "error adding '%s' to image %q", imageName, newImage.InputName)
+		}
 	}
 	fmt.Println("Loaded image(s): " + names)
 	return nil

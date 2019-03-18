@@ -34,7 +34,7 @@
 | [podman-info(1)](/docs/podman-info.1.md)                 | Display system information                                                |[![...](/docs/play.png)](https://asciinema.org/a/yKbi5fQ89y5TJ8e1RfJd4ivTD)|
 | [podman-inspect(1)](/docs/podman-inspect.1.md)           | Display the configuration of a container or image                         |[![...](/docs/play.png)](https://asciinema.org/a/133418)|
 | [podman-kill(1)](/docs/podman-kill.1.md)                 | Kill the main process in one or more running containers                   |[![...](/docs/play.png)](https://asciinema.org/a/3jNos0A5yzO4hChu7ddKkUPw7)|
-| [podman-load(1)](/docs/podman-load.1.md)                 | Load an image from docker archive or oci                                  |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
+| [podman-load(1)](/docs/podman-load.1.md)                 | Load an image from a container image archive                              |[![...](/docs/play.png)](https://asciinema.org/a/kp8kOaexEhEa20P1KLZ3L5X4g)|
 | [podman-login(1)](/docs/podman-login.1.md)               | Login to a container registry						   |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [podman-logout(1)](/docs/podman-logout.1.md)             | Logout of a container registry                                            |[![...](/docs/play.png)](https://asciinema.org/a/oNiPgmfo1FjV2YdesiLpvihtV)|
 | [podman-logs(1)](/docs/podman-logs.1.md)                 | Display the logs of a container                                           |[![...](/docs/play.png)](https://asciinema.org/a/MZPTWD5CVs3dMREkBxQBY9C5z)|
