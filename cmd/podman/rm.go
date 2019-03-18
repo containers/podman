@@ -108,6 +108,7 @@ func rmCmd(c *cliconfig.RmValues) error {
 			c.Latest = false
 			c.InputArgs = []string{rootless.Argument()}
 		} else {
+			exitCode = 0
 			var containers []*libpod.Container
 			if c.All {
 				containers, err = runtime.GetContainers()
@@ -121,6 +122,10 @@ func rmCmd(c *cliconfig.RmValues) error {
 				for _, c := range c.InputArgs {
 					container, err = runtime.LookupContainer(c)
 					if err != nil {
+						if errors.Cause(err) == libpod.ErrNoSuchCtr {
+							exitCode = 1
+							continue
+						}
 						return err
 					}
 					containers = append(containers, container)
@@ -136,7 +141,7 @@ func rmCmd(c *cliconfig.RmValues) error {
 					os.Exit(ret)
 				}
 			}
-			os.Exit(0)
+			os.Exit(exitCode)
 		}
 	}
 
