@@ -29,6 +29,9 @@ case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
     fedora-29) ;&
     fedora-28)
         make
+        make varlink_generate
+        make test-binaries
+        make ginkgo
         ;;
     *) bad_os_id_ver ;;
 esac

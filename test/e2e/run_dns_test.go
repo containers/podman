@@ -88,6 +88,7 @@ var _ = Describe("Podman run dns", func() {
 	})
 
 	It("podman run add hostname sets /etc/hosts", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-t", "-i", "--hostname=foobar", ALPINE, "cat", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

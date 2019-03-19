@@ -54,6 +54,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose port 222", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -64,6 +65,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network expose host port 80 to container port 8000", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -146,6 +148,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run --net container: copies hosts and resolv", func() {
+		SkipIfRootless()
 		ctrName := "ctr1"
 		ctr1 := podmanTest.RunTopContainer(ctrName)
 		ctr1.WaitWithDefaultTimeout()
@@ -177,6 +180,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run network in user created network namespace", func() {
+		SkipIfRootless()
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}
@@ -193,6 +197,7 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run n user created network namespace with resolv.conf", func() {
+		SkipIfRootless()
 		if Containerized() {
 			Skip("Can not be run within a container.")
 		}

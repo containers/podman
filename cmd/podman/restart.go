@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -61,6 +60,15 @@ func restartCmd(c *cliconfig.RestartValues) error {
 	if os.Geteuid() != 0 {
 		rootless.SetSkipStorageSetup(true)
 	}
+	if rootless.IsRootless() {
+		// If we are in the re-execed rootless environment,
+		// override the arg to deal only with one container.
+		if os.Geteuid() == 0 {
+			c.All = false
+			c.Latest = false
+			c.InputArgs = []string{rootless.Argument()}
+		}
+	}
 
 	args := c.InputArgs
 	runOnly := c.Running
@@ -107,28 +115,26 @@ func restartCmd(c *cliconfig.RestartValues) error {
 		}
 	}
 
+	if os.Geteuid() != 0 {
+		// In rootless mode we can deal with one container at at time.
+		for _, c := range restartContainers {
+			_, ret, err := joinContainerOrCreateRootlessUserNS(runtime, c)
+			if err != nil {
+				return err
+			}
+			if ret != 0 {
+				os.Exit(ret)
+			}
+		}
+		os.Exit(0)
+	}
+
 	maxWorkers := shared.Parallelize("restart")
 	if c.GlobalIsSet("max-workers") {
 		maxWorkers = c.GlobalFlags.MaxWorks
 	}
 
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	if rootless.IsRootless() {
-		// With rootless containers we cannot really restart an existing container
-		// as we would need to join the mount namespace as well to be able to reuse
-		// the storage.
-		if err := stopRootlessContainers(restartContainers, timeout, useTimeout, maxWorkers); err != nil {
-			return err
-		}
-		became, ret, err := rootless.BecomeRootInUserNS()
-		if err != nil {
-			return err
-		}
-		if became {
-			os.Exit(ret)
-		}
-	}
 
 	// We now have a slice of all the containers to be restarted. Iterate them to
 	// create restart Funcs with a timeout as needed
@@ -151,47 +157,4 @@ func restartCmd(c *cliconfig.RestartValues) error {
 
 	restartErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, restartFuncs)
 	return printParallelOutput(restartErrors, errCount)
-}
-
-func stopRootlessContainers(stopContainers []*libpod.Container, timeout uint, useTimeout bool, maxWorkers int) error {
-	var stopFuncs []shared.ParallelWorkerInput
-	for _, ctr := range stopContainers {
-		state, err := ctr.State()
-		if err != nil {
-			return err
-		}
-		if state != libpod.ContainerStateRunning {
-			continue
-		}
-
-		ctrTimeout := ctr.StopTimeout()
-		if useTimeout {
-			ctrTimeout = timeout
-		}
-
-		c := ctr
-		f := func() error {
-			return c.StopWithTimeout(ctrTimeout)
-		}
-
-		stopFuncs = append(stopFuncs, shared.ParallelWorkerInput{
-			ContainerID:  c.ID(),
-			ParallelFunc: f,
-		})
-
-		restartErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, stopFuncs)
-		var lastError error
-		for _, result := range restartErrors {
-			if result != nil {
-				if errCount > 1 {
-					fmt.Println(result.Error())
-				}
-				lastError = result
-			}
-		}
-		if lastError != nil {
-			return lastError
-		}
-	}
-	return nil
 }

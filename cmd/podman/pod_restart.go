@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -46,11 +48,23 @@ func init() {
 
 func podRestartCmd(c *cliconfig.PodRestartValues) error {
 	var lastError error
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
+
+	if rootless.IsRootless() {
+		var err error
+
+		c.InputArgs, c.All, c.Latest, err = joinPodNS(runtime, c.All, c.Latest, c.InputArgs)
+		if err != nil {
+			return err
+		}
+	}
 
 	restartIDs, conErrors, restartErrors := runtime.RestartPods(getContext(), c)
 

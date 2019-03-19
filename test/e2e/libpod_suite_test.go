@@ -14,12 +14,23 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
 	. "github.com/containers/libpod/test/utils"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 )
 
-func SkipIfRemote() {}
+func SkipIfRemote() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
+}
+
+func SkipIfRootless() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
+}
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {

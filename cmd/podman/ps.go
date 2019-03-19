@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
@@ -200,6 +201,9 @@ func init() {
 }
 
 func psCmd(c *cliconfig.PsValues) error {
+	if os.Geteuid() != 0 {
+		rootless.SetSkipStorageSetup(true)
+	}
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "psCmd")
 		defer span.Finish()
