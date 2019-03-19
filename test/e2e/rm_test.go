@@ -141,7 +141,6 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman rm bogus container", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"rm", "bogus"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))

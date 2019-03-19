@@ -99,9 +99,8 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman create pod with network portbindings", func() {
-		SkipIfRootless()
 		name := "test"
-		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "80:80"})
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "8080:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		pod := session.OutputToString()
@@ -110,7 +109,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver.ExitCode()).To(Equal(0))
 
-		check := SystemExec("nc", []string{"-z", "localhost", "80"})
+		check := SystemExec("nc", []string{"-z", "localhost", "8080"})
 		Expect(check.ExitCode()).To(Equal(0))
 	})
 

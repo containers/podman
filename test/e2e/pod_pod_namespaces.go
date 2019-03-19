@@ -64,7 +64,6 @@ var _ = Describe("Podman pod create", func() {
 	})
 
 	It("podman pod container dontshare PIDNS", func() {
-		SkipIfRootless()
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

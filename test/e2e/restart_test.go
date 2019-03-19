@@ -156,7 +156,6 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("Podman restart --all", func() {
-		SkipIfRootless()
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
@@ -177,7 +176,6 @@ var _ = Describe("Podman restart", func() {
 	})
 
 	It("Podman restart --all --running", func() {
-		SkipIfRootless()
 		_, exitCode, _ := podmanTest.RunLsContainer("test1")
 		Expect(exitCode).To(Equal(0))
 
