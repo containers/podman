@@ -52,7 +52,7 @@ function teardown() {
 @test "podman FOO - description of test" {
     # FIXME: please try to remove this line; that is, try to write tests
     # that will pass as both root and rootless.
-    skip_if_rootless
+    skip_if_rootless "Short explanation of why this doesn't work rootless"
 
     # FIXME: template for run commands. Always use 'run_podman'!
     # FIXME: The '?' means 'ignore exit status'; use a number if you

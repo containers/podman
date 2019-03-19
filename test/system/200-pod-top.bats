@@ -3,9 +3,10 @@
 load helpers
 
 @test "podman pod top - containers in different PID namespaces" {
-    skip_if_rootless
-
-    run_podman pod create
+    # With infra=false, we don't get a /pause container (we also
+    # don't pull k8s.gcr.io/pause )
+    no_infra='--infra=false'
+    run_podman pod create $no_infra
     podid="$output"
 
     # Start two containers...
@@ -23,11 +24,14 @@ load helpers
     run_podman pod top $podid
     is "$output" ".*root.*top -d 2.*root.*top -d 2" "two 'top' containers"
 
-    # There should be a /pause container
+    # By default (podman pod create w/ default --infra) there should be
+    # a /pause container.
     # FIXME: sometimes there is, sometimes there isn't. If anyone ever
     # actually figures this out, please either reenable this line or
     # remove it entirely.
-    #is "$output" ".*0 \+1 \+0 \+[0-9. ?s]\+/pause" "there is a /pause container"
+    if [ -z "$no_infra" ]; then
+        is "$output" ".*0 \+1 \+0 \+[0-9. ?s]\+/pause" "there is a /pause container"
+    fi
 
     # Clean up
     run_podman pod rm -f $podid
