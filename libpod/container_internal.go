@@ -51,6 +51,9 @@ func (c *Container) rootFsSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		return 0, nil
 	}
+	if c.runtime.store == nil {
+		return 0, nil
+	}
 
 	container, err := c.runtime.store.Container(c.ID())
 	if err != nil {

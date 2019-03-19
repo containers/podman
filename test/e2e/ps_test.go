@@ -82,6 +82,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman ps size flag", func() {
+		SkipIfRootless()
+
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
@@ -233,6 +235,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman --sort by size", func() {
+		SkipIfRootless()
+
 		session := podmanTest.Podman([]string{"create", "busybox", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
