@@ -1,13 +1,10 @@
 package main
 
 import (
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -57,16 +54,6 @@ func restartCmd(c *cliconfig.RestartValues) error {
 		restartContainers []*libpod.Container
 	)
 
-	if rootless.IsRootless() {
-		// If we are in the re-execed rootless environment,
-		// override the arg to deal only with one container.
-		if os.Geteuid() == 0 {
-			c.All = false
-			c.Latest = false
-			c.InputArgs = []string{rootless.Argument()}
-		}
-	}
-
 	args := c.InputArgs
 	runOnly := c.Running
 	all := c.All
@@ -110,20 +97,6 @@ func restartCmd(c *cliconfig.RestartValues) error {
 			}
 			restartContainers = append(restartContainers, ctr)
 		}
-	}
-
-	if os.Geteuid() != 0 {
-		// In rootless mode we can deal with one container at at time.
-		for _, c := range restartContainers {
-			_, ret, err := joinContainerOrCreateRootlessUserNS(runtime, c)
-			if err != nil {
-				return err
-			}
-			if ret != 0 {
-				os.Exit(ret)
-			}
-		}
-		os.Exit(0)
 	}
 
 	maxWorkers := shared.Parallelize("restart")

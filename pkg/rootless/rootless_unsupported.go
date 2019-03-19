@@ -19,45 +19,15 @@ func BecomeRootInUserNS() (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
-// BecomeRootInUserNS is a stub function that always returns false and an
-// error on unsupported OS's
-func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
-	return false, -1, errors.New("this function is not supported on this os")
-}
-
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
 	return -1
 }
 
-// JoinNS re-exec podman in a new userNS and join the user namespace of the specified
-// PID.
-func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
-	return false, -1, errors.New("this function is not supported on this os")
-}
-
-// JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
-// specified path.
-func JoinNSPath(path string) (bool, int, error) {
-	return false, -1, errors.New("this function is not supported on this os")
-}
-
-// JoinDirectUserAndMountNSWithOpts re-exec podman in a new userNS and join the user and
-// mount namespace of the specified PID without looking up its parent.  Useful to join
-// directly the conmon process.
-func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
-	return false, -1, errors.New("this function is not supported on this os")
-}
-
-// JoinDirectUserAndMountNS re-exec podman in a new userNS and join the user and mount
+// JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
-// the conmon process.  It is a convenience function for JoinDirectUserAndMountNSWithOpts
+// the conmon process.  It is a convenience function for JoinUserAndMountNSWithOpts
 // with a default configuration.
-func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
+func JoinUserAndMountNS(pid uint) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
-}
-
-// Argument returns the argument that was set for the rootless session.
-func Argument() string {
-	return ""
 }

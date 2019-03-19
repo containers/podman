@@ -2,11 +2,9 @@ package libpod
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -563,37 +561,6 @@ func (r *Runtime) Export(name string, path string) error {
 	ctr, err := r.LookupContainer(name)
 	if err != nil {
 		return err
-	}
-	if os.Geteuid() != 0 {
-		state, err := ctr.State()
-		if err != nil {
-			return errors.Wrapf(err, "cannot read container state %q", ctr.ID())
-		}
-		if state == ContainerStateRunning || state == ContainerStatePaused {
-			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-			if err != nil {
-				return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
-			}
-			conmonPid, err := strconv.Atoi(string(data))
-			if err != nil {
-				return errors.Wrapf(err, "cannot parse PID %q", data)
-			}
-			became, ret, err := rootless.JoinDirectUserAndMountNS(uint(conmonPid))
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		} else {
-			became, ret, err := rootless.BecomeRootInUserNS()
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		}
 	}
 	return ctr.Export(path)
 

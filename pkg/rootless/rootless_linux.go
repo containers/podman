@@ -46,11 +46,6 @@ func IsRootless() bool {
 	return isRootless
 }
 
-// Argument returns the argument that was set for the rootless session.
-func Argument() string {
-	return os.Getenv("_CONTAINERS_ROOTLESS_ARG")
-}
-
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
 	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
@@ -90,51 +85,86 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	return nil
 }
 
-// JoinNS re-exec podman in a new userNS and join the user namespace of the specified
-// PID.
-func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
-		return false, -1, nil
-	}
-
-	userNS, err := getUserNSForPid(pid)
+func readUserNs(path string) (string, error) {
+	b := make([]byte, 256)
+	_, err := syscall.Readlink(path, b)
 	if err != nil {
-		return false, -1, err
+		return "", err
 	}
-	defer userNS.Close()
+	return string(b), nil
+}
 
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()), -1)
-	if int(pidC) < 0 {
-		return false, -1, errors.Errorf("cannot re-exec process")
+func readUserNsFd(fd uintptr) (string, error) {
+	return readUserNs(fmt.Sprintf("/proc/self/fd/%d", fd))
+}
+
+func getParentUserNs(fd uintptr) (uintptr, error) {
+	const nsGetParent = 0xb702
+	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
+	if errno != 0 {
+		return 0, errno
 	}
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
+	return (uintptr)(unsafe.Pointer(ret)), nil
+}
+
+// getUserNSFirstChild returns an open FD for the first direct child user namespace that created the process
+// Each container creates a new user namespace where the runtime runs.  The current process in the container
+// might have created new user namespaces that are child of the initial namespace we created.
+// This function finds the initial namespace created for the container that is a child of the current namespace.
+//
+//                                     current ns
+//                                       /     \
+//                           TARGET ->  a   [other containers]
+//                                     /
+//                                    b
+//                                   /
+//        NS READ USING THE PID ->  c
+func getUserNSFirstChild(fd uintptr) (*os.File, error) {
+	currentNS, err := readUserNs("/proc/self/ns/user")
+	if err != nil {
+		return nil, err
+	}
+
+	ns, err := readUserNsFd(fd)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot read user namespace")
+	}
+	if ns == currentNS {
+		return nil, errors.New("process running in the same user namespace")
+	}
+
+	for {
+		nextFd, err := getParentUserNs(fd)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot get parent user namespace")
 		}
-	}
 
-	ret := C.reexec_in_user_namespace_wait(pidC)
-	if ret < 0 {
-		return false, -1, errors.New("error waiting for the re-exec process")
-	}
+		ns, err = readUserNsFd(nextFd)
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot read user namespace")
+		}
 
-	return true, int(ret), nil
+		if ns == currentNS {
+			syscall.Close(int(nextFd))
+
+			// Drop O_CLOEXEC for the fd.
+			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
+			if errno != 0 {
+				syscall.Close(int(fd))
+				return nil, errno
+			}
+
+			return os.NewFile(fd, "userns child"), nil
+		}
+		syscall.Close(int(fd))
+		fd = nextFd
+	}
 }
 
-// JoinDirectUserAndMountNS re-exec podman in a new userNS and join the user and mount
+// JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
-// the conmon process.  It is a convenience function for JoinDirectUserAndMountNSWithOpts
-// with a default configuration.
-func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
-	return JoinDirectUserAndMountNSWithOpts(pid, nil)
-}
-
-// JoinDirectUserAndMountNSWithOpts re-exec podman in a new userNS and join the user and
-// mount namespace of the specified PID without looking up its parent.  Useful to join
-// directly the conmon process.
-func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
+// the conmon process.
+func JoinUserAndMountNS(pid uint) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
@@ -151,39 +181,11 @@ func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 	}
 	defer userNS.Close()
 
-	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
-			return false, -1, err
-		}
-	}
-
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()), C.int(mountNS.Fd()))
-	if int(pidC) < 0 {
-		return false, -1, errors.Errorf("cannot re-exec process")
-	}
-
-	ret := C.reexec_in_user_namespace_wait(pidC)
-	if ret < 0 {
-		return false, -1, errors.New("error waiting for the re-exec process")
-	}
-
-	return true, int(ret), nil
-}
-
-// JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
-// specified path.
-func JoinNSPath(path string) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
-		return false, -1, nil
-	}
-
-	userNS, err := getUserNSForPath(path)
+	fd, err := getUserNSFirstChild(userNS.Fd())
 	if err != nil {
 		return false, -1, err
 	}
-	defer userNS.Close()
-
-	pidC := C.reexec_userns_join(C.int(userNS.Fd()), -1)
+	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()))
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
@@ -199,16 +201,8 @@ func JoinNSPath(path string) (bool, int, error) {
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
-// process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
-func BecomeRootInUserNS() (bool, int, error) {
-	return BecomeRootInUserNSWithOpts(nil)
-}
-
-// BecomeRootInUserNSWithOpts re-exec podman in a new userNS.  It returns whether podman was
-// re-execute into a new user namespace and the return code from the re-executed podman process.
-// If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
-func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
+func BecomeRootInUserNS() (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -226,12 +220,6 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	defer r.Close()
 	defer w.Close()
 	defer w.Write([]byte("0"))
-
-	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
-			return false, -1, err
-		}
-	}
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
 	pid := int(pidC)
@@ -313,113 +301,4 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	}
 
 	return true, int(ret), nil
-}
-
-func readUserNs(path string) (string, error) {
-	b := make([]byte, 256)
-	_, err := syscall.Readlink(path, b)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func readUserNsFd(fd uintptr) (string, error) {
-	return readUserNs(fmt.Sprintf("/proc/self/fd/%d", fd))
-}
-
-func getOwner(fd uintptr) (uintptr, error) {
-	const nsGetUserns = 0xb701
-	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetUserns), 0)
-	if errno != 0 {
-		return 0, errno
-	}
-	return (uintptr)(unsafe.Pointer(ret)), nil
-}
-
-func getParentUserNs(fd uintptr) (uintptr, error) {
-	const nsGetParent = 0xb702
-	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
-	if errno != 0 {
-		return 0, errno
-	}
-	return (uintptr)(unsafe.Pointer(ret)), nil
-}
-
-func getUserNSForPath(path string) (*os.File, error) {
-	u, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", path)
-	}
-	defer u.Close()
-	fd, err := getOwner(u.Fd())
-	if err != nil {
-		return nil, err
-	}
-
-	return getUserNSFirstChild(fd)
-}
-
-func getUserNSForPid(pid uint) (*os.File, error) {
-	path := fmt.Sprintf("/proc/%d/ns/user", pid)
-	u, err := os.Open(path)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot open %s", path)
-	}
-
-	return getUserNSFirstChild(u.Fd())
-}
-
-// getUserNSFirstChild returns an open FD for the first direct child user namespace that created the process
-// Each container creates a new user namespace where the runtime runs.  The current process in the container
-// might have created new user namespaces that are child of the initial namespace we created.
-// This function finds the initial namespace created for the container that is a child of the current namespace.
-//
-//                                     current ns
-//                                       /     \
-//                           TARGET ->  a   [other containers]
-//                                     /
-//                                    b
-//                                   /
-//        NS READ USING THE PID ->  c
-func getUserNSFirstChild(fd uintptr) (*os.File, error) {
-	currentNS, err := readUserNs("/proc/self/ns/user")
-	if err != nil {
-		return nil, err
-	}
-
-	ns, err := readUserNsFd(fd)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot read user namespace")
-	}
-	if ns == currentNS {
-		return nil, errors.New("process running in the same user namespace")
-	}
-
-	for {
-		nextFd, err := getParentUserNs(fd)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot get parent user namespace")
-		}
-
-		ns, err = readUserNsFd(nextFd)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot read user namespace")
-		}
-
-		if ns == currentNS {
-			syscall.Close(int(nextFd))
-
-			// Drop O_CLOEXEC for the fd.
-			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
-			if errno != 0 {
-				syscall.Close(int(fd))
-				return nil, errno
-			}
-
-			return os.NewFile(fd, "userns child"), nil
-		}
-		syscall.Close(int(fd))
-		fd = nextFd
-	}
 }

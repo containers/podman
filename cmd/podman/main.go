@@ -3,13 +3,16 @@ package main
 import (
 	"context"
 	"io"
+	"io/ioutil"
 	"log/syslog"
 	"os"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
@@ -57,36 +60,6 @@ var mainCommands = []*cobra.Command{
 	_waitCommand,
 	imageCommand.Command,
 	systemCommand.Command,
-}
-
-var cmdsNotRequiringRootless = map[*cobra.Command]bool{
-	_versionCommand: true,
-	_createCommand:  true,
-	_execCommand:    true,
-	_cpCommand:      true,
-	_exportCommand:  true,
-	//// `info` must be executed in an user namespace.
-	//// If this change, please also update libpod.refreshRootless()
-	_loginCommand:      true,
-	_logoutCommand:     true,
-	_mountCommand:      true,
-	_killCommand:       true,
-	_pauseCommand:      true,
-	_podRmCommand:      true,
-	_podKillCommand:    true,
-	_podRestartCommand: true,
-	_podStatsCommand:   true,
-	_podStopCommand:    true,
-	_podTopCommand:     true,
-	_restartCommand:    true,
-	&_psCommand:        true,
-	_rmCommand:         true,
-	_runCommand:        true,
-	_unpauseCommand:    true,
-	_searchCommand:     true,
-	_statsCommand:      true,
-	_stopCommand:       true,
-	_topCommand:        true,
 }
 
 var rootCmd = &cobra.Command{
@@ -152,17 +125,51 @@ func before(cmd *cobra.Command, args []string) error {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
-	if rootless.IsRootless() {
-		notRequireRootless := cmdsNotRequiringRootless[cmd]
-		if !notRequireRootless && !strings.HasPrefix(cmd.Use, "help") {
-			became, ret, err := rootless.BecomeRootInUserNS()
-			if err != nil {
-				logrus.Errorf(err.Error())
-				os.Exit(1)
+	if os.Geteuid() != 0 && cmd != _searchCommand && cmd != _versionCommand && !strings.HasPrefix(cmd.Use, "help") {
+		podmanCmd := cliconfig.PodmanCommand{
+			cmd,
+			args,
+			MainGlobalOpts,
+		}
+		runtime, err := libpodruntime.GetRuntime(&podmanCmd)
+		if err != nil {
+			return errors.Wrapf(err, "could not get runtime")
+		}
+		defer runtime.Shutdown(false)
+
+		ctrs, err := runtime.GetRunningContainers()
+		if err != nil {
+			logrus.Errorf(err.Error())
+			os.Exit(1)
+		}
+		var became bool
+		var ret int
+		if len(ctrs) == 0 {
+			became, ret, err = rootless.BecomeRootInUserNS()
+		} else {
+			for _, ctr := range ctrs {
+				data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
+				if err != nil {
+					logrus.Errorf(err.Error())
+					os.Exit(1)
+				}
+				conmonPid, err := strconv.Atoi(string(data))
+				if err != nil {
+					logrus.Errorf(err.Error())
+					os.Exit(1)
+				}
+				became, ret, err = rootless.JoinUserAndMountNS(uint(conmonPid))
+				if err == nil {
+					break
+				}
 			}
-			if became {
-				os.Exit(ret)
-			}
+		}
+		if err != nil {
+			logrus.Errorf(err.Error())
+			os.Exit(1)
+		}
+		if became {
+			os.Exit(ret)
 		}
 	}
 

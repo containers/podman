@@ -78,26 +78,6 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		descriptors = args[1:]
 	}
 
-	if os.Geteuid() != 0 {
-		var pod *adapter.Pod
-		var err error
-		if c.Latest {
-			pod, err = runtime.GetLatestPod()
-		} else {
-			pod, err = runtime.LookupPod(c.InputArgs[0])
-		}
-		if err != nil {
-			return errors.Wrapf(err, "unable to lookup requested container")
-		}
-		became, ret, err := runtime.JoinOrCreateRootlessPod(pod)
-		if err != nil {
-			return err
-		}
-		if became {
-			os.Exit(ret)
-		}
-	}
-
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
 	psOutput, err := runtime.PodTop(c, descriptors)
 	if err != nil {

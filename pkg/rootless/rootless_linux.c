@@ -13,9 +13,35 @@
 #include <sys/wait.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/types.h>
+#include <sys/prctl.h>
+#include <dirent.h>
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
+
+static int n_files;
+
+static void __attribute__((constructor)) init()
+{
+  DIR *d;
+
+  /* Store how many FDs were open before the Go runtime kicked in.  */
+  d = opendir ("/proc/self/fd");
+  if (d)
+    {
+      struct dirent *ent;
+
+      for (ent = readdir (d); ent; ent = readdir (d))
+        {
+          int fd = atoi (ent->d_name);
+          if (fd > n_files && fd != dirfd (d))
+            n_files = fd;
+        }
+      closedir (d);
+    }
+}
+
 
 static int
 syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
@@ -133,11 +159,24 @@ reexec_userns_join (int userns, int mountns)
   pid = fork ();
   if (pid < 0)
     fprintf (stderr, "cannot fork: %s\n", strerror (errno));
+
   if (pid)
-    return pid;
+    {
+      /* We passed down these fds, close them.  */
+      int f;
+      for (f = 3; f < n_files; f++)
+        close (f);
+      return pid;
+    }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
+
+  if (prctl (PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0) < 0)
+    {
+      fprintf (stderr, "cannot prctl(PR_SET_PDEATHSIG): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   if (setns (userns, 0) < 0)
     {

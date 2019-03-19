@@ -2,16 +2,12 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
-	"strconv"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -52,31 +48,6 @@ func init() {
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
-func joinContainerOrCreateRootlessUserNS(runtime *libpod.Runtime, ctr *libpod.Container) (bool, int, error) {
-	if os.Geteuid() == 0 {
-		return false, 0, nil
-	}
-	s, err := ctr.State()
-	if err != nil {
-		return false, -1, err
-	}
-	opts := rootless.Opts{
-		Argument: ctr.ID(),
-	}
-	if s == libpod.ContainerStateRunning || s == libpod.ContainerStatePaused {
-		data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-		if err != nil {
-			return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
-		}
-		conmonPid, err := strconv.Atoi(string(data))
-		if err != nil {
-			return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
-		}
-		return rootless.JoinDirectUserAndMountNSWithOpts(uint(conmonPid), &opts)
-	}
-	return rootless.BecomeRootInUserNSWithOpts(&opts)
-}
-
 // saveCmd saves the image to either docker-archive or oci
 func rmCmd(c *cliconfig.RmValues) error {
 	var (
@@ -89,58 +60,6 @@ func rmCmd(c *cliconfig.RmValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if rootless.IsRootless() {
-		// When running in rootless mode we cannot manage different containers and
-		// user namespaces from the same context, so be sure to re-exec once for each
-		// container we are dealing with.
-		// What we do is to first collect all the containers we want to delete, then
-		// we re-exec in each of the container namespaces and from there remove the single
-		// container.
-		var container *libpod.Container
-		if os.Geteuid() == 0 {
-			// We are in the namespace, override InputArgs with the single
-			// argument that was passed down to us.
-			c.All = false
-			c.Latest = false
-			c.InputArgs = []string{rootless.Argument()}
-		} else {
-			exitCode = 0
-			var containers []*libpod.Container
-			if c.All {
-				containers, err = runtime.GetContainers()
-			} else if c.Latest {
-				container, err = runtime.GetLatestContainer()
-				if err != nil {
-					return errors.Wrapf(err, "unable to get latest pod")
-				}
-				containers = append(containers, container)
-			} else {
-				for _, c := range c.InputArgs {
-					container, err = runtime.LookupContainer(c)
-					if err != nil {
-						if errors.Cause(err) == libpod.ErrNoSuchCtr {
-							exitCode = 1
-							continue
-						}
-						return err
-					}
-					containers = append(containers, container)
-				}
-			}
-			// Now we really delete the containers.
-			for _, c := range containers {
-				_, ret, err := joinContainerOrCreateRootlessUserNS(runtime, c)
-				if err != nil {
-					return err
-				}
-				if ret != 0 {
-					os.Exit(ret)
-				}
-			}
-			os.Exit(exitCode)
-		}
-	}
 
 	failureCnt := 0
 	delContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")

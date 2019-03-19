@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -926,16 +925,8 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
-		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			locked = false
-			if err2 := runtime.refreshRootless(); err2 != nil {
-				return err2
-			}
-		} else {
-			if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
-				return err2
-			}
+		if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
+			return err2
 		}
 	}
 
@@ -1007,21 +998,6 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	return lastError
-}
-
-// Reconfigures the runtime after a reboot for a rootless process
-func (r *Runtime) refreshRootless() error {
-	// Take advantage of a command that requires a new userns
-	// so that we are running as the root user and able to use refresh()
-	cmd := exec.Command(os.Args[0], "info")
-
-	if output, err := cmd.CombinedOutput(); err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
-			return errors.Wrapf(err, "Error waiting for info while refreshing state: %s", os.Args[0])
-		}
-		return errors.Wrapf(err, "Error running %s info while refreshing state: %s", os.Args[0], output)
-	}
-	return nil
 }
 
 // Reconfigures the runtime after a reboot
