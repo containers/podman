@@ -20,10 +20,16 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-func SkipIfRemote() {}
+func SkipIfRemote() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
+}
 
 func SkipIfRootless() {
-	ginkgo.Skip("This function is not enabled for rootless podman")
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
 }
 
 // Podman is the exec call to podman on the filesystem

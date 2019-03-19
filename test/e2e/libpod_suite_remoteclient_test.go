@@ -18,7 +18,11 @@ func SkipIfRemote() {
 	ginkgo.Skip("This function is not enabled for remote podman")
 }
 
-func SkipIfRootless() {}
+func SkipIfRootless() {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for remote podman")
+	}
+}
 
 // Cleanup cleans up the temporary store
 func (p *PodmanTestIntegration) Cleanup() {
@@ -135,6 +139,9 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 }
 
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
+	if os.Geteuid() != 0 {
+		ginkgo.Skip("This function is not enabled for rootless podman")
+	}
 	pti := PodmanTestCreateUtil(tempDir, true)
 	pti.StartVarlink()
 	return pti
