@@ -75,7 +75,8 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	imageName := ""
 	var data *inspect.ImageData = nil
 
-	if rootfs == "" && !rootless.SkipStorageSetup() {
+	// Set the storage if we are running as euid == 0 and there is no rootfs specified
+	if rootfs == "" && os.Geteuid() == 0 {
 		var writer io.Writer
 		if !c.Bool("quiet") {
 			writer = os.Stderr

@@ -77,7 +77,6 @@ func topCmd(c *cliconfig.TopValues) error {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
 
-	rootless.SetSkipStorageSetup(true)
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")

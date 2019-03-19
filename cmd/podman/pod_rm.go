@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
@@ -48,9 +47,6 @@ func init() {
 
 // podRmCmd deletes pods
 func podRmCmd(c *cliconfig.PodRmValues) error {
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

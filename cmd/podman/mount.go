@@ -60,10 +60,6 @@ type jsonMountPoint struct {
 }
 
 func mountCmd(c *cliconfig.MountValues) error {
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
-
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

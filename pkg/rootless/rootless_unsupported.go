@@ -30,15 +30,6 @@ func GetRootlessUID() int {
 	return -1
 }
 
-// SetSkipStorageSetup tells the runtime to not setup containers/storage
-func SetSkipStorageSetup(bool) {
-}
-
-// SkipStorageSetup tells if we should skip the containers/storage setup
-func SkipStorageSetup() bool {
-	return false
-}
-
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
 func JoinNS(pid uint, preserveFDs int) (bool, int, error) {

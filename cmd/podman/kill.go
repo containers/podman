@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/containers/libpod/pkg/adapter"
-	"github.com/opentracing/opentracing-go"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -63,7 +61,6 @@ func killCmd(c *cliconfig.KillValues) error {
 		return err
 	}
 
-	rootless.SetSkipStorageSetup(true)
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

@@ -57,9 +57,6 @@ func restartCmd(c *cliconfig.RestartValues) error {
 		restartContainers []*libpod.Container
 	)
 
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
 	if rootless.IsRootless() {
 		// If we are in the re-execed rootless environment,
 		// override the arg to deal only with one container.

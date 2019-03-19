@@ -82,9 +82,6 @@ func rmCmd(c *cliconfig.RmValues) error {
 	var (
 		deleteFuncs []shared.ParallelWorkerInput
 	)
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
 
 	ctx := getContext()
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)

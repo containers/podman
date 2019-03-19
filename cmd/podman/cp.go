@@ -58,9 +58,6 @@ func cpCmd(c *cliconfig.CpValues) error {
 	if len(args) != 2 {
 		return errors.Errorf("you must provide a source path and a destination path")
 	}
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {

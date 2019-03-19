@@ -46,20 +46,6 @@ func IsRootless() bool {
 	return isRootless
 }
 
-var (
-	skipStorageSetup = false
-)
-
-// SetSkipStorageSetup tells the runtime to not setup containers/storage
-func SetSkipStorageSetup(v bool) {
-	skipStorageSetup = v
-}
-
-// SkipStorageSetup tells if we should skip the containers/storage setup
-func SkipStorageSetup() bool {
-	return skipStorageSetup
-}
-
 // Argument returns the argument that was set for the rootless session.
 func Argument() string {
 	return os.Getenv("_CONTAINERS_ROOTLESS_ARG")

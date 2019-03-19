@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,7 +48,6 @@ func init() {
 
 // podKillCmd kills one or more pods with a signal
 func podKillCmd(c *cliconfig.PodKillValues) error {
-	rootless.SetSkipStorageSetup(true)
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

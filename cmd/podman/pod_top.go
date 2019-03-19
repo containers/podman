@@ -9,7 +9,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -53,10 +52,6 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		descriptors []string
 	)
 	args := c.InputArgs
-
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
 
 	if c.ListDescriptors {
 		descriptors, err := libpod.GetContainerPidInformationDescriptors()

@@ -67,7 +67,6 @@ func execCmd(c *cliconfig.ExecValues) error {
 	if c.Latest {
 		argStart = 0
 	}
-	rootless.SetSkipStorageSetup(true)
 	cmd := args[argStart:]
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {

@@ -742,7 +742,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Set up containers/storage
 	var store storage.Store
-	if rootless.SkipStorageSetup() {
+	if os.Geteuid() != 0 {
 		logrus.Debug("Not configuring container store")
 	} else {
 		store, err = storage.GetStore(runtime.config.StorageConfig)
