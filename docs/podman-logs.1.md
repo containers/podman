@@ -7,9 +7,10 @@ podman\-logs - Fetch the logs of one or more containers
 **podman** **logs** [*options*] *container* [*container...*]
 
 ## DESCRIPTION
-The podman logs command batch-retrieves whatever logs are present for one or more containers at the time of execution.
-This does not guarantee execution order when combined with podman run (i.e. your run may not have generated
-any logs at the time you execute podman logs
+The podman logs command batch-retrieves whatever logs are present for one or more containers at
+the time of execution. This does not guarantee execution order when combined with podman run.
+Meaning, *run* may not have generated any logs at the time you execute podman logs.  This includes
+when "logs" is in a race with container finalization, i.e. "run" having the ``--rm`` option.
 
 ## OPTIONS
 
