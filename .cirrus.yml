@@ -118,19 +118,12 @@ gating_task:
         cpu: 4
         memory: 12
 
+    timeout_in: 20m
+
     gate_script:
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
         - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/test/test_dot_cirrus_yaml.py'
-
-    # This task runs `make vendor` followed by ./hack/tree_status.sh to check
-    # whether the git tree is clean.  The reasoning for that is to make sure
-    # that the vendor.conf, the code and the vendored packages in ./vendor are
-    # in sync at all times.
-    vendor_script:
-        - '/usr/local/bin/entrypoint.sh .install.vndr'
-        - '/usr/local/bin/entrypoint.sh vendor'
-        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
 
     # This task builds Podman with different buildtags to ensure the build does
     # not break.
@@ -139,6 +132,35 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh clean podman-remote'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp"'
         - '/usr/local/bin/entrypoint.sh clean podman-remote-darwin'
+
+    on_failure:
+        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+
+
+# This task runs `make vendor` followed by ./hack/tree_status.sh to check
+# whether the git tree is clean.  The reasoning for that is to make sure
+# that the vendor.conf, the code and the vendored packages in ./vendor are
+# in sync at all times.
+vendor_task:
+
+    depends_on:
+        - "gating"
+
+    env:
+        CIRRUS_WORKING_DIR: "/usr/src/libpod"
+
+    # Runs within Cirrus's "community cluster"
+    container:
+        image: "quay.io/libpod/gate:latest"
+        cpu: 4
+        memory: 12
+
+    timeout_in: 30m
+
+    vendor_script:
+        - '/usr/local/bin/entrypoint.sh .install.vndr'
+        - '/usr/local/bin/entrypoint.sh vendor'
+        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
 
     on_failure:
         master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
