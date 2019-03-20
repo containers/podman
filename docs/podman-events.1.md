@@ -1,7 +1,7 @@
 % podman-events(1)
 
 ## NAME
-podman\-events- Monitor Podman events
+podman\-events - Monitor Podman events
 
 ## SYNOPSIS
 **podman events** [*options*]

@@ -4,7 +4,7 @@
 podman\-volume\-prune - Remove all unused volumes
 
 ## SYNOPSIS
-**podman volume rm** [*options*]
+**podman volume prune** [*options*]
 
 ## DESCRIPTION
 

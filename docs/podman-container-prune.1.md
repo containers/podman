@@ -5,8 +5,7 @@
 podman-container-prune - Remove all stopped containers
 
 # SYNOPSIS
-**podman container prune**
-[**-h**|**--help**]
+**podman container prune** [*-h*|*--help*]
 
 # DESCRIPTION
 **podman container prune** removes all stopped containers from local storage.

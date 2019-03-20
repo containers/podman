@@ -1,7 +1,7 @@
 % podman-image-sign(1)
 
 # NAME
-podman-image-sign- Create a signature for an image
+podman-image-sign - Create a signature for an image
 
 # SYNOPSIS
 **podman image sign**

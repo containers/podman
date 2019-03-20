@@ -4,7 +4,7 @@
 podman\-volume\-inspect - Inspect one or more volumes
 
 ## SYNOPSIS
-**podman volume inspect** [*options*]
+**podman volume inspect** [*options*] *volume*...
 
 ## DESCRIPTION
 

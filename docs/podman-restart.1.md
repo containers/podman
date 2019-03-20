@@ -1,10 +1,10 @@
 % podman-restart(1)
 
 ## NAME
-podman\-restart - Restart a container
+podman\-restart - Restart one or more containers
 
 ## SYNOPSIS
-**podman attach** [*options*] *container* ...
+**podman restart** [*options*] *container* ...
 
 ## DESCRIPTION
 The restart command allows containers to be restarted using their ID or name.

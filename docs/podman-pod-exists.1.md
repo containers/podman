@@ -2,12 +2,10 @@
 % Brent Baude
 % December 2018
 # NAME
-podman-pod-exists- Check if a pod exists in local storage
+podman-pod-exists - Check if a pod exists in local storage
 
 # SYNOPSIS
-**podman pod exists**
-[**-h**|**--help**]
-POD
+**podman pod exists** [*-h*|*--help*] *pod*
 
 # DESCRIPTION
 **podman pod exists** checks if a pod exists in local storage. The **ID** or **Name**

@@ -2,12 +2,10 @@
 % Brent Baude
 % November 2018
 # NAME
-podman-image-exists- Check if an image exists in local storage
+podman-image-exists - Check if an image exists in local storage
 
 # SYNOPSIS
-**podman image exists**
-[**-h**|**--help**]
-IMAGE
+**podman image exists** [*-h*|*--help*] *image*
 
 # DESCRIPTION
 **podman image exists** checks if an image exists in local storage. The **ID** or **Name**
