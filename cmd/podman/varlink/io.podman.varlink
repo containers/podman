@@ -225,117 +225,104 @@ type Sockets(
     control_socket: string
 )
 
-# Create is an input structure for creating containers. It closely resembles the
-# CreateConfig structure in libpod/pkg/spec.
+# Create is an input structure for creating containers.
 type Create (
     args: []string,
-    cap_add: []string,
-    cap_drop: []string,
-    conmon_pidfile: string,
-    cgroup_parent: string,
-    command: []string,
-    detach: bool,
-    devices: []string,
-    dns_opt: []string,
-    dns_search: []string,
-    dns_servers: []string,
-    entrypoint: []string,
-    env:  [string]string,
-    exposed_ports: []string,
-    gidmap: []string,
-    group_add: []string,
-    host_add: []string,
-    hostname: string,
-    image: string,
-    image_id: string,
-    init: bool,
-    init_path: string,
-    builtin_imgvolumes: []string,
-    id_mappings: IDMappingOptions,
-    image_volume_type: string,
-    interactive: bool,
-    ipc_mode: string,
-    labels: [string]string,
-    log_driver: string,
-    log_driver_opt: []string,
-    name: string,
-    net_mode: string,
-    network: string,
-    pid_mode: string,
-    pod: string,
-    privileged: bool,
-    publish: []string,
-    publish_all: bool,
-    quiet: bool,
-    readonly_rootfs: bool,
-    resources: CreateResourceConfig,
-    rm: bool,
-    shm_dir: string,
-    stop_signal: int,
-    stop_timeout: int,
-    subuidmap: string,
-    subgidmap: string,
-    subuidname: string,
-    subgidname: string,
-    sys_ctl: [string]string,
-    tmpfs: []string,
-    tty: bool,
-    uidmap: []string,
-    userns_mode: string,
-    user: string,
-    uts_mode: string,
-    volumes: []string,
-    work_dir: string,
-    mount_label: string,
-    process_label: string,
-    no_new_privs: bool,
-    apparmor_profile: string,
-    seccomp_profile_path: string,
-    security_opts: []string
-)
-
-# CreateResourceConfig is an input structure used to describe host attributes during
-# container creation.  It is only valid inside a [Create](#Create) type.
-type CreateResourceConfig (
-    blkio_weight: int,
-    blkio_weight_device: []string,
-    cpu_period: int,
-    cpu_quota: int,
-    cpu_rt_period: int,
-    cpu_rt_runtime: int,
-    cpu_shares: int,
-    cpus: float,
-    cpuset_cpus: string,
-    cpuset_mems: string,
-    device_read_bps: []string,
-    device_read_iops: []string,
-    device_write_bps: []string,
-    device_write_iops: []string,
-    disable_oomkiller: bool,
-    kernel_memory: int,
-    memory: int,
-    memory_reservation: int,
-    memory_swap: int,
-    memory_swappiness: int,
-    oom_score_adj: int,
-    pids_limit: int,
-    shm_size: int,
-    ulimit: []string
-)
-
-# IDMappingOptions is an input structure used to described ids during container creation.
-type IDMappingOptions (
-    host_uid_mapping: bool,
-    host_gid_mapping: bool,
-    uid_map: IDMap,
-    gid_map: IDMap
-)
-
-# IDMap is used to describe user name spaces during container creation
-type IDMap (
-    container_id: int,
-    host_id: int,
-    size: int
+    addHost: ?[]string,
+    annotation: ?[]string,
+    attach: ?[]string,
+    blkioWeight: ?string,
+    blkioWeightDevice: ?[]string,
+    capAdd: ?[]string,
+    capDrop: ?[]string,
+    cgroupParent: ?string,
+    cidFile: ?string,
+    conmonPidfile: ?string,
+    command: ?[]string,
+    cpuPeriod: ?int,
+    cpuQuota: ?int,
+    cpuRtPeriod: ?int,
+    cpuRtRuntime: ?int,
+    cpuShares: ?int,
+    cpus: ?float,
+    cpuSetCpus: ?string,
+    cpuSetMems: ?string,
+    detach: ?bool,
+    detachKeys: ?string,
+    device: ?[]string,
+    deviceReadBps: ?[]string,
+    deviceReadIops: ?[]string,
+    deviceWriteBps: ?[]string,
+    deviceWriteIops: ?[]string,
+    dns: ?[]string,
+    dnsOpt: ?[]string,
+    dnsSearch: ?[]string,
+    dnsServers: ?[]string,
+    entrypoint: ?string,
+    env:  ?[]string,
+    envFile: ?[]string,
+    expose: ?[]string,
+    gidmap: ?[]string,
+    groupadd: ?[]string,
+    healthcheckCommand: ?string,
+    healthcheckInterval: ?string,
+    healthcheckRetries: ?int,
+    healthcheckStartPeriod: ?string,
+    healthcheckTimeout:?string,
+    hostname: ?string,
+    imageVolume: ?string,
+    init: ?bool,
+    initPath: ?string,
+    interactive: ?bool,
+    ip: ?string,
+    ipc: ?string,
+    kernelMemory: ?string,
+    label: ?[]string,
+    labelFile: ?[]string,
+    logDriver: ?string,
+    logOpt: ?[]string,
+    macAddress: ?string,
+    memory: ?string,
+    memoryReservation: ?string,
+    memorySwap: ?string,
+    memorySwappiness: ?int,
+    name: ?string,
+    net: ?string,
+    network: ?string,
+    noHosts: ?bool,
+    oomKillDisable: ?bool,
+    oomScoreAdj: ?int,
+    pid: ?string,
+    pidsLimit: ?int,
+    pod: ?string,
+    privileged: ?bool,
+    publish: ?[]string,
+    publishAll: ?bool,
+    quiet: ?bool,
+    readonly: ?bool,
+    restart: ?string,
+    rm: ?bool,
+    rootfs: ?bool,
+    securityOpt: ?[]string,
+    shmSize: ?string,
+    stopSignal: ?string,
+    stopTimeout: ?int,
+    storageOpt: ?[]string,
+    subuidname: ?string,
+    subgidname: ?string,
+    sysctl: ?[]string,
+    systemd: ?bool,
+    tmpfs: ?[]string,
+    tty: ?bool,
+    uidmap: ?[]string,
+    ulimit: ?[]string,
+    user: ?string,
+    userns: ?string,
+    uts: ?string,
+    mount: ?[]string,
+    volume: ?[]string,
+    volumesFrom: ?[]string,
+    workDir: ?string
 )
 
 # BuildOptions are are used to describe describe physical attributes of the build
@@ -498,16 +485,7 @@ method GetContainer(id: string) -> (container: Container)
 # user environment, results might differ from what you expect.
 method GetContainersByContext(all: bool, latest: bool, args: []string) -> (containers: []string)
 
-# CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
-# input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
-# error will be returned.  Otherwise, the ID of the newly created container will be returned.
-# #### Example
-# ~~~
-# $ varlink call unix:/run/podman/io.podman/io.podman.CreateContainer '{"create": {"image": "alpine"}}'
-# {
-#   "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
-# }
-# ~~~
+# CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input.
 method CreateContainer(create: Create) -> (container: string)
 
 # InspectContainer data takes a name or ID of a container returns the inspection
@@ -1129,6 +1107,9 @@ method ContainerStateData(name: string) -> (config: string)
 # PodStateData returns inspectr level information of a given pod in string form.  This call is for
 # development of Podman only and generally should not be used.
 method PodStateData(name: string) -> (config: string)
+
+# This call is for the development of Podman only and should not be used.
+method CreateFromCC(in: []string) -> (id: string)
 
 # Sendfile allows a remote client to send a file to the host
 method SendFile(type: string, length: int) -> (file_handle: string)

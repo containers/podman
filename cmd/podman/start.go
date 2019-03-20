@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -109,7 +110,7 @@ func startCmd(c *cliconfig.StartValues) error {
 
 			// attach to the container and also start it not already running
 			// If the container is in a pod, also set to recursively start dependencies
-			err = startAttachCtr(ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
+			err = adapter.StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
 			if errors.Cause(err) == libpod.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -133,7 +134,7 @@ func startCmd(c *cliconfig.StartValues) error {
 					if err != nil {
 						return err
 					}
-					ctrExitCode, err := readExitFile(rtc.TmpDir, ctr.ID())
+					ctrExitCode, err := adapter.ReadExitFile(rtc.TmpDir, ctr.ID())
 					if err != nil {
 						logrus.Errorf("Cannot get exit code: %v", err)
 						exitCode = 127

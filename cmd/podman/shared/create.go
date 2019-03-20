@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/containers/image/manifest"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
@@ -34,12 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// getContext returns a non-nil, empty context
-func getContext() context.Context {
-	return context.TODO()
-}
-
-func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
+func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
 		healthCheck *manifest.Schema2HealthConfig
 		err         error
@@ -221,7 +215,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	return nil
 }
 
-func configureEntrypoint(c *cliconfig.PodmanCommand, data *inspect.ImageData) []string {
+func configureEntrypoint(c *GenericCLIResults, data *inspect.ImageData) []string {
 	entrypoint := []string{}
 	if c.IsSet("entrypoint") {
 		// Force entrypoint to ""
@@ -241,7 +235,7 @@ func configureEntrypoint(c *cliconfig.PodmanCommand, data *inspect.ImageData) []
 	return entrypoint
 }
 
-func configurePod(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, error) {
+func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, error) {
 	pod, err := runtime.LookupPod(podName)
 	if err != nil {
 		return namespaces, err
@@ -270,7 +264,7 @@ func configurePod(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, namespace
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
+func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
@@ -353,14 +347,14 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 
 	tty := c.Bool("tty")
 
-	if c.Flag("cpu-period").Changed && c.Flag("cpus").Changed {
+	if c.Changed("cpu-period") && c.Changed("cpus") {
 		return nil, errors.Errorf("--cpu-period and --cpus cannot be set together")
 	}
-	if c.Flag("cpu-quota").Changed && c.Flag("cpus").Changed {
+	if c.Changed("cpu-quota") && c.Changed("cpus") {
 		return nil, errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
-	if c.Bool("no-hosts") && c.Flag("add-host").Changed {
+	if c.Bool("no-hosts") && c.Changed("add-host") {
 		return nil, errors.Errorf("--no-hosts and --add-host cannot be set together")
 	}
 
@@ -379,7 +373,7 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	// However, that also involves setting up security opts
 	// when the pod's namespace is integrated
 	namespaceNet := c.String("network")
-	if c.Flag("net").Changed {
+	if c.Changed("net") {
 		namespaceNet = c.String("net")
 	}
 	namespaces = map[string]string{
@@ -548,7 +542,7 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 
 	// WORKING DIRECTORY
 	workDir := "/"
-	if c.IsSet("workdir") || c.IsSet("w") {
+	if c.IsSet("workdir") {
 		workDir = c.String("workdir")
 	} else if data != nil && data.Config.WorkingDir != "" {
 		workDir = data.Config.WorkingDir
@@ -624,14 +618,12 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	// This is done because cobra cannot have two aliased flags. So we have to check
 	// both
 	network := c.String("network")
-	if c.Flag("net").Changed {
+	if c.Changed("net") {
 		network = c.String("net")
 	}
 
-	var memorySwappiness int64
-	if c.Flags().Lookup("memory-swappiness") != nil {
-		memorySwappiness, _ = c.Flags().GetInt64("memory-swappiness")
-	}
+	memorySwappiness := c.Int64("memory-swappiness")
+
 	config := &cc.CreateConfig{
 		Runtime:           runtime,
 		Annotations:       annotations,
@@ -719,7 +711,7 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		WorkDir:     workDir,
 		Rootfs:      rootfs,
 		VolumesFrom: c.StringSlice("volumes-from"),
-		Syslog:      c.GlobalFlags.Syslog,
+		Syslog:      c.Bool("syslog"),
 	}
 	if c.Bool("init") {
 		initPath := c.String("init-path")
@@ -789,7 +781,7 @@ var defaultEnvVariables = map[string]string{
 	"TERM": "xterm",
 }
 
-func makeHealthCheckFromCli(c *cliconfig.PodmanCommand) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig, error) {
 	inCommand := c.String("healthcheck-command")
 	inInterval := c.String("healthcheck-interval")
 	inRetries := c.Uint("healthcheck-retries")
