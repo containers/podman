@@ -363,7 +363,7 @@ func (c *CreateConfig) createExitCommand() []string {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
 	}
 	if c.Syslog {
-		command = append(command, "--syslog")
+		command = append(command, "--syslog", "true")
 	}
 	command = append(command, []string{"container", "cleanup"}...)
 
