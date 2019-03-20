@@ -5,7 +5,7 @@
 podman-play-kube - Create pods and containers based on Kubernetes YAML
 
 # SYNOPSIS
-**podman play kube **
+**podman play kube**
 [**-h**|**--help**]
 [**--authfile**]
 [**--cert-dir**]

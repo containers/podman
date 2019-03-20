@@ -4,7 +4,7 @@
 podman\-image\-tree - Prints layer hierarchy of an image in a tree format
 
 ## SYNOPSIS
-**podman image tree** [*image*:*tag*]**|**[*image-id*]
+**podman image tree** [*image*:*tag*]|[*image-id*]
 [**--help**|**-h**]
 
 ## DESCRIPTION

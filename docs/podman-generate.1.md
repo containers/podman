@@ -1,7 +1,7 @@
 % podman-generate(1)
 
 ## NAME
-podman\-container - generate structured data based for a containers and pods
+podman\-generate - Generate structured data based for a containers and pods
 
 ## SYNOPSIS
 **podman generate** *subcommand*

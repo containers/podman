@@ -5,10 +5,7 @@
 podman-generate-kube - Generate Kubernetes YAML
 
 # SYNOPSIS
-**podman generate kube **
-[**-h**|**--help**]
-[**-s**][**--service**]
-CONTAINER|POD
+**podman generate kube** [*-s*][*--service*] *container* | *pod*
 
 # DESCRIPTION
 **podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from a podman container or pod. Whether

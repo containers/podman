@@ -19,7 +19,7 @@ podman pod is a set of subcommands that manage pods, or groups of containers.
 | kill    | [podman-pod-kill(1)](podman-pod-kill.1.md)        | Kill the main process of each container in pod.                                |
 | pause   | [podman-pod-pause(1)](podman-pod-pause.1.md)      | Pause one or more pods.                                                        |
 | ps      | [podman-pod-ps(1)](podman-pod-ps.1.md)            | Prints out information about pods.                                             |
-| restart | [podman-pod-restart(1)](podman-pod-restart.1.md)  | Restart one or mode pods.                                                      |
+| restart | [podman-pod-restart(1)](podman-pod-restart.1.md)  | Restart one or more pods.                                                      |
 | rm      | [podman-pod-rm(1)](podman-pod-rm.1.md)            | Remove one or more pods.                                                       |
 | start   | [podman-pod-start(1)](podman-pod-start.1.md)      | Start one or more pods.                                                        |
 | stats   | [podman-pod-stats(1)](podman-pod-stats.1.md)      | Display live stream resource usage stats for containers in one or more pods.   |

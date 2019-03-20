@@ -1,7 +1,7 @@
 % podman-play(1)
 
 ## NAME
-podman\-container - play pods and containers based on a structured input file
+podman\-play - Play pods and containers based on a structured input file
 
 ## SYNOPSIS
 **podman play** *subcommand*

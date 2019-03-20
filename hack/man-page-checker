@@ -1,0 +1,105 @@
+#!/bin/bash
+#
+# man-page-name-checker - validate and cross-reference man page names
+#
+# FIXME as of 2019-03-20 there are still four files with inconsistent names:
+#
+#    podman-logs.1.md         NAME= podman-container-logs
+#    podman-info.1.md         NAME= podman-system-info
+#    podman-rm.1.md           NAME= podman-container-rm
+#    podman-rmi.1.md          NAME= podman-image-rm
+#
+# If those four get renamed (with suitable symlink fixes), this script
+# can be enabled in CI to prevent future inconsistencies.
+#
+
+die() {
+    echo "$(basename $0): $*" >&2
+    exit 1
+}
+
+cd $(dirname $0)/../docs || die "Please run me from top-level libpod dir"
+
+rc=0
+
+for md in *.1.md;do
+    # Read the first line after '# NAME' (or '## NAME'). (FIXME: # and ##
+    #               are not the same; should we stick to one convention?)
+    # There may be more than one name, e.g. podman-info.1.md has
+    # podman-system-info then another line with podman-info. We
+    # care only about the first.
+    name=$(egrep -A1 '^#* NAME' $md|tail -1|awk '{print $1}' | tr -d \\\\)
+
+    if [ "$name" != "$(basename $md .1.md)" ]; then
+        printf "%-32s  NAME= %s\n" $md $name
+        rc=1
+    fi
+done
+
+# Pass 2: compare descriptions.
+#
+# Make sure the descriptive text in podman-foo.1.md matches the one
+# in the table in podman.1.md.
+for md in *.1.md;do
+    desc=$(egrep -A1 '^#* NAME' $md|tail -1|sed -e 's/^podman[^ ]\+ - //')
+
+    # podman.1.md has a two-column table; podman-*.1.md all have three.
+    parent=$(echo $md | sed -e 's/^\(.*\)-.*$/\1.1.md/')
+    x=3
+    if expr -- "$parent" : ".*-" >/dev/null; then
+        x=4
+    fi
+
+    # Find the descriptive text in the parent man page.
+    # Strip off the final period; let's not warn about such minutia.
+    parent_desc=$(grep $md $parent | awk -F'|' "{print \$$x}" | sed -e 's/^ \+//' -e 's/ \+$//' -e 's/\.$//')
+
+    if [ "$desc" != "$parent_desc" ]; then
+        echo
+        printf "  %-32s = '%s'\n" $md "$desc"
+        printf "  %-32s = '%s'\n" $parent "$parent_desc"
+        rc=1
+    fi
+done
+
+# Pass 3: compare synopses.
+#
+# Make sure the SYNOPSIS line in podman-foo.1.md reads '**podman foo** ...'
+for md in *.1.md;do
+    # FIXME: several pages have a multi-line form of SYNOPSIS in which
+    #        many or all flags are enumerated. Some of these are trivial
+    #        and really should be made into one line (podman-container-exists,
+    #        container-prune, others); some are more complicated and I
+    #        would still like to see them one-lined (container-runlabel,
+    #        image-trust) but I'm not 100% comfortable doing so myself.
+    #        To view those:
+    #           $ less $(for i in docs/*.1.md;do x=$(grep -A2 '^#* SYNOPSIS' $i|tail -1); if [ -n "$x" ]; then echo $i;fi;done)
+    #
+    synopsis=$(egrep -A1 '^#* SYNOPSIS' $md|tail -1)
+
+    # Command name must be bracketed by double asterisks; options and
+    # arguments are bracketed by single ones.
+    #   E.g. '**podman volume inspect** [*options*] *volume*...'
+    # Get the command name, and confirm that it matches the md file name.
+    cmd=$(echo "$synopsis" | sed -e 's/\(.*\)\*\*.*/\1/' | tr -d \* | tr ' ' '-')
+    if [ "$md" != "$cmd.1.md" ]; then
+        printf "  %-32s SYNOPSIS = %s\n" $md "$cmd"
+        rc=1
+    fi
+
+    # The convention is to use UPPER CASE in 'podman foo --help',
+    # but *lower case bracketed by asterisks* in the man page
+    if expr "$synopsis" : ".*[A-Z]" >/dev/null; then
+        printf "  %-32s UPPER-CASE '%s'\n" $md "$synopsis"
+        rc=1
+    fi
+
+    # (for debugging, and getting a sense of standard conventions)
+    #printf "  %-32s ------ '%s'\n" $md "$synopsis"
+
+    # FIXME: some day: run ./bin/podman "args", extract Usage,
+    #      strip off [flags] and [options], then compare arguments
+done
+
+
+exit $rc

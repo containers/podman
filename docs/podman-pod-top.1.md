@@ -4,7 +4,7 @@
 podman\-pod\-top - Display the running processes of containers in a pod
 
 ## SYNOPSIS
-**podman top** [*options*] *pod* [*format-descriptors*]
+**podman pod top** [*options*] *pod* [*format-descriptors*]
 
 ## DESCRIPTION
 Display the running process of containers in a pod. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process.

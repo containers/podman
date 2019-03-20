@@ -2,12 +2,10 @@
 % Brent Baude
 % November 2018
 # NAME
-podman-container-exists- Check if a container exists in local storage
+podman-container-exists - Check if a container exists in local storage
 
 # SYNOPSIS
-**podman container exists**
-[**-h**|**--help**]
-CONTAINER
+**podman container exists** [*-h*|*--help*] *container*
 
 # DESCRIPTION
 **podman container exists** checks if a container exists in local storage. The **ID** or **Name**

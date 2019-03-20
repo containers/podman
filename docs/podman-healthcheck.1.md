@@ -1,7 +1,7 @@
 % podman-healthcheck(1)
 
 ## NAME
-podman\-healthcheck- Manage healthchecks for containers
+podman\-healthcheck - Manage healthchecks for containers
 
 ## SYNOPSIS
 **podman healthcheck** *subcommand*

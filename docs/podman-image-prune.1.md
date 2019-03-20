@@ -5,9 +5,7 @@
 podman-image-prune - Remove all unused images
 
 # SYNOPSIS
-**podman image prune**
-[**-a**|**--all**]
-[**-h**|**--help**]
+**podman image prune** [*-a*|*--all*] [*-h*|*--help*]
 
 # DESCRIPTION
 **podman image prune** removes all dangling images from local storage. With the `all` option,

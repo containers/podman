@@ -4,12 +4,12 @@
 podman\-cp - Copy files/folders between a container and the local filesystem
 
 ## SYNOPSIS
-**podman cp [CONTAINER:]SRC_PATH [CONTAINER:]DEST_PATH**
+**podman cp** [*container*:]*src_path* [*container*:]*dest_path*
 
 ## DESCRIPTION
-Copies the contents of **SRC_PATH** to the **DEST_PATH**. You can copy from the containers's filesystem to the local machine or the reverse, from the local filesystem to the container.
+Copies the contents of **src_path** to the **dest_path**. You can copy from the containers's filesystem to the local machine or the reverse, from the local filesystem to the container.
 
-The CONTAINER can be a running or stopped container. The **SRC_PATH** or **DEST_PATH** can be a file or directory.
+The CONTAINER can be a running or stopped container. The **src_path** or **dest_path** can be a file or directory.
 
 The **podman cp** command assumes container paths are relative to the container's / (root) directory.
 
@@ -20,36 +20,36 @@ The command sees **compassionate_darwin:/tmp/foo/myfile.txt** and **compassionat
 Local machine paths can be an absolute or relative value.
 The command interprets a local machine's relative paths as relative to the current working directory where **podman cp** is run.
 
-Assuming a path separator of /, a first argument of **SRC_PATH** and second argument of **DEST_PATH**, the behavior is as follows:
+Assuming a path separator of /, a first argument of **src_path** and second argument of **dest_path**, the behavior is as follows:
 
-**SRC_PATH** specifies a file
-  - **DEST_PATH** does not exist
-	- the file is saved to a file created at **DEST_PATH**
-  - **DEST_PATH** does not exist and ends with /
-	- **DEST_PATH** is created as a directory and the file is copied into this directory using the basename from **SRC_PATH**
-  - **DEST_PATH** exists and is a file
+**src_path** specifies a file
+  - **dest_path** does not exist
+	- the file is saved to a file created at **dest_path**
+  - **dest_path** does not exist and ends with /
+	- **dest_path** is created as a directory and the file is copied into this directory using the basename from **src_path**
+  - **dest_path** exists and is a file
 	- the destination is overwritten with the source file's contents
-  - **DEST_PATH** exists and is a directory
-	- the file is copied into this directory using the basename from **SRC_PATH**
+  - **dest_path** exists and is a directory
+	- the file is copied into this directory using the basename from **src_path**
 
-**SRC_PATH** specifies a directory
-  - **DEST_PATH** does not exist
-	- **DEST_PATH** is created as a directory and the contents of the source directory are copied into this directory
-  - **DEST_PATH** exists and is a file
+**src_path** specifies a directory
+  - **dest_path** does not exist
+	- **dest_path** is created as a directory and the contents of the source directory are copied into this directory
+  - **dest_path** exists and is a file
 	- Error condition: cannot copy a directory to a file
-  - **DEST_PATH** exists and is a directory
-	- **SRC_PATH** ends with /
+  - **dest_path** exists and is a directory
+	- **src_path** ends with /
 		- the source directory is copied into this directory
-	- **SRC_PATH** ends with /. (that is: slash followed by dot)
+	- **src_path** ends with /. (that is: slash followed by dot)
 		- the content of the source directory is copied into this directory
 
-The command requires **SRC_PATH** and **DEST_PATH** to exist according to the above rules.
+The command requires **src_path** and **dest_path** to exist according to the above rules.
 
-If **SRC_PATH** is local and is a symbolic link, the symbolic target, is copied by default.
+If **src_path** is local and is a symbolic link, the symbolic target, is copied by default.
 
 A colon (:) is used as a delimiter between CONTAINER and its path.
 
-You can also use : when specifying paths to a **SRC_PATH** or **DEST_PATH** on a local machine, for example, `file:name.txt`.
+You can also use : when specifying paths to a **src_path** or **dest_path** on a local machine, for example, `file:name.txt`.
 
 If you use a : in a local machine path, you must be explicit with a relative or absolute path, for example:
 	`/path/to/file:name.txt` or `./file:name.txt`

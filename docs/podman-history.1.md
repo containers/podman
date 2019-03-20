@@ -1,7 +1,7 @@
 % podman-history(1)
 
 ## NAME
-podman\-history - Shows the history of an image
+podman\-history - Show the history of an image
 
 ## SYNOPSIS
 **podman history** [*options*] *image*[:*tag*|@*digest*]

@@ -1,11 +1,11 @@
 % podman-image-trust "1"
 
 # NAME
-podman\-trust - Manage container registry image trust policy
+podman\-image\-trust - Manage container registry image trust policy
 
 
 # SYNOPSIS
-**podman image trust set|show**
+**podman image trust** set|show
 [**-h**|**--help**]
 [**-j**|**--json**]
 [**--raw**]
