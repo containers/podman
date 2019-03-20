@@ -499,7 +499,7 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 			}
 		}
 	}
-	if err := parse.ReadKVStrings(env, c.StringSlice("env-file"), c.StringSlice("env")); err != nil {
+	if err := parse.ReadKVStrings(env, c.StringSlice("env-file"), c.StringArray("env")); err != nil {
 		return nil, errors.Wrapf(err, "unable to process environment variables")
 	}
 

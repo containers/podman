@@ -264,7 +264,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
 	)
-	createFlags.StringSliceP(
+	createFlags.StringArrayP(
 		"env", "e", []string{},
 		"Set environment variables in container",
 	)
