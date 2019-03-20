@@ -106,6 +106,23 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		if err != nil {
 			return
 		}
+
+		if ctr.state.UserNSRoot != "" {
+			_, err := os.Stat(ctr.runtime.config.VolumePath)
+			if err != nil && !os.IsNotExist(err) {
+				return
+			}
+			if err == nil {
+				volumesTarget := filepath.Join(ctr.state.UserNSRoot, "volumes")
+				if err := idtools.MkdirAs(volumesTarget, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
+					return
+				}
+				if err = unix.Mount(ctr.runtime.config.VolumePath, volumesTarget, "none", unix.MS_BIND, ""); err != nil {
+					return
+				}
+			}
+		}
+
 		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}()
 	wg.Wait()
