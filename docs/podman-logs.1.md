@@ -1,9 +1,11 @@
-% podman-logs(1)
+% podman-container-logs(1)
 
 ## NAME
-podman\-logs - Fetch the logs of one or more containers
+podman\-container\-logs (podman\-logs) - Fetch the logs of one or more containers
 
 ## SYNOPSIS
+**podman** **container** **logs** [*options*] *container* [*container...*]
+
 **podman** **logs** [*options*] *container* [*container...*]
 
 ## DESCRIPTION
@@ -15,7 +17,11 @@ any logs at the time you execute podman logs
 
 **--follow, -f**
 
-Follow log output.  Default is false
+Follow log output.  Default is false.
+
+Note: If you are following a container which is removed `podman container rm`
+or removed on exit `podman run --rm ...`, then there is a chance the the log
+file will be removed before `podman logs` reads the final content.
 
 **--latest, -l**
 
@@ -86,7 +92,7 @@ podman logs --since 10m myserver
 ```
 
 ## SEE ALSO
-podman(1)
+podman(1), podman-run(1), podman-container-rm(1)
 
 ## HISTORY
 February 2018, Updated by Brent Baude <bbaude@redhat.com>
