@@ -70,8 +70,6 @@ env:
     #### Default to NOT running in rootless-testing mode
     ####
     ROOTLESS_USER: ""
-    ROOTLESS_UID: ""
-    ROOTLESS_GID: ""
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -101,7 +99,7 @@ env:
         CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
         CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
         CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
-        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER ROOTLESS_UID ROOTLESS_GID
+        XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER
 
 
 # Every *_task runs in parallel in separate VMsd. The name prefix only for reference
@@ -252,8 +250,6 @@ rootless_testing_task:
 
     env:
         ROOTLESS_USER: "olympiclongjumpingwithjesus"
-        ROOTLESS_UID: 123456
-        ROOTLESS_GID: 123456
 
     timeout_in: 120m
 

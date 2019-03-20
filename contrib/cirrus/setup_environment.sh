@@ -44,8 +44,6 @@ then
         "export OS_RELEASE_VER=\"$(os_release_ver)\"" \
         "export OS_REL_VER=\"$(os_release_id)-$(os_release_ver)\"" \
         "export ROOTLESS_USER=$ROOTLESS_USER" \
-        "export ROOTLESS_UID=$ROOTLESS_UID" \
-        "export ROOTLESS_GID=$ROOTLESS_GID" \
         "export BUILT_IMAGE_SUFFIX=\"-$CIRRUS_REPO_NAME-${CIRRUS_CHANGE_IN_REPO:0:8}\"" \
         "export GOPATH=\"/var/tmp/go\"" \
         'export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"' \
@@ -74,6 +72,7 @@ then
     esac
 
     cd "${GOSRC}/"
+    # Reload to incorporate any changes from above
     source "$SCRIPT_BASE/lib.sh"
 
     if run_rootless
@@ -83,12 +82,6 @@ then
         go get github.com/onsi/ginkgo/ginkgo
         go get github.com/onsi/gomega/...
         dnf -y update runc
-    else
-        # Includes some $HOME relative details
-        go env | while read envline
-        do
-            X=$(echo "export $envline" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
-        done
     fi
 fi
 

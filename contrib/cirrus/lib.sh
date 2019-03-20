@@ -54,8 +54,6 @@ show_env_vars() {
 BUILDTAGS $BUILDTAGS
 BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
 ROOTLESS_USER $ROOTLESS_USER
-ROOTLESS_UID $ROOTLESS_UID
-ROOTLESS_GID $ROOTLESS_GID
 CI $CI
 CIRRUS_CI $CIRRUS_CI
 CI_NODE_INDEX $CI_NODE_INDEX
@@ -130,7 +128,7 @@ bad_os_id_ver() {
 }
 
 run_rootless() {
-    if [[ -z "$ROOTLESS_USER" ]] && [[ -z "$ROOTLESS_UID" ]] && [[ -z "$ROOTLESS_GID" ]]
+    if [[ -z "$ROOTLESS_USER" ]]
     then
         return 1
     else
@@ -170,15 +168,23 @@ record_timestamp() {
 setup_rootless() {
     req_env_var "
         ROOTLESS_USER $ROOTLESS_USER
-        #ROOTLESS_UID $ROOTLESS_UID
-        #ROOTLESS_GID $ROOTLESS_GID
         GOSRC $GOSRC
         ENVLIB $ENVLIB
     "
+
+    if passwd --status $ROOTLESS_USER
+    then
+        echo "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
+        chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
+        return 0
+    fi
+
+    # Guarantee independence from specific values
+    ROOTLESS_UID=$[RANDOM+1000]
+    ROOTLESS_GID=$[RANDOM+1000]
     echo "creating $ROOTLESS_UID:$ROOTLESS_GID $ROOTLESS_USER user"
-    #groupadd -g $ROOTLESS_GID $ROOTLESS_USER
-    #useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
-    useradd --create-home $ROOTLESS_USER
+    groupadd -g $ROOTLESS_GID $ROOTLESS_USER
+    useradd -g $ROOTLESS_GID -u $ROOTLESS_UID --no-user-group --create-home $ROOTLESS_USER
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
 
     echo "creating ssh keypair for $USER"
@@ -193,7 +199,9 @@ setup_rootless() {
     cat /root/.ssh/authorized_keys >> "/home/$ROOTLESS_USER/.ssh/authorized_keys"
 
     echo "Configuring subuid and subgid"
-    echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | tee -a /etc/subuid >> /etc/subgid
+    grep -q "${ROOTLESS_USER}" /etc/subuid || \
+        echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | \
+            tee -a /etc/subuid >> /etc/subgid
 
     echo "Setting permissions on automation files"
     chmod 666 "$TIMESTAMPS_FILEPATH"
