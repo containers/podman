@@ -889,7 +889,7 @@ During container image development, containers often need to write to the image
 content.  Installing packages into /usr, for example.  In production,
 applications seldom need to write to the image.  Container applications write
 to volumes if they need to write to file systems at all.  Applications can be
-made more secure by running them in read-only mode using the -	       -read-only switch.
+made more secure by running them in read-only mode using the --read-only switch.
 This protects the containers image from modification. Read only containers may
 still need to write temporary data.  The best way to handle this is to mount
 tmpfs directories on /run and /tmp.
