@@ -14,6 +14,7 @@ import (
 	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -62,6 +63,20 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
+func findParentMount(mountpoint string, mounts []*mount.Info) (string, error) {
+	for {
+		mountpoint = filepath.Dir(mountpoint)
+		if mountpoint == "/" {
+			return "", nil
+		}
+		for _, i := range mounts {
+			if i.Root == mountpoint {
+				return mountpoint, nil
+			}
+		}
+	}
+}
+
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
@@ -83,6 +98,19 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		}
 		defer fd.Close()
 
+		mounts, err := mount.GetMounts()
+		if err != nil {
+			return
+		}
+		parent, err := findParentMount(ctr.state.Mountpoint, mounts)
+		if err != nil {
+			return
+		}
+
+		if err := unix.Mount(parent, parent, "none", unix.MS_SHARED, ""); err != nil {
+			return
+		}
+
 		// create a new mountns on the current thread
 		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
 			return
@@ -90,10 +118,16 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
 
 		// don't spread our mounts around
-		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
-		if err != nil {
-			return
+		for _, m := range mounts {
+			if m.Root == parent {
+				continue
+			}
+			err = unix.Mount(m.Root, m.Root, "none", unix.MS_SLAVE, "")
+			if err != nil {
+				return
+			}
 		}
+
 		err = unix.Mount(ctr.state.Mountpoint, ctr.state.RealMountpoint, "none", unix.MS_BIND, "")
 		if err != nil {
 			return
@@ -106,7 +140,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 		if err != nil {
 			return
 		}
-		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+		r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 	}()
 	wg.Wait()
 

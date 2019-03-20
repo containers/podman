@@ -25,6 +25,7 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	"golang.org/x/text/language"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
@@ -1086,6 +1087,14 @@ func (c *Container) cleanupStorage() error {
 		if err := c.unmountSHM(mount); err != nil {
 			return err
 		}
+	}
+
+	unix.Unmount(filepath.Join(c.state.UserNSRoot, "volumes"), 0)
+	if c.state.DestinationRunDir != "" {
+		unix.Unmount(c.state.DestinationRunDir, 0)
+	}
+	if c.state.RealMountpoint != "" {
+		unix.Unmount(c.state.RealMountpoint, 0)
 	}
 	if c.config.Rootfs != "" {
 		return nil
