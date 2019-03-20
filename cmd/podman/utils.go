@@ -200,35 +200,6 @@ func getPodsFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpo
 	return pods, lastError
 }
 
-func getVolumesFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpod.Volume, error) {
-	args := c.InputArgs
-	var (
-		vols      []*libpod.Volume
-		lastError error
-		err       error
-	)
-
-	if c.Bool("all") {
-		vols, err = r.Volumes()
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get all volumes")
-		}
-	}
-
-	for _, i := range args {
-		vol, err := r.GetVolume(i)
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find volume %s", i)
-			continue
-		}
-		vols = append(vols, vol)
-	}
-	return vols, lastError
-}
-
 //printParallelOutput takes the map of parallel worker results and outputs them
 // to stdout
 func printParallelOutput(m map[string]error, errCount int) error {
