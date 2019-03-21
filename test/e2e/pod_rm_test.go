@@ -106,6 +106,12 @@ var _ = Describe("Podman pod rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		defer func() {
+			debug := podmanTest.Podman([]string{"pod", "ps"})
+			debug.WaitWithDefaultTimeout()
+			fmt.Printf("podman pod ps: \n%s\n", debug.OutputToString())
+		}()
+
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Not(Equal(0)))
@@ -117,7 +123,6 @@ var _ = Describe("Podman pod rm", func() {
 		// one pod should have been deleted
 		result = podmanTest.Podman([]string{"pod", "ps", "-q"})
 		result.WaitWithDefaultTimeout()
-		fmt.Printf("podman pod ps -q returned: \n%s\n", result.OutputToString())
 		Expect(len(result.OutputToStringArray())).To(Equal(1))
 	})
 
