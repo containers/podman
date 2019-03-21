@@ -144,7 +144,7 @@ func (p *PodmanTest) NumberOfContainers() int {
 // pods are currently defined.
 func (p *PodmanTest) NumberOfPods() int {
 	var pods []string
-	ps := p.PodmanBase([]string{"pod", "ps", "-q"})
+	ps := p.PodmanBase([]string{"--log-level=debug", "pod", "ps", "-q"})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {

@@ -134,7 +134,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() libpod.PodInspect {
 func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {
 	var podmanArgs = []string{"pod", "create", "--infra=false", "--share", ""}
 	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
+		podmanArgs = append(podmanArgs, "--log-level=debug", "--name", name)
 	}
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
@@ -148,7 +148,7 @@ func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionInteg
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
+	podmanArgs = append(podmanArgs, "--log-level=debug", "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
 }
 
@@ -157,7 +157,7 @@ func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSe
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
+	podmanArgs = append(podmanArgs, "--log-level=debug", "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
 }
 
