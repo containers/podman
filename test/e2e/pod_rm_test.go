@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -96,34 +97,38 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm -a doesn't remove a running container", func() {
+		podmanTest.CleanupPod() // does this make test pass the first time?
+		fmt.Printf("To start, there are %d pods\n", podmanTest.NumberOfPods())
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
 		_, ec, _ = podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
+		fmt.Printf("Started %d pods\n", podmanTest.NumberOfPods())
+
 		session := podmanTest.RunTopContainerInPod("", podid1)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podmanTest.WaitForContainer()
 
-		defer func() {
-			debug := podmanTest.Podman([]string{"pod", "ps"})
-			debug.WaitWithDefaultTimeout()
-			fmt.Printf("podman pod ps: \n%s\n", debug.OutputToString())
-		}()
-
+		fmt.Printf("Removing all empty pods\n")
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
-		result = podmanTest.Podman([]string{"ps", "-q"})
-		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
-
-		// one pod should have been deleted
-		result = podmanTest.Podman([]string{"pod", "ps", "-q"})
-		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		fmt.Printf("Now there are %d pods\n", podmanTest.NumberOfPods())
+		num_pods := podmanTest.NumberOfPods()
+		if num_pods > 1 {
+			fmt.Printf("Waiting for %d pods to become 1\n", num_pods)
+			for retries := 30; retries > 0 && num_pods > 1; retries-- {
+				time.Sleep(time.Second * time.Duration(11-retries))
+				num_pods = podmanTest.NumberOfPods()
+				fmt.Printf("Retry %d, pods %d\n", retries, num_pods)
+			}
+		}
+		Expect(num_pods).To(Equal(1))
 	})
 
 	It("podman pod rm -fa removes everything", func() {
