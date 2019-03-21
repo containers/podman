@@ -152,10 +152,10 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run environment test", func() {
-		session := podmanTest.Podman([]string{"run", "--rm", "--env", "FOO=BAR", ALPINE, "printenv", "FOO"})
+		session := podmanTest.Podman([]string{"run", "--rm", "--env", "FOO=BAR,BAZ", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ := session.GrepString("BAR")
+		match, _ := session.GrepString("BAR,BAZ")
 		Expect(match).Should(BeTrue())
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "PATH=/bin", ALPINE, "printenv", "PATH"})

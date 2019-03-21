@@ -41,7 +41,7 @@ func init() {
 	execCommand.SetUsageTemplate(UsageTemplate())
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
-	flags.StringSliceVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
+	flags.StringArrayVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
 	flags.BoolVarP(&execCommand.Interfactive, "interactive", "i", false, "Not supported.  All exec commands are interactive by default")
 	flags.BoolVarP(&execCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&execCommand.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
