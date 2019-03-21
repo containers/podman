@@ -210,18 +210,17 @@ cannot find newuidmap: exec: "newuidmap": executable file not found in $PATH
 
 Install a version of shadow-utils that includes these executables.  Note RHEL7 and Centos 7 will not have support for this until RHEL7.7 is released.
 
-### 10) podman fails to run in user namespace because /etc/subuid is not properly populated.
+### 10) rootless setup user: invalid argument
 
 Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
 
 #### Symptom
 
-If you are running podman or buildah as a user, you get an error complaining about
-a missing subuid ranges in /etc/subuid.
+An user, either via --user or through the default configured for the image, is not mapped inside the namespace.
 
 ```
-podman run -ti fedora sh
-No subuid ranges found for user "johndoe" in /etc/subuid
+podman run --rm -ti --user 1000000 alpine echo hi
+Error: container create failed: container_linux.go:344: starting container process caused "setup user: invalid argument"
 ```
 
 #### Solution
