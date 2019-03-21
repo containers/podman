@@ -104,34 +104,41 @@ var _ = Describe("Podman pod rm", func() {
 
 		_, ec, _ = podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
-
 		fmt.Printf("Started %d pods\n", podmanTest.NumberOfPods())
 
 		session := podmanTest.RunTopContainerInPod("", podid1)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		podmanTest.WaitForContainer()
-
-		fmt.Printf("Sleeping for a while after top container start")
-		time.Sleep(time.Second * 10)
-
-		fmt.Printf("Removing all empty pods\n")
-		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
-		Expect(result.GrepString("contains containers and cannot be removed")).To(Equal(true))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		fmt.Printf("Started container running in one pod")
 
-		fmt.Printf("Now there are %d pods\n", podmanTest.NumberOfPods())
+		maxRetries := 10
 		num_pods := podmanTest.NumberOfPods()
-		// if num_pods > 1 {
-		// 	fmt.Printf("Waiting for %d pods to become 1\n", num_pods)
-		// 	for retries := 30; retries > 0 && num_pods > 1; retries-- {
-		// 		time.Sleep(time.Second * time.Duration(11-retries))
-		// 		num_pods = podmanTest.NumberOfPods()
-		// 		fmt.Printf("Retry %d, pods %d\n", retries, num_pods)
-		// 	}
-		// }
+		Expect(num_pods).To(Equal(2))
+		for retries := maxRetries; retries > 0 && num_pods > 1; retries-- {
+			ps := podmanTest.Podman([]string{"pod", "ps"})
+			ps.WaitWithDefaultTimeout()
+			fmt.Printf("Current %d pod(s):\n%s\n", num_pods, ps.OutputToString())
+
+			fmt.Printf("Removing all empty pods\n")
+			result := podmanTest.Podman([]string{"--log-level=debug", "pod", "rm", "-a"})
+			result.WaitWithDefaultTimeout()
+			Expect(result.ExitCode()).To(Not(Equal(0)))
+			foundExpectedError, _ := result.ErrorGrepString("contains containers and cannot be removed")
+			Expect(foundExpectedError).To(Equal(true))
+
+			if num_pods = podmanTest.NumberOfPods(); num_pods > 1 {
+				fmt.Printf("Pod was not removed, retry #%d/%d, pods %d\n",
+					(maxRetries+1)-retries, maxRetries, num_pods)
+				time.Sleep(time.Second * time.Duration((maxRetries+1)-retries))
+			}
+		}
+
+		ps := podmanTest.Podman([]string{"pod", "ps"})
+		ps.WaitWithDefaultTimeout()
+		fmt.Printf("Final %d pod(s):\n%s\n", num_pods, ps.OutputToString())
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(num_pods).To(Equal(1))
 	})
 
