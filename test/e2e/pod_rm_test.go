@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
@@ -116,6 +117,7 @@ var _ = Describe("Podman pod rm", func() {
 		// one pod should have been deleted
 		result = podmanTest.Podman([]string{"pod", "ps", "-q"})
 		result.WaitWithDefaultTimeout()
+		fmt.Println("podman pod ps -q returned: \n%s\n", result.OutputToString())
 		Expect(len(result.OutputToStringArray())).To(Equal(1))
 	})
 
