@@ -423,13 +423,16 @@ func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Ru
 			return false
 		}, nil
 	case "status":
-		if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "exited", "unknown"}) {
+		if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
 			return nil, errors.Errorf("%s is not a valid status", filterValue)
 		}
 		return func(c *libpod.Container) bool {
 			status, err := c.State()
 			if err != nil {
 				return false
+			}
+			if filterValue == "stopped" {
+				filterValue = "exited"
 			}
 			state := status.String()
 			if status == libpod.ContainerStateConfigured {
