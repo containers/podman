@@ -1152,9 +1152,6 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 	}
 	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
-		if err2 := os.Remove(output); err2 != nil {
-			logrus.Errorf("error deleting %q: %v", output, err)
-		}
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
 	defer i.newImageEvent(events.Save)
