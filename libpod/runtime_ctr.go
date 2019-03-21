@@ -201,11 +201,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 
 	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
-		if ctr.state.UserNSRoot == "" {
-			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
-		} else {
-			ctr.config.ShmDir = filepath.Join(ctr.state.UserNSRoot, "shm")
-		}
+		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)
