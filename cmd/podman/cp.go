@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -19,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -53,6 +55,12 @@ func init() {
 	rootCmd.AddCommand(cpCommand.Command)
 }
 
+type copyOptions struct {
+	contextDir string
+	extract    bool
+	excludes   []buildah.DockerIgnore
+}
+
 func cpCmd(c *cliconfig.CpValues) error {
 	args := c.InputArgs
 	if len(args) != 2 {
@@ -68,11 +76,13 @@ func cpCmd(c *cliconfig.CpValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	extract := c.Flag("extract").Changed
-	return copyBetweenHostAndContainer(runtime, args[0], args[1], extract)
+	copyOpts := copyOptions{
+		extract: c.Extract,
+	}
+	return copyBetweenHostAndContainer(runtime, args[0], args[1], copyOpts)
 }
 
-func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool) error {
+func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, copyOpts copyOptions) error {
 
 	srcCtr, srcPath := parsePath(runtime, src)
 	destCtr, destPath := parsePath(runtime, dest)
@@ -164,17 +174,23 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	if len(glob) == 0 {
 		glob = append(glob, srcPath)
 	}
+
+	dir, err := os.Getwd()
+	if err != nil {
+		return errors.Wrapf(err, "err getting current working directory")
+	}
 	if !filepath.IsAbs(destPath) {
-		dir, err := os.Getwd()
-		if err != nil {
-			return errors.Wrapf(err, "err getting current working directory")
-		}
 		destPath = filepath.Join(dir, destPath)
 	}
-
+	excludeLines, err := imagebuilder.ParseDockerignore(dir)
+	if err != nil {
+		return errors.Wrapf(err, "error reading .dockerignore file")
+	}
+	copyOpts.excludes = buildah.DockerIgnoreHelper(excludeLines, dir)
+	copyOpts.contextDir = dir
 	var lastError error
 	for _, src := range glob {
-		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, extract)
+		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, copyOpts)
 		if lastError != nil {
 			logrus.Error(lastError)
 		}
@@ -227,7 +243,7 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 	return path, srcfi, nil
 }
 
-func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract bool) error {
+func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, copyOpts copyOptions) error {
 	srcPath, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
@@ -244,19 +260,86 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	if err = os.MkdirAll(destdir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", destdir)
 	}
-
+	srcAbsPath, err := filepath.Abs(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "error getting abusolute path of source path %s", srcPath)
+	}
 	// return functions for copying items
 	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 	copyWithTar := chrootarchive.CopyWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 	untarPath := chrootarchive.UntarPathAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 
+	visitedDir, err := getVisitedDir(copyOpts.contextDir, copyOpts.excludes)
+	if err != nil {
+		return errors.Wrapf(err, "error checking directories in .dokcerignore")
+	}
+
 	if srcfi.IsDir() {
 
 		logrus.Debugf("copying %q to %q", srcPath+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-		if err = copyWithTar(srcPath, destPath); err != nil {
-			return errors.Wrapf(err, "error copying %q to %q", srcPath, dest)
+		if len(copyOpts.excludes) == 0 {
+			if err = copyWithTar(srcPath, destPath); err != nil {
+				return errors.Wrapf(err, "error copying %q to %q", srcPath, dest)
+			}
+			return nil
+		}
+
+		err = filepath.Walk(srcAbsPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return nil
+			}
+
+			for _, exclude := range copyOpts.excludes {
+				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
+				if err != nil {
+					return err
+				}
+				prefix, exist := visitedDir[exclude.ExcludePath]
+				hasPrefix := false
+				if exist {
+					hasPrefix = filepath.HasPrefix(path, prefix)
+				}
+				if !(match || hasPrefix) {
+					continue
+				}
+				if (hasPrefix && exclude.IsExcluded) || (match && exclude.IsExcluded) {
+					return nil
+				}
+				break
+			}
+			// combine the filename with the dest directory
+			fpath := strings.TrimPrefix(path, srcAbsPath)
+			if err = copyFileWithTar(path, filepath.Join(destPath, fpath)); err != nil {
+				return errors.Wrapf(err, "error copying %q to %q", path, dest)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
 		return nil
+	}
+
+	for _, exclude := range copyOpts.excludes {
+		match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), srcAbsPath)
+		if err != nil {
+			return err
+		}
+		prefix, exist := visitedDir[exclude.ExcludePath]
+		hasPrefix := false
+		if exist {
+			hasPrefix = filepath.HasPrefix(srcAbsPath, prefix)
+		}
+		if !(match || hasPrefix) {
+			continue
+		}
+		if (hasPrefix && exclude.IsExcluded) || (match && exclude.IsExcluded) {
+			return nil
+		}
+		break
 	}
 	if !archive.IsArchivePath(srcPath) {
 		// This srcPath is a file, and either it's not an
@@ -273,7 +356,7 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		}
 	}
 
-	if extract {
+	if copyOpts.extract {
 		// We're extracting an archive into the destination directory.
 		logrus.Debugf("extracting contents of %q into %q", srcPath, destPath)
 		if err = untarPath(srcPath, destPath); err != nil {
@@ -299,4 +382,33 @@ func convertIDMap(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxIDMapping
 		convertedIDMap = append(convertedIDMap, tempIDMap)
 	}
 	return convertedIDMap
+}
+
+func getVisitedDir(srcAbsPath string, excludes []buildah.DockerIgnore) (map[string]string, error) {
+	visitedDir := make(map[string]string)
+	err := filepath.Walk(srcAbsPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			for _, exclude := range excludes {
+				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
+				if err != nil {
+					return err
+				}
+				if !match {
+					continue
+				}
+				if _, exist := visitedDir[exclude.ExcludePath]; exist {
+					continue
+				}
+				visitedDir[exclude.ExcludePath] = path
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return visitedDir, err
+	}
+	return visitedDir, nil
 }

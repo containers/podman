@@ -112,4 +112,57 @@ var _ = Describe("Podman cp", func() {
 		}
 		Expect(string(output)).To(Equal("copy from host to container directory"))
 	})
+
+	It("podman cp with .dockerignore", func() {
+		path, err := os.Getwd()
+		if err != nil {
+			os.Exit(1)
+		}
+
+		testDirPath := filepath.Join(path, "TestDir")
+		err = os.Mkdir(testDirPath, 0777)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		testSubDirPath := filepath.Join(testDirPath, "SubTestDir")
+		err = os.Mkdir(testSubDirPath, 0777)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		filePath := filepath.Join(testSubDirPath, "subtest1.txt")
+		ignoreme := []byte("test1 fail")
+		err = ioutil.WriteFile(filePath, ignoreme, 0644)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		filePath = filepath.Join(testSubDirPath, "subtest2.txt")
+		notignoreme := []byte("test2 fail")
+		err = ioutil.WriteFile(filePath, notignoreme, 0644)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		filePath = filepath.Join(path, ".dockerignore")
+		dockerignore := []byte("*/SubT*\n!*/*/subtest2*")
+		err = ioutil.WriteFile(filePath, dockerignore, 0644)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foodir/SubTestDir/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		name := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":foodir/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "-a", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("subtest2.txt"))
+	})
 })
