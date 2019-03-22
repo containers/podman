@@ -69,6 +69,21 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman uidmapping and gidmapping with a volume", func() {
+		if os.Getenv("SKIP_USERNS") != "" {
+			Skip("Skip userns tests.")
+		}
+		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
+			Skip("User namespaces not supported.")
+		}
+
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:70000", "--gidmap=0:20000:70000", "-v", "my-foo-volume:/foo:Z", "busybox", "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("hello")
+		Expect(ok).To(BeTrue())
+	})
+
 	It("podman uidmapping and gidmapping --net=host", func() {
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")

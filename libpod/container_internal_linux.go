@@ -203,7 +203,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 	// Check if the spec file mounts contain the label Relabel flags z or Z.
 	// If they do, relabel the source directory and then remove the option.
-	for _, m := range g.Mounts() {
+	for i := range g.Config.Mounts {
+		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
 			switch o {
@@ -219,6 +220,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			}
 		}
 		m.Options = options
+
+		// If we are using a user namespace, we will use an intermediate
+		// directory to bind mount volumes
+		if c.state.UserNSRoot != "" && strings.HasPrefix(m.Source, c.runtime.config.VolumePath) {
+			newSourceDir := filepath.Join(c.state.UserNSRoot, "volumes")
+			m.Source = strings.Replace(m.Source, c.runtime.config.VolumePath, newSourceDir, 1)
+		}
 	}
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
