@@ -51,9 +51,19 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 
 	// Create the mountpoint of this volume
-	fullVolPath := filepath.Join(r.config.VolumePath, volume.config.Name, "_data")
-	if err := os.MkdirAll(fullVolPath, 0755); err != nil {
+	volPathRoot := filepath.Join(r.config.VolumePath, volume.config.Name)
+	if err := os.MkdirAll(volPathRoot, 0700); err != nil {
+		return nil, errors.Wrapf(err, "error creating volume directory %q", volPathRoot)
+	}
+	if err := os.Chown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
+		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", volPathRoot, volume.config.UID, volume.config.GID)
+	}
+	fullVolPath := filepath.Join(volPathRoot, "_data")
+	if err := os.Mkdir(fullVolPath, 0755); err != nil {
 		return nil, errors.Wrapf(err, "error creating volume directory %q", fullVolPath)
+	}
+	if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
+		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
 	}
 	if err := LabelVolumePath(fullVolPath, true); err != nil {
 		return nil, err
