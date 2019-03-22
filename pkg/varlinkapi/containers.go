@@ -634,6 +634,22 @@ func (i *LibpodAPI) GetContainerStatsWithHistory(call iopodman.VarlinkCall, prev
 	return call.ReplyGetContainerStatsWithHistory(cStats)
 }
 
+// Spec ...
+func (i *LibpodAPI) Spec(call iopodman.VarlinkCall, name string) error {
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	spec := ctr.Spec()
+	b, err := json.Marshal(spec)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	return call.ReplySpec(string(b))
+}
+
 // GetContainersLogs is the varlink endpoint to obtain one or more container logs
 func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string, follow, latest bool, since string, tail int64, timestamps bool) error {
 	var wg sync.WaitGroup

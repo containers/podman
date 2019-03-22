@@ -11,7 +11,6 @@ const remoteclient = false
 // Commands that the local client implements
 func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{
-		_attachCommand,
 		_commitCommand,
 		_execCommand,
 		_generateCommand,
@@ -47,7 +46,6 @@ func getImageSubCommands() []*cobra.Command {
 func getContainerSubCommands() []*cobra.Command {
 
 	return []*cobra.Command{
-		_attachCommand,
 		_checkpointCommand,
 		_cleanupCommand,
 		_commitCommand,

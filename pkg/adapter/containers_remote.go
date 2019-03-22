@@ -6,19 +6,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"os"
 	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/docker/docker/pkg/term"
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"
+	"golang.org/x/crypto/ssh/terminal"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // Inspect returns an inspect struct from varlink
@@ -71,6 +77,19 @@ func (r *LocalRuntime) ContainerState(name string) (*libpod.ContainerState, erro
 
 }
 
+// Spec obtains the container spec.
+func (r *LocalRuntime) Spec(name string) (*specs.Spec, error) {
+	reply, err := iopodman.Spec().Call(r.Conn, name)
+	if err != nil {
+		return nil, err
+	}
+	data := specs.Spec{}
+	if err := json.Unmarshal([]byte(reply), &data); err != nil {
+		return nil, err
+	}
+	return &data, nil
+}
+
 // LookupContainer gets basic information about container over a varlink
 // connection and then translates it to a *Container
 func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
@@ -79,10 +98,6 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 		return nil, err
 	}
 	config := r.Config(idOrName)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Container{
 		remoteContainer{
 			r,
@@ -322,18 +337,32 @@ func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateV
 
 // Run creates a container overvarlink and then starts it
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
+	// FIXME
+	// podman-remote run -it alpine ls DOES NOT WORK YET
+	// podman-remote run -it alpine /bin/sh does, i suspect there is some sort of
+	// timing issue between the socket availability and terminal setup and the command
+	// being run.
+
 	// TODO the exit codes for run need to be figured out for remote connections
-	if !c.Bool("detach") {
-		return 0, errors.New("the remote client only supports detached containers")
-	}
 	results := shared.NewIntermediateLayer(&c.PodmanCommand)
 	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 	if err != nil {
 		return 0, err
 	}
-	fmt.Println(cid)
 	_, err = iopodman.StartContainer().Call(r.Conn, cid)
-	return 0, err
+	if err != nil {
+		return 0, err
+	}
+	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid)
+	if err != nil {
+		return 0, err
+	}
+	if c.Bool("detach") {
+		fmt.Println(cid)
+		return 0, err
+	}
+	finalError := <-errChan
+	return 0, finalError
 }
 
 func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
@@ -410,4 +439,103 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 		psContainers = append(psContainers, psc)
 	}
 	return psContainers, nil
+}
+
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string) (chan error, error) {
+	var (
+		oldTermState *term.State
+	)
+	errChan := make(chan error)
+	spec, err := r.Spec(cid)
+	if err != nil {
+		return nil, err
+	}
+	resize := make(chan remotecommand.TerminalSize)
+	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+
+	// Check if we are attached to a terminal. If we are, generate resize
+	// events, and set the terminal to raw mode
+	if haveTerminal && spec.Process.Terminal {
+		logrus.Debugf("Handling terminal attach")
+
+		subCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
+
+		resizeTty(subCtx, resize)
+		oldTermState, err = term.SaveState(os.Stdin.Fd())
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to save terminal state")
+		}
+
+		logrus.SetFormatter(&RawTtyFormatter{})
+		term.SetRawTerminal(os.Stdin.Fd())
+
+	}
+
+	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid)
+	if err != nil {
+		restoreTerminal(oldTermState)
+		return nil, err
+	}
+
+	// These are the varlink sockets
+	reader := r.Conn.Reader
+	writer := r.Conn.Writer
+
+	// These are the special writers that encode input from the client.
+	varlinkStdinWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdin)
+	varlinkResizeWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.TerminalResize)
+
+	go func() {
+		// Read from the wire and direct to stdout or stderr
+		err := virtwriter.Reader(reader, stdout, os.Stderr, nil, nil)
+		defer restoreTerminal(oldTermState)
+		errChan <- err
+	}()
+
+	go func() {
+		for termResize := range resize {
+			b, err := json.Marshal(termResize)
+			if err != nil {
+				defer restoreTerminal(oldTermState)
+				errChan <- err
+			}
+			_, err = varlinkResizeWriter.Write(b)
+			if err != nil {
+				defer restoreTerminal(oldTermState)
+				errChan <- err
+			}
+		}
+	}()
+
+	// Takes stdinput and sends it over the wire after being encoded
+	go func() {
+		if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
+			defer restoreTerminal(oldTermState)
+			errChan <- err
+		}
+
+	}()
+	return errChan, nil
+
+}
+
+// Attach to a remote terminal
+func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) error {
+	ctr, err := r.LookupContainer(c.InputArgs[0])
+	if err != nil {
+		return nil
+	}
+	if ctr.state.State != libpod.ContainerStateRunning {
+		return errors.New("you can only attach to running containers")
+	}
+	inputStream := os.Stdin
+	if c.NoStdin {
+		inputStream = nil
+	}
+	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0])
+	if err != nil {
+		return err
+	}
+	return <-errChan
 }

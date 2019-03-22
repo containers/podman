@@ -407,3 +407,39 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
 	return shared.GetPsContainerOutput(r.Runtime, opts, c.Filter, maxWorkers)
 }
+
+// Attach ...
+func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) error {
+	var (
+		ctr *libpod.Container
+		err error
+	)
+
+	if c.Latest {
+		ctr, err = r.Runtime.GetLatestContainer()
+	} else {
+		ctr, err = r.Runtime.LookupContainer(c.InputArgs[0])
+	}
+
+	if err != nil {
+		return errors.Wrapf(err, "unable to exec into %s", c.InputArgs[0])
+	}
+
+	conState, err := ctr.State()
+	if err != nil {
+		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
+	}
+	if conState != libpod.ContainerStateRunning {
+		return errors.Errorf("you can only attach to running containers")
+	}
+
+	inputStream := os.Stdin
+	if c.NoStdin {
+		inputStream = nil
+	}
+	// If the container is in a pod, also set to recursively start dependencies
+	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != libpod.ErrDetach {
+		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+	}
+	return nil
+}
