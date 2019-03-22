@@ -9,6 +9,7 @@ linters:
     - depguard
     - gofmt
     - typecheck
+    - varcheck
     # - dupl
     # - errcheck
     # - gochecknoglobals
@@ -32,4 +33,3 @@ linters:
     # - structcheck
     # - unconvert
     # - unparam
-    # - varcheck
