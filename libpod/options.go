@@ -1265,14 +1265,11 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 		destinations := make(map[string]bool)
 
 		for _, vol := range volumes {
-			// First check if libpod has the volumes
-			_, err := ctr.runtime.GetVolume(vol.Name)
-			if err != nil {
-				return errors.Wrapf(err, "error retrieving volume %s to add to container", vol.Name)
-			}
+			// Don't check if they already exist.
+			// If they don't we will automatically create them.
 
 			if _, ok := destinations[vol.Dest]; ok {
-				return errors.Wrapf(err, "two volumes found with destination %s", vol.Dest)
+				return errors.Wrapf(ErrInvalidArg, "two volumes found with destination %s", vol.Dest)
 			}
 			destinations[vol.Dest] = true
 
@@ -1302,28 +1299,6 @@ func WithVolumeName(name string) VolumeCreateOption {
 		}
 		volume.config.Name = name
 
-		return nil
-	}
-}
-
-// WithVolumeUID sets the uid of the owner.
-func WithVolumeUID(uid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.UID = uid
-		return nil
-	}
-}
-
-// WithVolumeGID sets the gid of the owner.
-func WithVolumeGID(gid int) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return ErrVolumeFinalized
-		}
-		volume.config.GID = gid
 		return nil
 	}
 }
@@ -1368,6 +1343,32 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 		for key, value := range options {
 			volume.config.Options[key] = value
 		}
+
+		return nil
+	}
+}
+
+// WithVolumeUID sets the UID that the volume will be created as.
+func WithVolumeUID(uid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.UID = uid
+
+		return nil
+	}
+}
+
+// WithVolumeGID sets the GID that the volume will be created as.
+func WithVolumeGID(gid int) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return ErrVolumeFinalized
+		}
+
+		volume.config.GID = gid
 
 		return nil
 	}

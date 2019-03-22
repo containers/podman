@@ -99,9 +99,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
-	ctr.valid = true
-	ctr.state.State = ContainerStateConfigured
-
 	var pod *Pod
 	if ctr.config.Pod != "" {
 		// Get the pod from state
@@ -173,29 +170,29 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
 	}
 
-	// // Go through the volume mounts and check for named volumes
-	// // If the named volme already exists continue, otherwise create
-	// // the storage for the named volume.
-	// for i, vol := range ctr.config.Spec.Mounts {
-	// 	if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
-	// 		volInfo, err := r.state.Volume(vol.Source)
-	// 		if err != nil {
-	// 			newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific())
-	// 			if err != nil {
-	// 				return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
-	// 			}
-	// 			ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
-				// if err := os.Chown(ctr.config.Spec.Mounts[i].Source, ctr.RootUID(), ctr.RootGID()); err != nil {
-				// 	return nil, errors.Wrapf(err, "cannot chown %q to %d:%d", ctr.config.Spec.Mounts[i].Source, ctr.RootUID(), ctr.RootGID())
-				// }
-	// 			if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
-	// 				return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Source)
-	// 			}
-	// 			continue
-	// 		}
-	// 		ctr.config.Spec.Mounts[i].Source = volInfo.MountPoint()
-	// 	}
-	// }
+	// Go through named volumes and add them.
+	// If they don't exist they will be created using basic options.
+	for _, vol := range ctr.config.NamedVolumes {
+		// Check if it exists already
+		_, err := r.state.Volume(vol.Name)
+		if err == nil {
+			// The volume exists, we're good
+			continue
+		} else if errors.Cause(err) != ErrNoSuchVolume {
+			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+		}
+
+		// The volume does not exist, so we need to create it.
+		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
+			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
+		}
+
+		if err := ctr.copyWithTarFromImage(vol.Dest, newVol.MountPoint()); err != nil && !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Name)
+		}
+	}
 
 	if ctr.config.LogPath == "" {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
