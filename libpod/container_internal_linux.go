@@ -703,10 +703,11 @@ func (c *Container) makeBindMounts() error {
 			}
 		}
 
-		if c.config.NetNsCtr != "" {
-			// We share a net namespace
+		if c.config.NetNsCtr != "" && (!c.config.NoCreateHosts || !c.config.NoCreateResolvConf) {
+			// We share a net namespace.
 			// We want /etc/resolv.conf and /etc/hosts from the
-			// other container
+			// other container. Unless we're not creating both of
+			// them.
 			depCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
 			if err != nil {
 				return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
@@ -718,53 +719,65 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
 			}
 
-			// The other container may not have a resolv.conf or /etc/hosts
-			// If it doesn't, don't copy them
-			resolvPath, exists := bindMounts["/etc/resolv.conf"]
-			if exists {
-				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+			if !c.config.NoCreateResolvConf {
+				// The other container may not have a resolv.conf or /etc/hosts
+				// If it doesn't, don't copy them
+				resolvPath, exists := bindMounts["/etc/resolv.conf"]
+				if exists {
+					c.state.BindMounts["/etc/resolv.conf"] = resolvPath
+				}
 			}
 
-			// check if dependency container has an /etc/hosts file
-			hostsPath, exists := bindMounts["/etc/hosts"]
-			if !exists {
-				return errors.Errorf("error finding hosts file of dependency container %s for container %s", depCtr.ID(), c.ID())
-			}
+			if !c.config.NoCreateHosts {
+				// check if dependency container has an /etc/hosts file
+				hostsPath, exists := bindMounts["/etc/hosts"]
+				if !exists {
+					return errors.Errorf("error finding hosts file of dependency container %s for container %s", depCtr.ID(), c.ID())
+				}
 
-			depCtr.lock.Lock()
-			// generate a hosts file for the dependency container,
-			// based on either its old hosts file, or the default,
-			// and add the relevant information from the new container (hosts and IP)
-			hostsPath, err = depCtr.appendHosts(hostsPath, c)
+				depCtr.lock.Lock()
+				// generate a hosts file for the dependency container,
+				// based on either its old hosts file, or the default,
+				// and add the relevant information from the new container (hosts and IP)
+				hostsPath, err = depCtr.appendHosts(hostsPath, c)
 
-			if err != nil {
+				if err != nil {
+					depCtr.lock.Unlock()
+					return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
+				}
 				depCtr.lock.Unlock()
-				return errors.Wrapf(err, "error creating hosts file for container %s which depends on container %s", c.ID(), depCtr.ID())
-			}
-			depCtr.lock.Unlock()
 
-			// finally, save it in the new container
-			c.state.BindMounts["/etc/hosts"] = hostsPath
+				// finally, save it in the new container
+				c.state.BindMounts["/etc/hosts"] = hostsPath
+			}
 		} else {
-			newResolv, err := c.generateResolvConf()
-			if err != nil {
-				return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+			if !c.config.NoCreateResolvConf {
+				newResolv, err := c.generateResolvConf()
+				if err != nil {
+					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
+				}
+				c.state.BindMounts["/etc/resolv.conf"] = newResolv
 			}
-			c.state.BindMounts["/etc/resolv.conf"] = newResolv
 
-			newHosts, err := c.generateHosts("/etc/hosts")
-			if err != nil {
-				return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+			if !c.config.NoCreateHosts {
+				newHosts, err := c.generateHosts("/etc/hosts")
+				if err != nil {
+					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
+				}
+				c.state.BindMounts["/etc/hosts"] = newHosts
 			}
-			c.state.BindMounts["/etc/hosts"] = newHosts
 		}
 
-		if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
-			return err
+		if c.state.BindMounts["/etc/hosts"] != "" {
+			if err := label.Relabel(c.state.BindMounts["/etc/hosts"], c.config.MountLabel, true); err != nil {
+				return err
+			}
 		}
 
-		if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
-			return err
+		if c.state.BindMounts["/etc/resolv.conf"] != "" {
+			if err := label.Relabel(c.state.BindMounts["/etc/resolv.conf"], c.config.MountLabel, true); err != nil {
+				return err
+			}
 		}
 	}
 

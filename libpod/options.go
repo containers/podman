@@ -997,6 +997,9 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+		if ctr.config.NoCreateResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS search domains if container will not create /etc/resolv.conf")
+		}
 		ctr.config.DNSSearch = searchDomains
 		return nil
 	}
@@ -1007,6 +1010,9 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return ErrCtrFinalized
+		}
+		if ctr.config.NoCreateResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS servers if container will not create /etc/resolv.conf")
 		}
 		var dns []net.IP
 		for _, i := range dnsServers {
@@ -1027,6 +1033,9 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+		if ctr.config.NoCreateResolvConf {
+			return errors.Wrapf(ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
+		}
 		ctr.config.DNSOption = dnsOptions
 		return nil
 	}
@@ -1038,6 +1047,11 @@ func WithHosts(hosts []string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
+
+		if ctr.config.NoCreateHosts {
+			return errors.Wrapf(ErrInvalidArg, "cannot add hosts if container will not create /etc/hosts")
+		}
+
 		ctr.config.HostAdd = hosts
 		return nil
 	}
@@ -1179,6 +1193,44 @@ func WithCtrNamespace(ns string) CtrCreateOption {
 		}
 
 		ctr.config.Namespace = ns
+
+		return nil
+	}
+}
+
+// WithNoCreateResolvConf tells the container not to bind-mount resolv.conf in.
+// This conflicts with other DNS-related options.
+func WithNoCreateResolvConf() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if len(ctr.config.DNSServer) != 0 ||
+			len(ctr.config.DNSSearch) != 0 ||
+			len(ctr.config.DNSOption) != 0 {
+			return errors.Wrapf(ErrInvalidArg, "not creating resolv.conf conflicts with DNS options")
+		}
+
+		ctr.config.NoCreateResolvConf = true
+
+		return nil
+	}
+}
+
+// WithNoCreateHosts tells the container not to bind-mount /etc/hosts in.
+// This conflicts with WithHosts().
+func WithNoCreateHosts() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		if len(ctr.config.HostAdd) != 0 {
+			return errors.Wrapf(ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
+		}
+
+		ctr.config.NoCreateHosts = true
 
 		return nil
 	}
