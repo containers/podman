@@ -233,7 +233,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 	return files, nil
 }
 
-func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions, parentNs *os.File) (err error) {
 	var stderrBuf bytes.Buffer
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -301,6 +301,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 			args = append(args, "--restore-arg", "--tcp-established")
 		}
 	}
+	if parentNs != nil {
+		args = append(args, "--exit-command-namespace", "5")
+	}
 
 	logrus.WithFields(logrus.Fields{
 		"args": args,
@@ -328,6 +331,10 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_LIBPOD_USERNS_CONFIGURED=%s", os.Getenv("_LIBPOD_USERNS_CONFIGURED")))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("_LIBPOD_ROOTLESS_UID=%s", os.Getenv("_LIBPOD_ROOTLESS_UID")))
 	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", os.Getenv("HOME")))
+
+	if parentNs != nil {
+		cmd.ExtraFiles = append(cmd.ExtraFiles, parentNs)
+	}
 
 	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
 		ports, err := bindPorts(ctr.config.PortMappings)

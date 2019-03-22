@@ -68,7 +68,7 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
 	if ctr.state.UserNSRoot == "" {
 		// no need of an intermediate mount ns
-		return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+		return r.createOCIContainer(ctr, cgroupParent, restoreOptions, nil)
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -123,7 +123,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 			}
 		}
 
-		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions, fd)
 	}()
 	wg.Wait()
 
