@@ -505,7 +505,11 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithDNSSearch(c.DNSSearch))
 	}
 	if len(c.DNSServers) > 0 {
-		options = append(options, libpod.WithDNS(c.DNSServers))
+		if len(c.DNSServers) == 1 && c.DNSServers[0] == "none" {
+			options = append(options, libpod.WithNoCreateResolvConf())
+		} else {
+			options = append(options, libpod.WithDNS(c.DNSServers))
+		}
 	}
 	if len(c.DNSOpt) > 0 {
 		options = append(options, libpod.WithDNSOption(c.DNSOpt))
