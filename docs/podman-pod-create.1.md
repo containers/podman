@@ -81,6 +81,8 @@ $ podman pod create --name test
 $ podman pod create --infra=false
 
 $ podman pod create --infra-command /top
+
+$ podman pod create --publish 8443:443
 ```
 
 ## SEE ALSO
