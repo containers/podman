@@ -13,30 +13,22 @@ env:
     ####
     #### Global variables used for all tasks
     ####
-    # File to update in home-dir with task-specific env. var values
-    ENVLIB: ".bash_profile"
     # Overrides default location (/tmp/cirrus) for repo clone
+    GOPATH: "/var/tmp/go"
+    GOSRC: "/var/tmp/go/src/github.com/containers/libpod"
     CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/libpod"
-    # Required so $ENVLIB gets loaded
+    # The default is 'sh' if unspecified
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
-    PACKER_BASE: "./contrib/cirrus/packer"
-    CIRRUS_CLONE_DEPTH: 200
     # Command to prefix every output line with a timestamp
     # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
     TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
-    BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
+    CIRRUS_CLONE_DEPTH: 50
 
     ####
     #### Cache-image names to test with
     ###
-    ACTIVE_CACHE_IMAGE_NAMES: >-
-        fedora-29-libpod-548c1c05
-        fedora-28-libpod-548c1c05
-        ubuntu-18-libpod-548c1c05
-        rhel-7-libpod-548c1c05
-        image-builder-image-1541772081
     FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
@@ -48,11 +40,13 @@ env:
     #### Variables for composing new cache-images (used in PR testing) from
     #### base-images (pre-existing in GCE)
     ####
+    BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"
     # Git commits to use while building dependencies into cache-images
     FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
+    # Only RHEL/Centos VM cache-image building needs RUNC_COMMIT
     RUNC_COMMIT: "029124da7af7360afa781a0234d1b083550f797c"
     # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
     PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28,rhel-7"  # TODO: rhel-8,centos-7
@@ -60,15 +54,6 @@ env:
     PACKER_VER: "1.3.2"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
-    # Google-maintained base-image names
-    UBUNTU_BASE_IMAGE: "ubuntu-1804-bionic-v20181203a"
-    CENTOS_BASE_IMAGE: "centos-7-v20181113"
-    # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-    FEDORA_BASE_IMAGE: "fedora-cloud-base-29-1-2-1541789245"
-    PRIOR_FEDORA_BASE_IMAGE: "fedora-cloud-base-28-1-1-1544474897"
-    FAH_BASE_IMAGE:  "fedora-atomichost-29-20181025-1-1541787861"
-    # RHEL image must be imported, google bills extra for their native image.
-    RHEL_BASE_IMAGE: "rhel-guest-image-7-6-210-x86-64-qcow2-1548099756"
 
     ####
     #### Default to NOT operating in any special-case testing mode
@@ -109,6 +94,7 @@ gating_task:
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
+        GOPATH: "/go"
         GOSRC: "/go/src/github.com/containers/libpod"
 
     # Runs within Cirrus's "community cluster"
@@ -159,6 +145,8 @@ vendor_task:
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
+        GOPATH: "/go"
+        GOSRC: "/go/src/github.com/containers/libpod"
 
     # Runs within Cirrus's "community cluster"
     container:
@@ -171,7 +159,7 @@ vendor_task:
     vendor_script:
         - '/usr/local/bin/entrypoint.sh .install.vndr |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh vendor |& ${TIMESTAMP}'
-        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh |& ${TIMESTAMP}'
+        - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
@@ -348,6 +336,9 @@ special_testing_task:
 # necessary to execute them within a PR to validate changes.
 optional_testing_task:
 
+    depends_on:
+        - "gating"
+
     # Only run system tests in PRs (not on merge) if magic string is present
     # in the PR description.  Post-merge system testing is assumed to happen
     # later from OS distribution's build systems.
@@ -426,10 +417,11 @@ verify_test_built_images_task:
             TEST_REMOTE_CLIENT: true
             TEST_REMOTE_CLIENT: false
 
+    # Note: A truncated form of normal testing. It only needs to confirm new images
+    # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
+    # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    rootless_testing_script: '$SCRIPT_BASE/resetup_and_run_rootless.sh |& ${TIMESTAMP}'
 
 
 # Build new cache-images for future PR testing, but only after a PR merge.
@@ -447,6 +439,7 @@ build_cache_images_task:
     depends_on:
         - "gating"
         - "testing"
+        - "rootless_testing"
 
     # VMs created by packer are not cleaned up by cirrus
     auto_cancellation: $CI != "true"
@@ -462,6 +455,7 @@ build_cache_images_task:
         scopes:
             - compute
             - devstorage.full_control
+
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
 
@@ -499,10 +493,12 @@ success_task:
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
+        GOPATH: "/go"
+        GOSRC: "/go/src/github.com/containers/libpod"
 
     container:
         image: "quay.io/libpod/gate:latest"
         cpu: 1
         memory: 1
 
-    success_script: '$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+    success_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'

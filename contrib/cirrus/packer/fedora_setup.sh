@@ -60,6 +60,7 @@ ooe.sh sudo dnf install -y \
     python3-dateutil \
     python3-psutil \
     python3-pytoml \
+    runc \
     skopeo-containers \
     slirp4netns \
     unzip \
@@ -71,14 +72,10 @@ install_varlink
 
 install_conmon
 
-install_runc
-
 CNI_COMMIT=$FEDORA_CNI_COMMIT
 install_cni_plugins
 
 install_buildah
-
-install_packer_copied_files
 
 sudo /tmp/libpod/hack/install_catatonit.sh
 

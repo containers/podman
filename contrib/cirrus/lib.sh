@@ -4,22 +4,73 @@
 # to be sourced by other scripts, not called directly.
 
 # Under some contexts these values are not set, make sure they are.
-export USER="$(whoami)"
-export HOME="$(getent passwd $USER | cut -d : -f 6)"
+USER="$(whoami)"
+HOME="$(getent passwd $USER | cut -d : -f 6)"
+[[ -n "$UID" ]] || UID=$(getent passwd $USER | cut -d : -f 3)
+GID=$(getent passwd $USER | cut -d : -f 4)
 
-# These are normally set by cirrus, but can't be for VMs setup by hack/get_ci_vm.sh
-# Pick some reasonable defaults
-ENVLIB=${ENVLIB:-.bash_profile}
-CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-/var/tmp/go/src/github.com/containers/libpod}"
-GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
+# Essential default paths, many are overriden when executing under Cirrus-CI
+export GOPATH="${GOPATH:-/var/tmp/go}"
+if type -P go &> /dev/null
+then
+    # required for go 1.12+
+    export GOCACHE="${GOCACHE:-$HOME/.cache/go-build}"
+    eval "$(go env)"
+    # required by make and other tools
+    export $(go env | cut -d '=' -f 1)
+fi
+CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/libpod}"
+export GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
+export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+TIMESTAMPS_FILEPATH="${TIMESTAMPS_FILEPATH:-/var/tmp/timestamps}"
+SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
+# Saves typing / in case location ever moves
 SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
-CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
-CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
-SPECIALMODE="${SPECIALMODE:-none}"
-export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
+cd $GOSRC
+if type -P git &> /dev/null
+then
+    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git show-ref --hash=8 HEAD || date +%s)}
+else # pick something unique and obviously not from Cirrus
+    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-no_git_$(date +%s)}
+fi
+
+# Defaults when not running under CI
+export CI="${CI:-false}"
+CIRRUS_CI="${CIRRUS_CI:-false}"
+CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
+CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
+CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
+CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
+# Vars. for image-building
+PACKER_VER="1.3.5"
+# CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
+PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28,rhel-7,centos-7}"
+
+# Base-images rarely change, define them here so they're out of the way.
+# Google-maintained base-image names
+UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
+CENTOS_BASE_IMAGE="centos-7-v20181113"
+# Manually produced base-image names (see $SCRIPT_BASE/README.md)
+FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
+PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
+FAH_BASE_IMAGE="fedora-atomichost-29-20181025-1-1541787861"
+# RHEL image must be imported, native image bills for subscription.
+RHEL_BASE_IMAGE="rhel-guest-image-7-6-210-x86-64-qcow2-1548099756"
+BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+RHSM_COMMAND="${RHSM_COMMAND:-/bin/true}"
+
+# Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
+ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)'
+# Unsafe env. vars for display
+SECRET_ENV_RE='(IRCID)|(RHSM)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
+
+SPECIALMODE="${SPECIALMODE:-none}"
+TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
+export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
+# When running as root, this may be empty or not, as a user, it MUST be set.
 if [[ "$USER" == "root" ]]
 then
     ROOTLESS_USER="${ROOTLESS_USER:-}"
@@ -27,34 +78,12 @@ else
     ROOTLESS_USER="${ROOTLESS_USER:-$USER}"
 fi
 
-if ! [[ "$PATH" =~ "/usr/local/bin" ]]
-then
-    export PATH="$PATH:/usr/local/bin"
-fi
-
-# In ci/testing environment, ensure variables are always loaded
-if [[ -r "$HOME/$ENVLIB" ]] && [[ -n "$CI" ]]
-then
-    # Make sure this is always loaded
-    source "$HOME/$ENVLIB"
-fi
-
-# Space separated list of environment variables to unset before testing
-UNSET_ENV_VARS='
-    GCP_PROJECT_ID GCE_SSH_USERNAME SERVICE_ACCOUNT RHSM_COMMAND BUILT_IMAGE_SUFFIX
-    IRCID RHEL_BASE_IMAGE FAH_BASE_IMAGE FEDORA_BASE_IMAGE CENTOS_BASE_IMAGE
-    UBUNTU_BASE_IMAGE PACKER_VER PACKER_BUILDS RUNC_COMMIT CRIU_COMMIT
-    CRIO_COMMIT CNI_COMMIT FEDORA_CNI_COMMIT PACKER_BASE SCRIPT_BASE
-    CIRRUS_SHELL CIRRUS_WORKING_DIR ENVLIB CIRRUS_CI
-    CI_NODE_INDEX CI_NODE_TOTAL CIRRUS_BASE_BRANCH CIRRUS_BASE_SHA
-    CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_CHANGE_IN_REPO CIRRUS_CLONE_DEPTH
-    CIRRUS_COMMIT_MESSAGE CIRRUS_CHANGE_MESSAGE CIRRUS_REPO_CLONE_HOST
-    CIRRUS_DEFAULT_BRANCH CIRRUS_PR CIRRUS_TAG CIRRUS_OS CIRRUS_TASK_NAME
-    CIRRUS_TASK_ID CIRRUS_REPO_NAME CIRRUS_REPO_OWNER CIRRUS_REPO_FULL_NAME
-    CIRRUS_REPO_CLONE_URL CIRRUS_SHELL CIRRUS_USER_COLLABORATOR CIRRUS_USER_PERMISSION
-    CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS
-    XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER
-'
+# GCE image-name compatible string representation of distribution name
+OS_RELEASE_ID="$(egrep -m 1 '^ID=' /etc/os-release | cut -d = -f 2 | tr -d \' | tr -d \")"
+# GCE image-name compatible string representation of distribution major version
+OS_RELEASE_VER="$(egrep -m 1 '^VERSION_ID=' /etc/os-release | cut -d = -f 2 | tr -d \' | tr -d \" | cut -d '.' -f 1)"
+# Combined to ease soe usage
+OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
@@ -81,80 +110,26 @@ req_env_var() {
     done
 }
 
-# Some env. vars may contain secrets.  Display values for known "safe"
-# and useful variables.
-# ref: https://cirrus-ci.org/guide/writing-tasks/#environment-variables
 show_env_vars() {
-    # This is almost always multi-line, print it separately
-    echo "export CIRRUS_CHANGE_MESSAGE=$CIRRUS_CHANGE_MESSAGE"
-    echo "
-BUILDTAGS $BUILDTAGS
-BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
-ROOTLESS_USER $ROOTLESS_USER
-CI $CI
-CIRRUS_CI $CIRRUS_CI
-CI_NODE_INDEX $CI_NODE_INDEX
-CI_NODE_TOTAL $CI_NODE_TOTAL
-CONTINUOUS_INTEGRATION $CONTINUOUS_INTEGRATION
-CIRRUS_BASE_BRANCH $CIRRUS_BASE_BRANCH
-CIRRUS_BASE_SHA $CIRRUS_BASE_SHA
-CIRRUS_BRANCH $CIRRUS_BRANCH
-CIRRUS_BUILD_ID $CIRRUS_BUILD_ID
-CIRRUS_CHANGE_IN_REPO $CIRRUS_CHANGE_IN_REPO
-CIRRUS_CLONE_DEPTH $CIRRUS_CLONE_DEPTH
-CIRRUS_DEFAULT_BRANCH $CIRRUS_DEFAULT_BRANCH
-CIRRUS_PR $CIRRUS_PR
-CIRRUS_TAG $CIRRUS_TAG
-CIRRUS_OS $CIRRUS_OS
-OS $OS
-CIRRUS_TASK_NAME $CIRRUS_TASK_NAME
-CIRRUS_TASK_ID $CIRRUS_TASK_ID
-CIRRUS_REPO_NAME $CIRRUS_REPO_NAME
-CIRRUS_REPO_OWNER $CIRRUS_REPO_OWNER
-CIRRUS_REPO_FULL_NAME $CIRRUS_REPO_FULL_NAME
-CIRRUS_REPO_CLONE_URL $CIRRUS_REPO_CLONE_URL
-CIRRUS_SHELL $CIRRUS_SHELL
-CIRRUS_USER_COLLABORATOR $CIRRUS_USER_COLLABORATOR
-CIRRUS_USER_PERMISSION $CIRRUS_USER_PERMISSION
-CIRRUS_WORKING_DIR $CIRRUS_WORKING_DIR
-CIRRUS_HTTP_CACHE_HOST $CIRRUS_HTTP_CACHE_HOST
-SPECIALMODE $SPECIALMODE
-$(go env)
-PACKER_BUILDS $PACKER_BUILDS
-    " | while read NAME VALUE
+    echo "Showing selection of environment variable definitions:"
+    _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
+        egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
+        sort -u)
+    for _env_var_name in $_ENV_VAR_NAMES
     do
-        [[ -z "$NAME" ]] || echo "export $NAME=\"$VALUE\""
+        # Supports older BASH versions
+        _value="$(printenv $_env_var_name)"
+        printf "    ${_env_var_name}=%q\n" "${_value}"
     done
     echo ""
     echo "##### $(go version) #####"
     echo ""
 }
 
-# Unset environment variables not needed for testing purposes
-clean_env() {
-    req_env_var UNSET_ENV_VARS
-    echo "Unsetting $(echo $UNSET_ENV_VARS | wc -w) environment variables"
-    unset -v UNSET_ENV_VARS $UNSET_ENV_VARS || true  # don't fail on read-only
-}
-
 die() {
     echo "${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
     exit ${1:-1}
 }
-
-# Return a GCE image-name compatible string representation of distribution name
-os_release_id() {
-    eval "$(egrep -m 1 '^ID=' /etc/os-release | tr -d \' | tr -d \")"
-    echo "$ID"
-}
-export OS_RELEASE_ID="$(os_release_id)"
-
-# Return a GCE image-name compatible string representation of distribution major version
-os_release_ver() {
-    eval "$(egrep -m 1 '^VERSION_ID=' /etc/os-release | tr -d \' | tr -d \")"
-    echo "$VERSION_ID" | cut -d '.' -f 1
-}
-export OS_RELEASE_VER="$(os_release_VER)"
 
 bad_os_id_ver() {
     echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $ARGS"
@@ -166,8 +141,8 @@ stub() {
 }
 
 ircmsg() {
-    req_env_var CIRRUS_TASK_ID
-    [[ -n "$*" ]] || die 9 "ircmsg() invoked without args"
+    req_env_var CIRRUS_TASK_ID MSG
+    [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
     # Sometimes setup_environment.sh didn't run
     SCRIPT="$(dirname $0)/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
@@ -179,12 +154,9 @@ ircmsg() {
 }
 
 setup_rootless() {
-    req_env_var ROOTLESS_USER GOSRC ENVLIB
+    req_env_var ROOTLESS_USER GOSRC
 
-    make install.catatonit
-    go get github.com/onsi/ginkgo/ginkgo
-    go get github.com/onsi/gomega/...
-
+    # Only do this once
     if passwd --status $ROOTLESS_USER
     then
         echo "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
@@ -192,12 +164,7 @@ setup_rootless() {
         return 0
     fi
 
-    # Only do this once
     cd $GOSRC
-    make install.catatonit
-    go get github.com/onsi/ginkgo/ginkgo
-    go get github.com/onsi/gomega/...
-
     # Guarantee independence from specific values
     ROOTLESS_UID=$[RANDOM+1000]
     ROOTLESS_GID=$[RANDOM+1000]
@@ -223,19 +190,18 @@ setup_rootless() {
         echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | \
             tee -a /etc/subuid >> /etc/subgid
 
-    echo "Copying $HOME/$ENVLIB"
-    install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0700 \
-        "$HOME/$ENVLIB" "/home/$ROOTLESS_USER/$ENVLIB"
-
-    # Allow the tests to run
-    echo "export ROOTLESS_USER=$ROOTLESS_USER" >> "/home/$ROOTLESS_USER/$ENVLIB"
-
-    echo "Configuring user's go environment variables"
-    su --login --command 'go env' $ROOTLESS_USER | \
-        while read envline
-        do
-            X=$(echo "export $envline" >> "/home/$ROOTLESS_USER/$ENVLIB")
-        done
+    # Env. vars set by Cirrus and setup_environment.sh must be explicitly
+    # transfered to the test-user.
+    echo "Configuring rootless user's environment variables:"
+    _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
+        egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
+        egrep "$ROOTLESS_ENV_RE" | \
+        sort -u)
+    for _env_var_name in $_ENV_VAR_NAMES
+    do
+        _value="$(printenv $_env_var_name)"
+         printf "${_env_var_name}=%q" "${_value}" | tee -a "/home/$ROOTLESS_USER/.bashrc"
+    done
 }
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
@@ -273,10 +239,7 @@ install_cni_plugins() {
 }
 
 install_runc_from_git(){
-    req_env_var "
-        GOPATH $GOPATH
-        OS_RELEASE_ID $OS_RELEASE_ID
-    "
+    req_env_var GOPATH OS_RELEASE_ID RUNC_COMMIT
     wd=$(pwd)
     DEST="$GOPATH/src/github.com/opencontainers/runc"
     rm -rf "$DEST"
@@ -295,7 +258,6 @@ install_runc_from_git(){
 }
 
 install_runc(){
-    OS_RELEASE_ID=$(os_release_id)
     echo "Installing RunC from commit $RUNC_COMMIT"
     echo "Platform is $OS_RELEASE_ID"
     req_env_var GOPATH RUNC_COMMIT OS_RELEASE_ID
@@ -341,8 +303,6 @@ install_conmon(){
 }
 
 install_criu(){
-    OS_RELEASE_ID=$(os_release_id)
-    OS_RELEASE_VER=$(os_release_ver)
     echo "Installing CRIU"
     echo "Installing CRIU from commit $CRIU_COMMIT"
     echo "Platform is $OS_RELEASE_ID"
@@ -379,16 +339,6 @@ EOF
         ooe.sh make
         sudo install -D -m 755  criu/criu /usr/sbin/
     fi
-}
-
-install_packer_copied_files(){
-    # Install cni config, policy and registry config
-    sudo install -D -m 755 /tmp/libpod/cni/87-podman-bridge.conflist \
-                           /etc/cni/net.d/87-podman-bridge.conflist
-    sudo install -D -m 755 /tmp/libpod/test/policy.json \
-                           /etc/containers/policy.json
-    sudo install -D -m 755 /tmp/libpod/test/redhat_sigstore.yaml \
-                           /etc/containers/registries.d/registry.access.redhat.com.yaml
 }
 
 install_varlink() {

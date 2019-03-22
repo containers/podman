@@ -9,7 +9,6 @@ cd "$GOSRC"
 
 if [[ "$SPECIALMODE" == "in_podman" ]]
 then
-    set -x
     ${CONTAINER_RUNTIME} run --rm --privileged --net=host \
         -v $GOSRC:$GOSRC:Z \
         --workdir $GOSRC \
@@ -32,24 +31,10 @@ then
                 $GOSRC/$SCRIPT_BASE/rootless_test.sh
     exit $?
 else
-    set -x
     make
     make install PREFIX=/usr ETCDIR=/etc
     make test-binaries
     make install.tools
-    clean_env
-
-    case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-        ubuntu-18) ;;
-        fedora-29) ;&  # Continue to the next item
-        fedora-28) ;&
-        centos-7) ;&
-        rhel-7)
-            make podman-remote
-            install bin/podman-remote /usr/bin
-            ;;
-        *) bad_os_id_ver ;;
-    esac
     if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
     then
         make remoteintegration

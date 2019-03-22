@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE CNI_COMMIT CRIO_COMMIT CRIU_COMMIT
+req_env_var SCRIPT_BASE CNI_COMMIT CRIO_COMMIT CRIU_COMMIT RUNC_COMMIT
 
 install_ooe
 
@@ -76,8 +76,6 @@ install_criu
 install_cni_plugins
 
 install_buildah
-
-install_packer_copied_files
 
 sudo /tmp/libpod/hack/install_catatonit.sh
 

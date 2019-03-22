@@ -15,9 +15,8 @@ fi
 echo "."
 echo "Hello, my name is $USER and I live in $PWD can I be your friend?"
 
-show_env_vars
-
 export PODMAN_VARLINK_ADDRESS=unix:/tmp/podman-$(id -u)
+show_env_vars
 
 cd "$GOSRC"
 make
