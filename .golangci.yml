@@ -5,10 +5,10 @@ run:
 linters:
   disable-all: true
   enable:
+    - deadcode
     - depguard
     - gofmt
     - typecheck
-    # - deadcode
     # - dupl
     # - errcheck
     # - gochecknoglobals

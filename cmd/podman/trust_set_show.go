@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
@@ -235,10 +234,6 @@ func isValidTrustType(t string) bool {
 		return true
 	}
 	return false
-}
-
-func getDefaultPolicyPath() string {
-	return trust.DefaultPolicyPath(&types.SystemContext{})
 }
 
 func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, error) {

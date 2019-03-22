@@ -298,17 +298,3 @@ func outputJson(stats []*adapter.PodContainerStats) error {
 	fmt.Println(string(b))
 	return nil
 }
-
-func getPodsByList(podList []string, r *libpod.Runtime) ([]*libpod.Pod, error) {
-	var (
-		pods []*libpod.Pod
-	)
-	for _, p := range podList {
-		pod, err := r.LookupPod(p)
-		if err != nil {
-			return nil, err
-		}
-		pods = append(pods, pod)
-	}
-	return pods, nil
-}
