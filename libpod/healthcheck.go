@@ -3,13 +3,16 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/coreos/go-systemd/dbus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -47,6 +50,10 @@ const (
 	HealthCheckHealthy string = "healthy"
 	// HealthCheckUnhealthy describes an unhealthy container
 	HealthCheckUnhealthy string = "unhealthy"
+	// HealthCheckStarting describes the time between when the container starts
+	// and the start-period (time allowed for the container to start and application
+	// to be running) expires.
+	HealthCheckStarting string = "starting"
 )
 
 // hcWriteCloser allows us to use bufio as a WriteCloser
@@ -68,17 +75,18 @@ func (r *Runtime) HealthCheck(name string) (HealthCheckStatus, error) {
 	}
 	hcStatus, err := checkHealthCheckCanBeRun(container)
 	if err == nil {
-		return container.RunHealthCheck()
+		return container.runHealthCheck()
 	}
 	return hcStatus, err
 }
 
-// RunHealthCheck runs the health check as defined by the container
-func (c *Container) RunHealthCheck() (HealthCheckStatus, error) {
+// runHealthCheck runs the health check as defined by the container
+func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	var (
-		newCommand []string
-		returnCode int
-		capture    bytes.Buffer
+		newCommand    []string
+		returnCode    int
+		capture       bytes.Buffer
+		inStartPeriod bool
 	)
 	hcStatus, err := checkHealthCheckCanBeRun(c)
 	if err != nil {
@@ -111,12 +119,28 @@ func (c *Container) RunHealthCheck() (HealthCheckStatus, error) {
 		returnCode = 1
 	}
 	timeEnd := time.Now()
+	if c.HealthCheckConfig().StartPeriod > 0 {
+		// there is a start-period we need to honor; we add startPeriod to container start time
+		startPeriodTime := c.state.StartedTime.Add(c.HealthCheckConfig().StartPeriod)
+		if timeStart.Before(startPeriodTime) {
+			// we are still in the start period, flip the inStartPeriod bool
+			inStartPeriod = true
+			logrus.Debugf("healthcheck for %s being run in start-period", c.ID())
+		}
+	}
+
 	eventLog := capture.String()
 	if len(eventLog) > MaxHealthCheckLogLength {
 		eventLog = eventLog[:MaxHealthCheckLogLength]
 	}
+
+	if timeEnd.Sub(timeStart) > c.HealthCheckConfig().Timeout {
+		returnCode = -1
+		hcResult = HealthCheckFailure
+		hcErr = errors.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
+	}
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
-	if err := c.updateHealthCheckLog(hcl); err != nil {
+	if err := c.updateHealthCheckLog(hcl, inStartPeriod); err != nil {
 		return hcResult, errors.Wrapf(err, "unable to update health check log %s for %s", c.healthCheckLogPath(), c.ID())
 	}
 	return hcResult, hcErr
@@ -145,8 +169,23 @@ func newHealthCheckLog(start, end time.Time, exitCode int, log string) inspect.H
 	}
 }
 
+// updatedHealthCheckStatus updates the health status of the container
+// in the healthcheck log
+func (c *Container) updateHealthStatus(status string) error {
+	healthCheck, err := c.GetHealthCheckLog()
+	if err != nil {
+		return err
+	}
+	healthCheck.Status = status
+	newResults, err := json.Marshal(healthCheck)
+	if err != nil {
+		return errors.Wrapf(err, "unable to marshall healthchecks for writing status")
+	}
+	return ioutil.WriteFile(c.healthCheckLogPath(), newResults, 0700)
+}
+
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl inspect.HealthCheckLog) error {
+func (c *Container) updateHealthCheckLog(hcl inspect.HealthCheckLog, inStartPeriod bool) error {
 	healthCheck, err := c.GetHealthCheckLog()
 	if err != nil {
 		return err
@@ -159,11 +198,13 @@ func (c *Container) updateHealthCheckLog(hcl inspect.HealthCheckLog) error {
 		if len(healthCheck.Status) < 1 {
 			healthCheck.Status = HealthCheckHealthy
 		}
-		// increment failing streak
-		healthCheck.FailingStreak = healthCheck.FailingStreak + 1
-		// if failing streak > retries, then status to unhealthy
-		if int(healthCheck.FailingStreak) > c.HealthCheckConfig().Retries {
-			healthCheck.Status = HealthCheckUnhealthy
+		if !inStartPeriod {
+			// increment failing streak
+			healthCheck.FailingStreak = healthCheck.FailingStreak + 1
+			// if failing streak > retries, then status to unhealthy
+			if int(healthCheck.FailingStreak) >= c.HealthCheckConfig().Retries {
+				healthCheck.Status = HealthCheckUnhealthy
+			}
 		}
 	}
 	healthCheck.Log = append(healthCheck.Log, hcl)
@@ -198,4 +239,82 @@ func (c *Container) GetHealthCheckLog() (inspect.HealthCheckResults, error) {
 		return healthCheck, errors.Wrapf(err, "failed to unmarshal existing healthcheck results in %s", c.healthCheckLogPath())
 	}
 	return healthCheck, nil
+}
+
+// createTimer systemd timers for healthchecks of a container
+func (c *Container) createTimer() error {
+	if c.disableHealthCheckSystemd() {
+		return nil
+	}
+	podman, err := os.Executable()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get path for podman for a health check timer")
+	}
+
+	var cmd = []string{"--unit", fmt.Sprintf("%s", c.ID()), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID()}
+
+	conn, err := dbus.NewSystemdConnection()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get systemd connection to add healthchecks")
+	}
+	conn.Close()
+	logrus.Debugf("creating systemd-transient files: %s %s", "systemd-run", cmd)
+	systemdRun := exec.Command("systemd-run", cmd...)
+	_, err = systemdRun.CombinedOutput()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// startTimer starts a systemd timer for the healthchecks
+func (c *Container) startTimer() error {
+	if c.disableHealthCheckSystemd() {
+		return nil
+	}
+	conn, err := dbus.NewSystemdConnection()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get systemd connection to start healthchecks")
+	}
+	defer conn.Close()
+	_, err = conn.StartUnit(fmt.Sprintf("%s.service", c.ID()), "fail", nil)
+	return err
+}
+
+// removeTimer removes the systemd timer and unit files
+// for the container
+func (c *Container) removeTimer() error {
+	if c.disableHealthCheckSystemd() {
+		return nil
+	}
+	conn, err := dbus.NewSystemdConnection()
+	if err != nil {
+		return errors.Wrapf(err, "unable to get systemd connection to remove healthchecks")
+	}
+	defer conn.Close()
+	serviceFile := fmt.Sprintf("%s.timer", c.ID())
+	_, err = conn.StopUnit(serviceFile, "fail", nil)
+	return err
+}
+
+// HealthCheckStatus returns the current state of a container with a healthcheck
+func (c *Container) HealthCheckStatus() (string, error) {
+	if !c.HasHealthCheck() {
+		return "", errors.Errorf("container %s has no defined healthcheck", c.ID())
+	}
+	results, err := c.GetHealthCheckLog()
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to get healthcheck log for %s", c.ID())
+	}
+	return results.Status, nil
+}
+
+func (c *Container) disableHealthCheckSystemd() bool {
+	if os.Getenv("DISABLE_HC_SYSTEMD") == "true" {
+		return true
+	}
+	if c.config.HealthCheckConfig.Interval == 0 {
+		return true
+	}
+	return false
 }

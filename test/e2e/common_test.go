@@ -239,7 +239,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			ociRuntime = "/usr/bin/runc"
 		}
 	}
-
+	os.Setenv("DISABLE_HC_SYSTEMD", "true")
 	CNIConfigDir := "/etc/cni/net.d"
 
 	p := &PodmanTestIntegration{
@@ -312,6 +312,14 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
+}
+
+// InspectContainer returns a container's inspect data in JSON format
+func (p *PodmanTestIntegration) InspectContainer(name string) []inspect.ContainerData {
+	cmd := []string{"inspect", name}
+	session := p.Podman(cmd)
+	session.WaitWithDefaultTimeout()
+	return session.InspectContainerToJSON()
 }
 
 func processTestResult(f GinkgoTestDescription) {

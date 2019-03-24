@@ -868,13 +868,13 @@ func makeHealthCheckFromCli(c *cliconfig.PodmanCommand) (*manifest.Schema2Health
 	hc := manifest.Schema2HealthConfig{
 		Test: cmd,
 	}
+
+	if inInterval == "disable" {
+		inInterval = "0"
+	}
 	intervalDuration, err := time.ParseDuration(inInterval)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid healthcheck-interval %s ", inInterval)
-	}
-
-	if intervalDuration < time.Duration(time.Second*1) {
-		return nil, errors.New("healthcheck-interval must be at least 1 second")
 	}
 
 	hc.Interval = intervalDuration
@@ -882,7 +882,7 @@ func makeHealthCheckFromCli(c *cliconfig.PodmanCommand) (*manifest.Schema2Health
 	if inRetries < 1 {
 		return nil, errors.New("healthcheck-retries must be greater than 0.")
 	}
-
+	hc.Retries = int(inRetries)
 	timeoutDuration, err := time.ParseDuration(inTimeout)
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid healthcheck-timeout %s", inTimeout)

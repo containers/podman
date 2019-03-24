@@ -293,7 +293,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"healthcheck-interval", "30s",
-		"set an interval for the healthchecks",
+		"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
 	)
 	createFlags.Uint(
 		"healthcheck-retries", 3,
