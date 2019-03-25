@@ -1727,6 +1727,7 @@ _podman_container_run() {
 		--memory-reservation
 		--name
 		--network
+		--no-hosts
 		--oom-score-adj
 		--pid
 		--pids-limit
