@@ -212,43 +212,32 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, config *Pul
 	return ir.doPullImage(ctx, sc, *goal, config.Writer, config.SigningOptions, config.DockerOptions, config.Label)
 }
 
-// pullImageFromHeuristicSourceIfNecessary checks an image is out of date with its source,
+// pullImageIfOutOfDate checks an image is out of date with its source,
 // and if so, pulls an updated image.
-// Rather than search for the name in config, use the names of localImg, so we don't have to
-// refind the transport and reconstruct the correct name.
-func (ir *Runtime) pullImageFromHeuristicSourceIfNecessary(ctx context.Context, localImg *storage.Image, config *PullConfig) ([]string, error) {
+func (ir *Runtime) pullImageIfOutOfDate(ctx context.Context, localImg *storage.Image, config *PullConfig) ([]string, bool, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromHeuristicSourceIfNecessary")
 	defer span.Finish()
 
-	var inspectErrors *multierror.Error
-
 	sc := GetSystemContext(config.SignaturePolicyPath, config.Authfile, false)
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
-	var goal *pullGoal
-	for _, name := range localImg.Names {
-		goal, _ = ir.getPullGoalFromHeuristicSource(ctx, sc, name)
-		if goal != nil {
-			break
-		}
-	}
-	if goal == nil {
-		return nil, errors.Errorf("Unable to get pull goal for updating image")
+
+	goal, err := ir.getPullGoalFromHeuristicSource(ctx, sc, config.Name)
+	if err != nil {
+		return nil, false, err
 	}
 
 	found := false
 	for _, imageInfo := range goal.refPairs {
-		if config.Writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
-			logrus.Debugf("Checking if image is up to date with %s", imageInfo.image)
-		}
+		logrus.Debugf("Checking if image is up to date with %s", imageInfo.image)
 
-		upToDate, err := checkRemoteImageIsUpToDateAndHasLabel(ctx, config.Label, &localImg.Created, imageInfo, sc)
+		upToDate, err := checkRemoteImageIsUpToDateAndHasLabel(ctx, config.Label, localImg.Created, imageInfo, sc)
 		if err != nil {
-			inspectErrors = multierror.Append(inspectErrors, err)
+			logrus.Debugf("Error checking if image is up to date, continuing: +%v", err)
 			continue
 		}
 		if upToDate {
 			// we don't need to update our image.
-			return nil, nil
+			return nil, upToDate, nil
 		}
 		// Image was found and needs updating, break to pull the image
 		if config.Writer != nil {
@@ -258,13 +247,12 @@ func (ir *Runtime) pullImageFromHeuristicSourceIfNecessary(ctx context.Context, 
 		break
 	}
 	if !found {
-		return nil, errors.Wrapf(inspectErrors, "%s was not found in any registry", config.Name)
+		return nil, false, errors.Errorf("%s was not found in any registry", config.Name)
 	}
 
 	// We can now update the image
 	imgs, pullErrors := ir.doPullImage(ctx, sc, *goal, config.Writer, config.SigningOptions, config.DockerOptions, config.Label)
-	inspectErrors = multierror.Append(inspectErrors, pullErrors)
-	return imgs, inspectErrors
+	return imgs, false, pullErrors
 }
 
 // getPullGoalFromHeuristicSource determines what image(s) to try to pull based on inputName, which is heuristically parsed and may involve configured registries.
@@ -428,7 +416,7 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 // checkRemoteImageIsUpToDateAndHasLabel checks if the remote image has a specific label. If not, an error is returned.
 // Then it checks if an source reference is newer than lastUpdated, or the time an image we are checking was last updated.
 // It returns false if lastUpdate is older than the source image, true otherwise
-func checkRemoteImageIsUpToDateAndHasLabel(ctx context.Context, label *string, lastUpdated *time.Time, imageInfo pullRefPair, sc *types.SystemContext) (bool, error) {
+func checkRemoteImageIsUpToDateAndHasLabel(ctx context.Context, label *string, lastUpdated time.Time, imageInfo pullRefPair, sc *types.SystemContext) (bool, error) {
 	remoteImage, err := imageInfo.srcRef.NewImage(ctx, sc)
 	if err != nil {
 		return false, err
@@ -442,13 +430,13 @@ func checkRemoteImageIsUpToDateAndHasLabel(ctx context.Context, label *string, l
 			return false, err
 		}
 	}
-	// unconditionally pull the image if either the current or remote image have no
+	// unconditionally pull the image if either the remote image has no
 	// created time
-	if remoteInspect.Created == nil || lastUpdated == nil {
+	if remoteInspect.Created == nil {
 		return true, nil
 	}
 	// otherwise, only update if we need to
-	return !remoteInspect.Created.After(*lastUpdated), nil
+	return !remoteInspect.Created.After(lastUpdated), nil
 }
 
 // checks if a label is in the labels map passed in from an image.Inspect

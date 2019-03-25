@@ -188,21 +188,25 @@ func (ir *Runtime) New(ctx context.Context, config *PullConfig, forcePull, updat
 
 	if !forcePull {
 		localImage, err := newImage.getLocalImage()
-		if update {
-			// check if it needs updating, and if so update it
-			imageName, err = ir.pullImageFromHeuristicSourceIfNecessary(ctx, localImage, config)
-		}
-		// If we actually called pullImageFromHeuristicSourceIfNecessary,
-		// and err was returned nil, then we don't need to update the local image.
-		// Hence, this if statement being separated from the above statement
 		if err == nil {
-			newImage.Local = true
-			newImage.image = localImage
-			return &newImage, nil
+			upToDate := true
+			if update {
+				// check if it needs updating, and if so update it
+				imageName, upToDate, err = ir.pullImageIfOutOfDate(ctx, localImage, config)
+				if err != nil {
+					return nil, errors.Wrapf(err, "unable to update %s", config.Name)
+				}
+			}
+			if upToDate {
+				newImage.Local = true
+				newImage.image = localImage
+				return &newImage, nil
+			}
 		}
 	}
-	// We have yet to find any imageNames (we didn't attempt to update a local image)
-	if len(imageName) == 0 {
+	// If we are force pulling or not updating, then we will have gotten here because
+	// the image does not yet exist in local storage.
+	if forcePull || !update {
 		// The image is not local
 		imageName, err = ir.pullImageFromHeuristicSource(ctx, config)
 		if err != nil {

@@ -87,7 +87,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	imageConfig := ir.DefaultNewImageConfig("docker.io/library/busybox:latest")
+	imageConfig := ir.DefaultPullConfig("docker.io/library/busybox:latest")
 	imageConfig.Writer = writer
 
 	bb, err := ir.New(context.Background(), imageConfig, false, false)
@@ -141,7 +141,7 @@ func TestImage_New(t *testing.T) {
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		imageConfig := ir.DefaultNewImageConfig(img)
+		imageConfig := ir.DefaultPullConfig(img)
 		imageConfig.Writer = writer
 
 		newImage, err := ir.New(context.Background(), imageConfig, false, false)
@@ -172,7 +172,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	config := ir.DefaultNewImageConfig("busybox")
+	config := ir.DefaultPullConfig("busybox")
 	config.Writer = os.Stdout
 
 	newImage, err := ir.New(context.Background(), config, false, false)
