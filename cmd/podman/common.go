@@ -389,6 +389,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Connect a container to a network",
 	)
 	createFlags.Bool(
+		"no-hosts", false,
+		"Do not create /etc/hosts within the container, instead use the version from the image",
+	)
+	createFlags.Bool(
 		"oom-kill-disable", false,
 		"Disable OOM Killer",
 	)

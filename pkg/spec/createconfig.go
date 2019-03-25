@@ -88,6 +88,7 @@ type CreateConfig struct {
 	ExposedPorts       map[nat.Port]struct{}
 	GroupAdd           []string // group-add
 	HealthCheck        *manifest.Schema2HealthConfig
+	NoHosts            bool
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
 	Image              string
@@ -514,7 +515,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if len(c.DNSOpt) > 0 {
 		options = append(options, libpod.WithDNSOption(c.DNSOpt))
 	}
-	if len(c.HostAdd) > 0 {
+	if c.NoHosts {
+		options = append(options, libpod.WithNoCreateHosts())
+	}
+	if len(c.HostAdd) > 0 && !c.NoHosts {
 		options = append(options, libpod.WithHosts(c.HostAdd))
 	}
 	logPath := getLoggingPath(c.LogDriverOpt)
