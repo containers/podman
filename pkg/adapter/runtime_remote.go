@@ -763,7 +763,11 @@ func (r *LocalRuntime) JoinOrCreateRootlessPod(pod *Pod) (bool, int, error) {
 
 // Events monitors libpod/podman events over a varlink connection
 func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
-	reply, err := iopodman.GetEvents().Send(r.Conn, uint64(varlink.More), c.Filter, c.Since, c.Stream, c.Until)
+	var more uint64
+	if c.Stream {
+		more = uint64(varlink.More)
+	}
+	reply, err := iopodman.GetEvents().Send(r.Conn, more, c.Filter, c.Since, c.Until)
 	if err != nil {
 		return errors.Wrapf(err, "unable to obtain events")
 	}

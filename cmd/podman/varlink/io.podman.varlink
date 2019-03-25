@@ -1151,7 +1151,7 @@ method GetPodsByContext(all: bool, latest: bool, args: []string) -> (pods: []str
 method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) -> (reply: MoreResponse)
 
 # GetEvents returns known libpod events filtered by the options provided.
-method GetEvents(filter: []string, since: string, stream: bool, until: string) -> (events: Event)
+method GetEvents(filter: []string, since: string, until: string) -> (events: Event)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string, reason: string)
