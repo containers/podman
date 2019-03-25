@@ -43,8 +43,8 @@ func getContext() context.Context {
 func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
 		healthCheck *manifest.Schema2HealthConfig
-		err error
-		cidFile *os.File
+		err         error
+		cidFile     *os.File
 	)
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(ctx, "createContainer")
