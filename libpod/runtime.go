@@ -23,7 +23,6 @@ import (
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // RuntimeStateStore is a constant indicating which state store implementation
@@ -355,7 +354,9 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 	if err != nil {
 		return nil, err
 	}
-	deepcopier.Copy(defaultRuntimeConfig).To(runtime.config)
+	if err := JSONDeepCopy(defaultRuntimeConfig, runtime.config); err != nil {
+		return nil, errors.Wrapf(err, "error copying runtime default config")
+	}
 	runtime.config.TmpDir = tmpDir
 
 	storageConf, err := util.GetDefaultStoreOptions()
@@ -923,20 +924,22 @@ func makeRuntime(runtime *Runtime) (err error) {
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
-func (r *Runtime) GetConfig() *RuntimeConfig {
+func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil
+		return nil, ErrRuntimeStopped
 	}
 
 	config := new(RuntimeConfig)
 
 	// Copy so the caller won't be able to modify the actual config
-	deepcopier.Copy(r.config).To(config)
+	if err := JSONDeepCopy(r.config, config); err != nil {
+		return nil, errors.Wrapf(err, "error copying config")
+	}
 
-	return config
+	return config, nil
 }
 
 // Shutdown shuts down the runtime and associated containers and storage

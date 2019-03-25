@@ -129,7 +129,11 @@ func startCmd(c *cliconfig.StartValues) error {
 				if errors.Cause(err) == libpod.ErrNoSuchCtr {
 					// The container may have been removed
 					// Go looking for an exit file
-					ctrExitCode, err := readExitFile(runtime.GetConfig().TmpDir, ctr.ID())
+					rtc, err := runtime.GetConfig()
+					if err != nil {
+						return err
+					}
+					ctrExitCode, err := readExitFile(rtc.TmpDir, ctr.ID())
 					if err != nil {
 						logrus.Errorf("Cannot get exit code: %v", err)
 						exitCode = 127

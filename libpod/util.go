@@ -187,3 +187,13 @@ func validPodNSOption(p *Pod, ctrPod string) error {
 	}
 	return nil
 }
+
+// JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the
+// given structures. From and To should be identically typed structs.
+func JSONDeepCopy(from, to interface{}) error {
+	tmp, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(tmp, to)
+}

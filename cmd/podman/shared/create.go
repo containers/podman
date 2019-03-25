@@ -43,20 +43,23 @@ func getContext() context.Context {
 func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
 		healthCheck *manifest.Schema2HealthConfig
+		err error
+		cidFile *os.File
 	)
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(ctx, "createContainer")
 		defer span.Finish()
 	}
 
-	rtc := runtime.GetConfig()
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		return nil, nil, err
+	}
 	rootfs := ""
 	if c.Bool("rootfs") {
 		rootfs = c.InputArgs[0]
 	}
 
-	var err error
-	var cidFile *os.File
 	if c.IsSet("cidfile") && os.Geteuid() == 0 {
 		cidFile, err = libpod.OpenExclusiveFile(c.String("cidfile"))
 		if err != nil && os.IsExist(err) {
@@ -721,7 +724,11 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	if c.Bool("init") {
 		initPath := c.String("init-path")
 		if initPath == "" {
-			initPath = runtime.GetConfig().InitPath
+			rtc, err := runtime.GetConfig()
+			if err != nil {
+				return nil, err
+			}
+			initPath = rtc.InitPath
 		}
 		if err := config.AddContainerInitBinary(initPath); err != nil {
 			return nil, err

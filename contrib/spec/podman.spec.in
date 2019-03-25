@@ -151,7 +151,6 @@ Provides: bundled(golang(github.com/stretchr/testify)) = 4d4bfba8f1d1027c4fdbe37
 Provides: bundled(golang(github.com/syndtr/gocapability)) = e7cb7fa329f456b3855136a2642b197bad7366ba
 Provides: bundled(golang(github.com/tchap/go-patricia)) = v2.2.6
 Provides: bundled(golang(github.com/ulikunitz/xz)) = v0.5.4
-Provides: bundled(golang(github.com/ulule/deepcopier)) = master
 # "-" are not accepted in version strings, so comment out below line
 #Provides: bundled(golang(github.com/urfave/cli)) = fix-short-opts-parsing
 Provides: bundled(golang(github.com/varlink/go)) = master
@@ -237,7 +236,6 @@ BuildRequires: golang(github.com/opencontainers/selinux/go-selinux)
 BuildRequires: golang(github.com/opencontainers/selinux/go-selinux/label)
 BuildRequires: golang(github.com/pkg/errors)
 BuildRequires: golang(github.com/sirupsen/logrus)
-BuildRequires: golang(github.com/ulule/deepcopier)
 BuildRequires: golang(golang.org/x/crypto/ssh/terminal)
 BuildRequires: golang(golang.org/x/sys/unix)
 BuildRequires: golang(k8s.io/apimachinery/pkg/util/wait)
@@ -290,7 +288,6 @@ Requires:      golang(github.com/opencontainers/selinux/go-selinux)
 Requires:      golang(github.com/opencontainers/selinux/go-selinux/label)
 Requires:      golang(github.com/pkg/errors)
 Requires:      golang(github.com/sirupsen/logrus)
-Requires:      golang(github.com/ulule/deepcopier)
 Requires:      golang(golang.org/x/crypto/ssh/terminal)
 Requires:      golang(golang.org/x/sys/unix)
 Requires:      golang(k8s.io/apimachinery/pkg/util/wait)

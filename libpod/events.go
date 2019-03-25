@@ -58,6 +58,10 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
 func (r *Runtime) Events(fromStart, stream bool, options []events.EventFilter, eventChannel chan *events.Event) error {
+	if !r.valid {
+		return ErrRuntimeStopped
+	}
+
 	t, err := r.getTail(fromStart, stream)
 	if err != nil {
 		return err
@@ -71,7 +75,7 @@ func (r *Runtime) Events(fromStart, stream bool, options []events.EventFilter, e
 		case events.Image, events.Volume, events.Pod, events.Container:
 		//	no-op
 		default:
-			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), r.GetConfig().EventsLogFilePath)
+			return errors.Errorf("event type %s is not valid in %s", event.Type.String(), r.config.EventsLogFilePath)
 		}
 		include := true
 		for _, filter := range options {

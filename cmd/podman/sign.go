@@ -108,7 +108,11 @@ func signCmd(c *cliconfig.SignValues) error {
 		}
 
 		// create the signstore file
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, runtime.GetConfig().SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, false, nil)
+		rtc, err := runtime.GetConfig()
+		if err != nil {
+			return err
+		}
+		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, false, nil)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}

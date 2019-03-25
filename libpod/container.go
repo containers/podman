@@ -17,7 +17,6 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-	"github.com/ulule/deepcopier"
 )
 
 // ContainerStatus represents the current state of a container
@@ -407,7 +406,9 @@ func (t ContainerStatus) String() string {
 // Config returns the configuration used to create the container
 func (c *Container) Config() *ContainerConfig {
 	returnConfig := new(ContainerConfig)
-	deepcopier.Copy(c.config).To(returnConfig)
+	if err := JSONDeepCopy(c.config, returnConfig); err != nil {
+		return nil
+	}
 
 	return returnConfig
 }
@@ -417,7 +418,9 @@ func (c *Container) Config() *ContainerConfig {
 // spec may differ slightly as mounts are added based on the image
 func (c *Container) Spec() *spec.Spec {
 	returnSpec := new(spec.Spec)
-	deepcopier.Copy(c.config.Spec).To(returnSpec)
+	if err := JSONDeepCopy(c.config.Spec, returnSpec); err != nil {
+		return nil
+	}
 
 	return returnSpec
 }
@@ -1094,7 +1097,9 @@ func (c *Container) ContainerState() (*ContainerState, error) {
 		}
 	}
 	returnConfig := new(ContainerState)
-	deepcopier.Copy(c.state).To(returnConfig)
+	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
+		return nil, errors.Wrapf(err, "error copying container %s state", c.ID())
+	}
 	return c.state, nil
 }
 

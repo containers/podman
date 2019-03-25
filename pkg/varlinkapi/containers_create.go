@@ -22,7 +22,10 @@ import (
 
 // CreateContainer ...
 func (i *LibpodAPI) CreateContainer(call iopodman.VarlinkCall, config iopodman.Create) error {
-	rtc := i.Runtime.GetConfig()
+	rtc, err := i.Runtime.GetConfig()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
 	ctx := getContext()
 
 	newImage, err := i.Runtime.ImageRuntime().New(ctx, config.Image, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{}, false, nil)

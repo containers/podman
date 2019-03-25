@@ -9,7 +9,6 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"encoding/json"
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -17,7 +16,6 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/ulule/deepcopier"
 )
 
 var (
@@ -187,7 +185,9 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		}
 		time.Sleep(time.Second)
 		previousPodStats := new([]*libpod.PodContainerStats)
-		deepcopier.Copy(newStats).To(previousPodStats)
+		if err := libpod.JSONDeepCopy(newStats, previousPodStats); err != nil {
+			return err
+		}
 		pods, err = runtime.GetStatPods(c)
 		if err != nil {
 			return err
