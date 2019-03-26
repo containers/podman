@@ -10,13 +10,15 @@ import (
 )
 
 // GetEvents is a remote endpoint to get events from the event log
-func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since string, stream bool, until string) error {
+func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since string, until string) error {
 	var (
 		fromStart   bool
 		eventsError error
 		event       *events.Event
+		stream      bool
 	)
 	if call.WantsMore() {
+		stream = true
 		call.Continues = true
 	}
 	filters, err := shared.GenerateEventOptions(filter, since, until)
@@ -52,5 +54,5 @@ func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since 
 			break
 		}
 	}
-	return call.ReplyGetEvents(iopodman.Event{})
+	return nil
 }

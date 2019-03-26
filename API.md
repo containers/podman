@@ -43,9 +43,13 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetContainerStats(name: string) ContainerStats](#GetContainerStats)
 
+[func GetContainerStatsWithHistory(previousStats: ContainerStats) ContainerStats](#GetContainerStatsWithHistory)
+
 [func GetContainersByContext(all: bool, latest: bool, args: []string) []string](#GetContainersByContext)
 
-[func GetEvents(options: EventInput) Event](#GetEvents)
+[func GetContainersLogs(names: []string, follow: bool, latest: bool, since: string, tail: int, timestamps: bool) LogLine](#GetContainersLogs)
+
+[func GetEvents(filter: []string, since: string, until: string) Event](#GetEvents)
 
 [func GetImage(id: string) Image](#GetImage)
 
@@ -133,6 +137,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func TagImage(name: string, tagged: string) string](#TagImage)
 
+[func TopPod(pod: string, latest: bool, descriptors: []string) []string](#TopPod)
+
 [func UnmountContainer(name: string, force: bool) ](#UnmountContainer)
 
 [func UnpauseContainer(name: string) string](#UnpauseContainer)
@@ -169,8 +175,6 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type Event](#Event)
 
-[type EventInput](#EventInput)
-
 [type IDMap](#IDMap)
 
 [type IDMappingOptions](#IDMappingOptions)
@@ -198,6 +202,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type ListPodContainerInfo](#ListPodContainerInfo)
 
 [type ListPodData](#ListPodData)
+
+[type LogLine](#LogLine)
 
 [type MoreResponse](#MoreResponse)
 
@@ -236,8 +242,6 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [error PodNotFound](#PodNotFound)
 
 [error RuntimeError](#RuntimeError)
-
-[error StreamEnded](#StreamEnded)
 
 [error VolumeNotFound](#VolumeNotFound)
 
@@ -472,6 +476,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.GetContainerStats '{"name
   }
 }
 ~~~
+### <a name="GetContainerStatsWithHistory"></a>func GetContainerStatsWithHistory
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetContainerStatsWithHistory(previousStats: [ContainerStats](#ContainerStats)) [ContainerStats](#ContainerStats)</div>
+GetContainerStatsWithHistory takes a previous set of container statistics and uses libpod functions
+to calculate the containers statistics based on current and previous measurements.
 ### <a name="GetContainersByContext"></a>func GetContainersByContext
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -479,10 +489,15 @@ method GetContainersByContext(all: [bool](https://godoc.org/builtin#bool), lates
 GetContainersByContext allows you to get a list of container ids depending on all, latest, or a list of
 container names.  The definition of latest container means the latest by creation date.  In a multi-
 user environment, results might differ from what you expect.
+### <a name="GetContainersLogs"></a>func GetContainersLogs
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetContainersLogs(names: [[]string](#[]string), follow: [bool](https://godoc.org/builtin#bool), latest: [bool](https://godoc.org/builtin#bool), since: [string](https://godoc.org/builtin#string), tail: [int](https://godoc.org/builtin#int), timestamps: [bool](https://godoc.org/builtin#bool)) [LogLine](#LogLine)</div>
+
 ### <a name="GetEvents"></a>func GetEvents
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method GetEvents(options: [EventInput](#EventInput)) [Event](#Event)</div>
+method GetEvents(filter: [[]string](#[]string), since: [string](https://godoc.org/builtin#string), until: [string](https://godoc.org/builtin#string)) [Event](#Event)</div>
 GetEvents returns known libpod events filtered by the options provided.
 ### <a name="GetImage"></a>func GetImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
@@ -714,7 +729,7 @@ See also [GetContainer](#GetContainer).
 
 method ListImages() [Image](#Image)</div>
 ListImages returns information about the images that are currently in storage.
-See also [InspectImage](InspectImage).
+See also [InspectImage](#InspectImage).
 ### <a name="ListPods"></a>func ListPods
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -976,6 +991,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71
 method TagImage(name: [string](https://godoc.org/builtin#string), tagged: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
+### <a name="TopPod"></a>func TopPod
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method TopPod(pod: [string](https://godoc.org/builtin#string), latest: [bool](https://godoc.org/builtin#bool), descriptors: [[]string](#[]string)) [[]string](#[]string)</div>
+
 ### <a name="UnmountContainer"></a>func UnmountContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1426,17 +1446,6 @@ status [string](https://godoc.org/builtin#string)
 time [string](https://godoc.org/builtin#string)
 
 type [string](https://godoc.org/builtin#string)
-### <a name="EventInput"></a>type EventInput
-
-EventInput describes the input to obtain libpod events
-
-filter [[]string](#[]string)
-
-since [string](https://godoc.org/builtin#string)
-
-stream [bool](https://godoc.org/builtin#bool)
-
-until [string](https://godoc.org/builtin#string)
 ### <a name="IDMap"></a>type IDMap
 
 IDMap is used to describe user name spaces during container creation
@@ -1636,6 +1645,19 @@ labels [map[string]](#map[string])
 numberofcontainers [string](https://godoc.org/builtin#string)
 
 containersinfo [ListPodContainerInfo](#ListPodContainerInfo)
+### <a name="LogLine"></a>type LogLine
+
+
+
+device [string](https://godoc.org/builtin#string)
+
+parseLogType [string](https://godoc.org/builtin#string)
+
+time [string](https://godoc.org/builtin#string)
+
+msg [string](https://godoc.org/builtin#string)
+
+cid [string](https://godoc.org/builtin#string)
 ### <a name="MoreResponse"></a>type MoreResponse
 
 MoreResponse is a struct for when responses from varlink requires longer output
@@ -1793,9 +1815,6 @@ PodNotFound means the pod could not be found by the provided name or ID in local
 ### <a name="RuntimeError"></a>type RuntimeError
 
 RuntimeErrors generally means a runtime could not be found or gotten.
-### <a name="StreamEnded"></a>type StreamEnded
-
-The Podman endpoint has closed because the stream ended.
 ### <a name="VolumeNotFound"></a>type VolumeNotFound
 
 VolumeNotFound means the volume could not be found by the name or ID in local storage.
