@@ -1111,7 +1111,7 @@ method ContainerArtifacts(name: string, artifactName: string) -> (config: string
 
 # ContainerInspectData returns a container's inspect data in string form.  This call is for
 # development of Podman only and generally should not be used.
-method ContainerInspectData(name: string) -> (config: string)
+method ContainerInspectData(name: string, size: bool) -> (config: string)
 
 # ContainerStateData returns a container's state config in string form.  This call is for
 # development of Podman only and generally should not be used.

@@ -519,12 +519,12 @@ func (i *LibpodAPI) ContainerArtifacts(call iopodman.VarlinkCall, name, artifact
 }
 
 // ContainerInspectData returns the inspect data of a container in string format
-func (i *LibpodAPI) ContainerInspectData(call iopodman.VarlinkCall, name string) error {
+func (i *LibpodAPI) ContainerInspectData(call iopodman.VarlinkCall, name string, size bool) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	data, err := ctr.Inspect(true)
+	data, err := ctr.Inspect(size)
 	if err != nil {
 		return call.ReplyErrorOccurred("unable to inspect container")
 	}
