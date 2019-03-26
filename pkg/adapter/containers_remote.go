@@ -22,7 +22,7 @@ import (
 
 // Inspect returns an inspect struct from varlink
 func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
-	reply, err := iopodman.ContainerInspectData().Call(c.Runtime.Conn, c.ID())
+	reply, err := iopodman.ContainerInspectData().Call(c.Runtime.Conn, c.ID(), size)
 	if err != nil {
 		return nil, err
 	}

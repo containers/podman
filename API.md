@@ -15,7 +15,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ContainerExists(name: string) int](#ContainerExists)
 
-[func ContainerInspectData(name: string) string](#ContainerInspectData)
+[func ContainerInspectData(name: string, size: bool) string](#ContainerInspectData)
 
 [func ContainerRestore(name: string, keep: bool, tcpEstablished: bool) string](#ContainerRestore)
 
@@ -300,7 +300,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ContainerExists '{"name":
 ### <a name="ContainerInspectData"></a>func ContainerInspectData
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ContainerInspectData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+method ContainerInspectData(name: [string](https://godoc.org/builtin#string), size: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 ContainerInspectData returns a container's inspect data in string form.  This call is for
 development of Podman only and generally should not be used.
 ### <a name="ContainerRestore"></a>func ContainerRestore
