@@ -33,12 +33,12 @@ docker.io/library/alpine   latest   5cb3aa00f899   2 weeks ago   5.79MB   0B    
 
 Containers space usage:
 
-CONTAINER ID    IMAGE   COMMAND       LOCAL VOLUMES   SIZE     CREATED            STATUS       NAMES
-073f7e62812d    5cb3    sleep 100     1               0B       About an hourago   exited       zen_joliot
-3f19f5bba242    5cb3    sleep 100     0               5.52kB   4 hoursago         exited       pedantic_archimedes
-8cd89bf645cc    5cb3    ls foodir     0               58B      2 hoursago         configured   agitated_hamilton
-a1d948a4b61d    5cb3    ls foodir     0               12B      2 hoursago         exited       laughing_wing
-eafe3e3c5bb3    5cb3    sleep 10000   0               72B      2 hoursago         running      priceless_liskov
+CONTAINER ID    IMAGE   COMMAND       LOCAL VOLUMES   SIZE     CREATED        STATUS       NAMES
+073f7e62812d    5cb3    sleep 100     1               0B       20 hours ago   exited       zen_joliot
+3f19f5bba242    5cb3    sleep 100     0               5.52kB   22 hours ago   exited       pedantic_archimedes
+8cd89bf645cc    5cb3    ls foodir     0               58B      21 hours ago   configured   agitated_hamilton
+a1d948a4b61d    5cb3    ls foodir     0               12B      21 hours ago   exited       laughing_wing
+eafe3e3c5bb3    5cb3    sleep 10000   0               72B      21 hours ago   exited       priceless_liskov
 
 Local Volumes space usage:
 
