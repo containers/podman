@@ -28,6 +28,7 @@ OCI_RUNTIME ?= ""
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
+FISHINSTALLDIR=${PREFIX}/share/fish/completions
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
@@ -250,6 +251,8 @@ install.completions:
 	install ${SELINUXOPT} -m 644 completions/bash/podman ${BASHINSTALLDIR}
 	install ${SELINUXOPT} -d -m 755 ${ZSHINSTALLDIR}
 	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${FISHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/fish/podman.fish ${FISHINSTALLDIR}
 
 install.cni:
 	install ${SELINUXOPT} -d -m 755 ${ETCDIR}/cni/net.d/
