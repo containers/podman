@@ -646,7 +646,7 @@ func printFormat(format string, containers []shared.PsContainerOutput) error {
 }
 
 func dumpJSON(containers []shared.PsContainerOutput) error {
-	b, err := json.MarshalIndent(containers, "", "\t")
+	b, err := json.MarshalIndent(containers, "", "     ")
 	if err != nil {
 		return err
 	}
