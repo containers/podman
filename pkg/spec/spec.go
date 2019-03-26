@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/mount"
 	pmount "github.com/containers/storage/pkg/mount"
@@ -19,6 +20,7 @@ import (
 )
 
 const cpuPeriod = 100000
+const bindMount = "bind"
 
 func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
@@ -46,6 +48,33 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 		return mounts
 	}
 	return configMount
+}
+
+// Split named volumes from normal volumes
+func splitNamedVolumes(mounts []spec.Mount) ([]spec.Mount, []*libpod.ContainerNamedVolume) {
+	newMounts := make([]spec.Mount, 0)
+	namedVolumes := make([]*libpod.ContainerNamedVolume, 0)
+	for _, mount := range mounts {
+		// If it's not a named volume, append unconditionally
+		if mount.Type != bindMount {
+			newMounts = append(newMounts, mount)
+			continue
+		}
+		// Volumes that are not named volumes must be an absolute or
+		// relative path.
+		// Volume names may not begin with a non-alphanumeric character
+		// so the HasPrefix() check is safe here.
+		if strings.HasPrefix(mount.Source, "/") || strings.HasPrefix(mount.Source, ".") {
+			newMounts = append(newMounts, mount)
+		} else {
+			namedVolume := new(libpod.ContainerNamedVolume)
+			namedVolume.Name = mount.Source
+			namedVolume.Dest = mount.Destination
+			namedVolume.Options = mount.Options
+			namedVolumes = append(namedVolumes, namedVolume)
+		}
+	}
+	return newMounts, namedVolumes
 }
 
 func getAvailableGids() (int64, error) {
@@ -99,7 +128,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
-			Type:        "bind",
+			Type:        bindMount,
 			Source:      "/sys",
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
@@ -126,7 +155,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.RemoveMount("/dev/mqueue")
 		devMqueue := spec.Mount{
 			Destination: "/dev/mqueue",
-			Type:        "bind",
+			Type:        bindMount,
 			Source:      "/dev/mqueue",
 			Options:     []string{"bind", "nosuid", "noexec", "nodev"},
 		}
@@ -136,7 +165,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.RemoveMount("/proc")
 		procMount := spec.Mount{
 			Destination: "/proc",
-			Type:        "bind",
+			Type:        bindMount,
 			Source:      "/proc",
 			Options:     []string{"rbind", "nosuid", "noexec", "nodev"},
 		}
@@ -377,6 +406,12 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
 	//--mount
 	configSpec.Mounts = supercedeUserMounts(config.initFSMounts(), configSpec.Mounts)
+
+	// Split normal mounts and named volumes
+	newMounts, namedVolumes := splitNamedVolumes(configSpec.Mounts)
+	configSpec.Mounts = newMounts
+	config.NamedVolumes = namedVolumes
+
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
 	if err != nil {

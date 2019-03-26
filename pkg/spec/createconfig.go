@@ -130,11 +130,12 @@ type CreateConfig struct {
 	Mounts             []spec.Mount          //mounts
 	Volumes            []string              //volume
 	VolumesFrom        []string
-	WorkDir            string   //workdir
-	LabelOpts          []string //SecurityOpts
-	NoNewPrivs         bool     //SecurityOpts
-	ApparmorProfile    string   //SecurityOpts
-	SeccompProfilePath string   //SecurityOpts
+	NamedVolumes       []*libpod.ContainerNamedVolume // Filled in by CreateConfigToOCISpec
+	WorkDir            string                         //workdir
+	LabelOpts          []string                       //SecurityOpts
+	NoNewPrivs         bool                           //SecurityOpts
+	ApparmorProfile    string                         //SecurityOpts
+	SeccompProfilePath string                         //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
 	LocalVolumes       []spec.Mount //Keeps track of the built-in volumes of container used in the --volumes-from flag
@@ -217,7 +218,7 @@ func (c *CreateConfig) initFSMounts() []spec.Mount {
 	return mounts
 }
 
-//GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
+// GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
 	m := c.LocalVolumes
 	for _, i := range c.Volumes {
@@ -421,6 +422,10 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 
 		options = append(options, libpod.WithUserVolumes(volumes))
+	}
+
+	if len(c.NamedVolumes) != 0 {
+		options = append(options, libpod.WithNamedVolumes(c.NamedVolumes))
 	}
 
 	if len(c.LocalVolumes) != 0 {

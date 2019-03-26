@@ -545,14 +545,6 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	return ctrs[lastCreatedIndex], nil
 }
 
-// Check if volName is a named volume and not one of the default mounts we add to containers
-func isNamedVolume(volName string) bool {
-	if volName != "proc" && volName != "tmpfs" && volName != "devpts" && volName != "shm" && volName != "mqueue" && volName != "sysfs" && volName != "cgroup" {
-		return true
-	}
-	return false
-}
-
 // Export is the libpod portion of exporting a container to a tar file
 func (r *Runtime) Export(name string, path string) error {
 	ctr, err := r.LookupContainer(name)
