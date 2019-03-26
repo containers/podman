@@ -357,10 +357,8 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		return nil, errors.Errorf("--cpu-quota and --cpus cannot be set together")
 	}
 
-	if c.Flag("no-hosts").Changed && c.Flag("add-host").Changed {
-		if c.Bool("no-hosts") {
-			return nil, errors.Errorf("--no-hosts and --add-host cannot be set together")
-		}
+	if c.Bool("no-hosts") && c.Flag("add-host").Changed {
+		return nil, errors.Errorf("--no-hosts and --add-host cannot be set together")
 	}
 
 	// EXPOSED PORTS

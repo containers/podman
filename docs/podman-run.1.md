@@ -210,7 +210,7 @@ configuration passed to the container. Typically this is necessary when the
 host DNS configuration is invalid for the container (e.g., 127.0.0.1). When this
 is the case the **--dns** flags is necessary for every run.
 
-The special sigil **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
+The special value **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
 The **/etc/resolv.conf** file in the image will be used without changes.
 
 **--dns-option**=[]
@@ -449,7 +449,7 @@ Not implemented
 Do not create /etc/hosts for the container.
 By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
 **--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
-This conflicts with **--add-host**.
+This option conflicts with **--add-host**.
 
 **--oom-kill-disable**=*true*|*false*
 

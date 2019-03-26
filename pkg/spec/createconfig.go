@@ -506,8 +506,8 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithDNSSearch(c.DNSSearch))
 	}
 	if len(c.DNSServers) > 0 {
-		if len(c.DNSServers) == 1 && c.DNSServers[0] == "none" {
-			options = append(options, libpod.WithNoCreateResolvConf())
+		if len(c.DNSServers) == 1 && strings.ToLower(c.DNSServers[0]) == "none" {
+			options = append(options, libpod.WithUseImageResolvConf())
 		} else {
 			options = append(options, libpod.WithDNS(c.DNSServers))
 		}
@@ -516,7 +516,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithDNSOption(c.DNSOpt))
 	}
 	if c.NoHosts {
-		options = append(options, libpod.WithNoCreateHosts())
+		options = append(options, libpod.WithUseImageHosts())
 	}
 	if len(c.HostAdd) > 0 && !c.NoHosts {
 		options = append(options, libpod.WithHosts(c.HostAdd))

@@ -703,7 +703,7 @@ func (c *Container) makeBindMounts() error {
 			}
 		}
 
-		if c.config.NetNsCtr != "" && (!c.config.NoCreateHosts || !c.config.NoCreateResolvConf) {
+		if c.config.NetNsCtr != "" && (!c.config.UseImageResolvConf || !c.config.UseImageHosts) {
 			// We share a net namespace.
 			// We want /etc/resolv.conf and /etc/hosts from the
 			// other container. Unless we're not creating both of
@@ -719,7 +719,7 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
 			}
 
-			if !c.config.NoCreateResolvConf {
+			if !c.config.UseImageResolvConf {
 				// The other container may not have a resolv.conf or /etc/hosts
 				// If it doesn't, don't copy them
 				resolvPath, exists := bindMounts["/etc/resolv.conf"]
@@ -728,7 +728,7 @@ func (c *Container) makeBindMounts() error {
 				}
 			}
 
-			if !c.config.NoCreateHosts {
+			if !c.config.UseImageHosts {
 				// check if dependency container has an /etc/hosts file
 				hostsPath, exists := bindMounts["/etc/hosts"]
 				if !exists {
@@ -751,7 +751,7 @@ func (c *Container) makeBindMounts() error {
 				c.state.BindMounts["/etc/hosts"] = hostsPath
 			}
 		} else {
-			if !c.config.NoCreateResolvConf {
+			if !c.config.UseImageResolvConf {
 				newResolv, err := c.generateResolvConf()
 				if err != nil {
 					return errors.Wrapf(err, "error creating resolv.conf for container %s", c.ID())
@@ -759,7 +759,7 @@ func (c *Container) makeBindMounts() error {
 				c.state.BindMounts["/etc/resolv.conf"] = newResolv
 			}
 
-			if !c.config.NoCreateHosts {
+			if !c.config.UseImageHosts {
 				newHosts, err := c.generateHosts("/etc/hosts")
 				if err != nil {
 					return errors.Wrapf(err, "error creating hosts file for container %s", c.ID())
