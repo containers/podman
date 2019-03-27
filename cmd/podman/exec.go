@@ -112,14 +112,19 @@ func execCmd(c *cliconfig.ExecValues) error {
 		var ret int
 
 		data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-		if err != nil {
-			return errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
+		if err == nil {
+			conmonPid, err := strconv.Atoi(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "cannot parse PID %q", data)
+			}
+			became, ret, err = rootless.JoinDirectUserAndMountNS(uint(conmonPid))
+		} else {
+			pid, err := ctr.PID()
+			if err != nil {
+				return err
+			}
+			became, ret, err = rootless.JoinNS(uint(pid), c.PreserveFDs)
 		}
-		conmonPid, err := strconv.Atoi(string(data))
-		if err != nil {
-			return errors.Wrapf(err, "cannot parse PID %q", data)
-		}
-		became, ret, err = rootless.JoinDirectUserAndMountNS(uint(conmonPid))
 		if err != nil {
 			return err
 		}
