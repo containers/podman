@@ -59,6 +59,7 @@ type VolumeRemoveOpts (
 
 type Image (
   id: string,
+  digest:   string,
   parentId: string,
   repoTags: []string,
   repoDigests: []string,
