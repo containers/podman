@@ -148,4 +148,4 @@ map[registries:[docker.io quay.io registry.fedoraproject.org registry.access.red
 ```
 
 ## SEE ALSO
-podman(1), containers-registries.conf(5), containers-storage.conf(5), crio(8)
+podman(1), registries.conf(5), containers-storage.conf(5), crio(8)

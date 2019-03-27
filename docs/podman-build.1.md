@@ -637,7 +637,7 @@ If you are using a useradd command within a Dockerfile with a large UID/GID, it 
 If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
 
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5), useradd(8)
+podman(1), buildah(1), registries.conf(5), useradd(8)
 
 ## HISTORY
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>
