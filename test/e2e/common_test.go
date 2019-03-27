@@ -407,8 +407,12 @@ func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegrat
 func (p *PodmanTestIntegration) Cleanup() {
 	// Remove all containers
 	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
-	// stopall.WaitWithDefaultTimeout()
 	stopall.Wait(90)
+
+	podstop := p.Podman([]string{"pod", "stop", "-a", "-t", "0"})
+	podstop.WaitWithDefaultTimeout()
+	podrm := p.Podman([]string{"pod", "rm", "-fa"})
+	podrm.WaitWithDefaultTimeout()
 
 	session := p.Podman([]string{"rm", "-fa"})
 	session.Wait(90)

@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"fmt"
+	"github.com/containers/libpod/libpod/events"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -105,6 +106,9 @@ type Runtime struct {
 	// storage unusable). When valid is false, the runtime cannot be used.
 	valid bool
 	lock  sync.RWMutex
+
+	// mechanism to read and write even logs
+	eventer events.Eventer
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -222,6 +226,8 @@ type RuntimeConfig struct {
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
 
+	// EventsLogger determines where events should be logged
+	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:-"events_logfile_path"`
 }
@@ -252,7 +258,6 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
-
 	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
@@ -296,6 +301,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
+		EventsLogger:          "journald",
 	}, nil
 }
 
@@ -755,16 +761,24 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	// Set up image runtime and store in runtime
 	ir := image.NewImageRuntimeFromStore(runtime.store)
-	if err != nil {
-		return err
-	}
 
 	runtime.imageRuntime = ir
 
 	// Setting signaturepolicypath
 	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
+
 	// Set logfile path for events
 	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
+	// Set logger type
+	ir.EventsLogger = runtime.config.EventsLogger
+
+	// Setup the eventer
+	eventer, err := runtime.newEventer()
+	if err != nil {
+		return err
+	}
+	runtime.eventer = eventer
+	ir.Eventer = eventer
 
 	defer func() {
 		if err != nil && store != nil {

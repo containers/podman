@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod/events"
 )
@@ -23,19 +22,16 @@ func (i *LibpodAPI) GetEvents(call iopodman.VarlinkCall, filter []string, since 
 		stream = true
 		call.Continues = true
 	}
-	filters, err := shared.GenerateEventOptions(filter, since, until)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
 	if len(since) > 0 || len(until) > 0 {
 		fromStart = true
 	}
 	eventChannel := make(chan *events.Event)
 	go func() {
-		eventsError = i.Runtime.Events(fromStart, stream, filters, eventChannel)
+		readOpts := events.ReadOptions{FromStart: fromStart, Stream: stream, Filters: filter, EventChannel: eventChannel}
+		eventsError = i.Runtime.Events(readOpts)
 	}()
 	if eventsError != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return call.ReplyErrorOccurred(eventsError.Error())
 	}
 	for {
 		event = <-eventChannel

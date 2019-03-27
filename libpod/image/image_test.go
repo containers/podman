@@ -3,6 +3,7 @@ package image
 import (
 	"context"
 	"fmt"
+	"github.com/containers/libpod/libpod/events"
 	"io"
 	"io/ioutil"
 	"os"
@@ -87,6 +88,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
 	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, false, nil)
 	assert.NoError(t, err)
 	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, false, nil)
@@ -127,6 +129,7 @@ func TestImage_New(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
 	names = append(names, fedoraNames...)
@@ -164,6 +167,7 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
 	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, false, nil)
 	assert.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
