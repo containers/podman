@@ -293,6 +293,10 @@ type ContainerConfig struct {
 	// namespace
 	// These are not used unless CreateNetNS is true
 	PortMappings []ocicni.PortMapping `json:"portMappings,omitempty"`
+	// UseImageResolvConf indicates that resolv.conf should not be
+	// bind-mounted inside the container.
+	// Conflicts with DNSServer, DNSSearch, DNSOption.
+	UseImageResolvConf bool
 	// DNS servers to use in container resolv.conf
 	// Will override servers in host resolv if set
 	DNSServer []net.IP `json:"dnsServer,omitempty"`
@@ -302,6 +306,10 @@ type ContainerConfig struct {
 	// DNS options to be set in container resolv.conf
 	// With override options in host resolv if set
 	DNSOption []string `json:"dnsOption,omitempty"`
+	// UseImageHosts indicates that /etc/hosts should not be
+	// bind-mounted inside the container.
+	// Conflicts with HostAdd.
+	UseImageHosts bool
 	// Hosts to add in container
 	// Will be appended to host's host file
 	HostAdd []string `json:"hostsAdd,omitempty"`

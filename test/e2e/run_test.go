@@ -749,13 +749,19 @@ USER mail`
 
 	It("podman run with bad healthcheck timeout", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-cmd", "foo", "--healthcheck-timeout", "0s", ALPINE, "top"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 	})
 
 	It("podman run with bad healthcheck start-period", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-cmd", "foo", "--healthcheck-start-period", "-1s", ALPINE, "top"})
-		session.Wait()
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).ToNot(Equal(0))
+	})
+
+	It("podman run with --add-host and --no-hosts fails", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "--add-host", "test1:127.0.0.1", "--no-hosts", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 	})
 })
