@@ -24,13 +24,14 @@ ROOTLESS_USER="madcowdog"
 # Shared tmp directory between container and us
 TMPDIR=$(mktemp -d --tmpdir $(basename $0)_tmpdir_XXXXXX)
 
-# Command shortcuts save some typing
-PGCLOUD="$GCLOUD_SUDO podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v /home/$USER:$HOME -v $TMPDIR:/tmp $GCLOUD_IMAGE --configuration=libpod --project=$PROJECT"
-SCP_CMD="$PGCLOUD compute scp"
-
 LIBPODROOT=$(realpath "$(dirname $0)/../")
 # else: Assume $PWD is the root of the libpod repository
 [[ "$LIBPODROOT" != "/" ]] || LIBPODROOT=$PWD
+
+# Command shortcuts save some typing (asumes $LIBPODROOT is subdir of $HOME)
+PGCLOUD="$GCLOUD_SUDO podman run -it --rm -e AS_ID=$UID -e AS_USER=$USER --security-opt label=disable -v $TMPDIR:$HOME -v $HOME/.config/gcloud:$HOME/.config/gcloud -v $HOME/.config/gcloud/ssh:$HOME/.ssh -v $LIBPODROOT:$LIBPODROOT $GCLOUD_IMAGE --configuration=libpod --project=$PROJECT"
+SCP_CMD="$PGCLOUD compute scp"
+
 
 showrun() {
     if [[ "$1" == "--background" ]]
@@ -58,6 +59,7 @@ trap cleanup EXIT
 delvm() {
     echo -e "\n"
     echo -e "\n${YEL}Offering to Delete $VMNAME ${RED}(Might take a minute or two)${NOR}"
+    echo -e "\n${YEL}Note: It's safe to answer N, then re-run script again later.${NOR}"
     showrun $CLEANUP_CMD  # prompts for Yes/No
     cleanup
 }
@@ -95,16 +97,20 @@ for k,v in env.items():
 }
 
 parse_args(){
+    echo -e "$USAGE_WARNING"
+
     if [[ -z "$1" ]]
     then
         show_usage "Must specify at least one command-line parameter."
     elif [[ "$1" == "-p" ]]
     then
+        echo -e "${YEL}Hint: Use -p for package-based dependencies or -s for source-based.${NOR}"
         DEPS="PACKAGE_DEPS=true SOURCE_DEPS=false"
         IMAGE_NAME="$2"
 
     elif [[ "$1" == "-s" ]]
     then
+        echo -e "${RED}Using source-based dependencies.${NOR}"
         DEPS="PACKAGE_DEPS=false SOURCE_DEPS=true"
         IMAGE_NAME="$2"
     elif [[ "$1" == "-r" ]]
@@ -112,6 +118,7 @@ parse_args(){
         DEPS="ROOTLESS_USER=$ROOTLESS_USER"
         IMAGE_NAME="$2"
     else  # no -s or -p
+        echo -e "${RED}Using package-based dependencies.${NOR}"
         DEPS="$(get_env_vars)"
         IMAGE_NAME="$1"
     fi
@@ -126,8 +133,6 @@ parse_args(){
         show_usage "This script must be run as a regular user."
     fi
 
-    echo -e "$USAGE_WARNING"
-
     SETUP_CMD="env $DEPS $GOSRC/contrib/cirrus/setup_environment.sh"
     VMNAME="${VMNAME:-${USER}-${IMAGE_NAME}}"
     CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"
@@ -137,7 +142,20 @@ parse_args(){
 
 ##### main
 
+[[ "${LIBPODROOT%%${LIBPODROOT##$HOME}}" == "$HOME" ]] || \
+    show_usage "Repo clone must be sub-dir of $HOME"
+
+cd "$LIBPODROOT"
+
 parse_args $@
+
+# Ensure mount-points and data directories exist on host as $USER.  Also prevents
+# permission-denied errors during cleanup() b/c `sudo podman` created mount-points
+# owned by root.
+mkdir -p $TMPDIR/${LIBPODROOT##$HOME}
+mkdir -p $TMPDIR/.ssh
+mkdir -p {$HOME,$TMPDIR}/.config/gcloud/ssh
+chmod 700 {$HOME,$TMPDIR}/.config/gcloud/ssh $TMPDIR/.ssh
 
 cd $LIBPODROOT
 
@@ -164,10 +182,9 @@ then
 fi
 
 # Couldn't make rsync work with gcloud's ssh wrapper :(
-TARBALL_BASENAME=$VMNAME.tar.bz2
-TARBALL=/tmp/$TARBALL_BASENAME
+TARBALL=$VMNAME.tar.bz2
 echo -e "\n${YEL}Packing up repository into a tarball $VMNAME.${NOR}"
-showrun --background tar cjf $TMPDIR/$TARBALL_BASENAME --warning=no-file-changed -C $LIBPODROOT .
+showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed -C $LIBPODROOT .
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
@@ -178,6 +195,7 @@ showrun $CREATE_CMD || true # allow re-running commands below when "delete: N"
 trap delvm EXIT
 
 echo -e "\n${YEL}Waiting up to 30s for ssh port to open${NOR}"
+trap 'COUNT=9999' INT
 ATTEMPTS=10
 for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
 do
@@ -202,17 +220,15 @@ showrun $SSH_CMD --command "mkdir -p $GOSRC"
 
 echo -e "\n${YEL}Transfering tarball to $VMNAME.${NOR}"
 wait
-showrun $SCP_CMD $TARBALL root@$VMNAME:$TARBALL
+showrun $SCP_CMD $HOME/$TARBALL root@$VMNAME:/tmp/$TARBALL
 
 echo -e "\n${YEL}Unpacking tarball into $GOSRC on $VMNAME.${NOR}"
-showrun $SSH_CMD --command "tar xjf $TARBALL -C $GOSRC"
+showrun $SSH_CMD --command "tar xjf /tmp/$TARBALL -C $GOSRC"
 
 echo -e "\n${YEL}Removing tarball on $VMNAME.${NOR}"
-showrun $SSH_CMD --command "rm -f $TARBALL"
+showrun $SSH_CMD --command "rm -f /tmp/$TARBALL"
 
 echo -e "\n${YEL}Executing environment setup${NOR}"
-[[ "$1" == "-p" ]] && echo -e "${RED}Using package-based dependencies.${NOR}"
-[[ "$1" == "-s" ]] && echo -e "${RED}Using source-based dependencies.${NOR}"
 showrun $SSH_CMD --command "$SETUP_CMD"
 
 echo -e "\n${YEL}Connecting to $VMNAME ${RED}(option to delete VM upon logout).${NOR}\n"
