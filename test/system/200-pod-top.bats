@@ -3,6 +3,8 @@
 load helpers
 
 @test "podman pod top - containers in different PID namespaces" {
+    skip "this test is not reliable. Reenable once pod-top is fixed."
+
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )
     no_infra='--infra=false'
