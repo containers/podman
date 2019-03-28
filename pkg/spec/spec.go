@@ -542,6 +542,12 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 	} else if netMode.IsSlirp4netns() {
 		logrus.Debug("Using slirp4netns netmode")
 		return nil
+	} else if netMode.IsIPVLan() {
+		logrus.Debug("Using ipvlan netmode")
+		return nil
+	} else if netMode.IsMacVLan() {
+		logrus.Debug("Using macvlan netmode")
+		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
 		return nil

@@ -228,7 +228,17 @@ func (n NetworkMode) IsSlirp4netns() bool {
 	return n == "slirp4netns"
 }
 
+// IsIPVLan indicates whether container uses the ipvlan network stack
+func (n NetworkMode) IsIPVLan() bool {
+	return n == "ipvlan"
+}
+
+//IsMacVLan indicates whether container uses the macvlan network stack
+func (n NetworkMode) IsMacVLan() bool {
+	return n == "macvlan"
+}
+
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsIPVLan() && !n.IsMacVLan()
 }
