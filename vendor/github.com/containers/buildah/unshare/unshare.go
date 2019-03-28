@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containers/buildah/util"
@@ -57,8 +58,8 @@ func (c *Cmd) Start() error {
 
 	// Please the libpod "rootless" package to find the expected env variables.
 	if os.Geteuid() != 0 {
-		c.Env = append(c.Env, "_LIBPOD_USERNS_CONFIGURED=done")
-		c.Env = append(c.Env, fmt.Sprintf("_LIBPOD_ROOTLESS_UID=%d", os.Geteuid()))
+		c.Env = append(c.Env, "_CONTAINERS_USERNS_CONFIGURED=done")
+		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%d", os.Geteuid()))
 	}
 
 	// Create the pipe for reading the child's PID.
@@ -271,4 +272,37 @@ func (c *Cmd) CombinedOutput() ([]byte, error) {
 
 func (c *Cmd) Output() ([]byte, error) {
 	return nil, errors.New("unshare: Output() not implemented")
+}
+
+var (
+	isRootlessOnce sync.Once
+	isRootless     bool
+)
+
+const (
+	// UsernsEnvName is the environment variable, if set indicates in rootless mode
+	UsernsEnvName = "_CONTAINERS_USERNS_CONFIGURED"
+)
+
+// IsRootless tells us if we are running in rootless mode
+func IsRootless() bool {
+	isRootlessOnce.Do(func() {
+		isRootless = os.Geteuid() != 0 || os.Getenv(UsernsEnvName) != ""
+	})
+	return isRootless
+}
+
+// GetRootlessUID returns the UID of the user in the parent userNS
+func GetRootlessUID() int {
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Getuid()
+}
+
+// RootlessEnv returns the environment settings for the rootless containers
+func RootlessEnv() []string {
+	return append(os.Environ(), UsernsEnvName+"=")
 }

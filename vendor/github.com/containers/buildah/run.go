@@ -2,6 +2,7 @@ package buildah
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,7 @@ import (
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
 	"github.com/containers/buildah/pkg/secrets"
+	"github.com/containers/buildah/unshare"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
@@ -416,7 +418,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID))
+	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID), unshare.IsRootless())
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
@@ -1720,7 +1722,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 		unix.CloseOnExec(fd)
 	}
 
-	cmd := exec.Command(slirp4netns, "-r", "3", "-c", fmt.Sprintf("%d", pid), "tap0")
+	cmd := exec.Command(slirp4netns, "--mtu", "65520", "-r", "3", "-c", fmt.Sprintf("%d", pid), "tap0")
 	cmd.Stdin, cmd.Stdout, cmd.Stderr = nil, nil, nil
 	cmd.ExtraFiles = []*os.File{rootlessSlirpSyncW}
 
@@ -1765,7 +1767,7 @@ func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetwo
 	var netconf, undo []*libcni.NetworkConfigList
 
 	if isolation == IsolationOCIRootless {
-		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil && !ns.Host {
+		if ns := options.NamespaceOptions.Find(string(specs.NetworkNamespace)); ns != nil && !ns.Host && ns.Path == "" {
 			return setupRootlessNetwork(pid)
 		}
 	}
@@ -1835,7 +1837,7 @@ func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetwo
 	rtconf := make(map[*libcni.NetworkConfigList]*libcni.RuntimeConf)
 	teardown = func() {
 		for _, nc := range undo {
-			if err = cni.DelNetworkList(nc, rtconf[nc]); err != nil {
+			if err = cni.DelNetworkList(context.Background(), nc, rtconf[nc]); err != nil {
 				logrus.Errorf("error cleaning up network %v for %v: %v", rtconf[nc].IfName, command, err)
 			}
 		}
@@ -1851,7 +1853,7 @@ func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetwo
 			CapabilityArgs: map[string]interface{}{},
 		}
 		// Bring it up.
-		_, err := cni.AddNetworkList(nc, rtconf[nc])
+		_, err := cni.AddNetworkList(context.Background(), nc, rtconf[nc])
 		if err != nil {
 			return teardown, errors.Wrapf(err, "error configuring network list %v for %v", rtconf[nc].IfName, command)
 		}

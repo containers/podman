@@ -111,17 +111,13 @@ func (t StdoutTemplateArray) Out() error {
 	if err != nil {
 		return errors.Wrapf(err, parsingErrorStr)
 	}
-	for i, raw := range t.Output {
+	for _, raw := range t.Output {
 		basicTmpl := tmpl.Funcs(basicFunctions)
 		if err := basicTmpl.Execute(w, raw); err != nil {
 			return errors.Wrapf(err, parsingErrorStr)
 		}
-		if i != len(t.Output)-1 {
-			fmt.Fprintln(w, "")
-			continue
-		}
+		fmt.Fprintln(w, "")
 	}
-	fmt.Fprintln(w, "")
 	return w.Flush()
 }
 

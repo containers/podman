@@ -1,4 +1,5 @@
-package blobinfocache
+// Package boltdb implements a BlobInfoCache backed by BoltDB.
+package boltdb
 
 import (
 	"fmt"
@@ -7,6 +8,7 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
+	"github.com/containers/image/pkg/blobinfocache/internal/prioritize"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -81,22 +83,23 @@ func unlockPath(path string) {
 	}
 }
 
-// boltDBCache si a BlobInfoCache implementation which uses a BoltDB file at the specified path.
+// cache is a BlobInfoCache implementation which uses a BoltDB file at the specified path.
 //
 // Note that we don’t keep the database open across operations, because that would lock the file and block any other
 // users; instead, we need to open/close it for every single write or lookup.
-type boltDBCache struct {
+type cache struct {
 	path string
 }
 
-// NewBoltDBCache returns a BlobInfoCache implementation which uses a BoltDB file at path.
-// Most users should call DefaultCache instead.
-func NewBoltDBCache(path string) types.BlobInfoCache {
-	return &boltDBCache{path: path}
+// New returns a BlobInfoCache implementation which uses a BoltDB file at path.
+//
+// Most users should call blobinfocache.DefaultCache instead.
+func New(path string) types.BlobInfoCache {
+	return &cache{path: path}
 }
 
 // view returns runs the specified fn within a read-only transaction on the database.
-func (bdc *boltDBCache) view(fn func(tx *bolt.Tx) error) (retErr error) {
+func (bdc *cache) view(fn func(tx *bolt.Tx) error) (retErr error) {
 	// bolt.Open(bdc.path, 0600, &bolt.Options{ReadOnly: true}) will, if the file does not exist,
 	// nevertheless create it, but with an O_RDONLY file descriptor, try to initialize it, and fail — while holding
 	// a read lock, blocking any future writes.
@@ -122,7 +125,7 @@ func (bdc *boltDBCache) view(fn func(tx *bolt.Tx) error) (retErr error) {
 }
 
 // update returns runs the specified fn within a read-write transaction on the database.
-func (bdc *boltDBCache) update(fn func(tx *bolt.Tx) error) (retErr error) {
+func (bdc *cache) update(fn func(tx *bolt.Tx) error) (retErr error) {
 	lockPath(bdc.path)
 	defer unlockPath(bdc.path)
 	db, err := bolt.Open(bdc.path, 0600, nil)
@@ -139,7 +142,7 @@ func (bdc *boltDBCache) update(fn func(tx *bolt.Tx) error) (retErr error) {
 }
 
 // uncompressedDigest implements BlobInfoCache.UncompressedDigest within the provided read-only transaction.
-func (bdc *boltDBCache) uncompressedDigest(tx *bolt.Tx, anyDigest digest.Digest) digest.Digest {
+func (bdc *cache) uncompressedDigest(tx *bolt.Tx, anyDigest digest.Digest) digest.Digest {
 	if b := tx.Bucket(uncompressedDigestBucket); b != nil {
 		if uncompressedBytes := b.Get([]byte(anyDigest.String())); uncompressedBytes != nil {
 			d, err := digest.Parse(string(uncompressedBytes))
@@ -166,7 +169,7 @@ func (bdc *boltDBCache) uncompressedDigest(tx *bolt.Tx, anyDigest digest.Digest)
 // UncompressedDigest returns an uncompressed digest corresponding to anyDigest.
 // May return anyDigest if it is known to be uncompressed.
 // Returns "" if nothing is known about the digest (it may be compressed or uncompressed).
-func (bdc *boltDBCache) UncompressedDigest(anyDigest digest.Digest) digest.Digest {
+func (bdc *cache) UncompressedDigest(anyDigest digest.Digest) digest.Digest {
 	var res digest.Digest
 	if err := bdc.view(func(tx *bolt.Tx) error {
 		res = bdc.uncompressedDigest(tx, anyDigest)
@@ -182,7 +185,7 @@ func (bdc *boltDBCache) UncompressedDigest(anyDigest digest.Digest) digest.Diges
 // WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
 // because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
 // (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
-func (bdc *boltDBCache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompressed digest.Digest) {
+func (bdc *cache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompressed digest.Digest) {
 	_ = bdc.update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(uncompressedDigestBucket)
 		if err != nil {
@@ -219,7 +222,7 @@ func (bdc *boltDBCache) RecordDigestUncompressedPair(anyDigest digest.Digest, un
 
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
 // and can be reused given the opaque location data.
-func (bdc *boltDBCache) RecordKnownLocation(transport types.ImageTransport, scope types.BICTransportScope, blobDigest digest.Digest, location types.BICLocationReference) {
+func (bdc *cache) RecordKnownLocation(transport types.ImageTransport, scope types.BICTransportScope, blobDigest digest.Digest, location types.BICLocationReference) {
 	_ = bdc.update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists(knownLocationsBucket)
 		if err != nil {
@@ -248,8 +251,8 @@ func (bdc *boltDBCache) RecordKnownLocation(transport types.ImageTransport, scop
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
 }
 
-// appendReplacementCandiates creates candidateWithTime values for digest in scopeBucket, and returns the result of appending them to candidates.
-func (bdc *boltDBCache) appendReplacementCandidates(candidates []candidateWithTime, scopeBucket *bolt.Bucket, digest digest.Digest) []candidateWithTime {
+// appendReplacementCandiates creates prioritize.CandidateWithTime values for digest in scopeBucket, and returns the result of appending them to candidates.
+func (bdc *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, scopeBucket *bolt.Bucket, digest digest.Digest) []prioritize.CandidateWithTime {
 	b := scopeBucket.Bucket([]byte(digest.String()))
 	if b == nil {
 		return candidates
@@ -259,12 +262,12 @@ func (bdc *boltDBCache) appendReplacementCandidates(candidates []candidateWithTi
 		if err := t.UnmarshalBinary(v); err != nil {
 			return err
 		}
-		candidates = append(candidates, candidateWithTime{
-			candidate: types.BICReplacementCandidate{
+		candidates = append(candidates, prioritize.CandidateWithTime{
+			Candidate: types.BICReplacementCandidate{
 				Digest:   digest,
 				Location: types.BICLocationReference{Opaque: string(k)},
 			},
-			lastSeen: t,
+			LastSeen: t,
 		})
 		return nil
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
@@ -277,8 +280,8 @@ func (bdc *boltDBCache) appendReplacementCandidates(candidates []candidateWithTi
 // If !canSubstitute, the returned cadidates will match the submitted digest exactly; if canSubstitute,
 // data from previous RecordDigestUncompressedPair calls is used to also look up variants of the blob which have the same
 // uncompressed digest.
-func (bdc *boltDBCache) CandidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool) []types.BICReplacementCandidate {
-	res := []candidateWithTime{}
+func (bdc *cache) CandidateLocations(transport types.ImageTransport, scope types.BICTransportScope, primaryDigest digest.Digest, canSubstitute bool) []types.BICReplacementCandidate {
+	res := []prioritize.CandidateWithTime{}
 	var uncompressedDigestValue digest.Digest // = ""
 	if err := bdc.view(func(tx *bolt.Tx) error {
 		scopeBucket := tx.Bucket(knownLocationsBucket)
@@ -325,5 +328,5 @@ func (bdc *boltDBCache) CandidateLocations(transport types.ImageTransport, scope
 		return []types.BICReplacementCandidate{} // FIXME? Log err (but throttle the log volume on repeated accesses)?
 	}
 
-	return destructivelyPrioritizeReplacementCandidates(res, primaryDigest, uncompressedDigestValue)
+	return prioritize.DestructivelyPrioritizeReplacementCandidates(res, primaryDigest, uncompressedDigestValue)
 }

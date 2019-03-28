@@ -1,6 +1,7 @@
 package ocicni
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net"
@@ -511,7 +512,7 @@ func (network *cniNetwork) addToNetwork(cacheDir string, podNetwork *PodNetwork,
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
 	logrus.Infof("About to add CNI network %s (type=%v)", netconf.Name, netconf.Plugins[0].Network.Type)
-	res, err := cninet.AddNetworkList(netconf, rt)
+	res, err := cninet.AddNetworkList(context.Background(), netconf, rt)
 	if err != nil {
 		logrus.Errorf("Error adding network: %v", err)
 		return nil, err
@@ -529,7 +530,7 @@ func (network *cniNetwork) deleteFromNetwork(cacheDir string, podNetwork *PodNet
 
 	netconf, cninet := network.NetworkConfig, network.CNIConfig
 	logrus.Infof("About to del CNI network %s (type=%v)", netconf.Name, netconf.Plugins[0].Network.Type)
-	err = cninet.DelNetworkList(netconf, rt)
+	err = cninet.DelNetworkList(context.Background(), netconf, rt)
 	if err != nil {
 		logrus.Errorf("Error deleting network: %v", err)
 		return err

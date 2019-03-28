@@ -7,6 +7,9 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"syscall"
+
+	"github.com/pkg/errors"
 )
 
 // IDMap contains a single entry for user namespace range remapping. An array
@@ -276,4 +279,19 @@ func parseSubidFile(path, username string) (ranges, error) {
 		}
 	}
 	return rangeList, nil
+}
+
+func checkChownErr(err error, name string, uid, gid int) error {
+	if e, ok := err.(*os.PathError); ok && e.Err == syscall.EINVAL {
+		return errors.Wrapf(err, "there might not be enough IDs available in the namespace (requested %d:%d for %s)", uid, gid, name)
+	}
+	return err
+}
+
+func SafeChown(name string, uid, gid int) error {
+	return checkChownErr(os.Chown(name, uid, gid), name, uid, gid)
+}
+
+func SafeLchown(name string, uid, gid int) error {
+	return checkChownErr(os.Lchown(name, uid, gid), name, uid, gid)
 }

@@ -16,7 +16,7 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
-	"github.com/containers/image/pkg/blobinfocache"
+	"github.com/containers/image/pkg/blobinfocache/none"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
@@ -129,7 +129,7 @@ func (d *dockerImageDestination) PutBlob(ctx context.Context, stream io.Reader, 
 		// This should not really be necessary, at least the copy code calls TryReusingBlob automatically.
 		// Still, we need to check, if only because the "initiate upload" endpoint does not have a documented "blob already exists" return value.
 		// But we do that with NoCache, so that it _only_ checks the primary destination, instead of trying all mount candidates _again_.
-		haveBlob, reusedInfo, err := d.TryReusingBlob(ctx, inputInfo, blobinfocache.NoCache, false)
+		haveBlob, reusedInfo, err := d.TryReusingBlob(ctx, inputInfo, none.NoCache, false)
 		if err != nil {
 			return types.BlobInfo{}, err
 		}

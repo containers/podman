@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/boltdb/bolt"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -95,22 +96,26 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
+		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+		if err != nil {
+			return err
+		}
 		if err := validateDBAgainstConfig(configBkt, "storage temporary directory (runroot)",
 			rt.config.StorageConfig.RunRoot, runRootKey,
-			storage.DefaultStoreOptions.RunRoot); err != nil {
+			storeOpts.RunRoot); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "storage graph root directory (graphroot)",
 			rt.config.StorageConfig.GraphRoot, graphRootKey,
-			storage.DefaultStoreOptions.GraphRoot); err != nil {
+			storeOpts.GraphRoot); err != nil {
 			return err
 		}
 
 		if err := validateDBAgainstConfig(configBkt, "storage graph driver",
 			rt.config.StorageConfig.GraphDriverName,
 			graphDriverKey,
-			storage.DefaultStoreOptions.GraphDriverName); err != nil {
+			storeOpts.GraphDriverName); err != nil {
 			return err
 		}
 

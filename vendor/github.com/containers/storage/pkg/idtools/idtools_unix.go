@@ -30,7 +30,7 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 		paths = []string{path}
 	} else if err == nil && chownExisting {
 		// short-circuit--we were called with an existing directory and chown was requested
-		return os.Chown(path, ownerUID, ownerGID)
+		return SafeChown(path, ownerUID, ownerGID)
 	} else if err == nil {
 		// nothing to do; directory path fully exists already and chown was NOT requested
 		return nil
@@ -60,7 +60,7 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 	// even if it existed, we will chown the requested path + any subpaths that
 	// didn't exist when we called MkdirAll
 	for _, pathComponent := range paths {
-		if err := os.Chown(pathComponent, ownerUID, ownerGID); err != nil {
+		if err := SafeChown(pathComponent, ownerUID, ownerGID); err != nil {
 			return err
 		}
 	}

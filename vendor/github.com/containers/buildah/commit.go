@@ -114,7 +114,7 @@ type PushOptions struct {
 func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
 	var imgID string
 
-	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
+	systemContext := getSystemContext(b.store, options.SystemContext, options.SignaturePolicyPath)
 
 	blocked, err := isReferenceBlocked(dest, systemContext)
 	if err != nil {
@@ -152,8 +152,8 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}
-	var maybeCachedSrc types.ImageReference = src
-	var maybeCachedDest types.ImageReference = dest
+	var maybeCachedSrc = types.ImageReference(src)
+	var maybeCachedDest = types.ImageReference(dest)
 	if options.BlobDirectory != "" {
 		compress := types.PreserveOriginal
 		if options.Compression != archive.Uncompressed {
@@ -178,7 +178,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		systemContext.DirForceCompress = true
 	}
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(options.ReportWriter, maybeCachedSrc, nil, maybeCachedDest, systemContext, "")); err != nil {
+	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(b.store, options.ReportWriter, maybeCachedSrc, nil, maybeCachedDest, systemContext, "")); err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
 	if len(options.AdditionalTags) > 0 {
@@ -230,7 +230,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 
 // Push copies the contents of the image to a new location.
 func Push(ctx context.Context, image string, dest types.ImageReference, options PushOptions) (reference.Canonical, digest.Digest, error) {
-	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
+	systemContext := getSystemContext(options.Store, options.SystemContext, options.SignaturePolicyPath)
 
 	if options.Quiet {
 		options.ReportWriter = nil // Turns off logging output
@@ -256,7 +256,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 	if err != nil {
 		return nil, "", err
 	}
-	var maybeCachedSrc types.ImageReference = src
+	var maybeCachedSrc = types.ImageReference(src)
 	if options.BlobDirectory != "" {
 		compress := types.PreserveOriginal
 		if options.Compression != archive.Uncompressed {
@@ -276,7 +276,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		systemContext.DirForceCompress = true
 	}
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, dest, maybeCachedSrc, getCopyOptions(options.ReportWriter, maybeCachedSrc, nil, dest, systemContext, options.ManifestType)); err != nil {
+	if manifestBytes, err = cp.Image(ctx, policyContext, dest, maybeCachedSrc, getCopyOptions(options.Store, options.ReportWriter, maybeCachedSrc, nil, dest, systemContext, options.ManifestType)); err != nil {
 		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(maybeCachedSrc), transports.ImageName(dest))
 	}
 	if options.ReportWriter != nil {

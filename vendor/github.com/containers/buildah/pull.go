@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+
 	"strings"
 
 	"github.com/containers/buildah/pkg/blobcache"
@@ -153,13 +154,13 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 
 // Pull copies the contents of the image from somewhere else to local storage.
 func Pull(ctx context.Context, imageName string, options PullOptions) error {
-	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
+	systemContext := getSystemContext(options.Store, options.SystemContext, options.SignaturePolicyPath)
 
 	boptions := BuilderOptions{
 		FromImage:           imageName,
 		SignaturePolicyPath: options.SignaturePolicyPath,
 		SystemContext:       systemContext,
-		PullBlobDirectory:   options.BlobDirectory,
+		BlobDirectory:       options.BlobDirectory,
 		ReportWriter:        options.ReportWriter,
 	}
 
@@ -236,7 +237,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing image name %q", destName)
 	}
-	var maybeCachedDestRef types.ImageReference = destRef
+	var maybeCachedDestRef = types.ImageReference(destRef)
 	if options.BlobDirectory != "" {
 		cachedRef, err := blobcache.NewBlobCache(destRef, options.BlobDirectory, types.PreserveOriginal)
 		if err != nil {
@@ -262,7 +263,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(options.ReportWriter, srcRef, sc, maybeCachedDestRef, nil, "")); err != nil {
+	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, srcRef, sc, maybeCachedDestRef, nil, "")); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}
