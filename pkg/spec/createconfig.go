@@ -451,16 +451,15 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 	}
 
-	if IsNS(string(c.NetMode)) {
-		split := strings.SplitN(string(c.NetMode), ":", 2)
-		if len(split[0]) != 2 {
-			return nil, errors.Errorf("invalid user defined network namespace %q", c.NetMode.UserDefined())
+	if c.NetMode.IsNS() {
+		ns := c.NetMode.NS()
+		if ns == "" {
+			return nil, errors.Errorf("invalid empty user-defined network namespace")
 		}
-		_, err := os.Stat(split[1])
+		_, err := os.Stat(ns)
 		if err != nil {
 			return nil, err
 		}
-		options = append(options, libpod.WithNetNS(portBindings, false, string(c.NetMode), networks))
 	} else if c.NetMode.IsContainer() {
 		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.Container())
 		if err != nil {
