@@ -19,6 +19,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/containers/storage/pkg/system"
 	rsystem "github.com/opencontainers/runc/libcontainer/system"
@@ -212,7 +213,7 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 			return nil
 		}
 
-		if err := os.Lchown(dstPath, int(stat.Uid), int(stat.Gid)); err != nil {
+		if err := idtools.SafeLchown(dstPath, int(stat.Uid), int(stat.Gid)); err != nil {
 			return err
 		}
 

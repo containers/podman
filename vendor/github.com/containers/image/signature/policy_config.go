@@ -30,7 +30,7 @@ import (
 // -ldflags '-X github.com/containers/image/signature.systemDefaultPolicyPath=$your_path'
 var systemDefaultPolicyPath = builtinDefaultPolicyPath
 
-// builtinDefaultPolicyPath is the policy pat used for DefaultPolicy().
+// builtinDefaultPolicyPath is the policy path used for DefaultPolicy().
 // DO NOT change this, instead see systemDefaultPolicyPath above.
 const builtinDefaultPolicyPath = "/etc/containers/policy.json"
 

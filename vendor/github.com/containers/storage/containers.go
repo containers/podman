@@ -71,7 +71,7 @@ type Container struct {
 type ContainerStore interface {
 	FileBasedStore
 	MetadataStore
-	BigDataStore
+	ContainerBigDataStore
 	FlaggableStore
 
 	// Create creates a container that has a specified ID (or generates a
@@ -456,7 +456,7 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
+		if err = r.SetBigData(id, key, data); err == nil {
 			c, ok := r.lookup(id)
 			if !ok {
 				return -1, ErrContainerUnknown
@@ -464,6 +464,8 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 			if size, ok := c.BigDataSizes[key]; ok {
 				return size, nil
 			}
+		} else {
+			return -1, err
 		}
 	}
 	return -1, ErrSizeUnknown
@@ -484,7 +486,7 @@ func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 		return d, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
+		if err = r.SetBigData(id, key, data); err == nil {
 			c, ok := r.lookup(id)
 			if !ok {
 				return "", ErrContainerUnknown
@@ -492,6 +494,8 @@ func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 			if d, ok := c.BigDataDigests[key]; ok {
 				return d, nil
 			}
+		} else {
+			return "", err
 		}
 	}
 	return "", ErrDigestUnknown

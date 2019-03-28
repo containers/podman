@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"net"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -393,25 +392,11 @@ func IDMappingOptions(c *cobra.Command, isolation buildah.Isolation) (usernsOpti
 		gidmap = uidmap
 	}
 
-	useSlirp4netns := false
-
-	if isolation == buildah.IsolationOCIRootless {
-		_, err := exec.LookPath("slirp4netns")
-		if execerr, ok := err.(*exec.Error); ok && !strings.Contains(execerr.Error(), "not found") {
-			return nil, nil, errors.Wrapf(err, "cannot lookup slirp4netns %v", execerr)
-		}
-		if err == nil {
-			useSlirp4netns = true
-		} else {
-			logrus.Warningf("could not find slirp4netns. Using host network namespace")
-		}
-	}
-
 	// By default, having mappings configured means we use a user
 	// namespace.  Otherwise, we don't.
 	usernsOption := buildah.NamespaceOption{
 		Name: string(specs.UserNamespace),
-		Host: len(uidmap) == 0 && len(gidmap) == 0 && !useSlirp4netns,
+		Host: len(uidmap) == 0 && len(gidmap) == 0,
 	}
 	// If the user specifically requested that we either use or don't use
 	// user namespaces, override that default.

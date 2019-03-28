@@ -248,11 +248,16 @@ type runtimeConfiguredFrom struct {
 	noPivotRoot           bool
 }
 
-var (
-	defaultRuntimeConfig = RuntimeConfig{
+func defaultRuntimeConfig() (RuntimeConfig, error) {
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	if err != nil {
+		return RuntimeConfig{}, err
+	}
+
+	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storage.DefaultStoreOptions.GraphRoot, "volumes"),
+		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -281,7 +286,7 @@ var (
 		},
 		InitPath:              DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storage.DefaultStoreOptions.GraphRoot, "libpod"),
+		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -292,8 +297,8 @@ var (
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
-	}
-)
+	}, nil
+}
 
 func getDefaultTmpDir() (string, error) {
 	if !rootless.IsRootless() {
@@ -354,12 +359,17 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 	if err != nil {
 		return nil, err
 	}
-	if err := JSONDeepCopy(defaultRuntimeConfig, runtime.config); err != nil {
+
+	defRunConf, err := defaultRuntimeConfig()
+	if err != nil {
+		return nil, err
+	}
+	if err := JSONDeepCopy(defRunConf, runtime.config); err != nil {
 		return nil, errors.Wrapf(err, "error copying runtime default config")
 	}
 	runtime.config.TmpDir = tmpDir
 
-	storageConf, err := util.GetDefaultStoreOptions()
+	storageConf, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving storage config")
 	}
@@ -508,7 +518,10 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 	}
 	if rootlessConfigPath != "" {
 		// storage.conf
-		storageConfFile := util.StorageConfigFile()
+		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+		if err != nil {
+			return nil, err
+		}
 		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
 			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
 				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)

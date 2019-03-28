@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -133,12 +132,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0)
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless bool) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless)
 }
 
 // SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int) []rspec.Mount {
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless bool) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -148,17 +147,8 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	// Note for testing purposes only
 	if mountFile == "" {
 		mountFiles = append(mountFiles, []string{OverrideMountsFile, DefaultMountsFile}...)
-		if rootless.IsRootless() {
+		if rootless {
 			mountFiles = append([]string{UserOverrideMountsFile}, mountFiles...)
-			_, err := os.Stat(UserOverrideMountsFile)
-			if err != nil && os.IsNotExist(err) {
-				os.MkdirAll(filepath.Dir(UserOverrideMountsFile), 0755)
-				if f, err := os.Create(UserOverrideMountsFile); err != nil {
-					logrus.Warnf("could not create file %s: %v", UserOverrideMountsFile, err)
-				} else {
-					f.Close()
-				}
-			}
 		}
 	} else {
 		mountFiles = append(mountFiles, mountFile)

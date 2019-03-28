@@ -336,10 +336,10 @@ type BuilderOptions struct {
 	// needs to be pulled and the image name alone can not be resolved to a
 	// reference to a source image.  No separator is implicitly added.
 	Registry string
-	// PullBlobDirectory is the name of a directory in which we'll attempt
+	// BlobDirectory is the name of a directory in which we'll attempt
 	// to store copies of layer blobs that we pull down, if any.  It should
 	// already exist.
-	PullBlobDirectory string
+	BlobDirectory string
 	// Mount signals to NewBuilder() that the container should be mounted
 	// immediately.
 	Mount bool

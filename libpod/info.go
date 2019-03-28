@@ -13,8 +13,8 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 )
@@ -116,12 +116,17 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	// lets say storage driver in use, number of images, number of containers
 	info := map[string]interface{}{}
-	info["ConfigFile"] = util.StorageConfigFile()
 	info["GraphRoot"] = r.store.GraphRoot()
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
 	info["GraphOptions"] = r.store.GraphOptions()
 	info["VolumePath"] = r.config.VolumePath
+
+	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return nil, err
+	}
+	info["ConfigFile"] = configFile
 	statusPairs, err := r.store.Status()
 	if err != nil {
 		return nil, err

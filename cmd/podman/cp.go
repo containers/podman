@@ -7,11 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/chrootuser"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"

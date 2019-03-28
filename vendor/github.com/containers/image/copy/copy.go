@@ -468,7 +468,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 	}
 
 	data := make([]copyLayerData, numLayers)
-	copyLayerHelper := func(index int, srcLayer types.BlobInfo, bar *mpb.Bar) {
+	copyLayerHelper := func(index int, srcLayer types.BlobInfo, pool *mpb.Progress) {
 		defer copySemaphore.Release(1)
 		defer copyGroup.Done()
 		cld := copyLayerData{}
@@ -483,24 +483,18 @@ func (ic *imageCopier) copyLayers(ctx context.Context) error {
 				logrus.Debugf("Skipping foreign layer %q copy to %s", cld.destInfo.Digest, ic.c.dest.Reference().Transport().Name())
 			}
 		} else {
-			cld.destInfo, cld.diffID, cld.err = ic.copyLayer(ctx, srcLayer, bar)
+			cld.destInfo, cld.diffID, cld.err = ic.copyLayer(ctx, srcLayer, pool)
 		}
 		data[index] = cld
-		bar.SetTotal(srcLayer.Size, true)
 	}
 
 	func() { // A scope for defer
 		progressPool, progressCleanup := ic.c.newProgressPool(ctx)
 		defer progressCleanup()
 
-		progressBars := make([]*mpb.Bar, numLayers)
-		for i, srcInfo := range srcInfos {
-			progressBars[i] = ic.c.createProgressBar(progressPool, srcInfo, "blob")
-		}
-
 		for i, srcLayer := range srcInfos {
 			copySemaphore.Acquire(ctx, 1)
-			go copyLayerHelper(i, srcLayer, progressBars[i])
+			go copyLayerHelper(i, srcLayer, progressPool)
 		}
 
 		// Wait for all layers to be copied
@@ -592,7 +586,7 @@ func (c *copier) newProgressPool(ctx context.Context) (*mpb.Progress, func()) {
 
 // createProgressBar creates a mpb.Bar in pool.  Note that if the copier's reportWriter
 // is ioutil.Discard, the progress bar's output will be discarded
-func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind string) *mpb.Bar {
+func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind string, onComplete string) *mpb.Bar {
 	// shortDigestLen is the length of the digest used for blobs.
 	const shortDigestLen = 12
 
@@ -604,11 +598,12 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 	}
 
 	bar := pool.AddBar(info.Size,
+		mpb.BarClearOnComplete(),
 		mpb.PrependDecorators(
 			decor.Name(prefix),
 		),
 		mpb.AppendDecorators(
-			decor.CountersKibiByte("%.1f / %.1f"),
+			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), " "+onComplete),
 		),
 	)
 	if c.progressOutput == ioutil.Discard {
@@ -629,7 +624,7 @@ func (c *copier) copyConfig(ctx context.Context, src types.Image) error {
 		destInfo, err := func() (types.BlobInfo, error) { // A scope for defer
 			progressPool, progressCleanup := c.newProgressPool(ctx)
 			defer progressCleanup()
-			bar := c.createProgressBar(progressPool, srcInfo, "config")
+			bar := c.createProgressBar(progressPool, srcInfo, "config", "done")
 			destInfo, err := c.copyBlobFromStream(ctx, bytes.NewReader(configBlob), srcInfo, nil, false, true, bar)
 			if err != nil {
 				return types.BlobInfo{}, err
@@ -656,7 +651,7 @@ type diffIDResult struct {
 
 // copyLayer copies a layer with srcInfo (with known Digest and possibly known Size) in src to dest, perhaps compressing it if canCompress,
 // and returns a complete blobInfo of the copied layer, and a value for LayerDiffIDs if diffIDIsNeeded
-func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, bar *mpb.Bar) (types.BlobInfo, digest.Digest, error) {
+func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, pool *mpb.Progress) (types.BlobInfo, digest.Digest, error) {
 	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
 	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
 
@@ -668,6 +663,8 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 		}
 		if reused {
 			logrus.Debugf("Skipping blob %s (already present):", srcInfo.Digest)
+			bar := ic.c.createProgressBar(pool, srcInfo, "blob", "skipped: already exists")
+			bar.SetTotal(0, true)
 			return blobInfo, cachedDiffID, nil
 		}
 	}
@@ -679,10 +676,14 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 	}
 	defer srcStream.Close()
 
+	bar := ic.c.createProgressBar(pool, srcInfo, "blob", "done")
+
 	blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize}, diffIDIsNeeded, bar)
 	if err != nil {
 		return types.BlobInfo{}, "", err
 	}
+
+	diffID := cachedDiffID
 	if diffIDIsNeeded {
 		select {
 		case <-ctx.Done():
@@ -695,11 +696,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, ba
 			// This is safe because we have just computed diffIDResult.Digest ourselves, and in the process
 			// we have read all of the input blob, so srcInfo.Digest must have been validated by digestingReader.
 			ic.c.blobInfoCache.RecordDigestUncompressedPair(srcInfo.Digest, diffIDResult.digest)
-			return blobInfo, diffIDResult.digest, nil
+			diffID = diffIDResult.digest
 		}
-	} else {
-		return blobInfo, cachedDiffID, nil
 	}
+
+	bar.SetTotal(srcInfo.Size, true)
+	return blobInfo, diffID, nil
 }
 
 // copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.

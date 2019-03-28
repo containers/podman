@@ -1,4 +1,5 @@
-package blobinfocache
+// Package none implements a dummy BlobInfoCache which records no data.
+package none
 
 import (
 	"github.com/containers/image/types"
@@ -11,9 +12,10 @@ type noCache struct {
 
 // NoCache implements BlobInfoCache by not recording any data.
 //
-// This exists primarily for implementations of configGetter for Manifest.Inspect,
-// because configs only have one representation.
-// Any use of BlobInfoCache with blobs should usually use at least a short-lived cache.
+// This exists primarily for implementations of configGetter for
+// Manifest.Inspect, because configs only have one representation.
+// Any use of BlobInfoCache with blobs should usually use at least a
+// short-lived cache, ideally blobinfocache.DefaultCache.
 var NoCache types.BlobInfoCache = noCache{}
 
 // UncompressedDigest returns an uncompressed digest corresponding to anyDigest.

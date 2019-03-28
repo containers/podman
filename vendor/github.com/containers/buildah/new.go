@@ -29,7 +29,7 @@ func pullAndFindImage(ctx context.Context, store storage.Store, srcRef types.Ima
 		ReportWriter:  options.ReportWriter,
 		Store:         store,
 		SystemContext: options.SystemContext,
-		BlobDirectory: options.PullBlobDirectory,
+		BlobDirectory: options.BlobDirectory,
 	}
 	ref, err := pullImage(ctx, store, srcRef, pullOptions, sc)
 	if err != nil {
@@ -244,7 +244,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		options.FromImage = ""
 	}
 
-	systemContext := getSystemContext(options.SystemContext, options.SignaturePolicyPath)
+	systemContext := getSystemContext(store, options.SystemContext, options.SignaturePolicyPath)
 
 	if options.FromImage != "" && options.FromImage != "scratch" {
 		ref, _, img, err = resolveImage(ctx, systemContext, store, options)

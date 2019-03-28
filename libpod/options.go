@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -82,11 +83,15 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		// or graphdriveroptions are set, then GraphRoot and RunRoot
 		// must be set
 		if setField {
+			storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+			if err != nil {
+				return err
+			}
 			if rt.config.StorageConfig.GraphRoot == "" {
-				rt.config.StorageConfig.GraphRoot = storage.DefaultStoreOptions.GraphRoot
+				rt.config.StorageConfig.GraphRoot = storeOpts.GraphRoot
 			}
 			if rt.config.StorageConfig.RunRoot == "" {
-				rt.config.StorageConfig.RunRoot = storage.DefaultStoreOptions.RunRoot
+				rt.config.StorageConfig.RunRoot = storeOpts.RunRoot
 			}
 		}
 

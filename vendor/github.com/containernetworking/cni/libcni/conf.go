@@ -83,10 +83,19 @@ func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 		}
 	}
 
+	disableCheck := false
+	if rawDisableCheck, ok := rawList["disableCheck"]; ok {
+		disableCheck, ok = rawDisableCheck.(bool)
+		if !ok {
+			return nil, fmt.Errorf("error parsing configuration list: invalid disableCheck type %T", rawDisableCheck)
+		}
+	}
+
 	list := &NetworkConfigList{
-		Name:       name,
-		CNIVersion: cniVersion,
-		Bytes:      bytes,
+		Name:         name,
+		DisableCheck: disableCheck,
+		CNIVersion:   cniVersion,
+		Bytes:        bytes,
 	}
 
 	var plugins []interface{}

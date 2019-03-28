@@ -32,7 +32,7 @@ func getLockFile(path string, ro bool) (Locker, error) {
 	}
 	return &lockfile{
 		stateMutex: &sync.Mutex{},
-		writeMutex: &sync.Mutex{},
+		rwMutex:    &sync.RWMutex{},
 		file:       path,
 		fd:         uintptr(fd),
 		lw:         stringid.GenerateRandomID(),
@@ -42,10 +42,10 @@ func getLockFile(path string, ro bool) (Locker, error) {
 }
 
 type lockfile struct {
-	// stateMutex is used to synchronize concurrent accesses
+	// rwMutex serializes concurrent reader-writer acquisitions in the same process space
+	rwMutex *sync.RWMutex
+	// stateMutex is used to synchronize concurrent accesses to the state below
 	stateMutex *sync.Mutex
-	// writeMutex is used to serialize and avoid recursive writer locks
-	writeMutex *sync.Mutex
 	counter    int64
 	file       string
 	fd         uintptr
@@ -65,23 +65,24 @@ func (l *lockfile) lock(l_type int16) {
 		Len:    0,
 		Pid:    int32(os.Getpid()),
 	}
-	if l_type == unix.F_WRLCK {
-		// If we try to lock as a writer, lock the writerMutex first to
-		// avoid multiple writer acquisitions of the same process.
-		// Note: it's important to lock it prior to the stateMutex to
-		// avoid a deadlock.
-		l.writeMutex.Lock()
+	switch l_type {
+	case unix.F_RDLCK:
+		l.rwMutex.RLock()
+	case unix.F_WRLCK:
+		l.rwMutex.Lock()
+	default:
+		panic(fmt.Sprintf("attempted to acquire a file lock of unrecognized type %d", l_type))
 	}
 	l.stateMutex.Lock()
-	l.locktype = l_type
 	if l.counter == 0 {
 		// Optimization: only use the (expensive) fcntl syscall when
-		// the counter is 0.  If it's greater than that, we're owning
-		// the lock already and can only be a reader.
+		// the counter is 0.  In this case, we're either the first
+		// reader lock or a writer lock.
 		for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
+	l.locktype = l_type
 	l.locked = true
 	l.counter++
 	l.stateMutex.Unlock()
@@ -133,19 +134,28 @@ func (l *lockfile) Unlock() {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	if l.locktype == unix.F_WRLCK {
-		l.writeMutex.Unlock()
+	if l.locktype == unix.F_RDLCK {
+		l.rwMutex.RUnlock()
+	} else {
+		l.rwMutex.Unlock()
 	}
 	l.stateMutex.Unlock()
 }
 
-// Locked checks if lockfile is locked.
+// Locked checks if lockfile is locked for writing by a thread in this process.
 func (l *lockfile) Locked() bool {
-	return l.locked
+	l.stateMutex.Lock()
+	defer l.stateMutex.Unlock()
+	return l.locked && (l.locktype == unix.F_WRLCK)
 }
 
 // Touch updates the lock file with the UID of the user.
 func (l *lockfile) Touch() error {
+	l.stateMutex.Lock()
+	if !l.locked || (l.locktype != unix.F_WRLCK) {
+		panic("attempted to update last-writer in lockfile without the write lock")
+	}
+	l.stateMutex.Unlock()
 	l.lw = stringid.GenerateRandomID()
 	id := []byte(l.lw)
 	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
@@ -170,6 +180,11 @@ func (l *lockfile) Touch() error {
 // was loaded.
 func (l *lockfile) Modified() (bool, error) {
 	id := []byte(l.lw)
+	l.stateMutex.Lock()
+	if !l.locked {
+		panic("attempted to check last-writer in lockfile without locking it first")
+	}
+	l.stateMutex.Unlock()
 	_, err := unix.Seek(int(l.fd), 0, os.SEEK_SET)
 	if err != nil {
 		return true, err
@@ -179,7 +194,7 @@ func (l *lockfile) Modified() (bool, error) {
 		return true, err
 	}
 	if n != len(id) {
-		return true, unix.ENOSPC
+		return true, nil
 	}
 	lw := l.lw
 	l.lw = string(id)

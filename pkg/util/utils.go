@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -241,25 +240,6 @@ func GetRootlessDirInfo() (string, string, error) {
 	return dataDir, rootlessRuntime, nil
 }
 
-// GetRootlessStorageOpts returns the storage opts for containers running as non root
-func GetRootlessStorageOpts() (storage.StoreOptions, error) {
-	var opts storage.StoreOptions
-
-	dataDir, rootlessRuntime, err := GetRootlessDirInfo()
-	if err != nil {
-		return opts, err
-	}
-	opts.RunRoot = rootlessRuntime
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
-		opts.GraphDriverName = "overlay"
-		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
-	} else {
-		opts.GraphDriverName = "vfs"
-	}
-	return opts, nil
-}
-
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
 }
@@ -289,42 +269,6 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 	return config
 }
 
-// GetDefaultStoreOptions returns the default storage ops for containers
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	var (
-		defaultRootlessRunRoot   string
-		defaultRootlessGraphRoot string
-		err                      error
-	)
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		storageOpts, err = GetRootlessStorageOpts()
-		if err != nil {
-			return storageOpts, err
-		}
-	}
-
-	storageConf := StorageConfigFile()
-	if _, err = os.Stat(storageConf); err == nil {
-		defaultRootlessRunRoot = storageOpts.RunRoot
-		defaultRootlessGraphRoot = storageOpts.GraphRoot
-		storageOpts = storage.StoreOptions{}
-		storage.ReloadConfigurationFile(storageConf, &storageOpts)
-	}
-	if rootless.IsRootless() && err == nil {
-		// If the file did not specify a graphroot or runroot,
-		// set sane defaults so we don't try and use root-owned
-		// directories
-		if storageOpts.RunRoot == "" {
-			storageOpts.RunRoot = defaultRootlessRunRoot
-		}
-		if storageOpts.GraphRoot == "" {
-			storageOpts.GraphRoot = defaultRootlessGraphRoot
-		}
-	}
-	return storageOpts, nil
-}
-
 // WriteStorageConfigFile writes the configuration to a file
 func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
 	os.MkdirAll(filepath.Dir(storageConf), 0755)
@@ -340,14 +284,6 @@ func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf strin
 		return err
 	}
 	return nil
-}
-
-// StorageConfigFile returns the path to the storage config file used
-func StorageConfigFile() string {
-	if rootless.IsRootless() {
-		return filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
-	}
-	return storage.DefaultConfigFile
 }
 
 // ParseInputTime takes the users input and to determine if it is valid and
