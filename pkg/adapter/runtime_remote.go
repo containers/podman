@@ -137,6 +137,7 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 	ri := remoteImage{
 		InputName:   name,
 		ID:          i.Id,
+		Digest:      digest.Digest(i.Digest),
 		Labels:      i.Labels,
 		RepoTags:    i.RepoTags,
 		RepoDigests: i.RepoTags,

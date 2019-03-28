@@ -54,6 +54,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 
 		i := iopodman.Image{
 			Id:          image.ID(),
+			Digest:      string(image.Digest()),
 			ParentId:    image.Parent,
 			RepoTags:    image.Names(),
 			RepoDigests: repoDigests,

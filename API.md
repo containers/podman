@@ -1472,6 +1472,8 @@ gid_map [IDMap](#IDMap)
 
 id [string](https://godoc.org/builtin#string)
 
+digest [string](https://godoc.org/builtin#string)
+
 parentId [string](https://godoc.org/builtin#string)
 
 repoTags [[]string](#[]string)
