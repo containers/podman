@@ -228,12 +228,12 @@ func (n NetworkMode) IsSlirp4netns() bool {
 	return n == "slirp4netns"
 }
 
-// IsNS() indicates a network namespace passed in by path (ns:<path>)
+// IsNS indicates a network namespace passed in by path (ns:<path>)
 func (n NetworkMode) IsNS() bool {
 	return strings.HasPrefix(string(n), "ns:")
 }
 
-// NS() gets the path associated with a ns:<path> network ns
+// NS gets the path associated with a ns:<path> network ns
 func (n NetworkMode) NS() string {
 	parts := strings.SplitN(string(n), ":", 2)
 	if len(parts) > 1 {
@@ -242,7 +242,7 @@ func (n NetworkMode) NS() string {
 	return ""
 }
 
-// IsPod() returns whether the network refers to pod networking
+// IsPod returns whether the network refers to pod networking
 func (n NetworkMode) IsPod() bool {
 	return n == "pod"
 }
