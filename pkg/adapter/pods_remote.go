@@ -14,7 +14,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/pkg/errors"
-	"github.com/ulule/deepcopier"
 )
 
 // Pod ...
@@ -99,7 +98,9 @@ func (r *LocalRuntime) LookupPod(nameOrID string) (*Pod, error) {
 // the data of a remotepod data struct
 func (p *Pod) Inspect() (*libpod.PodInspect, error) {
 	config := new(libpod.PodConfig)
-	deepcopier.Copy(p.remotepod.config).To(config)
+	if err := libpod.JSONDeepCopy(p.remotepod.config, config); err != nil {
+		return nil, err
+	}
 	inspectData := libpod.PodInspect{
 		Config:     config,
 		State:      p.remotepod.state,

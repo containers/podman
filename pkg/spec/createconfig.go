@@ -346,8 +346,11 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func (c *CreateConfig) createExitCommand() []string {
-	config := c.Runtime.GetConfig()
+func (c *CreateConfig) createExitCommand() ([]string, error) {
+	config, err := c.Runtime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
 
 	cmd, _ := os.Executable()
 	command := []string{cmd,
@@ -372,7 +375,7 @@ func (c *CreateConfig) createExitCommand() []string {
 		command = append(command, "--rm")
 	}
 
-	return command
+	return command, nil
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
@@ -567,7 +570,11 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	// Always use a cleanup process to clean up Podman after termination
-	options = append(options, libpod.WithExitCommand(c.createExitCommand()))
+	exitCmd, err := c.createExitCommand()
+	if err != nil {
+		return nil, err
+	}
+	options = append(options, libpod.WithExitCommand(exitCmd))
 
 	if c.HealthCheck != nil {
 		options = append(options, libpod.WithHealthCheck(c.HealthCheck))

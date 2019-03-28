@@ -514,7 +514,11 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	sc := image.GetSystemContext(i.Runtime.GetConfig().SignaturePolicyPath, "", false)
+	rtc, err := i.Runtime.GetConfig()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
 	var mimeType string
 	switch manifestType {
 	case "oci", "": //nolint
@@ -525,7 +529,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image format %q", manifestType))
 	}
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   i.Runtime.GetConfig().SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
 		ReportWriter:          nil,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"

@@ -19,7 +19,6 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // CtrRemoveTimeout is the default number of seconds to wait after stopping a container
@@ -63,7 +62,9 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.config.ID = stringid.GenerateNonCryptoID()
 
 	ctr.config.Spec = new(spec.Spec)
-	deepcopier.Copy(rSpec).To(ctr.config.Spec)
+	if err := JSONDeepCopy(rSpec, ctr.config.Spec); err != nil {
+		return nil, errors.Wrapf(err, "error copying runtime spec while creating container")
+	}
 	ctr.config.CreatedTime = time.Now()
 
 	ctr.config.ShmSize = DefaultShmSize

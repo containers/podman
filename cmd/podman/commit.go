@@ -96,9 +96,14 @@ func commitCmd(c *cliconfig.CommitValues) error {
 		return errors.Wrapf(err, "error looking up container %q", container)
 	}
 
-	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		return err
+	}
+
+	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   runtime.GetConfig().SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
 		ReportWriter:          writer,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

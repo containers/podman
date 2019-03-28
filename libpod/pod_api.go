@@ -6,7 +6,6 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // Start starts all containers within a pod
@@ -441,7 +440,9 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	infraContainerID := p.state.InfraContainerID
 
 	config := new(PodConfig)
-	deepcopier.Copy(p.config).To(config)
+	if err := JSONDeepCopy(p.config, config); err != nil {
+		return nil, err
+	}
 	inspectData := PodInspect{
 		Config: config,
 		State: &PodInspectState{
