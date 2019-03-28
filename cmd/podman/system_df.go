@@ -28,6 +28,7 @@ var (
 	`
 	_dfSystemCommand = &cobra.Command{
 		Use:   "df",
+		Args:  noSubArgs,
 		Short: "Show podman disk usage",
 		Long:  dfSystemDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
