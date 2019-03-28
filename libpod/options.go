@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	nameRegex = regexp.MustCompile("[a-zA-Z0-9_-]+")
+	nameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 )
 
 // Runtime Creation Options
