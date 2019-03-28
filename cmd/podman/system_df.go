@@ -85,6 +85,9 @@ type volumeVerboseDiskUsage struct {
 }
 
 const systemDfDefaultFormat string = "table {{.Type}}\t{{.Total}}\t{{.Active}}\t{{.Size}}\t{{.Reclaimable}}"
+const imageVerboseFormat string = "table {{.Repository}}\t{{.Tag}}\t{{.ImageID}}\t{{.Created}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.Containers}}"
+const containerVerboseFormat string = "table {{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.Size}}\t{{.Created}}\t{{.Status}}\t{{.Names}}"
+const volumeVerboseFormat string = "table {{.VolumeName}}\t{{.Links}}\t{{.Size}}"
 
 func init() {
 	dfSystemCommand.Command = _dfSystemCommand
@@ -473,7 +476,7 @@ func getImageVerboseDiskUsage(ctx context.Context, images []*image.Image, images
 			Repository: repo,
 			Tag:        tag,
 			ImageID:    shortID(img.ID()),
-			Created:    units.HumanDuration(time.Since((img.Created().Local()))) + " ago",
+			Created:    fmt.Sprintf("%s ago", units.HumanDuration(time.Since((img.Created().Local())))),
 			Size:       units.HumanSizeWithPrecision(float64(*size), 3),
 			SharedSize: units.HumanSizeWithPrecision(float64(*size-imgUniqueSizeMap[img.ID()]), 3),
 			UniqueSize: units.HumanSizeWithPrecision(float64(imgUniqueSizeMap[img.ID()]), 3),
@@ -502,7 +505,7 @@ func getContainerVerboseDiskUsage(containers []*libpod.Container) (containersVer
 			Command:      strings.Join(ctr.Command(), " "),
 			LocalVolumes: len(ctr.UserVolumes()),
 			Size:         units.HumanSizeWithPrecision(float64(size), 3),
-			Created:      units.HumanDuration(time.Since(ctr.CreatedTime().Local())) + "ago",
+			Created:      fmt.Sprintf("%s ago", units.HumanDuration(time.Since(ctr.CreatedTime().Local()))),
 			Status:       state.String(),
 			Names:        ctr.Name(),
 		}
@@ -548,7 +551,7 @@ func imagesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return errors.Wrapf(err, "error getting verbose output of images")
 	}
 	os.Stderr.WriteString("Images space usage:\n\n")
-	out := formats.StdoutTemplateArray{Output: systemDfImageVerboseDiskUsageToGeneric(imagesVerboseDiskUsage), Template: "table {{.Repository}}\t{{.Tag}}\t{{.ImageID}}\t{{.Created}}\t{{.Size}}\t{{.SharedSize}}\t{{.UniqueSize}}\t{{.Containers}}", Fields: imageVerboseHeader}
+	out := formats.StdoutTemplateArray{Output: systemDfImageVerboseDiskUsageToGeneric(imagesVerboseDiskUsage), Template: imageVerboseFormat, Fields: imageVerboseHeader}
 	formats.Writer(out).Out()
 	return nil
 }
@@ -569,7 +572,7 @@ func containersVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return errors.Wrapf(err, "error getting verbose output of containers")
 	}
 	os.Stderr.WriteString("\nContainers space usage:\n\n")
-	out := formats.StdoutTemplateArray{Output: systemDfContainerVerboseDiskUsageToGeneric(containersVerboseDiskUsage), Template: "table {{.ContainerID}}\t{{.Image}}\t{{.Command}}\t{{.LocalVolumes}}\t{{.Size}}\t{{.Created}}\t{{.Status}}\t{{.Names}}", Fields: containerVerboseHeader}
+	out := formats.StdoutTemplateArray{Output: systemDfContainerVerboseDiskUsageToGeneric(containersVerboseDiskUsage), Template: containerVerboseFormat, Fields: containerVerboseHeader}
 	formats.Writer(out).Out()
 	return nil
 }
@@ -585,7 +588,7 @@ func volumesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return errors.Wrapf(err, "error getting verbose ouput of volumes")
 	}
 	os.Stderr.WriteString("\nLocal Volumes space usage:\n\n")
-	out := formats.StdoutTemplateArray{Output: systemDfVolumeVerboseDiskUsageToGeneric(volumesVerboseDiskUsage), Template: "table {{.VolumeName}}\t{{.Links}}\t{{.Size}}", Fields: volumeVerboseHeader}
+	out := formats.StdoutTemplateArray{Output: systemDfVolumeVerboseDiskUsageToGeneric(volumesVerboseDiskUsage), Template: volumeVerboseFormat, Fields: volumeVerboseHeader}
 	formats.Writer(out).Out()
 	return nil
 }
