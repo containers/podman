@@ -310,23 +310,12 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	if !rootless.IsRootless() && (len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0) {
-		info, err := os.Stat(c.runtime.config.TmpDir)
-		if err != nil {
-			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
-		}
-		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
-			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
-		}
-		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
-		if err := os.MkdirAll(root, 0755); err != nil {
-			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
-		}
-		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
+		if err := os.Chown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
-		if err != nil {
-			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
+
+		if err := os.Chown(containerInfo.Dir, c.RootUID(), c.RootGID()); err != nil {
+			return err
 		}
 	}
 
@@ -334,10 +323,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.config.MountLabel = containerInfo.MountLabel
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
-	c.state.DestinationRunDir = c.state.RunDir
-	if c.state.UserNSRoot != "" {
-		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
-	}
 
 	// Set the default Entrypoint and Command
 	if containerInfo.Config != nil {
@@ -370,12 +355,6 @@ func (c *Container) teardownStorage() error {
 
 	if err := c.cleanupStorage(); err != nil {
 		return errors.Wrapf(err, "failed to cleanup container %s storage", c.ID())
-	}
-
-	if c.state.UserNSRoot != "" {
-		if err := os.RemoveAll(c.state.UserNSRoot); err != nil {
-			return errors.Wrapf(err, "error removing userns root %q", c.state.UserNSRoot)
-		}
 	}
 
 	if err := c.runtime.storageService.DeleteContainer(c.ID()); err != nil {
@@ -432,6 +411,7 @@ func (c *Container) refresh() error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving temporary directory for container %s", c.ID())
 	}
+	c.state.RunDir = dir
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
 		info, err := os.Stat(c.runtime.config.TmpDir)
@@ -448,16 +428,6 @@ func (c *Container) refresh() error {
 		if err := os.Chown(root, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		c.state.UserNSRoot, err = filepath.EvalSymlinks(root)
-		if err != nil {
-			return errors.Wrapf(err, "failed to eval symlinks for %s", root)
-		}
-	}
-
-	c.state.RunDir = dir
-	c.state.DestinationRunDir = c.state.RunDir
-	if c.state.UserNSRoot != "" {
-		c.state.DestinationRunDir = filepath.Join(c.state.UserNSRoot, "rundir")
 	}
 
 	// We need to pick up a new lock
@@ -1260,7 +1230,7 @@ func (c *Container) writeStringToRundir(destFile, output string) (string, error)
 		return "", err
 	}
 
-	return filepath.Join(c.state.DestinationRunDir, destFile), nil
+	return filepath.Join(c.state.RunDir, destFile), nil
 }
 
 // appendStringToRundir appends the provided string to the runtimedir file
@@ -1277,7 +1247,7 @@ func (c *Container) appendStringToRundir(destFile, output string) (string, error
 		return "", errors.Wrapf(err, "unable to write %s", destFileName)
 	}
 
-	return filepath.Join(c.state.DestinationRunDir, destFile), nil
+	return filepath.Join(c.state.RunDir, destFile), nil
 }
 
 // Save OCI spec to disk, replacing any existing specs for the container
@@ -1409,6 +1379,9 @@ func (c *Container) mount() (string, error) {
 	mountPoint, err = filepath.EvalSymlinks(mountPoint)
 	if err != nil {
 		return "", errors.Wrapf(err, "error resolving storage path for container %s", c.ID())
+	}
+	if err := os.Chown(mountPoint, c.RootUID(), c.RootGID()); err != nil {
+		return "", errors.Wrapf(err, "cannot chown %s to %d:%d", mountPoint, c.RootUID(), c.RootGID())
 	}
 	return mountPoint, nil
 }

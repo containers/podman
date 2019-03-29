@@ -25,7 +25,6 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -99,11 +98,6 @@ func (c *Container) prepare() (err error) {
 		// Finish up mountStorage
 		c.state.Mounted = true
 		c.state.Mountpoint = mountPoint
-		if c.state.UserNSRoot == "" {
-			c.state.RealMountpoint = c.state.Mountpoint
-		} else {
-			c.state.RealMountpoint = filepath.Join(c.state.UserNSRoot, "mountpoint")
-		}
 
 		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
 	}()
@@ -220,13 +214,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 			}
 		}
 		m.Options = options
-
-		// If we are using a user namespace, we will use an intermediate
-		// directory to bind mount volumes
-		if c.state.UserNSRoot != "" && strings.HasPrefix(m.Source, c.runtime.config.VolumePath) {
-			newSourceDir := filepath.Join(c.state.UserNSRoot, "volumes")
-			m.Source = strings.Replace(m.Source, c.runtime.config.VolumePath, newSourceDir, 1)
-		}
 	}
 
 	g.SetProcessSelinuxLabel(c.ProcessLabel())
@@ -313,13 +300,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
-	if c.config.Rootfs == "" {
-		if err := idtools.MkdirAllAs(c.state.RealMountpoint, 0700, c.RootUID(), c.RootGID()); err != nil {
-			return nil, err
-		}
-	}
-
-	g.SetRootPath(c.state.RealMountpoint)
+	g.SetRootPath(c.state.Mountpoint)
 	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
@@ -820,7 +801,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.DestinationRunDir, c.RootUID(), c.RootGID(), rootless.IsRootless())
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless())
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -907,7 +888,7 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(c.state.DestinationRunDir, "resolv.conf"), nil
+	return filepath.Join(c.state.RunDir, "resolv.conf"), nil
 }
 
 // generateHosts creates a containers hosts file

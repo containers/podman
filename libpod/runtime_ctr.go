@@ -182,14 +182,11 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
 			volInfo, err := r.state.Volume(vol.Source)
 			if err != nil {
-				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific())
+				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific(), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
 				if err != nil {
 					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
 				}
 				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
-				if err := os.Chown(ctr.config.Spec.Mounts[i].Source, ctr.RootUID(), ctr.RootGID()); err != nil {
-					return nil, errors.Wrapf(err, "cannot chown %q to %d:%d", ctr.config.Spec.Mounts[i].Source, ctr.RootUID(), ctr.RootGID())
-				}
 				if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
 					return nil, errors.Wrapf(err, "failed to copy content into new volume mount %q", vol.Source)
 				}
@@ -204,11 +201,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}
 
 	if !MountExists(ctr.config.Spec.Mounts, "/dev/shm") && ctr.config.ShmDir == "" {
-		if ctr.state.UserNSRoot == "" {
-			ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
-		} else {
-			ctr.config.ShmDir = filepath.Join(ctr.state.UserNSRoot, "shm")
-		}
+		ctr.config.ShmDir = filepath.Join(ctr.bundlePath(), "shm")
 		if err := os.MkdirAll(ctr.config.ShmDir, 0700); err != nil {
 			if !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "unable to create shm %q dir", ctr.config.ShmDir)

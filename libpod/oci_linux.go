@@ -3,17 +3,14 @@
 package libpod
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"sync"
+	"syscall"
 
 	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/utils"
-	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -62,72 +59,40 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
+// makeAccessible changes the path permission and each parent directory to have --x--x--x
+func makeAccessible(path string, uid, gid int) error {
+	for ; path != "/"; path = filepath.Dir(path) {
+		st, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
+			continue
+		}
+		if st.Mode()&0111 != 0111 {
+			if err := os.Chmod(path, os.FileMode(st.Mode()|0111)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
 func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
-	if ctr.state.UserNSRoot == "" {
-		// no need of an intermediate mount ns
-		return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+	if len(ctr.config.IDMappings.UIDMap) != 0 || len(ctr.config.IDMappings.GIDMap) != 0 {
+		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
+			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
+				return err
+			}
+		}
 	}
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		runtime.LockOSThread()
-
-		var fd *os.File
-		fd, err = os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
-		if err != nil {
-			return
-		}
-		defer fd.Close()
-
-		// create a new mountns on the current thread
-		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
-			return
-		}
-		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
-
-		// don't spread our mounts around
-		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
-		if err != nil {
-			return
-		}
-		err = unix.Mount(ctr.state.Mountpoint, ctr.state.RealMountpoint, "none", unix.MS_BIND, "")
-		if err != nil {
-			return
-		}
-		if err := idtools.MkdirAllAs(ctr.state.DestinationRunDir, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
-			return
-		}
-
-		err = unix.Mount(ctr.state.RunDir, ctr.state.DestinationRunDir, "none", unix.MS_BIND, "")
-		if err != nil {
-			return
-		}
-
-		if ctr.state.UserNSRoot != "" {
-			_, err := os.Stat(ctr.runtime.config.VolumePath)
-			if err != nil && !os.IsNotExist(err) {
-				return
-			}
-			if err == nil {
-				volumesTarget := filepath.Join(ctr.state.UserNSRoot, "volumes")
-				if err := idtools.MkdirAs(volumesTarget, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
-					return
-				}
-				if err = unix.Mount(ctr.runtime.config.VolumePath, volumesTarget, "none", unix.MS_BIND, ""); err != nil {
-					return
-				}
-			}
-		}
-
-		err = r.createOCIContainer(ctr, cgroupParent, restoreOptions)
-	}()
-	wg.Wait()
-
-	return err
+	return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
 }
 
 func rpmVersion(path string) string {
