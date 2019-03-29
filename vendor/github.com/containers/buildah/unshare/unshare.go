@@ -304,5 +304,5 @@ func GetRootlessUID() int {
 
 // RootlessEnv returns the environment settings for the rootless containers
 func RootlessEnv() []string {
-	return append(os.Environ(), UsernsEnvName+"=")
+	return append(os.Environ(), UsernsEnvName+"=done")
 }
