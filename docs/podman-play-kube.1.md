@@ -22,6 +22,8 @@ the ID of the new Pod is output.
 
 Ideally the input file would be one created by Podman (see podman-generate-kube(1)).  This would guarantee a smooth import and expected results.
 
+Note: HostPath volume types created by play kube will be given an SELinux private label (Z)
+
 # OPTIONS:
 
 **--authfile**
