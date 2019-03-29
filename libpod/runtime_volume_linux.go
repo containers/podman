@@ -99,11 +99,27 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
 		}
 
-		// TODO: force-removing a volume makes *no sense*
-		// I do not believe we should be allowing this at all.
-		// For now, return angry errors.
-		// TODO: need to do something more sane in this case
-		return errors.Wrapf(ErrVolumeBeingUsed, "TODO: FIXME - still refusing to remove because force-removing an in-use volume is not good.")
+		// We need to remove all containers using the volume
+		for _, dep := range deps {
+			ctr, err := r.state.Container(dep)
+			if err != nil {
+				// If the container's removed, no point in
+				// erroring.
+				if errors.Cause(err) == ErrNoSuchCtr || errors.Cause(err) == ErrCtrRemoved {
+					continue
+				}
+
+				return errors.Wrapf(err, "error removing container %s that depends on volume %s", dep, v.Name())
+			}
+
+			// TODO: do we want to set force here when removing
+			// containers?
+			// I'm inclined to say no, in case someone accidentally
+			// wipes a container they're using...
+			if err := r.removeContainer(ctx, ctr, false, true); err != nil {
+				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
+			}
+		}
 	}
 
 	// Set volume as invalid so it can no longer be used
