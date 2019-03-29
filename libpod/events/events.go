@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
 
@@ -122,6 +123,13 @@ func NewEvent(status Status) Event {
 
 // Write will record the event to the given path
 func (e *Event) Write(path string) error {
+	// We need to lock events file
+	lock, err := storage.GetLockfile(path + ".lock")
+	if err != nil {
+		return err
+	}
+	lock.Lock()
+	defer lock.Unlock()
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0700)
 	if err != nil {
 		return err
