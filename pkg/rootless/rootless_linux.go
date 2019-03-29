@@ -29,7 +29,7 @@ extern int reexec_userns_join(int userns, int mountns);
 import "C"
 
 func runInUser() error {
-	os.Setenv("_LIBPOD_USERNS_CONFIGURED", "done")
+	os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
 	return nil
 }
 
@@ -41,7 +41,7 @@ var (
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
-		isRootless = os.Geteuid() != 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != ""
+		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 	})
 	return isRootless
 }
@@ -62,12 +62,12 @@ func SkipStorageSetup() bool {
 
 // Argument returns the argument that was set for the rootless session.
 func Argument() string {
-	return os.Getenv("_LIBPOD_ROOTLESS_ARG")
+	return os.Getenv("_CONTAINERS_ROOTLESS_ARG")
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
-	uidEnv := os.Getenv("_LIBPOD_ROOTLESS_UID")
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
 	if uidEnv != "" {
 		u, _ := strconv.Atoi(uidEnv)
 		return u
@@ -107,7 +107,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 // JoinNS re-exec podman in a new userNS and join the user namespace of the specified
 // PID.
 func JoinNS(pid uint, preserveFDs int) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -149,7 +149,7 @@ func JoinDirectUserAndMountNS(pid uint) (bool, int, error) {
 // mount namespace of the specified PID without looking up its parent.  Useful to join
 // directly the conmon process.
 func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -166,7 +166,7 @@ func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 	defer userNS.Close()
 
 	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_LIBPOD_ROOTLESS_ARG", opts.Argument); err != nil {
+		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
 			return false, -1, err
 		}
 	}
@@ -187,7 +187,7 @@ func JoinDirectUserAndMountNSWithOpts(pid uint, opts *Opts) (bool, int, error) {
 // JoinNSPath re-exec podman in a new userNS and join the owner user namespace of the
 // specified path.
 func JoinNSPath(path string) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
+	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
 
@@ -223,8 +223,8 @@ func BecomeRootInUserNS() (bool, int, error) {
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
-	if os.Geteuid() == 0 || os.Getenv("_LIBPOD_USERNS_CONFIGURED") != "" {
-		if os.Getenv("_LIBPOD_USERNS_CONFIGURED") == "init" {
+	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
 		return false, 0, nil
@@ -242,7 +242,7 @@ func BecomeRootInUserNSWithOpts(opts *Opts) (bool, int, error) {
 	defer w.Write([]byte("0"))
 
 	if opts != nil && opts.Argument != "" {
-		if err := os.Setenv("_LIBPOD_ROOTLESS_ARG", opts.Argument); err != nil {
+		if err := os.Setenv("_CONTAINERS_ROOTLESS_ARG", opts.Argument); err != nil {
 			return false, -1, err
 		}
 	}

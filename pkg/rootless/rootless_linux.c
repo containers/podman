@@ -136,8 +136,8 @@ reexec_userns_join (int userns, int mountns)
   if (pid)
     return pid;
 
-  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
-  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
 
   if (setns (userns, 0) < 0)
     {
@@ -265,8 +265,8 @@ reexec_in_user_namespace (int ready)
     setenv("LISTEN_PID", s, true);
   }
 
-  setenv ("_LIBPOD_USERNS_CONFIGURED", "init", 1);
-  setenv ("_LIBPOD_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
 
   do
     ret = read (ready, &b, 1) < 0;
