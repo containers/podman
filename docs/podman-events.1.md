@@ -32,7 +32,6 @@ The *container* event type will report the follow statuses:
  * sync
  * unmount
  * unpause
- * wait
 
 The *pod* event type will report the follow statuses:
  * create

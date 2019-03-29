@@ -105,8 +105,6 @@ const (
 	Unpause Status = "unpause"
 	// Untag ...
 	Untag Status = "untag"
-	// Wait ...
-	Wait Status = "wait"
 )
 
 // EventFilter for filtering events
@@ -269,8 +267,6 @@ func StringToStatus(name string) (Status, error) {
 		return Unpause, nil
 	case Untag.String():
 		return Untag, nil
-	case Wait.String():
-		return Wait, nil
 	}
 	return "", errors.Errorf("unknown event status %s", name)
 }
