@@ -10,7 +10,7 @@ import (
 	"github.com/containers/image/pkg/docker/config"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/common"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
@@ -64,7 +64,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	server := registryFromFullName(scrubServer(args[0]))
 	authfile := getAuthFile(c.Authfile)
 
-	sc := common.GetSystemContext("", authfile, false)
+	sc := image.GetSystemContext("", authfile, false)
 	if c.Flag("tls-verify").Changed {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -22,7 +23,6 @@ import (
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/libpod/common"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
@@ -548,6 +548,7 @@ func (i *Image) PushImageToHeuristicDestination(ctx context.Context, destination
 // PushImageToReference pushes the given image to a location described by the given path
 func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageReference, manifestMIMEType, authFile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions SigningOptions, dockerRegistryOptions *DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	sc := GetSystemContext(signaturePolicyPath, authFile, forceCompress)
+	sc.BlobInfoCacheDir = filepath.Join(i.imageruntime.store.GraphRoot(), "cache")
 
 	policyContext, err := getPolicyContext(sc)
 	if err != nil {
@@ -909,7 +910,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 		return nil, errors.Wrapf(err, "error updating image config")
 	}
 
-	sc := common.GetSystemContext("", "", false)
+	sc := GetSystemContext("", "", false)
 
 	// if reference not given, get the image digest
 	if reference == "" {
