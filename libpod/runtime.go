@@ -309,7 +309,17 @@ func getDefaultTmpDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(rootlessRuntimeDir, "libpod", "tmp"), nil
+	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+
+	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+		if !os.IsExist(err) {
+			return "", errors.Wrapf(err, "cannot mkdir %s", libpodRuntimeDir)
+		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
+			// The directory already exist, just set the sticky bit
+			return "", errors.Wrapf(err, "could not set sticky bit on %s", libpodRuntimeDir)
+		}
+	}
+	return filepath.Join(libpodRuntimeDir, "tmp"), nil
 }
 
 // SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
