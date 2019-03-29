@@ -574,7 +574,6 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 		return 0, err
 	}
 	exitCode := c.state.ExitCode
-	c.newContainerEvent(events.Wait)
 	return exitCode, nil
 }
 
