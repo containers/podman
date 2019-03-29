@@ -11,7 +11,7 @@ import (
 	"github.com/containers/image/transports/alltransports"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	opentracing "github.com/opentracing/opentracing-go"
@@ -85,7 +85,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 		}
 	}
 	ctx := getContext()
-	image := args[0]
+	img := args[0]
 
 	var registryCreds *types.DockerAuthConfig
 
@@ -104,7 +104,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 		writer = os.Stderr
 	}
 
-	dockerRegistryOptions := image2.DockerRegistryOptions{
+	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      c.CertDir,
 	}
@@ -113,20 +113,20 @@ func pullCmd(c *cliconfig.PullValues) error {
 	}
 
 	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
-	if strings.HasPrefix(image, dockerarchive.Transport.Name()+":") {
-		srcRef, err := alltransports.ParseImageName(image)
+	if strings.HasPrefix(img, dockerarchive.Transport.Name()+":") {
+		srcRef, err := alltransports.ParseImageName(img)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing %q", image)
+			return errors.Wrapf(err, "error parsing %q", img)
 		}
 		newImage, err := runtime.LoadFromArchiveReference(getContext(), srcRef, c.SignaturePolicy, writer)
 		if err != nil {
-			return errors.Wrapf(err, "error pulling image from %q", image)
+			return errors.Wrapf(err, "error pulling image from %q", img)
 		}
 		fmt.Println(newImage[0].ID())
 	} else {
 		authfile := getAuthFile(c.String("authfile"))
-		spec := image
-		systemContext := image2.GetSystemContext("", authfile, false)
+		spec := img
+		systemContext := image.GetSystemContext("", authfile, false)
 		srcRef, err := alltransports.ParseImageName(spec)
 		if err != nil {
 			dockerTransport := "docker://"
@@ -134,7 +134,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 			spec = dockerTransport + spec
 			srcRef2, err2 := alltransports.ParseImageName(spec)
 			if err2 != nil {
-				return errors.Wrapf(err2, "error parsing image name %q", image)
+				return errors.Wrapf(err2, "error parsing image name %q", img)
 			}
 			srcRef = srcRef2
 		}
@@ -157,7 +157,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 		var foundIDs []string
 		foundImage := true
 		for _, name := range names {
-			newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, true, nil)
+			newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
 			if err != nil {
 				println(errors.Wrapf(err, "error pulling image %q", name))
 				foundImage = false
@@ -166,7 +166,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 			foundIDs = append(foundIDs, newImage.ID())
 		}
 		if len(names) == 1 && !foundImage {
-			return errors.Wrapf(err, "error pulling image %q", image)
+			return errors.Wrapf(err, "error pulling image %q", img)
 		}
 		if len(names) > 1 {
 			fmt.Println("Pulled Images:")
@@ -174,6 +174,6 @@ func pullCmd(c *cliconfig.PullValues) error {
 		for _, id := range foundIDs {
 			fmt.Println(id)
 		}
-	} // end else if strings.HasPrefix(image, dockerarchive.Transport.Name()+":")
+	} // end else if strings.HasPrefix(img, dockerarchive.Transport.Name()+":")
 	return nil
 }

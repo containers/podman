@@ -13,7 +13,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
-	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/image"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/spec"
@@ -145,7 +145,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		writer = os.Stderr
 	}
 
-	dockerRegistryOptions := image2.DockerRegistryOptions{
+	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      c.CertDir,
 	}
@@ -183,7 +183,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 	}
 
 	for _, container := range podYAML.Spec.Containers {
-		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image2.SigningOptions{}, false, nil)
+		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, false, nil)
 		if err != nil {
 			return err
 		}
@@ -232,7 +232,7 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image2.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		envs            map[string]string
