@@ -473,7 +473,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 // If useRunc is false, we will not directly hit runc to see the container's
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
-func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
+func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) error {
 	exitFile := ctr.exitFilePath()
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -481,8 +481,8 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRunc bool) error {
 		return err
 	}
 
-	// If not using runc, we don't need to do most of this.
-	if !useRunc {
+	// If not using the OCI runtime, we don't need to do most of this.
+	if !useRuntime {
 		// If the container's not running, nothing to do.
 		if ctr.state.State != ContainerStateRunning && ctr.state.State != ContainerStatePaused {
 			return nil
