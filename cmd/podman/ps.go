@@ -11,6 +11,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -20,7 +21,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -190,6 +191,7 @@ func psInit(command *cliconfig.PsValues) {
 	flags.BoolVarP(&command.Size, "size", "s", false, "Display the total file sizes")
 	flags.StringVar(&command.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
 	flags.BoolVar(&command.Sync, "sync", false, "Sync container state with OCI runtime")
+	flags.UintVarP(&command.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -208,10 +210,15 @@ func psCmd(c *cliconfig.PsValues) error {
 		defer span.Finish()
 	}
 
-	var (
-		filterFuncs      []libpod.ContainerFilter
-		outputContainers []*libpod.Container
-	)
+	var watch bool
+
+	if c.Watch > 0 {
+		watch = true
+	}
+
+	if c.Watch > 0 && c.Latest {
+		return errors.New("the watch and latest flags cannot be used together")
+	}
 
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
@@ -224,135 +231,24 @@ func psCmd(c *cliconfig.PsValues) error {
 
 	defer runtime.Shutdown(false)
 
-	opts := shared.PsOptions{
-		All:       c.All,
-		Format:    c.Format,
-		Last:      c.Last,
-		Latest:    c.Latest,
-		NoTrunc:   c.NoTrunct,
-		Pod:       c.Pod,
-		Quiet:     c.Quiet,
-		Size:      c.Size,
-		Namespace: c.Namespace,
-		Sort:      c.Sort,
-		Sync:      c.Sync,
-	}
-
-	filters := c.Filter
-	if len(filters) > 0 {
-		for _, f := range filters {
-			filterSplit := strings.SplitN(f, "=", 2)
-			if len(filterSplit) < 2 {
-				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-			}
-			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], runtime)
-			if err != nil {
-				return errors.Wrapf(err, "invalid filter")
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
-		}
-	}
-
-	if !opts.Latest {
-		// Get all containers
-		containers, err := runtime.GetContainers(filterFuncs...)
-		if err != nil {
+	if !watch {
+		if err := psDisplay(c, runtime); err != nil {
 			return err
-		}
-
-		// We only want the last few containers
-		if opts.Last > 0 && opts.Last <= len(containers) {
-			return errors.Errorf("--last not yet supported")
-		} else {
-			outputContainers = containers
 		}
 	} else {
-		// Get just the latest container
-		// Ignore filters
-		latestCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return err
-		}
-
-		outputContainers = []*libpod.Container{latestCtr}
-	}
-
-	maxWorkers := shared.Parallelize("ps")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
-	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	pss := shared.PBatch(outputContainers, maxWorkers, opts)
-	if opts.Sort != "" {
-		pss, err = sortPsOutput(opts.Sort, pss)
-		if err != nil {
-			return err
-		}
-	}
-
-	// If quiet, print only cids and return
-	if opts.Quiet {
-		return printQuiet(pss)
-	}
-
-	// If the user wants their own GO template format
-	if opts.Format != "" {
-		if opts.Format == "json" {
-			return dumpJSON(pss)
-		}
-		return printFormat(opts.Format, pss)
-	}
-
-	// Define a tab writer with stdout as the output
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	defer w.Flush()
-
-	// Output standard PS headers
-	if !opts.Namespace {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
-		// User wants pod info
-		if opts.Pod {
-			fmt.Fprintf(w, "\t%s", hpod)
-		}
-		//User wants size info
-		if opts.Size {
-			fmt.Fprintf(w, "\t%s", hsize)
-		}
-	} else {
-		// Output Namespace headers
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
-	}
-
-	// Now iterate each container and output its information
-	for _, container := range pss {
-
-		// Standard PS output
-		if !opts.Namespace {
-			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
-			// User wants pod info
-			if opts.Pod {
-				fmt.Fprintf(w, "\t%s", container.Pod)
+		for {
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
+			if err := psDisplay(c, runtime); err != nil {
+				return err
 			}
-			//User wants size info
-			if opts.Size {
-				var size string
-				if container.Size == nil {
-					size = units.HumanSizeWithPrecision(0, 0)
-				} else {
-					size = units.HumanSizeWithPrecision(float64(container.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(container.Size.RootFsSize), 3) + ")"
-					fmt.Fprintf(w, "\t%s", size)
-				}
-			}
-
-		} else {
-			// Print namespace information
-			ns := shared.GetNamespaces(container.Pid)
-			fmt.Fprintf(w, "\n%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Names, container.Pid, ns.Cgroup, ns.IPC, ns.MNT, ns.NET, ns.PIDNS, ns.User, ns.UTS)
+			time.Sleep(time.Duration(c.Watch) * time.Second)
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
 		}
-
 	}
-	fmt.Fprint(w, "\n")
 	return nil
 }
 
@@ -652,4 +548,140 @@ func dumpJSON(containers []shared.PsContainerOutput) error {
 	}
 	os.Stdout.Write(b)
 	return nil
+}
+
+func psDisplay(c *cliconfig.PsValues, runtime *libpod.Runtime) error {
+	var (
+		filterFuncs      []libpod.ContainerFilter
+		outputContainers []*libpod.Container
+		err              error
+	)
+	opts := shared.PsOptions{
+		All:       c.All,
+		Format:    c.Format,
+		Last:      c.Last,
+		Latest:    c.Latest,
+		NoTrunc:   c.NoTrunct,
+		Pod:       c.Pod,
+		Quiet:     c.Quiet,
+		Size:      c.Size,
+		Namespace: c.Namespace,
+		Sort:      c.Sort,
+		Sync:      c.Sync,
+	}
+
+	maxWorkers := shared.Parallelize("ps")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	filters := c.Filter
+	if len(filters) > 0 {
+		for _, f := range filters {
+			filterSplit := strings.SplitN(f, "=", 2)
+			if len(filterSplit) < 2 {
+				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+			}
+			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], runtime)
+			if err != nil {
+				return errors.Wrapf(err, "invalid filter")
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
+	}
+	if !opts.Latest {
+		// Get all containers
+		containers, err := runtime.GetContainers(filterFuncs...)
+		if err != nil {
+			return err
+		}
+
+		// We only want the last few containers
+		if opts.Last > 0 && opts.Last <= len(containers) {
+			return errors.Errorf("--last not yet supported")
+		} else {
+			outputContainers = containers
+		}
+	} else {
+		// Get just the latest container
+		// Ignore filters
+		latestCtr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return err
+		}
+
+		outputContainers = []*libpod.Container{latestCtr}
+	}
+
+	pss := shared.PBatch(outputContainers, maxWorkers, opts)
+	if opts.Sort != "" {
+		pss, err = sortPsOutput(opts.Sort, pss)
+		if err != nil {
+			return err
+		}
+	}
+
+	// If quiet, print only cids and return
+	if opts.Quiet {
+		return printQuiet(pss)
+	}
+
+	// If the user wants their own GO template format
+	if opts.Format != "" {
+		if opts.Format == "json" {
+			return dumpJSON(pss)
+		}
+		return printFormat(opts.Format, pss)
+	}
+
+	// Define a tab writer with stdout as the output
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	// Output standard PS headers
+	if !opts.Namespace {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
+		// User wants pod info
+		if opts.Pod {
+			fmt.Fprintf(w, "\t%s", hpod)
+		}
+		//User wants size info
+		if opts.Size {
+			fmt.Fprintf(w, "\t%s", hsize)
+		}
+	} else {
+		// Output Namespace headers
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
+	}
+
+	// Now iterate each container and output its information
+	for _, container := range pss {
+
+		// Standard PS output
+		if !opts.Namespace {
+			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
+			// User wants pod info
+			if opts.Pod {
+				fmt.Fprintf(w, "\t%s", container.Pod)
+			}
+			//User wants size info
+			if opts.Size {
+				var size string
+				if container.Size == nil {
+					size = units.HumanSizeWithPrecision(0, 0)
+				} else {
+					size = units.HumanSizeWithPrecision(float64(container.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(container.Size.RootFsSize), 3) + ")"
+					fmt.Fprintf(w, "\t%s", size)
+				}
+			}
+
+		} else {
+			// Print namespace information
+			ns := shared.GetNamespaces(container.Pid)
+			fmt.Fprintf(w, "\n%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Names, container.Pid, ns.Cgroup, ns.IPC, ns.MNT, ns.NET, ns.PIDNS, ns.User, ns.UTS)
+		}
+
+	}
+	fmt.Fprint(w, "\n")
+	return w.Flush()
 }
