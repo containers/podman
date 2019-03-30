@@ -118,6 +118,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", "", "Path of the configuration directory for CNI networks")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", "", "Path to default mounts file")
 	rootCmd.PersistentFlags().MarkHidden("defaults-mount-file")
+	// Override default --help information of `--help` global flag
+	var dummyHelp bool
+	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")
 	rootCmd.PersistentFlags().StringSliceVar(&MainGlobalOpts.HooksDir, "hooks-dir", []string{}, "Set the OCI hooks directory path (may be set multiple times)")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic")
 	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
@@ -132,7 +135,10 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Syslog, "syslog", false, "Output logging information to syslog as well as the console")
 
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.TmpDir, "tmpdir", "", "Path to the tmp directory")
-	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Trace, "trace", false, "enable opentracing output")
+	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Trace, "trace", false, "Enable opentracing output")
+	// Override default --help information of `--version` global flag
+	var dummyVersion bool
+	rootCmd.PersistentFlags().BoolVar(&dummyVersion, "version", false, "Version for podman")
 	rootCmd.AddCommand(mainCommands...)
 	rootCmd.AddCommand(getMainCommands()...)
 
