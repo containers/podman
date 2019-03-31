@@ -21,7 +21,7 @@ to run pods such as CRI-O, the last started pod could be from either of those me
 
 The latest option is not supported on the remote client.
 
-**--signal, s**
+**--signal, -s**
 
 Signal to send to the containers in the pod. For more information on Linux signals, refer to *man signal(7)*.
 

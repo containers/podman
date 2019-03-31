@@ -5,7 +5,7 @@
 podman-generate-kube - Generate Kubernetes YAML
 
 # SYNOPSIS
-**podman generate kube** [*-s*][*--service*] *container* | *pod*
+**podman generate kube** [*-s*|*--service*] *container* | *pod*
 
 # DESCRIPTION
 **podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from a podman container or pod. Whether
@@ -20,7 +20,8 @@ Note that the generated Kubernetes YAML file can be used to re-run the deploymen
 
 # OPTIONS:
 
-**s** **--service**
+**--service** **-s**
+
 Generate a Kubernetes service object in addition to the Pods.
 
 ## Examples ##

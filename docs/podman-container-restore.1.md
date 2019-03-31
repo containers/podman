@@ -10,7 +10,7 @@ podman\-container\-restore - Restores one or more running containers
 Restores a container from a checkpoint. You may use container IDs or names as input.
 
 ## OPTIONS
-**-k**, **--keep**
+**--keep**, **-k**
 
 Keep all temporary log and statistics files created by CRIU during
 checkpointing as well as restoring. These files are not deleted if restoring
