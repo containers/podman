@@ -11,7 +11,7 @@ Pauses all the running processes in the containers of one or more pods.  You may
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Pause all pods.
 

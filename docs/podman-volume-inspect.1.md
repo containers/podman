@@ -15,7 +15,7 @@ existing volumes, use the **--all** flag.
 
 ## OPTIONS
 
-**-a**, **--all**=""
+**-a**, **--all**
 
 Inspect all volumes.
 

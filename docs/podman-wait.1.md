@@ -17,7 +17,7 @@ After the container stops, the container's return code is printed.
 
   Print usage statement
 
-**--interval, i**"
+**--interval, -i**"
   Microseconds to wait before polling for completion
 
 **--latest, -l**

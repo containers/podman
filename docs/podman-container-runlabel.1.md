@@ -76,11 +76,12 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**-h** **--help**
+**--help** **-h**
 Print usage statement
 
-**-n** **--name**=""
- Use this name for creating content for the container. NAME will default to the IMAGENAME if it is not specified.
+**--name** **-n**=""
+
+Use this name for creating content for the container. NAME will default to the IMAGENAME if it is not specified.
 
 **--quiet, -q**
 

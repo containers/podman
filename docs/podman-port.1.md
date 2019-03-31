@@ -11,7 +11,7 @@ List port mappings for the *container* or lookup the public-facing port that is 
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 List all known port mappings for running containers.  When using this option, you cannot pass any container names
 or private ports/protocols as filters.

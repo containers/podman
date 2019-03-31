@@ -11,7 +11,7 @@ Unpauses all the paused processes in the containers of one or more pods.  You ma
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Unpause all pods.
 

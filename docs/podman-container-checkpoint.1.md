@@ -10,7 +10,7 @@ podman\-container\-checkpoint - Checkpoints one or more running containers
 Checkpoints all the processes in one or more containers. You may use container IDs or names as input.
 
 ## OPTIONS
-**-k**, **--keep**
+**--keep**, **-k**
 
 Keep all temporary log and statistics files created by CRIU during checkpointing. These files
 are not deleted if checkpointing fails for further debugging. If checkpointing succeeds these
