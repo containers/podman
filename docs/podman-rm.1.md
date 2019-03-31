@@ -32,7 +32,7 @@ The latest option is not supported on the remote client.
 
 **--volumes, -v**
 
-Remove the volumes associated with the container. (Not yet implemented)
+Remove the volumes associated with the container.
 
 ## EXAMPLE
 Remove a container by its name *mywebserver*
