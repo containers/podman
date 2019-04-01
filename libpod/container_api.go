@@ -199,8 +199,15 @@ func (c *Container) Kill(signal uint) error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
 	}
+
 	defer c.newContainerEvent(events.Kill)
-	return c.runtime.ociRuntime.killContainer(c, signal)
+	if err := c.runtime.ociRuntime.killContainer(c, signal); err != nil {
+		return err
+	}
+
+	c.state.StoppedByUser = true
+
+	return c.save()
 }
 
 // Exec starts a new process inside the container
