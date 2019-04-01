@@ -605,13 +605,13 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	// restart the container.
 	// However, perform a full validation of restart policy first.
 	if c.state.RestartPolicyMatch {
-		if c.config.RestartPolicy == "on-failure" && c.state.ExitCode != 0 {
+		if c.config.RestartPolicy == RestartPolicyOnFailure && c.state.ExitCode != 0 {
 			logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
 				c.ID(), c.state.RestartCount, c.config.RestartRetries)
 		}
-		if (c.config.RestartPolicy == "on-failure" && c.state.ExitCode != 0 &&
+		if (c.config.RestartPolicy == RestartPolicyOnFailure && c.state.ExitCode != 0 &&
 			(c.config.RestartRetries > 0 && c.state.RestartCount < c.config.RestartRetries)) ||
-			c.config.RestartPolicy == "always" {
+			c.config.RestartPolicy == RestartPolicyAlways {
 			// The container stopped. We need to restart it.
 			return c.handleRestartPolicy(ctx)
 		}

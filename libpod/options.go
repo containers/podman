@@ -1249,7 +1249,7 @@ func WithRestartPolicy(policy string) CtrCreateOption {
 		}
 
 		switch policy {
-		case "", "no", "on-failure", "always":
+		case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways:
 			ctr.config.RestartPolicy = policy
 		default:
 			return errors.Wrapf(ErrInvalidArg, "%q is not a valid restart policy", policy)

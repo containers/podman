@@ -275,7 +275,7 @@ func (c *Container) syncContainer() error {
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
 			// Check for a restart policy match
-			if c.config.RestartPolicy != "" && c.config.RestartPolicy != "no" &&
+			if c.config.RestartPolicy != RestartPolicyNone && c.config.RestartPolicy != RestartPolicyNo &&
 				(oldState == ContainerStateRunning || oldState == ContainerStatePaused) &&
 				(c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited) &&
 				!c.state.StoppedByUser {
