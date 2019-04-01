@@ -583,6 +583,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
@@ -592,6 +593,24 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
+
+	// If we have a restart policy match when updating the state, we need to
+	// restart the container.
+	// However, perform a full validation of restart policy first.
+	if c.state.RestartPolicyMatch {
+		// if restart policy is on-error and exit code is 0, we do
+		// nothing.
+		// TODO: if restart retries is set, handle that here.
+		if c.config.RestartRetries != 0 {
+			return errors.Wrapf(ErrNotImplemented, "restart retries not yet implemented")
+		}
+		if (c.config.RestartPolicy == "on-error" && c.state.ExitCode == 0) || c.config.RestartPolicy == "always" {
+			// The container stopped. We need to restart it.
+			return c.handleRestartPolicy(ctx)
+		}
+	}
+
+	// If we aren't hitting restart policy, we perform a normal cleanup
 
 	// Check if we have active exec sessions
 	if len(c.state.ExecSessions) != 0 {

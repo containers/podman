@@ -181,7 +181,10 @@ type ContainerState struct {
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
 	// StoppedByUser indicates whether the container was stopped by an
 	// explicit call to the Stop() API.
-	StoppedByUser bool
+	StoppedByUser bool `json:"stoppedByUser,omitempty"`
+	// RestartPolicyMatch indicates whether the conditions for restart
+	// policy have been met.
+	RestartPolicyMatch bool `json:"restartPolicyMatch,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
@@ -349,6 +352,17 @@ type ContainerConfig struct {
 	LogPath string `json:"logPath"`
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
+	// RestartPolicy indicates what action the container will take upon
+	// exiting naturally.
+	// Allowed options are "no" (take no action), "on-failure" (restart on
+	// non-zero exit code, up an a maximum of RestartRetries times),
+	// and "always" (always restart the container on any exit code).
+	// The empty string is treated as the default ("no")
+	RestartPolicy string `json:"restart_policy,omitempty"`
+	// RestartRetries indicates the number of attempts that will be made to
+	// restart the container. Used only if RestartPolicy is set to
+	// "on-failure".
+	RestartRetries uint `json:"restart_retries,omitempty"`
 	// TODO log options for log drivers
 
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
@@ -730,6 +744,17 @@ func (c *Container) CgroupParent() string {
 // in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
+}
+
+// RestartPolicy returns the container's restart policy.
+func (c *Container) RestartPolicy() string {
+	return c.config.RestartPolicy
+}
+
+// RestartRetries returns the number of retries that will be attempted when
+// using the "on-failure" restart policy
+func (c *Container) RestartRetries() uint {
+	return c.config.RestartRetries
 }
 
 // RuntimeName returns the name of the runtime

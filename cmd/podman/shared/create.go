@@ -279,9 +279,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		blkioWeight                                              uint16
 		namespaces                                               map[string]string
 	)
-	if c.IsSet("restart") {
-		return nil, errors.Errorf("--restart option is not supported.\nUse systemd unit files for restarting containers")
-	}
 
 	idmappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
 	if err != nil {
@@ -676,21 +673,22 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			PidsLimit:         c.Int64("pids-limit"),
 			Ulimit:            c.StringSlice("ulimit"),
 		},
-		Rm:          c.Bool("rm"),
-		StopSignal:  stopSignal,
-		StopTimeout: c.Uint("stop-timeout"),
-		Sysctl:      sysctl,
-		Systemd:     systemd,
-		Tmpfs:       c.StringSlice("tmpfs"),
-		Tty:         tty,
-		User:        user,
-		UsernsMode:  usernsMode,
-		MountsFlag:  c.StringArray("mount"),
-		Volumes:     c.StringArray("volume"),
-		WorkDir:     workDir,
-		Rootfs:      rootfs,
-		VolumesFrom: c.StringSlice("volumes-from"),
-		Syslog:      c.Bool("syslog"),
+		RestartPolicy: c.String("restart"),
+		Rm:            c.Bool("rm"),
+		StopSignal:    stopSignal,
+		StopTimeout:   c.Uint("stop-timeout"),
+		Sysctl:        sysctl,
+		Systemd:       systemd,
+		Tmpfs:         c.StringSlice("tmpfs"),
+		Tty:           tty,
+		User:          user,
+		UsernsMode:    usernsMode,
+		MountsFlag:    c.StringArray("mount"),
+		Volumes:       c.StringArray("volume"),
+		WorkDir:       workDir,
+		Rootfs:        rootfs,
+		VolumesFrom:   c.StringSlice("volumes-from"),
+		Syslog:        c.Bool("syslog"),
 	}
 
 	if config.Privileged {

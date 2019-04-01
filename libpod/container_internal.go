@@ -210,6 +210,43 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 	return nil
 }
 
+// Handle container restart policy.
+// This is called when a container has exited, and was not explicitly stopped by
+// an API call to stop the container or pod it is in.
+func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
+	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
+
+	// Need to check if dependencies are alive.
+	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			if err2 := c.cleanup(ctx); err2 != nil {
+				logrus.Errorf("error cleaning up container %s: %v", c.ID(), err2)
+			}
+		}
+	}()
+	if err := c.prepare(); err != nil {
+		return err
+	}
+
+	if c.state.State == ContainerStateStopped {
+		// Reinitialize the container if we need to
+		if err := c.reinit(ctx); err != nil {
+			return err
+		}
+	} else if c.state.State == ContainerStateConfigured ||
+		c.state.State == ContainerStateExited {
+		// Initialize the container
+		if err := c.init(ctx); err != nil {
+			return err
+		}
+	}
+	return c.start()
+}
+
 // Sync this container with on-disk state and runtime status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and
@@ -230,6 +267,14 @@ func (c *Container) syncContainer() error {
 		}
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
+			// Check for a restart policy match
+			if c.config.RestartPolicy != "" && c.config.RestartPolicy != "no" &&
+				(oldState == ContainerStateRunning || oldState == ContainerStatePaused) &&
+				(c.state.State == ContainerStateStopped || c.state.State == ContainerStateExited) &&
+				!c.state.StoppedByUser {
+				c.state.RestartPolicyMatch = true
+			}
+
 			if err := c.save(); err != nil {
 				return err
 			}
@@ -377,6 +422,7 @@ func resetState(state *ContainerState) error {
 	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
 	state.StoppedByUser = false
+	state.RestartPolicyMatch = false
 
 	return nil
 }
@@ -791,6 +837,7 @@ func (c *Container) init(ctx context.Context) error {
 	c.state.Exited = false
 	c.state.State = ContainerStateCreated
 	c.state.StoppedByUser = false
+	c.state.RestartPolicyMatch = false
 
 	if err := c.save(); err != nil {
 		return err
