@@ -376,6 +376,7 @@ func resetState(state *ContainerState) error {
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
+	state.StoppedByUser = false
 
 	return nil
 }
@@ -789,6 +790,7 @@ func (c *Container) init(ctx context.Context) error {
 	c.state.ExitCode = 0
 	c.state.Exited = false
 	c.state.State = ContainerStateCreated
+	c.state.StoppedByUser = false
 
 	if err := c.save(); err != nil {
 		return err
@@ -948,6 +950,11 @@ func (c *Container) stop(timeout uint) error {
 
 	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
 		return err
+	}
+
+	c.state.StoppedByUser = true
+	if err := c.save(); err != nil {
+		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
 	}
 
 	// Wait until we have an exit file, and sync once we do
