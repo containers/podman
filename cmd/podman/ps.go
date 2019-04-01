@@ -202,7 +202,7 @@ func init() {
 }
 
 func psCmd(c *cliconfig.PsValues) error {
-	if os.Geteuid() != 0 {
+	if os.Geteuid() != 0 && !c.Size {
 		rootless.SetSkipStorageSetup(true)
 	}
 	if c.Bool("trace") {
