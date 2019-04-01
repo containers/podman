@@ -277,8 +277,8 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 		blkioWeight                                              uint16
 		namespaces                                               map[string]string
 	)
-	if c.IsSet("restart") {
-		return nil, errors.Errorf("--restart option is not supported.\nUse systemd unit files for restarting containers")
+	if c.String("restart") != "no" {
+		return nil, errors.Errorf("--restart option is not supported.\nPlease execute podman in a systemd unit files for automatic container restart")
 	}
 
 	idmappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
