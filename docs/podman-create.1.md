@@ -567,11 +567,17 @@ If container is running in --read-only mode, then mount a read-write tmpfs on /r
 
 **--restart=""**
 
-Not implemented.
+Restart policy to follow when containers exit.
+Restart policy will not take effect if a container is stopped via the `podman kill` or `podman stop` commands.
+Valid values are:
 
-Restart should be handled via a systemd unit files. Please add your podman
-commands to a unit file and allow systemd or your init system to handle the
-restarting of the container processes.  See example below.
+- `no`                       : Do not restart containers on exit
+- `on-failure[:max_retries]` : Restart containers when they exit with a non-0 exit code, retrying indefinitely or until the optional max_retries count is hit
+- `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
+
+Please note that restart will not restart containers after a system reboot.
+If you require this functionality, please add your Podman commands to a systemd unit file, or create an init script for your init system of choice.
+There is an example of restarting a container with systemd below.
 
 **--rm**=*true*|*false*
 
