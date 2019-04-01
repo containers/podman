@@ -19,8 +19,17 @@ const (
 	// HostName is the container host name annotation
 	HostName = "io.kubernetes.cri-o.HostName"
 
+	// CgroupParent is the sandbox cgroup parent
+	CgroupParent = "io.kubernetes.cri-o.CgroupParent"
+
 	// IP is the container ipv4 or ipv6 address
 	IP = "io.kubernetes.cri-o.IP"
+
+	// NamespaceOptions store the options for namespaces
+	NamespaceOptions = "io.kubernetes.cri-o.NamespaceOptions"
+
+	// SeccompProfilePath is the node seccomp profile path
+	SeccompProfilePath = "io.kubernetes.cri-o.SeccompProfilePath"
 
 	// Image is the container image ID annotation
 	Image = "io.kubernetes.cri-o.Image"
@@ -34,6 +43,9 @@ const (
 	// KubeName is the kubernetes name annotation
 	KubeName = "io.kubernetes.cri-o.KubeName"
 
+	// PortMappings holds the port mappings for the sandbox
+	PortMappings = "io.kubernetes.cri-o.PortMappings"
+
 	// Labels are the kubernetes labels annotation
 	Labels = "io.kubernetes.cri-o.Labels"
 
@@ -45,6 +57,9 @@ const (
 
 	// Name is the pod name annotation
 	Name = "io.kubernetes.cri-o.Name"
+
+	// Namespace is the pod namespace annotation
+	Namespace = "io.kubernetes.cri-o.Namespace"
 
 	// PrivilegedRuntime is the annotation for the privileged runtime path
 	PrivilegedRuntime = "io.kubernetes.cri-o.PrivilegedRuntime"
@@ -67,8 +82,8 @@ const (
 	// MountPoint is the mount point of the container rootfs
 	MountPoint = "io.kubernetes.cri-o.MountPoint"
 
-	// TrustedSandbox is the annotation for trusted sandboxes
-	TrustedSandbox = "io.kubernetes.cri-o.TrustedSandbox"
+	// RuntimeHandler is the annotation for runtime handler
+	RuntimeHandler = "io.kubernetes.cri-o.RuntimeHandler"
 
 	// TTY is the terminal path annotation
 	TTY = "io.kubernetes.cri-o.TTY"
@@ -79,8 +94,14 @@ const (
 	// StdinOnce is the stdin_once annotation
 	StdinOnce = "io.kubernetes.cri-o.StdinOnce"
 
-	// Volumes is the volumes annotation
+	// Volumes is the volumes annotatoin
 	Volumes = "io.kubernetes.cri-o.Volumes"
+
+	// HostNetwork indicates whether the host network namespace is used or not
+	HostNetwork = "io.kubernetes.cri-o.HostNetwork"
+
+	// CNIResult is the JSON string representation of the Result from CNI
+	CNIResult = "io.kubernetes.cri-o.CNIResult"
 )
 
 // ContainerType values
