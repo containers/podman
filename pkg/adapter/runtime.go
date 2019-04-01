@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )
 
@@ -429,4 +430,9 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 		}
 	}
 	return nil
+}
+
+// Diff shows the difference in two objects
+func (r *LocalRuntime) Diff(c *cliconfig.DiffValues, to string) ([]archive.Change, error) {
+	return r.Runtime.GetDiff("", to)
 }

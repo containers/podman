@@ -831,3 +831,30 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 	return nil
 }
+
+// Diff ...
+func (r *LocalRuntime) Diff(c *cliconfig.DiffValues, to string) ([]archive.Change, error) {
+	var changes []archive.Change
+	reply, err := iopodman.Diff().Call(r.Conn, to)
+	if err != nil {
+		return nil, err
+	}
+	for _, change := range reply {
+		changes = append(changes, archive.Change{Path: change.Path, Kind: stringToChangeType(change.ChangeType)})
+	}
+	return changes, nil
+}
+
+func stringToChangeType(change string) archive.ChangeType {
+	switch change {
+	case "A":
+		return archive.ChangeAdd
+	case "D":
+		return archive.ChangeDelete
+	default:
+		logrus.Errorf("'%s' is unknown archive type", change)
+		fallthrough
+	case "C":
+		return archive.ChangeModify
+	}
+}

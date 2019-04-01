@@ -461,6 +461,13 @@ type Event(
     type: string
 )
 
+type DiffInfo(
+    # path that is different
+    path: string,
+    # Add, Delete, Modify
+    changeType: string
+)
+
 # GetVersion returns version and build information of the podman service
 method GetVersion() -> (
     version: string,
@@ -1153,6 +1160,8 @@ method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool)
 
 # GetEvents returns known libpod events filtered by the options provided.
 method GetEvents(filter: []string, since: string, until: string) -> (events: Event)
+
+method Diff(name: string) -> (diffs: []DiffInfo)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string, reason: string)

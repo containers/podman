@@ -52,6 +52,7 @@ var (
 	containerCommands = []*cobra.Command{
 		_containerExistsCommand,
 		_contInspectSubCommand,
+		_diffCommand,
 		_listSubCommand,
 		_logsCommand,
 	}
