@@ -376,8 +376,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 			}
 			options = append(options, libpod.WithRestartRetries(uint(numTries)))
 		}
-
-		options = append(options, libpod.WithRestartPolicy(c.RestartPolicy))
+		options = append(options, libpod.WithRestartPolicy(split[0]))
 	}
 
 	// Always use a cleanup process to clean up Podman after termination

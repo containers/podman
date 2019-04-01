@@ -57,11 +57,11 @@ func (c *Container) Init(ctx context.Context) (err error) {
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container
-		return c.reinit(ctx)
+		return c.reinit(ctx, false)
 	}
 
 	// Initialize the container for the first time
-	return c.init(ctx)
+	return c.init(ctx, false)
 }
 
 // Start starts a container.
@@ -605,13 +605,13 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	// restart the container.
 	// However, perform a full validation of restart policy first.
 	if c.state.RestartPolicyMatch {
-		// if restart policy is on-error and exit code is 0, we do
-		// nothing.
-		// TODO: if restart retries is set, handle that here.
-		if c.config.RestartRetries != 0 {
-			return errors.Wrapf(ErrNotImplemented, "restart retries not yet implemented")
+		if c.config.RestartPolicy == "on-failure" && c.state.ExitCode != 0 {
+			logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
+				c.ID(), c.state.RestartCount, c.config.RestartRetries)
 		}
-		if (c.config.RestartPolicy == "on-error" && c.state.ExitCode == 0) || c.config.RestartPolicy == "always" {
+		if (c.config.RestartPolicy == "on-failure" && c.state.ExitCode != 0 &&
+			(c.config.RestartRetries > 0 && c.state.RestartCount < c.config.RestartRetries)) ||
+			c.config.RestartPolicy == "always" {
 			// The container stopped. We need to restart it.
 			return c.handleRestartPolicy(ctx)
 		}
@@ -780,7 +780,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 		if err := c.prepare(); err != nil {
 			return err
 		}
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}

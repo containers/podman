@@ -161,7 +161,7 @@ type ContainerInspectData struct {
 	LogPath         string                 `json:"LogPath"`
 	ConmonPidFile   string                 `json:"ConmonPidFile"`
 	Name            string                 `json:"Name"`
-	RestartCount    int32                  `json:"RestartCount"` //TODO
+	RestartCount    int32                  `json:"RestartCount"`
 	Driver          string                 `json:"Driver"`
 	MountLabel      string                 `json:"MountLabel"`
 	ProcessLabel    string                 `json:"ProcessLabel"`

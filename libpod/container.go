@@ -185,6 +185,10 @@ type ContainerState struct {
 	// RestartPolicyMatch indicates whether the conditions for restart
 	// policy have been met.
 	RestartPolicyMatch bool `json:"restartPolicyMatch,omitempty"`
+	// RestartCount is how many times the container was restarted by its
+	// restart policy. This is NOT incremented by normal container restarts
+	// (only by restart policy).
+	RestartCount uint `json:"restartCount,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.

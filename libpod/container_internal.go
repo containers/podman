@@ -221,6 +221,13 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Increment restart count
+	c.state.RestartCount = c.state.RestartCount + 1
+	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
+	if err := c.save(); err != nil {
+		return err
+	}
+
 	defer func() {
 		if err != nil {
 			if err2 := c.cleanup(ctx); err2 != nil {
@@ -234,13 +241,13 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, true); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Initialize the container
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, true); err != nil {
 			return err
 		}
 	}
@@ -423,6 +430,7 @@ func resetState(state *ContainerState) error {
 	state.BindMounts = make(map[string]string)
 	state.StoppedByUser = false
 	state.RestartPolicyMatch = false
+	state.RestartCount = 0
 
 	return nil
 }
@@ -616,13 +624,13 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Or initialize it if necessary
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -810,7 +818,7 @@ func (c *Container) completeNetworkSetup() error {
 }
 
 // Initialize a container, creating it in the runtime
-func (c *Container) init(ctx context.Context) error {
+func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "init")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -838,6 +846,10 @@ func (c *Container) init(ctx context.Context) error {
 	c.state.State = ContainerStateCreated
 	c.state.StoppedByUser = false
 	c.state.RestartPolicyMatch = false
+
+	if !retainRetries {
+		c.state.RestartCount = 0
+	}
 
 	if err := c.save(); err != nil {
 		return err
@@ -900,7 +912,7 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 // Should only be done on ContainerStateStopped containers.
 // Not necessary for ContainerStateExited - the container has already been
 // removed from the runtime, so init() can proceed freely.
-func (c *Container) reinit(ctx context.Context) error {
+func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "reinit")
 	span.SetTag("struct", "container")
 	defer span.Finish()
@@ -912,7 +924,7 @@ func (c *Container) reinit(ctx context.Context) error {
 	}
 
 	// Initialize the container again
-	return c.init(ctx)
+	return c.init(ctx, retainRetries)
 }
 
 // Initialize (if necessary) and start a container
@@ -950,12 +962,12 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	if c.state.State == ContainerStateStopped {
 		logrus.Debugf("Recreating container %s in OCI runtime", c.ID())
 
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
@@ -1058,13 +1070,13 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
-		if err := c.reinit(ctx); err != nil {
+		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Initialize the container
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
