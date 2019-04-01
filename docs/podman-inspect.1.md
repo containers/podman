@@ -17,7 +17,7 @@ unspecified type. If a format is specified, the given template will be executed 
 
 ## OPTIONS
 
-**--type, t="TYPE"**
+**--type, -t="TYPE"**
 
 Return JSON for the specified type.  Type can be 'container', 'image' or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
