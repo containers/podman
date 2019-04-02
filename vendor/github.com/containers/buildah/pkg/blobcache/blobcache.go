@@ -416,6 +416,18 @@ func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
 	return s.destination.HasThreadSafePutBlob()
 }
 
+func (s *blobCacheDestination) SupportsBlobLocks() bool {
+	return false
+}
+
+func (s *blobCacheDestination) LockBlob(b types.BlobInfo) error {
+	return nil
+}
+
+func (s *blobCacheDestination) UnlockBlob(b types.BlobInfo) error {
+	return nil
+}
+
 func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
 	var tempfile *os.File
 	var err error

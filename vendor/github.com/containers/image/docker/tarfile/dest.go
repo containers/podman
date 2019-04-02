@@ -87,6 +87,27 @@ func (d *Destination) HasThreadSafePutBlob() bool {
 	return false
 }
 
+// SupportsBlobLocks indicates whether the ImageDestination supports blob
+// locking.
+func (d *Destination) SupportsBlobLocks() bool {
+	return false
+}
+
+// LockBlob can be used to synchronize operations on it (e.g., copying).
+func (d *Destination) LockBlob(b types.BlobInfo) error {
+	// NOOP for this type.
+	return nil
+}
+
+// UnlockBlob unlocks the blob.  Note that it is safe to call UnlockBlob()
+// multiple times.  Only the first call is unlocking the blob.  This is
+// required to unlock a blob in the presence of errors or panics during copy
+// operations.
+func (d *Destination) UnlockBlob(b types.BlobInfo) error {
+	// NOOP for this type.
+	return nil
+}
+
 // PutBlob writes contents of stream and returns data representing the result (with all data filled in).
 // inputInfo.Digest can be optionally provided if known; it is not mandatory for the implementation to verify it.
 // inputInfo.Size is the expected length of stream, if known.

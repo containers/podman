@@ -64,6 +64,11 @@ type storageImageDestination struct {
 	fileSizes      map[digest.Digest]int64         // Mapping from layer blobsums to their sizes
 	filenames      map[digest.Digest]string        // Mapping from layer blobsums to names of files we used to hold them
 	SignatureSizes []int                           `json:"signature-sizes,omitempty"` // List of sizes of each signature slice
+
+	// data for {Lock,Unlock}Blob
+	lockedDigests   map[digest.Digest]storage.Locker // Bookkeeping of digests that have been locked
+	unlockedDigests map[digest.Digest]bool           // Bookkeeping of digests that have been unlocked. Required to unlock yet unlocked digests in Close()
+	digestLockMutex sync.Mutex                       // Serializes accesses to lockedDigests
 }
 
 type storageImageCloser struct {
@@ -323,12 +328,14 @@ func newImageDestination(imageRef storageReference) (*storageImageDestination, e
 		return nil, errors.Wrapf(err, "error creating a temporary directory")
 	}
 	image := &storageImageDestination{
-		imageRef:       imageRef,
-		directory:      directory,
-		blobDiffIDs:    make(map[digest.Digest]digest.Digest),
-		fileSizes:      make(map[digest.Digest]int64),
-		filenames:      make(map[digest.Digest]string),
-		SignatureSizes: []int{},
+		imageRef:        imageRef,
+		directory:       directory,
+		blobDiffIDs:     make(map[digest.Digest]digest.Digest),
+		fileSizes:       make(map[digest.Digest]int64),
+		filenames:       make(map[digest.Digest]string),
+		lockedDigests:   make(map[digest.Digest]storage.Locker),
+		unlockedDigests: make(map[digest.Digest]bool),
+		SignatureSizes:  []int{},
 	}
 	return image, nil
 }
@@ -339,8 +346,14 @@ func (s *storageImageDestination) Reference() types.ImageReference {
 	return s.imageRef
 }
 
-// Close cleans up the temporary directory.
+// Close cleans up the temporary directory and unlocks all unlocked digest locks and removes them from `lockedDigests`.
 func (s *storageImageDestination) Close() error {
+	// Make sure that all lockes are unlocked to avoid potential deadlocks.
+	for digest, unlocked := range s.unlockedDigests {
+		if !unlocked {
+			s.unlockDigest(digest)
+		}
+	}
 	return os.RemoveAll(s.directory)
 }
 
@@ -358,6 +371,58 @@ func (s *storageImageDestination) computeNextBlobCacheFile() string {
 // HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
 func (s *storageImageDestination) HasThreadSafePutBlob() bool {
 	return true
+}
+
+// SupportsBlobLocks indicates whether the ImageDestination supports blob
+// locking.
+func (s *storageImageDestination) SupportsBlobLocks() bool {
+	return true
+}
+
+// LockBlob can be used to synchronize operations on it (e.g., copying).
+// Note that any unlocked lock will be unlocked in Close().
+func (s *storageImageDestination) LockBlob(b types.BlobInfo) error {
+	locker, err := func() (storage.Locker, error) {
+		// anonymous function defer the Unlock() and not worry about
+		// error paths
+		s.digestLockMutex.Lock()
+		defer s.digestLockMutex.Unlock()
+		if locker, ok := s.lockedDigests[b.Digest]; ok {
+			return locker, nil
+		}
+		locker, err := s.imageRef.transport.store.GetDigestLock(b.Digest)
+		if err != nil {
+			return nil, err
+		}
+		s.lockedDigests[b.Digest] = locker
+		return locker, nil
+	}()
+	if err != nil {
+		return err
+	}
+	locker.Lock()
+	s.digestLockMutex.Lock()
+	s.unlockedDigests[b.Digest] = false
+	s.digestLockMutex.Unlock()
+	return nil
+}
+
+func (s *storageImageDestination) unlockDigest(d digest.Digest) error {
+	s.digestLockMutex.Lock()
+	defer s.digestLockMutex.Unlock()
+
+	locker, ok := s.lockedDigests[d]
+	if !ok {
+		return errors.Errorf("trying to unlock non existent lock for digest %q", d)
+	}
+	locker.Unlock()
+	s.unlockedDigests[d] = true
+	return nil
+}
+
+// UnlockBlob unlocks the blob.
+func (s *storageImageDestination) UnlockBlob(b types.BlobInfo) error {
+	return s.unlockDigest(b.Digest)
 }
 
 // PutBlob writes contents of stream and returns data representing the result.

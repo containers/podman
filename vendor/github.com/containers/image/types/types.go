@@ -287,6 +287,16 @@ type ImageDestination interface {
 	// - Uploaded data MAY be visible to others before Commit() is called
 	// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 	Commit(ctx context.Context) error
+	// SupportsBlobLocks indicates whether the ImageDestination supports blob locking.
+	SupportsBlobLocks() bool
+	// LockBlob is used to synchronize copy operations and is only
+	// implemented by `storage.storageImageDestination`.  If a given
+	// BlobInfo is locked implies that the data is currently being copied
+	// the lock owner.  This allows for avoiding redudantly downloading the
+	// same layer from a registry.
+	LockBlob(BlobInfo) error
+	// UnlockBlob unlocks the blob.
+	UnlockBlob(BlobInfo) error
 }
 
 // ManifestTypeRejectedError is returned by ImageDestination.PutManifest if the destination is in principle available,
