@@ -15,17 +15,8 @@ clean_env
 
 set -x
 cd "$GOSRC"
-case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-    ubuntu-18) ;&  # Continue to the next item
-    fedora-29) ;&
-    fedora-28) ;&
-    centos-7) ;&
-    rhel-7)
-        make install.tools
-        make localunit
-        make
-        ;;
-    *) bad_os_id_ver ;;
-esac
+make install.tools
+make localunit
+make
 
 record_timestamp "unit test end"

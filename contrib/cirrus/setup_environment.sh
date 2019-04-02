@@ -43,7 +43,6 @@ then
         "export OS_RELEASE_ID=\"$(os_release_id)\"" \
         "export OS_RELEASE_VER=\"$(os_release_ver)\"" \
         "export OS_REL_VER=\"$(os_release_id)-$(os_release_ver)\"" \
-        "export ROOTLESS_USER=$ROOTLESS_USER" \
         "export BUILT_IMAGE_SUFFIX=\"-$CIRRUS_REPO_NAME-${CIRRUS_CHANGE_IN_REPO:0:8}\"" \
         "export GOPATH=\"/var/tmp/go\"" \
         'export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"' \
@@ -75,14 +74,17 @@ then
     # Reload to incorporate any changes from above
     source "$SCRIPT_BASE/lib.sh"
 
-    if run_rootless
-    then
-        setup_rootless
-        make install.catatonit
-        go get github.com/onsi/ginkgo/ginkgo
-        go get github.com/onsi/gomega/...
-        dnf -y update runc
-    fi
+    case "$SPECIALMODE" in
+        rootless)
+            X=$(echo "export ROOTLESS_USER='some${RANDOM}dude'" | \
+                tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
+            setup_rootless
+            ;;
+        in_podman)  # Assumed to be Fedora
+            dnf install -y podman buildah
+            $SCRIPT_BASE/setup_container_environment.sh
+            ;;
+    esac
 fi
 
 show_env_vars

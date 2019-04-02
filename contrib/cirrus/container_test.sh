@@ -1,7 +1,7 @@
 #!/bin/bash
 set -xeuo pipefail
 
-export GOPATH=/go
+export GOPATH=/var/tmp/go
 export PATH=$HOME/gopath/bin:$PATH:$GOPATH/bin
 export GOSRC=$GOPATH/src/github.com/containers/libpod
 
@@ -125,7 +125,7 @@ fi
 # Run integration tests
 if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
-    make varlink_generate GOPATH=/go
-    make ginkgo GOPATH=/go $INTEGRATION_TEST_ENVS
-    make ginkgo-remote GOPATH=/go $INTEGRATION_TEST_ENVS
+    make varlink_generate
+    make ginkgo $INTEGRATION_TEST_ENVS
+    make ginkgo-remote $INTEGRATION_TEST_ENVS
 fi

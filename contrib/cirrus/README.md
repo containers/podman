@@ -63,26 +63,26 @@ task (pass or fail) is set based on the exit status of the last script to execut
    Total execution time is capped at 2-hours (includes all the above)
    but this script normally completes in less than an hour.
 
-### ``rootless_testing`` Task
+### ``special_testing`` Task
+
+This task exercises podman under specialized environments or conditions.
+The specific differences from the ``testing`` task depend upon the
+contents of the ``$SPECIALMODE`` environment variable.
+
+| Value     | Meaning                                                               |
+| rootless  | Setup a regular user to build/run integration tests.                  |
+| in_podman | Setup a container image, build/run integration tests inside container |
 
 ***N/B: Steps below are performed by automation***
 
 1. After `gating` passes, spin up one VM per
-   `matrix: image_name` item. Once accessible, ``ssh``
-   into each VM as the `root` user.
+   `matrix: image_name` item.
 
-2. ``setup_environment.sh``: Configure root's `.bash_profile`
-   the same as for other tasks.  However, also add a regular
-   user account, chown all the source code to them.  Set up
-   fresh ssh pub/priv. keys for the root user, adding the
-   public part to the user's `authorized_keys` file.
+2. ``setup_environment.sh``: Mostly the same as
+   in ``testing`` task, then specialized depending on ``$SPECIALMODE``.
 
-3. As root, call ssh to connect to localhost as the user,
-   and run the ``rootless_test.sh`` script from the source
-   tree.  This is needed so the user has a clean process tree
-   and environment - i.e. without `sudo`, `su`, `runuser`,
-   etc. in the mix.  From here, all testing as the user may
-   be performed.
+3. Which tests and how they execute depends on ``$SPECIALMODE``.
+
 
 ### ``optional_testing`` Task
 
