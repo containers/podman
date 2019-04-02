@@ -68,6 +68,16 @@ type Runtime struct {
 	EventsLogFilePath   string
 }
 
+// InfoImage keep information of Image along with all associated layers
+type InfoImage struct {
+	// ID of image
+	ID string
+	// Tags of image
+	Tags []string
+	// Layers stores all layers of image.
+	Layers []LayerInfo
+}
+
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
 var ErrRepoTagNotFound = errors.New("unable to match user input to any specific repotag")
 
@@ -1276,4 +1286,22 @@ func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, er
 		e.RepoTags = append(e.RepoTags, img.Names...)
 	}
 	return layerInfoMap, nil
+}
+
+// BuildImageHierarchyMap stores hierarchy of images such that all parent layers using which image is built are stored in imageInfo
+// Layers are added such that  (Start)RootLayer->...intermediate Parent Layer(s)-> TopLayer(End)
+func BuildImageHierarchyMap(imageInfo *InfoImage, layerMap map[string]*LayerInfo, layerID string) error {
+	if layerID == "" {
+		return nil
+	}
+	ll, ok := layerMap[layerID]
+	if !ok {
+		return fmt.Errorf("lookup error: layerid  %s not found", layerID)
+	}
+	if err := BuildImageHierarchyMap(imageInfo, layerMap, ll.ParentID); err != nil {
+		return err
+	}
+
+	imageInfo.Layers = append(imageInfo.Layers, *ll)
+	return nil
 }

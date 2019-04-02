@@ -82,6 +82,7 @@ type remoteImage struct {
 	Digest      digest.Digest
 	isParent    bool
 	Runtime     *LocalRuntime
+	TopLayer    string
 }
 
 // Container ...
@@ -147,6 +148,7 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 		Names:       i.RepoTags,
 		isParent:    i.IsParent,
 		Runtime:     runtime,
+		TopLayer:    i.TopLayer,
 	}
 	return &ContainerImage{ri}, nil
 }
@@ -278,6 +280,11 @@ func (ci *ContainerImage) Labels(ctx context.Context) (map[string]string, error)
 // Dangling returns a bool if the image is "dangling"
 func (ci *ContainerImage) Dangling() bool {
 	return len(ci.Names()) == 0
+}
+
+// TopLayer returns an images top layer as a string
+func (ci *ContainerImage) TopLayer() string {
+	return ci.remoteImage.TopLayer
 }
 
 // TagImage ...

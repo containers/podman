@@ -103,6 +103,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 		VirtualSize: newImage.VirtualSize,
 		Containers:  int64(len(containers)),
 		Labels:      labels,
+		TopLayer:    newImage.TopLayer(),
 	}
 	return call.ReplyGetImage(il)
 }
@@ -922,4 +923,41 @@ func (i *LibpodAPI) Diff(call iopodman.VarlinkCall, name string) error {
 		response = append(response, iopodman.DiffInfo{Path: change.Path, ChangeType: change.Kind.String()})
 	}
 	return call.ReplyDiff(response)
+}
+
+// GetLayersMapWithImageInfo is a development only endpoint to obtain layer information for an image.
+func (i *LibpodAPI) GetLayersMapWithImageInfo(call iopodman.VarlinkCall) error {
+	layerInfo, err := image.GetLayersMapWithImageInfo(i.Runtime.ImageRuntime())
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	b, err := json.Marshal(layerInfo)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyGetLayersMapWithImageInfo(string(b))
+}
+
+// BuildImageHierarchyMap ...
+func (i *LibpodAPI) BuildImageHierarchyMap(call iopodman.VarlinkCall, name string) error {
+	img, err := i.Runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	imageInfo := &image.InfoImage{
+		ID:   img.ID(),
+		Tags: img.Names(),
+	}
+	layerInfo, err := image.GetLayersMapWithImageInfo(i.Runtime.ImageRuntime())
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if err := image.BuildImageHierarchyMap(imageInfo, layerInfo, img.TopLayer()); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	b, err := json.Marshal(imageInfo)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyBuildImageHierarchyMap(string(b))
 }

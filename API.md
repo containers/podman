@@ -5,6 +5,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func BuildImage(build: BuildInfo) MoreResponse](#BuildImage)
 
+[func BuildImageHierarchyMap(name: string) string](#BuildImageHierarchyMap)
+
 [func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) string](#Commit)
 
 [func ContainerArtifacts(name: string, artifactName: string) string](#ContainerArtifacts)
@@ -56,6 +58,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func GetImage(id: string) Image](#GetImage)
 
 [func GetInfo() PodmanInfo](#GetInfo)
+
+[func GetLayersMapWithImageInfo() string](#GetLayersMapWithImageInfo)
 
 [func GetPod(name: string) ListPodData](#GetPod)
 
@@ -259,6 +263,11 @@ method BuildImage(build: [BuildInfo](#BuildInfo)) [MoreResponse](#MoreResponse)<
 BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [MoreResponse](#MoreResponse) structure
 that contains the build logs and resulting image ID.
+### <a name="BuildImageHierarchyMap"></a>func BuildImageHierarchyMap
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method BuildImageHierarchyMap(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+BuildImageHierarchyMap is for the development of Podman and should not be used.
 ### <a name="Commit"></a>func Commit
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -396,7 +405,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteUnusedImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method Diff(name: [string](https://godoc.org/builtin#string)) [DiffInfo](#DiffInfo)</div>
-
+Diff returns a diff between libpod objects
 ### <a name="ExportContainer"></a>func ExportContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -520,6 +529,11 @@ If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will b
 method GetInfo() [PodmanInfo](#PodmanInfo)</div>
 GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
 build information of Podman, and system-wide registries.
+### <a name="GetLayersMapWithImageInfo"></a>func GetLayersMapWithImageInfo
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetLayersMapWithImageInfo() [string](https://godoc.org/builtin#string)</div>
+GetLayersMapWithImageInfo is for the development of Podman and should not be used.
 ### <a name="GetPod"></a>func GetPod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1507,6 +1521,8 @@ containers [int](https://godoc.org/builtin#int)
 labels [map[string]](#map[string])
 
 isParent [bool](https://godoc.org/builtin#bool)
+
+topLayer [string](https://godoc.org/builtin#string)
 ### <a name="ImageHistory"></a>type ImageHistory
 
 ImageHistory describes the returned structure from ImageHistory.
