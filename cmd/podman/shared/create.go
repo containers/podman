@@ -41,6 +41,9 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		span, _ := opentracing.StartSpanFromContext(ctx, "createContainer")
 		defer span.Finish()
 	}
+	if c.Bool("rm") && c.String("restart") != "" && c.String("restart") != "no" {
+		return nil, nil, errors.Errorf("the --rm flag conflicts with --restart")
+	}
 
 	rtc, err := runtime.GetConfig()
 	if err != nil {
