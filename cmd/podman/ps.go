@@ -209,6 +209,10 @@ func psCmd(c *cliconfig.PsValues) error {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "psCmd")
 		defer span.Finish()
 	}
+	// TODO disable when single rootless userns merges
+	if c.Bool("size") && os.Geteuid() != 0 {
+		return errors.New("the --size option is not presently supported without root")
+	}
 
 	var watch bool
 
