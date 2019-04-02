@@ -539,3 +539,75 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	}
 	return <-errChan
 }
+
+// Checkpoint one or more containers
+func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+	var lastError error
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	if err != nil {
+		return err
+	}
+	if c.All {
+		// We dont have a great way to get all the running containers, so need to get all and then
+		// check status on them bc checkpoint considers checkpointing a stopped container an error
+		var runningIds []string
+		for _, id := range ids {
+			ctr, err := r.LookupContainer(id)
+			if err != nil {
+				return err
+			}
+			if ctr.state.State == libpod.ContainerStateRunning {
+				runningIds = append(runningIds, id)
+			}
+		}
+		ids = runningIds
+	}
+
+	for _, id := range ids {
+		if _, err := iopodman.ContainerCheckpoint().Call(r.Conn, id, options.Keep, options.KeepRunning, options.TCPEstablished); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to checkpoint container %v", id)
+		} else {
+			fmt.Println(id)
+		}
+	}
+	return lastError
+}
+
+// Restore one or more containers
+func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+	var lastError error
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
+	if err != nil {
+		return err
+	}
+	if c.All {
+		// We dont have a great way to get all the exited containers, so need to get all and then
+		// check status on them bc checkpoint considers restoring a running container an error
+		var exitedIDs []string
+		for _, id := range ids {
+			ctr, err := r.LookupContainer(id)
+			if err != nil {
+				return err
+			}
+			if ctr.state.State != libpod.ContainerStateRunning {
+				exitedIDs = append(exitedIDs, id)
+			}
+		}
+		ids = exitedIDs
+	}
+
+	for _, id := range ids {
+		if _, err := iopodman.ContainerRestore().Call(r.Conn, id, options.Keep, options.TCPEstablished); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to restore container %v", id)
+		} else {
+			fmt.Println(id)
+		}
+	}
+	return lastError
+}
