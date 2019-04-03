@@ -18,6 +18,8 @@ CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
 CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
 TIMESTAMPS_FILEPATH="${TIMESTAMPS_FILEPATH:-/var/tmp/timestamps}"
+SPECIALMODE="${SPECIALMODE:-none}"
+export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
 if ! [[ "$PATH" =~ "/usr/local/bin" ]]
 then
@@ -81,6 +83,7 @@ CIRRUS_USER_COLLABORATOR $CIRRUS_USER_COLLABORATOR
 CIRRUS_USER_PERMISSION $CIRRUS_USER_PERMISSION
 CIRRUS_WORKING_DIR $CIRRUS_WORKING_DIR
 CIRRUS_HTTP_CACHE_HOST $CIRRUS_HTTP_CACHE_HOST
+SPECIALMODE $SPECIALMODE
 $(go env)
 PACKER_BUILDS $PACKER_BUILDS
     " | while read NAME VALUE
@@ -127,15 +130,6 @@ bad_os_id_ver() {
     exit 42
 }
 
-run_rootless() {
-    if [[ -z "$ROOTLESS_USER" ]]
-    then
-        return 1
-    else
-        return 0
-    fi
-}
-
 stub() {
     echo "STUB: Pretending to do $1"
 }
@@ -178,6 +172,13 @@ setup_rootless() {
         chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
         return 0
     fi
+
+    # Only do this once
+    cd $GOSRC
+    make install.catatonit
+    go get github.com/onsi/ginkgo/ginkgo
+    go get github.com/onsi/gomega/...
+    dnf -y update runc
 
     # Guarantee independence from specific values
     ROOTLESS_UID=$[RANDOM+1000]
