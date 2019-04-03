@@ -1,7 +1,6 @@
 package createconfig
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -256,6 +255,8 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			mount.Source = "tmpfs"
 			mount.Options = append(mount.Options, "tmpcopyup")
 		} else {
+			// TODO: Move support for this and tmpfs into libpod
+			// Should tmpfs also be handled as named volumes? Wouldn't be hard
 			// This will cause a new local Volume to be created on your system
 			mount.Source = stringid.GenerateNonCryptoID()
 			mount.Options = append(mount.Options, "bind")
@@ -269,13 +270,12 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 // GetVolumesFrom reads the create-config artifact of the container to get volumes from
 // and adds it to c.Volumes of the current container.
 func (c *CreateConfig) GetVolumesFrom() error {
-	var options string
-
 	if os.Geteuid() != 0 {
 		return nil
 	}
 
 	for _, vol := range c.VolumesFrom {
+		options := ""
 		splitVol := strings.SplitN(vol, ":", 2)
 		if len(splitVol) == 2 {
 			options = splitVol[1]
@@ -284,41 +284,60 @@ func (c *CreateConfig) GetVolumesFrom() error {
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
 		}
-		inspect, err := ctr.Inspect(false)
-		if err != nil {
-			return errors.Wrapf(err, "error inspecting %q", splitVol[0])
+
+		logrus.Debugf("Adding volumes from container %s", ctr.ID())
+
+		// Look up the container's user volumes. This gets us the
+		// destinations of all mounts the user added to the container.
+		userVolumesArr := ctr.UserVolumes()
+
+		// We're going to need to access them a lot, so convert to a map
+		// to reduce looping.
+		// We'll also use the map to indicate if we missed any volumes along the way.
+		userVolumes := make(map[string]bool)
+		for _, dest := range userVolumesArr {
+			userVolumes[dest] = false
 		}
-		var createArtifact CreateConfig
-		artifact, err := ctr.GetArtifact("create-config")
-		if err != nil {
-			return errors.Wrapf(err, "error getting create-config artifact for %q", splitVol[0])
+
+		// Now we get the container's spec and loop through its volumes
+		// and append them in if we can find them.
+		spec := ctr.Spec()
+		if spec == nil {
+			return errors.Errorf("error retrieving container %s spec", ctr.ID())
 		}
-		if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-			return err
-		}
-		for key := range createArtifact.BuiltinImgVolumes {
-			for _, m := range inspect.Mounts {
-				if m.Destination == key {
-					c.LocalVolumes = append(c.LocalVolumes, m)
-					break
+		for _, mnt := range spec.Mounts {
+			if mnt.Type != "bind" {
+				continue
+			}
+			if _, exists := userVolumes[mnt.Destination]; exists {
+				userVolumes[mnt.Destination] = true
+				localOptions := options
+				if localOptions == "" {
+					localOptions = strings.Join(mnt.Options, ",")
 				}
+				c.Volumes = append(c.Volumes, fmt.Sprintf("%s:%s:%s", mnt.Source, mnt.Destination, localOptions))
 			}
 		}
 
-		for _, i := range createArtifact.Volumes {
-			// Volumes format is host-dir:ctr-dir[:options], so get the host and ctr dir
-			// and add on the options given by the user to the flag.
-			spliti := strings.SplitN(i, ":", 3)
-			// Throw error if mounting volume from container with Z option (private label)
-			// Override this by adding 'z' to options.
-			if len(spliti) > 2 && strings.Contains(spliti[2], "Z") && !strings.Contains(options, "z") {
-				return errors.Errorf("volume mounted with private option 'Z' in %q. Use option 'z' to mount in current container", ctr.ID())
+		// We're done with the spec mounts. Add named volumes.
+		// Add these unconditionally - none of them are automatically
+		// part of the container, as some spec mounts are.
+		namedVolumes := ctr.NamedVolumes()
+		for _, namedVol := range namedVolumes {
+			if _, exists := userVolumes[namedVol.Dest]; exists {
+				userVolumes[namedVol.Dest] = true
 			}
-			if options == "" {
-				// Mount the volumes with the default options
-				c.Volumes = append(c.Volumes, createArtifact.Volumes...)
-			} else {
-				c.Volumes = append(c.Volumes, spliti[0]+":"+spliti[1]+":"+options)
+			localOptions := options
+			if localOptions == "" {
+				localOptions = strings.Join(namedVol.Options, ",")
+			}
+			c.Volumes = append(c.Volumes, fmt.Sprintf("%s:%s:%s", namedVol.Name, namedVol.Dest, localOptions))
+		}
+
+		// Check if we missed any volumes
+		for volDest, found := range userVolumes {
+			if !found {
+				logrus.Warnf("Unable to match volume %s from container %s for volumes-from", volDest, ctr.ID())
 			}
 		}
 	}
@@ -418,7 +437,13 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		// others, if they are included
 		volumes := make([]string, 0, len(c.Volumes))
 		for _, vol := range c.Volumes {
-			volumes = append(volumes, strings.SplitN(vol, ":", 2)[0])
+			// We always want the volume destination
+			splitVol := strings.SplitN(vol, ":", 3)
+			if len(splitVol) > 1 {
+				volumes = append(volumes, splitVol[1])
+			} else {
+				volumes = append(volumes, splitVol[0])
+			}
 		}
 
 		options = append(options, libpod.WithUserVolumes(volumes))

@@ -182,6 +182,8 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
 		}
 
+		logrus.Debugf("Creating new volume %s for container", vol.Name)
+
 		// The volume does not exist, so we need to create it.
 		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
 			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
