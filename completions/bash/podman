@@ -486,6 +486,7 @@ __podman_complete_log_drivers() {
 		none
 		splunk
 		syslog
+        k8s-file
 	" -- "$cur" ) )
 }
 
@@ -500,6 +501,7 @@ __podman_complete_log_options() {
 	local logentries_options="logentries-token"
 	local syslog_options="env labels syslog-address syslog-facility syslog-format syslog-tls-ca-cert syslog-tls-cert syslog-tls-key syslog-tls-skip-verify tag"
 	local splunk_options="env labels splunk-caname splunk-capath splunk-format splunk-gzip splunk-gzip-level splunk-index splunk-insecureskipverify splunk-source splunk-sourcetype splunk-token splunk-url splunk-verify-connection tag"
+	local k8s_file_options="env labels max-file max-size"
 
 	local all_options="$fluentd_options $gcplogs_options $gelf_options $journald_options $logentries_options $json_file_options $syslog_options $splunk_options"
 
@@ -524,6 +526,9 @@ __podman_complete_log_options() {
 			;;
 		json-file)
 			COMPREPLY=( $( compgen -W "$json_file_options" -S = -- "$cur" ) )
+			;;
+		k8s-file)
+			COMPREPLY=( $( compgen -W "$k8s_file_options" -S = -- "$cur" ) )
 			;;
 		logentries)
 			COMPREPLY=( $( compgen -W "$logentries_options" -S = -- "$cur" ) )
