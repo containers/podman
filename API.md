@@ -31,6 +31,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func DeleteUnusedImages() []string](#DeleteUnusedImages)
 
+[func Diff(name: string) DiffInfo](#Diff)
+
 [func ExportContainer(name: string, path: string) string](#ExportContainer)
 
 [func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
@@ -172,6 +174,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type Create](#Create)
 
 [type CreateResourceConfig](#CreateResourceConfig)
+
+[type DiffInfo](#DiffInfo)
 
 [type Event](#Event)
 
@@ -388,6 +392,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteUnusedImages
   ]
 }
 ~~~
+### <a name="Diff"></a>func Diff
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Diff(name: [string](https://godoc.org/builtin#string)) [DiffInfo](#DiffInfo)</div>
+
 ### <a name="ExportContainer"></a>func ExportContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1431,6 +1440,13 @@ pids_limit [int](https://godoc.org/builtin#int)
 shm_size [int](https://godoc.org/builtin#int)
 
 ulimit [[]string](#[]string)
+### <a name="DiffInfo"></a>type DiffInfo
+
+
+
+path [string](https://godoc.org/builtin#string)
+
+changeType [string](https://godoc.org/builtin#string)
 ### <a name="Event"></a>type Event
 
 Event describes a libpod struct

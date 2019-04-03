@@ -910,3 +910,16 @@ func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string,
 	}
 	return call.ReplyLoadImage(br)
 }
+
+// Diff ...
+func (i *LibpodAPI) Diff(call iopodman.VarlinkCall, name string) error {
+	var response []iopodman.DiffInfo
+	changes, err := i.Runtime.GetDiff("", name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	for _, change := range changes {
+		response = append(response, iopodman.DiffInfo{Path: change.Path, ChangeType: change.Kind.String()})
+	}
+	return call.ReplyDiff(response)
+}

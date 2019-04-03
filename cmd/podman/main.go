@@ -36,6 +36,7 @@ var (
 // implemented.
 var mainCommands = []*cobra.Command{
 	_buildCommand,
+	_diffCommand,
 	_eventsCommand,
 	_exportCommand,
 	_historyCommand,
