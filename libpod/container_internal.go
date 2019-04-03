@@ -221,6 +221,14 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 		return err
 	}
 
+	// Is the container running again?
+	// If so, we don't have to do anything
+	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+		return nil
+	} else if c.state.State == ContainerStateUnknown {
+		return errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
+	}
+
 	// Increment restart count
 	c.state.RestartCount = c.state.RestartCount + 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
