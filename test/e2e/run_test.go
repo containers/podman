@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	"github.com/mrunalp/fileutils"
@@ -719,5 +720,45 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
 		os.Unsetenv("http_proxy")
+	})
+
+	It("podman run with restart-policy always restarts containers", func() {
+		podmanTest.RestoreArtifact(fedoraMinimal)
+
+		aliveFile := filepath.Join(podmanTest.RunRoot, "running")
+		file, err := os.Create(aliveFile)
+		Expect(err).To(BeNil())
+		file.Close()
+
+		session := podmanTest.Podman([]string{"run", "-dt", "--restart", "always", "-v", fmt.Sprintf("%s:/tmp/runroot", podmanTest.RunRoot), fedoraMinimal, "bash", "-c", "date +%N > /tmp/runroot/ran && while test -r /tmp/runroot/running; do sleep 0.1s; done"})
+
+		found := false
+		testFile := filepath.Join(podmanTest.RunRoot, "ran")
+		for i := 0; i < 10; i++ {
+			time.Sleep(1 * time.Second)
+			if _, err := os.Stat(testFile); err == nil {
+				found = true
+				err = os.Remove(testFile)
+				Expect(err).To(BeNil())
+				break
+			}
+		}
+		Expect(found).To(BeTrue())
+
+		err = os.Remove(aliveFile)
+		Expect(err).To(BeNil())
+
+		session.WaitWithDefaultTimeout()
+
+		// 10 seconds to restart the container
+		found = false
+		for i := 0; i < 10; i++ {
+			time.Sleep(1 * time.Second)
+			if _, err := os.Stat(testFile); err == nil {
+				found = true
+				break
+			}
+		}
+		Expect(found).To(BeTrue())
 	})
 })
