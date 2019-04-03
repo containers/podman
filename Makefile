@@ -30,7 +30,6 @@ BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
 
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
-PACKAGES ?= $(shell $(GO) list -tags "${BUILDTAGS}" ./... | grep -v github.com/containers/libpod/vendor | grep -v e2e | grep -v system )
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT_NO}-dirty,${COMMIT_NO})
@@ -172,7 +171,13 @@ testunit: libpodimage ## Run unittest on the built image
 	${CONTAINER_RUNTIME} run -e STORAGE_OPTIONS="--storage-driver=vfs" -e TESTFLAGS -e CGROUP_MANAGER=cgroupfs -e OCI_RUNTIME -e TRAVIS -t --privileged --rm -v ${CURDIR}:/go/src/${PROJECT} ${LIBPOD_IMAGE} make localunit
 
 localunit: test/goecho/goecho varlink_generate
-	$(GO) test -tags "$(BUILDTAGS)" -cover $(PACKAGES)
+	ginkgo \
+		-r \
+		--skipPackage test/e2e,pkg/apparmor \
+		--cover \
+		--covermode atomic \
+		--tags "$(BUILDTAGS)" \
+		--succinct
 	$(MAKE) -C contrib/cirrus/packer test
 
 ginkgo:
