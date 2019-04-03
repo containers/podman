@@ -134,6 +134,8 @@ const (
 	// Renumber indicates that lock numbers were reallocated at user
 	// request.
 	Renumber Status = "renumber"
+	// Restart indicates the target was restarted via an API call.
+	Restart Status = "restart"
 	// Restore ...
 	Restore Status = "restore"
 	// Save ...

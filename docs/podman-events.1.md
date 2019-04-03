@@ -28,6 +28,7 @@ The *container* event type will report the follow statuses:
  * pause
  * prune
  * remove
+ * restart
  * restore
  * start
  * stop

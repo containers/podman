@@ -229,6 +229,8 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 		return errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
 	}
 
+	c.newContainerEvent(events.Restart)
+
 	// Increment restart count
 	c.state.RestartCount = c.state.RestartCount + 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
@@ -1059,6 +1061,8 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 	if c.state.State == ContainerStateUnknown || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
+
+	c.newContainerEvent(events.Restart)
 
 	if c.state.State == ContainerStateRunning {
 		if err := c.stop(timeout); err != nil {
