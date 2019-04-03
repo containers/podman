@@ -2,7 +2,6 @@ package image
 
 import (
 	"context"
-	"reflect"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,7 +9,6 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/containers/image/types"
 	sysreg "github.com/containers/libpod/pkg/registries"
-	"github.com/fatih/camelcase"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/semaphore"
@@ -61,24 +59,6 @@ type SearchFilter struct {
 	IsAutomated types.OptionalBool
 	// IsOfficial decides if only official images are displayed.
 	IsOfficial types.OptionalBool
-}
-
-func splitCamelCase(src string) string {
-	entries := camelcase.Split(src)
-	return strings.Join(entries, " ")
-}
-
-// HeaderMap returns the headers of a SearchResult.
-func (s *SearchResult) HeaderMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(s))
-	values := make(map[string]string, v.NumField())
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
 }
 
 // SearchImages searches images based on term and the specified SearchOptions
