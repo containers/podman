@@ -22,18 +22,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-type mountType string
-
 // Type constants
 const (
 	bps = iota
 	iops
 	// TypeBind is the type for mounting host dir
-	TypeBind mountType = "bind"
+	TypeBind = "bind"
 	// TypeVolume is the type for remote storage volumes
-	// TypeVolume mountType = "volume"  // re-enable upon use
+	// TypeVolume = "volume"  // re-enable upon use
 	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs mountType = "tmpfs"
+	TypeTmpfs = "tmpfs"
 )
 
 // CreateResourceConfig represents resource elements in CreateConfig
@@ -137,8 +135,7 @@ type CreateConfig struct {
 	SeccompProfilePath string                         //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
-	LocalVolumes       []spec.Mount //Keeps track of the built-in volumes of container used in the --volumes-from flag
-	Syslog             bool         // Whether to enable syslog on exit commands
+	Syslog             bool // Whether to enable syslog on exit commands
 }
 
 func u32Ptr(i int64) *uint32     { u := uint32(i); return &u }
@@ -172,9 +169,9 @@ func (c *CreateConfig) AddContainerInitBinary(path string) error {
 	c.Command = append([]string{"/dev/init", "--"}, c.Command...)
 	c.Mounts = append(c.Mounts, spec.Mount{
 		Destination: "/dev/init",
-		Type:        "bind",
+		Type:        TypeBind,
 		Source:      path,
-		Options:     []string{"bind", "ro"},
+		Options:     []string{TypeBind, "ro"},
 	})
 	return nil
 }
@@ -219,7 +216,7 @@ func (c *CreateConfig) initFSMounts() []spec.Mount {
 
 // GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
 func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
-	m := c.LocalVolumes
+	m := []spec.Mount{}
 	for _, i := range c.Volumes {
 		var options []string
 		spliti := strings.Split(i, ":")
@@ -259,7 +256,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 			// Should tmpfs also be handled as named volumes? Wouldn't be hard
 			// This will cause a new local Volume to be created on your system
 			mount.Source = stringid.GenerateNonCryptoID()
-			mount.Options = append(mount.Options, "bind")
+			mount.Options = append(mount.Options, TypeBind)
 		}
 		m = append(m, mount)
 	}
@@ -306,7 +303,7 @@ func (c *CreateConfig) GetVolumesFrom() error {
 			return errors.Errorf("error retrieving container %s spec", ctr.ID())
 		}
 		for _, mnt := range spec.Mounts {
-			if mnt.Type != "bind" {
+			if mnt.Type != TypeBind {
 				continue
 			}
 			if _, exists := userVolumes[mnt.Destination]; exists {
@@ -453,10 +450,6 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithNamedVolumes(c.NamedVolumes))
 	}
 
-	if len(c.LocalVolumes) != 0 {
-		options = append(options, libpod.WithLocalVolumes(c.LocalVolumes))
-	}
-
 	if len(c.Command) != 0 {
 		options = append(options, libpod.WithCommand(c.Command))
 	}
@@ -568,7 +561,7 @@ func (c *CreateConfig) GetContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 	options = append(options, libpod.WithPrivileged(c.Privileged))
 
-	useImageVolumes := c.ImageVolumeType == "bind"
+	useImageVolumes := c.ImageVolumeType == TypeBind
 	// Gather up the options for NewContainer which consist of With... funcs
 	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
 	options = append(options, libpod.WithSecLabels(c.LabelOpts))

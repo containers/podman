@@ -20,7 +20,6 @@ import (
 )
 
 const cpuPeriod = 100000
-const bindMount = "bind"
 
 func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
@@ -56,7 +55,7 @@ func splitNamedVolumes(mounts []spec.Mount) ([]spec.Mount, []*libpod.ContainerNa
 	namedVolumes := make([]*libpod.ContainerNamedVolume, 0)
 	for _, mount := range mounts {
 		// If it's not a named volume, append unconditionally
-		if mount.Type != bindMount {
+		if mount.Type != TypeBind {
 			newMounts = append(newMounts, mount)
 			continue
 		}
@@ -128,7 +127,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
-			Type:        bindMount,
+			Type:        TypeBind,
 			Source:      "/sys",
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
@@ -155,7 +154,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.RemoveMount("/dev/mqueue")
 		devMqueue := spec.Mount{
 			Destination: "/dev/mqueue",
-			Type:        bindMount,
+			Type:        TypeBind,
 			Source:      "/dev/mqueue",
 			Options:     []string{"bind", "nosuid", "noexec", "nodev"},
 		}
@@ -165,7 +164,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.RemoveMount("/proc")
 		procMount := spec.Mount{
 			Destination: "/proc",
-			Type:        bindMount,
+			Type:        TypeBind,
 			Source:      "/proc",
 			Options:     []string{"rbind", "nosuid", "noexec", "nodev"},
 		}
