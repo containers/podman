@@ -234,6 +234,8 @@ type ContainerConfig struct {
 	// These include the SHM mount.
 	// These must be unmounted before the container's rootfs is unmounted.
 	Mounts []string `json:"mounts,omitempty"`
+	// NamedVolumes lists the named volumes to mount into the container.
+	NamedVolumes []*ContainerNamedVolume `json:"namedVolumes,omitempty"`
 
 	// Security Config
 
@@ -354,9 +356,6 @@ type ContainerConfig struct {
 	// ExitCommand is the container's exit command.
 	// This Command will be executed when the container exits
 	ExitCommand []string `json:"exitCommand,omitempty"`
-	// LocalVolumes are the built-in volumes we get from the --volumes-from flag
-	// It picks up the built-in volumes of the container used by --volumes-from
-	LocalVolumes []spec.Mount
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
@@ -366,6 +365,18 @@ type ContainerConfig struct {
 
 	// HealtchCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
+}
+
+// ContainerNamedVolume is a named volume that will be mounted into the
+// container. Each named volume is a libpod Volume present in the state.
+type ContainerNamedVolume struct {
+	// Name is the name of the volume to mount in.
+	// Must resolve to a valid volume present in this Podman.
+	Name string `json:"volumeName"`
+	// Dest is the mount's destination
+	Dest string `json:"dest"`
+	// Options are fstab style mount options
+	Options []string `json:"options,omitempty"`
 }
 
 // ContainerStatus returns a string representation for users
@@ -486,6 +497,22 @@ func (c *Container) ShmSize() int64 {
 // StaticDir returns the directory used to store persistent container files
 func (c *Container) StaticDir() string {
 	return c.config.StaticDir
+}
+
+// NamedVolumes returns the container's named volumes.
+// The name of each is guaranteed to point to a valid libpod Volume present in
+// the state.
+func (c *Container) NamedVolumes() []*ContainerNamedVolume {
+	volumes := []*ContainerNamedVolume{}
+	for _, vol := range c.config.NamedVolumes {
+		newVol := new(ContainerNamedVolume)
+		newVol.Name = vol.Name
+		newVol.Dest = vol.Dest
+		newVol.Options = vol.Options
+		volumes = append(volumes, newVol)
+	}
+
+	return volumes
 }
 
 // Privileged returns whether the container is privileged

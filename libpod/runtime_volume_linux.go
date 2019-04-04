@@ -98,12 +98,26 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if !force {
 			return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
 		}
-		// If using force, log the warning that the volume is being used by at least one container
-		logrus.Warnf("volume %s is being used by the following container(s): %s", v.Name(), depsStr)
-		// Remove the container dependencies so we can go ahead and delete the volume
+
+		// We need to remove all containers using the volume
 		for _, dep := range deps {
-			if err := r.state.RemoveVolCtrDep(v, dep); err != nil {
-				return errors.Wrapf(err, "unable to remove container dependency %q from volume %q while trying to delete volume by force", dep, v.Name())
+			ctr, err := r.state.Container(dep)
+			if err != nil {
+				// If the container's removed, no point in
+				// erroring.
+				if errors.Cause(err) == ErrNoSuchCtr || errors.Cause(err) == ErrCtrRemoved {
+					continue
+				}
+
+				return errors.Wrapf(err, "error removing container %s that depends on volume %s", dep, v.Name())
+			}
+
+			// TODO: do we want to set force here when removing
+			// containers?
+			// I'm inclined to say no, in case someone accidentally
+			// wipes a container they're using...
+			if err := r.removeContainer(ctx, ctr, false, false); err != nil {
+				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}
 	}

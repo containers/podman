@@ -99,9 +99,6 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
-	ctr.valid = true
-	ctr.state.State = ContainerStateConfigured
-
 	var pod *Pod
 	if ctr.config.Pod != "" {
 		// Get the pod from state
@@ -173,24 +170,29 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
 	}
 
-	// Go through the volume mounts and check for named volumes
-	// If the named volme already exists continue, otherwise create
-	// the storage for the named volume.
-	for i, vol := range ctr.config.Spec.Mounts {
-		if vol.Source[0] != '/' && isNamedVolume(vol.Source) {
-			volInfo, err := r.state.Volume(vol.Source)
-			if err != nil {
-				newVol, err := r.newVolume(ctx, WithVolumeName(vol.Source), withSetCtrSpecific(), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
-				if err != nil {
-					return nil, errors.Wrapf(err, "error creating named volume %q", vol.Source)
-				}
-				ctr.config.Spec.Mounts[i].Source = newVol.MountPoint()
-				if err := ctr.copyWithTarFromImage(ctr.config.Spec.Mounts[i].Destination, ctr.config.Spec.Mounts[i].Source); err != nil && !os.IsNotExist(err) {
-					return nil, errors.Wrapf(err, "failed to copy content into new volume mount %q", vol.Source)
-				}
-				continue
-			}
-			ctr.config.Spec.Mounts[i].Source = volInfo.MountPoint()
+	// Go through named volumes and add them.
+	// If they don't exist they will be created using basic options.
+	for _, vol := range ctr.config.NamedVolumes {
+		// Check if it exists already
+		_, err := r.state.Volume(vol.Name)
+		if err == nil {
+			// The volume exists, we're good
+			continue
+		} else if errors.Cause(err) != ErrNoSuchVolume {
+			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+		}
+
+		logrus.Debugf("Creating new volume %s for container", vol.Name)
+
+		// The volume does not exist, so we need to create it.
+		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
+			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		if err != nil {
+			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
+		}
+
+		if err := ctr.copyWithTarFromImage(vol.Dest, newVol.MountPoint()); err != nil && !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Name)
 		}
 	}
 
@@ -344,13 +346,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 	}
 
-	var volumes []string
-	if removeVolume {
-		volumes, err = c.namedVolumes()
-		if err != nil {
-			logrus.Errorf("unable to retrieve builtin volumes for container %v: %v", c.ID(), err)
-		}
-	}
 	var cleanupErr error
 	// Remove the container from the state
 	if c.config.Pod != "" {
@@ -415,8 +410,12 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	for _, v := range volumes {
-		if volume, err := runtime.state.Volume(v); err == nil {
+	if !removeVolume {
+		return cleanupErr
+	}
+
+	for _, v := range c.config.NamedVolumes {
+		if volume, err := runtime.state.Volume(v.Name); err == nil {
 			if !volume.IsCtrSpecific() {
 				continue
 			}
@@ -546,14 +545,6 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
-}
-
-// Check if volName is a named volume and not one of the default mounts we add to containers
-func isNamedVolume(volName string) bool {
-	if volName != "proc" && volName != "tmpfs" && volName != "devpts" && volName != "shm" && volName != "mqueue" && volName != "sysfs" && volName != "cgroup" {
-		return true
-	}
-	return false
 }
 
 // Export is the libpod portion of exporting a container to a tar file

@@ -21,7 +21,8 @@ Remove all volumes.
 
 **-f**, **--force**=""
 
-Remove a volume by force, even if it is being used by a container
+Remove a volume by force.
+If it is being used by containers, the containers will be removed first.
 
 **--help**
 

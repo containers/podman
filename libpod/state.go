@@ -192,10 +192,6 @@ type State interface {
 	// AddVolume adds the specified volume to state. The volume's name
 	// must be unique within the list of existing volumes
 	AddVolume(volume *Volume) error
-	// RemoveVolCtrDep updates the list of container dependencies that the
-	// volume has. It either deletes the dependent container ID from
-	// the sub-bucket
-	RemoveVolCtrDep(volume *Volume, ctrID string) error
 	// RemoveVolume removes the specified volume.
 	// Only volumes that have no container dependencies can be removed
 	RemoveVolume(volume *Volume) error

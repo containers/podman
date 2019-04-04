@@ -564,23 +564,17 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			}
 		}
 
-		// Add container to volume dependencies bucket if container is using a named volume
-		if ctr.runtime.config.VolumePath == "" {
-			return nil
-		}
-		for _, vol := range ctr.config.Spec.Mounts {
-			if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
-				volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
-				volDB := volBkt.Bucket([]byte(volName))
-				if volDB == nil {
-					return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volName)
-				}
+		// Add container to named volume dependencies buckets
+		for _, vol := range ctr.config.NamedVolumes {
+			volDB := volBkt.Bucket([]byte(vol.Name))
+			if volDB == nil {
+				return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database when adding container %s", vol.Name, ctr.ID())
+			}
 
-				ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
-				if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
-					if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
-						return errors.Wrapf(err, "error storing container dependencies %q for volume %s in ctrDependencies bucket in DB", ctr.ID(), volName)
-					}
+			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+			if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
+				if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
+					return errors.Wrapf(err, "error adding container %s to volume %s dependencies", ctr.ID(), vol.Name)
 				}
 			}
 		}
@@ -745,22 +739,19 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 	}
 
-	// Remove container from volume dependencies bucket if container is using a named volume
-	for _, vol := range ctr.config.Spec.Mounts {
-		if strings.Contains(vol.Source, ctr.runtime.config.VolumePath) {
-			volName := strings.Split(vol.Source[len(ctr.runtime.config.VolumePath)+1:], "/")[0]
+	// Remove container from named volume dependencies buckets
+	for _, vol := range ctr.config.NamedVolumes {
+		volDB := volBkt.Bucket([]byte(vol.Name))
+		if volDB == nil {
+			// Let's assume the volume was already deleted and
+			// continue to remove the container
+			continue
+		}
 
-			volDB := volBkt.Bucket([]byte(volName))
-			if volDB == nil {
-				// Let's assume the volume was already deleted and continue to remove the container
-				continue
-			}
-
-			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
-			if depExists := ctrDepsBkt.Get(ctrID); depExists != nil {
-				if err := ctrDepsBkt.Delete(ctrID); err != nil {
-					return errors.Wrapf(err, "error deleting container dependencies %q for volume %s in ctrDependencies bucket in DB", ctr.ID(), volName)
-				}
+		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+		if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
+			if err := ctrDepsBkt.Delete(ctrID); err != nil {
+				return errors.Wrapf(err, "error deleting container %s dependency on volume %s", ctr.ID(), vol.Name)
 			}
 		}
 	}

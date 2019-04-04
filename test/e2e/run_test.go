@@ -611,7 +611,6 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("data"))
-
 	})
 
 	It("podman run --volumes flag with multiple volumes", func() {

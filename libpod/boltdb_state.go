@@ -1358,56 +1358,6 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 	return err
 }
 
-// RemoveVolCtrDep updates the container dependencies sub bucket of the given volume.
-// It deletes it from the bucket when found.
-// This is important when force removing a volume and we want to get rid of the dependencies.
-func (s *BoltState) RemoveVolCtrDep(volume *Volume, ctrID string) error {
-	if ctrID == "" {
-		return nil
-	}
-
-	if !s.valid {
-		return ErrDBBadConfig
-	}
-
-	if !volume.valid {
-		return ErrVolumeRemoved
-	}
-
-	volName := []byte(volume.Name())
-
-	db, err := s.getDBCon()
-	if err != nil {
-		return err
-	}
-	defer s.closeDBCon(db)
-
-	err = db.Update(func(tx *bolt.Tx) error {
-		volBkt, err := getVolBucket(tx)
-		if err != nil {
-			return err
-		}
-
-		volDB := volBkt.Bucket(volName)
-		if volDB == nil {
-			volume.valid = false
-			return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database", volume.Name())
-		}
-
-		// Make a subbucket for the containers using the volume
-		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
-		depCtrID := []byte(ctrID)
-		if depExists := ctrDepsBkt.Get(depCtrID); depExists != nil {
-			if err := ctrDepsBkt.Delete(depCtrID); err != nil {
-				return errors.Wrapf(err, "error deleting container dependencies %q for volume %s in ctrDependencies bucket in DB", ctrID, volume.Name())
-			}
-		}
-
-		return nil
-	})
-	return err
-}
-
 // RemoveVolume removes the given volume from the state
 func (s *BoltState) RemoveVolume(volume *Volume) error {
 	if !s.valid {
@@ -1433,6 +1383,11 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 			return err
 		}
 
+		ctrBkt, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Check if the volume exists
 		volDB := volBkt.Bucket(volName)
 		if volDB == nil {
@@ -1448,6 +1403,18 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		if volCtrsBkt != nil {
 			var deps []string
 			err = volCtrsBkt.ForEach(func(id, value []byte) error {
+				// Alright, this is ugly.
+				// But we need it to work around the change in
+				// volume dependency handling, to make sure that
+				// older Podman versions don't cause DB
+				// corruption.
+				// Look up all dependencies and see that they
+				// still exist before appending.
+				ctrExists := ctrBkt.Bucket(id)
+				if ctrExists == nil {
+					return nil
+				}
+
 				deps = append(deps, string(id))
 				return nil
 			})
@@ -1629,6 +1596,11 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 			return err
 		}
 
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		volDB := volBucket.Bucket([]byte(volume.Name()))
 		if volDB == nil {
 			volume.valid = false
@@ -1642,6 +1614,13 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 
 		// Iterate through and add dependencies
 		err = dependsBkt.ForEach(func(id, value []byte) error {
+			// Look up all dependencies and see that they
+			// still exist before appending.
+			ctrExists := ctrBucket.Bucket(id)
+			if ctrExists == nil {
+				return nil
+			}
+
 			depCtrs = append(depCtrs, string(id))
 
 			return nil
