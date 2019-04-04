@@ -344,7 +344,7 @@ func SetXdgRuntimeDir(val string) error {
 // Options can be passed to override the default configuration for the runtime
 // TEST1
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
-	if 1 == 4 {
+	if 1 == 5 {
 		return nil, nil
 	}
 	return newRuntimeFromConfig("", options...)
