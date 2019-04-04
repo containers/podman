@@ -17,7 +17,6 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
 CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
-TIMESTAMPS_FILEPATH="${TIMESTAMPS_FILEPATH:-/var/tmp/timestamps}"
 SPECIALMODE="${SPECIALMODE:-none}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
@@ -153,16 +152,6 @@ ircmsg() {
     set -e
 }
 
-record_timestamp() {
-    set +x  # sometimes it's turned on
-    req_env_var TIMESTAMPS_FILEPATH
-    echo "."  # cirrus webui strips blank-lines
-    STAMPMSG="The $1 time at the tone will be:"
-    echo -e "$STAMPMSG\t$(date --iso-8601=seconds)" | \
-        tee -a $TIMESTAMPS_FILEPATH
-    echo -e "BLEEEEEEEEEEP!\n."
-}
-
 setup_rootless() {
     req_env_var ROOTLESS_USER GOSRC ENVLIB
 
@@ -202,9 +191,6 @@ setup_rootless() {
     grep -q "${ROOTLESS_USER}" /etc/subuid || \
         echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | \
             tee -a /etc/subuid >> /etc/subgid
-
-    echo "Setting permissions on automation files"
-    chmod 666 "$TIMESTAMPS_FILEPATH"
 
     echo "Copying $HOME/$ENVLIB"
     install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0700 \

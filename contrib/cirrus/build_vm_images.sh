@@ -5,8 +5,6 @@ source $(dirname $0)/lib.sh
 
 req_env_var CNI_COMMIT CRIO_COMMIT RUNC_COMMIT PACKER_BUILDS BUILT_IMAGE_SUFFIX CENTOS_BASE_IMAGE UBUNTU_BASE_IMAGE FEDORA_BASE_IMAGE FAH_BASE_IMAGE RHEL_BASE_IMAGE RHSM_COMMAND SERVICE_ACCOUNT GCE_SSH_USERNAME GCP_PROJECT_ID PACKER_VER SCRIPT_BASE PACKER_BASE
 
-record_timestamp "cache-image build start"
-
 show_env_vars
 
 # Everything here is running on the 'image-builder-image' GCE image
@@ -42,8 +40,6 @@ make libpod_images \
     PACKER_BASE=$PACKER_BASE \
     POST_MERGE_BUCKET_SUFFIX=$POST_MERGE_BUCKET_SUFFIX \
     BUILT_IMAGE_SUFFIX=$BUILT_IMAGE_SUFFIX
-
-record_timestamp "cache-image build end"
 
 # When successful, upload manifest of produced images using a filename unique
 # to this build.

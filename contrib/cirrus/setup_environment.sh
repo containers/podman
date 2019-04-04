@@ -4,8 +4,6 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-record_timestamp "env. setup start"
-
 req_env_var USER HOME ENVLIB SCRIPT_BASE CIRRUS_BUILD_ID
 
 [[ "$SHELL" =~ "bash" ]] || chsh -s /bin/bash
@@ -86,5 +84,3 @@ then
 fi
 
 show_env_vars
-
-record_timestamp "env. setup end"

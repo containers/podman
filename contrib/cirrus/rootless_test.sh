@@ -19,13 +19,9 @@ export PODMAN_VARLINK_ADDRESS=unix:/tmp/podman-$(id -u)
 echo "."
 echo "Hello, my name is $USER and I live in $PWD can I be your friend?"
 
-record_timestamp "rootless test start"
-
 cd "$GOSRC"
 make
 make varlink_generate
 make test-binaries
 make ginkgo
 make ginkgo-remote
-
-record_timestamp "rootless test end"
