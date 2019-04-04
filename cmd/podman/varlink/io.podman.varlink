@@ -68,7 +68,8 @@ type Image (
   virtualSize: int,
   containers: int,
   labels: [string]string,
-  isParent: bool
+  isParent: bool,
+  topLayer: string
 )
 
 # ImageHistory describes the returned structure from ImageHistory.
@@ -1161,7 +1162,14 @@ method LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool)
 # GetEvents returns known libpod events filtered by the options provided.
 method GetEvents(filter: []string, since: string, until: string) -> (events: Event)
 
+# Diff returns a diff between libpod objects
 method Diff(name: string) -> (diffs: []DiffInfo)
+
+# GetLayersMapWithImageInfo is for the development of Podman and should not be used.
+method GetLayersMapWithImageInfo() -> (layerMap: string)
+
+# BuildImageHierarchyMap is for the development of Podman and should not be used.
+method BuildImageHierarchyMap(name: string) -> (imageInfo: string)
 
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string, reason: string)
