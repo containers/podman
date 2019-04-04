@@ -12,7 +12,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,9 +55,6 @@ func runCmd(c *cliconfig.RunValues) error {
 
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
-	}
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
 	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)

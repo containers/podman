@@ -6,7 +6,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -41,10 +40,6 @@ func init() {
 
 // exportCmd saves a container to a tarball on disk
 func exportCmd(c *cliconfig.ExportValues) error {
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
-	}
-
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

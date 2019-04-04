@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -75,7 +74,8 @@ func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	imageName := ""
 	var data *inspect.ImageData = nil
 
-	if rootfs == "" && !rootless.SkipStorageSetup() {
+	// Set the storage if we are running as euid == 0 and there is no rootfs specified
+	if rootfs == "" && os.Geteuid() == 0 {
 		var writer io.Writer
 		if !c.Bool("quiet") {
 			writer = os.Stderr
@@ -758,71 +758,6 @@ type namespace interface {
 	Container() string
 }
 
-func joinOrCreateRootlessUserNamespace(createConfig *cc.CreateConfig, runtime *libpod.Runtime) (bool, int, error) {
-	if os.Geteuid() == 0 {
-		return false, 0, nil
-	}
-
-	if createConfig.Pod != "" {
-		pod, err := runtime.LookupPod(createConfig.Pod)
-		if err != nil {
-			return false, -1, err
-		}
-		inspect, err := pod.Inspect()
-		for _, ctr := range inspect.Containers {
-			prevCtr, err := runtime.LookupContainer(ctr.ID)
-			if err != nil {
-				return false, -1, err
-			}
-			s, err := prevCtr.State()
-			if err != nil {
-				return false, -1, err
-			}
-			if s != libpod.ContainerStateRunning && s != libpod.ContainerStatePaused {
-				continue
-			}
-			data, err := ioutil.ReadFile(prevCtr.Config().ConmonPidFile)
-			if err != nil {
-				return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", prevCtr.Config().ConmonPidFile)
-			}
-			conmonPid, err := strconv.Atoi(string(data))
-			if err != nil {
-				return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
-			}
-			return rootless.JoinDirectUserAndMountNS(uint(conmonPid))
-		}
-	}
-
-	namespacesStr := []string{string(createConfig.IpcMode), string(createConfig.NetMode), string(createConfig.UsernsMode), string(createConfig.PidMode), string(createConfig.UtsMode)}
-	for _, i := range namespacesStr {
-		if cc.IsNS(i) {
-			return rootless.JoinNSPath(cc.NS(i))
-		}
-	}
-
-	namespaces := []namespace{createConfig.IpcMode, createConfig.NetMode, createConfig.UsernsMode, createConfig.PidMode, createConfig.UtsMode}
-	for _, i := range namespaces {
-		if i.IsContainer() {
-			ctr, err := runtime.LookupContainer(i.Container())
-			if err != nil {
-				return false, -1, err
-			}
-			pid, err := ctr.PID()
-			if err != nil {
-				return false, -1, err
-			}
-			if pid == 0 {
-				if createConfig.Pod != "" {
-					continue
-				}
-				return false, -1, errors.Errorf("dependency container %s is not running", ctr.ID())
-			}
-			return rootless.JoinNS(uint(pid), 0)
-		}
-	}
-	return rootless.BecomeRootInUserNS()
-}
-
 func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {
@@ -832,13 +767,6 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 	options, err := createConfig.GetContainerCreateOptions(r, pod)
 	if err != nil {
 		return nil, err
-	}
-	became, ret, err := joinOrCreateRootlessUserNamespace(createConfig, r)
-	if err != nil {
-		return nil, err
-	}
-	if became {
-		os.Exit(ret)
 	}
 
 	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)

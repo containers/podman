@@ -7,7 +7,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -59,7 +58,6 @@ func stopCmd(c *cliconfig.StopValues) error {
 		defer span.Finish()
 	}
 
-	rootless.SetSkipStorageSetup(true)
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

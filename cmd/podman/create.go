@@ -2,12 +2,10 @@ package main
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -52,10 +50,6 @@ func createCmd(c *cliconfig.CreateValues) error {
 
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
-	}
-
-	if os.Geteuid() != 0 {
-		rootless.SetSkipStorageSetup(true)
 	}
 
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)

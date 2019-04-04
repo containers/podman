@@ -755,13 +755,6 @@ func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.Healt
 	return -1, libpod.ErrNotImplemented
 }
 
-// JoinOrCreateRootlessPod joins the specified pod if it is running or it creates a new user namespace
-// if the pod is stopped
-func (r *LocalRuntime) JoinOrCreateRootlessPod(pod *Pod) (bool, int, error) {
-	// Nothing to do in the remote case
-	return true, 0, nil
-}
-
 // Events monitors libpod/podman events over a varlink connection
 func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	var more uint64

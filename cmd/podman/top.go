@@ -9,7 +9,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -77,7 +76,6 @@ func topCmd(c *cliconfig.TopValues) error {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
 
-	rootless.SetSkipStorageSetup(true)
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
@@ -103,18 +101,6 @@ func topCmd(c *cliconfig.TopValues) error {
 	}
 	if conStat != libpod.ContainerStateRunning {
 		return errors.Errorf("top can only be used on running containers")
-	}
-
-	pid, err := container.PID()
-	if err != nil {
-		return err
-	}
-	became, ret, err := rootless.JoinNS(uint(pid), 0)
-	if err != nil {
-		return err
-	}
-	if became {
-		os.Exit(ret)
 	}
 	psOutput, err := container.GetContainerPidInformation(descriptors)
 	if err != nil {

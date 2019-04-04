@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -271,7 +270,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 func (c *CreateConfig) GetVolumesFrom() error {
 	var options string
 
-	if rootless.SkipStorageSetup() {
+	if os.Geteuid() != 0 {
 		return nil
 	}
 
