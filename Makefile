@@ -341,7 +341,7 @@ validate: gofmt .gitvalidation validate.completions
 
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
-	git rebase $(GIT_BASE_BRANCH) -x make
+	git rebase $(GIT_BASE_BRANCH) -x 'make binaries'
 
 vendor: .install.vndr
 	$(GOPATH)/bin/vndr \
