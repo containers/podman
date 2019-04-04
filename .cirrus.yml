@@ -179,7 +179,7 @@ build_each_commit_task:
     gce_instance:
         image_project: "libpod-218412"
         zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 2
+        cpu: 8
         memory: "2Gb"
         disk: 200
         image_name: "${FEDORA_CACHE_IMAGE_NAME}"
