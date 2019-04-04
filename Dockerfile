@@ -38,6 +38,8 @@ RUN apt-get update && apt-get install -y \
     socat \
     lsof \
     xz-utils \
+    unzip \
+    python3-yaml \
     --no-install-recommends \
     && apt-get clean
 
