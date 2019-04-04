@@ -1,7 +1,5 @@
 FROM golang:1.11
 
-RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
-
 RUN apt-get update && apt-get install -y \
     apparmor \
     autoconf \
@@ -23,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
+    libseccomp-dev \
     libtool \
     libudev-dev \
     protobuf-c-compiler \
@@ -40,17 +39,6 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     --no-install-recommends \
     && apt-get clean
-
-ENV LIBSECCOMP_COMMIT release-2.3
-RUN set -x \
-       && git clone https://github.com/seccomp/libseccomp "$GOPATH/src/github.com/seccomp/libseccomp" \
-       && cd "$GOPATH/src/github.com/seccomp/libseccomp" \
-       && git fetch origin --tags \
-       && git checkout -q "$LIBSECCOMP_COMMIT" \
-       && ./autogen.sh \
-       && ./configure --prefix=/usr \
-       && make all \
-       && make install
 
 # Install runc
 ENV RUNC_COMMIT 96ec2177ae841256168fcf76954f7177af9446eb
