@@ -342,7 +342,11 @@ func SetXdgRuntimeDir(val string) error {
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
+// TEST1
 func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
+	if 1 == 2 {
+		return nil, nil
+	}
 	return newRuntimeFromConfig("", options...)
 }
 
