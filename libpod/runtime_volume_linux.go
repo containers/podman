@@ -116,7 +116,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			// containers?
 			// I'm inclined to say no, in case someone accidentally
 			// wipes a container they're using...
-			if err := r.removeContainer(ctx, ctr, false, true); err != nil {
+			if err := r.removeContainer(ctx, ctr, false, false); err != nil {
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}

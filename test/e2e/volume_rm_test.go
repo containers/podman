@@ -32,7 +32,7 @@ var _ = Describe("Podman volume rm", func() {
 
 	})
 
-	It("podman rm volume", func() {
+	It("podman volume rm", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -47,7 +47,7 @@ var _ = Describe("Podman volume rm", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(0))
 	})
 
-	It("podman rm with --force flag", func() {
+	It("podman volume rm with --force flag", func() {
 		SkipIfRemote()
 		session := podmanTest.Podman([]string{"create", "-v", "myvol:/myvol", ALPINE, "ls"})
 		cid := session.OutputToString()
