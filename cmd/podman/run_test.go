@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/inspect"
 	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/go-units"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -16,8 +17,9 @@ import (
 )
 
 var (
-	cmd = []string{"podman", "test", "alpine"}
-	CLI *cliconfig.PodmanCommand
+	sysInfo = sysinfo.New(true)
+	cmd     = []string{"podman", "test", "alpine"}
+	CLI     *cliconfig.PodmanCommand
 )
 
 // generates a mocked ImageData structure based on alpine
@@ -100,6 +102,9 @@ func TestPIDsLimit(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
+	if !sysInfo.PidsLimit {
+		t.Skip("running test not supported by the host system")
+	}
 	args := []string{"--pids-limit", "22"}
 	a := createCLI(args)
 	a.InputArgs = args
@@ -119,6 +124,9 @@ func TestBLKIOWeightDevice(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
+	if !sysInfo.BlkioWeightDevice {
+		t.Skip("running test not supported by the host system")
+	}
 	args := []string{"--blkio-weight-device", "/dev/zero:100"}
 	a := createCLI(args)
 	a.InputArgs = args
@@ -136,6 +144,9 @@ func TestMemorySwap(t *testing.T) {
 	// Skip the tests on non-Linux platforms rather than explicitly disable seccomp in the test and possibly affect the test result.
 	if runtime.GOOS != "linux" {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
+	}
+	if !sysInfo.SwapLimit {
+		t.Skip("running test not supported by the host system")
 	}
 	args := []string{"--memory-swap", "45m", "--memory", "40m"}
 	a := createCLI(args)
