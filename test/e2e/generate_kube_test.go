@@ -48,7 +48,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube on container", func() {
-		SkipIfRootless()
 		session := podmanTest.RunTopContainer("top")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -62,7 +61,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate service kube on container", func() {
-		SkipIfRootless()
 		session := podmanTest.RunTopContainer("top")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -76,7 +74,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate kube on pod", func() {
-		SkipIfRootless()
 		_, rc, _ := podmanTest.CreatePod("toppod")
 		Expect(rc).To(Equal(0))
 
@@ -93,7 +90,6 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman generate service kube on pod", func() {
-		SkipIfRootless()
 		_, rc, _ := podmanTest.CreatePod("toppod")
 		Expect(rc).To(Equal(0))
 
