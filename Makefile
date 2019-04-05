@@ -98,8 +98,7 @@ endif
 	touch $@
 
 lint: .gopathok varlink_generate ## Execute the source code linter
-	@echo "checking lint"
-	@./.tool/lint
+	golangci-lint run --build-tags="$(BUILDTAGS)"
 
 gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
@@ -280,7 +279,7 @@ uninstall:
 
 .PHONY: install.tools
 
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo ## Install needed tools
+install.tools: .install.gitvalidation .install.golangci-lint .install.md2man .install.ginkgo ## Install needed tools
 
 .install.vndr: .gopathok
 	$(GO) get -u github.com/LK4D4/vndr
@@ -295,13 +294,10 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 		$(GO) get -u github.com/vbatts/git-validation; \
 	fi
 
-.install.gometalinter: .gopathok
-	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
-		$(GO) get -u github.com/alecthomas/gometalinter; \
-		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
-		$(GO) install github.com/alecthomas/gometalinter; \
-		$(GOBIN)/gometalinter --install; \
+.install.golangci-lint: .gopathok
+	if [ ! -x "$(GOBIN)/golangci-lint" ]; then \
+		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh |\
+			sh -s -- -b $(GOBIN) v1.15.0 ;\
 	fi
 
 .install.md2man: .gopathok

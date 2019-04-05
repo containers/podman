@@ -22,15 +22,14 @@ import (
 )
 
 var (
-	PODMAN_BINARY      string
-	CONMON_BINARY      string
-	CNI_CONFIG_DIR     string
-	RUNC_BINARY        string
-	INTEGRATION_ROOT   string
-	CGROUP_MANAGER     = "systemd"
-	ARTIFACT_DIR       = "/tmp/.artifacts"
-	RESTORE_IMAGES     = []string{ALPINE, BB}
-	defaultWaitTimeout = 90
+	PODMAN_BINARY    string
+	CONMON_BINARY    string
+	CNI_CONFIG_DIR   string
+	RUNC_BINARY      string
+	INTEGRATION_ROOT string
+	CGROUP_MANAGER   = "systemd"
+	ARTIFACT_DIR     = "/tmp/.artifacts"
+	RESTORE_IMAGES   = []string{ALPINE, BB}
 )
 
 // PodmanTestIntegration struct for command line options

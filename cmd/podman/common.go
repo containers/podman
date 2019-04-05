@@ -10,17 +10,13 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-var (
-	stores = make(map[storage.Store]struct{})
-	json   = jsoniter.ConfigCompatibleWithStandardLibrary
-)
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 const (
 	idTruncLength = 12

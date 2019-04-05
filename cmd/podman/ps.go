@@ -18,35 +18,31 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/fields"
 )
 
 const (
-	mountTruncLength = 12
-	hid              = "CONTAINER ID"
-	himage           = "IMAGE"
-	hcommand         = "COMMAND"
-	hcreated         = "CREATED"
-	hstatus          = "STATUS"
-	hports           = "PORTS"
-	hnames           = "NAMES"
-	hsize            = "SIZE"
-	hinfra           = "IS INFRA"
-	hpod             = "POD"
-	nspid            = "PID"
-	nscgroup         = "CGROUPNS"
-	nsipc            = "IPC"
-	nsmnt            = "MNT"
-	nsnet            = "NET"
-	nspidns          = "PIDNS"
-	nsuserns         = "USERNS"
-	nsuts            = "UTS"
+	hid      = "CONTAINER ID"
+	himage   = "IMAGE"
+	hcommand = "COMMAND"
+	hcreated = "CREATED"
+	hstatus  = "STATUS"
+	hports   = "PORTS"
+	hnames   = "NAMES"
+	hsize    = "SIZE"
+	hpod     = "POD"
+	nspid    = "PID"
+	nscgroup = "CGROUPNS"
+	nsipc    = "IPC"
+	nsmnt    = "MNT"
+	nsnet    = "NET"
+	nspidns  = "PIDNS"
+	nsuserns = "USERNS"
+	nsuts    = "UTS"
 )
 
 type psTemplateParams struct {
@@ -71,34 +67,6 @@ type psTemplateParams struct {
 	UTS           string
 	Pod           string
 	IsInfra       bool
-}
-
-// psJSONParams is used as a base structure for the psParams
-// If template output is requested, psJSONParams will be converted to
-// psTemplateParams.
-// psJSONParams will be populated by data from libpod.Container,
-// the members of the struct are the sama data types as their sources.
-type psJSONParams struct {
-	ID               string                `json:"id"`
-	Image            string                `json:"image"`
-	ImageID          string                `json:"image_id"`
-	Command          []string              `json:"command"`
-	ExitCode         int32                 `json:"exitCode"`
-	Exited           bool                  `json:"exited"`
-	CreatedAt        time.Time             `json:"createdAt"`
-	StartedAt        time.Time             `json:"startedAt"`
-	ExitedAt         time.Time             `json:"exitedAt"`
-	Status           string                `json:"status"`
-	PID              int                   `json:"PID"`
-	Ports            []ocicni.PortMapping  `json:"ports"`
-	Size             *shared.ContainerSize `json:"size,omitempty"`
-	Names            string                `json:"names"`
-	Labels           fields.Set            `json:"labels"`
-	Mounts           []string              `json:"mounts"`
-	ContainerRunning bool                  `json:"ctrRunning"`
-	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
-	Pod              string                `json:"pod,omitempty"`
-	IsInfra          bool                  `json:"infra"`
 }
 
 // Type declaration and functions for sorting the PS output
@@ -441,57 +409,6 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
 	return psOutput, nil
-}
-
-// getLabels converts the labels to a string of the form "key=value, key2=value2"
-func formatLabels(labels map[string]string) string {
-	var arr []string
-	if len(labels) > 0 {
-		for key, val := range labels {
-			temp := key + "=" + val
-			arr = append(arr, temp)
-		}
-		return strings.Join(arr, ",")
-	}
-	return ""
-}
-
-// getMounts converts the volumes mounted to a string of the form "mount1, mount2"
-// it truncates it if noTrunc is false
-func getMounts(mounts []string, noTrunc bool) string {
-	return strings.Join(getMountsArray(mounts, noTrunc), ",")
-}
-
-func getMountsArray(mounts []string, noTrunc bool) []string {
-	var arr []string
-	if len(mounts) == 0 {
-		return mounts
-	}
-	for _, mount := range mounts {
-		splitArr := strings.Split(mount, ":")
-		if len(splitArr[0]) > mountTruncLength && !noTrunc {
-			arr = append(arr, splitArr[0][:mountTruncLength]+"...")
-			continue
-		}
-		arr = append(arr, splitArr[0])
-	}
-	return arr
-}
-
-// portsToString converts the ports used to a string of the from "port1, port2"
-func portsToString(ports []ocicni.PortMapping) string {
-	var portDisplay []string
-	if len(ports) == 0 {
-		return ""
-	}
-	for _, v := range ports {
-		hostIP := v.HostIP
-		if hostIP == "" {
-			hostIP = "0.0.0.0"
-		}
-		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
-	}
-	return strings.Join(portDisplay, ", ")
 }
 
 func printFormat(format string, containers []shared.PsContainerOutput) error {
