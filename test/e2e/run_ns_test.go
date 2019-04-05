@@ -63,7 +63,6 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns ipcmk host test", func() {
-		SkipIfRootless()
 		setup := SystemExec("ipcmk", []string{"-M", "1024"})
 		Expect(setup.ExitCode()).To(Equal(0))
 		output := strings.Split(setup.OutputToString(), " ")
@@ -77,7 +76,6 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns ipcmk container test", func() {
-		SkipIfRootless()
 		setup := podmanTest.Podman([]string{"run", "-d", "--name", "test1", fedoraMinimal, "sleep", "999"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
