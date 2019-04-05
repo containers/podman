@@ -269,7 +269,19 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		}
 	}
 
-	containerConfig.Command = containerYAML.Command
+	containerConfig.Command = []string{}
+	if imageData != nil && imageData.Config != nil {
+		containerConfig.Command = append(containerConfig.Command, imageData.Config.Entrypoint...)
+	}
+	if len(containerConfig.Command) != 0 {
+		containerConfig.Command = append(containerConfig.Command, containerYAML.Command...)
+	} else if imageData != nil && imageData.Config != nil {
+		containerConfig.Command = append(containerConfig.Command, imageData.Config.Cmd...)
+	}
+	if imageData != nil && len(containerConfig.Command) == 0 {
+		return nil, errors.Errorf("No command specified in container YAML or as CMD or ENTRYPOINT in this image for %s", containerConfig.Name)
+	}
+
 	containerConfig.StopSignal = 15
 
 	// If the user does not pass in ID mappings, just set to basics
