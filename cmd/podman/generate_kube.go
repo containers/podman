@@ -5,7 +5,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	podmanVersion "github.com/containers/libpod/version"
 	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
@@ -53,9 +52,6 @@ func generateKubeYAMLCmd(c *cliconfig.GenerateKubeValues) error {
 		servicePorts      []v1.ServicePort
 	)
 
-	if rootless.IsRootless() {
-		return errors.Wrapf(libpod.ErrNotImplemented, "rootless users")
-	}
 	args := c.InputArgs
 	if len(args) != 1 {
 		return errors.Errorf("you must provide exactly one container|pod ID or name")

@@ -15,7 +15,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ns "github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -73,9 +72,6 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 	)
 
 	ctx := getContext()
-	if rootless.IsRootless() {
-		return errors.Wrapf(libpod.ErrNotImplemented, "rootless users")
-	}
 	args := c.InputArgs
 	if len(args) > 1 {
 		return errors.New("you can only play one kubernetes file at a time")
