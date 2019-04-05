@@ -118,16 +118,3 @@ func searchToGeneric(params []image.SearchResult) (genericParams []interface{}) 
 	}
 	return genericParams
 }
-
-func genSearchOutputMap() map[string]string {
-	io := image.SearchResult{}
-	v := reflect.Indirect(reflect.ValueOf(io))
-	values := make(map[string]string)
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
-}
