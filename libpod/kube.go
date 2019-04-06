@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -302,22 +301,6 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 		envVars = append(envVars, ev)
 	}
 	return envVars, nil
-}
-
-// Is this worth it?
-func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceList) { //nolint
-	// It does not appear we can properly calculate CPU resources from the information
-	// we know in libpod.  Libpod knows CPUs by time, shares, etc.
-
-	// We also only know about a memory limit; no memory minimum
-	maxResources := make(map[v1.ResourceName]resource.Quantity)
-	minResources := make(map[v1.ResourceName]resource.Quantity)
-	config := c.Config()
-	maxMem := config.Spec.Linux.Resources.Memory.Limit
-
-	_ = maxMem
-
-	return maxResources, minResources
 }
 
 func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, error) {

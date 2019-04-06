@@ -748,11 +748,6 @@ func ParseCreateOpts(ctx context.Context, c *cliconfig.PodmanCommand, runtime *l
 	return config, nil
 }
 
-type namespace interface {
-	IsContainer() bool
-	Container() string
-}
-
 func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
 	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
 	if err != nil {

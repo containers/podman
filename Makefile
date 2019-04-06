@@ -97,7 +97,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch $@
 
-lint: .gopathok varlink_generate ## Execute the source code linter
+lint: .install.golangci-lint .gopathok varlink_generate ## Execute the source code linter
 	golangci-lint run --build-tags="$(BUILDTAGS)"
 
 gofmt: ## Verify the source code gofmt

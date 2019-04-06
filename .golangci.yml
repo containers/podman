@@ -5,7 +5,7 @@ run:
 linters:
   disable-all: true
   enable:
-    - deadcode
+    # - deadcode
     - depguard
     - gofmt
     - typecheck
