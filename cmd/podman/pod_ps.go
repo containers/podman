@@ -20,6 +20,7 @@ import (
 )
 
 const (
+	STOPPED      = "Stopped"
 	RUNNING      = "Running"
 	PAUSED       = "Paused"
 	EXITED       = "Exited"

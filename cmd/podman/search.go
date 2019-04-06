@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	descriptionTruncLength = 44
+	maxQueries             = 25
+)
+
 var (
 	searchCommand     cliconfig.SearchValues
 	searchDescription = `Search registries for a given image. Can search all the default registries or a specific registry.
