@@ -34,6 +34,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// getContext returns a non-nil, empty context
+func getContext() context.Context {
+	return context.TODO()
+}
+
 func CreateContainer(ctx context.Context, c *cliconfig.PodmanCommand, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
 		healthCheck *manifest.Schema2HealthConfig
