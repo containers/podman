@@ -7,6 +7,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"k8s.io/api/core/v1"
 	"os"
 	"text/template"
 
@@ -404,27 +405,7 @@ func (r *LocalRuntime) Diff(c *cliconfig.DiffValues, to string) ([]archive.Chang
 	return r.Runtime.GetDiff("", to)
 }
 
-// func (r *LocalRuntime) joinContainerOrCreateRootlessUserNS(ctr *libpod.Container) (bool, int, error) {
-// 	if os.Geteuid() == 0 {
-// 		return false, 0, nil
-// 	}
-// 	s, err := ctr.State()
-// 	if err != nil {
-// 		return false, -1, err
-// 	}
-// 	opts := rootless.Opts{
-// 		Argument: ctr.ID(),
-// 	}
-// 	if s == libpod.ContainerStateRunning || s == libpod.ContainerStatePaused {
-// 		data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-// 		if err != nil {
-// 			return false, -1, errors.Wrapf(err, "Container %s cannot read conmon PID file %q", ctr.ID(), ctr.Config().ConmonPidFile)
-// 		}
-// 		conmonPid, err := strconv.Atoi(string(data))
-// 		if err != nil {
-// 			return false, -1, errors.Wrapf(err, "Container %s cannot parse PID %q", ctr.ID(), data)
-// 		}
-// 		return rootless.JoinDirectUserAndMountNSWithOpts(uint(conmonPid), &opts)
-// 	}
-// 	return rootless.BecomeRootInUserNSWithOpts(&opts)
-// }
+// GenerateKube creates kubernetes email from containers and pods
+func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *v1.Service, error) {
+	return shared.GenerateKube(c.InputArgs[0], c.Service, r.Runtime)
+}

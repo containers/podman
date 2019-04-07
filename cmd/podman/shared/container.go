@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -937,4 +938,38 @@ func envSliceToMap(env []string) map[string]string {
 		m[split[0]] = strings.Join(split[1:], " ")
 	}
 	return m
+}
+
+// GenerateKube generates kubernetes yaml based on a pod or container
+func GenerateKube(name string, service bool, r *libpod.Runtime) (*v1.Pod, *v1.Service, error) {
+	var (
+		pod          *libpod.Pod
+		podYAML      *v1.Pod
+		err          error
+		container    *libpod.Container
+		servicePorts []v1.ServicePort
+		serviceYAML  v1.Service
+	)
+	// Get the container in question
+	container, err = r.LookupContainer(name)
+	if err != nil {
+		pod, err = r.LookupPod(name)
+		if err != nil {
+			return nil, nil, err
+		}
+		podYAML, servicePorts, err = pod.GenerateForKube()
+	} else {
+		if len(container.Dependencies()) > 0 {
+			return nil, nil, errors.Wrapf(libpod.ErrNotImplemented, "containers with dependencies")
+		}
+		podYAML, err = container.GenerateForKube()
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if service {
+		serviceYAML = libpod.GenerateKubeServiceFromV1Pod(podYAML, servicePorts)
+	}
+	return podYAML, &serviceYAML, nil
 }

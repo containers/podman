@@ -36,6 +36,7 @@ var mainCommands = []*cobra.Command{
 	_createCommand,
 	_eventsCommand,
 	_exportCommand,
+	_generateCommand,
 	_historyCommand,
 	&_imagesCommand,
 	_importCommand,
