@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -126,18 +127,40 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 
 	// Process user changes
 	for _, change := range options.Changes {
-		splitChange := strings.Split(change, "=")
+		splitChange := strings.SplitN(change, " ", 2)
+		if len(splitChange) != 2 {
+			splitChange = strings.SplitN(change, "=", 2)
+			if len(splitChange) < 2 {
+				return nil, errors.Errorf("invalid change %s format", change)
+			}
+		}
+
+		change := strings.Split(splitChange[1], " ")
 		switch strings.ToUpper(splitChange[0]) {
 		case "CMD":
-			importBuilder.SetCmd(splitChange[1:])
+			importBuilder.SetCmd(change)
 		case "ENTRYPOINT":
-			importBuilder.SetEntrypoint(splitChange[1:])
+			importBuilder.SetEntrypoint(change)
 		case "ENV":
+			name := change[0]
+			val := ""
+			if len(change) < 2 {
+				change = strings.Split(change[0], "=")
+			}
+			if len(change) < 2 {
+				var ok bool
+				val, ok = os.LookupEnv(name)
+				if !ok {
+					return nil, errors.Errorf("invalid env variable %q: not defined in your environment", name)
+				}
+			} else {
+				val = strings.Join(change[1:], " ")
+			}
 			if !isEnvCleared { // Multiple values are valid, only clear once.
 				importBuilder.ClearEnv()
 				isEnvCleared = true
 			}
-			importBuilder.SetEnv(splitChange[1], splitChange[2])
+			importBuilder.SetEnv(name, val)
 		case "EXPOSE":
 			if !isExposeCleared { // Multiple values are valid, only clear once
 				importBuilder.ClearPorts()
@@ -145,11 +168,17 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			}
 			importBuilder.SetPort(splitChange[1])
 		case "LABEL":
+			if len(change) < 2 {
+				change = strings.Split(change[0], "=")
+			}
+			if len(change) < 2 {
+				return nil, errors.Errorf("invalid label %s format, requires to NAME=VAL", splitChange[1])
+			}
 			if !isLabelCleared { // multiple values are valid, only clear once
 				importBuilder.ClearLabels()
 				isLabelCleared = true
 			}
-			importBuilder.SetLabel(splitChange[1], splitChange[2])
+			importBuilder.SetLabel(change[0], strings.Join(change[1:], " "))
 		case "ONBUILD":
 			importBuilder.SetOnBuild(splitChange[1])
 		case "STOPSIGNAL":
