@@ -1,119 +1,213 @@
-package registrar
+package registrar_test
 
 import (
-	"reflect"
 	"testing"
+
+	"github.com/containers/libpod/pkg/registrar"
+	. "github.com/containers/libpod/test/framework"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
-func TestReserve(t *testing.T) {
-	r := NewRegistrar()
-
-	obj := "test1"
-	if err := r.Reserve("test", obj); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := r.Reserve("test", obj); err != nil {
-		t.Fatal(err)
-	}
-
-	obj2 := "test2"
-	err := r.Reserve("test", obj2)
-	if err == nil {
-		t.Fatalf("expected error when reserving an already reserved name to another object")
-	}
-	if err != ErrNameReserved {
-		t.Fatal("expected `ErrNameReserved` error when attempting to reserve an already reserved name")
-	}
+// TestRegistrar runs the created specs
+func TestRegistrar(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "Registrar")
 }
 
-func TestRelease(t *testing.T) {
-	r := NewRegistrar()
-	obj := "testing"
+// nolint: gochecknoglobals
+var t *TestFramework
 
-	if err := r.Reserve("test", obj); err != nil {
-		t.Fatal(err)
-	}
-	r.Release("test")
-	r.Release("test") // Ensure there is no panic here
+var _ = BeforeSuite(func() {
+	t = NewTestFramework(NilFunc, NilFunc)
+	t.Setup()
+})
 
-	if err := r.Reserve("test", obj); err != nil {
-		t.Fatal(err)
-	}
-}
+var _ = AfterSuite(func() {
+	t.Teardown()
+})
 
-func TestGetNames(t *testing.T) {
-	r := NewRegistrar()
-	obj := "testing"
-	names := []string{"test1", "test2"}
+// The actual test suite
+var _ = t.Describe("Registrar", func() {
+	// Constant test data needed by some tests
+	const (
+		testKey    = "testKey"
+		testName   = "testName"
+		anotherKey = "anotherKey"
+	)
 
-	for _, name := range names {
-		if err := r.Reserve(name, obj); err != nil {
-			t.Fatal(err)
-		}
-	}
-	r.Reserve("test3", "other")
+	// The system under test
+	var sut *registrar.Registrar
 
-	names2, err := r.GetNames(obj)
-	if err != nil {
-		t.Fatal(err)
-	}
+	// Prepare the system under test and register a test name and key before
+	// each test
+	BeforeEach(func() {
+		sut = registrar.NewRegistrar()
+		Expect(sut.Reserve(testName, testKey)).To(BeNil())
+	})
 
-	if !reflect.DeepEqual(names, names2) {
-		t.Fatalf("Exepected: %v, Got: %v", names, names2)
-	}
-}
+	t.Describe("Reserve", func() {
+		It("should succeed to reserve a new registrar", func() {
+			// Given
+			// When
+			err := sut.Reserve("name", "key")
 
-func TestDelete(t *testing.T) {
-	r := NewRegistrar()
-	obj := "testing"
-	names := []string{"test1", "test2"}
-	for _, name := range names {
-		if err := r.Reserve(name, obj); err != nil {
-			t.Fatal(err)
-		}
-	}
+			// Then
+			Expect(err).To(BeNil())
+		})
 
-	r.Reserve("test3", "other")
-	r.Delete(obj)
+		It("should succeed to reserve a registrar twice", func() {
+			// Given
+			// When
+			err := sut.Reserve(testName, testKey)
 
-	_, err := r.GetNames(obj)
-	if err == nil {
-		t.Fatal("expected error getting names for deleted key")
-	}
+			// Then
+			Expect(err).To(BeNil())
+		})
 
-	if err != ErrNoSuchKey {
-		t.Fatal("expected `ErrNoSuchKey`")
-	}
-}
+		It("should fail to reserve an already reserved registrar", func() {
+			// Given
+			// When
+			err := sut.Reserve(testName, anotherKey)
 
-func TestGet(t *testing.T) {
-	r := NewRegistrar()
-	obj := "testing"
-	name := "test"
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(err).To(Equal(registrar.ErrNameReserved))
+		})
+	})
 
-	_, err := r.Get(name)
-	if err == nil {
-		t.Fatal("expected error when key does not exist")
-	}
-	if err != ErrNameNotReserved {
-		t.Fatal(err)
-	}
+	t.Describe("Release", func() {
+		It("should succeed to release a registered registrar multiple times", func() {
+			// Given
+			// When
+			// Then
+			sut.Release(testName)
+			sut.Release(testName)
+		})
 
-	if err := r.Reserve(name, obj); err != nil {
-		t.Fatal(err)
-	}
+		It("should succeed to release a unknown registrar multiple times", func() {
+			// Given
+			// When
+			// Then
+			sut.Release(anotherKey)
+			sut.Release(anotherKey)
+		})
 
-	if _, err = r.Get(name); err != nil {
-		t.Fatal(err)
-	}
+		It("should succeed to release and re-register a registrar", func() {
+			// Given
+			// When
+			sut.Release(testName)
+			err := sut.Reserve(testName, testKey)
 
-	r.Delete(obj)
-	_, err = r.Get(name)
-	if err == nil {
-		t.Fatal("expected error when key does not exist")
-	}
-	if err != ErrNameNotReserved {
-		t.Fatal(err)
-	}
-}
+			// Then
+			Expect(err).To(BeNil())
+		})
+	})
+
+	t.Describe("GetNames", func() {
+		It("should succeed to retrieve a single name for a registrar", func() {
+			// Given
+			// When
+			names, err := sut.GetNames(testKey)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(len(names)).To(Equal(1))
+			Expect(names[0]).To(Equal(testName))
+		})
+
+		It("should succeed to retrieve all names for a registrar", func() {
+			// Given
+			testNames := []string{"test1", "test2"}
+			for _, name := range testNames {
+				Expect(sut.Reserve(name, anotherKey)).To(BeNil())
+			}
+
+			// When
+			names, err := sut.GetNames(anotherKey)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(len(names)).To(Equal(2))
+			Expect(names).To(Equal(testNames))
+		})
+	})
+
+	t.Describe("GetNames", func() {
+		It("should succeed to retrieve a single name for a registrar", func() {
+			// Given
+			// When
+			names, err := sut.GetNames(testKey)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(len(names)).To(Equal(1))
+			Expect(names[0]).To(Equal(testName))
+		})
+
+		It("should succeed to retrieve all names for a registrar", func() {
+			// Given
+			anotherKey := "anotherKey"
+			testNames := []string{"test1", "test2"}
+			for _, name := range testNames {
+				Expect(sut.Reserve(name, anotherKey)).To(BeNil())
+			}
+
+			// When
+			names, err := sut.GetNames(anotherKey)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(len(names)).To(Equal(2))
+			Expect(names).To(Equal(testNames))
+		})
+	})
+
+	t.Describe("Delete", func() {
+		It("should succeed to delete a registrar", func() {
+			// Given
+			// When
+			sut.Delete(testKey)
+
+			// Then
+			names, err := sut.GetNames(testKey)
+			Expect(len(names)).To(BeZero())
+			Expect(err).To(Equal(registrar.ErrNoSuchKey))
+		})
+	})
+
+	t.Describe("Get", func() {
+		It("should succeed to get a key for a registrar", func() {
+			// Given
+			// When
+			key, err := sut.Get(testName)
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(key).To(Equal(testKey))
+		})
+
+		It("should fail to get a key for a not existing registrar", func() {
+			// Given
+			// When
+			key, err := sut.Get("notExistingName")
+
+			// Then
+			Expect(key).To(BeEmpty())
+			Expect(err).To(Equal(registrar.ErrNameNotReserved))
+		})
+	})
+
+	t.Describe("GetAll", func() {
+		It("should succeed to get all names", func() {
+			// Given
+			// When
+			names := sut.GetAll()
+
+			// Then
+			Expect(len(names)).To(Equal(1))
+			Expect(len(names[testKey])).To(Equal(1))
+			Expect(names[testKey][0]).To(Equal(testName))
+		})
+	})
+})
