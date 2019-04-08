@@ -82,4 +82,26 @@ function compare_help_and_man() {
 
 compare_help_and_man
 
+if [ $rc -ne 0 ]; then
+    cat <<EOF
+
+**************************
+** INTERPRETING RESULTS **
+**************************************************************************
+*
+* The above results show differences between 'podman --help' and
+* podman man pages.
+*
+* The 'checking:' header indicates the specific command (and possibly
+* subcommand) being tested, e.g. podman --help vs docs/podman.1.md.
+*
+* A '-' indicates a subcommand present in 'podman --help' but not the
+* corresponding man page.
+*
+* A '+' indicates a subcommand present in the man page but not --help.
+*
+**************************************************************************
+EOF
+fi
+
 exit $rc
