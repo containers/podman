@@ -182,13 +182,17 @@ the exit codes follow the `chroot` standard, see below:
 
 ## FILES
 
-**libpod.conf** (`/etc/containers/libpod.conf`)
+**libpod.conf** (`/usr/share/containers/libpod.conf`)
 
-    libpod.conf is the configuration file for all tools using libpod to manage containers.  When Podman runs in rootless mode, then the file `$HOME/.config/containers/libpod.conf` is used.
+    libpod.conf is the configuration file for all tools using libpod to manage containers, when run as root.  Administrators can override the defaults file by creating `/etc/containers/libpod.conf`.  When Podman runs in rootless mode, the file `$HOME/.config/containers/libpod.conf` is created and replaces some fields in the system configuration file.
 
-**mounts.conf** (`/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`)
+    Podman uses builtin defaults if no libpod.conf file is found.
 
-    The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` is also used. Please refer to containers-mounts.conf(5) for further details.
+**mounts.conf** (`/usr/share/containers/mounts.conf`)
+
+    The mounts.conf file specifies volume mount directories that are automatically mounted inside containers when executing the `podman run` or `podman start` commands. Administrators can override the defaults file by creating `/etc/containers/mounts.conf`.
+
+When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` will override the default if it exists. Please refer to containers-mounts.conf(5) for further details.
 
 **policy.json** (`/etc/containers/policy.json`)
 
@@ -198,7 +202,7 @@ the exit codes follow the `chroot` standard, see below:
 
     registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
-    When Podman runs in rootless mode, the file `$HOME/.config/containers/registries.conf` is used.
+    Non root users of Podman can create the `$HOME/.config/containers/registries.conf` file to be used instead of the system defaults.
 
 **storage.conf** (`/etc/containers/storage.conf`)
 
@@ -206,7 +210,7 @@ the exit codes follow the `chroot` standard, see below:
 
     The storage configuration file specifies all of the available container storage options for tools using shared container storage.
 
-    When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is also loaded.
+    When Podman runs in rootless mode, the file `$HOME/.config/containers/storage.conf` is used instead of the system defaults.
 
 ## Rootless mode
 Podman can also be used as non-root user.  When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
