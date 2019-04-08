@@ -262,3 +262,33 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) 
 	}
 	return nil
 }
+
+// CreateContainer creates a container from the cli over varlink
+func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateValues) (string, error) {
+	if !c.Bool("detach") {
+		// TODO need to add attach when that function becomes available
+		return "", errors.New("the remote client only supports detached containers")
+	}
+	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	return iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
+}
+
+// Run creates a container overvarlink and then starts it
+func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
+	// TODO the exit codes for run need to be figured out for remote connections
+	if !c.Bool("detach") {
+		return 0, errors.New("the remote client only supports detached containers")
+	}
+	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
+	if err != nil {
+		return 0, err
+	}
+	fmt.Println(cid)
+	_, err = iopodman.StartContainer().Call(r.Conn, cid)
+	return 0, err
+}
+
+func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
+	return 0, libpod.ErrNotImplemented
+}

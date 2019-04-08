@@ -1,3 +1,5 @@
+// +build varlink
+
 package varlinkapi
 
 import (

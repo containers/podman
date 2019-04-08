@@ -1,4 +1,4 @@
-package main
+package adapter
 
 import (
 	"os"
@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ProxySignals ...
 func ProxySignals(ctr *libpod.Container) {
 	sigBuffer := make(chan os.Signal, 128)
 	signal.CatchAll(sigBuffer)

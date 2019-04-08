@@ -27,6 +27,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func CreateContainer(create: Create) string](#CreateContainer)
 
+[func CreateFromCC(in: []string) string](#CreateFromCC)
+
 [func CreatePod(create: PodCreate) string](#CreatePod)
 
 [func DeleteStoppedContainers() []string](#DeleteStoppedContainers)
@@ -177,15 +179,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type Create](#Create)
 
-[type CreateResourceConfig](#CreateResourceConfig)
-
 [type DiffInfo](#DiffInfo)
 
 [type Event](#Event)
-
-[type IDMap](#IDMap)
-
-[type IDMappingOptions](#IDMappingOptions)
 
 [type Image](#Image)
 
@@ -338,16 +334,12 @@ development of Podman only and generally should not be used.
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method CreateContainer(create: [Create](#Create)) [string](https://godoc.org/builtin#string)</div>
-CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input. The minimum
-input required for CreateContainer is an image name.  If the image name is not found, an [ImageNotFound](#ImageNotFound)
-error will be returned.  Otherwise, the ID of the newly created container will be returned.
-#### Example
-~~~
-$ varlink call unix:/run/podman/io.podman/io.podman.CreateContainer '{"create": {"image": "alpine"}}'
-{
-  "container": "8759dafbc0a4dc3bcfb57eeb72e4331eb73c5cc09ab968e65ce45b9ad5c4b6bb"
-}
-~~~
+CreateContainer creates a new container from an image.  It uses a [Create](#Create) type for input.
+### <a name="CreateFromCC"></a>func CreateFromCC
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method CreateFromCC(in: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
+This call is for the development of Podman only and should not be used.
 ### <a name="CreatePod"></a>func CreatePod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1272,188 +1264,199 @@ block_input [int](https://godoc.org/builtin#int)
 pids [int](https://godoc.org/builtin#int)
 ### <a name="Create"></a>type Create
 
-Create is an input structure for creating containers. It closely resembles the
-CreateConfig structure in libpod/pkg/spec.
+Create is an input structure for creating containers.
 
 args [[]string](#[]string)
 
-cap_add [[]string](#[]string)
+addHost [](#)
 
-cap_drop [[]string](#[]string)
+annotation [](#)
 
-conmon_pidfile [string](https://godoc.org/builtin#string)
+attach [](#)
 
-cgroup_parent [string](https://godoc.org/builtin#string)
+blkioWeight [](#)
 
-command [[]string](#[]string)
+blkioWeightDevice [](#)
 
-detach [bool](https://godoc.org/builtin#bool)
+capAdd [](#)
 
-devices [[]string](#[]string)
+capDrop [](#)
 
-dns_opt [[]string](#[]string)
+cgroupParent [](#)
 
-dns_search [[]string](#[]string)
+cidFile [](#)
 
-dns_servers [[]string](#[]string)
+conmonPidfile [](#)
 
-entrypoint [[]string](#[]string)
+command [](#)
 
-env [map[string]](#map[string])
+cpuPeriod [](#)
 
-exposed_ports [[]string](#[]string)
+cpuQuota [](#)
 
-gidmap [[]string](#[]string)
+cpuRtPeriod [](#)
 
-group_add [[]string](#[]string)
+cpuRtRuntime [](#)
 
-host_add [[]string](#[]string)
+cpuShares [](#)
 
-hostname [string](https://godoc.org/builtin#string)
+cpus [](#)
 
-image [string](https://godoc.org/builtin#string)
+cpuSetCpus [](#)
 
-image_id [string](https://godoc.org/builtin#string)
+cpuSetMems [](#)
 
-init [bool](https://godoc.org/builtin#bool)
+detach [](#)
 
-init_path [string](https://godoc.org/builtin#string)
+detachKeys [](#)
 
-builtin_imgvolumes [[]string](#[]string)
+device [](#)
 
-id_mappings [IDMappingOptions](#IDMappingOptions)
+deviceReadBps [](#)
 
-image_volume_type [string](https://godoc.org/builtin#string)
+deviceReadIops [](#)
 
-interactive [bool](https://godoc.org/builtin#bool)
+deviceWriteBps [](#)
 
-ipc_mode [string](https://godoc.org/builtin#string)
+deviceWriteIops [](#)
 
-labels [map[string]](#map[string])
+dns [](#)
 
-log_driver [string](https://godoc.org/builtin#string)
+dnsOpt [](#)
 
-log_driver_opt [[]string](#[]string)
+dnsSearch [](#)
 
-name [string](https://godoc.org/builtin#string)
+dnsServers [](#)
 
-net_mode [string](https://godoc.org/builtin#string)
+entrypoint [](#)
 
-network [string](https://godoc.org/builtin#string)
+env [](#)
 
-pid_mode [string](https://godoc.org/builtin#string)
+envFile [](#)
 
-pod [string](https://godoc.org/builtin#string)
+expose [](#)
 
-privileged [bool](https://godoc.org/builtin#bool)
+gidmap [](#)
 
-publish [[]string](#[]string)
+groupadd [](#)
 
-publish_all [bool](https://godoc.org/builtin#bool)
+healthcheckCommand [](#)
 
-quiet [bool](https://godoc.org/builtin#bool)
+healthcheckInterval [](#)
 
-readonly_rootfs [bool](https://godoc.org/builtin#bool)
+healthcheckRetries [](#)
 
-resources [CreateResourceConfig](#CreateResourceConfig)
+healthcheckStartPeriod [](#)
 
-rm [bool](https://godoc.org/builtin#bool)
+healthcheckTimeout [](#)
 
-shm_dir [string](https://godoc.org/builtin#string)
+hostname [](#)
 
-stop_signal [int](https://godoc.org/builtin#int)
+imageVolume [](#)
 
-stop_timeout [int](https://godoc.org/builtin#int)
+init [](#)
 
-subuidmap [string](https://godoc.org/builtin#string)
+initPath [](#)
 
-subgidmap [string](https://godoc.org/builtin#string)
+interactive [](#)
 
-subuidname [string](https://godoc.org/builtin#string)
+ip [](#)
 
-subgidname [string](https://godoc.org/builtin#string)
+ipc [](#)
 
-sys_ctl [map[string]](#map[string])
+kernelMemory [](#)
 
-tmpfs [[]string](#[]string)
+label [](#)
 
-tty [bool](https://godoc.org/builtin#bool)
+labelFile [](#)
 
-uidmap [[]string](#[]string)
+logDriver [](#)
 
-userns_mode [string](https://godoc.org/builtin#string)
+logOpt [](#)
 
-user [string](https://godoc.org/builtin#string)
+macAddress [](#)
 
-uts_mode [string](https://godoc.org/builtin#string)
+memory [](#)
 
-volumes [[]string](#[]string)
+memoryReservation [](#)
 
-work_dir [string](https://godoc.org/builtin#string)
+memorySwap [](#)
 
-mount_label [string](https://godoc.org/builtin#string)
+memorySwappiness [](#)
 
-process_label [string](https://godoc.org/builtin#string)
+name [](#)
 
-no_new_privs [bool](https://godoc.org/builtin#bool)
+net [](#)
 
-apparmor_profile [string](https://godoc.org/builtin#string)
+network [](#)
 
-seccomp_profile_path [string](https://godoc.org/builtin#string)
+noHosts [](#)
 
-security_opts [[]string](#[]string)
-### <a name="CreateResourceConfig"></a>type CreateResourceConfig
+oomKillDisable [](#)
 
-CreateResourceConfig is an input structure used to describe host attributes during
-container creation.  It is only valid inside a [Create](#Create) type.
+oomScoreAdj [](#)
 
-blkio_weight [int](https://godoc.org/builtin#int)
+pid [](#)
 
-blkio_weight_device [[]string](#[]string)
+pidsLimit [](#)
 
-cpu_period [int](https://godoc.org/builtin#int)
+pod [](#)
 
-cpu_quota [int](https://godoc.org/builtin#int)
+privileged [](#)
 
-cpu_rt_period [int](https://godoc.org/builtin#int)
+publish [](#)
 
-cpu_rt_runtime [int](https://godoc.org/builtin#int)
+publishAll [](#)
 
-cpu_shares [int](https://godoc.org/builtin#int)
+quiet [](#)
 
-cpus [float](https://golang.org/src/builtin/builtin.go#L58)
+readonly [](#)
 
-cpuset_cpus [string](https://godoc.org/builtin#string)
+restart [](#)
 
-cpuset_mems [string](https://godoc.org/builtin#string)
+rm [](#)
 
-device_read_bps [[]string](#[]string)
+rootfs [](#)
 
-device_read_iops [[]string](#[]string)
+securityOpt [](#)
 
-device_write_bps [[]string](#[]string)
+shmSize [](#)
 
-device_write_iops [[]string](#[]string)
+stopSignal [](#)
 
-disable_oomkiller [bool](https://godoc.org/builtin#bool)
+stopTimeout [](#)
 
-kernel_memory [int](https://godoc.org/builtin#int)
+storageOpt [](#)
 
-memory [int](https://godoc.org/builtin#int)
+subuidname [](#)
 
-memory_reservation [int](https://godoc.org/builtin#int)
+subgidname [](#)
 
-memory_swap [int](https://godoc.org/builtin#int)
+sysctl [](#)
 
-memory_swappiness [int](https://godoc.org/builtin#int)
+systemd [](#)
 
-oom_score_adj [int](https://godoc.org/builtin#int)
+tmpfs [](#)
 
-pids_limit [int](https://godoc.org/builtin#int)
+tty [](#)
 
-shm_size [int](https://godoc.org/builtin#int)
+uidmap [](#)
 
-ulimit [[]string](#[]string)
+ulimit [](#)
+
+user [](#)
+
+userns [](#)
+
+uts [](#)
+
+mount [](#)
+
+volume [](#)
+
+volumesFrom [](#)
+
+workDir [](#)
 ### <a name="DiffInfo"></a>type DiffInfo
 
 
@@ -1476,26 +1479,6 @@ status [string](https://godoc.org/builtin#string)
 time [string](https://godoc.org/builtin#string)
 
 type [string](https://godoc.org/builtin#string)
-### <a name="IDMap"></a>type IDMap
-
-IDMap is used to describe user name spaces during container creation
-
-container_id [int](https://godoc.org/builtin#int)
-
-host_id [int](https://godoc.org/builtin#int)
-
-size [int](https://godoc.org/builtin#int)
-### <a name="IDMappingOptions"></a>type IDMappingOptions
-
-IDMappingOptions is an input structure used to described ids during container creation.
-
-host_uid_mapping [bool](https://godoc.org/builtin#bool)
-
-host_gid_mapping [bool](https://godoc.org/builtin#bool)
-
-uid_map [IDMap](#IDMap)
-
-gid_map [IDMap](#IDMap)
 ### <a name="Image"></a>type Image
 
 

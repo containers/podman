@@ -5,12 +5,17 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/pkg/errors"
@@ -153,4 +158,149 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) 
 		fmt.Println(line.String(options))
 	}
 	return nil
+}
+
+// CreateContainer creates a libpod container
+func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateValues) (string, error) {
+	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	ctr, _, err := shared.CreateContainer(ctx, &results, r.Runtime)
+	return ctr.ID(), err
+}
+
+// Run a libpod container
+func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
+	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+
+	ctr, createConfig, err := shared.CreateContainer(ctx, &results, r.Runtime)
+	if err != nil {
+		return exitCode, err
+	}
+
+	if logrus.GetLevel() == logrus.DebugLevel {
+		cgroupPath, err := ctr.CGroupPath()
+		if err == nil {
+			logrus.Debugf("container %q has CgroupParent %q", ctr.ID(), cgroupPath)
+		}
+	}
+
+	// Handle detached start
+	if createConfig.Detach {
+		// if the container was created as part of a pod, also start its dependencies, if any.
+		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
+			// This means the command did not exist
+			exitCode = 127
+			if strings.Index(err.Error(), "permission denied") > -1 {
+				exitCode = 126
+			}
+			return exitCode, err
+		}
+
+		fmt.Printf("%s\n", ctr.ID())
+		exitCode = 0
+		return exitCode, nil
+	}
+
+	outputStream := os.Stdout
+	errorStream := os.Stderr
+	inputStream := os.Stdin
+
+	// If -i is not set, clear stdin
+	if !c.Bool("interactive") {
+		inputStream = nil
+	}
+
+	// If attach is set, clear stdin/stdout/stderr and only attach requested
+	if c.IsSet("attach") || c.IsSet("a") {
+		outputStream = nil
+		errorStream = nil
+		if !c.Bool("interactive") {
+			inputStream = nil
+		}
+
+		attachTo := c.StringSlice("attach")
+		for _, stream := range attachTo {
+			switch strings.ToLower(stream) {
+			case "stdout":
+				outputStream = os.Stdout
+			case "stderr":
+				errorStream = os.Stderr
+			case "stdin":
+				inputStream = os.Stdin
+			default:
+				return exitCode, errors.Wrapf(libpod.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
+			}
+		}
+	}
+	// if the container was created as part of a pod, also start its dependencies, if any.
+	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
+		// We've manually detached from the container
+		// Do not perform cleanup, or wait for container exit code
+		// Just exit immediately
+		if errors.Cause(err) == libpod.ErrDetach {
+			exitCode = 0
+			return exitCode, nil
+		}
+		// This means the command did not exist
+		exitCode = 127
+		if strings.Index(err.Error(), "permission denied") > -1 {
+			exitCode = 126
+		}
+		if c.IsSet("rm") {
+			if deleteError := r.Runtime.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
+				logrus.Errorf("unable to remove container %s after failing to start and attach to it", ctr.ID())
+			}
+		}
+		return exitCode, err
+	}
+
+	if ecode, err := ctr.Wait(); err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			// The container may have been removed
+			// Go looking for an exit file
+			config, err := r.Runtime.GetConfig()
+			if err != nil {
+				return exitCode, err
+			}
+			ctrExitCode, err := ReadExitFile(config.TmpDir, ctr.ID())
+			if err != nil {
+				logrus.Errorf("Cannot get exit code: %v", err)
+				exitCode = 127
+			} else {
+				exitCode = ctrExitCode
+			}
+		}
+	} else {
+		exitCode = int(ecode)
+	}
+
+	if c.IsSet("rm") {
+		r.Runtime.RemoveContainer(ctx, ctr, false, true)
+	}
+
+	return exitCode, nil
+}
+
+// ReadExitFile reads a container's exit file
+func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
+	exitFile := filepath.Join(runtimeTmp, "exits", fmt.Sprintf("%s-old", ctrID))
+
+	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
+
+	// Check if it exists
+	if _, err := os.Stat(exitFile); err != nil {
+		return 0, errors.Wrapf(err, "error getting exit file for container %s", ctrID)
+	}
+
+	// File exists, read it in and convert to int
+	statusStr, err := ioutil.ReadFile(exitFile)
+	if err != nil {
+		return 0, errors.Wrapf(err, "error reading exit file for container %s", ctrID)
+	}
+
+	exitCode, err := strconv.Atoi(string(statusStr))
+	if err != nil {
+		return 0, errors.Wrapf(err, "error parsing exit code for container %s", ctrID)
+	}
+
+	return exitCode, nil
 }

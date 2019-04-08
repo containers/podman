@@ -53,8 +53,10 @@ var (
 		_containerExistsCommand,
 		_contInspectSubCommand,
 		_diffCommand,
+		_createCommand,
 		_listSubCommand,
 		_logsCommand,
+		_runCommand,
 	}
 )
 

@@ -40,6 +40,7 @@ var (
 var mainCommands = []*cobra.Command{
 	_buildCommand,
 	_diffCommand,
+	_createCommand,
 	_eventsCommand,
 	_exportCommand,
 	_historyCommand,
@@ -54,6 +55,7 @@ var mainCommands = []*cobra.Command{
 	_pullCommand,
 	_pushCommand,
 	&_rmiCommand,
+	_runCommand,
 	_saveCommand,
 	_stopCommand,
 	_tagCommand,
