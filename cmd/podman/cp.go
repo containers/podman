@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -207,6 +208,11 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	if !srcfi.IsDir() && !strings.HasSuffix(dest, string(os.PathSeparator)) {
 		destdir = filepath.Dir(destPath)
 	}
+	_, err = os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	destDirIsExist := (err == nil)
 	if err = os.MkdirAll(destdir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", destdir)
 	}
@@ -219,6 +225,9 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	if srcfi.IsDir() {
 
 		logrus.Debugf("copying %q to %q", srcPath+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
+		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+		}
 		if err = copyWithTar(srcPath, destPath); err != nil {
 			return errors.Wrapf(err, "error copying %q to %q", srcPath, dest)
 		}

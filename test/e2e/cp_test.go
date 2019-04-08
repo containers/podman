@@ -112,4 +112,37 @@ var _ = Describe("Podman cp", func() {
 		}
 		Expect(string(output)).To(Equal("copy from host to container directory"))
 	})
+
+	It("podman cp dir to dir", func() {
+		path, err := os.Getwd()
+		if err != nil {
+			os.Exit(1)
+		}
+		testDirPath := filepath.Join(path, "TestDir")
+		err = os.Mkdir(testDirPath, 0777)
+		if err != nil {
+			os.Exit(1)
+		}
+
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "/foodir"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		name := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":/foodir"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "-a", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":/foodir"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"start", "-a", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal("TestDir"))
+	})
 })
