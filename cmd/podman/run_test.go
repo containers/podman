@@ -18,6 +18,7 @@ import (
 
 var (
 	sysInfo = sysinfo.New(true)
+	cmd     = []string{"podman", "test", "alpine"}
 	CLI     *cliconfig.PodmanCommand
 )
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	gosignal "os/signal"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
@@ -156,6 +157,47 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	return bytes, err
+}
+
+// For pod commands that have a latest and all flag, getPodsFromContext gets
+// pods the user specifies. If there's an error before getting pods, the pods slice
+// will be empty and error will be not nil. If an error occured after, the pod slice
+// will hold all of the successful pods, and error will hold the last error.
+// The remaining errors will be logged. On success, pods will hold all pods and
+// error will be nil.
+func getPodsFromContext(c *cliconfig.PodmanCommand, r *libpod.Runtime) ([]*libpod.Pod, error) {
+	args := c.InputArgs
+	var pods []*libpod.Pod
+	var lastError error
+	var err error
+
+	if c.Bool("all") {
+		pods, err = r.GetAllPods()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get running pods")
+		}
+	}
+
+	if c.Bool("latest") {
+		pod, err := r.GetLatestPod()
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to get latest pod")
+		}
+		pods = append(pods, pod)
+	}
+
+	for _, i := range args {
+		pod, err := r.LookupPod(i)
+		if err != nil {
+			if lastError != nil {
+				logrus.Errorf("%q", lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find pod %s", i)
+			continue
+		}
+		pods = append(pods, pod)
+	}
+	return pods, lastError
 }
 
 //printParallelOutput takes the map of parallel worker results and outputs them

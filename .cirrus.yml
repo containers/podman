@@ -121,6 +121,7 @@ gating_task:
 
     gate_script:
         # N/B: entrypoint.sh resets $GOSRC (same as make clean)
+        - '/usr/local/bin/entrypoint.sh install.tools'
         - '/usr/local/bin/entrypoint.sh validate'
         - '/usr/local/bin/entrypoint.sh lint'
         - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/test/test_dot_cirrus_yaml.py'
