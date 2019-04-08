@@ -123,13 +123,14 @@ sudo make install PREFIX=/usr
 This sample container will run a very basic httpd server that serves only its index
 page.
 ```console
-podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
+podman run -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
                   -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
                   -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
                   registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
 ```
 Because the container is being run in detached mode, represented by the *-d* in the podman run command, podman
-will print the container ID after it has run.
+will print the container ID after it has run. Note that we use port forwarding to be able to
+access the HTTP server. For successful running at least slirp4netns v0.3.0 is needed.
 
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
@@ -140,10 +141,11 @@ podman ps
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
 ### Inspecting a running container
 You can "inspect" a running container for metadata and details about itself.  We can even use
-the inspect subcommand to see what IP address was assigned to the container.
+the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
 ```console
-$ sudo podman inspect -l | grep IPAddress\":
-        "IPAddress": "10.88.6.140",
+$ podman inspect -l | grep IPAddress\":
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
 ```
 
 Note: The -l is a convenience argument for **latest container**.  You can also use the container's ID instead
