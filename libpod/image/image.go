@@ -361,6 +361,7 @@ func (i *Image) Remove(force bool) error {
 	if _, err := i.imageruntime.store.DeleteImage(i.ID(), true); err != nil {
 		return err
 	}
+	i.newImageEvent(events.Remove)
 	for parent != nil {
 		nextParent, err := parent.GetParent()
 		if err != nil {
@@ -383,7 +384,6 @@ func (i *Image) Remove(force bool) error {
 		}
 		parent = nextParent
 	}
-	defer i.newImageEvent(events.Remove)
 	return nil
 }
 
