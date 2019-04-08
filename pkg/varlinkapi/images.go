@@ -628,7 +628,6 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 	output := bytes.NewBuffer([]byte{})
 	c := make(chan error)
 	go func() {
-		//err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", signaturePolicy, output, compress, so, &dockerRegistryOptions, nil)
 		if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
 			srcRef, err := alltransports.ParseImageName(name)
 			if err != nil {
@@ -637,14 +636,16 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, certDir, c
 			newImage, err := i.Runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, signaturePolicy, output)
 			if err != nil {
 				c <- errors.Wrapf(err, "error pulling image from %q", name)
+			} else {
+				imageID = newImage[0].ID()
 			}
-			imageID = newImage[0].ID()
 		} else {
 			newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, signaturePolicy, "", output, &dockerRegistryOptions, so, false, nil)
 			if err != nil {
 				c <- errors.Wrapf(err, "unable to pull %s", name)
+			} else {
+				imageID = newImage.ID()
 			}
-			imageID = newImage.ID()
 		}
 		c <- nil
 		close(c)
