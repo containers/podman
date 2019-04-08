@@ -139,19 +139,21 @@ func (p *PodmanTestIntegration) CleanupVolume() {
 }
 
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
-	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for rootless podman")
-	}
 	pti := PodmanTestCreateUtil(tempDir, true)
 	pti.StartVarlink()
 	return pti
 }
 
 func (p *PodmanTestIntegration) StartVarlink() {
-	if _, err := os.Stat("/path/to/whatever"); os.IsNotExist(err) {
+	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
-	args := []string{"varlink", "--timeout", "0", "unix:/run/podman/io.podman"}
+	varlinkEndpoint := "unix:/run/podman/io.podman"
+	if addr := os.Getenv("PODMAN_VARLINK_ADDRESS"); addr != "" {
+		varlinkEndpoint = addr
+	}
+
+	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
