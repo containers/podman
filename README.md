@@ -29,6 +29,8 @@ This project tests all builds against each supported version of Fedora, the late
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
 
+## [Shortcomings of Rootless Podman](https://github.com/containers/libpod/blob/master/docs/rootless.md)
+
 ## Out of scope
 
 * Specializing in signing and pushing images to various storage backends.
