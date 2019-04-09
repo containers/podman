@@ -47,6 +47,55 @@ func (i *LibpodAPI) ListContainers(call iopodman.VarlinkCall) error {
 	return call.ReplyListContainers(listContainers)
 }
 
+func (i *LibpodAPI) Ps(call iopodman.VarlinkCall, opts iopodman.PsOpts) error {
+	var (
+		containers []iopodman.PsContainer
+	)
+	maxWorkers := shared.Parallelize("ps")
+	psOpts := makePsOpts(opts)
+	filters := []string{}
+	if opts.Filters != nil {
+		filters = *opts.Filters
+	}
+	psContainerOutputs, err := shared.GetPsContainerOutput(i.Runtime, psOpts, filters, maxWorkers)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	for _, ctr := range psContainerOutputs {
+		container := iopodman.PsContainer{
+			Id:         ctr.ID,
+			Image:      ctr.Image,
+			Command:    ctr.Command,
+			Created:    ctr.Created,
+			Ports:      ctr.Ports,
+			Names:      ctr.Names,
+			IsInfra:    ctr.IsInfra,
+			Status:     ctr.Status,
+			State:      ctr.State.String(),
+			PidNum:     int64(ctr.Pid),
+			RootFsSize: ctr.Size.RootFsSize,
+			RwSize:     ctr.Size.RwSize,
+			Pod:        ctr.Pod,
+			CreatedAt:  ctr.CreatedAt.Format(time.RFC3339Nano),
+			ExitedAt:   ctr.ExitedAt.Format(time.RFC3339Nano),
+			StartedAt:  ctr.StartedAt.Format(time.RFC3339Nano),
+			Labels:     ctr.Labels,
+			NsPid:      ctr.PID,
+			Cgroup:     ctr.Cgroup,
+			Ipc:        ctr.Cgroup,
+			Mnt:        ctr.MNT,
+			Net:        ctr.NET,
+			PidNs:      ctr.PIDNS,
+			User:       ctr.User,
+			Uts:        ctr.UTS,
+			Mounts:     ctr.Mounts,
+		}
+		containers = append(containers, container)
+	}
+	return call.ReplyPs(containers)
+}
+
 // GetContainer ...
 func (i *LibpodAPI) GetContainer(call iopodman.VarlinkCall, id string) error {
 	ctr, err := i.Runtime.LookupContainer(id)

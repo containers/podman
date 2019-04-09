@@ -162,3 +162,36 @@ func stringPullPolicyToType(s string) buildah.PullPolicy {
 	}
 	return buildah.PullIfMissing
 }
+
+func derefBool(inBool *bool) bool {
+	if inBool == nil {
+		return false
+	}
+	return *inBool
+}
+
+func derefString(in *string) string {
+	if in == nil {
+		return ""
+	}
+	return *in
+}
+
+func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
+	last := 0
+	if inOpts.Last != nil {
+		lastT := *inOpts.Last
+		last = int(lastT)
+	}
+	return shared.PsOptions{
+		All:       inOpts.All,
+		Last:      last,
+		Latest:    derefBool(inOpts.Latest),
+		NoTrunc:   derefBool(inOpts.NoTrunc),
+		Pod:       derefBool(inOpts.Pod),
+		Size:      true,
+		Sort:      derefString(inOpts.Sort),
+		Namespace: true,
+		Sync:      derefBool(inOpts.Sync),
+	}
+}

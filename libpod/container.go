@@ -401,6 +401,29 @@ func (t ContainerStatus) String() string {
 	return "bad state"
 }
 
+// StringToContainerStatus converts a string representation of a containers
+// status into an actual container status type
+func StringToContainerStatus(status string) (ContainerStatus, error) {
+	switch status {
+	case ContainerStateUnknown.String():
+		return ContainerStateUnknown, nil
+	case ContainerStateConfigured.String():
+		return ContainerStateConfigured, nil
+	case ContainerStateCreated.String():
+		return ContainerStateCreated, nil
+	case ContainerStateRunning.String():
+		return ContainerStateRunning, nil
+	case ContainerStateStopped.String():
+		return ContainerStateStopped, nil
+	case ContainerStatePaused.String():
+		return ContainerStatePaused, nil
+	case ContainerStateExited.String():
+		return ContainerStateExited, nil
+	default:
+		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
+	}
+}
+
 // Config accessors
 // Unlocked
 

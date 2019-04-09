@@ -133,6 +133,47 @@ type ContainerStats (
     pids: int
 )
 
+type PsOpts (
+    all: bool,
+    filters: ?[]string,
+    last: ?int,
+    latest: ?bool,
+    noTrunc: ?bool,
+	pod: ?bool,
+	quiet: ?bool,
+	sort: ?string,
+	sync: ?bool
+)
+
+type PsContainer (
+    id: string,
+    image: string,
+    command: string,
+    created: string,
+    ports: string,
+    names: string,
+    isInfra: bool,
+    status: string,
+    state: string,
+    pidNum: int,
+    rootFsSize: int,
+    rwSize: int,
+    pod: string,
+    createdAt: string,
+    exitedAt: string,
+    startedAt: string,
+    labels: [string]string,
+    nsPid: string,
+    cgroup: string,
+    ipc: string,
+    mnt: string,
+    net: string,
+    pidNs: string,
+    user: string,
+    uts: string,
+    mounts: string
+)
+
 # ContainerMount describes the struct for mounts in a container
 type ContainerMount (
     destination: string,
@@ -473,6 +514,8 @@ method GetInfo() -> (info: PodmanInfo)
 # ListContainers returns information about all containers.
 # See also [GetContainer](#GetContainer).
 method ListContainers() -> (containers: []Container)
+
+method Ps(opts: PsOpts) -> (containers: []PsContainer)
 
 # GetContainer returns information about a single container.  If a container
 # with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
