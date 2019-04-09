@@ -43,6 +43,17 @@ var _ = Describe("Podman images", func() {
 		Expect(session.LineInOuputStartsWith("docker.io/library/busybox")).To(BeTrue())
 	})
 
+	It("podman images with no images prints header", func() {
+		rmi := podmanTest.Podman([]string{"rmi", "-a"})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"images"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
+	})
+
 	It("podman image List", func() {
 		session := podmanTest.Podman([]string{"image", "list"})
 		session.WaitWithDefaultTimeout()

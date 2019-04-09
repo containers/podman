@@ -82,7 +82,7 @@ var _ = Describe("Podman rm", func() {
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-a"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
@@ -95,7 +95,7 @@ var _ = Describe("Podman rm", func() {
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-a"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))

@@ -270,7 +270,7 @@ RUN find $LOCAL
 		fmt.Println(session.OutputToString())
 		Expect(session.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "--all"})
+		images := podmanTest.Podman([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		Expect(images.ExitCode()).To(Equal(0))
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
