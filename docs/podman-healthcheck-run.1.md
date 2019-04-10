@@ -29,7 +29,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-$ podman healtcheck run mywebapp
+$ podman healthcheck run mywebapp
 ```
 
 ## SEE ALSO
