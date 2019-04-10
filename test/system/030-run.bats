@@ -3,8 +3,6 @@
 load helpers
 
 @test "podman run - basic tests" {
-    skip_if_remote
-
     rand=$(random_string 30)
     tests="
 true              |   0 |

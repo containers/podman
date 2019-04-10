@@ -6,8 +6,6 @@
 load helpers
 
 @test "podman logs - basic test" {
-    skip_if_remote
-
     rand_string=$(random_string 40)
 
     run_podman create $IMAGE echo $rand_string
