@@ -2,19 +2,19 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/spf13/cobra"
 	"io"
 	"os"
 	"strings"
 
 	"github.com/containers/buildah"
 	"github.com/containers/image/manifest"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -47,7 +47,7 @@ func init() {
 	flags.StringVarP(&commitCommand.Author, "author", "a", "", "Set the author for the image committed")
 	flags.BoolVarP(&commitCommand.Pause, "pause", "p", false, "Pause container during commit")
 	flags.BoolVarP(&commitCommand.Quiet, "quiet", "q", false, "Suppress output")
-
+	flags.BoolVar(&commitCommand.IncludeVolumes, "include-volumes", false, "Include container volumes as image volumes")
 }
 
 func commitCmd(c *cliconfig.CommitValues) error {
@@ -109,11 +109,12 @@ func commitCmd(c *cliconfig.CommitValues) error {
 		PreferredManifestType: mimeType,
 	}
 	options := libpod.ContainerCommitOptions{
-		CommitOptions: coptions,
-		Pause:         c.Pause,
-		Message:       c.Message,
-		Changes:       c.Change,
-		Author:        c.Author,
+		CommitOptions:  coptions,
+		Pause:          c.Pause,
+		IncludeVolumes: c.IncludeVolumes,
+		Message:        c.Message,
+		Changes:        c.Change,
+		Author:         c.Author,
 	}
 	newImage, err := ctr.Commit(getContext(), reference, options)
 	if err != nil {

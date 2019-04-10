@@ -131,12 +131,29 @@ var _ = Describe("Podman commit", func() {
 		Expect(check.ExitCode()).To(Equal(0))
 	})
 
-	It("podman commit with volume mounts", func() {
+	It("podman commit with volumes mounts and no include-volumes", func() {
 		s := podmanTest.Podman([]string{"run", "--name", "test1", "-v", "/tmp:/foo", "alpine", "date"})
 		s.WaitWithDefaultTimeout()
 		Expect(s.ExitCode()).To(Equal(0))
 
 		c := podmanTest.Podman([]string{"commit", "test1", "newimage"})
+		c.WaitWithDefaultTimeout()
+		Expect(c.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "newimage"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		image := inspect.InspectImageJSON()
+		_, ok := image[0].Config.Volumes["/foo"]
+		Expect(ok).To(BeFalse())
+	})
+
+	It("podman commit with volume mounts and --include-volumes", func() {
+		s := podmanTest.Podman([]string{"run", "--name", "test1", "-v", "/tmp:/foo", "alpine", "date"})
+		s.WaitWithDefaultTimeout()
+		Expect(s.ExitCode()).To(Equal(0))
+
+		c := podmanTest.Podman([]string{"commit", "--include-volumes", "test1", "newimage"})
 		c.WaitWithDefaultTimeout()
 		Expect(c.ExitCode()).To(Equal(0))
 
