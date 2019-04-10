@@ -3,6 +3,8 @@
 load helpers
 
 @test "podman info - basic test" {
+    skip_if_remote
+
     run_podman info
 
     expected_keys="
@@ -26,6 +28,8 @@ RunRoot:
 }
 
 @test "podman info - json" {
+    skip_if_remote
+
     run_podman info --format=json
 
     expr_nvr="[a-z0-9-]\\\+-[a-z0-9.]\\\+-[a-z0-9]\\\+\."

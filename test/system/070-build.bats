@@ -6,6 +6,8 @@
 load helpers
 
 @test "podman build - basic test" {
+    skip_if_remote
+
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
 

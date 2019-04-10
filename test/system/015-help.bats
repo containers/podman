@@ -87,6 +87,8 @@ function check_help() {
 
 
 @test "podman help - basic tests" {
+    skip_if_remote
+
     # Called with no args -- start with 'podman --help'. check_help() will
     # recurse for any subcommands.
     check_help
