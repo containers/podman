@@ -1,11 +1,7 @@
 package main
 
 import (
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -39,49 +35,21 @@ func init() {
 	flags.BoolVar(&attachCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVarP(&attachCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	markFlagHiddenForRemoteClient("latest", flags)
+	// TODO allow for passing of a new deatch keys
+	markFlagHiddenForRemoteClient("detach-keys", flags)
 }
 
 func attachCmd(c *cliconfig.AttachValues) error {
-	args := c.InputArgs
-	var ctr *libpod.Container
-
 	if len(c.InputArgs) > 1 || (len(c.InputArgs) == 0 && !c.Latest) {
 		return errors.Errorf("attach requires the name or id of one running container or the latest flag")
 	}
-
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	if remoteclient && len(c.InputArgs) != 1 {
+		return errors.Errorf("attach requires the name or id of one running container")
+	}
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
+		return errors.Wrapf(err, "error creating runtime")
 	}
 	defer runtime.Shutdown(false)
-
-	if c.Latest {
-		ctr, err = runtime.GetLatestContainer()
-	} else {
-		ctr, err = runtime.LookupContainer(args[0])
-	}
-
-	if err != nil {
-		return errors.Wrapf(err, "unable to exec into %s", args[0])
-	}
-
-	conState, err := ctr.State()
-	if err != nil {
-		return errors.Wrapf(err, "unable to determine state of %s", args[0])
-	}
-	if conState != libpod.ContainerStateRunning {
-		return errors.Errorf("you can only attach to running containers")
-	}
-
-	inputStream := os.Stdin
-	if c.NoStdin {
-		inputStream = nil
-	}
-
-	// If the container is in a pod, also set to recursively start dependencies
-	if err := adapter.StartAttachCtr(getContext(), ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != libpod.ErrDetach {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
-	}
-
-	return nil
+	return runtime.Attach(getContext(), c)
 }

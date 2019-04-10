@@ -3,6 +3,10 @@ Podman Service Interface and API description.  The master version of this docume
 in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
 ## Index
 
+[func Attach(name: string) ](#Attach)
+
+[func AttachControl(name: string) ](#AttachControl)
+
 [func BuildImage(build: BuildInfo) MoreResponse](#BuildImage)
 
 [func BuildImageHierarchyMap(name: string) string](#BuildImageHierarchyMap)
@@ -135,6 +139,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
+[func Spec(name: string) string](#Spec)
+
 [func StartContainer(name: string) string](#StartContainer)
 
 [func StartPod(name: string) string](#StartPod)
@@ -252,6 +258,16 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [error WantsMoreRequired](#WantsMoreRequired)
 
 ## Methods
+### <a name="Attach"></a>func Attach
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Attach(name: [string](https://godoc.org/builtin#string)) </div>
+
+### <a name="AttachControl"></a>func AttachControl
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method AttachControl(name: [string](https://godoc.org/builtin#string)) </div>
+
 ### <a name="BuildImage"></a>func BuildImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -945,6 +961,11 @@ search results per registry.
 
 method SendFile(type: [string](https://godoc.org/builtin#string), length: [int](https://godoc.org/builtin#int)) [string](https://godoc.org/builtin#string)</div>
 Sendfile allows a remote client to send a file to the host
+### <a name="Spec"></a>func Spec
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Spec(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+Spec returns the oci spec for a container.  This call is for development of Podman only and generally should not be used.
 ### <a name="StartContainer"></a>func StartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

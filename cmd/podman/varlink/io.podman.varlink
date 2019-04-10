@@ -658,8 +658,9 @@ method PauseContainer(name: string) -> (container: string)
 # See also [PauseContainer](#PauseContainer).
 method UnpauseContainer(name: string) -> (container: string)
 
-# This method has not be implemented yet.
-# method AttachToContainer() -> (notimplemented: NotImplemented)
+method Attach(name: string) -> ()
+
+method AttachControl(name: string) -> ()
 
 # GetAttachSockets takes the name or ID of an existing container.  It returns file paths for two sockets needed
 # to properly communicate with a container.  The first is the actual I/O socket that the container uses.  The
@@ -1153,6 +1154,9 @@ method PodStateData(name: string) -> (config: string)
 
 # This call is for the development of Podman only and should not be used.
 method CreateFromCC(in: []string) -> (id: string)
+
+# Spec returns the oci spec for a container.  This call is for development of Podman only and generally should not be used.
+method Spec(name: string) -> (config: string)
 
 # Sendfile allows a remote client to send a file to the host
 method SendFile(type: string, length: int) -> (file_handle: string)
