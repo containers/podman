@@ -339,3 +339,75 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
 	return 0, libpod.ErrNotImplemented
 }
+
+// Ps ...
+func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]shared.PsContainerOutput, error) {
+	var psContainers []shared.PsContainerOutput
+	last := int64(c.Last)
+	PsOpts := iopodman.PsOpts{
+		All:     c.All,
+		Filters: &c.Filter,
+		Last:    &last,
+		Latest:  &c.Latest,
+		NoTrunc: &c.NoTrunct,
+		Pod:     &c.Pod,
+		Quiet:   &c.Quiet,
+		Sort:    &c.Sort,
+		Sync:    &c.Sync,
+	}
+	containers, err := iopodman.Ps().Call(r.Conn, PsOpts)
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range containers {
+		createdAt, err := time.Parse(time.RFC3339Nano, ctr.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		exitedAt, err := time.Parse(time.RFC3339Nano, ctr.ExitedAt)
+		if err != nil {
+			return nil, err
+		}
+		startedAt, err := time.Parse(time.RFC3339Nano, ctr.StartedAt)
+		if err != nil {
+			return nil, err
+		}
+		containerSize := shared.ContainerSize{
+			RootFsSize: ctr.RootFsSize,
+			RwSize:     ctr.RwSize,
+		}
+		state, err := libpod.StringToContainerStatus(ctr.State)
+		if err != nil {
+			return nil, err
+		}
+		psc := shared.PsContainerOutput{
+			ID:        ctr.Id,
+			Image:     ctr.Image,
+			Command:   ctr.Command,
+			Created:   ctr.Created,
+			Ports:     ctr.Ports,
+			Names:     ctr.Names,
+			IsInfra:   ctr.IsInfra,
+			Status:    ctr.Status,
+			State:     state,
+			Pid:       int(ctr.PidNum),
+			Size:      &containerSize,
+			Pod:       ctr.Pod,
+			CreatedAt: createdAt,
+			ExitedAt:  exitedAt,
+			StartedAt: startedAt,
+			Labels:    ctr.Labels,
+			PID:       ctr.NsPid,
+			Cgroup:    ctr.Cgroup,
+			IPC:       ctr.Ipc,
+			MNT:       ctr.Mnt,
+			NET:       ctr.Net,
+			PIDNS:     ctr.PidNs,
+			User:      ctr.User,
+			UTS:       ctr.Uts,
+			Mounts:    ctr.Mounts,
+		}
+		psContainers = append(psContainers, psc)
+	}
+	return psContainers, nil
+}

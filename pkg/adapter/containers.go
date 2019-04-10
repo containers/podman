@@ -397,3 +397,13 @@ func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
 
 	return exitCode, nil
 }
+
+// Ps ...
+func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]shared.PsContainerOutput, error) {
+	maxWorkers := shared.Parallelize("ps")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+	return shared.GetPsContainerOutput(r.Runtime, opts, c.Filter, maxWorkers)
+}

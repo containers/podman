@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -14,15 +13,12 @@ import (
 	tm "github.com/buger/goterm"
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/fields"
 )
@@ -220,7 +216,7 @@ func psCmd(c *cliconfig.PsValues) error {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -273,128 +269,6 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
-}
-
-func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(container *libpod.Container) bool, error) {
-	switch filter {
-	case "id":
-		return func(c *libpod.Container) bool {
-			return strings.Contains(c.ID(), filterValue)
-		}, nil
-	case "label":
-		var filterArray []string = strings.SplitN(filterValue, "=", 2)
-		var filterKey string = filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
-		return func(c *libpod.Container) bool {
-			for labelKey, labelValue := range c.Labels() {
-				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
-					return true
-				}
-			}
-			return false
-		}, nil
-	case "name":
-		return func(c *libpod.Container) bool {
-			return strings.Contains(c.Name(), filterValue)
-		}, nil
-	case "exited":
-		exitCode, err := strconv.ParseInt(filterValue, 10, 32)
-		if err != nil {
-			return nil, errors.Wrapf(err, "exited code out of range %q", filterValue)
-		}
-		return func(c *libpod.Container) bool {
-			ec, exited, err := c.ExitCode()
-			if ec == int32(exitCode) && err == nil && exited == true {
-				return true
-			}
-			return false
-		}, nil
-	case "status":
-		if !util.StringInSlice(filterValue, []string{"created", "running", "paused", "stopped", "exited", "unknown"}) {
-			return nil, errors.Errorf("%s is not a valid status", filterValue)
-		}
-		return func(c *libpod.Container) bool {
-			status, err := c.State()
-			if err != nil {
-				return false
-			}
-			if filterValue == "stopped" {
-				filterValue = "exited"
-			}
-			state := status.String()
-			if status == libpod.ContainerStateConfigured {
-				state = "created"
-			} else if status == libpod.ContainerStateStopped {
-				state = "exited"
-			}
-			return state == filterValue
-		}, nil
-	case "ancestor":
-		// This needs to refine to match docker
-		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
-		return func(c *libpod.Container) bool {
-			containerConfig := c.Config()
-			if strings.Contains(containerConfig.RootfsImageID, filterValue) || strings.Contains(containerConfig.RootfsImageName, filterValue) {
-				return true
-			}
-			return false
-		}, nil
-	case "before":
-		ctr, err := runtime.LookupContainer(filterValue)
-		if err != nil {
-			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
-		}
-		containerConfig := ctr.Config()
-		createTime := containerConfig.CreatedTime
-		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.After(cc.CreatedTime)
-		}, nil
-	case "since":
-		ctr, err := runtime.LookupContainer(filterValue)
-		if err != nil {
-			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
-		}
-		containerConfig := ctr.Config()
-		createTime := containerConfig.CreatedTime
-		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.Before(cc.CreatedTime)
-		}, nil
-	case "volume":
-		//- volume=(<volume-name>|<mount-point-destination>)
-		return func(c *libpod.Container) bool {
-			containerConfig := c.Config()
-			var dest string
-			arr := strings.Split(filterValue, ":")
-			source := arr[0]
-			if len(arr) == 2 {
-				dest = arr[1]
-			}
-			for _, mount := range containerConfig.Spec.Mounts {
-				if dest != "" && (mount.Source == source && mount.Destination == dest) {
-					return true
-				}
-				if dest == "" && mount.Source == source {
-					return true
-				}
-			}
-			return false
-		}, nil
-	case "health":
-		return func(c *libpod.Container) bool {
-			hcStatus, err := c.HealthCheckStatus()
-			if err != nil {
-				return false
-			}
-			return hcStatus == filterValue
-		}, nil
-	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
 
 // generate the accurate header based on template given
@@ -546,11 +420,9 @@ func dumpJSON(containers []shared.PsContainerOutput) error {
 	return nil
 }
 
-func psDisplay(c *cliconfig.PsValues, runtime *libpod.Runtime) error {
+func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 	var (
-		filterFuncs      []libpod.ContainerFilter
-		outputContainers []*libpod.Container
-		err              error
+		err error
 	)
 	opts := shared.PsOptions{
 		All:       c.All,
@@ -566,51 +438,8 @@ func psDisplay(c *cliconfig.PsValues, runtime *libpod.Runtime) error {
 		Sync:      c.Sync,
 	}
 
-	maxWorkers := shared.Parallelize("ps")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
-	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	filters := c.Filter
-	if len(filters) > 0 {
-		for _, f := range filters {
-			filterSplit := strings.SplitN(f, "=", 2)
-			if len(filterSplit) < 2 {
-				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-			}
-			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], runtime)
-			if err != nil {
-				return errors.Wrapf(err, "invalid filter")
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
-		}
-	}
-	if !opts.Latest {
-		// Get all containers
-		containers, err := runtime.GetContainers(filterFuncs...)
-		if err != nil {
-			return err
-		}
-
-		// We only want the last few containers
-		if opts.Last > 0 && opts.Last <= len(containers) {
-			return errors.Errorf("--last not yet supported")
-		} else {
-			outputContainers = containers
-		}
-	} else {
-		// Get just the latest container
-		// Ignore filters
-		latestCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return err
-		}
-
-		outputContainers = []*libpod.Container{latestCtr}
-	}
-
-	pss := shared.PBatch(outputContainers, maxWorkers, opts)
+	pss, err := runtime.Ps(c, opts)
+	// Here and down
 	if opts.Sort != "" {
 		pss, err = sortPsOutput(opts.Sort, pss)
 		if err != nil {
