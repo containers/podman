@@ -363,7 +363,7 @@ type ContainerConfig struct {
 	// Systemd tells libpod to setup the container in systemd mode
 	Systemd bool `json:"systemd"`
 
-	// HealtchCheckConfig has the health check command and related timings
+	// HealthCheckConfig has the health check command and related timings
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 }
 

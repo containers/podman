@@ -2388,7 +2388,7 @@ _podman_logout() {
      _complete_ "$options_with_args" "$boolean_options"
 }
 
-_podman_healtcheck_run() {
+_podman_healthcheck_run() {
     local options_with_args=""
 
     local boolean_options="

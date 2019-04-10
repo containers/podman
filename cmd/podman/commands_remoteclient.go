@@ -49,6 +49,6 @@ func getSystemSubCommands() []*cobra.Command {
 }
 
 // Commands that the remoteclient implements
-func getHealtcheckSubCommands() []*cobra.Command {
+func getHealthcheckSubCommands() []*cobra.Command {
 	return []*cobra.Command{}
 }

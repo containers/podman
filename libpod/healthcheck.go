@@ -41,7 +41,7 @@ const (
 	HealthCheckDefined HealthCheckStatus = iota
 
 	// MaxHealthCheckNumberLogs is the maximum number of attempts we keep
-	// in the healtcheck history file
+	// in the healthcheck history file
 	MaxHealthCheckNumberLogs int = 5
 	// MaxHealthCheckLogLength in characters
 	MaxHealthCheckLogLength = 500

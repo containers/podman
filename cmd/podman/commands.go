@@ -102,7 +102,7 @@ func getSystemSubCommands() []*cobra.Command {
 }
 
 // Commands that the local client implements
-func getHealtcheckSubCommands() []*cobra.Command {
+func getHealthcheckSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_healthcheckrunCommand,
 	}

@@ -20,7 +20,7 @@ var healthcheckCommands []*cobra.Command
 
 func init() {
 	healthcheckCommand.AddCommand(healthcheckCommands...)
-	healthcheckCommand.AddCommand(getHealtcheckSubCommands()...)
+	healthcheckCommand.AddCommand(getHealthcheckSubCommands()...)
 	healthcheckCommand.SetUsageTemplate(UsageTemplate())
 	rootCmd.AddCommand(healthcheckCommand.Command)
 }
