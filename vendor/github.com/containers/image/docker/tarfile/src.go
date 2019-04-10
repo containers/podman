@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
@@ -21,8 +22,10 @@ import (
 // Source is a partial implementation of types.ImageSource for reading from tarPath.
 type Source struct {
 	tarPath              string
-	removeTarPathOnClose bool // Remove temp file on close if true
+	removeTarPathOnClose bool      // Remove temp file on close if true
+	cacheDataLock        sync.Once // Atomic way to ensure that ensureCachedDataIsPresent is only invoked once
 	// The following data is only available after ensureCachedDataIsPresent() succeeds
+	cacheDataResult   error         // The return value of ensureCachedDataIsPresent, since it should be as safe to cache as the side effects
 	tarManifest       *ManifestItem // nil if not available yet.
 	configBytes       []byte
 	configDigest      digest.Digest
@@ -199,43 +202,46 @@ func (s *Source) readTarComponent(path string) ([]byte, error) {
 
 // ensureCachedDataIsPresent loads data necessary for any of the public accessors.
 func (s *Source) ensureCachedDataIsPresent() error {
-	if s.tarManifest != nil {
-		return nil
-	}
+	s.cacheDataLock.Do(func() {
+		// Read and parse manifest.json
+		tarManifest, err := s.loadTarManifest()
+		if err != nil {
+			s.cacheDataResult = err
+			return
+		}
 
-	// Read and parse manifest.json
-	tarManifest, err := s.loadTarManifest()
-	if err != nil {
-		return err
-	}
+		// Check to make sure length is 1
+		if len(tarManifest) != 1 {
+			s.cacheDataResult = errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(tarManifest))
+			return
+		}
 
-	// Check to make sure length is 1
-	if len(tarManifest) != 1 {
-		return errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(tarManifest))
-	}
+		// Read and parse config.
+		configBytes, err := s.readTarComponent(tarManifest[0].Config)
+		if err != nil {
+			s.cacheDataResult = err
+			return
+		}
+		var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
+		if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
+			s.cacheDataResult = errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
+			return
+		}
 
-	// Read and parse config.
-	configBytes, err := s.readTarComponent(tarManifest[0].Config)
-	if err != nil {
-		return err
-	}
-	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
-	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
-	}
+		knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
+		if err != nil {
+			s.cacheDataResult = err
+			return
+		}
 
-	knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
-	if err != nil {
-		return err
-	}
-
-	// Success; commit.
-	s.tarManifest = &tarManifest[0]
-	s.configBytes = configBytes
-	s.configDigest = digest.FromBytes(configBytes)
-	s.orderedDiffIDList = parsedConfig.RootFS.DiffIDs
-	s.knownLayers = knownLayers
-	return nil
+		// Success; commit.
+		s.tarManifest = &tarManifest[0]
+		s.configBytes = configBytes
+		s.configDigest = digest.FromBytes(configBytes)
+		s.orderedDiffIDList = parsedConfig.RootFS.DiffIDs
+		s.knownLayers = knownLayers
+	})
+	return s.cacheDataResult
 }
 
 // loadTarManifest loads and decodes the manifest.json.
@@ -399,7 +405,7 @@ func (r uncompressedReadCloser) Close() error {
 
 // HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
 func (s *Source) HasThreadSafeGetBlob() bool {
-	return false
+	return true
 }
 
 // GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
