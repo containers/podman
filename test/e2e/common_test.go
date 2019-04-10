@@ -3,7 +3,6 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 
 	"github.com/containers/libpod/pkg/inspect"
@@ -86,7 +86,7 @@ func TestLibpod(t *testing.T) {
 }
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	//Cache images
+	// Cache images
 	cwd, _ := os.Getwd()
 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	podman := PodmanTestCreate("/tmp")
@@ -134,18 +134,18 @@ func (p *PodmanTestIntegration) Setup() {
 	p.ArtifactPath = ARTIFACT_DIR
 }
 
-//var _ = BeforeSuite(func() {
-//	cwd, _ := os.Getwd()
-//	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-//	podman := PodmanTestCreate("/tmp")
-//	podman.ArtifactPath = ARTIFACT_DIR
-//	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
-//		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
-//			fmt.Printf("%q\n", err)
-//			os.Exit(1)
-//		}
-//	}
-//})
+// var _ = BeforeSuite(func() {
+// 	cwd, _ := os.Getwd()
+// 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
+// 	podman := PodmanTestCreate("/tmp")
+// 	podman.ArtifactPath = ARTIFACT_DIR
+// 	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
+// 		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
+// 			fmt.Printf("%q\n", err)
+// 			os.Exit(1)
+// 		}
+// 	}
+// })
 // for _, image := range CACHE_IMAGES {
 // 	if err := podman.CreateArtifact(image); err != nil {
 // 		fmt.Printf("%q\n", err)
@@ -172,7 +172,7 @@ func (p *PodmanTestIntegration) Setup() {
 // 	os.Exit(1)
 // }
 // LockTmpDir = path
-//})
+// })
 
 var _ = AfterSuite(func() {
 	sort.Sort(testResultsSortedLength{testResults})

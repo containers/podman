@@ -30,7 +30,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -48,6 +48,8 @@ func (c *Container) unmountSHM(mount string) error {
 	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
 		if err != syscall.EINVAL {
 			logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+		} else {
+			logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 		}
 	}
 	return nil

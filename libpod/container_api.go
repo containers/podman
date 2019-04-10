@@ -15,7 +15,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/oci/caps"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -174,7 +174,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 	if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateUnknown ||
 		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers")
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s in state %s", c.ID(), c.state.State.String())
 	}
 
 	if c.state.State == ContainerStateStopped ||

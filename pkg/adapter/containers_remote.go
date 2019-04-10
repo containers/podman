@@ -12,11 +12,12 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/inspect"
 	"github.com/varlink/go/varlink"
 )
 
@@ -128,7 +129,7 @@ func (c *Container) Name() string {
 	return c.config.Name
 }
 
-// StopContainers stops requested containers using CLI inputs.
+// StopContainers stops requested containers using varlink.
 // Returns the list of stopped container ids, map of failed to stop container ids + errors, or any non-container error
 func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopValues) ([]string, map[string]error, error) {
 	var (
@@ -152,7 +153,7 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	return ok, failures, nil
 }
 
-// KillContainers sends signal to container(s) based on CLI inputs.
+// KillContainers sends signal to container(s) based on varlink.
 // Returns list of successful id(s), map of failed id(s) + error, or error not from container
 func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillValues, signal syscall.Signal) ([]string, map[string]error, error) {
 	var (
@@ -171,6 +172,52 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 			failures[id] = err
 		} else {
 			ok = append(ok, killed)
+		}
+	}
+	return ok, failures, nil
+}
+
+// RemoveContainer removes container(s) based on varlink inputs.
+func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	for _, id := range ids {
+		_, err := iopodman.RemoveContainer().Call(r.Conn, id, cli.Force, cli.Volumes)
+		if err != nil {
+			failures[id] = err
+		} else {
+			ok = append(ok, id)
+		}
+	}
+	return ok, failures, nil
+}
+
+// UmountRootFilesystems umounts container(s) root filesystems based on varlink inputs
+func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig.UmountValues) ([]string, map[string]error, error) {
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	for _, id := range ids {
+		err := iopodman.UnmountContainer().Call(r.Conn, id, cli.Force)
+		if err != nil {
+			failures[id] = err
+		} else {
+			ok = append(ok, id)
 		}
 	}
 	return ok, failures, nil
@@ -227,7 +274,7 @@ func BatchContainerOp(ctr *Container, opts shared.PsOptions) (shared.BatchContai
 
 // Logs one or more containers over a varlink connection
 func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
-	//GetContainersLogs
+	// GetContainersLogs
 	reply, err := iopodman.GetContainersLogs().Send(r.Conn, uint64(varlink.More), c.InputArgs, c.Follow, c.Latest, options.Since.Format(time.RFC3339Nano), int64(c.Tail), c.Timestamps)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get container logs")

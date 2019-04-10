@@ -1,6 +1,8 @@
 package shortcuts
 
-import "github.com/containers/libpod/libpod"
+import (
+	"github.com/containers/libpod/libpod"
+)
 
 // GetPodsByContext gets pods whether all, latest, or a slice of names/ids
 func GetPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) ([]*libpod.Pod, error) {
@@ -27,28 +29,23 @@ func GetPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) 
 }
 
 // GetContainersByContext gets pods whether all, latest, or a slice of names/ids
-func GetContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) ([]*libpod.Container, error) {
-	var ctrs = []*libpod.Container{}
+func GetContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
+	var ctr *libpod.Container
+	ctrs = []*libpod.Container{}
 
 	if all {
-		return runtime.GetAllContainers()
-	}
-
-	if latest {
-		c, err := runtime.GetLatestContainer()
-		if err != nil {
-			return nil, err
-		}
-		ctrs = append(ctrs, c)
-		return ctrs, nil
-	}
-
-	for _, c := range names {
-		ctr, err := runtime.LookupContainer(c)
-		if err != nil {
-			return nil, err
-		}
+		ctrs, err = runtime.GetAllContainers()
+	} else if latest {
+		ctr, err = runtime.GetLatestContainer()
 		ctrs = append(ctrs, ctr)
+	} else {
+		for _, n := range names {
+			ctr, e := runtime.LookupContainer(n)
+			if e != nil && err == nil {
+				err = e
+			}
+			ctrs = append(ctrs, ctr)
+		}
 	}
-	return ctrs, nil
+	return
 }

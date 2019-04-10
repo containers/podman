@@ -1,20 +1,16 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/storage"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
 	umountCommand cliconfig.UmountValues
-	description   = `Container storage increments a mount counter each time a container is mounted.
+
+	description = `Container storage increments a mount counter each time a container is mounted.
 
   When a container is unmounted, the mount counter is decremented. The container's root filesystem is physically unmounted only when the mount counter reaches zero indicating no other processes are using the mount.
 
@@ -51,42 +47,15 @@ func init() {
 }
 
 func umountCmd(c *cliconfig.UmountValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
-		return errors.Wrapf(err, "could not get runtime")
+		return errors.Wrapf(err, "error creating runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	force := c.Force
-	umountAll := c.All
-
-	containers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
+	ok, failures, err := runtime.UmountRootFilesystems(getContext(), c)
 	if err != nil {
-		if len(containers) == 0 {
-			return err
-		}
-		fmt.Println(err.Error())
+		return err
 	}
-
-	umountContainerErrStr := "error unmounting container"
-	var lastError error
-	for _, ctr := range containers {
-		ctrState, err := ctr.State()
-		if ctrState == libpod.ContainerStateRunning || err != nil {
-			continue
-		}
-
-		if err = ctr.Unmount(force); err != nil {
-			if umountAll && errors.Cause(err) == storage.ErrLayerNotMounted {
-				continue
-			}
-			if lastError != nil {
-				logrus.Error(lastError)
-			}
-			lastError = errors.Wrapf(err, "%s %s", umountContainerErrStr, ctr.ID())
-			continue
-		}
-		fmt.Printf("%s\n", ctr.ID())
-	}
-	return lastError
+	return printCmdResults(ok, failures)
 }

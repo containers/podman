@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
@@ -68,21 +65,5 @@ func stopCmd(c *cliconfig.StopValues) error {
 	if err != nil {
 		return err
 	}
-
-	for _, id := range ok {
-		fmt.Println(id)
-	}
-
-	if len(failures) > 0 {
-		keys := reflect.ValueOf(failures).MapKeys()
-		lastKey := keys[len(keys)-1].String()
-		lastErr := failures[lastKey]
-		delete(failures, lastKey)
-
-		for _, err := range failures {
-			outputError(err)
-		}
-		return lastErr
-	}
-	return nil
+	return printCmdResults(ok, failures)
 }

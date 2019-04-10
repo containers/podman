@@ -4,12 +4,9 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -48,78 +45,29 @@ func init() {
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
-// saveCmd saves the image to either docker-archive or oci
+// rmCmd removes one or more containers
 func rmCmd(c *cliconfig.RmValues) error {
-	var (
-		deleteFuncs []shared.ParallelWorkerInput
-	)
-
-	ctx := getContext()
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	failureCnt := 0
-	delContainers, err := getAllOrLatestContainers(&c.PodmanCommand, runtime, -1, "all")
+	ok, failures, err := runtime.RemoveContainers(getContext(), c)
 	if err != nil {
-		if c.Force && len(c.InputArgs) > 0 {
-			if errors.Cause(err) == libpod.ErrNoSuchCtr {
-				err = nil
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			if len(c.InputArgs) > 1 {
+				exitCode = 125
 			} else {
-				failureCnt++
-			}
-			runtime.RemoveContainersFromStorage(c.InputArgs)
-		}
-		if len(delContainers) == 0 {
-			if err != nil && failureCnt == 0 {
 				exitCode = 1
 			}
-			return err
 		}
-		if err != nil {
-			if errors.Cause(err) == libpod.ErrNoSuchCtr {
-				exitCode = 1
-			}
-			fmt.Println(err.Error())
-		}
+		return err
 	}
 
-	for _, container := range delContainers {
-		con := container
-		f := func() error {
-			return runtime.RemoveContainer(ctx, con, c.Force, c.Volumes)
-		}
-
-		deleteFuncs = append(deleteFuncs, shared.ParallelWorkerInput{
-			ContainerID:  con.ID(),
-			ParallelFunc: f,
-		})
-	}
-	maxWorkers := shared.Parallelize("rm")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
-	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	// Run the parallel funcs
-	deleteErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
-	err = printParallelOutput(deleteErrors, errCount)
-	if err != nil {
-		for _, result := range deleteErrors {
-			if result != nil && errors.Cause(result) != image.ErrNoSuchCtr {
-				failureCnt++
-			}
-		}
-		if failureCnt == 0 {
-			exitCode = 1
-		}
-	}
-
-	if failureCnt > 0 {
+	if len(failures) > 0 {
 		exitCode = 125
 	}
 
-	return err
+	return printCmdResults(ok, failures)
 }

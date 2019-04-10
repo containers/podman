@@ -143,6 +143,7 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 		return nil
 	case <-time.After(timeout):
 		close(chControl)
+		logrus.Debugf("container %s did not die within timeout %d", ctr.ID(), timeout)
 		return errors.Errorf("container %s did not die within timeout", ctr.ID())
 	}
 }
