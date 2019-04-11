@@ -17,7 +17,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/klauspost/pgzip"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
 	"github.com/pkg/errors"
 	"github.com/vbatts/tar-split/tar/asm"
@@ -313,24 +313,19 @@ func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 	if err != nil {
 		return nil, 0, err
 	}
-	defer mfz.Close()
 	metaUnpacker := storage.NewJSONUnpacker(mfz)
 
 	getter, err := newOSTreePathFileGetter(s.repo, branch)
 	if err != nil {
+		mfz.Close()
 		return nil, 0, err
 	}
 
 	ots := asm.NewOutputTarStream(getter, metaUnpacker)
 
-	pipeReader, pipeWriter := io.Pipe()
-	go func() {
-		io.Copy(pipeWriter, ots)
-		pipeWriter.Close()
-	}()
-
-	rc := ioutils.NewReadCloserWrapper(pipeReader, func() error {
+	rc := ioutils.NewReadCloserWrapper(ots, func() error {
 		getter.Close()
+		mfz.Close()
 		return ots.Close()
 	})
 	return rc, layerSize, nil

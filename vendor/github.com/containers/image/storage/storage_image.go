@@ -14,6 +14,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/image"
 	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
@@ -68,6 +69,13 @@ type storageImageDestination struct {
 type storageImageCloser struct {
 	types.ImageCloser
 	size int64
+}
+
+// manifestBigDataKey returns a key suitable for recording a manifest with the specified digest using storage.Store.ImageBigData and related functions.
+// If a specific manifest digest is explicitly requested by the user, the key retruned function should be used preferably;
+// for compatibility, if a manifest is not available under this key, check also storage.ImageDigestBigDataKey
+func manifestBigDataKey(digest digest.Digest) string {
+	return storage.ImageDigestManifestBigDataNamePrefix + "-" + digest.String()
 }
 
 // newImageSource sets up an image for reading.
@@ -177,12 +185,29 @@ func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *di
 		return nil, "", ErrNoManifestLists
 	}
 	if len(s.cachedManifest) == 0 {
-		// We stored the manifest as an item named after storage.ImageDigestBigDataKey.
-		cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, storage.ImageDigestBigDataKey)
-		if err != nil {
-			return nil, "", err
+		// The manifest is stored as a big data item.
+		// Prefer the manifest corresponding to the user-specified digest, if available.
+		if s.imageRef.named != nil {
+			if digested, ok := s.imageRef.named.(reference.Digested); ok {
+				key := manifestBigDataKey(digested.Digest())
+				blob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, key)
+				if err != nil && !os.IsNotExist(err) { // os.IsNotExist is true if the image exists but there is no data corresponding to key
+					return nil, "", err
+				}
+				if err == nil {
+					s.cachedManifest = blob
+				}
+			}
 		}
-		s.cachedManifest = cachedBlob
+		// If the user did not specify a digest, or this is an old image stored before manifestBigDataKey was introduced, use the default manifest.
+		// Note that the manifest may not match the expected digest, and that is likely to fail eventually, e.g. in c/image/image/UnparsedImage.Manifest().
+		if len(s.cachedManifest) == 0 {
+			cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, storage.ImageDigestBigDataKey)
+			if err != nil {
+				return nil, "", err
+			}
+			s.cachedManifest = cachedBlob
+		}
 	}
 	return s.cachedManifest, manifest.GuessMIMEType(s.cachedManifest), err
 }
@@ -660,15 +685,13 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 		}
 		lastLayer = layer.ID
 	}
+
 	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image
 	// was originally created, in case we're just copying it.  If not, no harm done.
 	options := &storage.ImageOptions{}
 	if inspect, err := man.Inspect(s.getConfigBlob); err == nil && inspect.Created != nil {
 		logrus.Debugf("setting image creation date to %s", inspect.Created)
 		options.CreationDate = *inspect.Created
-	}
-	if manifestDigest, err := manifest.Digest(s.manifest); err == nil {
-		options.Digest = manifestDigest
 	}
 	// Create the image record, pointing to the most-recently added layer.
 	intendedID := s.imageRef.id
@@ -735,8 +758,20 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 		}
 		logrus.Debugf("set names of image %q to %v", img.ID, names)
 	}
-	// Save the manifest.  Use storage.ImageDigestBigDataKey as the item's
-	// name, so that its digest can be used to locate the image in the Store.
+	// Save the manifest.  Allow looking it up by digest by using the key convention defined by the Store.
+	// Record the manifest twice: using a digest-specific key to allow references to that specific digest instance,
+	// and using storage.ImageDigestBigDataKey for future users that don’t specify any digest and for compatibility with older readers.
+	manifestDigest, err := manifest.Digest(s.manifest)
+	if err != nil {
+		return errors.Wrapf(err, "error computing manifest digest")
+	}
+	if err := s.imageRef.transport.store.SetImageBigData(img.ID, manifestBigDataKey(manifestDigest), s.manifest); err != nil {
+		if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
+			logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
+		}
+		logrus.Debugf("error saving manifest for image %q: %v", img.ID, err)
+		return err
+	}
 	if err := s.imageRef.transport.store.SetImageBigData(img.ID, storage.ImageDigestBigDataKey, s.manifest); err != nil {
 		if _, err2 := s.imageRef.transport.store.DeleteImage(img.ID, true); err2 != nil {
 			logrus.Debugf("error deleting incomplete image %q: %v", img.ID, err2)
@@ -788,9 +823,21 @@ func (s *storageImageDestination) SupportedManifestMIMETypes() []string {
 }
 
 // PutManifest writes the manifest to the destination.
-func (s *storageImageDestination) PutManifest(ctx context.Context, manifest []byte) error {
-	s.manifest = make([]byte, len(manifest))
-	copy(s.manifest, manifest)
+func (s *storageImageDestination) PutManifest(ctx context.Context, manifestBlob []byte) error {
+	if s.imageRef.named != nil {
+		if digested, ok := s.imageRef.named.(reference.Digested); ok {
+			matches, err := manifest.MatchesDigest(manifestBlob, digested.Digest())
+			if err != nil {
+				return err
+			}
+			if !matches {
+				return fmt.Errorf("Manifest does not match expected digest %s", digested.Digest())
+			}
+		}
+	}
+
+	s.manifest = make([]byte, len(manifestBlob))
+	copy(s.manifest, manifestBlob)
 	return nil
 }
 
