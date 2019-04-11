@@ -32,11 +32,15 @@ echo $rand        |   0 | $rand
 }
 
 @test "podman run - uidmapping has no /sys/kernel mounts" {
-      run_podman $expected_rc run --uidmapping 0:100:10000 $IMAGE mount | grep /sys/kernel
-      is "$output" "" "podman run $cmd - output"
+    skip_if_rootless "cannot umount as rootless"
 
-      run_podman $expected_rc run --net host --uidmapping 0:100:10000 $IMAGE mount | grep /sys/kernel
-      is "$output" "" "podman run $cmd - output"
+    run_podman run --rm --uidmap 0:100:10000 $IMAGE mount
+    run grep /sys/kernel <(echo "$output")
+    is "$output" "" "unwanted /sys/kernel in 'mount' output"
+
+    run_podman run --rm --net host --uidmap 0:100:10000 $IMAGE mount
+    run grep /sys/kernel <(echo "$output")
+    is "$output" "" "unwanted /sys/kernel in 'mount' output (with --net=host)"
 }
 
 # vim: filetype=sh
