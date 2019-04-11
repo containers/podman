@@ -88,12 +88,13 @@ type CheckpointValues struct {
 
 type CommitValues struct {
 	PodmanCommand
-	Change  []string
-	Format  string
-	Message string
-	Author  string
-	Pause   bool
-	Quiet   bool
+	Change         []string
+	Format         string
+	Message        string
+	Author         string
+	Pause          bool
+	Quiet          bool
+	IncludeVolumes bool
 }
 
 type ContainersPrune struct {

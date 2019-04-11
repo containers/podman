@@ -39,6 +39,10 @@ not specifically set, the default format used is _oci_.
 
 Write the image ID to the file.
 
+**--include-volumes**
+
+Include in the committed image any volumes added to the container by the `--volume` or `--mount` options to the `podman create` and `podman run` commands.
+
 **--message, -m**
 
 Set commit message for committed image.  The message field is not supported in _oci_ format.

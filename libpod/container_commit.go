@@ -20,10 +20,11 @@ import (
 //libpod
 type ContainerCommitOptions struct {
 	buildah.CommitOptions
-	Pause   bool
-	Author  string
-	Message string
-	Changes []string
+	Pause          bool
+	IncludeVolumes bool
+	Author         string
+	Message        string
+	Changes        []string
 }
 
 // ChangeCmds is the list of valid Changes commands to passed to the Commit call
@@ -113,9 +114,11 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// User
 	importBuilder.SetUser(c.User())
 	// Volumes
-	for _, v := range c.config.UserVolumes {
-		if v != "" {
-			importBuilder.AddVolume(v)
+	if options.IncludeVolumes {
+		for _, v := range c.config.UserVolumes {
+			if v != "" {
+				importBuilder.AddVolume(v)
+			}
 		}
 	}
 	// Workdir
