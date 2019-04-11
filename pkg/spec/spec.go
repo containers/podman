@@ -500,6 +500,7 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			"/proc/scsi",
 			"/sys/firmware",
 			"/sys/fs/selinux",
+			"/sys/kernel",
 		} {
 			g.AddLinuxMaskedPaths(mp)
 		}
