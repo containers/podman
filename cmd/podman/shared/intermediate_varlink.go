@@ -4,8 +4,10 @@ package shared
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 )
 
@@ -318,6 +320,12 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	// We do not get a default network over varlink. Unlike the other default values for some cli
 	// elements, it seems it gets set to the default anyway.
 
+	var memSwapDefault int64 = -1
+	netModeDefault := "bridge"
+	if rootless.IsRootless() {
+		netModeDefault = "slirp4netns"
+	}
+
 	m := make(map[string]GenericCLIResult)
 	m["add-host"] = stringSliceFromVarlink(opts.AddHost, "add-host", nil)
 	m["annotation"] = stringSliceFromVarlink(opts.Annotation, "annotation", nil)
@@ -374,10 +382,10 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["memory"] = stringFromVarlink(opts.Memory, "memory", nil)
 	m["memory-reservation"] = stringFromVarlink(opts.MemoryReservation, "memory-reservation", nil)
 	m["memory-swap"] = stringFromVarlink(opts.MemorySwap, "memory-swap", nil)
-	m["memory-swappiness"] = int64FromVarlink(opts.MemorySwappiness, "memory-swappiness", nil)
+	m["memory-swappiness"] = int64FromVarlink(opts.MemorySwappiness, "memory-swappiness", &memSwapDefault)
 	m["name"] = stringFromVarlink(opts.Name, "name", nil)
-	m["net"] = stringFromVarlink(opts.Net, "net", nil)
-	m["network"] = stringFromVarlink(opts.Network, "network", nil)
+	m["net"] = stringFromVarlink(opts.Net, "net", &netModeDefault)
+	m["network"] = stringFromVarlink(opts.Network, "network", &netModeDefault)
 	m["no-hosts"] = boolFromVarlink(opts.NoHosts, "no-hosts", false)
 	m["oom-kill-disable"] = boolFromVarlink(opts.OomKillDisable, "oon-kill-disable", false)
 	m["oom-score-adj"] = intFromVarlink(opts.OomScoreAdj, "oom-score-adj", nil)

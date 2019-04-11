@@ -59,6 +59,7 @@ var mainCommands = []*cobra.Command{
 	_versionCommand,
 	_waitCommand,
 	imageCommand.Command,
+	_startCommand,
 	systemCommand.Command,
 }
 

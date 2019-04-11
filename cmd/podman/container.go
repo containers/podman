@@ -61,6 +61,7 @@ var (
 		_logsCommand,
 		_runCommand,
 		_rmCommand,
+		_startCommand,
 		_waitCommand,
 	}
 )

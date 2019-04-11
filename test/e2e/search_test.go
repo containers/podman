@@ -344,7 +344,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		defer lock8.Unlock()
 
 		podmanTest.RestoreArtifact(registry)
-		registryLocal := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[7].Port),
+		registryLocal := podmanTest.Podman([]string{"run", "-d", "--net=host", "-p", fmt.Sprintf("%s:5000", registryEndpoints[7].Port),
 			"--name", "registry7", registry})
 		registryLocal.WaitWithDefaultTimeout()
 		Expect(registryLocal.ExitCode()).To(Equal(0))

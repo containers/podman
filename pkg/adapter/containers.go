@@ -510,3 +510,100 @@ func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.Contai
 	}
 	return lastError
 }
+
+// Start will start a container
+func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigProxy bool) (int, error) {
+	var (
+		exitCode  = 125
+		lastError error
+	)
+
+	args := c.InputArgs
+	if c.Latest {
+		lastCtr, err := r.GetLatestContainer()
+		if err != nil {
+			return 0, errors.Wrapf(err, "unable to get latest container")
+		}
+		args = append(args, lastCtr.ID())
+	}
+
+	for _, container := range args {
+		ctr, err := r.LookupContainer(container)
+		if err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find container %s", container)
+			continue
+		}
+
+		ctrState, err := ctr.State()
+		if err != nil {
+			return exitCode, errors.Wrapf(err, "unable to get container state")
+		}
+
+		ctrRunning := ctrState == libpod.ContainerStateRunning
+
+		if c.Attach {
+			inputStream := os.Stdin
+			if !c.Interactive {
+				inputStream = nil
+			}
+
+			// attach to the container and also start it not already running
+			// If the container is in a pod, also set to recursively start dependencies
+			err = StartAttachCtr(ctx, ctr.Container, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
+			if errors.Cause(err) == libpod.ErrDetach {
+				// User manually detached
+				// Exit cleanly immediately
+				exitCode = 0
+				return exitCode, nil
+			}
+
+			if ctrRunning {
+				return 0, err
+			}
+
+			if err != nil {
+				return exitCode, errors.Wrapf(err, "unable to start container %s", ctr.ID())
+			}
+
+			if ecode, err := ctr.Wait(); err != nil {
+				if errors.Cause(err) == libpod.ErrNoSuchCtr {
+					// The container may have been removed
+					// Go looking for an exit file
+					rtc, err := r.GetConfig()
+					if err != nil {
+						return 0, err
+					}
+					ctrExitCode, err := ReadExitFile(rtc.TmpDir, ctr.ID())
+					if err != nil {
+						logrus.Errorf("Cannot get exit code: %v", err)
+						exitCode = 127
+					} else {
+						exitCode = ctrExitCode
+					}
+				}
+			} else {
+				exitCode = int(ecode)
+			}
+
+			return exitCode, nil
+		}
+		if ctrRunning {
+			fmt.Println(ctr.ID())
+			continue
+		}
+		// Handle non-attach start
+		// If the container is in a pod, also set to recursively start dependencies
+		if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to start container %q", container)
+			continue
+		}
+		fmt.Println(container)
+	}
+	return exitCode, lastError
+}

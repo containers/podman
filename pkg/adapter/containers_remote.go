@@ -327,22 +327,12 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) 
 
 // CreateContainer creates a container from the cli over varlink
 func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateValues) (string, error) {
-	if !c.Bool("detach") {
-		// TODO need to add attach when that function becomes available
-		return "", errors.New("the remote client only supports detached containers")
-	}
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	return iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 }
 
 // Run creates a container overvarlink and then starts it
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
-	// FIXME
-	// podman-remote run -it alpine ls DOES NOT WORK YET
-	// podman-remote run -it alpine /bin/sh does, i suspect there is some sort of
-	// timing issue between the socket availability and terminal setup and the command
-	// being run.
-
 	// TODO the exit codes for run need to be figured out for remote connections
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
@@ -354,8 +344,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		fmt.Println(cid)
 		return 0, err
 	}
-
-	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true)
+	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"))
 	if err != nil {
 		return 0, err
 	}
@@ -367,7 +356,7 @@ func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
 	return 0, libpod.ErrNotImplemented
 }
 
-// Ps ...
+// Ps lists containers based on criteria from user
 func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]shared.PsContainerOutput, error) {
 	var psContainers []shared.PsContainerOutput
 	last := int64(c.Last)
@@ -439,7 +428,7 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 	return psContainers, nil
 }
 
-func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool) (chan error, error) {
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan error, error) {
 	var (
 		oldTermState *term.State
 	)
@@ -470,7 +459,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 
 	}
 	// TODO add detach keys support
-	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, "", start)
+	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
 	if err != nil {
 		restoreTerminal(oldTermState)
 		return nil, err
@@ -531,7 +520,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if c.NoStdin {
 		inputStream = nil
 	}
-	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false)
+	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys)
 	if err != nil {
 		return err
 	}
@@ -608,4 +597,49 @@ func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.Contai
 		}
 	}
 	return lastError
+}
+
+// Start starts an already created container
+func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigProxy bool) (int, error) {
+	var (
+		finalErr error
+		exitCode = 125
+	)
+	// TODO Figure out how to deal with exit codes
+	inputStream := os.Stdin
+	if !c.Interactive {
+		inputStream = nil
+	}
+
+	containerIDs, err := iopodman.GetContainersByContext().Call(r.Conn, false, c.Latest, c.InputArgs)
+	if err != nil {
+		return exitCode, err
+	}
+	if len(containerIDs) < 1 {
+		return exitCode, errors.New("failed to find containers to start")
+	}
+	// start.go makes sure that if attach, there can be only one ctr
+	if c.Attach {
+		errChan, err := r.attach(ctx, inputStream, os.Stdout, containerIDs[0], true, c.DetachKeys)
+		if err != nil {
+			return exitCode, nil
+		}
+		err = <-errChan
+		return 0, err
+	}
+
+	// TODO the notion of starting a pod container and its deps still needs to be worked through
+	//	Everything else is detached
+	for _, cid := range containerIDs {
+		reply, err := iopodman.StartContainer().Call(r.Conn, cid)
+		if err != nil {
+			if finalErr != nil {
+				fmt.Println(err)
+			}
+			finalErr = err
+		} else {
+			fmt.Println(reply)
+		}
+	}
+	return exitCode, finalErr
 }
