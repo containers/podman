@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -360,6 +361,9 @@ func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []s
 	var filterFuncs []imagefilters.ResultFilter
 	for _, filter := range filters {
 		splitFilter := strings.Split(filter, "=")
+		if len(splitFilter) != 2 {
+			return nil, errors.Errorf("invalid filter syntax %s", filter)
+		}
 		switch splitFilter[0] {
 		case "before":
 			before, err := r.NewImageFromLocal(splitFilter[1])
@@ -374,7 +378,11 @@ func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []s
 			}
 			filterFuncs = append(filterFuncs, imagefilters.CreatedAfterFilter(after.Created()))
 		case "dangling":
-			filterFuncs = append(filterFuncs, imagefilters.DanglingFilter())
+			danglingImages, err := strconv.ParseBool(splitFilter[1])
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid filter dangling=%s", splitFilter[1])
+			}
+			filterFuncs = append(filterFuncs, imagefilters.DanglingFilter(danglingImages))
 		case "label":
 			labelFilter := strings.Join(splitFilter[1:], "=")
 			filterFuncs = append(filterFuncs, imagefilters.LabelFilter(ctx, labelFilter))

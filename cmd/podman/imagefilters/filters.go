@@ -37,9 +37,12 @@ func CreatedAfterFilter(createTime time.Time) ResultFilter {
 }
 
 // DanglingFilter allows you to filter images for dangling images
-func DanglingFilter() ResultFilter {
+func DanglingFilter(danglingImages bool) ResultFilter {
 	return func(i *adapter.ContainerImage) bool {
-		return i.Dangling()
+		if danglingImages {
+			return i.Dangling()
+		}
+		return !i.Dangling()
 	}
 }
 
