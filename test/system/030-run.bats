@@ -31,4 +31,12 @@ echo $rand        |   0 | $rand
     done < <(parse_table "$tests")
 }
 
+@test "podman run - uidmapping has no /sys/kernel mounts" {
+      run_podman $expected_rc run --uidmapping 0:100:10000 $IMAGE mount | grep /sys/kernel
+      is "$output" "" "podman run $cmd - output"
+
+      run_podman $expected_rc run --net host --uidmapping 0:100:10000 $IMAGE mount | grep /sys/kernel
+      is "$output" "" "podman run $cmd - output"
+}
+
 # vim: filetype=sh
