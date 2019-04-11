@@ -41,7 +41,7 @@ func substituteCommand(cmd string) (string, error) {
 }
 
 // GenerateCommand takes a label (string) and converts it to an executable command
-func GenerateCommand(command, imageName, name string) ([]string, error) {
+func GenerateCommand(command, imageName, name, globalOpts string) ([]string, error) {
 	var (
 		newCommand []string
 	)
@@ -79,6 +79,8 @@ func GenerateCommand(command, imageName, name string) ([]string, error) {
 			newArg = fmt.Sprintf("NAME=%s", name)
 		case "$NAME":
 			newArg = name
+		case "$GLOBAL_OPTS":
+			newArg = globalOpts
 		default:
 			newArg = arg
 		}

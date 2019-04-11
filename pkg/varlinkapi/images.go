@@ -728,7 +728,7 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 		return call.ReplyErrorOccurred(fmt.Sprintf("%s does not contain the label %s", input.Image, input.Label))
 	}
 
-	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs)
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, input.Name, input.Opts, input.ExtraArgs, "")
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

@@ -10,10 +10,12 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -251,4 +253,33 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		return time.Time{}, errors.Errorf("unable to interpret time value")
 	}
 	return time.Now().Add(-duration), nil
+}
+
+// GetGlobalOpts checks all global flags and generates the command string
+func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
+	globalFlags := map[string]bool{
+		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
+		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
+		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
+		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
+		"log-level": true, "tmpdir": true}
+	const stringSliceType string = "stringSlice"
+
+	var optsCommand []string
+	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
+		if !f.Changed {
+			return
+		}
+		if _, exist := globalFlags[f.Name]; exist {
+			if f.Value.Type() == stringSliceType {
+				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
+				for _, value := range strings.Split(flagValue, ",") {
+					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
+				}
+			} else {
+				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
+			}
+		}
+	})
+	return strings.Join(optsCommand, " ")
 }
