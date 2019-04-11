@@ -4,8 +4,8 @@
 
 ## Podman Commands
 
-Command                                                                  | Description                                                                | Demo
-:----------------------------------------------------------------------- | :------------------------------------------------------------------------- | :--------------------------------------------------------------------------
+Command                                                                  | Description                                                                | Demo    | Script
+:----------------------------------------------------------------------- | :------------------------------------------------------------------------- | :-------------------------------------------------------------------------- | :--------------------------------------------------------------------------
 [podman(1)](/docs/podman.1.md)                                           | Simple management tool for pods and images                                 |
 [podman-attach(1)](/docs/podman-attach.1.md)                             | Attach to a running container                                              |
 [podman-build(1)](/docs/podman-build.1.md)                               | Build an image using instructions from Dockerfiles                         |
@@ -31,7 +31,7 @@ Command                                                                  | Descr
 [podman-image-prune(1)](/docs/podman-image-prune.1.md)                   | Remove all unused images                                                   |
 [podman-image-sign(1)](/docs/podman-image-sign.1.md)                     | Create a signature for an image                                            |
 [podman-image-trust(1)](/docs/podman-image-trust.1.md)                   | Manage container registry image trust policy                               |
-[podman-images(1)](/docs/podman-images.1.md)                             | List images in local storage                                               | [![...](/docs/play.png)](https://asciinema.org/a/133649)
+[podman-images(1)](/docs/podman-images.1.md)                             | List images in local storage                                               | [![...](/docs/play.png)](https://podman.io/asciinema/podman/images/) | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_images.sh)
 [podman-import(1)](/docs/podman-import.1.md)                             | Import a tarball and save it as a filesystem image                         |
 [podman-info(1)](/docs/podman-info.1.md)                                 | Display system information                                                 |
 [podman-inspect(1)](/docs/podman-inspect.1.md)                           | Display the configuration of a container or image                          | [![...](/docs/play.png)](https://asciinema.org/a/133418)
