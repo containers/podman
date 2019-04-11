@@ -318,13 +318,14 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 
 func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) error {
 	templateMap := GenImageOutputMap()
-	if len(images) == 0 {
-		return nil
-	}
 	var out formats.Writer
 
 	switch opts.format {
 	case formats.JSONString:
+		// If 0 images are present, print nothing for JSON
+		if len(images) == 0 {
+			return nil
+		}
 		imagesOutput := getImagesJSONOutput(ctx, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
