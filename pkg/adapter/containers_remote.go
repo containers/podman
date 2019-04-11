@@ -331,7 +331,7 @@ func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateV
 		// TODO need to add attach when that function becomes available
 		return "", errors.New("the remote client only supports detached containers")
 	}
-	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	return iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 }
 
@@ -344,21 +344,19 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	// being run.
 
 	// TODO the exit codes for run need to be figured out for remote connections
-	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 	if err != nil {
 		return 0, err
 	}
-	_, err = iopodman.StartContainer().Call(r.Conn, cid)
-	if err != nil {
-		return 0, err
-	}
-	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid)
-	if err != nil {
-		return 0, err
-	}
 	if c.Bool("detach") {
+		_, err := iopodman.StartContainer().Call(r.Conn, cid)
 		fmt.Println(cid)
+		return 0, err
+	}
+
+	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true)
+	if err != nil {
 		return 0, err
 	}
 	finalError := <-errChan
@@ -441,7 +439,7 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 	return psContainers, nil
 }
 
-func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string) (chan error, error) {
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool) (chan error, error) {
 	var (
 		oldTermState *term.State
 	)
@@ -471,8 +469,8 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 		term.SetRawTerminal(os.Stdin.Fd())
 
 	}
-
-	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid)
+	// TODO add detach keys support
+	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, "", start)
 	if err != nil {
 		restoreTerminal(oldTermState)
 		return nil, err
@@ -533,7 +531,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if c.NoStdin {
 		inputStream = nil
 	}
-	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0])
+	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false)
 	if err != nil {
 		return err
 	}

@@ -360,7 +360,7 @@ func newCRStringArray(c *cliconfig.PodmanCommand, flag string) CRStringArray {
 }
 
 // NewIntermediateLayer creates a GenericCLIResults from a create or run cli-command
-func NewIntermediateLayer(c *cliconfig.PodmanCommand) GenericCLIResults {
+func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIResults {
 	m := make(map[string]GenericCLIResult)
 
 	m["add-host"] = newCRStringSlice(c, "add-host")
@@ -458,8 +458,10 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand) GenericCLIResults {
 	m["volumes-from"] = newCRStringSlice(c, "volumes-from")
 	m["workdir"] = newCRString(c, "workdir")
 	// global flag
-	m["trace"] = newCRBool(c, "trace")
-	m["syslog"] = newCRBool(c, "syslog")
+	if !remote {
+		m["trace"] = newCRBool(c, "trace")
+		m["syslog"] = newCRBool(c, "syslog")
+	}
 
 	return GenericCLIResults{m, c.InputArgs}
 }

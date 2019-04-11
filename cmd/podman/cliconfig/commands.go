@@ -1,6 +1,8 @@
 package cliconfig
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 // GlobalIsSet is a compatibility method for urfave
 func (p *PodmanCommand) GlobalIsSet(opt string) bool {
