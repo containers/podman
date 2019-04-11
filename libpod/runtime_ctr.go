@@ -372,7 +372,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	// Clean up network namespace, cgroups, mounts
 	if err := c.cleanup(ctx); err != nil {
 		if cleanupErr == nil {
-			cleanupErr = err
+			cleanupErr = errors.Wrapf(err, "error cleaning up container %s", c.ID())
 		} else {
 			logrus.Errorf("cleanup network, cgroups, mounts: %v", err)
 		}
@@ -404,11 +404,13 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	// Deallocate the container's lock
 	if err := c.lock.Free(); err != nil {
 		if cleanupErr == nil {
-			cleanupErr = err
+			cleanupErr = errors.Wrapf(err, "error freeing lock for container %s", c.ID())
 		} else {
 			logrus.Errorf("free container lock: %v", err)
 		}
 	}
+
+	c.newContainerEvent(events.Remove)
 
 	if !removeVolume {
 		return cleanupErr
@@ -425,7 +427,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	c.newContainerEvent(events.Remove)
 	return cleanupErr
 }
 

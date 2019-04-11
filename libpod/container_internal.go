@@ -350,7 +350,7 @@ func (c *Container) teardownStorage() error {
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
 	if err := os.RemoveAll(artifacts); err != nil {
-		return errors.Wrapf(err, "error removing artifacts %q", artifacts)
+		return errors.Wrapf(err, "error removing container %s artifacts %q", c.ID(), artifacts)
 	}
 
 	if err := c.cleanupStorage(); err != nil {
@@ -1113,13 +1113,13 @@ func (c *Container) cleanup(ctx context.Context) error {
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
 		if err := c.removeTimer(); err != nil {
-			logrus.Error(err)
+			logrus.Errorf("Error removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = err
+		lastError = errors.Wrapf(err, "error removing container %s network", c.ID())
 	}
 
 	// Unmount storage
@@ -1127,7 +1127,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 		if lastError != nil {
 			logrus.Errorf("Error unmounting container %s storage: %v", c.ID(), err)
 		} else {
-			lastError = err
+			lastError = errors.Wrapf(err, "error unmounting container %s storage", c.ID())
 		}
 	}
 
