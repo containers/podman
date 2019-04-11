@@ -46,12 +46,16 @@ func init() {
 	pullCommand.SetUsageTemplate(UsageTemplate())
 	flags := pullCommand.Flags()
 	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images inthe repository will be pulled")
-	flags.StringVar(&pullCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&pullCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
-	flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-	flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&pullCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 
 }
 

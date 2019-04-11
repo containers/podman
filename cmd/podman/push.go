@@ -45,16 +45,20 @@ func init() {
 	pushCommand.SetUsageTemplate(UsageTemplate())
 	flags := pushCommand.Flags()
 	flags.MarkHidden("signature-policy")
-	flags.StringVar(&pushCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringVar(&pushCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
-	flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 	flags.StringVar(&pushCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.StringVarP(&pushCommand.Format, "format", "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)")
 	flags.BoolVarP(&pushCommand.Quiet, "quiet", "q", false, "Don't output progress information when pushing images")
 	flags.BoolVar(&pushCommand.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
-	flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 	flags.StringVar(&pushCommand.SignBy, "sign-by", "", "Add a signature at the destination using the specified key")
-	flags.BoolVar(&pushCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&pushCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
+		flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		flags.BoolVar(&pushCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
 func pushCmd(c *cliconfig.PushValues) error {
