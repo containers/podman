@@ -57,6 +57,7 @@ sudo yum module install -y container-tools:1.0
 sudo apt-get update -qq
 sudo apt-get install -qq -y software-properties-common
 sudo add-apt-repository -y ppa:projectatomic/ppa
+sudo apt-get update -qq
 sudo apt-get -qq -y install podman
 ```
 
