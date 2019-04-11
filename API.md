@@ -3,7 +3,7 @@ Podman Service Interface and API description.  The master version of this docume
 in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in the upstream libpod repository.
 ## Index
 
-[func Attach(name: string) ](#Attach)
+[func Attach(name: string, detachKeys: string, start: bool) ](#Attach)
 
 [func AttachControl(name: string) ](#AttachControl)
 
@@ -119,6 +119,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func PodStateData(name: string) string](#PodStateData)
 
+[func Ps(opts: PsOpts) PsContainer](#Ps)
+
 [func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ) MoreResponse](#PullImage)
 
 [func PushImage(name: string, tag: string, tlsverify: , signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
@@ -225,6 +227,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type PodmanInfo](#PodmanInfo)
 
+[type PsContainer](#PsContainer)
+
+[type PsOpts](#PsOpts)
+
 [type Runlabel](#Runlabel)
 
 [type Sockets](#Sockets)
@@ -261,8 +267,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 ### <a name="Attach"></a>func Attach
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method Attach(name: [string](https://godoc.org/builtin#string)) </div>
-
+method Attach(name: [string](https://godoc.org/builtin#string), detachKeys: [string](https://godoc.org/builtin#string), start: [bool](https://godoc.org/builtin#bool)) </div>
+Attach takes the name or ID of a container and sets up a the ability to remotely attach to its console. The start
+bool is whether you wish to start the container in question first.
 ### <a name="AttachControl"></a>func AttachControl
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -857,6 +864,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.PausePod '{"name": "fooba
 method PodStateData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 PodStateData returns inspectr level information of a given pod in string form.  This call is for
 development of Podman only and generally should not be used.
+### <a name="Ps"></a>func Ps
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Ps(opts: [PsOpts](#PsOpts)) [PsContainer](#PsContainer)</div>
+
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1749,6 +1761,82 @@ insecure_registries [[]string](#[]string)
 store [InfoStore](#InfoStore)
 
 podman [InfoPodmanBinary](#InfoPodmanBinary)
+### <a name="PsContainer"></a>type PsContainer
+
+
+
+id [string](https://godoc.org/builtin#string)
+
+image [string](https://godoc.org/builtin#string)
+
+command [string](https://godoc.org/builtin#string)
+
+created [string](https://godoc.org/builtin#string)
+
+ports [string](https://godoc.org/builtin#string)
+
+names [string](https://godoc.org/builtin#string)
+
+isInfra [bool](https://godoc.org/builtin#bool)
+
+status [string](https://godoc.org/builtin#string)
+
+state [string](https://godoc.org/builtin#string)
+
+pidNum [int](https://godoc.org/builtin#int)
+
+rootFsSize [int](https://godoc.org/builtin#int)
+
+rwSize [int](https://godoc.org/builtin#int)
+
+pod [string](https://godoc.org/builtin#string)
+
+createdAt [string](https://godoc.org/builtin#string)
+
+exitedAt [string](https://godoc.org/builtin#string)
+
+startedAt [string](https://godoc.org/builtin#string)
+
+labels [map[string]](#map[string])
+
+nsPid [string](https://godoc.org/builtin#string)
+
+cgroup [string](https://godoc.org/builtin#string)
+
+ipc [string](https://godoc.org/builtin#string)
+
+mnt [string](https://godoc.org/builtin#string)
+
+net [string](https://godoc.org/builtin#string)
+
+pidNs [string](https://godoc.org/builtin#string)
+
+user [string](https://godoc.org/builtin#string)
+
+uts [string](https://godoc.org/builtin#string)
+
+mounts [string](https://godoc.org/builtin#string)
+### <a name="PsOpts"></a>type PsOpts
+
+
+
+all [bool](https://godoc.org/builtin#bool)
+
+filters [](#)
+
+last [](#)
+
+latest [](#)
+
+noTrunc [](#)
+
+pod [](#)
+
+quiet [](#)
+
+sort [](#)
+
+sync [](#)
 ### <a name="Runlabel"></a>type Runlabel
 
 Runlabel describes the required input for container runlabel

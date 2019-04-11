@@ -66,7 +66,7 @@ func createCmd(c *cliconfig.CreateValues) error {
 }
 
 func createInit(c *cliconfig.PodmanCommand) error {
-	if c.Bool("trace") {
+	if !remote && c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "createInit")
 		defer span.Finish()
 	}

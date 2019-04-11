@@ -255,14 +255,14 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) 
 
 // CreateContainer creates a libpod container
 func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateValues) (string, error) {
-	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	results := shared.NewIntermediateLayer(&c.PodmanCommand, false)
 	ctr, _, err := shared.CreateContainer(ctx, &results, r.Runtime)
 	return ctr.ID(), err
 }
 
 // Run a libpod container
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
-	results := shared.NewIntermediateLayer(&c.PodmanCommand)
+	results := shared.NewIntermediateLayer(&c.PodmanCommand, false)
 
 	ctr, createConfig, err := shared.CreateContainer(ctx, &results, r.Runtime)
 	if err != nil {

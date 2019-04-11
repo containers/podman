@@ -83,7 +83,7 @@ func getRuntimeSpec(c *cliconfig.PodmanCommand) (*spec.Spec, error) {
 		createConfig, err := parseCreateOpts(c, runtime, "alpine", generateAlpineImageData())
 	*/
 	ctx := getContext()
-	genericResults := shared.NewIntermediateLayer(c)
+	genericResults := shared.NewIntermediateLayer(c, false)
 	createConfig, err := shared.ParseCreateOpts(ctx, &genericResults, nil, "alpine", generateAlpineImageData())
 	if err != nil {
 		return nil, err

@@ -3,29 +3,17 @@
 package varlinkapi
 
 import (
+	"bufio"
 	"io"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-// Close is method to close the writer
-
-// Attach ...
-func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string) error {
-	var finalErr error
-	resize := make(chan remotecommand.TerminalSize)
-	errChan := make(chan error)
-
-	if !call.WantsUpgrade() {
-		return call.ReplyErrorOccurred("client must use upgraded connection to attach")
-	}
-	ctr, err := i.Runtime.LookupContainer(name)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
+func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.PipeReader, *io.PipeWriter, *libpod.AttachStreams) {
 
 	// These are the varlink sockets
 	reader := call.Call.Reader
@@ -49,6 +37,24 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string) error {
 		// Runc eats the error stream
 		AttachError: true,
 	}
+	return reader, writer, pr, pw, &streams
+}
+
+// Attach connects to a containers console
+func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys string, start bool) error {
+	var finalErr error
+	resize := make(chan remotecommand.TerminalSize)
+	errChan := make(chan error)
+
+	if !call.WantsUpgrade() {
+		return call.ReplyErrorOccurred("client must use upgraded connection to attach")
+	}
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	reader, writer, _, pw, streams := setupStreams(call)
 
 	go func() {
 		if err := virtwriter.Reader(reader, nil, nil, pw, resize); err != nil {
@@ -56,20 +62,42 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string) error {
 		}
 	}()
 
-	go func() {
-		// TODO allow for customizable detach keys
-		if err := ctr.Attach(&streams, "", resize); err != nil {
-			errChan <- err
-		}
-	}()
+	if start {
+		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
+	} else {
+		finalErr = attach(ctr, streams, detachKeys, resize, errChan)
+	}
 
-	select {
-	// Blocking on an error
-	case finalErr = <-errChan:
-		// Need to close up shop
-		_ = finalErr
+	if finalErr != libpod.ErrDetach && finalErr != nil {
+		logrus.Error(finalErr)
 	}
 	quitWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.Quit)
 	_, err = quitWriter.Write([]byte("HANG-UP"))
+	// TODO error handling is not quite right here yet
 	return call.Writer.Flush()
+}
+
+func attach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
+	go func() {
+		if err := ctr.Attach(streams, detachKeys, resize); err != nil {
+			errChan <- err
+		}
+	}()
+	attachError := <-errChan
+	return attachError
+}
+
+func startAndAttach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
+	var finalErr error
+	attachChan, err := ctr.StartAndAttach(getContext(), streams, detachKeys, resize, false)
+	if err != nil {
+		return err
+	}
+	select {
+	case attachChanErr := <-attachChan:
+		finalErr = attachChanErr
+	case chanError := <-errChan:
+		finalErr = chanError
+	}
+	return finalErr
 }

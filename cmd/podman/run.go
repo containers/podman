@@ -38,7 +38,7 @@ func init() {
 }
 
 func runCmd(c *cliconfig.RunValues) error {
-	if c.Bool("trace") {
+	if !remote && c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
 		defer span.Finish()
 	}
