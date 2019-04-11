@@ -870,6 +870,20 @@ func makeRuntime(runtime *Runtime) (err error) {
 
 	_, err = os.Stat(runtimeAliveFile)
 	if err != nil {
+		// If we need to refresh, then it is safe to assume there are
+		// no containers running.  Create immediately a namespace, as
+		// we will need to access the storage.
+		if os.Geteuid() != 0 {
+			aliveLock.Unlock()
+			became, ret, err := rootless.BecomeRootInUserNS()
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+
+		}
 		// If the file doesn't exist, we need to refresh the state
 		// This will trigger on first use as well, but refreshing an
 		// empty state only creates a single file
