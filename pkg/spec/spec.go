@@ -132,6 +132,9 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
+		if !config.Privileged && isRootless {
+			g.AddLinuxMaskedPaths("/sys/kernel")
+		}
 	}
 	if isRootless {
 		nGids, err := getAvailableGids()

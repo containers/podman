@@ -3,15 +3,20 @@
 package libpod
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/utils"
+	pmount "github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -90,6 +95,54 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
 				return err
 			}
+		}
+
+		// if we are running a non privileged container, be sure to umount some kernel paths so they are not
+		// bind mounted inside the container at all.
+		if !ctr.config.Privileged && !rootless.IsRootless() {
+			ch := make(chan error)
+			go func() {
+				runtime.LockOSThread()
+				err := func() error {
+					fd, err := os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+					if err != nil {
+						return err
+					}
+					defer fd.Close()
+
+					// create a new mountns on the current thread
+					if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
+						return err
+					}
+					defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+
+					// don't spread our mounts around.  We are setting only /sys to be slave
+					// so that the cleanup process is still able to umount the storage and the
+					// changes are propagated to the host.
+					err = unix.Mount("/sys", "/sys", "none", unix.MS_REC|unix.MS_SLAVE, "")
+					if err != nil {
+						return errors.Wrapf(err, "cannot make /sys slave")
+					}
+
+					mounts, err := pmount.GetMounts()
+					if err != nil {
+						return err
+					}
+					for _, m := range mounts {
+						if !strings.HasPrefix(m.Mountpoint, "/sys/kernel") {
+							continue
+						}
+						err = unix.Unmount(m.Mountpoint, 0)
+						if err != nil {
+							return errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
+						}
+					}
+					return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+				}()
+				ch <- err
+			}()
+			err := <-ch
+			return err
 		}
 	}
 	return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
