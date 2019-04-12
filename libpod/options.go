@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"syscall"
 
 	"github.com/containers/image/manifest"
@@ -14,11 +15,13 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var (
-	nameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
-	regexError = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	ctrNameRegex = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-:]*$")
+	nameRegex    = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	regexError   = errors.Wrapf(ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -593,8 +596,12 @@ func WithName(name string) CtrCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
+		if !ctrNameRegex.MatchString(name) {
 			return regexError
+		}
+
+		if strings.Contains(name, ":") {
+			logrus.Warnf("Use of colons in container names is deprecated and may be removed in a future release")
 		}
 
 		ctr.config.Name = name
