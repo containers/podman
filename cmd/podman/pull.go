@@ -61,7 +61,12 @@ func init() {
 
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
-func pullCmd(c *cliconfig.PullValues) error {
+func pullCmd(c *cliconfig.PullValues) (retError error) {
+	defer func() {
+		if retError != nil && exitCode == 0 {
+			exitCode = 1
+		}
+	}()
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "pullCmd")
 		defer span.Finish()
@@ -163,7 +168,7 @@ func pullCmd(c *cliconfig.PullValues) error {
 		for _, name := range names {
 			newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
 			if err != nil {
-				println(errors.Wrapf(err, "error pulling image %q", name))
+				logrus.Errorf("error pulling image %q", name)
 				foundImage = false
 				continue
 			}

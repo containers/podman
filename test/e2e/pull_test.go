@@ -38,6 +38,12 @@ var _ = Describe("Podman pull", func() {
 
 	})
 
+	It("podman pull from docker a not existing image", func() {
+		session := podmanTest.Podman([]string{"pull", "ibetthisdoesntexistthere:foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
 	It("podman pull from docker with tag", func() {
 		session := podmanTest.Podman([]string{"pull", "busybox:glibc"})
 		session.WaitWithDefaultTimeout()
