@@ -16,6 +16,8 @@
 #include <sys/types.h>
 #include <sys/prctl.h>
 #include <dirent.h>
+#include <termios.h>
+#include <sys/ioctl.h>
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
@@ -177,6 +179,11 @@ reexec_userns_join (int userns, int mountns)
       fprintf (stderr, "cannot prctl(PR_SET_PDEATHSIG): %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+
+  if (isatty (1) && ioctl (1, TIOCSCTTY, 0) == -1) {
+      fprintf (stderr, "cannot ioctl(TIOCSCTTY): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+  }
 
   if (setns (userns, 0) < 0)
     {
