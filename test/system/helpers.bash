@@ -225,6 +225,16 @@ function skip_if_rootless() {
     skip "${1:-not applicable under rootless podman}"
 }
 
+####################
+#  skip_if_remote  #  ...with an optional message
+####################
+function skip_if_remote() {
+    if [[ ! "$PODMAN" =~ -remote ]]; then
+        return
+    fi
+
+    skip "${1:-test does not work with podman-remote}"
+}
 
 #########
 #  die  #  Abort with helpful message

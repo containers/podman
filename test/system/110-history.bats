@@ -24,7 +24,7 @@ load helpers
 @test "podman history - json" {
     tests="
 id        | [0-9a-f]\\\{64\\\}
-created   | [0-9-]\\\+T[0-9:]\\\+\\\.[0-9]\\\+Z
+created   | [0-9-]\\\+T[0-9:.]\\\+Z
 size      | -\\\?[0-9]\\\+
 "
 
