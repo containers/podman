@@ -62,6 +62,11 @@ func init() {
 // pullCmd gets the data from the command line and calls pullImage
 // to copy an image from a registry to a local machine
 func pullCmd(c *cliconfig.PullValues) (retError error) {
+	defer func() {
+		if retError != nil && exitCode == 0 {
+			exitCode = 1
+		}
+	}()
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "pullCmd")
 		defer span.Finish()
