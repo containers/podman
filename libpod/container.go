@@ -614,7 +614,7 @@ func (c *Container) NewNetNS() bool {
 func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
 	// First check if the container belongs to a network namespace (like a pod)
 	if len(c.config.NetNsCtr) > 0 {
-		netNsCtr, err := c.runtime.LookupContainer(c.config.NetNsCtr)
+		netNsCtr, err := c.runtime.GetContainer(c.config.NetNsCtr)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
 		}
