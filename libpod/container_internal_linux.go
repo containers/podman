@@ -504,6 +504,21 @@ func (c *Container) checkpointRestoreSupported() (err error) {
 	return nil
 }
 
+func (c *Container) checkpointRestoreLabelLog(fileName string) (err error) {
+	// Create the CRIU log file and label it
+	dumpLog := filepath.Join(c.bundlePath(), fileName)
+
+	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
+	}
+	logFile.Close()
+	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
+		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+	}
+	return nil
+}
+
 func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) (err error) {
 	if err := c.checkpointRestoreSupported(); err != nil {
 		return err
@@ -513,16 +528,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return errors.Wrapf(ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
-	// Create the CRIU log file and label it
-	dumpLog := filepath.Join(c.bundlePath(), "dump.log")
-
-	logFile, err := os.OpenFile(dumpLog, os.O_CREATE, 0600)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
-	}
-	logFile.Close()
-	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
-		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
+	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
+		return err
 	}
 
 	if err := c.runtime.ociRuntime.checkpointContainer(c, options); err != nil {
@@ -575,6 +582,10 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
 		return errors.Wrapf(err, "A complete checkpoint for this container cannot be found, cannot restore")
+	}
+
+	if err := c.checkpointRestoreLabelLog("restore.log"); err != nil {
+		return err
 	}
 
 	// Read network configuration from checkpoint
