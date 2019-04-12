@@ -13,7 +13,6 @@ func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{
 		_commitCommand,
 		_execCommand,
-		_generateCommand,
 		_playCommand,
 		_loginCommand,
 		_logoutCommand,
@@ -68,12 +67,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_umountCommand,
 		_unpauseCommand,
 		_waitCommand,
-	}
-}
-
-func getGenerateSubCommands() []*cobra.Command {
-	return []*cobra.Command{
-		_containerKubeCommand,
 	}
 }
 

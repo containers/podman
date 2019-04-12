@@ -5,9 +5,11 @@ package adapter
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"text/template"
@@ -857,4 +859,21 @@ func stringToChangeType(change string) archive.ChangeType {
 	case "C":
 		return archive.ChangeModify
 	}
+}
+
+// GenerateKube creates kubernetes email from containers and pods
+func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *v1.Service, error) {
+	var (
+		pod     v1.Pod
+		service v1.Service
+	)
+	reply, err := iopodman.GenerateKube().Call(r.Conn, c.InputArgs[0], c.Service)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "unable to create kubernetes YAML")
+	}
+	if err := json.Unmarshal([]byte(reply.Pod), &pod); err != nil {
+		return nil, nil, err
+	}
+	err = json.Unmarshal([]byte(reply.Service), &service)
+	return &pod, &service, err
 }
