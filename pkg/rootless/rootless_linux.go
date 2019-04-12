@@ -28,6 +28,10 @@ extern int reexec_userns_join(int userns, int mountns);
 */
 import "C"
 
+const (
+	numSig = 65 // max number of signals
+)
+
 func runInUser() error {
 	os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
 	return nil
@@ -283,7 +287,15 @@ func BecomeRootInUserNS() (bool, int, error) {
 
 	c := make(chan os.Signal, 1)
 
-	gosignal.Notify(c)
+	signals := []os.Signal{}
+	for sig := 0; sig < numSig; sig++ {
+		if sig == int(syscall.SIGTSTP) {
+			continue
+		}
+		signals = append(signals, syscall.Signal(sig))
+	}
+
+	gosignal.Notify(c, signals...)
 	defer gosignal.Reset()
 	go func() {
 		for s := range c {
