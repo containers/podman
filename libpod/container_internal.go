@@ -676,7 +676,7 @@ func (c *Container) getAllDependencies(visited map[string]*Container) error {
 	}
 	for _, depID := range depIDs {
 		if _, ok := visited[depID]; !ok {
-			dep, err := c.runtime.state.LookupContainer(depID)
+			dep, err := c.runtime.state.Container(depID)
 			if err != nil {
 				return err
 			}

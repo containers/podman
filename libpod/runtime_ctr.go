@@ -548,16 +548,6 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	return ctrs[lastCreatedIndex], nil
 }
 
-// Export is the libpod portion of exporting a container to a tar file
-func (r *Runtime) Export(name string, path string) error {
-	ctr, err := r.LookupContainer(name)
-	if err != nil {
-		return err
-	}
-	return ctr.Export(path)
-
-}
-
 // RemoveContainersFromStorage attempt to remove containers from storage that do not exist in libpod database
 func (r *Runtime) RemoveContainersFromStorage(ctrs []string) {
 	for _, i := range ctrs {

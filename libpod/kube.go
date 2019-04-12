@@ -69,7 +69,7 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	return p.runtime.LookupContainer(infraID)
+	return p.runtime.GetContainer(infraID)
 }
 
 // GenerateKubeServiceFromV1Pod creates a v1 service object from a v1 pod object
