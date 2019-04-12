@@ -71,9 +71,10 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	if finalErr != libpod.ErrDetach && finalErr != nil {
 		logrus.Error(finalErr)
 	}
-	quitWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.Quit)
-	_, err = quitWriter.Write([]byte("HANG-UP"))
-	// TODO error handling is not quite right here yet
+
+	if err = virtwriter.HangUp(writer); err != nil {
+		logrus.Errorf("Failed to HANG-UP attach to %s: %s", ctr.ID(), err.Error())
+	}
 	return call.Writer.Flush()
 }
 

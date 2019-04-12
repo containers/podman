@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/storage"
@@ -509,4 +510,77 @@ func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.Contai
 		}
 	}
 	return lastError
+}
+
+// ContainerExecute executes a command in the container
+func (r *LocalRuntime) ContainerExecute(ctx context.Context, cli *cliconfig.ExecValues) ([]string, map[string]error, error) {
+	var (
+		cmd      []string
+		ctr      *Container
+		err      error
+		failures = map[string]error{}
+		ok       = []string{}
+	)
+
+	if cli.Latest {
+		if ctr, err = r.GetLatestContainer(); err != nil {
+			return ok, failures, err
+		}
+		cmd = cli.InputArgs[0:]
+	} else {
+		if ctr, err = r.LookupContainer(cli.InputArgs[0]); err != nil {
+			return ok, failures, err
+		}
+		cmd = cli.InputArgs[1:]
+	}
+
+	if cli.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return ok, failures, errors.Wrapf(err, "Exec unable to read /proc/self/fd")
+		}
+
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				return ok, failures, errors.Wrapf(err, "Exec cannot parse %s in /proc/self/fd", e.Name())
+			}
+			m[i] = true
+		}
+
+		for i := 3; i < 3+cli.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return ok, failures, errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+	}
+
+	// Validate given environment variables
+	env := map[string]string{}
+	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
+		return ok, failures, errors.Wrapf(err, "Exec unable to process environment variables")
+	}
+
+	// Build env slice of key=value strings for Exec
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	streams.InputStream = os.Stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	err = ctr.Exec(cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs)
+	if err != nil {
+		failures[ctr.ID()] = err
+	} else {
+		ok = append(ok, ctr.ID())
+	}
+	return ok, failures, err
 }

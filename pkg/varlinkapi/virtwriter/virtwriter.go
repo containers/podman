@@ -4,9 +4,11 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -96,9 +98,10 @@ func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resi
 	for {
 		readb := make([]byte, 32*1024)
 		n, err := r.Read(readb)
+		fmt.Println("Bytes read: ", n, err)
 		// TODO, later may be worth checking in len of the read is 0
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Virtual Read failed, %d", n)
 		}
 		b := append(saveb, readb[0:n]...)
 		// no sense in reading less than the header len
@@ -137,7 +140,7 @@ func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resi
 					// Resize events come over in bytes, need to be reserialized
 					resizeEvent := remotecommand.TerminalSize{}
 					if err := json.Unmarshal(out, &resizeEvent); err != nil {
-						return err
+						return errors.Wrapf(err, "TerminalResize failed")
 					}
 					resize <- resizeEvent
 				case Quit:
@@ -145,11 +148,27 @@ func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resi
 				}
 				b = b[eom:]
 			} else {
-				//	We do not have the header and full message, need to slurp again
+				// 	We do not have the header and full message, need to slurp again
 				saveb = b
 				break
 			}
 		}
 	}
 	return nil
+}
+
+// HangUp sends message to peer to close connection
+func HangUp(writer *bufio.Writer) (err error) {
+	n := 0
+	msg := []byte("HANG-UP")
+
+	writeQuit := NewVirtWriteCloser(writer, Quit)
+	if n, err = writeQuit.Write(msg); err != nil {
+		return
+	}
+
+	if n != len(msg) {
+		return errors.New(fmt.Sprintf("Failed to send complete %s message", string(msg)))
+	}
+	return
 }

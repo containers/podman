@@ -12,7 +12,6 @@ const remoteclient = false
 func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{
 		_commitCommand,
-		_execCommand,
 		_playCommand,
 		_loginCommand,
 		_logoutCommand,

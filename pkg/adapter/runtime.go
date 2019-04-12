@@ -7,7 +7,6 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
 	"os"
 	"text/template"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
 )
 
 // LocalRuntime describes a typical libpod runtime

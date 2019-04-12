@@ -502,6 +502,23 @@ type DiffInfo(
     changeType: string
 )
 
+type ExecOpts(
+    # container name or id
+    name: string,
+    # Create pseudo tty
+    tty: bool,
+    # privileged access in container
+    privileged: bool,
+    # command to execute in container
+    cmd: []string,
+    # user to use in container
+    user: ?string,
+    # workdir to run command in container
+    workdir: ?string,
+    # slice of keyword=value environment variables
+    env: ?[]string
+)
+
 # GetVersion returns version and build information of the podman service
 method GetVersion() -> (
     version: string,
@@ -1087,6 +1104,9 @@ method ContainerRestore(name: string, keep: bool, tcpEstablished: bool) -> (id: 
 
 # ContainerRunlabel runs executes a command as described by a given container image label.
 method ContainerRunlabel(runlabel: Runlabel) -> ()
+
+# ContainerExecute runs executes a command in the given container.
+method ContainerExecute(opts: ExecOpts) -> ()
 
 # ListContainerMounts gathers all the mounted container mount points and returns them as an array
 # of strings
