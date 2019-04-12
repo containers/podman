@@ -25,8 +25,8 @@ var (
 			return volumeCreateCmd(&volumeCreateCommand)
 		},
 		Example: `podman volume create myvol
-  podman volume create
-  podman volume create --label foo=bar myvol`,
+  podman volume create --label foo=bar
+  podman volume create --opt type=nfs --opt o=addr=192.168.0.2,rw --opt device=:/nfsshare  mynfsvol`,
 	}
 )
 

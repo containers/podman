@@ -1,5 +1,13 @@
 package libpod
 
+import (
+	"net"
+	"strings"
+
+	"github.com/containers/storage/pkg/mount"
+	"github.com/pkg/errors"
+)
+
 // Volume is the type used to create named volumes
 // TODO: all volumes should be created using this and the Volume API
 type Volume struct {
@@ -69,4 +77,58 @@ func (v *Volume) Scope() string {
 // container is removed with the Volumes parameter set to true.
 func (v *Volume) IsCtrSpecific() bool {
 	return v.config.IsCtrSpecific
+}
+
+// Mount the volume
+func (v *Volume) Mount() error {
+	if v.MountPoint() == "" {
+		return errors.Errorf("missing device in volume options")
+	}
+	mounted, err := mount.Mounted(v.MountPoint())
+	if err != nil {
+		return errors.Wrapf(err, "failed to determine if %v is mounted", v.Name())
+	}
+	if mounted {
+		return nil
+	}
+	options := v.Options()
+	if len(options) == 0 {
+		return errors.Errorf("volume %v is not mountable, no options available", v.Name())
+	}
+	mountOpts := options["o"]
+	device := options["device"]
+	if options["type"] == "nfs" {
+		if addrValue := getAddress(mountOpts); addrValue != "" && net.ParseIP(addrValue).To4() == nil {
+			ipAddr, err := net.ResolveIPAddr("ip", addrValue)
+			if err != nil {
+				return errors.Wrapf(err, "error resolving passed in nfs address")
+			}
+			mountOpts = strings.Replace(mountOpts, "addr="+addrValue, "addr="+ipAddr.String(), 1)
+		}
+		if device[0] != ':' {
+			device = ":" + device
+		}
+	}
+	err = mount.Mount(device, v.MountPoint(), options["type"], mountOpts)
+	return errors.Wrap(err, "failed to mount local volume")
+}
+
+// Unmount the volume from the system
+func (v *Volume) Unmount() error {
+	if v.MountPoint() == "" {
+		return errors.Errorf("missing device in volume options")
+	}
+	return mount.Unmount(v.MountPoint())
+}
+
+// getAddress finds out address/hostname from options
+func getAddress(opts string) string {
+	optsList := strings.Split(opts, ",")
+	for i := 0; i < len(optsList); i++ {
+		if strings.HasPrefix(optsList[i], "addr=") {
+			addr := strings.SplitN(optsList[i], "=", 2)[1]
+			return addr
+		}
+	}
+	return ""
 }

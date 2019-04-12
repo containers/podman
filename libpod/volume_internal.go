@@ -18,5 +18,6 @@ func newVolume(runtime *Runtime) (*Volume, error) {
 
 // teardownStorage deletes the volume from volumePath
 func (v *Volume) teardownStorage() error {
+	v.Unmount()
 	return os.RemoveAll(filepath.Join(v.runtime.config.VolumePath, v.Name()))
 }

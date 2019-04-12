@@ -191,6 +191,13 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}
 
+		options := newVol.Options()
+		if len(options) > 0 {
+			if err := newVol.Mount(); err != nil {
+				return nil, err
+			}
+		}
+
 		if err := ctr.copyWithTarFromImage(vol.Dest, newVol.MountPoint()); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Name)
 		}
