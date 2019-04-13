@@ -40,7 +40,7 @@ $ podman wait mywebserver myftpserver
 ```
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 September 2017, Originally compiled by Brent Baude<bbaude@redhat.com>

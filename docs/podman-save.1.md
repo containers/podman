@@ -91,7 +91,7 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-load(1), crio(8)
+podman(1), podman-load(1)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

@@ -37,7 +37,7 @@ $ podman export > redis-container.tar 883504668ec465463bc0fe7e63d53154ac3b696ea8
 ```
 
 ## SEE ALSO
-podman(1), podman-import(1), crio(8)
+podman(1), podman-import(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

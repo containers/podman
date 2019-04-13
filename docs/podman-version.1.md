@@ -39,7 +39,7 @@ $ podman version --format '{{.Version}}'
 ```
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 November 2018, Added --format flag by Tomas Tomecek <ttomecek@redhat.com>

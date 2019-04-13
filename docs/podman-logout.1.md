@@ -53,7 +53,7 @@ Remove login credentials for all registries
 ```
 
 ## SEE ALSO
-podman(1), podman-login(1), crio(8)
+podman(1), podman-login(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

@@ -166,7 +166,7 @@ CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS 
 Print a list of containers
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>
