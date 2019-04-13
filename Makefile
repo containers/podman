@@ -111,14 +111,17 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
 
-podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
-	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
+podman: bin/podman
+bin/podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
+	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
-podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
-	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+podman-remote: bin/podman-remote
+bin/podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
+	$(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o $@ $(PROJECT)/cmd/podman
 
-podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote OSX environment
-	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
+podman-remote-darwin: bin/podman-remote-darwin
+bin/podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote OSX environment
+	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o $@ $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -233,7 +236,7 @@ changelog: ## Generate changelog
 
 install: .gopathok install.bin install.man install.cni install.systemd  ## Install binaries to system locations
 
-install.bin:
+install.bin: bin/podman
 	install ${SELINUXOPT} -d -m 755 $(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman $(BINDIR)/podman
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(BINDIR)/podman bin/podman
@@ -358,6 +361,9 @@ vendor: .install.vndr
 .PHONY: \
 	.gopathok \
 	binaries \
+	podman \
+	podman-remote \
+	podman-remote-darwin \
 	clean \
 	validate.completions \
 	default \
