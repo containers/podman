@@ -55,11 +55,13 @@ sudo yum module install -y container-tools:1.0
 
 ```bash
 sudo apt-get update -qq
-sudo apt-get install -qq -y software-properties-common
+sudo apt-get install -qq -y software-properties-common uidmap
 sudo add-apt-repository -y ppa:projectatomic/ppa
 sudo apt-get update -qq
 sudo apt-get -qq -y install podman
 ```
+
+Take note of the [Build and Run Dependencies](#build-and-run-dependencies) listed below if you run into any issues.
 
 ## Building from scratch
 
@@ -130,7 +132,8 @@ apt-get install -y \
   libprotobuf-c0-dev \
   libseccomp-dev \
   libselinux1-dev \
-  pkg-config
+  pkg-config \
+  uidmap
 ```
 
 Debian, Ubuntu, and related distributions will also need to do the following setup:
