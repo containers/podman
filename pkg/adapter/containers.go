@@ -446,3 +446,67 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	}
 	return nil
 }
+
+// Checkpoint one or more containers
+func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+	var (
+		containers     []*libpod.Container
+		err, lastError error
+	)
+
+	if c.All {
+		containers, err = r.Runtime.GetRunningContainers()
+	} else {
+		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, ctr := range containers {
+		if err = ctr.Checkpoint(context.TODO(), options); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to checkpoint container %v", ctr.ID())
+		} else {
+			fmt.Println(ctr.ID())
+		}
+	}
+	return lastError
+}
+
+// Restore one or more containers
+func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+	var (
+		containers     []*libpod.Container
+		err, lastError error
+		filterFuncs    []libpod.ContainerFilter
+	)
+
+	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+		state, _ := c.State()
+		return state == libpod.ContainerStateExited
+	})
+
+	if c.All {
+		containers, err = r.GetContainers(filterFuncs...)
+	} else {
+		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return err
+	}
+
+	for _, ctr := range containers {
+		if err = ctr.Restore(context.TODO(), options); err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "failed to restore container %v", ctr.ID())
+		} else {
+			fmt.Println(ctr.ID())
+		}
+	}
+	return lastError
+}

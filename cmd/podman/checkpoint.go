@@ -1,13 +1,9 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -57,7 +53,7 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		return errors.New("checkpointing a container requires root")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -68,17 +64,5 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		KeepRunning:    c.LeaveRunning,
 		TCPEstablished: c.TcpEstablished,
 	}
-	containers, lastError := getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
-
-	for _, ctr := range containers {
-		if err = ctr.Checkpoint(context.TODO(), options); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to checkpoint container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
-		}
-	}
-	return lastError
+	return runtime.Checkpoint(c, options)
 }
