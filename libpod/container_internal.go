@@ -25,22 +25,12 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/language"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
 	// name of the directory holding the artifacts
 	artifactsDir = "artifacts"
-)
-
-var (
-	// localeToLanguageMap maps from locale values to language tags.
-	localeToLanguageMap = map[string]string{
-		"":      "und-u-va-posix",
-		"c":     "und-u-va-posix",
-		"posix": "und-u-va-posix",
-	}
 )
 
 // rootFsSize gets the size of the container's root filesystem
@@ -1285,48 +1275,15 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	return nil
 }
 
-// localeToLanguage translates POSIX locale strings to BCP 47 language tags.
-func localeToLanguage(locale string) string {
-	locale = strings.Replace(strings.SplitN(locale, ".", 2)[0], "_", "-", 1)
-	langString, ok := localeToLanguageMap[strings.ToLower(locale)]
-	if !ok {
-		langString = locale
-	}
-	return langString
-}
-
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
-	var locale string
-	var ok bool
-	for _, envVar := range []string{
-		"LC_ALL",
-		"LC_COLLATE",
-		"LANG",
-	} {
-		locale, ok = os.LookupEnv(envVar)
-		if ok {
-			break
-		}
-	}
-
-	langString := localeToLanguage(locale)
-	lang, err := language.Parse(langString)
-	if err != nil {
-		logrus.Warnf("failed to parse language %q: %s", langString, err)
-		lang, err = language.Parse("und-u-va-posix")
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	allHooks := make(map[string][]spec.Hook)
 	if c.runtime.config.HooksDir == nil {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
 		for _, hDir := range []string{hooks.DefaultDir, hooks.OverrideDir} {
-			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "poststop"}, lang)
+			manager, err := hooks.New(ctx, []string{hDir}, []string{"precreate", "poststop"})
 			if err != nil {
 				if os.IsNotExist(err) {
 					continue
@@ -1345,7 +1302,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"}, lang)
+		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"})
 		if err != nil {
 			if os.IsNotExist(err) {
 				logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)

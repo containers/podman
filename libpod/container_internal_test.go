@@ -17,54 +17,6 @@ import (
 // hookPath is the path to an example hook executable.
 var hookPath string
 
-func TestLocaleToLanguage(t *testing.T) {
-	for _, testCase := range []struct {
-		locale   string
-		language string
-	}{
-		{
-			locale:   "",
-			language: "und-u-va-posix",
-		},
-		{
-			locale:   "C",
-			language: "und-u-va-posix",
-		},
-		{
-			locale:   "POSIX",
-			language: "und-u-va-posix",
-		},
-		{
-			locale:   "c",
-			language: "und-u-va-posix",
-		},
-		{
-			locale:   "en",
-			language: "en",
-		},
-		{
-			locale:   "en_US",
-			language: "en-US",
-		},
-		{
-			locale:   "en.UTF-8",
-			language: "en",
-		},
-		{
-			locale:   "en_US.UTF-8",
-			language: "en-US",
-		},
-		{
-			locale:   "does-not-exist",
-			language: "does-not-exist",
-		},
-	} {
-		t.Run(testCase.locale, func(t *testing.T) {
-			assert.Equal(t, testCase.language, localeToLanguage(testCase.locale))
-		})
-	}
-}
-
 func TestPostDeleteHooks(t *testing.T) {
 	ctx := context.Background()
 	dir, err := ioutil.TempDir("", "libpod_test_")

@@ -5,14 +5,14 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 
 	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/collate"
-	"golang.org/x/text/language"
 )
 
 // Version is the current hook configuration version.
@@ -31,7 +31,6 @@ type Manager struct {
 	hooks           map[string]*current.Hook
 	directories     []string
 	extensionStages []string
-	language        language.Tag
 	lock            sync.Mutex
 }
 
@@ -39,8 +38,6 @@ type namedHook struct {
 	name string
 	hook *current.Hook
 }
-
-type namedHooks []*namedHook
 
 // New creates a new hook manager.  Directories are ordered by
 // increasing preference (hook configurations in later directories
@@ -51,12 +48,11 @@ type namedHooks []*namedHook
 // those specified in the OCI Runtime Specification and to control
 // OCI-defined stages instead of delagating to the OCI runtime.  See
 // Hooks() for more information.
-func New(ctx context.Context, directories []string, extensionStages []string, lang language.Tag) (manager *Manager, err error) {
+func New(ctx context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
 	manager = &Manager{
 		hooks:           map[string]*current.Hook{},
 		directories:     directories,
 		extensionStages: extensionStages,
-		language:        lang,
 	}
 
 	for _, dir := range directories {
@@ -94,15 +90,14 @@ func (m *Manager) namedHooks() (hooks []*namedHook) {
 // extensionStageHooks.  This takes precedence over their inclusion in
 // the OCI configuration.  For example:
 //
-//   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"}, lang)
+//   manager, err := New(ctx, []string{DefaultDir}, []string{"poststop"})
 //   extensionStageHooks, err := manager.Hooks(config, annotations, hasBindMounts)
 //
 // will have any matching post-stop hooks in extensionStageHooks and
 // will not insert them into config.Hooks.Poststop.
 func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBindMounts bool) (extensionStageHooks map[string][]rspec.Hook, err error) {
 	hooks := m.namedHooks()
-	collator := collate.New(m.language, collate.IgnoreCase, collate.IgnoreWidth)
-	collator.Sort(namedHooks(hooks))
+	sort.Slice(hooks, func(i, j int) bool { return strings.ToLower(hooks[i].name) < strings.ToLower(hooks[j].name) })
 	localStages := map[string]bool{} // stages destined for extensionStageHooks
 	for _, stage := range m.extensionStages {
 		localStages[stage] = true
@@ -165,19 +160,4 @@ func (m *Manager) add(path string) (err error) {
 	}
 	m.hooks[filepath.Base(path)] = hook
 	return nil
-}
-
-// Len is part of the collate.Lister interface.
-func (hooks namedHooks) Len() int {
-	return len(hooks)
-}
-
-// Swap is part of the collate.Lister interface.
-func (hooks namedHooks) Swap(i, j int) {
-	hooks[i], hooks[j] = hooks[j], hooks[i]
-}
-
-// Bytes is part of the collate.Lister interface.
-func (hooks namedHooks) Bytes(i int) []byte {
-	return []byte(hooks[i].name)
 }
