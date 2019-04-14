@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/unshare"
+	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"

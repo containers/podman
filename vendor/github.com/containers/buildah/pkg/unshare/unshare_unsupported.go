@@ -25,3 +25,7 @@ func GetRootlessUID() int {
 func RootlessEnv() []string {
 	return append(os.Environ(), UsernsEnvName+"=")
 }
+
+// MaybeReexecUsingUserNamespace re-exec the process in a new namespace
+func MaybeReexecUsingUserNamespace(evenForRoot bool) {
+}

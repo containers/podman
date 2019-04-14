@@ -22,13 +22,15 @@ import (
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
 	"github.com/containers/buildah/pkg/secrets"
-	"github.com/containers/buildah/unshare"
+	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
 	units "github.com/docker/go-units"
+	"github.com/docker/libnetwork/resolvconf"
+	"github.com/docker/libnetwork/types"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -593,13 +595,51 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 }
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
-func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair) (string, error) {
-	copyFileWithTar := b.copyFileWithTar(chownOpts, nil)
+func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string) (string, error) {
+	stat, err := os.Stat(hostPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
+	}
+	contents, err := ioutil.ReadFile(hostPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to read %s", hostPath)
+	}
+
+	search := resolvconf.GetSearchDomains(contents)
+	nameservers := resolvconf.GetNameservers(contents, types.IP)
+	options := resolvconf.GetOptions(contents)
+
+	if len(dnsSearch) > 0 {
+		search = dnsSearch
+	}
+	if len(dnsServers) != 0 {
+		dns, err := getDNSIP(dnsServers)
+		if err != nil {
+			return "", errors.Wrapf(err, "error getting dns servers")
+		}
+		nameservers = []string{}
+		for _, server := range dns {
+			nameservers = append(nameservers, server.String())
+		}
+	}
+
+	if len(dnsOptions) != 0 {
+		options = dnsOptions
+	}
 
 	cfile := filepath.Join(rdir, filepath.Base(hostPath))
+	if _, err = resolvconf.Build(cfile, nameservers, search, options); err != nil {
+		return "", errors.Wrapf(err, "error building resolv.conf for container %s", b.ContainerID)
+	}
 
-	if err := copyFileWithTar(hostPath, cfile); err != nil {
-		return "", errors.Wrapf(err, "error copying %q for container %q", cfile, b.ContainerID)
+	uid := int(stat.Sys().(*syscall.Stat_t).Uid)
+	gid := int(stat.Sys().(*syscall.Stat_t).Gid)
+	if chownOpts != nil {
+		uid = chownOpts.UID
+		gid = chownOpts.GID
+	}
+	if err = os.Chown(cfile, uid, gid); err != nil {
+		return "", errors.Wrapf(err, "error chowning file %q for container %q", cfile, b.ContainerID)
 	}
 
 	if err := label.Relabel(cfile, b.MountLabel, false); err != nil {
@@ -607,6 +647,17 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 	}
 
 	return cfile, nil
+}
+
+func getDNSIP(dnsServers []string) (dns []net.IP, err error) {
+	for _, i := range dnsServers {
+		result := net.ParseIP(i)
+		if result == nil {
+			return dns, errors.Errorf("invalid IP address %s", i)
+		}
+		dns = append(dns, result)
+	}
+	return dns, nil
 }
 
 // generateHosts creates a containers hosts file
@@ -1113,7 +1164,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	if !contains(volumes, "/etc/resolv.conf") {
-		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair)
+		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions)
 		if err != nil {
 			return err
 		}

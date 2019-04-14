@@ -3,9 +3,9 @@
 package unshare
 
 // #cgo CFLAGS: -Wall -Wextra
-// extern void _buildah_unshare(void);
+// extern void _containers_unshare(void);
 // void __attribute__((constructor)) init(void) {
-//   _buildah_unshare();
+//   _containers_unshare();
 // }
 import "C"
 

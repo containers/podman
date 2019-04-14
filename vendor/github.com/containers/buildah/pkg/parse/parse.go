@@ -6,7 +6,6 @@ package parse
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"net"
 	"os"
 	"path/filepath"
@@ -21,6 +20,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/sys/unix"
 )
@@ -71,6 +71,11 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 			}
 		}
 	}
+
+	dnsServers, _ := c.Flags().GetStringSlice("dns")
+	dnsSearch, _ := c.Flags().GetStringSlice("dns-search")
+	dnsOptions, _ := c.Flags().GetStringSlice("dns-option")
+
 	if _, err := units.FromHumanSize(c.Flag("shm-size").Value.String()); err != nil {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
 	}
@@ -90,13 +95,16 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		CPUSetCPUs:   c.Flag("cpuset-cpus").Value.String(),
 		CPUSetMems:   c.Flag("cpuset-mems").Value.String(),
 		CPUShares:    cpuShares,
+		DNSSearch:    dnsSearch,
+		DNSServers:   dnsServers,
+		DNSOptions:   dnsOptions,
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
 		ShmSize:      c.Flag("shm-size").Value.String(),
 		Ulimit:       append(defaultLimits, ulimit...),
 		Volumes:      volumes,
 	}
-	securityOpts, _ := c.Flags().GetStringSlice("security-opt")
+	securityOpts, _ := c.Flags().GetStringArray("security-opt")
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
 		return nil, err
 	}
