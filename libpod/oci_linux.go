@@ -133,7 +133,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 							continue
 						}
 						err = unix.Unmount(m.Mountpoint, 0)
-						if err != nil {
+						if err != nil && !os.IsNotExist(err) {
 							return errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
 						}
 					}
