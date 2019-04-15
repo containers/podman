@@ -2,7 +2,6 @@ package createconfig
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,61 +20,6 @@ import (
 
 const cpuPeriod = 100000
 
-func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
-	if len(mounts) > 0 {
-		// If we have overlappings mounts, remove them from the spec in favor of
-		// the user-added volume mounts
-		destinations := make(map[string]bool)
-		for _, mount := range mounts {
-			destinations[path.Clean(mount.Destination)] = true
-		}
-		// Copy all mounts from spec to defaultMounts, except for
-		//  - mounts overridden by a user supplied mount;
-		//  - all mounts under /dev if a user supplied /dev is present;
-		mountDev := destinations["/dev"]
-		for _, mount := range configMount {
-			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
-				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
-					// filter out everything under /dev if /dev is user-mounted
-					continue
-				}
-
-				logrus.Debugf("Adding mount %s", mount.Destination)
-				mounts = append(mounts, mount)
-			}
-		}
-		return mounts
-	}
-	return configMount
-}
-
-// Split named volumes from normal volumes
-func splitNamedVolumes(mounts []spec.Mount) ([]spec.Mount, []*libpod.ContainerNamedVolume) {
-	newMounts := make([]spec.Mount, 0)
-	namedVolumes := make([]*libpod.ContainerNamedVolume, 0)
-	for _, mount := range mounts {
-		// If it's not a named volume, append unconditionally
-		if mount.Type != TypeBind {
-			newMounts = append(newMounts, mount)
-			continue
-		}
-		// Volumes that are not named volumes must be an absolute or
-		// relative path.
-		// Volume names may not begin with a non-alphanumeric character
-		// so the HasPrefix() check is safe here.
-		if strings.HasPrefix(mount.Source, "/") || strings.HasPrefix(mount.Source, ".") {
-			newMounts = append(newMounts, mount)
-		} else {
-			namedVolume := new(libpod.ContainerNamedVolume)
-			namedVolume.Name = mount.Source
-			namedVolume.Dest = mount.Destination
-			namedVolume.Options = mount.Options
-			namedVolumes = append(namedVolumes, namedVolume)
-		}
-	}
-	return newMounts, namedVolumes
-}
-
 func getAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
 	if err != nil {
@@ -89,11 +33,11 @@ func getAvailableGids() (int64, error) {
 }
 
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
-func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spec.Spec, []*libpod.ContainerNamedVolume, error) { //nolint
+func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userMounts []spec.Mount) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
@@ -139,7 +83,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	if isRootless {
 		nGids, err := getAvailableGids()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if nGids < 5 {
 			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
@@ -214,7 +158,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
 		hostname, err = os.Hostname()
 		if err != nil {
-			return nil, nil, errors.Wrap(err, "unable to retrieve hostname")
+			return nil, errors.Wrap(err, "unable to retrieve hostname")
 		}
 	}
 	g.RemoveHostname()
@@ -304,13 +248,13 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 		// already adding them all.
 		if !rootless.IsRootless() {
 			if err := config.AddPrivilegedDevices(&g); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	} else {
 		for _, devicePath := range config.Devices {
 			if err := devicesFromPath(&g, devicePath); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
@@ -340,7 +284,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
 			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			options = strings.Split(spliti[1], ",")
 		}
@@ -384,32 +328,33 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 			g.AddMount(tmpfsMnt)
 		}
 	}
+
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
 
 	if err := addRlimits(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := addPidNS(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := addUserNS(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := addNetNS(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := addUTSNS(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := addIpcNS(config, &g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	configSpec := g.Config
 
@@ -417,7 +362,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	// NOTE: Must happen before SECCOMP
 	if !config.Privileged {
 		if err := setupCapabilities(config, configSpec); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	} else {
 		g.SetupPrivileged(true)
@@ -428,7 +373,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	if config.SeccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(config, configSpec)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		configSpec.Linux.Seccomp = seccompConfig
 	}
@@ -439,27 +384,14 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	}
 
 	// BIND MOUNTS
-	if err := config.GetVolumesFrom(runtime); err != nil {
-		return nil, nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
-	}
-
-	volumeMounts, err := config.GetVolumeMounts(configSpec.Mounts)
-	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error getting volume mounts")
-	}
-
-	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
-	//--mount
-	configSpec.Mounts = supercedeUserMounts(config.initFSMounts(), configSpec.Mounts)
-
-	// Split normal mounts and named volumes
-	newMounts, namedVolumes := splitNamedVolumes(configSpec.Mounts)
-	configSpec.Mounts = newMounts
+	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
+	// Process mounts to ensure correct options
+	configSpec.Mounts = initFSMounts(configSpec.Mounts)
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating block io")
+		return nil, errors.Wrapf(err, "error creating block io")
 	}
 	if blkio != nil {
 		configSpec.Linux.Resources.BlockIO = blkio
@@ -468,7 +400,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 
 	if rootless.IsRootless() {
 		if addedResources {
-			return nil, nil, errors.New("invalid configuration, cannot set resources with rootless containers")
+			return nil, errors.New("invalid configuration, cannot set resources with rootless containers")
 		}
 		configSpec.Linux.Resources = &spec.LinuxResources{}
 	}
@@ -476,7 +408,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
 	mounts, err := pmount.GetMounts()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	for i := range configSpec.Mounts {
 		m := &configSpec.Mounts[i]
@@ -492,7 +424,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 		}
 		mount, err := findMount(m.Source, mounts)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if mount == nil {
 			continue
@@ -510,7 +442,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spe
 		}
 	}
 
-	return configSpec, namedVolumes, nil
+	return configSpec, nil
 }
 
 func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {

@@ -205,7 +205,8 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues, ctx context.Context, runtime *
 				return pod, errors.Errorf("Directories are the only supported HostPath type")
 			}
 		}
-		if err := shared.ValidateVolumeHostDir(hostPath.Path); err != nil {
+
+		if err := createconfig.ValidateVolumeHostDir(hostPath.Path); err != nil {
 			return pod, errors.Wrapf(err, "Error in parsing HostPath in YAML")
 		}
 		volumes[volume.Name] = hostPath.Path
@@ -351,7 +352,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
-		if err := shared.ValidateVolumeCtrDir(volume.MountPath); err != nil {
+		if err := createconfig.ValidateVolumeCtrDir(volume.MountPath); err != nil {
 			return nil, errors.Wrapf(err, "error in parsing MountPath")
 		}
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", host_path, volume.MountPath))

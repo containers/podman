@@ -25,7 +25,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/google/shlex"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -341,18 +340,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 		blkioWeight = uint16(u)
 	}
-	var mountList []spec.Mount
-	if mountList, err = parseMounts(c.StringArray("mount")); err != nil {
-		return nil, err
-	}
-
-	if err = parseVolumes(c.StringArray("volume")); err != nil {
-		return nil, err
-	}
-
-	if err = parseVolumesFrom(c.StringSlice("volumes-from")); err != nil {
-		return nil, err
-	}
 
 	tty := c.Bool("tty")
 
@@ -636,6 +623,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		HTTPProxy:   c.Bool("http-proxy"),
 		NoHosts:     c.Bool("no-hosts"),
 		IDMappings:  idmappings,
+		Init:        c.Bool("init"),
+		InitPath:    c.String("init-path"),
 		Image:       imageName,
 		ImageID:     imageID,
 		Interactive: c.Bool("interactive"),
@@ -696,25 +685,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Tty:         tty,
 		User:        user,
 		UsernsMode:  usernsMode,
-		Mounts:      mountList,
+		MountsFlag:  c.StringArray("mount"),
 		Volumes:     c.StringArray("volume"),
 		WorkDir:     workDir,
 		Rootfs:      rootfs,
 		VolumesFrom: c.StringSlice("volumes-from"),
 		Syslog:      c.Bool("syslog"),
-	}
-	if c.Bool("init") {
-		initPath := c.String("init-path")
-		if initPath == "" {
-			rtc, err := runtime.GetConfig()
-			if err != nil {
-				return nil, err
-			}
-			initPath = rtc.InitPath
-		}
-		if err := config.AddContainerInitBinary(initPath); err != nil {
-			return nil, err
-		}
 	}
 
 	if config.Privileged {

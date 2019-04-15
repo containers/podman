@@ -1,7 +1,6 @@
 package createconfig
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -26,12 +24,6 @@ import (
 const (
 	bps = iota
 	iops
-	// TypeBind is the type for mounting host dir
-	TypeBind = "bind"
-	// TypeVolume is the type for remote storage volumes
-	// TypeVolume = "volume"  // re-enable upon use
-	// TypeTmpfs is the type for mounting tmpfs
-	TypeTmpfs = "tmpfs"
 )
 
 // CreateResourceConfig represents resource elements in CreateConfig
@@ -87,6 +79,8 @@ type CreateConfig struct {
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
 	HTTPProxy          bool
+	Init               bool   // init
+	InitPath           string //init-path
 	Image              string
 	ImageID            string
 	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config
@@ -125,14 +119,16 @@ type CreateConfig struct {
 	UsernsMode         namespaces.UsernsMode //userns
 	User               string                //user
 	UtsMode            namespaces.UTSMode    //uts
-	Mounts             []spec.Mount          //mounts
-	Volumes            []string              //volume
+	Mounts             []spec.Mount
+	MountsFlag         []string // mounts
+	NamedVolumes       []*libpod.ContainerNamedVolume
+	Volumes            []string //volume
 	VolumesFrom        []string
-	WorkDir            string                         //workdir
-	LabelOpts          []string                       //SecurityOpts
-	NoNewPrivs         bool                           //SecurityOpts
-	ApparmorProfile    string                         //SecurityOpts
-	SeccompProfilePath string                         //SecurityOpts
+	WorkDir            string   //workdir
+	LabelOpts          []string //SecurityOpts
+	NoNewPrivs         bool     //SecurityOpts
+	ApparmorProfile    string   //SecurityOpts
+	SeccompProfilePath string   //SecurityOpts
 	SecurityOpts       []string
 	Rootfs             string
 	Syslog             bool // Whether to enable syslog on exit commands
@@ -144,222 +140,6 @@ func fmPtr(i int64) *os.FileMode { fm := os.FileMode(i); return &fm }
 // CreateBlockIO returns a LinuxBlockIO struct from a CreateConfig
 func (c *CreateConfig) CreateBlockIO() (*spec.LinuxBlockIO, error) {
 	return c.createBlockIO()
-}
-
-// AddContainerInitBinary adds the init binary specified by path iff the
-// container will run in a private PID namespace that is not shared with the
-// host or another pre-existing container, where an init-like process is
-// already running.
-//
-// Note that AddContainerInitBinary prepends "/dev/init" "--" to the command
-// to execute the bind-mounted binary as PID 1.
-func (c *CreateConfig) AddContainerInitBinary(path string) error {
-	if path == "" {
-		return fmt.Errorf("please specify a path to the container-init binary")
-	}
-	if !c.PidMode.IsPrivate() {
-		return fmt.Errorf("cannot add init binary as PID 1 (PID namespace isn't private)")
-	}
-	if c.Systemd {
-		return fmt.Errorf("cannot use container-init binary with systemd")
-	}
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return errors.Wrap(err, "container-init binary not found on the host")
-	}
-	c.Command = append([]string{"/dev/init", "--"}, c.Command...)
-	c.Mounts = append(c.Mounts, spec.Mount{
-		Destination: "/dev/init",
-		Type:        TypeBind,
-		Source:      path,
-		Options:     []string{TypeBind, "ro"},
-	})
-	return nil
-}
-
-func processOptions(options []string) []string {
-	var (
-		foundrw, foundro bool
-		rootProp         string
-	)
-	options = append(options, "rbind")
-	for _, opt := range options {
-		switch opt {
-		case "rw":
-			foundrw = true
-		case "ro":
-			foundro = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
-	}
-	if !foundrw && !foundro {
-		options = append(options, "rw")
-	}
-	if rootProp == "" {
-		options = append(options, "rprivate")
-	}
-	return options
-}
-
-func (c *CreateConfig) initFSMounts() []spec.Mount {
-	var mounts []spec.Mount
-	for _, m := range c.Mounts {
-		m.Options = processOptions(m.Options)
-		if m.Type == "tmpfs" {
-			m.Options = append(m.Options, "tmpcopyup")
-		} else {
-			mounts = append(mounts, m)
-		}
-	}
-	return mounts
-}
-
-// GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
-func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, error) {
-	m := []spec.Mount{}
-	for _, i := range c.Volumes {
-		var options []string
-		spliti := strings.Split(i, ":")
-		if len(spliti) > 2 {
-			options = strings.Split(spliti[2], ",")
-		}
-
-		m = append(m, spec.Mount{
-			Destination: spliti[1],
-			Type:        string(TypeBind),
-			Source:      spliti[0],
-			Options:     processOptions(options),
-		})
-
-		logrus.Debugf("User mount %s:%s options %v", spliti[0], spliti[1], options)
-	}
-
-	if c.ImageVolumeType == "ignore" {
-		return m, nil
-	}
-
-	for vol := range c.BuiltinImgVolumes {
-		if libpod.MountExists(specMounts, vol) || libpod.MountExists(m, vol) {
-			continue
-		}
-
-		mount := spec.Mount{
-			Destination: vol,
-			Type:        c.ImageVolumeType,
-			Options:     []string{"rprivate", "rw", "nodev"},
-		}
-		if c.ImageVolumeType == "tmpfs" {
-			mount.Source = "tmpfs"
-			mount.Options = append(mount.Options, "tmpcopyup")
-		} else {
-			// TODO: Move support for this and tmpfs into libpod
-			// Should tmpfs also be handled as named volumes? Wouldn't be hard
-			// This will cause a new local Volume to be created on your system
-			mount.Source = stringid.GenerateNonCryptoID()
-			mount.Options = append(mount.Options, TypeBind)
-		}
-		m = append(m, mount)
-	}
-
-	return m, nil
-}
-
-// GetVolumesFrom reads the create-config artifact of the container to get volumes from
-// and adds it to c.Volumes of the current container.
-func (c *CreateConfig) GetVolumesFrom(runtime *libpod.Runtime) error {
-	if os.Geteuid() != 0 {
-		return nil
-	}
-
-	for _, vol := range c.VolumesFrom {
-		options := ""
-		splitVol := strings.SplitN(vol, ":", 2)
-		if len(splitVol) == 2 {
-			options = splitVol[1]
-		}
-		ctr, err := runtime.LookupContainer(splitVol[0])
-		if err != nil {
-			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
-		}
-
-		logrus.Debugf("Adding volumes from container %s", ctr.ID())
-
-		// Look up the container's user volumes. This gets us the
-		// destinations of all mounts the user added to the container.
-		userVolumesArr := ctr.UserVolumes()
-
-		// We're going to need to access them a lot, so convert to a map
-		// to reduce looping.
-		// We'll also use the map to indicate if we missed any volumes along the way.
-		userVolumes := make(map[string]bool)
-		for _, dest := range userVolumesArr {
-			userVolumes[dest] = false
-		}
-
-		// Now we get the container's spec and loop through its volumes
-		// and append them in if we can find them.
-		spec := ctr.Spec()
-		if spec == nil {
-			return errors.Errorf("error retrieving container %s spec", ctr.ID())
-		}
-		for _, mnt := range spec.Mounts {
-			if mnt.Type != TypeBind {
-				continue
-			}
-			if _, exists := userVolumes[mnt.Destination]; exists {
-				userVolumes[mnt.Destination] = true
-				localOptions := options
-				if localOptions == "" {
-					localOptions = strings.Join(mnt.Options, ",")
-				}
-				c.Volumes = append(c.Volumes, fmt.Sprintf("%s:%s:%s", mnt.Source, mnt.Destination, localOptions))
-			}
-		}
-
-		// We're done with the spec mounts. Add named volumes.
-		// Add these unconditionally - none of them are automatically
-		// part of the container, as some spec mounts are.
-		namedVolumes := ctr.NamedVolumes()
-		for _, namedVol := range namedVolumes {
-			if _, exists := userVolumes[namedVol.Dest]; exists {
-				userVolumes[namedVol.Dest] = true
-			}
-			localOptions := options
-			if localOptions == "" {
-				localOptions = strings.Join(namedVol.Options, ",")
-			}
-			c.Volumes = append(c.Volumes, fmt.Sprintf("%s:%s:%s", namedVol.Name, namedVol.Dest, localOptions))
-		}
-
-		// Check if we missed any volumes
-		for volDest, found := range userVolumes {
-			if !found {
-				logrus.Warnf("Unable to match volume %s from container %s for volumes-from", volDest, ctr.ID())
-			}
-		}
-	}
-	return nil
-}
-
-//GetTmpfsMounts takes user provided input for Tmpfs mounts and creates Mount structs
-func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
-	var m []spec.Mount
-	for _, i := range c.Tmpfs {
-		// Default options if nothing passed
-		options := []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "size=65536k"}
-		spliti := strings.Split(i, ":")
-		destPath := spliti[0]
-		if len(spliti) > 1 {
-			options = strings.Split(spliti[1], ",")
-		}
-		m = append(m, spec.Mount{
-			Destination: destPath,
-			Type:        string(TypeTmpfs),
-			Options:     options,
-			Source:      string(TypeTmpfs),
-		})
-	}
-	return m
 }
 
 func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, error) {
@@ -395,7 +175,7 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
-func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod, namedVolumes []*libpod.ContainerNamedVolume) ([]libpod.CtrCreateOption, error) {
+func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod, mounts []spec.Mount, namedVolumes []*libpod.ContainerNamedVolume) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -422,22 +202,18 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 	}
 
-	if len(c.Volumes) != 0 {
-		// Volumes consist of multiple, comma-delineated fields
-		// The image spec only includes one part of that, so drop the
-		// others, if they are included
-		volumes := make([]string, 0, len(c.Volumes))
-		for _, vol := range c.Volumes {
-			// We always want the volume destination
-			splitVol := strings.SplitN(vol, ":", 3)
-			if len(splitVol) > 1 {
-				volumes = append(volumes, splitVol[1])
-			} else {
-				volumes = append(volumes, splitVol[0])
-			}
+	if len(mounts) != 0 || len(namedVolumes) != 0 {
+		destinations := []string{}
+
+		// Take all mount and named volume destinations.
+		for _, mount := range mounts {
+			destinations = append(destinations, mount.Destination)
+		}
+		for _, volume := range namedVolumes {
+			destinations = append(destinations, volume.Dest)
 		}
 
-		options = append(options, libpod.WithUserVolumes(volumes))
+		options = append(options, libpod.WithUserVolumes(destinations))
 	}
 
 	if len(namedVolumes) != 0 {
