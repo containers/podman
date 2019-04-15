@@ -23,6 +23,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			exportCommand.InputArgs = args
 			exportCommand.GlobalFlags = MainGlobalOpts
+			exportCommand.Remote = remoteclient
 			return exportCmd(&exportCommand)
 		},
 		Example: `podman export ctrID > myCtr.tar

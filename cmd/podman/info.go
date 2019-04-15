@@ -28,6 +28,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			infoCommand.InputArgs = args
 			infoCommand.GlobalFlags = MainGlobalOpts
+			infoCommand.Remote = remoteclient
 			return infoCmd(&infoCommand)
 		},
 		Example: `podman info`,

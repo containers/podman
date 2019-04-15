@@ -28,6 +28,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			volumePruneCommand.InputArgs = args
 			volumePruneCommand.GlobalFlags = MainGlobalOpts
+			volumePruneCommand.Remote = remoteclient
 			return volumePruneCmd(&volumePruneCommand)
 		},
 	}

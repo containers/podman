@@ -25,6 +25,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			startCommand.InputArgs = args
 			startCommand.GlobalFlags = MainGlobalOpts
+			startCommand.Remote = remoteclient
 			return startCmd(&startCommand)
 		},
 		Example: `podman start --latest

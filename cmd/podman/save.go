@@ -33,6 +33,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			saveCommand.InputArgs = args
 			saveCommand.GlobalFlags = MainGlobalOpts
+			saveCommand.Remote = remoteclient
 			return saveCmd(&saveCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

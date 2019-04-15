@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			containerKubeCommand.InputArgs = args
 			containerKubeCommand.GlobalFlags = MainGlobalOpts
+			containerKubeCommand.Remote = remoteclient
 			return generateKubeYAMLCmd(&containerKubeCommand)
 		},
 		Example: `podman generate kube ctrID

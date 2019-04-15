@@ -30,6 +30,7 @@ Executes a command as described by a container image label.
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runlabelCommand.InputArgs = args
 			runlabelCommand.GlobalFlags = MainGlobalOpts
+			runlabelCommand.Remote = remoteclient
 			return runlabelCmd(&runlabelCommand)
 		},
 		Example: `podman container runlabel run imageID

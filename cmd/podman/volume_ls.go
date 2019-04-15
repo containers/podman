@@ -54,6 +54,7 @@ and the output format can be changed to JSON or a user specified Go template.`
 		RunE: func(cmd *cobra.Command, args []string) error {
 			volumeLsCommand.InputArgs = args
 			volumeLsCommand.GlobalFlags = MainGlobalOpts
+			volumeLsCommand.Remote = remoteclient
 			return volumeLsCmd(&volumeLsCommand)
 		},
 	}

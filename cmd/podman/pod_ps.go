@@ -127,6 +127,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podPsCommand.InputArgs = args
 			podPsCommand.GlobalFlags = MainGlobalOpts
+			podPsCommand.Remote = remoteclient
 			return podPsCmd(&podPsCommand)
 		},
 	}

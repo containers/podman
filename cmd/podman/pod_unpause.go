@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podUnpauseCommand.InputArgs = args
 			podUnpauseCommand.GlobalFlags = MainGlobalOpts
+			podUnpauseCommand.Remote = remoteclient
 			return podUnpauseCmd(&podUnpauseCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

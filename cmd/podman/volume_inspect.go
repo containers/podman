@@ -19,6 +19,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			volumeInspectCommand.InputArgs = args
 			volumeInspectCommand.GlobalFlags = MainGlobalOpts
+			volumeInspectCommand.Remote = remoteclient
 			return volumeInspectCmd(&volumeInspectCommand)
 		},
 		Example: `podman volume inspect myvol

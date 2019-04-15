@@ -26,6 +26,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			execCommand.InputArgs = args
 			execCommand.GlobalFlags = MainGlobalOpts
+			execCommand.Remote = remoteclient
 			return execCmd(&execCommand)
 		},
 		Example: `podman exec -it ctrID ls

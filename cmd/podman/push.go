@@ -31,6 +31,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pushCommand.InputArgs = args
 			pushCommand.GlobalFlags = MainGlobalOpts
+			pushCommand.Remote = remoteclient
 			return pushCmd(&pushCommand)
 		},
 		Example: `podman push imageID docker://registry.example.com/repository:tag

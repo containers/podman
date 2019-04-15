@@ -23,6 +23,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			portCommand.InputArgs = args
 			portCommand.GlobalFlags = MainGlobalOpts
+			portCommand.Remote = remoteclient
 			return portCmd(&portCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

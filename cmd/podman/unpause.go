@@ -23,6 +23,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			unpauseCommand.InputArgs = args
 			unpauseCommand.GlobalFlags = MainGlobalOpts
+			unpauseCommand.Remote = remoteclient
 			return unpauseCmd(&unpauseCommand)
 		},
 		Example: `podman unpause ctrID

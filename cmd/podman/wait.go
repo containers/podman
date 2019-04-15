@@ -21,6 +21,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			waitCommand.InputArgs = args
 			waitCommand.GlobalFlags = MainGlobalOpts
+			waitCommand.Remote = remoteclient
 			return waitCmd(&waitCommand)
 		},
 		Example: `podman wait --latest

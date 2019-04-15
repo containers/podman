@@ -33,6 +33,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inspectCommand.InputArgs = args
 			inspectCommand.GlobalFlags = MainGlobalOpts
+			inspectCommand.Remote = remoteclient
 			return inspectCmd(&inspectCommand)
 		},
 		Example: `podman inspect alpine

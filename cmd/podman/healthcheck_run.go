@@ -20,6 +20,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			healthcheckRunCommand.InputArgs = args
 			healthcheckRunCommand.GlobalFlags = MainGlobalOpts
+			healthcheckRunCommand.Remote = remoteclient
 			return healthCheckCmd(&healthcheckRunCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

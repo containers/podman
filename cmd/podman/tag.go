@@ -18,6 +18,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tagCommand.InputArgs = args
 			tagCommand.GlobalFlags = MainGlobalOpts
+			tagCommand.Remote = remoteclient
 			return tagCmd(&tagCommand)
 		},
 		Example: `podman tag 0e3bbc2 fedora:latest

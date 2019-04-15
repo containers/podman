@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podKillCommand.InputArgs = args
 			podKillCommand.GlobalFlags = MainGlobalOpts
+			podKillCommand.Remote = remoteclient
 			return podKillCmd(&podKillCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

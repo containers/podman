@@ -96,6 +96,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imagesCommand.InputArgs = args
 			imagesCommand.GlobalFlags = MainGlobalOpts
+			imagesCommand.Remote = remoteclient
 			return imagesCmd(&imagesCommand)
 		},
 		Example: `podman images --format json

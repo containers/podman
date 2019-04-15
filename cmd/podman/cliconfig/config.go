@@ -8,6 +8,7 @@ type PodmanCommand struct {
 	*cobra.Command
 	InputArgs   []string
 	GlobalFlags MainFlags
+	Remote      bool
 }
 
 type MainFlags struct {

@@ -20,6 +20,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			killCommand.InputArgs = args
 			killCommand.GlobalFlags = MainGlobalOpts
+			killCommand.Remote = remoteclient
 			return killCmd(&killCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
