@@ -89,7 +89,7 @@ func getAvailableGids() (int64, error) {
 }
 
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
-func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
+func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //nolint
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {

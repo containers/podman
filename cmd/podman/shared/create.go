@@ -732,12 +732,7 @@ type namespace interface {
 }
 
 func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
-	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	options, err := createConfig.GetContainerCreateOptions(r, pod)
+	runtimeSpec, options, err := createConfig.MakeContainerConfig(r, pod)
 	if err != nil {
 		return nil, err
 	}
