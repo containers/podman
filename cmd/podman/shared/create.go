@@ -489,17 +489,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	// ENVIRONMENT VARIABLES
-	env := defaultEnvVariables
-	if data != nil {
-		for _, e := range data.Config.Env {
-			split := strings.SplitN(e, "=", 2)
-			if len(split) > 1 {
-				env[split[0]] = split[1]
-			} else {
-				env[split[0]] = ""
-			}
-		}
-	}
+	env := EnvVariablesFromData(data)
 	if err := parse.ReadKVStrings(env, c.StringSlice("env-file"), c.StringArray("env")); err != nil {
 		return nil, errors.Wrapf(err, "unable to process environment variables")
 	}
@@ -779,6 +769,23 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 var defaultEnvVariables = map[string]string{
 	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	"TERM": "xterm",
+}
+
+// EnvVariablesFromData gets sets the default environment variables
+// for containers, and reads the variables from the image data, if present.
+func EnvVariablesFromData(data *inspect.ImageData) map[string]string {
+	env := defaultEnvVariables
+	if data != nil {
+		for _, e := range data.Config.Env {
+			split := strings.SplitN(e, "=", 2)
+			if len(split) > 1 {
+				env[split[0]] = split[1]
+			} else {
+				env[split[0]] = ""
+			}
+		}
+	}
+	return env
 }
 
 func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig, error) {

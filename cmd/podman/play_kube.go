@@ -236,7 +236,6 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
-		envs            map[string]string
 	)
 
 	// The default for MemorySwappiness is -1, not 0
@@ -298,9 +297,10 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	if len(containerConfig.WorkDir) == 0 {
 		containerConfig.WorkDir = "/"
 	}
-	if len(containerYAML.Env) > 0 {
-		envs = make(map[string]string)
-	}
+
+	// Set default environment variables and incorporate data from image, if necessary
+	envs := shared.EnvVariablesFromData(imageData)
+
 	// Environment Variables
 	for _, e := range containerYAML.Env {
 		envs[e.Name] = e.Value
