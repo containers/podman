@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -38,11 +37,6 @@ func init() {
 }
 
 func runCmd(c *cliconfig.RunValues) error {
-	if !remote && c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
-		defer span.Finish()
-	}
-
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}

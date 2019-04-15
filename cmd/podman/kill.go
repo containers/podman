@@ -4,7 +4,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/docker/pkg/signal"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -46,11 +45,6 @@ func init() {
 
 // killCmd kills one or more containers with a signal
 func killCmd(c *cliconfig.KillValues) error {
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "killCmd")
-		defer span.Finish()
-	}
-
 	// Check if the signalString provided by the user is valid
 	// Invalid signals will return err
 	killSignal, err := signal.ParseSignal(c.Signal)

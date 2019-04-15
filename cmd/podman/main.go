@@ -12,7 +12,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -23,7 +22,6 @@ import (
 var (
 	exitCode = 125
 	Ctx      context.Context
-	span     opentracing.Span
 	closer   io.Closer
 )
 
@@ -71,6 +69,12 @@ var rootCmd = &cobra.Command{
 	},
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
 		return after(cmd, args)
+	},
+	PreRun: func(cmd *cobra.Command, args []string) {
+		startTrace()
+	},
+	PostRun: func(cmd *cobra.Command, args []string) {
+		stopTrace()
 	},
 	SilenceUsage:  true,
 	SilenceErrors: true,

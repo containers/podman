@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -42,11 +41,6 @@ func init() {
 }
 
 func createCmd(c *cliconfig.CreateValues) error {
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "createCmd")
-		defer span.Finish()
-	}
-
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
@@ -66,11 +60,6 @@ func createCmd(c *cliconfig.CreateValues) error {
 }
 
 func createInit(c *cliconfig.PodmanCommand) error {
-	if !remote && c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "createInit")
-		defer span.Finish()
-	}
-
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
 	// the hostname (see https://github.com/containers/libpod/issues/1367).
 

@@ -41,3 +41,6 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
+
+func startTrace() {}
+func stopTrace()  {}

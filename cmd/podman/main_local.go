@@ -24,6 +24,8 @@ import (
 
 const remote = false
 
+var span opentracing.Span
+
 func init() {
 
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CGroupManager, "cgroup-manager", "", "Cgroup manager to use (cgroupfs or systemd, default systemd)")
@@ -152,4 +154,13 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		os.Exit(ret)
 	}
 	return nil
+}
+func startTrace() {
+	if MainGlobalOpts.Trace {
+		span, _ = opentracing.StartSpanFromContext(Ctx, "stopCmd")
+	}
+}
+
+func stopTrace() {
+	defer span.Finish()
 }

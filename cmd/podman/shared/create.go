@@ -28,7 +28,6 @@ import (
 	"github.com/google/shlex"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -39,11 +38,6 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		err         error
 		cidFile     *os.File
 	)
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(ctx, "createContainer")
-		defer span.Finish()
-	}
-
 	rtc, err := runtime.GetConfig()
 	if err != nil {
 		return nil, nil, err

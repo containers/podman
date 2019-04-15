@@ -14,7 +14,6 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
-	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -67,11 +66,6 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 			exitCode = 1
 		}
 	}()
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "pullCmd")
-		defer span.Finish()
-	}
-
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 
 	if err != nil {

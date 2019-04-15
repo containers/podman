@@ -4,7 +4,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -48,11 +47,6 @@ func init() {
 func stopCmd(c *cliconfig.StopValues) error {
 	if c.Flag("timeout").Changed && c.Flag("time").Changed {
 		return errors.New("the --timeout and --time flags are mutually exclusive")
-	}
-
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
-		defer span.Finish()
 	}
 
 	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
