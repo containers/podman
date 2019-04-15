@@ -64,6 +64,10 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, err
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
 	}
 
+	if renumber {
+		options = append(options, libpod.WithRenumber())
+	}
+
 	// Only set this if the user changes storage config on the command line
 	if storageSet {
 		options = append(options, libpod.WithStorageConfig(storageOpts))
