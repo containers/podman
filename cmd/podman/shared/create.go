@@ -114,6 +114,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			}
 		}
 	}
+
 	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return nil, nil, err
@@ -123,7 +124,16 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// at this point. The rest is done by WithOptions.
 	createConfig.HealthCheck = healthCheck
 
-	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, nil)
+	// TODO: Should be able to return this from ParseCreateOpts
+	var pod *libpod.Pod
+	if createConfig.Pod != "" {
+		pod, err = runtime.LookupPod(createConfig.Pod)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "error looking up pod to join")
+		}
+	}
+
+	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 	if err != nil {
 		return nil, nil, err
 	}

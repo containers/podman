@@ -408,16 +408,10 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithSystemd())
 	}
 	if c.Name != "" {
-		logrus.Debugf("appending name %s", c.Name)
+		logrus.Debugf("setting container name %s", c.Name)
 		options = append(options, libpod.WithName(c.Name))
 	}
-	if c.Pod != "" || pod != nil {
-		if pod == nil {
-			pod, err = runtime.LookupPod(c.Pod)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to add container to pod %s", c.Pod)
-			}
-		}
+	if c.Pod != "" {
 		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
 	}
