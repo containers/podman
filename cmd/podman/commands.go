@@ -49,8 +49,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_cleanupCommand,
 		_commitCommand,
 		_execCommand,
-		_exportCommand,
-		_killCommand,
 		_mountCommand,
 		_pauseCommand,
 		_portCommand,
@@ -58,7 +56,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_refreshCommand,
 		_restartCommand,
 		_restoreCommand,
-		_rmCommand,
 		_runlabelCommand,
 		_startCommand,
 		_statsCommand,
@@ -66,7 +63,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_topCommand,
 		_umountCommand,
 		_unpauseCommand,
-		_waitCommand,
 	}
 }
 

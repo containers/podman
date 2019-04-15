@@ -54,10 +54,14 @@ var (
 		_containerExistsCommand,
 		_contInspectSubCommand,
 		_diffCommand,
+		_exportCommand,
 		_createCommand,
+		_killCommand,
 		_listSubCommand,
 		_logsCommand,
 		_runCommand,
+		_rmCommand,
+		_waitCommand,
 	}
 )
 
