@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -43,15 +42,8 @@ func init() {
 func prunePods(runtime *adapter.LocalRuntime, ctx context.Context, maxWorkers int, force bool) error {
 	var deleteFuncs []shared.ParallelWorkerInput
 
-	filter := func(p *libpod.Pod) bool {
-		state, err := shared.GetPodStatus(p)
-		// pod states should be the same
-		if state == shared.PodStateStopped || (state == shared.PodStateExited && err == nil) {
-			return true
-		}
-		return false
-	}
-	delPods, err := runtime.Pods(filter)
+	states := []string{shared.PodStateStopped, shared.PodStateExited}
+	delPods, err := runtime.GetPodsByStatus(states)
 	if err != nil {
 		return err
 	}

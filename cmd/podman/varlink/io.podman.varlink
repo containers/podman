@@ -1053,6 +1053,9 @@ method TopPod(pod: string, latest: bool, descriptors: []string) -> (stats: []str
 # ~~~
 method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
 
+# GetPodsByStatus searches for pods whose status is included in statuses
+method GetPodsByStatus(statuses: []string) -> (pods: []string)
+
 # ImageExists talks a full or partial image ID or name and returns an int as to whether
 # the image exists in local storage. An int result of 0 means the image does exist in
 # local storage; whereas 1 indicates the image does not exists in local storage.
