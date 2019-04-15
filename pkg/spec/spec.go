@@ -89,11 +89,11 @@ func getAvailableGids() (int64, error) {
 }
 
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
-func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //nolint
+func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime) (*spec.Spec, []*libpod.ContainerNamedVolume, error) { //nolint
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount("/dev/shm")
@@ -139,7 +139,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	if isRootless {
 		nGids, err := getAvailableGids()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if nGids < 5 {
 			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
@@ -214,7 +214,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
 		hostname, err = os.Hostname()
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to retrieve hostname")
+			return nil, nil, errors.Wrap(err, "unable to retrieve hostname")
 		}
 	}
 	g.RemoveHostname()
@@ -304,13 +304,13 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 		// already adding them all.
 		if !rootless.IsRootless() {
 			if err := config.AddPrivilegedDevices(&g); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	} else {
 		for _, devicePath := range config.Devices {
 			if err := devicesFromPath(&g, devicePath); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
@@ -340,7 +340,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 		spliti := strings.SplitN(i, ":", 2)
 		if len(spliti) > 1 {
 			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			options = strings.Split(spliti[1], ",")
 		}
@@ -389,27 +389,27 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	}
 
 	if err := addRlimits(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := addPidNS(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := addUserNS(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := addNetNS(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := addUTSNS(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := addIpcNS(config, &g); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	configSpec := g.Config
 
@@ -417,7 +417,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	// NOTE: Must happen before SECCOMP
 	if !config.Privileged {
 		if err := setupCapabilities(config, configSpec); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		g.SetupPrivileged(true)
@@ -428,7 +428,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	if config.SeccompProfilePath != "unconfined" {
 		seccompConfig, err := getSeccompConfig(config, configSpec)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		configSpec.Linux.Seccomp = seccompConfig
 	}
@@ -439,13 +439,13 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	}
 
 	// BIND MOUNTS
-	if err := config.GetVolumesFrom(); err != nil {
-		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
+	if err := config.GetVolumesFrom(runtime); err != nil {
+		return nil, nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
 	}
 
 	volumeMounts, err := config.GetVolumeMounts(configSpec.Mounts)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting volume mounts")
+		return nil, nil, errors.Wrapf(err, "error getting volume mounts")
 	}
 
 	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
@@ -455,12 +455,11 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	// Split normal mounts and named volumes
 	newMounts, namedVolumes := splitNamedVolumes(configSpec.Mounts)
 	configSpec.Mounts = newMounts
-	config.NamedVolumes = namedVolumes
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating block io")
+		return nil, nil, errors.Wrapf(err, "error creating block io")
 	}
 	if blkio != nil {
 		configSpec.Linux.Resources.BlockIO = blkio
@@ -469,7 +468,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 
 	if rootless.IsRootless() {
 		if addedResources {
-			return nil, errors.New("invalid configuration, cannot set resources with rootless containers")
+			return nil, nil, errors.New("invalid configuration, cannot set resources with rootless containers")
 		}
 		configSpec.Linux.Resources = &spec.LinuxResources{}
 	}
@@ -477,7 +476,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
 	mounts, err := pmount.GetMounts()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for i := range configSpec.Mounts {
 		m := &configSpec.Mounts[i]
@@ -493,7 +492,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 		}
 		mount, err := findMount(m.Source, mounts)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if mount == nil {
 			continue
@@ -511,7 +510,7 @@ func (config *CreateConfig) createConfigToOCISpec() (*spec.Spec, error) { //noli
 		}
 	}
 
-	return configSpec, nil
+	return configSpec, namedVolumes, nil
 }
 
 func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {

@@ -281,7 +281,6 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	// The default for MemorySwappiness is -1, not 0
 	containerConfig.Resources.MemorySwappiness = -1
 
-	containerConfig.Runtime = runtime
 	containerConfig.Image = containerYAML.Image
 	containerConfig.ImageID = newImage.ID()
 	containerConfig.Name = containerYAML.Name

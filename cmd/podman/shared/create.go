@@ -139,7 +139,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	return ctr, createConfig, nil
 }
 
-func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
+func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *libpod.Runtime) error {
 	var (
 		labelOpts []string
 	)
@@ -147,7 +147,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	if config.PidMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
 	} else if config.PidMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(config.PidMode.Container())
+		ctr, err := runtime.LookupContainer(config.PidMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
@@ -161,7 +161,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	if config.IpcMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
 	} else if config.IpcMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(config.IpcMode.Container())
+		ctr, err := runtime.LookupContainer(config.IpcMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
@@ -604,7 +604,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	memorySwappiness := c.Int64("memory-swappiness")
 
 	config := &cc.CreateConfig{
-		Runtime:           runtime,
 		Annotations:       annotations,
 		BuiltinImgVolumes: ImageVolumes,
 		ConmonPidFile:     c.String("conmon-pidfile"),
@@ -711,7 +710,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if config.Privileged {
 		config.LabelOpts = label.DisableSecOpt()
 	} else {
-		if err := parseSecurityOpt(config, c.StringArray("security-opt")); err != nil {
+		if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
 			return nil, err
 		}
 	}

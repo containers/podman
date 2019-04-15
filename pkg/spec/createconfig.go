@@ -65,7 +65,6 @@ type CreateResourceConfig struct {
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
 type CreateConfig struct {
-	Runtime            *libpod.Runtime
 	Annotations        map[string]string
 	Args               []string
 	CapAdd             []string // cap-add
@@ -129,7 +128,6 @@ type CreateConfig struct {
 	Mounts             []spec.Mount          //mounts
 	Volumes            []string              //volume
 	VolumesFrom        []string
-	NamedVolumes       []*libpod.ContainerNamedVolume // Filled in by CreateConfigToOCISpec
 	WorkDir            string                         //workdir
 	LabelOpts          []string                       //SecurityOpts
 	NoNewPrivs         bool                           //SecurityOpts
@@ -268,7 +266,7 @@ func (c *CreateConfig) GetVolumeMounts(specMounts []spec.Mount) ([]spec.Mount, e
 
 // GetVolumesFrom reads the create-config artifact of the container to get volumes from
 // and adds it to c.Volumes of the current container.
-func (c *CreateConfig) GetVolumesFrom() error {
+func (c *CreateConfig) GetVolumesFrom(runtime *libpod.Runtime) error {
 	if os.Geteuid() != 0 {
 		return nil
 	}
@@ -279,7 +277,7 @@ func (c *CreateConfig) GetVolumesFrom() error {
 		if len(splitVol) == 2 {
 			options = splitVol[1]
 		}
-		ctr, err := c.Runtime.LookupContainer(splitVol[0])
+		ctr, err := runtime.LookupContainer(splitVol[0])
 		if err != nil {
 			return errors.Wrapf(err, "error looking up container %q", splitVol[0])
 		}
@@ -364,8 +362,8 @@ func (c *CreateConfig) GetTmpfsMounts() []spec.Mount {
 	return m
 }
 
-func (c *CreateConfig) createExitCommand() ([]string, error) {
-	config, err := c.Runtime.GetConfig()
+func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, error) {
+	config, err := runtime.GetConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -397,7 +395,7 @@ func (c *CreateConfig) createExitCommand() ([]string, error) {
 }
 
 // GetContainerCreateOptions takes a CreateConfig and returns a slice of CtrCreateOptions
-func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
+func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod, namedVolumes []*libpod.ContainerNamedVolume) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -448,8 +446,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithUserVolumes(volumes))
 	}
 
-	if len(c.NamedVolumes) != 0 {
-		options = append(options, libpod.WithNamedVolumes(c.NamedVolumes))
+	if len(namedVolumes) != 0 {
+		options = append(options, libpod.WithNamedVolumes(namedVolumes))
 	}
 
 	if len(c.Command) != 0 {
@@ -485,7 +483,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 			return nil, err
 		}
 	} else if c.NetMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.NetMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.NetMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.NetMode.Container())
 		}
@@ -496,7 +494,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	if c.PidMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.PidMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.PidMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.PidMode.Container())
 		}
@@ -505,7 +503,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	if c.IpcMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.IpcMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.IpcMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.IpcMode.Container())
 		}
@@ -517,7 +515,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithUTSNSFromPod(pod))
 	}
 	if c.UtsMode.IsContainer() {
-		connectedCtr, err := c.Runtime.LookupContainer(c.UtsMode.Container())
+		connectedCtr, err := runtime.LookupContainer(c.UtsMode.Container())
 		if err != nil {
 			return nil, errors.Wrapf(err, "container %q not found", c.UtsMode.Container())
 		}
@@ -593,7 +591,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	// Always use a cleanup process to clean up Podman after termination
-	exitCmd, err := c.createExitCommand()
+	exitCmd, err := c.createExitCommand(runtime)
 	if err != nil {
 		return nil, err
 	}

@@ -8,12 +8,12 @@ import (
 // MakeContainerConfig generates all configuration necessary to start a
 // container with libpod from a completed CreateConfig struct.
 func (config *CreateConfig) MakeContainerConfig(runtime *libpod.Runtime, pod *libpod.Pod) (*spec.Spec, []libpod.CtrCreateOption, error) {
-	runtimeSpec, err := config.createConfigToOCISpec()
+	runtimeSpec, namedVolumes, err := config.createConfigToOCISpec(runtime)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	options, err := config.getContainerCreateOptions(runtime, pod)
+	options, err := config.getContainerCreateOptions(runtime, pod, namedVolumes)
 	if err != nil {
 		return nil, nil, err
 	}
