@@ -144,8 +144,6 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.1
-github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/dbus
