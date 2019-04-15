@@ -9,17 +9,22 @@ import (
 	"github.com/pkg/errors"
 )
 
+// GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
+func GetRuntimeMigrate(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(c, false, true)
+}
+
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(c, true)
+	return getRuntime(c, true, false)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(c, false)
+	return getRuntime(c, false, false)
 }
 
-func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, error) {
+func getRuntime(c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -62,6 +67,9 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool) (*libpod.Runtime, err
 	if len(c.GlobalFlags.StorageOpts) > 0 {
 		storageSet = true
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
+	}
+	if migrate {
+		options = append(options, libpod.WithMigrate())
 	}
 
 	if renumber {

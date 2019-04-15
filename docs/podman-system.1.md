@@ -17,6 +17,7 @@ The system command allows you to manage the podman systems
 | info     | [podman-system-info(1)](podman-info.1.md)           | Displays Podman related system information.                                  |
 | prune    | [podman-system-prune(1)](podman-system-prune.1.md)  | Remove all unused data                                                       |
 | renumber | [podman-system-renumber(1)](podman-system-renumber.1.md)| Migrate lock numbers to handle a change in maximum number of locks.      |
+| migrate  | [podman-system-migrate(1)](podman-system-migrate.1.md)| Migrate existing containers to a new podman version.                       |
 
 ## SEE ALSO
 podman(1)
