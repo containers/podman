@@ -19,7 +19,6 @@ import (
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
-	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/pkg/signal"
@@ -392,16 +391,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 	if c.IsSet("pod") {
 		if strings.HasPrefix(originalPodName, "new:") {
-			if rootless.IsRootless() {
-				// To create a new pod, we must immediately create the userns.
-				became, ret, err := rootless.BecomeRootInUserNS()
-				if err != nil {
-					return nil, err
-				}
-				if became {
-					os.Exit(ret)
-				}
-			}
 			// pod does not exist; lets make it
 			var podOptions []libpod.PodCreateOption
 			podOptions = append(podOptions, libpod.WithPodName(podName), libpod.WithInfraContainer(), libpod.WithPodCgroups())
