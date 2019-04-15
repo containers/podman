@@ -5,10 +5,12 @@ package adapter
 import (
 	"context"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/storage/pkg/archive"
 	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -81,6 +83,20 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	// This should not happen as checkpoints with these options are not exported.
 	if (len(config.Dependencies) > 0) || (len(config.NamedVolumes) > 0) {
 		return nil, errors.Errorf("Cannot import checkpoints of containers with named volumes or dependencies")
+	}
+
+	// The code to load the images is copied from create.go
+	var writer io.Writer
+	// In create.go this only set if '--quiet' does not exist.
+	writer = os.Stderr
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false, nil)
+	if err != nil {
+		return nil, err
 	}
 
 	// Now create a new container from the just loaded information
