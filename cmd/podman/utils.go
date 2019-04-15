@@ -51,29 +51,3 @@ func markFlagHiddenForRemoteClient(flagName string, flags *pflag.FlagSet) {
 		flags.MarkHidden(flagName)
 	}
 }
-
-// TODO: remove when adapter package takes over this functionality
-// func joinContainerOrCreateRootlessUserNS(runtime *libpod.Runtime, ctr *libpod.Container) (bool, int, error) {
-// 	if os.Geteuid() == 0 {
-// 		return false, 0, nil
-// 	}
-// 	s, err := ctr.State()
-// 	if err != nil {
-// 		return false, -1, err
-// 	}
-// 	opts := rootless.Opts{
-// 		Argument: ctr.ID(),
-// 	}
-// 	if s == libpod.ContainerStateRunning || s == libpod.ContainerStatePaused {
-// 		data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-// 		if err != nil {
-// 			return false, -1, errors.Wrapf(err, "cannot read conmon PID file %q", ctr.Config().ConmonPidFile)
-// 		}
-// 		conmonPid, err := strconv.Atoi(string(data))
-// 		if err != nil {
-// 			return false, -1, errors.Wrapf(err, "cannot parse PID %q", data)
-// 		}
-// 		return rootless.JoinDirectUserAndMountNSWithOpts(uint(conmonPid), &opts)
-// 	}
-// 	return rootless.BecomeRootInUserNSWithOpts(&opts)
-// }
