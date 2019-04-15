@@ -45,6 +45,18 @@ func (c *Container) ID() string {
 	return c.config.ID
 }
 
+// Pause a container
+func (c *Container) Pause() error {
+	_, err := iopodman.PauseContainer().Call(c.Runtime.Conn, c.ID())
+	return err
+}
+
+// Unpause a container
+func (c *Container) Unpause() error {
+	_, err := iopodman.UnpauseContainer().Call(c.Runtime.Conn, c.ID())
+	return err
+}
+
 // Config returns a container config
 func (r *LocalRuntime) Config(name string) *libpod.ContainerConfig {
 	// TODO the Spec being returned is not populated.  Matt and I could not figure out why.  Will defer
@@ -90,6 +102,19 @@ func (r *LocalRuntime) Spec(name string) (*specs.Spec, error) {
 	return &data, nil
 }
 
+// LookupContainers is a wrapper for LookupContainer
+func (r *LocalRuntime) LookupContainers(idsOrNames []string) ([]*Container, error) {
+	var containers []*Container
+	for _, name := range idsOrNames {
+		ctr, err := r.LookupContainer(name)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, ctr)
+	}
+	return containers, nil
+}
+
 // LookupContainer gets basic information about container over a varlink
 // connection and then translates it to a *Container
 func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
@@ -105,6 +130,24 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 			state,
 		},
 	}, nil
+}
+
+func (r *LocalRuntime) LookupContainersWithStatus(filters []string) ([]*Container, error) {
+	var containers []*Container
+	ctrs, err := iopodman.GetContainersByStatus().Call(r.Conn, filters)
+	if err != nil {
+		return nil, err
+	}
+	// This is not performance savy; if this turns out to be a problematic series of lookups, we need to
+	// create a new endpoint to speed things up
+	for _, ctr := range ctrs {
+		container, err := r.LookupContainer(ctr.Id)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, container)
+	}
+	return containers, nil
 }
 
 func (r *LocalRuntime) GetLatestContainer() (*Container, error) {
@@ -642,4 +685,71 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 		}
 	}
 	return exitCode, finalErr
+}
+
+// PauseContainers pauses container(s) based on CLI inputs.
+func (r *LocalRuntime) PauseContainers(ctx context.Context, cli *cliconfig.PauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       []string
+		failures = map[string]error{}
+		ctrs     []*Container
+		err      error
+	)
+
+	if cli.All {
+		filters := []string{libpod.ContainerStateRunning.String()}
+		ctrs, err = r.LookupContainersWithStatus(filters)
+	} else {
+		ctrs, err = r.LookupContainers(cli.InputArgs)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, c := range ctrs {
+		c := c
+		err := c.Pause()
+		if err != nil {
+			failures[c.ID()] = err
+		} else {
+			ok = append(ok, c.ID())
+		}
+	}
+	return ok, failures, nil
+}
+
+// UnpauseContainers unpauses containers based on input
+func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.UnpauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*Container
+		err      error
+	)
+
+	maxWorkers := shared.DefaultPoolSize("unpause")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	if cli.All {
+		filters := []string{libpod.ContainerStatePaused.String()}
+		ctrs, err = r.LookupContainersWithStatus(filters)
+	} else {
+		ctrs, err = r.LookupContainers(cli.InputArgs)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+	for _, c := range ctrs {
+		c := c
+		err := c.Unpause()
+		if err != nil {
+			failures[c.ID()] = err
+		} else {
+			ok = append(ok, c.ID())
+		}
+	}
+	return ok, failures, nil
 }

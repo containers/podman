@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -70,7 +68,6 @@ var _ = Describe("Podman pause", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
-
 		result := podmanTest.Podman([]string{"pause", cid})
 		result.WaitWithDefaultTimeout()
 
