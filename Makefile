@@ -220,8 +220,11 @@ localintegration: varlink_generate test-binaries ginkgo
 
 remoteintegration: varlink_generate test-binaries ginkgo-remote
 
-localsystem: .install.ginkgo
-	ginkgo -v -noColor test/system/
+localsystem:
+	if timeout -v 1 true; then PODMAN=./bin/podman bats test/system/; else echo "Skipping localsystem: 'timeout -v' unavailable'"; fi
+
+remotesystem:
+	@echo "remotesystem - unimplemented"
 
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
