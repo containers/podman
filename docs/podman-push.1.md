@@ -144,4 +144,4 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-pull(1), podman-login(1), crio(8)
+podman(1), podman-pull(1), podman-login(1)
