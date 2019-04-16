@@ -28,6 +28,8 @@ import (
 const (
 	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
 	createDirectoryPermission = 0755
+	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
+	createFilePermission = 0644
 )
 
 var (
@@ -170,7 +172,23 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 					return errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
 				break
+			case v1.HostPathFileOrCreate:
+				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
+					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, createFilePermission)
+					if err != nil {
+						return errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+					}
+					if err := f.Close(); err != nil {
+						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
+					}
+				}
+				// unconditionally label a newly created volume as private
+				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+					return errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+				}
+				break
 			case v1.HostPathDirectory:
+			case v1.HostPathFile:
 			case v1.HostPathUnset:
 				// do nothing here because we will verify the path exists in validateVolumeHostDir
 				break
