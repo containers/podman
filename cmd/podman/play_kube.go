@@ -45,7 +45,7 @@ var (
 			playKubeCommand.InputArgs = args
 			playKubeCommand.GlobalFlags = MainGlobalOpts
 			playKubeCommand.Remote = remoteclient
-			return playKubeYAMLCmd(&playKubeCommand)
+			return playKubeCmd(&playKubeCommand)
 		},
 		Example: `podman play kube demo.yml
   podman play kube --cert-dir /mycertsdir --tls-verify=true --quiet myWebPod`,
@@ -65,16 +65,7 @@ func init() {
 	flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 }
 
-func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
-	var (
-		podOptions    []libpod.PodCreateOption
-		podYAML       v1.Pod
-		registryCreds *types.DockerAuthConfig
-		containers    []*libpod.Container
-		writer        io.Writer
-	)
-
-	ctx := getContext()
+func playKubeCmd(c *cliconfig.KubePlayValues) error {
 	args := c.InputArgs
 	if len(args) > 1 {
 		return errors.New("you can only play one kubernetes file at a time")
@@ -83,19 +74,39 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		return errors.New("you must supply at least one file")
 	}
 
+	ctx := getContext()
 	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	content, err := ioutil.ReadFile(args[0])
+	pod, err := playKubeYAMLCmd(c, ctx, runtime, args[0])
+	if err != nil && pod != nil {
+		if err2 := runtime.RemovePod(ctx, pod, true, true); err2 != nil {
+			logrus.Errorf("unable to remove pod %s after failing to play kube", pod.ID())
+		}
+	}
+	return err
+}
+
+func playKubeYAMLCmd(c *cliconfig.KubePlayValues, ctx context.Context, runtime *libpod.Runtime, yamlFile string) (*libpod.Pod, error) {
+	var (
+		containers    []*libpod.Container
+		pod           *libpod.Pod
+		podOptions    []libpod.PodCreateOption
+		podYAML       v1.Pod
+		registryCreds *types.DockerAuthConfig
+		writer        io.Writer
+	)
+
+	content, err := ioutil.ReadFile(yamlFile)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := yaml.Unmarshal(content, &podYAML); err != nil {
-		return errors.Wrapf(err, "unable to read %s as YAML", args[0])
+		return nil, errors.Wrapf(err, "unable to read %s as YAML", yamlFile)
 	}
 
 	// check for name collision between pod and container
@@ -113,23 +124,21 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 
 	nsOptions, err := shared.GetNamespaceOptions(strings.Split(shared.DefaultKernelNamespaces, ","))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	podOptions = append(podOptions, nsOptions...)
 	podPorts := getPodPorts(podYAML.Spec.Containers)
 	podOptions = append(podOptions, libpod.WithInfraContainerPorts(podPorts))
 
 	// Create the Pod
-	pod, err := runtime.NewPod(ctx, podOptions...)
+	pod, err = runtime.NewPod(ctx, podOptions...)
 	if err != nil {
-		return err
+		return pod, err
 	}
-	// Print the Pod's ID
-	fmt.Println(pod.ID())
 
 	podInfraID, err := pod.InfraContainerID()
 	if err != nil {
-		return err
+		return pod, err
 	}
 
 	namespaces := map[string]string{
@@ -157,26 +166,26 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 	for _, volume := range podYAML.Spec.Volumes {
 		hostPath := volume.VolumeSource.HostPath
 		if hostPath == nil {
-			return errors.Errorf("HostPath is currently the only supported VolumeSource")
+			return pod, errors.Errorf("HostPath is currently the only supported VolumeSource")
 		}
 		if hostPath.Type != nil {
 			switch *hostPath.Type {
 			case v1.HostPathDirectoryOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					if err := os.Mkdir(hostPath.Path, createDirectoryPermission); err != nil {
-						return errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+						return pod, errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
 					}
 				}
 				// unconditionally label a newly created volume as private
 				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
-					return errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+					return pod, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
 				break
 			case v1.HostPathFileOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, createFilePermission)
 					if err != nil {
-						return errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+						return pod, errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
 					}
 					if err := f.Close(); err != nil {
 						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
@@ -184,7 +193,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 				}
 				// unconditionally label a newly created volume as private
 				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
-					return errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+					return pod, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
 				break
 			case v1.HostPathDirectory:
@@ -193,11 +202,11 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 				// do nothing here because we will verify the path exists in validateVolumeHostDir
 				break
 			default:
-				return errors.Errorf("Directories are the only supported HostPath type")
+				return pod, errors.Errorf("Directories are the only supported HostPath type")
 			}
 		}
 		if err := shared.ValidateVolumeHostDir(hostPath.Path); err != nil {
-			return errors.Wrapf(err, "Error in parsing HostPath in YAML")
+			return pod, errors.Wrapf(err, "Error in parsing HostPath in YAML")
 		}
 		volumes[volume.Name] = hostPath.Path
 	}
@@ -205,15 +214,15 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 	for _, container := range podYAML.Spec.Containers {
 		newImage, err := runtime.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, false, nil)
 		if err != nil {
-			return err
+			return pod, err
 		}
 		createConfig, err := kubeContainerToCreateConfig(ctx, container, runtime, newImage, namespaces, volumes)
 		if err != nil {
-			return err
+			return pod, err
 		}
 		ctr, err := shared.CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 		if err != nil {
-			return err
+			return pod, err
 		}
 		containers = append(containers, ctr)
 	}
@@ -223,12 +232,18 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues) error {
 		if err := ctr.Start(ctx, true); err != nil {
 			// Making this a hard failure here to avoid a mess
 			// the other containers are in created status
-			return err
+			return pod, err
 		}
+	}
+
+	// We've now successfully converted this YAML into a pod
+	// print our pod and containers, signifying we succeeded
+	fmt.Println(pod.ID())
+	for _, ctr := range containers {
 		fmt.Println(ctr.ID())
 	}
 
-	return nil
+	return pod, nil
 }
 
 // getPodPorts converts a slice of kube container descriptions to an
