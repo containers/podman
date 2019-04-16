@@ -28,6 +28,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			commitCommand.InputArgs = args
 			commitCommand.GlobalFlags = MainGlobalOpts
+			commitCommand.Remote = remoteclient
 			return commitCmd(&commitCommand)
 		},
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-commited

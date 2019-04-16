@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			volumeRmCommand.InputArgs = args
 			volumeRmCommand.GlobalFlags = MainGlobalOpts
+			volumeRmCommand.Remote = remoteclient
 			return volumeRmCmd(&volumeRmCommand)
 		},
 		Example: `podman volume rm myvol1 myvol2

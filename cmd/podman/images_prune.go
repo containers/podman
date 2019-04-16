@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pruneImagesCommand.InputArgs = args
 			pruneImagesCommand.GlobalFlags = MainGlobalOpts
+			pruneImagesCommand.Remote = remoteclient
 			return pruneImagesCmd(&pruneImagesCommand)
 		},
 	}

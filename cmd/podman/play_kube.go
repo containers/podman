@@ -42,6 +42,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			playKubeCommand.InputArgs = args
 			playKubeCommand.GlobalFlags = MainGlobalOpts
+			playKubeCommand.Remote = remoteclient
 			return playKubeYAMLCmd(&playKubeCommand)
 		},
 		Example: `podman play kube demo.yml

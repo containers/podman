@@ -29,6 +29,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			imageExistsCommand.InputArgs = args
 			imageExistsCommand.GlobalFlags = MainGlobalOpts
+			imageExistsCommand.Remote = remoteclient
 			return imageExistsCmd(&imageExistsCommand)
 		},
 		Example: `podman image exists imageID
@@ -42,6 +43,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			containerExistsCommand.InputArgs = args
 			containerExistsCommand.GlobalFlags = MainGlobalOpts
+			containerExistsCommand.Remote = remoteclient
 			return containerExistsCmd(&containerExistsCommand)
 
 		},
@@ -56,6 +58,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podExistsCommand.InputArgs = args
 			podExistsCommand.GlobalFlags = MainGlobalOpts
+			podExistsCommand.Remote = remoteclient
 			return podExistsCmd(&podExistsCommand)
 		},
 		Example: `podman pod exists podID

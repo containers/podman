@@ -19,6 +19,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runCommand.InputArgs = args
 			runCommand.GlobalFlags = MainGlobalOpts
+			runCommand.Remote = remoteclient
 			return runCmd(&runCommand)
 		},
 		Example: `podman run imageID ls -alF /etc

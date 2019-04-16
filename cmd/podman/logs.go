@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logsCommand.InputArgs = args
 			logsCommand.GlobalFlags = MainGlobalOpts
+			logsCommand.Remote = remoteclient
 			return logsCmd(&logsCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

@@ -47,6 +47,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			historyCommand.InputArgs = args
 			historyCommand.GlobalFlags = MainGlobalOpts
+			historyCommand.Remote = remoteclient
 			return historyCmd(&historyCommand)
 		},
 	}

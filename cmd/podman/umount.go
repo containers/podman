@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			umountCommand.InputArgs = args
 			umountCommand.GlobalFlags = MainGlobalOpts
+			umountCommand.Remote = remoteclient
 			return umountCmd(&umountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

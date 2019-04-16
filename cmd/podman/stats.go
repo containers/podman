@@ -39,6 +39,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			statsCommand.InputArgs = args
 			statsCommand.GlobalFlags = MainGlobalOpts
+			statsCommand.Remote = remoteclient
 			return statsCmd(&statsCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

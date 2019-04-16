@@ -20,6 +20,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			logoutCommand.InputArgs = args
 			logoutCommand.GlobalFlags = MainGlobalOpts
+			logoutCommand.Remote = remoteclient
 			return logoutCmd(&logoutCommand)
 		},
 		Example: `podman logout docker.io

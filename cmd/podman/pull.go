@@ -32,6 +32,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pullCommand.InputArgs = args
 			pullCommand.GlobalFlags = MainGlobalOpts
+			pullCommand.Remote = remoteclient
 			return pullCmd(&pullCommand)
 		},
 		Example: `podman pull imageName
@@ -117,7 +118,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      c.CertDir,
 	}
-	if c.Flag("tls-verify").Changed {
+	if c.IsSet("tls-verify") {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 

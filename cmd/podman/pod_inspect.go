@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podInspectCommand.InputArgs = args
 			podInspectCommand.GlobalFlags = MainGlobalOpts
+			podInspectCommand.Remote = remoteclient
 			return podInspectCmd(&podInspectCommand)
 		},
 		Example: `podman pod inspect podID`,

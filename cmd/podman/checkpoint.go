@@ -23,6 +23,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			checkpointCommand.InputArgs = args
 			checkpointCommand.GlobalFlags = MainGlobalOpts
+			checkpointCommand.Remote = remoteclient
 			return checkpointCmd(&checkpointCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

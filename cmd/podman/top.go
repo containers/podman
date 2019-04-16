@@ -39,6 +39,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			topCommand.InputArgs = args
 			topCommand.GlobalFlags = MainGlobalOpts
+			topCommand.Remote = remoteclient
 			return topCmd(&topCommand)
 		},
 		Example: `podman top ctrID

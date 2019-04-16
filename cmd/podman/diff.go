@@ -43,6 +43,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			diffCommand.InputArgs = args
 			diffCommand.GlobalFlags = MainGlobalOpts
+			diffCommand.Remote = remoteclient
 			return diffCmd(&diffCommand)
 		},
 		Example: `podman diff imageID

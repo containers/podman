@@ -30,6 +30,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podCreateCommand.InputArgs = args
 			podCreateCommand.GlobalFlags = MainGlobalOpts
+			podCreateCommand.Remote = remoteclient
 			return podCreateCmd(&podCreateCommand)
 		},
 	}

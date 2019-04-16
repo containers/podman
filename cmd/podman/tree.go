@@ -29,6 +29,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			treeCommand.InputArgs = args
 			treeCommand.GlobalFlags = MainGlobalOpts
+			treeCommand.Remote = remoteclient
 			return treeCmd(&treeCommand)
 		},
 		Example: "podman image tree alpine:latest",

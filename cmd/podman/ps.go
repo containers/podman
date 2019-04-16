@@ -161,6 +161,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			psCommand.InputArgs = args
 			psCommand.GlobalFlags = MainGlobalOpts
+			psCommand.Remote = remoteclient
 			return psCmd(&psCommand)
 		},
 		Example: `podman ps -a

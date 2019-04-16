@@ -110,6 +110,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		cmd,
 		args,
 		MainGlobalOpts,
+		remoteclient,
 	}
 	runtime, err := libpodruntime.GetRuntime(&podmanCmd)
 	if err != nil {

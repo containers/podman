@@ -21,6 +21,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rmiCommand.InputArgs = args
 			rmiCommand.GlobalFlags = MainGlobalOpts
+			rmiCommand.Remote = remoteclient
 			return rmiCmd(&rmiCommand)
 		},
 		Example: `podman rmi imageID

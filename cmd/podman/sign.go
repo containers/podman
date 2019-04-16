@@ -30,6 +30,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			signCommand.InputArgs = args
 			signCommand.GlobalFlags = MainGlobalOpts
+			signCommand.Remote = remoteclient
 			return signCmd(&signCommand)
 		},
 		Example: `podman sign --sign-by mykey imageID

@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pauseCommand.InputArgs = args
 			pauseCommand.GlobalFlags = MainGlobalOpts
+			pauseCommand.Remote = remoteclient
 			return pauseCmd(&pauseCommand)
 		},
 		Example: `podman pause mywebserver

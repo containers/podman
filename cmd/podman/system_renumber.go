@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			renumberCommand.InputArgs = args
 			renumberCommand.GlobalFlags = MainGlobalOpts
+			renumberCommand.Remote = remoteclient
 			return renumberCmd(&renumberCommand)
 		},
 	}

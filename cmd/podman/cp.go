@@ -36,6 +36,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cpCommand.InputArgs = args
 			cpCommand.GlobalFlags = MainGlobalOpts
+			cpCommand.Remote = remoteclient
 			return cpCmd(&cpCommand)
 		},
 		Example: "[CONTAINER:]SRC_PATH [CONTAINER:]DEST_PATH",

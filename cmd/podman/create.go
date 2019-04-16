@@ -22,6 +22,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			createCommand.InputArgs = args
 			createCommand.GlobalFlags = MainGlobalOpts
+			createCommand.Remote = remoteclient
 			return createCmd(&createCommand)
 		},
 		Example: `podman create alpine ls

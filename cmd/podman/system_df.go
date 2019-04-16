@@ -33,6 +33,7 @@ var (
 		Long:  dfSystemDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dfSystemCommand.GlobalFlags = MainGlobalOpts
+			dfSystemCommand.Remote = remoteclient
 			return dfSystemCmd(&dfSystemCommand)
 		},
 	}

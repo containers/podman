@@ -21,6 +21,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			volumeCreateCommand.InputArgs = args
 			volumeCreateCommand.GlobalFlags = MainGlobalOpts
+			volumeCreateCommand.Remote = remoteclient
 			return volumeCreateCmd(&volumeCreateCommand)
 		},
 		Example: `podman volume create myvol

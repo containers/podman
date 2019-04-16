@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			importCommand.InputArgs = args
 			importCommand.GlobalFlags = MainGlobalOpts
+			importCommand.Remote = remoteclient
 			return importCmd(&importCommand)
 		},
 		Example: `podman import http://example.com/ctr.tar url-image

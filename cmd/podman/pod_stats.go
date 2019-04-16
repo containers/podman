@@ -29,6 +29,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podStatsCommand.InputArgs = args
 			podStatsCommand.GlobalFlags = MainGlobalOpts
+			podStatsCommand.Remote = remoteclient
 			return podStatsCmd(&podStatsCommand)
 		},
 		Example: `podman stats -a --no-stream

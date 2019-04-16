@@ -29,6 +29,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			setTrustCommand.InputArgs = args
 			setTrustCommand.GlobalFlags = MainGlobalOpts
+			setTrustCommand.Remote = remoteclient
 			return setTrustCmd(&setTrustCommand)
 		},
 	}

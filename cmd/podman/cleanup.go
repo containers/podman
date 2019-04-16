@@ -24,6 +24,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cleanupCommand.InputArgs = args
 			cleanupCommand.GlobalFlags = MainGlobalOpts
+			cleanupCommand.Remote = remoteclient
 			return cleanupCmd(&cleanupCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

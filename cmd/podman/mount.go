@@ -31,6 +31,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mountCommand.InputArgs = args
 			mountCommand.GlobalFlags = MainGlobalOpts
+			mountCommand.Remote = remoteclient
 			return mountCmd(&mountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {

@@ -29,6 +29,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			searchCommand.InputArgs = args
 			searchCommand.GlobalFlags = MainGlobalOpts
+			searchCommand.Remote = remoteclient
 			return searchCmd(&searchCommand)
 		},
 		Example: `podman search --filter=is-official --limit 3 alpine

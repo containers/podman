@@ -39,6 +39,7 @@ var (
 			buildCommand.FromAndBudResults = &fromAndBudValues
 			buildCommand.LayerResults = &layerValues
 			buildCommand.NameSpaceResults = &namespaceValues
+			buildCommand.Remote = remoteclient
 			return buildCmd(&buildCommand)
 		},
 		Example: `podman build .

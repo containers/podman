@@ -18,6 +18,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eventsCommand.InputArgs = args
 			eventsCommand.GlobalFlags = MainGlobalOpts
+			eventsCommand.Remote = remoteclient
 			return eventsCmd(&eventsCommand)
 		},
 		Example: `podman events

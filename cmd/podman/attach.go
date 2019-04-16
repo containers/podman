@@ -17,6 +17,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			attachCommand.InputArgs = args
 			attachCommand.GlobalFlags = MainGlobalOpts
+			attachCommand.Remote = remoteclient
 			return attachCmd(&attachCommand)
 		},
 		Example: `podman attach ctrID

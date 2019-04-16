@@ -27,6 +27,7 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			loginCommand.InputArgs = args
 			loginCommand.GlobalFlags = MainGlobalOpts
+			loginCommand.Remote = remoteclient
 			return loginCmd(&loginCommand)
 		},
 		Example: `podman login -u testuser -p testpassword localhost:5000
