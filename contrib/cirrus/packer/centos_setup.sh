@@ -41,6 +41,7 @@ ooe.sh sudo yum -y install \
     golang-github-cpuguy83-go-md2man \
     gpgme-devel \
     iptables \
+    jq \
     libassuan-devel \
     libcap-devel \
     libnet \

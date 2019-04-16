@@ -42,6 +42,7 @@ ooe.sh sudo dnf install -y \
     gpgme-devel \
     iptables \
     iproute \
+    jq \
     libassuan-devel \
     libcap-devel \
     libnet \
