@@ -60,6 +60,7 @@ var (
 		_listSubCommand,
 		_logsCommand,
 		_pauseCommand,
+		_restartCommand,
 		_runCommand,
 		_rmCommand,
 		_startCommand,

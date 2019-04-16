@@ -694,3 +694,72 @@ func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.Unp
 	}
 	return pool.Run()
 }
+
+// Restart containers without or without a timeout
+func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) ([]string, map[string]error, error) {
+	var (
+		containers        []*libpod.Container
+		restartContainers []*libpod.Container
+		err               error
+	)
+	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
+	inputTimeout := c.Timeout
+
+	// Handle --latest
+	if c.Latest {
+		lastCtr, err := r.Runtime.GetLatestContainer()
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "unable to get latest container")
+		}
+		restartContainers = append(restartContainers, lastCtr)
+	} else if c.Running {
+		containers, err = r.GetRunningContainers()
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	} else if c.All {
+		containers, err = r.Runtime.GetAllContainers()
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	} else {
+		for _, id := range c.InputArgs {
+			ctr, err := r.Runtime.LookupContainer(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			restartContainers = append(restartContainers, ctr)
+		}
+	}
+
+	maxWorkers := shared.DefaultPoolSize("restart")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalFlags.MaxWorks
+	}
+
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	// We now have a slice of all the containers to be restarted. Iterate them to
+	// create restart Funcs with a timeout as needed
+	pool := shared.NewPool("restart", maxWorkers, len(restartContainers))
+	for _, c := range restartContainers {
+		ctr := c
+		timeout := ctr.StopTimeout()
+		if useTimeout {
+			timeout = inputTimeout
+		}
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.RestartWithTimeout(ctx, timeout)
+				if err != nil {
+					logrus.Debugf("Failed to restart container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
