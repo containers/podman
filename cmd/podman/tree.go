@@ -51,7 +51,7 @@ func treeCmd(c *cliconfig.TreeValues) error {
 		return errors.Errorf("you must provide at most 1 argument")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

@@ -57,8 +57,8 @@ type Volume struct {
 type VolumeFilter func(*Volume) bool
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
-func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
-	runtime, err := libpodruntime.GetRuntime(c)
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	runtime, err := libpodruntime.GetRuntime(ctx, c)
 	if err != nil {
 		return nil, err
 	}

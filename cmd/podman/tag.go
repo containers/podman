@@ -38,7 +38,7 @@ func tagCmd(c *cliconfig.TagValues) error {
 	if len(args) < 2 {
 		return errors.Errorf("image name and at least one new name must be specified")
 	}
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}

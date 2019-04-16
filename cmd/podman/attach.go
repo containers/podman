@@ -47,7 +47,7 @@ func attachCmd(c *cliconfig.AttachValues) error {
 	if remoteclient && len(c.InputArgs) != 1 {
 		return errors.Errorf("attach requires the name or id of one running container")
 	}
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime")
 	}

@@ -54,7 +54,7 @@ func restoreCmd(c *cliconfig.RestoreValues) error {
 		return errors.New("restoring a container requires root")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

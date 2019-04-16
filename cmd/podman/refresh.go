@@ -38,7 +38,7 @@ func init() {
 }
 
 func refreshCmd(c *cliconfig.RefreshValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

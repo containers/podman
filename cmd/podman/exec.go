@@ -68,7 +68,7 @@ func execCmd(c *cliconfig.ExecValues) error {
 		argStart = 0
 	}
 	cmd := args[argStart:]
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

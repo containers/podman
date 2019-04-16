@@ -47,7 +47,7 @@ func volumeRmCmd(c *cliconfig.VolumeRmValues) error {
 		return errors.New("choose either one or more volumes or all")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

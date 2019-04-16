@@ -38,7 +38,7 @@ func migrateCmd(c *cliconfig.SystemMigrateValues) error {
 	// We need to pass one extra option to NewRuntime.
 	// This will inform the OCI runtime to start a migrate.
 	// That's controlled by the last argument to GetRuntime.
-	r, err := libpodruntime.GetRuntimeMigrate(&c.PodmanCommand)
+	r, err := libpodruntime.GetRuntimeMigrate(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error migrating containers")
 	}

@@ -51,7 +51,7 @@ func restartCmd(c *cliconfig.RestartValues) error {
 		return errors.Wrapf(libpod.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

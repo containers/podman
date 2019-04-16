@@ -55,7 +55,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	timeout := time.Duration(c.Timeout) * time.Millisecond
 
 	// Create a single runtime for varlink
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

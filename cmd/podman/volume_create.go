@@ -42,7 +42,7 @@ func init() {
 }
 
 func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

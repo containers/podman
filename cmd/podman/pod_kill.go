@@ -49,7 +49,7 @@ func init() {
 
 // podKillCmd kills one or more pods with a signal
 func podKillCmd(c *cliconfig.PodKillValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

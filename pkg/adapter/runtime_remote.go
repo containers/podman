@@ -46,7 +46,7 @@ type LocalRuntime struct {
 }
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
-func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	runtime := RemoteRuntime{}
 	conn, err := runtime.Connect()
 	if err != nil {

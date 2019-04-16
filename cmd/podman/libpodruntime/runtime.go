@@ -1,6 +1,8 @@
 package libpodruntime
 
 import (
+	"context"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
@@ -10,21 +12,21 @@ import (
 )
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
-func GetRuntimeMigrate(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(c, false, true)
+func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, true)
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
-func GetRuntimeRenumber(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(c, true, false)
+func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, true, false)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntime(c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(c, false, false)
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, false)
 }
 
-func getRuntime(c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -75,6 +77,8 @@ func getRuntime(c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpo
 	if renumber {
 		options = append(options, libpod.WithRenumber())
 	}
+
+	options = append(options, libpod.WithContext(ctx))
 
 	// Only set this if the user changes storage config on the command line
 	if storageSet {

@@ -49,7 +49,7 @@ func init() {
 }
 
 func cleanupCmd(c *cliconfig.CleanupValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

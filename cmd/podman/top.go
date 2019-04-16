@@ -76,7 +76,7 @@ func topCmd(c *cliconfig.TopValues) error {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

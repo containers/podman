@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"net"
 	"os"
 	"path/filepath"
@@ -462,6 +463,19 @@ func WithShmDir(dir string) CtrCreateOption {
 		}
 
 		ctr.config.ShmDir = dir
+		return nil
+	}
+}
+
+// WithContext sets the context to use.
+func WithContext(ctx context.Context) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		rt.ctx = ctx
+
 		return nil
 	}
 }

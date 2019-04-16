@@ -134,7 +134,7 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		image       string
 	)
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}

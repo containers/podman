@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -111,6 +112,8 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
+
+	ctx context.Context
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
