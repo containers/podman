@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -56,6 +57,10 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 
 	sc := image.GetSystemContext("", authfile, false)
 
+	dockerAuthErr := config.RemoveAuthFromDockerAuth(server)
+	if dockerAuthErr != nil && dockerAuthErr != config.ErrNotLoggedIn {
+		logrus.Errorf("Error removing credentials for %s", dockerAuthErr)
+	}
 	if c.All {
 		if err := config.RemoveAllAuthentication(sc); err != nil {
 			return err
@@ -72,6 +77,9 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 	case config.ErrNotLoggedIn:
 		return errors.Errorf("Not logged into %s\n", server)
 	default:
-		return errors.Wrapf(err, "error logging out of %q", server)
+		if err != nil && dockerAuthErr != nil {
+			return errors.Wrapf(err, "error logging out of %q", server)
+		}
 	}
+	return nil
 }

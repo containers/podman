@@ -158,6 +158,47 @@ func getPathToAuth(sys *types.SystemContext) (string, error) {
 	return fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()), nil
 }
 
+const INDEXSERVER = "https://index.docker.io/v1/"
+
+// RemoveAuthFromDockerAuth removes the credential created by docker login
+func RemoveAuthFromDockerAuth(registry string) error {
+	if registry == "docker.io" {
+		registry = INDEXSERVER
+	}
+	dockerConfigPath := filepath.Join(homedir.Get(), dockerHomePath)
+	auths, err := readJSONFile(filepath.Join(homedir.Get(), dockerHomePath), false)
+	if err != nil {
+		return err
+	}
+	updated := true
+	// First try cred helpers.
+	if ch, exists := auths.CredHelpers[registry]; exists {
+		updated = false
+		deleteAuthFromCredHelper(ch, registry)
+	} else {
+
+		if _, ok := auths.AuthConfigs[registry]; ok {
+			delete(auths.AuthConfigs, registry)
+		} else if _, ok := auths.AuthConfigs[normalizeRegistry(registry)]; ok {
+			delete(auths.AuthConfigs, normalizeRegistry(registry))
+		} else {
+			return ErrNotLoggedIn
+		}
+	}
+
+	if updated {
+		newData, err := json.MarshalIndent(auths, "", "\t")
+		if err != nil {
+			return errors.Wrapf(err, "error marshaling JSON %q", dockerConfigPath)
+		}
+
+		if err = ioutil.WriteFile(dockerConfigPath, newData, 0755); err != nil {
+			return errors.Wrapf(err, "error writing to file %q", dockerConfigPath)
+		}
+	}
+	return nil
+}
+
 // readJSONFile unmarshals the authentications stored in the auth.json file and returns it
 // or returns an empty dockerConfigFile data structure if auth.json does not exist
 // if the file exists and is empty, readJSONFile returns an error
