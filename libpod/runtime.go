@@ -358,6 +358,33 @@ func NewRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 	return newRuntimeFromConfig(userConfigPath, options...)
 }
 
+// NewRuntimeFromRuntimeConfig creates a new container runtime for the provided
+// RuntimeConfig. It assumes that every config field is set and will error if
+// the runtime creation fails.
+func NewRuntimeFromRuntimeConfig(config *RuntimeConfig) (*Runtime, error) {
+	runtime := &Runtime{
+		config: config,
+		configuredFrom: &runtimeConfiguredFrom{
+			storageGraphDriverSet: true,
+			storageGraphRootSet:   true,
+			storageRunRootSet:     true,
+			libpodStaticDirSet:    true,
+			libpodTmpDirSet:       true,
+			volPathSet:            true,
+			conmonPath:            true,
+			conmonEnvVars:         true,
+			ociRuntimes:           true,
+			runtimePath:           true,
+			cniPluginDir:          true,
+			noPivotRoot:           true,
+		},
+	}
+	if err := makeRuntime(runtime); err != nil {
+		return nil, err
+	}
+	return runtime, nil
+}
+
 func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
