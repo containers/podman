@@ -14,7 +14,7 @@ LABEL RUN podman --version
 RUN apk update
 RUN apk add bash`
 
-var _ = Describe("Podman rm", func() {
+var _ = Describe("Podman prune", func() {
 	var (
 		tempdir    string
 		err        error
@@ -101,4 +101,37 @@ var _ = Describe("Podman rm", func() {
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
 	})
 
+	It("podman system prune pods", func() {
+		SkipIfRemote()
+
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		pods := podmanTest.Podman([]string{"pod", "ps"})
+		pods.WaitWithDefaultTimeout()
+		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(len(pods.OutputToStringArray())).To(Equal(3))
+
+		prune := podmanTest.Podman([]string{"system", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(Equal(0))
+
+		pods = podmanTest.Podman([]string{"pod", "ps"})
+		pods.WaitWithDefaultTimeout()
+		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(len(pods.OutputToStringArray())).To(Equal(2))
+	})
 })

@@ -369,3 +369,39 @@ func (r *LocalRuntime) Diff(c *cliconfig.DiffValues, to string) ([]archive.Chang
 func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *v1.Service, error) {
 	return shared.GenerateKube(c.InputArgs[0], c.Service, r.Runtime)
 }
+
+// GetPodsByStatus returns a slice of pods filtered by a libpod status
+func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*Pod, error) {
+	var adapterPods []*Pod
+
+	filterFunc := func(p *libpod.Pod) bool {
+		state, _ := shared.GetPodStatus(p)
+		for _, status := range statuses {
+			if state == status {
+				return true
+			}
+		}
+		return false
+	}
+	pods, err := r.Runtime.Pods(filterFunc)
+	if err != nil {
+		return nil, err
+	}
+	for _, p := range pods {
+		adapterPod := Pod{
+			p,
+		}
+		adapterPods = append(adapterPods, &adapterPod)
+	}
+	return adapterPods, nil
+}
+
+// RemovePod removes a pod
+// If removeCtrs is specified, containers will be removed
+// Otherwise, a pod that is not empty will return an error and not be removed
+// If force is specified with removeCtrs, all containers will be stopped before
+// being removed
+// Otherwise, the pod will not be removed if any containers are running
+func (r *LocalRuntime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+	return r.Runtime.RemovePod(ctx, p.Pod, removeCtrs, force)
+}

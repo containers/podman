@@ -214,6 +214,23 @@ func (r *LocalRuntime) GetAllPods() ([]*Pod, error) {
 	return pods, nil
 }
 
+// GetPodsByStatus returns a slice of pods filtered by a libpod status
+func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*Pod, error) {
+	podIDs, err := iopodman.GetPodsByStatus().Call(r.Conn, statuses)
+	if err != nil {
+		return nil, err
+	}
+	pods := make([]*Pod, 0, len(podIDs))
+	for _, p := range podIDs {
+		pod, err := r.LookupPod(p)
+		if err != nil {
+			return nil, err
+		}
+		pods = append(pods, pod)
+	}
+	return pods, nil
+}
+
 // ID returns the id of a remote pod
 func (p *Pod) ID() string {
 	return p.config.ID
@@ -507,4 +524,18 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*libpod.ContainerSta
 		}
 	}
 	return newContainerStats, nil
+}
+
+// RemovePod removes a pod
+// If removeCtrs is specified, containers will be removed
+// Otherwise, a pod that is not empty will return an error and not be removed
+// If force is specified with removeCtrs, all containers will be stopped before
+// being removed
+// Otherwise, the pod will not be removed if any containers are running
+func (r *LocalRuntime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
+	_, err := iopodman.RemovePod().Call(r.Conn, p.ID(), force)
+	if err != nil {
+		return err
+	}
+	return nil
 }

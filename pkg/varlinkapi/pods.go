@@ -101,6 +101,28 @@ func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	return call.ReplyGetPod(listPod)
 }
 
+// GetPodsByStatus returns a slice of pods filtered by a libpod status
+func (i *LibpodAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string) error {
+	filterFuncs := func(p *libpod.Pod) bool {
+		state, _ := shared.GetPodStatus(p)
+		for _, status := range statuses {
+			if state == status {
+				return true
+			}
+		}
+		return false
+	}
+	filteredPods, err := i.Runtime.Pods(filterFuncs)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	podIDs := make([]string, 0, len(filteredPods))
+	for _, p := range filteredPods {
+		podIDs = append(podIDs, p.ID())
+	}
+	return call.ReplyGetPodsByStatus(podIDs)
+}
+
 // InspectPod ...
 func (i *LibpodAPI) InspectPod(call iopodman.VarlinkCall, name string) error {
 	pod, err := i.Runtime.LookupPod(name)

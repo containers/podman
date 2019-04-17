@@ -1,4 +1,4 @@
-% PODMAN(1) Podman Man Pages
+% podman-container-prune (1)
 % Brent Baude
 % December 2018
 # NAME

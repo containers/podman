@@ -2740,6 +2740,22 @@ _podman_pod_ps() {
   __podman_pod_ps
 }
 
+_podman_pod_prune() {
+    local options_with_args="
+    "
+
+    local boolean_options="
+     -f
+     -h
+	 --help
+  "
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
 _podman_pod_restart() {
   local options_with_args="
   "

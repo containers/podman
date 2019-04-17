@@ -38,7 +38,7 @@ func (r *LocalRuntime) RemovePods(ctx context.Context, cli *cliconfig.PodRmValue
 	}
 
 	for _, p := range pods {
-		if err := r.RemovePod(ctx, p, cli.Force, cli.Force); err != nil {
+		if err := r.Runtime.RemovePod(ctx, p, cli.Force, cli.Force); err != nil {
 			errs = append(errs, err)
 		} else {
 			podids = append(podids, p.ID())
