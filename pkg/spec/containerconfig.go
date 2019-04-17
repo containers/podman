@@ -24,8 +24,6 @@ func (config *CreateConfig) MakeContainerConfig(runtime *libpod.Runtime, pod *li
 		return nil, nil, err
 	}
 
-	logrus.Debugf("got mounts as %v", mounts)
-
 	runtimeSpec, err := config.createConfigToOCISpec(runtime, mounts)
 	if err != nil {
 		return nil, nil, err
