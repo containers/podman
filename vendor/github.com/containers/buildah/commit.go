@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -110,9 +112,27 @@ type PushOptions struct {
 // Commit writes the contents of the container, along with its updated
 // configuration, to a new image in the specified location, and if we know how,
 // add any additional tags that were specified. Returns the ID of the new image
-// if commit was successful and the image destination was local
+// if commit was successful and the image destination was local.
 func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
 	var imgID string
+
+	// If we weren't given a name, build a destination reference using a
+	// temporary name that we'll remove later.  The correct thing to do
+	// would be to read the manifest and configuration blob, and ask the
+	// manifest for the ID that we'd give the image, but that computation
+	// requires that we know the digests of the layer blobs, which we don't
+	// want to compute here because we'll have to do it again when
+	// cp.Image() instantiates a source image, and we don't want to do the
+	// work twice.
+	nameToRemove := ""
+	if dest == nil {
+		nameToRemove = stringid.GenerateRandomID() + "-tmp"
+		dest2, err := is.Transport.ParseStoreReference(b.store, nameToRemove)
+		if err != nil {
+			return imgID, nil, "", errors.Wrapf(err, "error creating temporary destination reference for image")
+		}
+		dest = dest2
+	}
 
 	systemContext := getSystemContext(b.store, options.SystemContext, options.SignaturePolicyPath)
 
@@ -148,10 +168,13 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			}
 		}
 	}
+	// Build an image reference from which we can copy the finished image.
 	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.BlobDirectory, options.Compression, options.HistoryTimestamp, options.OmitTimestamp)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}
+	// In case we're using caching, decide how to handle compression for a cache.
+	// If we're using blob caching, set it up for the source.
 	var maybeCachedSrc = types.ImageReference(src)
 	var maybeCachedDest = types.ImageReference(dest)
 	if options.BlobDirectory != "" {
@@ -181,6 +204,8 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(b.store, options.ReportWriter, maybeCachedSrc, nil, maybeCachedDest, systemContext, "")); err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
+	// If we've got more names to attach, and we know how to do that for
+	// the transport that we're writing the new image to, add them now.
 	if len(options.AdditionalTags) > 0 {
 		switch dest.Transport().Name() {
 		case is.Transport.Name():
@@ -201,10 +226,25 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if err != nil && err != storage.ErrImageUnknown {
 		return imgID, nil, "", errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(dest))
 	}
-
 	if err == nil {
 		imgID = img.ID
-
+		prunedNames := make([]string, 0, len(img.Names))
+		for _, name := range img.Names {
+			if !(nameToRemove != "" && strings.Contains(name, nameToRemove)) {
+				prunedNames = append(prunedNames, name)
+			}
+		}
+		if len(prunedNames) < len(img.Names) {
+			if err = b.store.SetNames(imgID, prunedNames); err != nil {
+				return imgID, nil, "", errors.Wrapf(err, "failed to prune temporary name from image %q", imgID)
+			}
+			logrus.Debugf("reassigned names %v to image %q", prunedNames, img.ID)
+			dest2, err := is.Transport.ParseStoreReference(b.store, "@"+imgID)
+			if err != nil {
+				return imgID, nil, "", errors.Wrapf(err, "error creating unnamed destination reference for image")
+			}
+			dest = dest2
+		}
 		if options.IIDFile != "" {
 			if err = ioutil.WriteFile(options.IIDFile, []byte(img.ID), 0644); err != nil {
 				return imgID, nil, "", errors.Wrapf(err, "failed to write image ID to file %q", options.IIDFile)

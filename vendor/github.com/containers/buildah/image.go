@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/buildah/docker"
@@ -661,6 +662,13 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 	if historyTimestamp != nil {
 		created = historyTimestamp.UTC()
 	}
+	createdBy := b.CreatedBy()
+	if createdBy == "" {
+		createdBy = strings.Join(b.Shell(), " ")
+		if createdBy == "" {
+			createdBy = "/bin/sh"
+		}
+	}
 
 	if omitTimestamp {
 		created = time.Unix(0, 0)
@@ -677,7 +685,7 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 		oconfig:               oconfig,
 		dconfig:               dconfig,
 		created:               created,
-		createdBy:             b.CreatedBy(),
+		createdBy:             createdBy,
 		historyComment:        b.HistoryComment(),
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,

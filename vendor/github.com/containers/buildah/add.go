@@ -209,6 +209,10 @@ func DockerIgnoreHelper(lines []string, contextDir string) []DockerIgnore {
 }
 
 func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
+	dirsInDockerignore, err := getDirsInDockerignore(options.ContextDir, excludes)
+	if err != nil {
+		return errors.Wrapf(err, "error checking directories in .dockerignore")
+	}
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -274,10 +278,15 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 						if err != nil {
 							return err
 						}
-						if !match {
+						prefix, exist := dirsInDockerignore[exclude.ExcludePath]
+						hasPrefix := false
+						if exist {
+							hasPrefix = filepath.HasPrefix(path, prefix)
+						}
+						if !(match || hasPrefix) {
 							continue
 						}
-						if exclude.IsExcluded {
+						if (hasPrefix && exclude.IsExcluded) || (match && exclude.IsExcluded) {
 							return nil
 						}
 						break
@@ -332,4 +341,36 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 		}
 	}
 	return nil
+}
+
+func getDirsInDockerignore(srcAbsPath string, excludes []DockerIgnore) (map[string]string, error) {
+	visitedDir := make(map[string]string)
+	if len(excludes) == 0 {
+		return visitedDir, nil
+	}
+	err := filepath.Walk(srcAbsPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			for _, exclude := range excludes {
+				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
+				if err != nil {
+					return err
+				}
+				if !match {
+					continue
+				}
+				if _, exist := visitedDir[exclude.ExcludePath]; exist {
+					continue
+				}
+				visitedDir[exclude.ExcludePath] = path
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return visitedDir, err
+	}
+	return visitedDir, nil
 }

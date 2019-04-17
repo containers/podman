@@ -39,7 +39,7 @@
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
 
-static int _buildah_unshare_parse_envint(const char *envname) {
+static int _containers_unshare_parse_envint(const char *envname) {
 	char *p, *q;
 	long l;
 
@@ -138,7 +138,7 @@ static char **parse_proc_stringlist(const char *list) {
 	return ret;
 }
 
-static int buildah_reexec(void) {
+static int containers_reexec(void) {
 	char **argv, *exename;
 	int fd, mmfd, n_read, n_written;
 	struct stat st;
@@ -196,12 +196,12 @@ static int buildah_reexec(void) {
 	return 0;
 }
 
-void _buildah_unshare(void)
+void _containers_unshare(void)
 {
 	int flags, pidfd, continuefd, n, pgrp, sid, ctty;
 	char buf[2048];
 
-	flags = _buildah_unshare_parse_envint("_Buildah-unshare");
+	flags = _containers_unshare_parse_envint("_Containers-unshare");
 	if (flags == -1) {
 		return;
 	}
@@ -213,7 +213,7 @@ void _buildah_unshare(void)
 			_exit(1);
 		}
 	}
-	pidfd = _buildah_unshare_parse_envint("_Buildah-pid-pipe");
+	pidfd = _containers_unshare_parse_envint("_Containers-pid-pipe");
 	if (pidfd != -1) {
 		snprintf(buf, sizeof(buf), "%llu", (unsigned long long) getpid());
 		size_t size = write(pidfd, buf, strlen(buf));
@@ -223,7 +223,7 @@ void _buildah_unshare(void)
 		}
 		close(pidfd);
 	}
-	continuefd = _buildah_unshare_parse_envint("_Buildah-continue-pipe");
+	continuefd = _containers_unshare_parse_envint("_Containers-continue-pipe");
 	if (continuefd != -1) {
 		n = read(continuefd, buf, sizeof(buf));
 		if (n > 0) {
@@ -232,21 +232,21 @@ void _buildah_unshare(void)
 		}
 		close(continuefd);
 	}
-	sid = _buildah_unshare_parse_envint("_Buildah-setsid");
+	sid = _containers_unshare_parse_envint("_Containers-setsid");
 	if (sid == 1) {
 		if (setsid() == -1) {
 			fprintf(stderr, "Error during setsid: %m\n");
 			_exit(1);
 		}
 	}
-	pgrp = _buildah_unshare_parse_envint("_Buildah-setpgrp");
+	pgrp = _containers_unshare_parse_envint("_Containers-setpgrp");
 	if (pgrp == 1) {
 		if (setpgrp() == -1) {
 			fprintf(stderr, "Error during setpgrp: %m\n");
 			_exit(1);
 		}
 	}
-	ctty = _buildah_unshare_parse_envint("_Buildah-ctty");
+	ctty = _containers_unshare_parse_envint("_Containers-ctty");
 	if (ctty != -1) {
 		if (ioctl(ctty, TIOCSCTTY, 0) == -1) {
 			fprintf(stderr, "Error while setting controlling terminal to %d: %m\n", ctty);
@@ -269,7 +269,7 @@ void _buildah_unshare(void)
 			_exit(1);
 		}
 	}
-	if (buildah_reexec() != 0) {
+	if (containers_reexec() != 0) {
 		_exit(1);
 	}
 	return;

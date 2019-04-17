@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/buildah/unshare"
+	"github.com/containers/buildah/pkg/unshare"
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"

@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -28,7 +27,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/stringid"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -215,7 +213,8 @@ type Executor struct {
 	useCache                       bool
 	removeIntermediateCtrs         bool
 	forceRmIntermediateCtrs        bool
-	imageMap                       map[string]string // Used to map images that we create to handle the AS construct.
+	imageMap                       map[string]string           // Used to map images that we create to handle the AS construct.
+	containerMap                   map[string]*buildah.Builder // Used to map from image names to only-created-for-the-rootfs containers.
 	blobDirectory                  string
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
@@ -496,6 +495,8 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			} else if len(copy.From) > 0 {
 				if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
 					sources = append(sources, filepath.Join(other.mountPoint, src))
+				} else if builder, ok := s.executor.containerMap[copy.From]; ok {
+					sources = append(sources, filepath.Join(builder.MountPoint, src))
 				} else {
 					return errors.Errorf("the stage %q has not been built", copy.From)
 				}
@@ -654,6 +655,7 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
 		forceRmIntermediateCtrs:        options.ForceRmIntermediateCtrs,
 		imageMap:                       make(map[string]string),
+		containerMap:                   make(map[string]*buildah.Builder),
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
 	}
@@ -680,18 +682,18 @@ func NewExecutor(store storage.Store, options BuildOptions) (*Executor, error) {
 	return &exec, nil
 }
 
-// Prepare creates a working container based on the specified image, or if one
+// prepare creates a working container based on the specified image, or if one
 // isn't specified, the first argument passed to the first FROM instruction we
 // can find in the stage's parsed tree.
-func (s *StageExecutor) Prepare(ctx context.Context, stage imagebuilder.Stage, from string) error {
+func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, from string, initializeIBConfig, rebase bool) (builder *buildah.Builder, err error) {
 	ib := stage.Builder
 	node := stage.Node
 
 	if from == "" {
 		base, err := ib.From(node)
 		if err != nil {
-			logrus.Debugf("Prepare(node.Children=%#v)", node.Children)
-			return errors.Wrapf(err, "error determining starting point for build")
+			logrus.Debugf("prepare(node.Children=%#v)", node.Children)
+			return nil, errors.Wrapf(err, "error determining starting point for build")
 		}
 		from = base
 	}
@@ -707,9 +709,11 @@ func (s *StageExecutor) Prepare(ctx context.Context, stage imagebuilder.Stage, f
 		}
 	}
 
-	logrus.Debugf("FROM %#v", displayFrom)
-	if !s.executor.quiet {
-		s.executor.log("FROM %s", displayFrom)
+	if initializeIBConfig && rebase {
+		logrus.Debugf("FROM %#v", displayFrom)
+		if !s.executor.quiet {
+			s.executor.log("FROM %s", displayFrom)
+		}
 	}
 
 	builderOptions := buildah.BuilderOptions{
@@ -737,74 +741,79 @@ func (s *StageExecutor) Prepare(ctx context.Context, stage imagebuilder.Stage, f
 	if asImageFound, ok := s.executor.imageMap[from]; ok {
 		builderOptions.FromImage = asImageFound
 	}
-	builder, err := buildah.NewBuilder(ctx, s.executor.store, builderOptions)
+	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
 	if err != nil {
-		return errors.Wrapf(err, "error creating build container")
+		return nil, errors.Wrapf(err, "error creating build container")
 	}
 
-	volumes := map[string]struct{}{}
-	for _, v := range builder.Volumes() {
-		volumes[v] = struct{}{}
-	}
-	ports := map[docker.Port]struct{}{}
-	for _, p := range builder.Ports() {
-		ports[docker.Port(p)] = struct{}{}
-	}
-	dConfig := docker.Config{
-		Hostname:     builder.Hostname(),
-		Domainname:   builder.Domainname(),
-		User:         builder.User(),
-		Env:          builder.Env(),
-		Cmd:          builder.Cmd(),
-		Image:        from,
-		Volumes:      volumes,
-		WorkingDir:   builder.WorkDir(),
-		Entrypoint:   builder.Entrypoint(),
-		Labels:       builder.Labels(),
-		Shell:        builder.Shell(),
-		StopSignal:   builder.StopSignal(),
-		OnBuild:      builder.OnBuild(),
-		ExposedPorts: ports,
-	}
-	var rootfs *docker.RootFS
-	if builder.Docker.RootFS != nil {
-		rootfs = &docker.RootFS{
-			Type: builder.Docker.RootFS.Type,
+	if initializeIBConfig {
+		volumes := map[string]struct{}{}
+		for _, v := range builder.Volumes() {
+			volumes[v] = struct{}{}
 		}
-		for _, id := range builder.Docker.RootFS.DiffIDs {
-			rootfs.Layers = append(rootfs.Layers, id.String())
+		ports := map[docker.Port]struct{}{}
+		for _, p := range builder.Ports() {
+			ports[docker.Port(p)] = struct{}{}
 		}
-	}
-	dImage := docker.Image{
-		Parent:          builder.FromImage,
-		ContainerConfig: dConfig,
-		Container:       builder.Container,
-		Author:          builder.Maintainer(),
-		Architecture:    builder.Architecture(),
-		RootFS:          rootfs,
-	}
-	dImage.Config = &dImage.ContainerConfig
-	err = ib.FromImage(&dImage, node)
-	if err != nil {
-		if err2 := builder.Delete(); err2 != nil {
-			logrus.Debugf("error deleting container which we failed to update: %v", err2)
+		dConfig := docker.Config{
+			Hostname:     builder.Hostname(),
+			Domainname:   builder.Domainname(),
+			User:         builder.User(),
+			Env:          builder.Env(),
+			Cmd:          builder.Cmd(),
+			Image:        from,
+			Volumes:      volumes,
+			WorkingDir:   builder.WorkDir(),
+			Entrypoint:   builder.Entrypoint(),
+			Labels:       builder.Labels(),
+			Shell:        builder.Shell(),
+			StopSignal:   builder.StopSignal(),
+			OnBuild:      builder.OnBuild(),
+			ExposedPorts: ports,
 		}
-		return errors.Wrapf(err, "error updating build context")
+		var rootfs *docker.RootFS
+		if builder.Docker.RootFS != nil {
+			rootfs = &docker.RootFS{
+				Type: builder.Docker.RootFS.Type,
+			}
+			for _, id := range builder.Docker.RootFS.DiffIDs {
+				rootfs.Layers = append(rootfs.Layers, id.String())
+			}
+		}
+		dImage := docker.Image{
+			Parent:          builder.FromImage,
+			ContainerConfig: dConfig,
+			Container:       builder.Container,
+			Author:          builder.Maintainer(),
+			Architecture:    builder.Architecture(),
+			RootFS:          rootfs,
+		}
+		dImage.Config = &dImage.ContainerConfig
+		err = ib.FromImage(&dImage, node)
+		if err != nil {
+			if err2 := builder.Delete(); err2 != nil {
+				logrus.Debugf("error deleting container which we failed to update: %v", err2)
+			}
+			return nil, errors.Wrapf(err, "error updating build context")
+		}
 	}
 	mountPoint, err := builder.Mount(builder.MountLabel)
 	if err != nil {
 		if err2 := builder.Delete(); err2 != nil {
 			logrus.Debugf("error deleting container which we failed to mount: %v", err2)
 		}
-		return errors.Wrapf(err, "error mounting new container")
+		return nil, errors.Wrapf(err, "error mounting new container")
 	}
-	s.mountPoint = mountPoint
-	s.builder = builder
-	// Add the top layer of this image to b.topLayers so we can keep track of them
-	// when building with cached images.
-	s.executor.topLayers = append(s.executor.topLayers, builder.TopLayer)
+	if rebase {
+		// Make this our "current" working container.
+		s.mountPoint = mountPoint
+		s.builder = builder
+		// Add the top layer of this image to b.topLayers so we can
+		// keep track of them when building with cached images.
+		s.executor.topLayers = append(s.executor.topLayers, builder.TopLayer)
+	}
 	logrus.Debugln("Container ID:", builder.ContainerID)
-	return nil
+	return builder, nil
 }
 
 // Delete deletes the stage's working container, if we have one.
@@ -816,47 +825,118 @@ func (s *StageExecutor) Delete() (err error) {
 	return err
 }
 
-// resolveNameToImageRef creates a types.ImageReference from b.output
+// resolveNameToImageRef creates a types.ImageReference for the output name in local storage
 func (b *Executor) resolveNameToImageRef(output string) (types.ImageReference, error) {
-	var (
-		imageRef types.ImageReference
-		err      error
-	)
-	if output != "" {
-		imageRef, err = alltransports.ParseImageName(output)
-		if err != nil {
-			candidates, _, _, err := util.ResolveName(output, "", b.systemContext, b.store)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error parsing target image name %q", output)
-			}
-			if len(candidates) == 0 {
-				return nil, errors.Errorf("error parsing target image name %q", output)
-			}
-			imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
-			if err2 != nil {
-				return nil, errors.Wrapf(err, "error parsing target image name %q", output)
-			}
-			return imageRef2, nil
-		}
-		return imageRef, nil
-	}
-	imageRef, err = is.Transport.ParseStoreReference(b.store, "@"+stringid.GenerateRandomID())
+	imageRef, err := alltransports.ParseImageName(output)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing reference for image to be written")
+		candidates, _, _, err := util.ResolveName(output, "", b.systemContext, b.store)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing target image name %q", output)
+		}
+		if len(candidates) == 0 {
+			return nil, errors.Errorf("error parsing target image name %q", output)
+		}
+		imageRef2, err2 := is.Transport.ParseStoreReference(b.store, candidates[0])
+		if err2 != nil {
+			return nil, errors.Wrapf(err, "error parsing target image name %q", output)
+		}
+		return imageRef2, nil
 	}
 	return imageRef, nil
 }
 
-// Execute runs each of the steps in the stage's parsed tree, in turn.
-func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage) (imgID string, ref reference.Canonical, err error) {
-	ib := stage.Builder
-	node := stage.Node
-	checkForLayers := true
-	children := node.Children
-	commitName := s.output
+// stepRequiresCommit indicates whether or not the step should be followed by
+// committing the in-progress container to create an intermediate image.
+func (*StageExecutor) stepRequiresCommit(step *imagebuilder.Step) bool {
+	switch strings.ToUpper(step.Command) {
+	case "ADD", "COPY", "RUN":
+		return true
+	}
+	return false
+}
 
-	for i, node := range node.Children {
-		// Resolve any arguments in this instruction so that we don't have to.
+// getImageRootfs checks for an image matching the passed-in name in local
+// storage.  If it isn't found, it pulls down a copy.  Then, if we don't have a
+// working container root filesystem based on the image, it creates one.  Then
+// it returns that root filesystem's location.
+func (s *StageExecutor) getImageRootfs(ctx context.Context, stage imagebuilder.Stage, image string) (mountPoint string, err error) {
+	if builder, ok := s.executor.containerMap[image]; ok {
+		return builder.MountPoint, nil
+	}
+	builder, err := s.prepare(ctx, stage, image, false, false)
+	if err != nil {
+		return "", err
+	}
+	s.executor.containerMap[image] = builder
+	return builder.MountPoint, nil
+}
+
+// Execute runs each of the steps in the stage's parsed tree, in turn.
+func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, base string) (imgID string, ref reference.Canonical, err error) {
+	ib := stage.Builder
+	checkForLayers := s.executor.layers && s.executor.useCache
+
+	// If the base image's name corresponds to the result of an earlier
+	// stage, substitute that image's ID for the base image's name here.
+	// If not, then go on assuming that it's just a regular image that's
+	// either in local storage, or one that we have to pull from a
+	// registry.
+	if stageImage, isPreviousStage := s.executor.imageMap[base]; isPreviousStage {
+		base = stageImage
+	}
+
+	// Create the (first) working container for this stage.  Reinitializing
+	// the imagebuilder configuration may alter the list of steps we have,
+	// so take a snapshot of them *after* that.
+	if _, err := s.prepare(ctx, stage, base, true, true); err != nil {
+		return "", nil, err
+	}
+	children := stage.Node.Children
+
+	// A helper function to only log "COMMIT" as an explicit step if it's
+	// the very last step of a (possibly multi-stage) build.
+	logCommit := func(output string, instruction int) {
+		if instruction < len(children)-1 || s.index < s.stages-1 {
+			return
+		}
+		commitMessage := "COMMIT"
+		if output != "" {
+			commitMessage = fmt.Sprintf("%s %s", commitMessage, output)
+		}
+		logrus.Debugf(commitMessage)
+		if !s.executor.quiet {
+			s.executor.log(commitMessage)
+		}
+	}
+	logImageID := func(imgID string) {
+		if s.executor.iidfile == "" {
+			fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
+		}
+	}
+
+	if len(children) == 0 {
+		// There are no steps.
+		if s.builder.FromImageID == "" || s.executor.squash {
+			// We either don't have a base image, or we need to
+			// squash the contents of the base image.  Whichever is
+			// the case, we need to commit() to create a new image.
+			logCommit(s.output, -1)
+			if imgID, ref, err = s.commit(ctx, ib, getCreatedBy(nil), s.output); err != nil {
+				return "", nil, errors.Wrapf(err, "error committing base container")
+			}
+		} else {
+			// We don't need to squash the base image, so just
+			// reuse the base image.
+			logCommit(s.output, -1)
+			if imgID, ref, err = s.copyExistingImage(ctx, s.builder.FromImageID, s.output); err != nil {
+				return "", nil, err
+			}
+		}
+		logImageID(imgID)
+	}
+
+	for i, node := range children {
+		// Resolve any arguments in this instruction.
 		step := ib.Step()
 		if err := step.Resolve(node); err != nil {
 			return "", nil, errors.Wrapf(err, "error resolving step %+v", *node)
@@ -868,7 +948,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage) (
 
 		// If this instruction declares an argument, remove it from the
 		// set of arguments that we were passed but which we haven't
-		// seen used by the Dockerfile.
+		// yet seen used by the Dockerfile.
 		if step.Command == "arg" {
 			for _, Arg := range step.Args {
 				list := strings.SplitN(Arg, "=", 2)
@@ -884,12 +964,17 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage) (
 		s.copyFrom = s.executor.contextDir
 		for _, n := range step.Flags {
 			if strings.Contains(n, "--from") && (step.Command == "copy" || step.Command == "add") {
+				var mountPoint string
 				arr := strings.Split(n, "=")
-				stage, ok := s.executor.stages[arr[1]]
+				otherStage, ok := s.executor.stages[arr[1]]
 				if !ok {
-					return "", nil, errors.Errorf("%s --from=%s: no stage found with that name", step.Command, arr[1])
+					if mountPoint, err = s.getImageRootfs(ctx, stage, arr[1]); err != nil {
+						return "", nil, errors.Errorf("%s --from=%s: no stage or image found with that name", step.Command, arr[1])
+					}
+				} else {
+					mountPoint = otherStage.mountPoint
 				}
-				s.copyFrom = stage.mountPoint
+				s.copyFrom = mountPoint
 				break
 			}
 		}
@@ -903,93 +988,146 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage) (
 			noRunsRemaining = !ib.RequiresStart(&parser.Node{Children: children[i+1:]})
 		}
 
-		// If we're doing a single-layer build and not looking to take
-		// shortcuts using the cache, make a note of the instruction,
-		// process it, and then move on to the next instruction.
-		if !s.executor.layers && s.executor.useCache {
+		// If we're doing a single-layer build, just process the
+		// instruction.
+		if !s.executor.layers {
 			err := ib.Run(step, s, noRunsRemaining)
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error building at step %+v", *step)
+				logrus.Debugf("%v", errors.Wrapf(err, "error building at step %+v", *step))
+				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
-			continue
+			if i < len(children)-1 {
+				// There are still more instructions to process
+				// for this stage.  Make a note of the
+				// instruction in the history that we'll write
+				// for the image when we eventually commit it.
+				now := time.Now()
+				s.builder.AddPrependedEmptyLayer(&now, getCreatedBy(node), "", "")
+				continue
+			} else {
+				// This is the last instruction for this stage,
+				// so we should commit this container to create
+				// an image.
+				logCommit(s.output, i)
+				imgID, ref, err = s.commit(ctx, ib, getCreatedBy(node), s.output)
+				if err != nil {
+					return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
+				}
+				logImageID(imgID)
+				break
+			}
 		}
 
-		if i < len(children)-1 {
-			commitName = ""
-		} else {
+		// We're in a multi-layered build.
+		var (
+			commitName string
+			cacheID    string
+			err        error
+			rebase     bool
+		)
+
+		// If we have to commit for this instruction, only assign the
+		// stage's configured output name to the last layer.
+		if i == len(children)-1 {
 			commitName = s.output
 		}
-
-		// TODO: this makes the tests happy, but it shouldn't be
-		// necessary unless this is the final stage.
-		commitName = s.executor.output
-
-		var (
-			cacheID string
-			err     error
-		)
 
 		// If we're using the cache, and we've managed to stick with
 		// cached images so far, look for one that matches what we
 		// expect to produce for this instruction.
-		if checkForLayers && s.executor.useCache {
+		// Only check at steps where we commit, so that we don't
+		// abandon the cache at this step just because we can't find an
+		// image with a history entry in it that we wouldn't have
+		// committed.
+		if checkForLayers && (s.stepRequiresCommit(step) || i == len(children)-1) && !(s.executor.squash && i == len(children)-1 && s.index == s.stages-1) {
 			cacheID, err = s.layerExists(ctx, node, children[:i])
 			if err != nil {
 				return "", nil, errors.Wrap(err, "error checking if cached image exists from a previous build")
 			}
-		}
-		if cacheID != "" {
-			fmt.Fprintf(s.executor.out, "--> Using cache %s\n", cacheID)
-		}
-
-		// If a cache is found and we're on the last step, that means
-		// nothing in this phase changed.  Just create a copy of the
-		// existing image and save it with the name that we were going
-		// to assign to the one that we were building, and make sure
-		// that the builder's root fs matches it.
-		if cacheID != "" && i == len(children)-1 {
-			if imgID, ref, err = s.copyExistingImage(ctx, cacheID, commitName); err != nil {
-				return "", nil, err
+			if cacheID != "" {
+				// Note the cache hit.
+				fmt.Fprintf(s.executor.out, "--> Using cache %s\n", cacheID)
+			} else {
+				// We're not going to find any more cache hits.
+				checkForLayers = false
 			}
-			break
 		}
 
-		// If we didn't find a cached step that we could just reuse,
-		// process the instruction and commit the layer.
-		if cacheID == "" || !checkForLayers {
-			checkForLayers = false
+		if cacheID != "" {
+			// A suitable cached image was found, so just reuse it.
+			// If we need to name the resulting image because it's
+			// the last step in this stage, add the name to the
+			// image.
+			imgID = cacheID
+			if commitName != "" && (s.stepRequiresCommit(step) || i == len(children)-1) {
+				logCommit(s.output, i)
+				if imgID, ref, err = s.copyExistingImage(ctx, cacheID, commitName); err != nil {
+					return "", nil, err
+				}
+				logImageID(imgID)
+			}
+			// Update our working container to be based off of the
+			// cached image, in case we need to read content from
+			// its root filesystem.
+			rebase = true
+		} else {
+			// If we didn't find a cached image that we could just reuse,
+			// process the instruction directly.
 			err := ib.Run(step, s, noRunsRemaining)
 			if err != nil {
-				return "", nil, errors.Wrapf(err, "error building at step %+v", *step)
+				logrus.Debugf("%v", errors.Wrapf(err, "error building at step %+v", *step))
+				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
+			}
+			if s.stepRequiresCommit(step) || i == len(children)-1 {
+				// Either this is the last instruction, or
+				// there are more instructions and we need to
+				// create a layer from this one before
+				// continuing.
+				// TODO: only commit for the last instruction
+				// case if we need to use this stage's image as
+				// a base image later, or if we're the final
+				// stage.
+				logCommit(s.output, i)
+				imgID, ref, err = s.commit(ctx, ib, getCreatedBy(node), commitName)
+				if err != nil {
+					return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
+				}
+				logImageID(imgID)
+				// We only need to build a new container rootfs
+				// using this image if we plan on making
+				// further changes to it.  Subsequent stages
+				// that just want to use the rootfs as a source
+				// for COPY or ADD will be content with what we
+				// already have.
+				rebase = i < len(children)-1
+			} else {
+				// There are still more instructions to process
+				// for this stage, and we don't need to commit
+				// here.  Make a note of the instruction in the
+				// history for the next commit.
+				now := time.Now()
+				s.builder.AddPrependedEmptyLayer(&now, getCreatedBy(node), "", "")
 			}
 		}
 
-		// Commit if no cache is found
-		if cacheID == "" {
-			imgID, ref, err = s.Commit(ctx, ib, getCreatedBy(node), commitName)
-			if err != nil {
-				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
-			}
-			if i == len(children)-1 {
-				s.executor.log("COMMIT %s", commitName)
-			}
-		} else {
-			// If we did find a cache, reuse the cached image's ID
-			// as the basis for the container for the next step.
-			imgID = cacheID
-		}
-
-		// Prepare for the next step with imgID as the new base image.
-		if i < len(children)-1 {
+		if rebase {
+			// Since we either committed the working container or
+			// are about to replace it with one based on a cached
+			// image, add the current working container's ID to the
+			// list of successful intermediate containers that
+			// we'll clean up later.
 			s.containerIDs = append(s.containerIDs, s.builder.ContainerID)
-			if err := s.Prepare(ctx, stage, imgID); err != nil {
+
+			// Prepare for the next step or subsequent phases by
+			// creating a new working container with the
+			// just-committed or updated cached image as its new
+			// base image.
+			// TODO: only create a new container if we know that
+			// we'll need the updated root filesystem.
+			if _, err := s.prepare(ctx, stage, imgID, false, true); err != nil {
 				return "", nil, errors.Wrap(err, "error preparing container for next step")
 			}
 		}
-	}
-
-	if s.executor.layers { // print out the final imageID if we're using layers flag
-		fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
 	}
 
 	return imgID, ref, nil
@@ -997,7 +1135,12 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage) (
 
 // copyExistingImage creates a copy of an image already in the store
 func (s *StageExecutor) copyExistingImage(ctx context.Context, cacheID, output string) (string, reference.Canonical, error) {
-	// Get the destination Image Reference
+	// If we don't need to attach a name to the image, just return the cache ID.
+	if output == "" {
+		return cacheID, nil, nil
+	}
+
+	// Get the destination image reference.
 	dest, err := s.executor.resolveNameToImageRef(output)
 	if err != nil {
 		return "", nil, err
@@ -1026,7 +1169,6 @@ func (s *StageExecutor) copyExistingImage(ctx context.Context, cacheID, output s
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error locating new copy of image %q (i.e., %q)", cacheID, transports.ImageName(dest))
 	}
-	s.executor.log("COMMIT %s", s.output)
 	var ref reference.Canonical
 	if dref := dest.DockerReference(); dref != nil {
 		if ref, err = reference.WithDigest(dref, manifestDigest); err != nil {
@@ -1094,6 +1236,9 @@ func (b *Executor) getImageHistory(ctx context.Context, imageID string) ([]v1.Hi
 
 // getCreatedBy returns the command the image at node will be created by.
 func getCreatedBy(node *parser.Node) string {
+	if node == nil {
+		return "/bin/sh"
+	}
 	if node.Value == "run" {
 		return "/bin/sh -c " + node.Original[4:]
 	}
@@ -1201,12 +1346,16 @@ func urlContentModified(url string, historyTime *time.Time) (bool, error) {
 	return true, nil
 }
 
-// Commit writes the container's contents to an image, using a passed-in tag as
+// commit writes the container's contents to an image, using a passed-in tag as
 // the name if there is one, generating a unique ID-based one otherwise.
-func (s *StageExecutor) Commit(ctx context.Context, ib *imagebuilder.Builder, createdBy, output string) (string, reference.Canonical, error) {
-	imageRef, err := s.executor.resolveNameToImageRef(output)
-	if err != nil {
-		return "", nil, err
+func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, createdBy, output string) (string, reference.Canonical, error) {
+	var imageRef types.ImageReference
+	if output != "" {
+		imageRef2, err := s.executor.resolveNameToImageRef(output)
+		if err != nil {
+			return "", nil, err
+		}
+		imageRef = imageRef2
 	}
 
 	if ib.Author != "" {
@@ -1274,14 +1423,8 @@ func (s *StageExecutor) Commit(ctx context.Context, ib *imagebuilder.Builder, cr
 	if imageRef != nil {
 		logName := transports.ImageName(imageRef)
 		logrus.Debugf("COMMIT %q", logName)
-		if !s.executor.quiet && !s.executor.layers && s.executor.useCache {
-			s.executor.log("COMMIT %s", logName)
-		}
 	} else {
 		logrus.Debugf("COMMIT")
-		if !s.executor.quiet && !s.executor.layers && s.executor.useCache {
-			s.executor.log("COMMIT")
-		}
 	}
 	writer := s.executor.reportWriter
 	if s.executor.layers || !s.executor.useCache {
@@ -1294,7 +1437,6 @@ func (s *StageExecutor) Commit(ctx context.Context, ib *imagebuilder.Builder, cr
 		ReportWriter:          writer,
 		PreferredManifestType: s.executor.outputFormat,
 		SystemContext:         s.executor.systemContext,
-		IIDFile:               s.executor.iidfile,
 		Squash:                s.executor.squash,
 		BlobDirectory:         s.executor.blobDirectory,
 		Parent:                s.builder.FromImageID,
@@ -1303,13 +1445,12 @@ func (s *StageExecutor) Commit(ctx context.Context, ib *imagebuilder.Builder, cr
 	if err != nil {
 		return "", nil, err
 	}
-	if options.IIDFile == "" && imgID != "" {
-		fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
-	}
 	var ref reference.Canonical
-	if dref := imageRef.DockerReference(); dref != nil {
-		if ref, err = reference.WithDigest(dref, manifestDigest); err != nil {
-			return "", nil, errors.Wrapf(err, "error computing canonical reference for new image %q", imgID)
+	if imageRef != nil {
+		if dref := imageRef.DockerReference(); dref != nil {
+			if ref, err = reference.WithDigest(dref, manifestDigest); err != nil {
+				return "", nil, errors.Wrapf(err, "error computing canonical reference for new image %q", imgID)
+			}
 		}
 	}
 	return imgID, ref, nil
@@ -1321,10 +1462,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if len(stages) == 0 {
 		return "", nil, errors.New("error building: no stages to build")
 	}
-	var (
-		stageExecutor *StageExecutor
-		cleanupImages []string
-	)
+	var cleanupImages []string
 	cleanupStages := make(map[int]*StageExecutor)
 
 	cleanup := func() error {
@@ -1339,6 +1477,14 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			}
 		}
 		cleanupStages = nil
+		// Clean up any builders that we used to get data from images.
+		for _, builder := range b.containerMap {
+			if err := builder.Delete(); err != nil {
+				logrus.Debugf("Failed to cleanup image containers: %v", err)
+				lastErr = err
+			}
+		}
+		b.containerMap = nil
 		// Clean up any intermediate containers associated with stages,
 		// since we're not keeping them for debugging.
 		if b.removeIntermediateCtrs {
@@ -1382,37 +1528,44 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 			output = b.output
 		}
 
-		stageExecutor = b.startStage(stage.Name, stage.Position, len(stages), base, output)
-		if err := stageExecutor.Prepare(ctx, stage, base); err != nil {
-			return "", nil, err
-		}
+		stageExecutor := b.startStage(stage.Name, stage.Position, len(stages), base, output)
 
-		// Always remove the intermediate/build containers, even if the build was unsuccessful.
-		// If building with layers, remove all intermediate/build containers if b.forceRmIntermediateCtrs
-		// is true.
+		// If this a single-layer build, or if it's a multi-layered
+		// build and b.forceRmIntermediateCtrs is set, make sure we
+		// remove the intermediate/build containers, regardless of
+		// whether or not the stage's build fails.
 		if b.forceRmIntermediateCtrs || !b.layers {
 			cleanupStages[stage.Position] = stageExecutor
 		}
-		if imageID, ref, err = stageExecutor.Execute(ctx, stage); err != nil {
+
+		// Build this stage.
+		if imageID, ref, err = stageExecutor.Execute(ctx, stage, base); err != nil {
 			lastErr = err
 		}
 		if lastErr != nil {
 			return "", nil, lastErr
 		}
-		if !b.forceRmIntermediateCtrs && b.removeIntermediateCtrs {
+
+		// The stage succeeded, so remove its build container if we're
+		// told to delete successful intermediate/build containers for
+		// multi-layered builds.
+		if b.removeIntermediateCtrs {
 			cleanupStages[stage.Position] = stageExecutor
 		}
 
-		// If this is an intermediate stage, make a note to remove its
-		// image later.
-		if _, err := strconv.Atoi(stage.Name); err != nil {
-			if imageID, ref, err = stageExecutor.Commit(ctx, stages[stageIndex].Builder, "", output); err != nil {
-				return "", nil, err
-			}
+		// If this is an intermediate stage, make a note of the ID, so
+		// that we can look it up later.
+		if stageIndex < len(stages)-1 {
 			b.imageMap[stage.Name] = imageID
-			cleanupImages = append(cleanupImages, imageID)
+			// We're not populating the cache with intermediate
+			// images, so add this one to the list of images that
+			// we'll remove later.
+			if !b.layers {
+				cleanupImages = append(cleanupImages, imageID)
+			}
 		}
 	}
+
 	if len(b.unusedArgs) > 0 {
 		unusedList := make([]string, 0, len(b.unusedArgs))
 		for k := range b.unusedArgs {
@@ -1422,23 +1575,14 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		fmt.Fprintf(b.out, "[Warning] one or more build args were not consumed: %v\n", unusedList)
 	}
 
-	// Check if we have a one line Dockerfile (i.e., single phase, no
-	// actual steps) making layers irrelevant, or the user told us to
-	// ignore layers.
-	singleLineDockerfile := (len(stages) < 2 && len(stages[0].Node.Children) < 1)
-	ignoreLayers := singleLineDockerfile || !b.layers && b.useCache
-
-	if ignoreLayers {
-		if imageID, ref, err = stageExecutor.Commit(ctx, stages[len(stages)-1].Builder, "", b.output); err != nil {
-			return "", nil, err
-		}
-		if singleLineDockerfile {
-			b.log("COMMIT %s", ref)
-		}
-	}
-
 	if err := cleanup(); err != nil {
 		return "", nil, err
+	}
+
+	if b.iidfile != "" {
+		if err = ioutil.WriteFile(b.iidfile, []byte(imageID), 0644); err != nil {
+			return imageID, ref, errors.Wrapf(err, "failed to write image ID to file %q", b.iidfile)
+		}
 	}
 
 	return imageID, ref, nil
@@ -1516,8 +1660,6 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		dockerfiles = append(dockerfiles, data)
 	}
 
-	dockerfiles = processCopyFrom(dockerfiles)
-
 	mainNode, err := imagebuilder.ParseDockerfile(dockerfiles[0])
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error parsing main Dockerfile")
@@ -1546,79 +1688,6 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		stages = stagesTargeted
 	}
 	return exec.Build(ctx, stages)
-}
-
-// processCopyFrom goes through the Dockerfiles and handles any 'COPY --from' instances
-// prepending a new FROM statement the Dockerfile that do not already have a corresponding
-// FROM command within them.
-func processCopyFrom(dockerfiles []io.ReadCloser) []io.ReadCloser {
-	var newDockerfiles []io.ReadCloser
-	// fromMap contains the names of the images seen in a FROM
-	// line in the Dockerfiles.  The boolean value just completes the map object.
-	fromMap := make(map[string]bool)
-	// asMap contains the names of the images seen after a "FROM image AS"
-	// line in the Dockefiles.  The boolean value just completes the map object.
-	asMap := make(map[string]bool)
-
-	copyRE := regexp.MustCompile(`\s*COPY\s+--from=`)
-	fromRE := regexp.MustCompile(`\s*FROM\s+`)
-	asRE := regexp.MustCompile(`(?i)\s+as\s+`)
-	for _, dfile := range dockerfiles {
-		if dfileBinary, err := ioutil.ReadAll(dfile); err == nil {
-			dfileString := fmt.Sprintf("%s", dfileBinary)
-			copyFromContent := copyRE.Split(dfileString, -1)
-			// no "COPY --from=", just continue
-			if len(copyFromContent) < 2 {
-				newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(dfileString)))
-				continue
-			}
-			// Load all image names in our Dockerfiles into a map
-			// for easy reference later.
-			fromContent := fromRE.Split(dfileString, -1)
-			for i := 0; i < len(fromContent); i++ {
-				imageName := strings.Split(fromContent[i], " ")
-				if len(imageName) > 0 {
-					finalImage := strings.Split(imageName[0], "\n")
-					if finalImage[0] != "" {
-						fromMap[strings.TrimSpace(finalImage[0])] = true
-					}
-				}
-			}
-			logrus.Debug("fromMap: ", fromMap)
-
-			// Load all image names associated with an 'as' or 'AS' in
-			// our Dockerfiles into a map for easy reference later.
-			asContent := asRE.Split(dfileString, -1)
-			// Skip the first entry in the array as it's stuff before
-			// the " as " and we don't care.
-			for i := 1; i < len(asContent); i++ {
-				asName := strings.Split(asContent[i], " ")
-				if len(asName) > 0 {
-					finalAsImage := strings.Split(asName[0], "\n")
-					if finalAsImage[0] != "" {
-						asMap[strings.TrimSpace(finalAsImage[0])] = true
-					}
-				}
-			}
-			logrus.Debug("asMap: ", asMap)
-
-			for i := 1; i < len(copyFromContent); i++ {
-				fromArray := strings.Split(copyFromContent[i], " ")
-				// If the image isn't a stage number or already declared,
-				// add a FROM statement for it to the top of our Dockerfile.
-				trimmedFrom := strings.TrimSpace(fromArray[0])
-				_, okFrom := fromMap[trimmedFrom]
-				_, okAs := asMap[trimmedFrom]
-				_, err := strconv.Atoi(trimmedFrom)
-				if !okFrom && !okAs && err != nil {
-					from := "FROM " + trimmedFrom
-					newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(from)))
-				}
-			}
-			newDockerfiles = append(newDockerfiles, ioutil.NopCloser(strings.NewReader(dfileString)))
-		} // End if dfileBinary, err := ioutil.ReadAll(dfile); err == nil
-	} // End for _, dfile := range dockerfiles {
-	return newDockerfiles
 }
 
 // deleteSuccessfulIntermediateCtrs goes through the container IDs in each
