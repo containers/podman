@@ -763,4 +763,18 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 	})
+
+	It("podman run --http-proxy test", func() {
+		os.Setenv("http_proxy", "1.2.3.4")
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv", "http_proxy"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("1.2.3.4")
+		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--http-proxy=false", ALPINE, "printenv", "http_proxy"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(1))
+		os.Unsetenv("http_proxy")
+	})
 })

@@ -404,6 +404,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["healthcheck-start-period"] = newCRString(c, "healthcheck-start-period")
 	m["healthcheck-timeout"] = newCRString(c, "healthcheck-timeout")
 	m["hostname"] = newCRString(c, "hostname")
+	m["http-proxy"] = newCRBool(c, "http-proxy")
 	m["image-volume"] = newCRString(c, "image-volume")
 	m["init"] = newCRBool(c, "init")
 	m["init-path"] = newCRString(c, "init-path")

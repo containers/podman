@@ -87,6 +87,7 @@ type CreateConfig struct {
 	NoHosts            bool
 	HostAdd            []string //add-host
 	Hostname           string   //hostname
+	HTTPProxy          bool
 	Image              string
 	ImageID            string
 	BuiltinImgVolumes  map[string]struct{} // volumes defined in the image config

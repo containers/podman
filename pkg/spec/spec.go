@@ -192,6 +192,24 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.SetRootReadonly(config.ReadOnlyRootfs)
 
+	if config.HTTPProxy {
+		for _, envSpec := range []string{
+			"http_proxy",
+			"HTTP_PROXY",
+			"https_proxy",
+			"HTTPS_PROXY",
+			"ftp_proxy",
+			"FTP_PROXY",
+			"no_proxy",
+			"NO_PROXY",
+		} {
+			envVal := os.Getenv(envSpec)
+			if envVal != "" {
+				g.AddProcessEnv(envSpec, envVal)
+			}
+		}
+	}
+
 	hostname := config.Hostname
 	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
 		hostname, err = os.Hostname()

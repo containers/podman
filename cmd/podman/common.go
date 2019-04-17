@@ -313,6 +313,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"hostname", "h", "",
 		"Set container hostname",
 	)
+	createFlags.Bool(
+		"http-proxy", true,
+		"Set proxy environment variables in container based on the host proxy vars",
+	)
 	createFlags.String(
 		"image-volume", cliconfig.DefaultImageVolume,
 		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore'",
