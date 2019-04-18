@@ -32,6 +32,7 @@ integrationtest=0
 unittest=0
 validate=0
 options=0
+noremote=0
 install_tools_made=0
 
 while getopts "biptuv" opt; do
@@ -43,6 +44,9 @@ while getopts "biptuv" opt; do
        options=1
        ;;
     t) integrationtest=1
+       options=1
+       ;;
+    n) noremote=1
        options=1
        ;;
     u) unittest=1
@@ -127,5 +131,7 @@ if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
     make varlink_generate
     make ginkgo $INTEGRATION_TEST_ENVS
-    make ginkgo-remote $INTEGRATION_TEST_ENVS
+    if [ $noremote -eq 0 ]; then
+        make ginkgo-remote $INTEGRATION_TEST_ENVS
+    fi
 fi

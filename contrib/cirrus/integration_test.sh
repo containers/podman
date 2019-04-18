@@ -34,7 +34,7 @@ then
         -e "CONMON_BINARY=/usr/libexec/podman/conmon" \
         -e "DIST=$OS_RELEASE_ID" \
         -e "CONTAINER_RUNTIME=$CONTAINER_RUNTIME" \
-        ${OS_RELEASE_ID}podmanbuild bash $GOSRC/$SCRIPT_BASE/container_test.sh -b -i -t
+        ${OS_RELEASE_ID}podmanbuild bash $GOSRC/$SCRIPT_BASE/container_test.sh -b -i -t -n
 
     exit $?
 elif [[ "$SPECIALMODE" == "rootless" ]]

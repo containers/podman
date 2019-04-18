@@ -17,14 +17,12 @@ func getMainCommands() []*cobra.Command {
 		_loginCommand,
 		_logoutCommand,
 		_mountCommand,
-		_pauseCommand,
 		_portCommand,
 		_refreshCommand,
 		_restartCommand,
 		_searchCommand,
 		_statsCommand,
 		_topCommand,
-		_unpauseCommand,
 	}
 
 	if len(_varlinkCommand.Use) > 0 {
@@ -49,7 +47,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_commitCommand,
 		_execCommand,
 		_mountCommand,
-		_pauseCommand,
 		_portCommand,
 		_pruneContainersCommand,
 		_refreshCommand,
@@ -60,7 +57,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_stopCommand,
 		_topCommand,
 		_umountCommand,
-		_unpauseCommand,
 	}
 }
 

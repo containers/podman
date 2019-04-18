@@ -59,9 +59,11 @@ var (
 		_killCommand,
 		_listSubCommand,
 		_logsCommand,
+		_pauseCommand,
 		_runCommand,
 		_rmCommand,
 		_startCommand,
+		_unpauseCommand,
 		_waitCommand,
 	}
 )

@@ -607,3 +607,90 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 	}
 	return exitCode, lastError
 }
+
+// PauseContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) PauseContainers(ctx context.Context, cli *cliconfig.PauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*libpod.Container
+		err      error
+	)
+
+	maxWorkers := shared.DefaultPoolSize("pause")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	if cli.All {
+		ctrs, err = r.GetRunningContainers()
+	} else {
+		ctrs, err = shortcuts.GetContainersByContext(false, false, cli.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+
+	pool := shared.NewPool("pause", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.Pause()
+				if err != nil {
+					logrus.Debugf("Failed to pause container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// UnpauseContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.UnpauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*libpod.Container
+		err      error
+	)
+
+	maxWorkers := shared.DefaultPoolSize("pause")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	if cli.All {
+		var filterFuncs []libpod.ContainerFilter
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == libpod.ContainerStatePaused
+		})
+		ctrs, err = r.GetContainers(filterFuncs...)
+	} else {
+		ctrs, err = shortcuts.GetContainersByContext(false, false, cli.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+
+	pool := shared.NewPool("pause", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.Unpause()
+				if err != nil {
+					logrus.Debugf("Failed to unpause container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}

@@ -128,6 +128,37 @@ func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, lates
 	return call.ReplyGetContainersByContext(ids)
 }
 
+// GetContainersByStatus returns a slice of containers filtered by a libpod status
+func (i *LibpodAPI) GetContainersByStatus(call iopodman.VarlinkCall, statuses []string) error {
+	var (
+		filterFuncs []libpod.ContainerFilter
+		containers  []iopodman.Container
+	)
+	for _, status := range statuses {
+		lpstatus, err := libpod.StringToContainerStatus(status)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == lpstatus
+		})
+	}
+	filteredContainers, err := i.Runtime.GetContainers(filterFuncs...)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	opts := shared.PsOptions{Size: true, Namespace: true}
+	for _, ctr := range filteredContainers {
+		batchInfo, err := shared.BatchContainerOp(ctr, opts)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		containers = append(containers, makeListContainer(ctr.ID(), batchInfo))
+	}
+	return call.ReplyGetContainersByStatus(containers)
+}
+
 // InspectContainer ...
 func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
