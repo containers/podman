@@ -238,7 +238,13 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues, ctx context.Context, runtime *
 
 	// We've now successfully converted this YAML into a pod
 	// print our pod and containers, signifying we succeeded
-	fmt.Println(pod.ID())
+	fmt.Printf("Pod:\n%s\n", pod.ID())
+	if len(containers) == 1 {
+		fmt.Printf("Container:\n")
+	}
+	if len(containers) > 1 {
+		fmt.Printf("Containers:\n")
+	}
 	for _, ctr := range containers {
 		fmt.Println(ctr.ID())
 	}
