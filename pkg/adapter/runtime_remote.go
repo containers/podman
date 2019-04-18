@@ -99,6 +99,18 @@ type remoteContainer struct {
 	state   *libpod.ContainerState
 }
 
+// Pod ...
+type Pod struct {
+	remotepod
+}
+
+type remotepod struct {
+	config     *libpod.PodConfig
+	state      *libpod.PodInspectState
+	containers []libpod.PodContainerInfo
+	Runtime    *LocalRuntime
+}
+
 type VolumeFilter func(*Volume) bool
 
 // Volume is embed for libpod volumes

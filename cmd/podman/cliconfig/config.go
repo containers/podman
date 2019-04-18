@@ -159,7 +159,7 @@ type PruneContainersValues struct {
 	Force bool
 }
 
-type PrunePodsValues struct {
+type PodPruneValues struct {
 	PodmanCommand
 	Force bool
 }
