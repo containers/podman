@@ -16,11 +16,13 @@
 #include <sys/types.h>
 #include <sys/prctl.h>
 #include <dirent.h>
+#include <sys/select.h>
 
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
 
-static int n_files;
+static int open_files_max_fd;
+fd_set open_files_set;
 
 static void __attribute__((constructor)) init()
 {
@@ -32,11 +34,16 @@ static void __attribute__((constructor)) init()
     {
       struct dirent *ent;
 
+      FD_ZERO (&open_files_set);
       for (ent = readdir (d); ent; ent = readdir (d))
         {
           int fd = atoi (ent->d_name);
-          if (fd > n_files && fd != dirfd (d))
-            n_files = fd;
+          if (fd != dirfd (d))
+            {
+              if (fd > open_files_max_fd)
+                open_files_max_fd = fd;
+              FD_SET (fd, &open_files_set);
+            }
         }
       closedir (d);
     }
@@ -164,8 +171,11 @@ reexec_userns_join (int userns, int mountns)
     {
       /* We passed down these fds, close them.  */
       int f;
-      for (f = 3; f < n_files; f++)
-        close (f);
+      for (f = 3; f < open_files_max_fd; f++)
+        {
+          if (FD_ISSET (f, &open_files_set))
+            close (f);
+        }
       return pid;
     }
 
@@ -274,22 +284,25 @@ reexec_in_user_namespace (int ready)
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
     }
-  if (pid) {
-    if (do_socket_activation) {
-      long num_fds;
-      num_fds = strtol(listen_fds, NULL, 10);
-      if (num_fds != LONG_MIN && num_fds != LONG_MAX) {
-        long i;
-        for (i = 0; i < num_fds; i++) {
-          close(3+i);
+  if (pid)
+    {
+      if (do_socket_activation)
+        {
+          long num_fds;
+          num_fds = strtol (listen_fds, NULL, 10);
+          if (num_fds != LONG_MIN && num_fds != LONG_MAX)
+            {
+              long i;
+              for (i = 3; i < num_fds + 3; i++)
+                if (FD_ISSET (i, &open_files_set))
+                  close (i);
+            }
+          unsetenv ("LISTEN_PID");
+          unsetenv ("LISTEN_FDS");
+          unsetenv ("LISTEN_FDNAMES");
         }
-      }
-      unsetenv("LISTEN_PID");
-      unsetenv("LISTEN_FDS");
-      unsetenv("LISTEN_FDNAMES");
+      return pid;
     }
-    return pid;
-  }
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
@@ -300,8 +313,8 @@ reexec_in_user_namespace (int ready)
 
   if (do_socket_activation) {
     char s[32];
-    sprintf(s, "%d", getpid());
-    setenv("LISTEN_PID", s, true);
+    sprintf (s, "%d", getpid());
+    setenv ("LISTEN_PID", s, true);
   }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
