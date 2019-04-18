@@ -1218,6 +1218,8 @@ method GetLayersMapWithImageInfo() -> (layerMap: string)
 # BuildImageHierarchyMap is for the development of Podman and should not be used.
 method BuildImageHierarchyMap(name: string) -> (imageInfo: string)
 
+method GenerateSystemd(name: string, restart: string, timeout: int, useName: bool) -> (unit: string)
+
 # ImageNotFound means the image could not be found by the provided name or ID in local storage.
 error ImageNotFound (id: string, reason: string)
 

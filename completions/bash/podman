@@ -919,6 +919,7 @@ _podman_generate() {
 	"
      subcommands="
 	 kube
+	 systemd
      "
      __podman_subcommands "$subcommands $aliases" && return
 
@@ -2454,6 +2455,32 @@ _podman_generate_kube() {
 	    COMPREPLY=( $( compgen -W "
 			  $(__podman_containers --all)
 			  $(__podman_pods)
+			  " -- "$cur" ) )
+	    __ltrim_colon_completions "$cur"
+	    ;;
+    esac
+}
+
+_podman_generate_systemd() {
+    local options_with_args="
+    --restart-policy
+    -t
+    --timeout"
+
+    local boolean_options="
+    -h
+    --help
+    -n
+    --name
+    "
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+	*)
+	    COMPREPLY=( $( compgen -W "
+			  $(__podman_containers --all)
 			  " -- "$cur" ) )
 	    __ltrim_colon_completions "$cur"
 	    ;;

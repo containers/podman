@@ -593,7 +593,7 @@ Not implemented.
 
 Restart should be handled via a systemd unit files. Please add your podman
 commands to a unit file and allow systemd or your init system to handle the
-restarting of the container processes. See example below.
+restarting of the container processes. See *podman generate systemd*.
 
 **--rm**=*true*|*false*
 
@@ -1149,21 +1149,6 @@ the uids and gids from the host.
 
 ```
 $ podman run --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
-```
-
-### Running a podman container to restart inside of a systemd unit file
-
-
-```
-[Unit]
-Description=My App
-[Service]
-Restart=always
-ExecStart=/usr/bin/podman start -a my_app
-ExecStop=/usr/bin/podman stop -t 10 my_app
-KillMode=process
-[Install]
-WantedBy=multi-user.target
 ```
 
 ### Configuring Storage Options from the command line

@@ -136,10 +136,16 @@ type ExportValues struct {
 	PodmanCommand
 	Output string
 }
-
 type GenerateKubeValues struct {
 	PodmanCommand
 	Service bool
+}
+
+type GenerateSystemdValues struct {
+	PodmanCommand
+	Name          bool
+	RestartPolicy string
+	StopTimeout   int
 }
 
 type HistoryValues struct {

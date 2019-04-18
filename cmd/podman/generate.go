@@ -18,6 +18,7 @@ var (
 	//	Commands that are universally implemented
 	generateCommands = []*cobra.Command{
 		_containerKubeCommand,
+		_containerSystemdCommand,
 	}
 )
 

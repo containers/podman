@@ -25,6 +25,8 @@ Command                                                                  | Descr
 [podman-exec(1)](/docs/podman-exec.1.md)                                 | Execute a command in a running container                                   |
 [podman-export(1)](/docs/podman-export.1.md)                             | Export container's filesystem contents as a tar archive                    |
 [podman-generate(1)](/docs/podman-generate.1.md)                         | Generate structured output based on Podman containers and pods             |
+[podman-generate-kube(1)](/docs/podman-generate-kube.1.md)               | Generate Kubernetes YAML based on a container or Pod             |
+[podman-generate-systemd(1)](/docs/podman-generate-systemd.1.md)         | Generate a Systemd unit file for a container             |
 [podman-history(1)](/docs/podman-history.1.md)                           | Shows the history of an image                                              |
 [podman-image(1)](/docs/podman-image.1.md)                               | Manage Images                                                              |
 [podman-image-exists(1)](/docs/podman-image-exists.1.md)                 | Check if an image exists in local storage                                  |

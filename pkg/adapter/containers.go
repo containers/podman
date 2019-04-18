@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/systemdgen"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -939,4 +940,21 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 		portContainers = append(portContainers, &Container{con})
 	}
 	return portContainers, nil
+}
+
+// GenerateSystemd creates a unit file for a container
+func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
+	ctr, err := r.Runtime.LookupContainer(c.InputArgs[0])
+	if err != nil {
+		return "", err
+	}
+	timeout := int(ctr.StopTimeout())
+	if c.StopTimeout >= 0 {
+		timeout = int(c.StopTimeout)
+	}
+	name := ctr.ID()
+	if c.Name {
+		name = ctr.Name()
+	}
+	return systemdgen.CreateSystemdUnitAsString(name, ctr.ID(), c.RestartPolicy, ctr.Config().StaticDir, timeout)
 }
