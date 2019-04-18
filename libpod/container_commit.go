@@ -125,23 +125,48 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// Workdir
 	importBuilder.SetWorkDir(c.Spec().Process.Cwd)
 
+	genCmd := func(cmd string) []string {
+		trim := func(cmd []string) []string {
+			if len(cmd) == 0 {
+				return cmd
+			}
+
+			retCmd := []string{}
+			for _, c := range cmd {
+				if len(c) >= 2 {
+					if c[0] == '"' && c[len(c)-1] == '"' {
+						retCmd = append(retCmd, c[1:len(c)-1])
+						continue
+					}
+				}
+				retCmd = append(retCmd, c)
+			}
+			return retCmd
+		}
+		if strings.HasPrefix(cmd, "[") {
+			cmd = strings.TrimPrefix(cmd, "[")
+			cmd = strings.TrimSuffix(cmd, "]")
+			return trim(strings.Split(cmd, ","))
+		}
+		return []string{"/bin/sh", "-c", cmd}
+	}
 	// Process user changes
 	for _, change := range options.Changes {
-		splitChange := strings.SplitN(change, " ", 2)
+		splitChange := strings.SplitN(change, "=", 2)
 		if len(splitChange) != 2 {
-			splitChange = strings.SplitN(change, "=", 2)
+			splitChange = strings.SplitN(change, " ", 2)
 			if len(splitChange) < 2 {
 				return nil, errors.Errorf("invalid change %s format", change)
 			}
 		}
 
-		change := strings.Split(splitChange[1], " ")
 		switch strings.ToUpper(splitChange[0]) {
 		case "CMD":
-			importBuilder.SetCmd(change)
+			importBuilder.SetCmd(genCmd(splitChange[1]))
 		case "ENTRYPOINT":
-			importBuilder.SetEntrypoint(change)
+			importBuilder.SetEntrypoint(genCmd(splitChange[1]))
 		case "ENV":
+			change := strings.Split(splitChange[1], " ")
 			name := change[0]
 			val := ""
 			if len(change) < 2 {
@@ -168,6 +193,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 			}
 			importBuilder.SetPort(splitChange[1])
 		case "LABEL":
+			change := strings.Split(splitChange[1], " ")
 			if len(change) < 2 {
 				change = strings.Split(change[0], "=")
 			}
