@@ -53,4 +53,6 @@ var (
 	ErrDigestUnknown = errors.New("could not compute digest of item")
 	// ErrLayerNotMounted is returned when the requested information can only be computed for a mounted layer, and the layer is not mounted.
 	ErrLayerNotMounted = errors.New("layer is not mounted")
+	// ErrTargetNotVolatile is returned when a path must be on volatile storage.
+	ErrTargetNotVolatile = errors.New("the target is not on tmpfs")
 )

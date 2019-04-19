@@ -148,6 +148,9 @@ type StoreOptions struct {
 	// for use inside of a user namespace where UID mapping is being used.
 	UIDMap []idtools.IDMap `json:"uidmap,omitempty"`
 	GIDMap []idtools.IDMap `json:"gidmap,omitempty"`
+	// SkipRunRootCheck disables the check for the RunRoot to be on a volatile
+	// storage.
+	SkipRunRootCheck bool
 }
 
 // Store wraps up the various types of file-based stores that we use into a
@@ -596,6 +599,12 @@ func GetStore(options StoreOptions) (Store, error) {
 	}
 	for _, subdir := range []string{"mounts", "tmp", options.GraphDriverName} {
 		if err := os.MkdirAll(filepath.Join(options.GraphRoot, subdir), 0700); err != nil && !os.IsExist(err) {
+			return nil, err
+		}
+	}
+
+	if !options.SkipRunRootCheck {
+		if err := validateRunRoot(options.RunRoot); err != nil {
 			return nil, err
 		}
 	}
@@ -3282,6 +3291,12 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		storeOptions.GraphDriverName = config.Storage.Driver
 	}
 	if config.Storage.RunRoot != "" {
+		if !storeOptions.SkipRunRootCheck {
+			if err := validateRunRoot(config.Storage.RunRoot); err != nil {
+				fmt.Printf("Failed to set runroot to %s %v\n", config.Storage.RunRoot, err.Error())
+				return
+			}
+		}
 		storeOptions.RunRoot = config.Storage.RunRoot
 	}
 	if config.Storage.GraphRoot != "" {

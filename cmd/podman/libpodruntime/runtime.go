@@ -2,6 +2,7 @@ package libpodruntime
 
 import (
 	"context"
+	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
@@ -73,6 +74,8 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 	if migrate {
 		options = append(options, libpod.WithMigrate())
 	}
+
+	storageOpts.SkipRunRootCheck = os.Getenv("container") != ""
 
 	if renumber {
 		options = append(options, libpod.WithRenumber())
