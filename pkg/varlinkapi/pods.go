@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
-	"github.com/containers/libpod/pkg/rootless"
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -37,12 +36,9 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 		if !create.Infra {
 			return call.ReplyErrorOccurred("you must have an infra container to publish port bindings to the host")
 		}
-		if rootless.IsRootless() {
-			return call.ReplyErrorOccurred("rootless networking does not allow port binding to the host")
-		}
 		portBindings, err := shared.CreatePortBindings(create.Publish)
 		if err != nil {
-			return err
+			return call.ReplyErrorOccurred(err.Error())
 		}
 		options = append(options, libpod.WithInfraContainerPorts(portBindings))
 

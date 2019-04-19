@@ -24,6 +24,7 @@ var _ = Describe("Podman Info", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
+		podmanTest.DelayForVarlink()
 	})
 
 	AfterEach(func() {

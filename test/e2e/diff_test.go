@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -63,6 +61,7 @@ var _ = Describe("Podman diff", func() {
 	})
 
 	It("podman diff container and committed image", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"run", "--name=diff-test", ALPINE, "touch", "/tmp/diff-test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

@@ -79,4 +79,5 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	restore.Wait(90)
 	return nil
 }
-func (p *PodmanTestIntegration) StopVarlink() {}
+func (p *PodmanTestIntegration) StopVarlink()     {}
+func (p *PodmanTestIntegration) DelayForVarlink() {}

@@ -264,9 +264,14 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 	if remote {
 		p.PodmanTest.RemotePodmanBinary = podmanRemoteBinary
+		uuid := stringid.GenerateNonCryptoID()
 		if !rootless.IsRootless() {
-			uuid := stringid.GenerateNonCryptoID()
 			p.VarlinkEndpoint = fmt.Sprintf("unix:/run/podman/io.podman-%s", uuid)
+		} else {
+			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+			socket := fmt.Sprintf("io.podman-%s", uuid)
+			fqpath := filepath.Join(runtimeDir, socket)
+			p.VarlinkEndpoint = fmt.Sprintf("unix:%s", fqpath)
 		}
 	}
 

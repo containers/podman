@@ -3,13 +3,17 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/onsi/ginkgo"
 )
@@ -50,33 +54,76 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	return pti
 }
 
+func (p *PodmanTestIntegration) ResetVarlinkAddress() {
+	os.Unsetenv("PODMAN_VARLINK_ADDRESS")
+}
+
+func (p *PodmanTestIntegration) SetVarlinkAddress(addr string) {
+	os.Setenv("PODMAN_VARLINK_ADDRESS", addr)
+}
+
 func (p *PodmanTestIntegration) StartVarlink() {
 	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
 	varlinkEndpoint := p.VarlinkEndpoint
-	if addr := os.Getenv("PODMAN_VARLINK_ADDRESS"); addr != "" {
-		varlinkEndpoint = addr
-	}
+	p.SetVarlinkAddress(p.VarlinkEndpoint)
 
 	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
+	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	p.VarlinkCommand = command
 	p.VarlinkSession = command.Process
 }
 
 func (p *PodmanTestIntegration) StopVarlink() {
+	var out bytes.Buffer
+	var pids []int
 	varlinkSession := p.VarlinkSession
-	varlinkSession.Kill()
-	varlinkSession.Wait()
 
 	if !rootless.IsRootless() {
-		socket := strings.Split(p.VarlinkEndpoint, ":")[1]
-		if err := os.Remove(socket); err != nil {
-			fmt.Println(err)
+		if err := varlinkSession.Kill(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on varlink stop-kill %q", err)
 		}
+		if _, err := varlinkSession.Wait(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on varlink stop-wait %q", err)
+		}
+
+	} else {
+		p.ResetVarlinkAddress()
+		parentPid := fmt.Sprintf("%d", p.VarlinkSession.Pid)
+		pgrep := exec.Command("pgrep", "-P", parentPid)
+		fmt.Printf("running: pgrep %s\n", parentPid)
+		pgrep.Stdout = &out
+		err := pgrep.Run()
+		if err != nil {
+			fmt.Fprint(os.Stderr, "unable to find varlink pid")
+		}
+
+		for _, s := range strings.Split(out.String(), "\n") {
+			if len(s) == 0 {
+				continue
+			}
+			p, err := strconv.Atoi(s)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "unable to convert %s to int", s)
+			}
+			if p != 0 {
+				pids = append(pids, p)
+			}
+		}
+
+		pids = append(pids, p.VarlinkSession.Pid)
+		for _, pid := range pids {
+			syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}
+	socket := strings.Split(p.VarlinkEndpoint, ":")[1]
+	if err := os.Remove(socket); err != nil {
+		fmt.Println(err)
 	}
 }
 
@@ -109,4 +156,15 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	command.Start()
 	command.Wait()
 	return nil
+}
+
+func (p *PodmanTestIntegration) DelayForVarlink() {
+	for i := 0; i < 5; i++ {
+		session := p.Podman([]string{"info"})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() == 0 || i == 4 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
 }

@@ -1255,3 +1255,6 @@ error RuntimeError (reason: string)
 
 # The Podman endpoint requires that you use a streaming connection.
 error WantsMoreRequired (reason: string)
+
+# Container is already stopped
+error ErrCtrStopped (id: string)

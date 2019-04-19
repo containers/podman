@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (

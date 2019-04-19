@@ -172,11 +172,15 @@ func (r *LocalRuntime) StartPods(ctx context.Context, cli *cliconfig.PodStartVal
 
 // CreatePod creates a pod for the remote client over a varlink connection
 func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateValues, labels map[string]string) (string, error) {
+	var share []string
+	if cli.Share != "" {
+		share = strings.Split(cli.Share, ",")
+	}
 	pc := iopodman.PodCreate{
 		Name:         cli.Name,
 		CgroupParent: cli.CgroupParent,
 		Labels:       labels,
-		Share:        strings.Split(cli.Share, ","),
+		Share:        share,
 		Infra:        cli.Infra,
 		InfraCommand: cli.InfraCommand,
 		InfraImage:   cli.InfraCommand,

@@ -273,6 +273,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run notify_socket", func() {
+		SkipIfRemote()
 		host := GetHostDistributionInfo()
 		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
 			Skip("this test requires a working runc")
