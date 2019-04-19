@@ -7,7 +7,6 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
-	"k8s.io/api/core/v1"
 	"os"
 	"text/template"
 
@@ -25,6 +24,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
+	"k8s.io/api/core/v1"
 )
 
 // LocalRuntime describes a typical libpod runtime
@@ -41,6 +41,11 @@ type ContainerImage struct {
 // Container ...
 type Container struct {
 	*libpod.Container
+}
+
+// Pod encapsulates the libpod.Pod structure, helps with remote vs. local
+type Pod struct {
+	*libpod.Pod
 }
 
 // Volume ...
@@ -371,8 +376,7 @@ func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *
 }
 
 // GetPodsByStatus returns a slice of pods filtered by a libpod status
-func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*Pod, error) {
-	var adapterPods []*Pod
+func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*libpod.Pod, error) {
 
 	filterFunc := func(p *libpod.Pod) bool {
 		state, _ := shared.GetPodStatus(p)
@@ -383,25 +387,11 @@ func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*Pod, error) {
 		}
 		return false
 	}
+
 	pods, err := r.Runtime.Pods(filterFunc)
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range pods {
-		adapterPod := Pod{
-			p,
-		}
-		adapterPods = append(adapterPods, &adapterPod)
-	}
-	return adapterPods, nil
-}
 
-// RemovePod removes a pod
-// If removeCtrs is specified, containers will be removed
-// Otherwise, a pod that is not empty will return an error and not be removed
-// If force is specified with removeCtrs, all containers will be stopped before
-// being removed
-// Otherwise, the pod will not be removed if any containers are running
-func (r *LocalRuntime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool) error {
-	return r.Runtime.RemovePod(ctx, p.Pod, removeCtrs, force)
+	return pods, nil
 }

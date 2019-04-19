@@ -4,25 +4,64 @@ package adapter
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
-
-// Pod ...
-type Pod struct {
-	*libpod.Pod
-}
 
 // PodContainerStats is struct containing an adapter Pod and a libpod
 // ContainerStats and is used primarily for outputing pod stats.
 type PodContainerStats struct {
 	Pod            *Pod
 	ContainerStats map[string]*libpod.ContainerStats
+}
+
+// PrunePods removes pods
+func (r *LocalRuntime) PrunePods(ctx context.Context, cli *cliconfig.PodPruneValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	maxWorkers := shared.DefaultPoolSize("rm")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	states := []string{shared.PodStateStopped, shared.PodStateExited}
+	if cli.Force {
+		states = append(states, shared.PodStateRunning)
+	}
+
+	pods, err := r.GetPodsByStatus(states)
+	if err != nil {
+		return ok, failures, err
+	}
+	if len(pods) < 1 {
+		return ok, failures, nil
+	}
+
+	pool := shared.NewPool("pod_prune", maxWorkers, len(pods))
+	for _, p := range pods {
+		p := p
+
+		pool.Add(shared.Job{p.ID(),
+			func() error {
+				err := r.Runtime.RemovePod(ctx, p, cli.Force, cli.Force)
+				if err != nil {
+					logrus.Debugf("Failed to remove pod %s: %s", p.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
 }
 
 // RemovePods ...

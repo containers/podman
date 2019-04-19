@@ -82,13 +82,21 @@ Are you sure you want to continue? [y/N] `, volumeString)
 	ctx := getContext()
 	fmt.Println("Deleted Containers")
 	lasterr := pruneContainers(runtime, ctx, rmWorkers, false, false)
+
 	fmt.Println("Deleted Pods")
-	if err := prunePods(runtime, ctx, rmWorkers, true); err != nil {
+	pruneValues := cliconfig.PodPruneValues{
+		PodmanCommand: c.PodmanCommand,
+		Force:         c.Force,
+	}
+	ok, failures, err := runtime.PrunePods(ctx, &pruneValues)
+	if err != nil {
 		if lasterr != nil {
 			logrus.Errorf("%q", lasterr)
 		}
 		lasterr = err
 	}
+	printCmdResults(ok, failures)
+
 	if c.Bool("volumes") {
 		fmt.Println("Deleted Volumes")
 		err := volumePrune(runtime, getContext())
