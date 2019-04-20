@@ -20,6 +20,7 @@ var (
 
 var systemCommands = []*cobra.Command{
 	_infoCommand,
+	_pruneSystemCommand,
 }
 
 func init() {

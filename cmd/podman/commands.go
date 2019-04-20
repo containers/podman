@@ -46,7 +46,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_execCommand,
 		_mountCommand,
 		_portCommand,
-		_pruneContainersCommand,
 		_refreshCommand,
 		_restoreCommand,
 		_runlabelCommand,
@@ -74,7 +73,6 @@ func getTrustSubCommands() []*cobra.Command {
 // Commands that the local client implements
 func getSystemSubCommands() []*cobra.Command {
 	return []*cobra.Command{
-		_pruneSystemCommand,
 		_renumberCommand,
 		_dfSystemCommand,
 	}
