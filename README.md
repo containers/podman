@@ -45,7 +45,11 @@ This project tests all builds against each supported version of Fedora, the late
   Podman can also generate Kubernetes YAML based on a container or Pod (see
   [podman-generate-kube](https://github.com/containers/libpod/blob/master/docs/podman-generate-kube.1.md)),
   which allows for an easy transition from a local development environment
-  to a production Kubernetes cluster.
+  to a production Kubernetes cluster. If Kubernetes does not fit your requirements,
+  there are other third-party tools that support the docker-compose format such as
+  [kompose](https://github.com/kubernetes/kompose/) and
+  [podman-compose](https://github.com/muayyad-alsadi/podman-compose)
+  that might be appropriate for your environment.
 
 ## OCI Projects Plans
 
