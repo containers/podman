@@ -31,7 +31,7 @@ func TestService(t *testing.T) {
 		r := bufio.NewReader(&br)
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
-		if err := service.handleMessage(r, w, []byte{0}); err == nil {
+		if err := service.HandleMessage(nil, r, w, []byte{0}); err == nil {
 			t.Fatal("HandleMessage returned non-error")
 		}
 	})
@@ -42,7 +42,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"foo.GetInterfaceDescription" fdgdfg}`)
-		if err := service.handleMessage(r, w, msg); err == nil {
+		if err := service.HandleMessage(nil, r, w, msg); err == nil {
 			t.Fatal("HandleMessage returned no error on invalid json")
 		}
 	})
@@ -53,7 +53,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"foo.GetInterfaceDescription"}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatal("HandleMessage returned error on wrong interface")
 		}
 		expect(t, `{"parameters":{"interface":"foo"},"error":"org.varlink.service.InterfaceNotFound"}`+"\000",
@@ -66,7 +66,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"InvalidMethod"}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatal("HandleMessage returned error on invalid method")
 		}
 		expect(t, `{"parameters":{"parameter":"method"},"error":"org.varlink.service.InvalidParameter"}`+"\000",
@@ -79,7 +79,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.WrongMethod"}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatal("HandleMessage returned error on wrong method")
 		}
 		expect(t, `{"parameters":{"method":"WrongMethod"},"error":"org.varlink.service.MethodNotFound"}`+"\000",
@@ -92,7 +92,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.GetInterfaceDescription","parameters": null}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"parameter":"parameters"},"error":"org.varlink.service.InvalidParameter"}`+"\000",
@@ -105,7 +105,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.GetInterfaceDescription","parameters":{}}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"parameter":"interface"},"error":"org.varlink.service.InvalidParameter"}`+"\000",
@@ -118,7 +118,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.GetInterfaceDescription","parameters":{"interface":"foo"}}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"parameter":"interface"},"error":"org.varlink.service.InvalidParameter"}`+"\000",
@@ -131,7 +131,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.GetInterfaceDescription","parameters":{"interface":"org.varlink.service"}}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"description":"# The Varlink Service Interface is provided by every varlink service. It\n# describes the service and the interfaces it implements.\ninterface org.varlink.service\n\n# Get a list of all the interfaces a service provides and information\n# about the implementation.\nmethod GetInfo() -\u003e (\n  vendor: string,\n  product: string,\n  version: string,\n  url: string,\n  interfaces: []string\n)\n\n# Get the description of an interface that is implemented by this service.\nmethod GetInterfaceDescription(interface: string) -\u003e (description: string)\n\n# The requested interface was not found.\nerror InterfaceNotFound (interface: string)\n\n# The requested method was not found\nerror MethodNotFound (method: string)\n\n# The interface defines the requested method, but the service does not\n# implement it.\nerror MethodNotImplemented (method: string)\n\n# One of the passed parameters is invalid.\nerror InvalidParameter (parameter: string)"}}`+"\000",
@@ -144,7 +144,7 @@ func TestService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.varlink.service.GetInfo"}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"vendor":"Varlink","product":"Varlink Test","version":"1","url":"https://github.com/varlink/go/varlink","interfaces":["org.varlink.service"]}}`+"\000",
@@ -224,7 +224,7 @@ func TestMoreService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.example.test.Pingf"}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"parameters":{"method":"Pingf"},"error":"org.varlink.service.MethodNotImplemented"}`+"\000",
@@ -237,7 +237,7 @@ func TestMoreService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.example.test.PingError", "more" : true}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"error":"org.example.test.PingError"}`+"\000",
@@ -249,7 +249,7 @@ func TestMoreService(t *testing.T) {
 		var b bytes.Buffer
 		w := bufio.NewWriter(&b)
 		msg := []byte(`{"method":"org.example.test.Ping", "more" : true}`)
-		if err := service.handleMessage(r, w, msg); err != nil {
+		if err := service.HandleMessage(nil, r, w, msg); err != nil {
 			t.Fatalf("HandleMessage returned error: %v", err)
 		}
 		expect(t, `{"continues":true}`+"\000"+`{"continues":true}`+"\000"+`{}`+"\000",

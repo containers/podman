@@ -22,7 +22,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -39,14 +38,9 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		memorySwap  int64
 		err         error
 	)
-	rlim := unix.Rlimit{Cur: 1048576, Max: 1048576}
-	defaultLimits := []string{}
-	if err := unix.Setrlimit(unix.RLIMIT_NOFILE, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nofile=%d:%d", rlim.Cur, rlim.Max))
-	}
-	if err := unix.Setrlimit(unix.RLIMIT_NPROC, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", rlim.Cur, rlim.Max))
-	}
+
+	defaultLimits := getDefaultProcessLimits()
+
 	memVal, _ := c.Flags().GetString("memory")
 	if memVal != "" {
 		memoryLimit, err = units.RAMInBytes(memVal)

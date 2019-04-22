@@ -74,7 +74,7 @@ func (s *Service) getInterfaceDescription(c Call, name string) error {
 	return c.replyGetInterfaceDescription(description)
 }
 
-func (s *Service) handleMessage(reader *bufio.Reader, writer *bufio.Writer, request []byte) error {
+func (s *Service) HandleMessage(conn *net.Conn, reader *bufio.Reader, writer *bufio.Writer, request []byte) error {
 	var in serviceCall
 
 	err := json.Unmarshal(request, &in)
@@ -84,9 +84,11 @@ func (s *Service) handleMessage(reader *bufio.Reader, writer *bufio.Writer, requ
 	}
 
 	c := Call{
-		Reader: reader,
-		Writer: writer,
-		in:     &in,
+		Conn:    conn,
+		Reader:  reader,
+		Writer:  writer,
+		In:      &in,
+		Request: &request,
 	}
 
 	r := strings.LastIndex(in.Method, ".")
@@ -131,7 +133,7 @@ func (s *Service) handleConnection(conn net.Conn, wg *sync.WaitGroup) {
 			break
 		}
 
-		err = s.handleMessage(reader, writer, request[:len(request)-1])
+		err = s.HandleMessage(&conn, reader, writer, request[:len(request)-1])
 		if err != nil {
 			// FIXME: report error
 			//fmt.Fprintf(os.Stderr, "handleMessage: %v", err)
@@ -179,25 +181,36 @@ func (s *Service) parseAddress(address string) error {
 	return nil
 }
 
-func getListener(protocol string, address string) (net.Listener, error) {
+func (s *Service) GetListener() (*net.Listener, error) {
+	s.mutex.Lock()
+	l := s.listener
+	s.mutex.Unlock()
+	return &l, nil
+}
+
+func (s *Service) setListener() error {
 	l := activationListener()
 	if l == nil {
-		if protocol == "unix" && address[0] != '@' {
-			os.Remove(address)
+		if s.protocol == "unix" && s.address[0] != '@' {
+			os.Remove(s.address)
 		}
 
 		var err error
-		l, err = net.Listen(protocol, address)
+		l, err = net.Listen(s.protocol, s.address)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
-		if protocol == "unix" && address[0] != '@' {
+		if s.protocol == "unix" && s.address[0] != '@' {
 			l.(*net.UnixListener).SetUnlinkOnClose(true)
 		}
 	}
 
-	return l, nil
+	s.mutex.Lock()
+	s.listener = l
+	s.mutex.Unlock()
+
+	return nil
 }
 
 func (s *Service) refreshTimeout(timeout time.Duration) error {
@@ -216,26 +229,84 @@ func (s *Service) refreshTimeout(timeout time.Duration) error {
 }
 
 // Listen starts a Service.
-func (s *Service) Listen(address string, timeout time.Duration) error {
-	var wg sync.WaitGroup
-	defer func() { s.teardown(); wg.Wait() }()
-
+func (s *Service) Bind(address string) error {
 	s.mutex.Lock()
 	if s.running {
 		s.mutex.Unlock()
-		return fmt.Errorf("Listen(): already running")
+		return fmt.Errorf("Init(): already running")
 	}
 	s.mutex.Unlock()
 
 	s.parseAddress(address)
 
-	l, err := getListener(s.protocol, s.address)
+	err := s.setListener()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Listen starts a Service.
+func (s *Service) Listen(address string, timeout time.Duration) error {
+	var wg sync.WaitGroup
+	defer func() { s.teardown(); wg.Wait() }()
+
+	err := s.Bind(address)
 	if err != nil {
 		return err
 	}
 
 	s.mutex.Lock()
-	s.listener = l
+	s.running = true
+	l := s.listener
+	s.mutex.Unlock()
+
+	for s.running {
+		if timeout != 0 {
+			if err := s.refreshTimeout(timeout); err != nil {
+				return err
+			}
+		}
+		conn, err := l.Accept()
+		if err != nil {
+			if err.(net.Error).Timeout() {
+				s.mutex.Lock()
+				if s.conncounter == 0 {
+					s.mutex.Unlock()
+					return ServiceTimeoutError{}
+				}
+				s.mutex.Unlock()
+				continue
+			}
+			if !s.running {
+				return nil
+			}
+			return err
+		}
+		s.mutex.Lock()
+		s.conncounter++
+		s.mutex.Unlock()
+		wg.Add(1)
+		go s.handleConnection(conn, &wg)
+	}
+
+	return nil
+}
+
+// Listen starts a Service.
+func (s *Service) DoListen(timeout time.Duration) error {
+	var wg sync.WaitGroup
+	defer func() { s.teardown(); wg.Wait() }()
+
+	s.mutex.Lock()
+	l := s.listener
+	s.mutex.Unlock()
+
+	if l == nil {
+		return fmt.Errorf("No listener set")
+	}
+
+	s.mutex.Lock()
 	s.running = true
 	s.mutex.Unlock()
 

@@ -244,3 +244,9 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 	}
 	return ltds, nil
 }
+
+func getStatFromPath(path string) (unix.Stat_t, error) {
+	s := unix.Stat_t{}
+	err := unix.Stat(path, &s)
+	return s, err
+}

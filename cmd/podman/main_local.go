@@ -4,16 +4,17 @@ package main
 
 import (
 	"context"
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"log/syslog"
 	"os"
 	"runtime/pprof"
 	"strconv"
 	"strings"
+	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -153,4 +154,24 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		os.Exit(ret)
 	}
 	return nil
+}
+func setRLimits() error {
+	rlimits := new(syscall.Rlimit)
+	rlimits.Cur = 1048576
+	rlimits.Max = 1048576
+	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+			return errors.Wrapf(err, "error getting rlimits")
+		}
+		rlimits.Cur = rlimits.Max
+		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+			return errors.Wrapf(err, "error setting new rlimits")
+		}
+	}
+	return nil
+}
+
+func setUMask() {
+	// Be sure we can create directories with 0755 mode.
+	syscall.Umask(0022)
 }

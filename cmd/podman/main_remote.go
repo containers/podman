@@ -41,3 +41,9 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
+
+func setRLimits() error {
+	return nil
+}
+
+func setUMask() {}
