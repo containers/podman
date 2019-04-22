@@ -139,7 +139,7 @@ func TestImage_New(t *testing.T) {
 		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, false, nil)
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
-		err = newImage.Remove(false)
+		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
 	}
 
