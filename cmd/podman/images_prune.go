@@ -45,7 +45,7 @@ func pruneImagesCmd(c *cliconfig.PruneImagesValues) error {
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up
-	pruneCids, err := runtime.PruneImages(c.All)
+	pruneCids, err := runtime.PruneImages(getContext(), c.All)
 	if len(pruneCids) > 0 {
 		for _, cid := range pruneCids {
 			fmt.Println(cid)

@@ -243,7 +243,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 		// If all is false and the image doesn't have a name, check to see if the top layer of the image is a parent
 		// to another image's top layer. If it is, then it is an intermediate image so don't print out if the --all flag
 		// is not set.
-		isParent, err := img.IsParent()
+		isParent, err := img.IsParent(ctx)
 		if err != nil {
 			logrus.Errorf("error checking if image is a parent %q: %v", img.ID(), err)
 		}

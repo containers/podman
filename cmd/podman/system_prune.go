@@ -110,7 +110,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up
-	pruneCids, err := runtime.PruneImages(c.All)
+	pruneCids, err := runtime.PruneImages(ctx, c.All)
 	if len(pruneCids) > 0 {
 		fmt.Println("Deleted Images")
 		for _, cid := range pruneCids {

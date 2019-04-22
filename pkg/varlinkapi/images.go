@@ -4,6 +4,7 @@ package varlinkapi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -49,7 +50,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 		}
 
 		size, _ := image.Size(getContext())
-		isParent, err := image.IsParent()
+		isParent, err := image.IsParent(context.TODO())
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -503,7 +504,7 @@ func (i *LibpodAPI) DeleteUnusedImages(call iopodman.VarlinkCall) error {
 			return call.ReplyErrorOccurred(err.Error())
 		}
 		if len(containers) == 0 {
-			if err := img.Remove(false); err != nil {
+			if err := img.Remove(context.TODO(), false); err != nil {
 				return call.ReplyErrorOccurred(err.Error())
 			}
 			deletedImages = append(deletedImages, img.ID())
@@ -739,7 +740,7 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 
 // ImagesPrune ....
 func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
-	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(all)
+	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(context.TODO(), all)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

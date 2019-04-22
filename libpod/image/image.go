@@ -353,8 +353,8 @@ func (i *Image) TopLayer() string {
 // outside the context of images
 // TODO: the force param does nothing as of now. Need to move container
 // handling logic here eventually.
-func (i *Image) Remove(force bool) error {
-	parent, err := i.GetParent()
+func (i *Image) Remove(ctx context.Context, force bool) error {
+	parent, err := i.GetParent(ctx)
 	if err != nil {
 		return err
 	}
@@ -363,11 +363,11 @@ func (i *Image) Remove(force bool) error {
 	}
 	i.newImageEvent(events.Remove)
 	for parent != nil {
-		nextParent, err := parent.GetParent()
+		nextParent, err := parent.GetParent(ctx)
 		if err != nil {
 			return err
 		}
-		children, err := parent.GetChildren()
+		children, err := parent.GetChildren(ctx)
 		if err != nil {
 			return err
 		}
@@ -1006,8 +1006,8 @@ func splitString(input string) string {
 // IsParent goes through the layers in the store and checks if i.TopLayer is
 // the parent of any other layer in store. Double check that image with that
 // layer exists as well.
-func (i *Image) IsParent() (bool, error) {
-	children, err := i.GetChildren()
+func (i *Image) IsParent(ctx context.Context) (bool, error) {
+	children, err := i.GetChildren(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -1015,7 +1015,7 @@ func (i *Image) IsParent() (bool, error) {
 }
 
 // GetParent returns the image ID of the parent. Return nil if a parent is not found.
-func (i *Image) GetParent() (*Image, error) {
+func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
@@ -1033,7 +1033,7 @@ func (i *Image) GetParent() (*Image, error) {
 }
 
 // GetChildren returns a list of the imageIDs that depend on the image
-func (i *Image) GetChildren() ([]string, error) {
+func (i *Image) GetChildren(ctx context.Context) ([]string, error) {
 	var children []string
 	images, err := i.imageruntime.GetImages()
 	if err != nil {

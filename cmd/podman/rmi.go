@@ -97,7 +97,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 				return errors.New("unable to delete all images; re-run the rmi command again.")
 			}
 			for _, i := range imagesToDelete {
-				isParent, err := i.IsParent()
+				isParent, err := i.IsParent(ctx)
 				if err != nil {
 					return err
 				}
