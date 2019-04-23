@@ -69,9 +69,10 @@ This task exercises podman under specialized environments or conditions.
 The specific differences from the ``testing`` task depend upon the
 contents of the ``$SPECIALMODE`` environment variable.
 
-| Value     | Meaning                                                               |
-| rootless  | Setup a regular user to build/run integration tests.                  |
-| in_podman | Setup a container image, build/run integration tests inside container |
+| Value         | Meaning                                                               |
+| rootless      | Setup a regular user to build/run integration tests.                  |
+| in_podman     | Setup a container image, build/run integration tests inside container |
+| remote_client | Execute only the remote-client (varlink) tests                        |
 
 ***N/B: Steps below are performed by automation***
 

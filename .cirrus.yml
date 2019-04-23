@@ -284,6 +284,7 @@ special_testing_task:
         matrix:
             SPECIALMODE: 'rootless'  # See docs
             SPECIALMODE: 'in_podman'  # See docs
+            SPECIALMODE: 'remote_client'
 
     timeout_in: 120m
 

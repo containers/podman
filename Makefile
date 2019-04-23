@@ -195,7 +195,11 @@ ginkgo:
 ginkgo-remote:
 	ginkgo -v -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
-localintegration: varlink_generate test-binaries ginkgo ginkgo-remote
+commonintegration: varlink_generate test-binaries
+
+remoteintegration: commonintegration ginkgo-remote
+
+localintegration: commonintegration ginkgo
 
 localsystem: .install.ginkgo
 	ginkgo -v -noColor test/system/
@@ -241,6 +245,9 @@ changelog: ## Generate changelog
 	$(shell rm $(TMPFILE))
 
 install: .gopathok install.bin install.man install.cni install.systemd  ## Install binaries to system locations
+
+install.remote:
+	install ${SELINUXOPT} -m 755 bin/podman-remote $(BINDIR)
 
 install.bin:
 	install ${SELINUXOPT} -d -m 755 $(BINDIR)
