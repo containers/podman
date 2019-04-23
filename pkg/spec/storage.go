@@ -79,6 +79,7 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	}
 
 	// Unify mounts from --mount, --volume, --tmpfs.
+	// Also add mounts + volumes directly from createconfig.
 	// Start with --volume.
 	for dest, mount := range volumeMounts {
 		if _, ok := unifiedMounts[dest]; ok {
@@ -99,8 +100,21 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		}
 		unifiedMounts[dest] = tmpfs
 	}
-
-	// TODO: Check for conflicts between volumes and named volumes.
+	// Now spec mounts and volumes
+	for _, mount := range config.Mounts {
+		dest := mount.Destination
+		if _, ok := unifiedMounts[dest]; ok {
+			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
+		}
+		unifiedMounts[dest] = mount
+	}
+	for _, volume := range config.NamedVolumes {
+		dest := volume.Dest
+		if _, ok := unifiedVolumes[dest]; ok {
+			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
+		}
+		unifiedVolumes[dest] = volume
+	}
 
 	// If requested, add container init binary
 	if config.Init {
@@ -131,9 +145,17 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		baseVolumes[dest] = volume
 	}
 
-	// TODO: Allow an explicit list of named volumes and spec mounts in the
-	// createconfig. Podman doesn't need them, but other libpod consumers
-	// might want them.
+	// Check for conflicts between named volumes and mounts
+	for dest := range unifiedMounts {
+		if _, ok := unifiedVolumes[dest]; ok {
+			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+	}
+	for dest := range unifiedVolumes {
+		if _, ok := unifiedMounts[dest]; ok {
+			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
+		}
+	}
 
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(baseMounts))
@@ -164,19 +186,11 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 
 	// Both of these are maps of mount destination to mount type.
 	// We ensure that each destination is only mounted to once in this way.
-	// We tiebreak only within each category; we'll let libpod tiebreak
-	// between mounts and named volumes.
-	// TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
-	// one mount, and we already have /tmp/a and /tmp/b, should we remove
-	// the /tmp/a and /tmp/b mounts in favor of the more general /tmp?
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*libpod.ContainerNamedVolume)
 
 	for _, vol := range config.VolumesFrom {
 		options := []string{}
-		// TODO: now that container names may contain colons this is no
-		// longer safe.
-		// I don't know if there's much we can do here...
 		splitVol := strings.SplitN(vol, ":", 2)
 		if len(splitVol) == 2 {
 			if strings.Contains(splitVol[1], "Z") ||
@@ -185,10 +199,10 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 				strings.Contains(splitVol[1], "shared") {
 				return nil, nil, errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z", splitVol[1])
 			}
-			if err := ValidateVolumeOpts(splitVol[1]); err != nil {
+			options = strings.Split(splitVol[1], ",")
+			if err := ValidateVolumeOpts(options); err != nil {
 				return nil, nil, err
 			}
-			options = strings.Split(splitVol[1], ",")
 		}
 		ctr, err := runtime.LookupContainer(splitVol[0])
 		if err != nil {
@@ -339,14 +353,12 @@ func getBindMount(args []string) (spec.Mount, error) {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
-			// TODO: detect duplication of these options
+			// TODO: detect duplication of these options.
+			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])
 		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
-			// TODO: detect duplicate mount propagation options
 			newMount.Options = append(newMount.Options, kv[0])
 		case "bind-propagation":
-			// TODO: this should conflict with the mount propagation
-			// options above.
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
@@ -380,6 +392,10 @@ func getBindMount(args []string) (spec.Mount, error) {
 
 	if !setSource {
 		newMount.Source = newMount.Destination
+	}
+
+	if err := ValidateVolumeOpts(newMount.Options); err != nil {
+		return newMount, err
 	}
 
 	return newMount, nil
@@ -509,28 +525,27 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 }
 
 // ValidateVolumeOpts validates a volume's options
-func ValidateVolumeOpts(option string) error {
+func ValidateVolumeOpts(options []string) error {
 	var foundRootPropagation, foundRWRO, foundLabelChange int
-	options := strings.Split(option, ",")
 	for _, opt := range options {
 		switch opt {
 		case "rw", "ro":
 			foundRWRO++
 			if foundRWRO > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", option)
+				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
 			}
 		case "z", "Z":
 			foundLabelChange++
 			if foundLabelChange > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
+				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", strings.Join(options, ", "))
 			}
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
 			foundRootPropagation++
 			if foundRootPropagation > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", option)
+				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
 			}
 		default:
-			return errors.Errorf("invalid option type %q", option)
+			return errors.Errorf("invalid option type %q", opt)
 		}
 	}
 	return nil
@@ -562,10 +577,10 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			dest = splitVol[1]
 		}
 		if len(splitVol) > 2 {
-			if err := ValidateVolumeOpts(splitVol[2]); err != nil {
+			options = strings.Split(splitVol[2], ",")
+			if err := ValidateVolumeOpts(options); err != nil {
 				return nil, nil, err
 			}
-			options = strings.Split(splitVol[2], ",")
 		}
 
 		if err := ValidateVolumeHostDir(src); err != nil {
@@ -724,6 +739,10 @@ func processOptions(options []string) []string {
 	return options
 }
 
+// Supercede existing mounts in the spec with new, user-specified mounts.
+// TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
+// one mount, and we already have /tmp/a and /tmp/b, should we remove
+// the /tmp/a and /tmp/b mounts in favor of the more general /tmp?
 func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
 	if len(mounts) > 0 {
 		// If we have overlappings mounts, remove them from the spec in favor of

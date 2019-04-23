@@ -13,7 +13,7 @@ func TestGetVolumeMountsOneVolume(t *testing.T) {
 		Destination: "/foobar",
 		Type:        "bind",
 		Source:      "/tmp",
-		Options:     []string{"ro", "rbind", "rprivate"},
+		Options:     []string{"ro"},
 	}
 	config := CreateConfig{
 		Volumes: []string{"/tmp:/foobar:ro"},
