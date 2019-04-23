@@ -4,6 +4,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -52,7 +53,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop container by name", func() {
@@ -66,7 +67,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman container stop by name", func() {
@@ -80,7 +81,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop stopped container", func() {
@@ -99,7 +100,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop all containers -t", func() {
@@ -129,7 +130,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop container --time", func() {
@@ -147,7 +148,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop container --timeout", func() {
@@ -165,7 +166,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop latest containers", func() {
@@ -178,7 +179,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop all containers with one stopped", func() {
@@ -197,7 +198,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 	It("podman stop all containers with one created", func() {
@@ -213,7 +214,7 @@ var _ = Describe("Podman stop", func() {
 		finalCtrs := podmanTest.Podman([]string("ps", "-q"))
 		finalCtrs.WaitWithDefaultTimeout()
 		Expect(finalCtrs.ExitCode()).To(Equal(0))
-		Expect(finalCtrs.OutputToString()).To(Equal(""))
+		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
 })
