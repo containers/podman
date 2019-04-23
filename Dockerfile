@@ -44,7 +44,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Install runc
-ENV RUNC_COMMIT 96ec2177ae841256168fcf76954f7177af9446eb
+ENV RUNC_COMMIT 029124da7af7360afa781a0234d1b083550f797c
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
