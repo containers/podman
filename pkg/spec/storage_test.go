@@ -1,7 +1,6 @@
 package createconfig
 
 import (
-	"reflect"
 	"testing"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -20,7 +19,7 @@ func TestGetVolumeMountsOneVolume(t *testing.T) {
 	}
 	specMount, _, err := config.getVolumeMounts()
 	assert.NoError(t, err)
-	assert.True(t, reflect.DeepEqual(data, specMount[data.Destination]))
+	assert.EqualValues(t, data, specMount[data.Destination])
 }
 
 func TestGetTmpfsMounts(t *testing.T) {
@@ -35,5 +34,5 @@ func TestGetTmpfsMounts(t *testing.T) {
 	}
 	tmpfsMount, err := config.getTmpfsMounts()
 	assert.NoError(t, err)
-	assert.True(t, reflect.DeepEqual(data, tmpfsMount[data.Destination]))
+	assert.EqualValues(t, data, tmpfsMount[data.Destination])
 }
