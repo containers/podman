@@ -880,3 +880,8 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 	}
 	return ok, failures, nil
 }
+
+// Cleanup any leftovers bits of stopped containers
+func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.CleanupValues) ([]string, map[string]error, error) {
+	return nil, nil, errors.New("container cleanup not supported for remote clients")
+}
