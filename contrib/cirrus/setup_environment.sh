@@ -63,6 +63,7 @@ then
             RUNC="https://kojipkgs.fedoraproject.org/packages/runc/1.0.0/55.dev.git578fe65.fc${OS_RELEASE_VER}/x86_64/runc-1.0.0-55.dev.git578fe65.fc${OS_RELEASE_VER}.x86_64.rpm"
             echo ">>>>> OVERRIDING RUNC WITH $RUNC <<<<<"
             dnf -y install "$RUNC"
+            dnf -y upgrade container-selinux
             ;&  # Continue to the next item
         centos-7) ;&
         rhel-7)
