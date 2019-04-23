@@ -68,6 +68,7 @@ ooe.sh sudo -E apt-get -qq install \
     libprotobuf-dev \
     libseccomp-dev \
     libseccomp2 \
+    libsystemd-dev \
     libtool \
     libudev-dev \
     lsof \
