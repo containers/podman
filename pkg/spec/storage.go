@@ -100,6 +100,8 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		unifiedMounts[dest] = tmpfs
 	}
 
+	// TODO: Check for conflicts between volumes and named volumes.
+
 	// If requested, add container init binary
 	if config.Init {
 		initPath := config.InitPath
@@ -142,6 +144,9 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	for _, volume := range baseVolumes {
 		finalVolumes = append(finalVolumes, volume)
 	}
+
+	logrus.Debugf("Got mounts: %v", finalMounts)
+	logrus.Debugf("Got volumes: %v", finalVolumes)
 
 	return finalMounts, finalVolumes, nil
 }
@@ -377,9 +382,6 @@ func getBindMount(args []string) (spec.Mount, error) {
 		newMount.Source = newMount.Destination
 	}
 
-	// Process options
-	newMount.Options = processOptions(newMount.Options)
-
 	return newMount, nil
 }
 
@@ -579,7 +581,7 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 				Destination: dest,
 				Type:        string(TypeBind),
 				Source:      src,
-				Options:     processOptions(options),
+				Options:     options,
 			}
 			if _, ok := mounts[newMount.Destination]; ok {
 				return nil, nil, errors.Wrapf(errDuplicateDest, newMount.Destination)
@@ -754,12 +756,13 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 func initFSMounts(inputMounts []spec.Mount) []spec.Mount {
 	var mounts []spec.Mount
 	for _, m := range inputMounts {
-		m.Options = processOptions(m.Options)
-		if m.Type == "tmpfs" {
-			m.Options = append(m.Options, "tmpcopyup")
-		} else {
-			mounts = append(mounts, m)
+		if m.Type == TypeBind {
+			m.Options = processOptions(m.Options)
 		}
+		if m.Type == TypeTmpfs {
+			m.Options = append(m.Options, "tmpcopyup")
+		}
+		mounts = append(mounts, m)
 	}
 	return mounts
 }
