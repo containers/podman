@@ -119,10 +119,17 @@ func checkDevHasFS(dev string) error {
 }
 
 func verifyBlockDevice(dev string, force bool) error {
-	if err := checkDevAvailable(dev); err != nil {
+	realPath, err := filepath.Abs(dev)
+	if err != nil {
+		return errors.Errorf("unable to get absolute path for %s: %s", dev, err)
+	}
+	if realPath, err = filepath.EvalSymlinks(realPath); err != nil {
+		return errors.Errorf("failed to canonicalise path for %s: %s", dev, err)
+	}
+	if err := checkDevAvailable(realPath); err != nil {
 		return err
 	}
-	if err := checkDevInVG(dev); err != nil {
+	if err := checkDevInVG(realPath); err != nil {
 		return err
 	}
 
@@ -130,7 +137,7 @@ func verifyBlockDevice(dev string, force bool) error {
 		return nil
 	}
 
-	if err := checkDevHasFS(dev); err != nil {
+	if err := checkDevHasFS(realPath); err != nil {
 		return err
 	}
 	return nil

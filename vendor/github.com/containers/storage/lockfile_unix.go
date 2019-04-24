@@ -13,34 +13,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func getLockFile(path string, ro bool) (Locker, error) {
-	var fd int
-	var err error
-	if ro {
-		fd, err = unix.Open(path, os.O_RDONLY, 0)
-	} else {
-		fd, err = unix.Open(path, os.O_RDWR|os.O_CREATE, unix.S_IRUSR|unix.S_IWUSR)
-	}
-	if err != nil {
-		return nil, errors.Wrapf(err, "error opening %q", path)
-	}
-	unix.CloseOnExec(fd)
-
-	locktype := unix.F_WRLCK
-	if ro {
-		locktype = unix.F_RDLCK
-	}
-	return &lockfile{
-		stateMutex: &sync.Mutex{},
-		rwMutex:    &sync.RWMutex{},
-		file:       path,
-		fd:         uintptr(fd),
-		lw:         stringid.GenerateRandomID(),
-		locktype:   int16(locktype),
-		locked:     false,
-		ro:         ro}, nil
-}
-
 type lockfile struct {
 	// rwMutex serializes concurrent reader-writer acquisitions in the same process space
 	rwMutex *sync.RWMutex
@@ -55,6 +27,52 @@ type lockfile struct {
 	ro         bool
 }
 
+// openLock opens the file at path and returns the corresponding file
+// descriptor.  Note that the path is opened read-only when ro is set.  If ro
+// is unset, openLock will open the path read-write and create the file if
+// necessary.
+func openLock(path string, ro bool) (int, error) {
+	if ro {
+		return unix.Open(path, os.O_RDONLY, 0)
+	}
+	return unix.Open(path, os.O_RDWR|os.O_CREATE, unix.S_IRUSR|unix.S_IWUSR)
+}
+
+// createLockerForPath returns a Locker object, possibly (depending on the platform)
+// working inter-process and associated with the specified path.
+//
+// This function will be called at most once for each path value within a single process.
+//
+// If ro, the lock is a read-write lock and the returned Locker should correspond to the
+// “lock for reading” (shared) operation; otherwise, the lock is either an exclusive lock,
+// or a read-write lock and Locker should correspond to the “lock for writing” (exclusive) operation.
+//
+// WARNING:
+// - The lock may or MAY NOT be inter-process.
+// - There may or MAY NOT be an actual object on the filesystem created for the specified path.
+// - Even if ro, the lock MAY be exclusive.
+func createLockerForPath(path string, ro bool) (Locker, error) {
+	// Check if we can open the lock.
+	fd, err := openLock(path, ro)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error opening %q", path)
+	}
+	unix.Close(fd)
+
+	locktype := unix.F_WRLCK
+	if ro {
+		locktype = unix.F_RDLCK
+	}
+	return &lockfile{
+		stateMutex: &sync.Mutex{},
+		rwMutex:    &sync.RWMutex{},
+		file:       path,
+		lw:         stringid.GenerateRandomID(),
+		locktype:   int16(locktype),
+		locked:     false,
+		ro:         ro}, nil
+}
+
 // lock locks the lockfile via FCTNL(2) based on the specified type and
 // command.
 func (l *lockfile) lock(l_type int16) {
@@ -63,7 +81,6 @@ func (l *lockfile) lock(l_type int16) {
 		Whence: int16(os.SEEK_SET),
 		Start:  0,
 		Len:    0,
-		Pid:    int32(os.Getpid()),
 	}
 	switch l_type {
 	case unix.F_RDLCK:
@@ -74,7 +91,16 @@ func (l *lockfile) lock(l_type int16) {
 		panic(fmt.Sprintf("attempted to acquire a file lock of unrecognized type %d", l_type))
 	}
 	l.stateMutex.Lock()
+	defer l.stateMutex.Unlock()
 	if l.counter == 0 {
+		// If we're the first reference on the lock, we need to open the file again.
+		fd, err := openLock(l.file, l.ro)
+		if err != nil {
+			panic(fmt.Sprintf("error opening %q", l.file))
+		}
+		unix.CloseOnExec(fd)
+		l.fd = uintptr(fd)
+
 		// Optimization: only use the (expensive) fcntl syscall when
 		// the counter is 0.  In this case, we're either the first
 		// reader lock or a writer lock.
@@ -85,7 +111,6 @@ func (l *lockfile) lock(l_type int16) {
 	l.locktype = l_type
 	l.locked = true
 	l.counter++
-	l.stateMutex.Unlock()
 }
 
 // Lock locks the lockfile as a writer.  Note that RLock() will be called if
@@ -133,6 +158,8 @@ func (l *lockfile) Unlock() {
 		for unix.FcntlFlock(l.fd, unix.F_SETLKW, &lk) != nil {
 			time.Sleep(10 * time.Millisecond)
 		}
+		// Close the file descriptor on the last unlock.
+		unix.Close(int(l.fd))
 	}
 	if l.locktype == unix.F_RDLCK {
 		l.rwMutex.RUnlock()

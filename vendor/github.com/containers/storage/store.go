@@ -460,6 +460,9 @@ type Store interface {
 	// Version returns version information, in the form of key-value pairs, from
 	// the storage package.
 	Version() ([][2]string, error)
+
+	// GetDigestLock returns digest-specific Locker.
+	GetDigestLock(digest.Digest) (Locker, error)
 }
 
 // IDMappingOptions are used for specifying how ID mapping should be set up for
@@ -529,6 +532,7 @@ type store struct {
 	imageStore      ImageStore
 	roImageStores   []ROImageStore
 	containerStore  ContainerStore
+	digestLockRoot  string
 }
 
 // GetStore attempts to find an already-created Store object matching the
@@ -698,7 +702,18 @@ func (s *store) load() error {
 		return err
 	}
 	s.containerStore = rcs
+
+	s.digestLockRoot = filepath.Join(s.runRoot, driverPrefix+"locks")
+	if err := os.MkdirAll(s.digestLockRoot, 0700); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// GetDigestLock returns a digest-specific Locker.
+func (s *store) GetDigestLock(d digest.Digest) (Locker, error) {
+	return GetLockfile(filepath.Join(s.digestLockRoot, d.String()))
 }
 
 func (s *store) getGraphDriver() (drivers.Driver, error) {
@@ -1023,8 +1038,9 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 		return reflect.DeepEqual(layer.UIDMap, options.UIDMap) && reflect.DeepEqual(layer.GIDMap, options.GIDMap)
 	}
 	var layer, parentLayer *Layer
+	allStores := append([]ROLayerStore{rlstore}, lstores...)
 	// Locate the image's top layer and its parent, if it has one.
-	for _, s := range append([]ROLayerStore{rlstore}, lstores...) {
+	for _, s := range allStores {
 		store := s
 		if store != rlstore {
 			store.Lock()
@@ -1041,10 +1057,13 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 				// We want the layer's parent, too, if it has one.
 				var cParentLayer *Layer
 				if cLayer.Parent != "" {
-					// Its parent should be around here, somewhere.
-					if cParentLayer, err = store.Get(cLayer.Parent); err != nil {
-						// Nope, couldn't find it.  We're not going to be able
-						// to diff this one properly.
+					// Its parent should be in one of the stores, somewhere.
+					for _, ps := range allStores {
+						if cParentLayer, err = ps.Get(cLayer.Parent); err == nil {
+							break
+						}
+					}
+					if cParentLayer == nil {
 						continue
 					}
 				}
