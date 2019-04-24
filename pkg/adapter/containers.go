@@ -92,6 +92,9 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 					if errors.Cause(err) == libpod.ErrCtrStopped {
 						logrus.Debugf("Container %s is already stopped", c.ID())
 						return nil
+					} else if cli.All && errors.Cause(err) == libpod.ErrCtrStateInvalid {
+						logrus.Debugf("Container %s is not running, could not stop", c.ID())
+						return nil
 					}
 					logrus.Debugf("Failed to stop container %s: %s", c.ID(), err.Error())
 				}
