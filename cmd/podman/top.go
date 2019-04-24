@@ -53,10 +53,24 @@ func init() {
 	topCommand.SetHelpTemplate(HelpTemplate())
 	topCommand.SetUsageTemplate(UsageTemplate())
 	flags := topCommand.Flags()
+	flags.SetInterspersed(false)
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")
 	flags.MarkHidden("list-descriptors")
 	flags.BoolVarP(&topCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func genDescriptors(args []string) []string {
+	var descriptors []string
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			// Ignore additional options, Docker supports all ps options,
+			// we ignore them and just use the descriptos
+			continue
+		}
+		descriptors = append(descriptors, strings.Split(arg, ",")...)
+	}
+	return descriptors
 }
 
 func topCmd(c *cliconfig.TopValues) error {
@@ -85,10 +99,10 @@ func topCmd(c *cliconfig.TopValues) error {
 
 	var descriptors []string
 	if c.Latest {
-		descriptors = args
+		descriptors = genDescriptors(args)
 		container, err = runtime.GetLatestContainer()
 	} else {
-		descriptors = args[1:]
+		descriptors = genDescriptors(args[1:])
 		container, err = runtime.LookupContainer(args[0])
 	}
 
