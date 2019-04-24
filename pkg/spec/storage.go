@@ -28,6 +28,7 @@ var (
 	badOptionError   = errors.Errorf("invalid mount option")
 	optionArgError   = errors.Errorf("must provide an argument for option")
 	noDestError      = errors.Errorf("must set volume destination")
+	dupeOptionError  = errors.Errorf("duplicate option passed")
 )
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -160,6 +161,14 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(baseMounts))
 	for _, mount := range baseMounts {
+		// All user-added tmpfs mounts need their options processed.
+		if mount.Type == TypeTmpfs {
+			opts, err := processTmpfsOptions(mount.Options)
+			if err != nil {
+				return nil, nil, err
+			}
+			mount.Options = opts
+		}
 		finalMounts = append(finalMounts, mount)
 	}
 	finalVolumes := make([]*libpod.ContainerNamedVolume, 0, len(baseVolumes))
@@ -414,16 +423,13 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
 		case "ro", "nosuid", "nodev", "noexec":
-			// TODO: detect duplication of these options
 			newMount.Options = append(newMount.Options, kv[0])
 		case "tmpfs-mode":
-			// TODO: detect duplicate modes
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
 			newMount.Options = append(newMount.Options, fmt.Sprintf("mode=%s", kv[1]))
 		case "tmpfs-size":
-			// TODO: detect duplicate sizes
 			if len(kv) == 1 {
 				return newMount, errors.Wrapf(optionArgError, kv[0])
 			}
@@ -657,7 +663,7 @@ func (config *CreateConfig) getTmpfsMounts() (map[string]spec.Mount, error) {
 	m := make(map[string]spec.Mount)
 	for _, i := range config.Tmpfs {
 		// Default options if nothing passed
-		options := []string{"rprivate", "rw", "noexec", "nosuid", "nodev", "size=65536k"}
+		var options []string
 		spliti := strings.Split(i, ":")
 		destPath := spliti[0]
 		if len(spliti) > 1 {
@@ -668,9 +674,6 @@ func (config *CreateConfig) getTmpfsMounts() (map[string]spec.Mount, error) {
 			return nil, errors.Wrapf(errDuplicateDest, destPath)
 		}
 
-		// TODO: Do we want to set some default options if the user
-		// passed options?
-		// TODO: should we validate the options passed in?
 		mount := spec.Mount{
 			Destination: destPath,
 			Type:        string(TypeTmpfs),
@@ -737,6 +740,62 @@ func processOptions(options []string) []string {
 		options = append(options, "rprivate")
 	}
 	return options
+}
+
+// Handle options for tmpfs mounts
+func processTmpfsOptions(options []string) ([]string, error) {
+	var (
+		foundWrite, foundSize, foundProp, foundMode bool
+	)
+
+	baseOpts := []string{"noexec", "nosuid", "nodev"}
+	for _, opt := range options {
+		// Some options have parameters - size, mode
+		splitOpt := strings.SplitN(opt, "=", 2)
+		switch splitOpt[0] {
+		case "rw", "ro":
+			if foundWrite {
+				return nil, errors.Wrapf(dupeOptionError, "only one of rw and ro can be used")
+			}
+			foundWrite = true
+			baseOpts = append(baseOpts, opt)
+		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+			if foundProp {
+				return nil, errors.Wrapf(dupeOptionError, "only one root propagation mode can be used")
+			}
+			foundProp = true
+			baseOpts = append(baseOpts, opt)
+		case "size":
+			if foundSize {
+				return nil, errors.Wrapf(dupeOptionError, "only one tmpfs size can be specified")
+			}
+			foundSize = true
+			baseOpts = append(baseOpts, opt)
+		case "mode":
+			if foundMode {
+				return nil, errors.Wrapf(dupeOptionError, "only one tmpfs mode can be specified")
+			}
+			foundMode = true
+			baseOpts = append(baseOpts, opt)
+		case "noexec", "nodev", "nosuid":
+			// Do nothing. We always include these even if they are
+			// not explicitly requested.
+		default:
+			return nil, errors.Wrapf(badOptionError, "unknown tmpfs option %q", opt)
+		}
+	}
+
+	if !foundWrite {
+		baseOpts = append(baseOpts, "rw")
+	}
+	if !foundSize {
+		baseOpts = append(baseOpts, "size=65536k")
+	}
+	if !foundProp {
+		baseOpts = append(baseOpts, "rprivate")
+	}
+
+	return baseOpts, nil
 }
 
 // Supercede existing mounts in the spec with new, user-specified mounts.
