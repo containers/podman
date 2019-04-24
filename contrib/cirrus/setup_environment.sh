@@ -59,6 +59,10 @@ then
             install_runc_from_git
             ;;
         fedora-29)
+            RUNC="https://kojipkgs.fedoraproject.org//packages/runc/1.0.0/92.dev.gitc1b8c57.fc29/x86_64/runc-1.0.0-92.dev.gitc1b8c57.fc29.x86_64.rpm"
+
+            echo ">>>>> OVERRIDING runc WITH $RUNC <<<<<"
+            dnf -y install "$RUNC"
             CON_SEL="https://kojipkgs.fedoraproject.org/packages/container-selinux/2.100/1.git3b78187.fc29/noarch/container-selinux-2.100-1.git3b78187.fc29.noarch.rpm"
             echo ">>>>> OVERRIDING container-selinux WITH $CON_SEL <<<<<"
             dnf -y install $CON_SEL
