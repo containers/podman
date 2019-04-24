@@ -58,11 +58,14 @@ then
             # Always install runc on Ubuntu
             install_runc_from_git
             ;;
-        fedora-29) ;&  # Continue to the next item
+        fedora-29)
+            CON_SEL="https://kojipkgs.fedoraproject.org/packages/container-selinux/2.100/1.git3b78187.fc29/noarch/container-selinux-2.100-1.git3b78187.fc29.noarch.rpm"
+            echo ">>>>> OVERRIDING container-selinux WITH $CON_SEL <<<<<"
+            dnf -y install $CON_SEL
+            ;&  # Continue to the next item
         fedora-28)
-            RUNC="https://kojipkgs.fedoraproject.org/packages/runc/1.0.0/55.dev.git578fe65.fc${OS_RELEASE_VER}/x86_64/runc-1.0.0-55.dev.git578fe65.fc${OS_RELEASE_VER}.x86_64.rpm"
-            echo ">>>>> OVERRIDING RUNC WITH $RUNC <<<<<"
-            dnf -y install "$RUNC"
+            echo ">>>>> OVERRIDING source-built runc with latest package <<<<<"
+            dnf update -y runc
             ;&  # Continue to the next item
         centos-7) ;&
         rhel-7)

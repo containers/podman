@@ -178,7 +178,6 @@ setup_rootless() {
     make install.catatonit
     go get github.com/onsi/ginkgo/ginkgo
     go get github.com/onsi/gomega/...
-    dnf -y update runc
 
     # Guarantee independence from specific values
     ROOTLESS_UID=$[RANDOM+1000]
