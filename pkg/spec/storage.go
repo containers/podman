@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -25,10 +26,8 @@ const (
 
 var (
 	errDuplicateDest = errors.Errorf("duplicate mount destination")
-	badOptionError   = errors.Errorf("invalid mount option")
 	optionArgError   = errors.Errorf("must provide an argument for option")
 	noDestError      = errors.Errorf("must set volume destination")
-	dupeOptionError  = errors.Errorf("duplicate option passed")
 )
 
 // Parse all volume-related options in the create config into a set of mounts
@@ -163,7 +162,7 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	for _, mount := range baseMounts {
 		// All user-added tmpfs mounts need their options processed.
 		if mount.Type == TypeTmpfs {
-			opts, err := processTmpfsOptions(mount.Options)
+			opts, err := util.ProcessTmpfsOptions(mount.Options)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -391,7 +390,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			newMount.Destination = kv[1]
 			setDest = true
 		default:
-			return newMount, errors.Wrapf(badOptionError, kv[0])
+			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
 	}
 
@@ -446,7 +445,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			newMount.Destination = kv[1]
 			setDest = true
 		default:
-			return newMount, errors.Wrapf(badOptionError, kv[0])
+			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
 	}
 
@@ -490,7 +489,7 @@ func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 			newVolume.Dest = kv[1]
 			setDest = true
 		default:
-			return nil, errors.Wrapf(badOptionError, kv[0])
+			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
 	}
 
@@ -716,88 +715,6 @@ func (config *CreateConfig) addContainerInitBinary(path string) (spec.Mount, err
 	return mount, nil
 }
 
-// Handle options for volume mounts
-func processOptions(options []string) []string {
-	var (
-		foundrw, foundro bool
-		rootProp         string
-	)
-	options = append(options, "rbind")
-	for _, opt := range options {
-		switch opt {
-		case "rw":
-			foundrw = true
-		case "ro":
-			foundro = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
-	}
-	if !foundrw && !foundro {
-		options = append(options, "rw")
-	}
-	if rootProp == "" {
-		options = append(options, "rprivate")
-	}
-	return options
-}
-
-// Handle options for tmpfs mounts
-func processTmpfsOptions(options []string) ([]string, error) {
-	var (
-		foundWrite, foundSize, foundProp, foundMode bool
-	)
-
-	baseOpts := []string{"noexec", "nosuid", "nodev"}
-	for _, opt := range options {
-		// Some options have parameters - size, mode
-		splitOpt := strings.SplitN(opt, "=", 2)
-		switch splitOpt[0] {
-		case "rw", "ro":
-			if foundWrite {
-				return nil, errors.Wrapf(dupeOptionError, "only one of rw and ro can be used")
-			}
-			foundWrite = true
-			baseOpts = append(baseOpts, opt)
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			if foundProp {
-				return nil, errors.Wrapf(dupeOptionError, "only one root propagation mode can be used")
-			}
-			foundProp = true
-			baseOpts = append(baseOpts, opt)
-		case "size":
-			if foundSize {
-				return nil, errors.Wrapf(dupeOptionError, "only one tmpfs size can be specified")
-			}
-			foundSize = true
-			baseOpts = append(baseOpts, opt)
-		case "mode":
-			if foundMode {
-				return nil, errors.Wrapf(dupeOptionError, "only one tmpfs mode can be specified")
-			}
-			foundMode = true
-			baseOpts = append(baseOpts, opt)
-		case "noexec", "nodev", "nosuid":
-			// Do nothing. We always include these even if they are
-			// not explicitly requested.
-		default:
-			return nil, errors.Wrapf(badOptionError, "unknown tmpfs option %q", opt)
-		}
-	}
-
-	if !foundWrite {
-		baseOpts = append(baseOpts, "rw")
-	}
-	if !foundSize {
-		baseOpts = append(baseOpts, "size=65536k")
-	}
-	if !foundProp {
-		baseOpts = append(baseOpts, "rprivate")
-	}
-
-	return baseOpts, nil
-}
-
 // Supercede existing mounts in the spec with new, user-specified mounts.
 // TODO: Should we unmount subtree mounts? E.g., if /tmp/ is mounted by
 // one mount, and we already have /tmp/a and /tmp/b, should we remove
@@ -835,7 +752,7 @@ func initFSMounts(inputMounts []spec.Mount) []spec.Mount {
 	var mounts []spec.Mount
 	for _, m := range inputMounts {
 		if m.Type == TypeBind {
-			m.Options = processOptions(m.Options)
+			m.Options = util.ProcessOptions(m.Options)
 		}
 		if m.Type == TypeTmpfs {
 			m.Options = append(m.Options, "tmpcopyup")
