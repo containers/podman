@@ -7,7 +7,21 @@ import (
 	"strings"
 
 	"github.com/containers/psgo"
+	"github.com/pkg/errors"
 )
+
+// Top gathers statistics about the running processes in a container. It returns a
+// []string for output
+func (c *Container) Top(descriptors []string) ([]string, error) {
+	conStat, err := c.State()
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to look up state for %s", c.ID())
+	}
+	if conStat != ContainerStateRunning {
+		return nil, errors.Errorf("top can only be used on running containers")
+	}
+	return c.GetContainerPidInformation(descriptors)
+}
 
 // GetContainerPidInformation returns process-related data of all processes in
 // the container.  The output data can be controlled via the `descriptors`

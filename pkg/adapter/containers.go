@@ -766,3 +766,23 @@ func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) 
 	}
 	return pool.Run()
 }
+
+// Top display the running processes of a container
+func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
+	var (
+		descriptors []string
+		container   *libpod.Container
+		err         error
+	)
+	if cli.Latest {
+		descriptors = cli.InputArgs
+		container, err = r.Runtime.GetLatestContainer()
+	} else {
+		descriptors = cli.InputArgs[1:]
+		container, err = r.Runtime.LookupContainer(cli.InputArgs[0])
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to lookup requested container")
+	}
+	return container.Top(descriptors)
+}

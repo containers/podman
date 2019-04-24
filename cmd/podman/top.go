@@ -7,8 +7,8 @@ import (
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -60,7 +60,6 @@ func init() {
 }
 
 func topCmd(c *cliconfig.TopValues) error {
-	var container *libpod.Container
 	var err error
 	args := c.InputArgs
 
@@ -77,37 +76,16 @@ func topCmd(c *cliconfig.TopValues) error {
 		return errors.Errorf("you must provide the name or id of a running container")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var descriptors []string
-	if c.Latest {
-		descriptors = args
-		container, err = runtime.GetLatestContainer()
-	} else {
-		descriptors = args[1:]
-		container, err = runtime.LookupContainer(args[0])
-	}
-
-	if err != nil {
-		return errors.Wrapf(err, "unable to lookup requested container")
-	}
-
-	conStat, err := container.State()
-	if err != nil {
-		return errors.Wrapf(err, "unable to look up state for %s", args[0])
-	}
-	if conStat != libpod.ContainerStateRunning {
-		return errors.Errorf("top can only be used on running containers")
-	}
-	psOutput, err := container.GetContainerPidInformation(descriptors)
+	psOutput, err := runtime.Top(c)
 	if err != nil {
 		return err
 	}
-
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
 	for _, proc := range psOutput {
 		fmt.Fprintln(w, proc)

@@ -733,3 +733,16 @@ func newPodmanLogLine(line *libpod.LogLine) iopodman.LogLine {
 		Cid:          line.CID,
 	}
 }
+
+// Top displays information about a container's running processes
+func (i *LibpodAPI) Top(call iopodman.VarlinkCall, nameOrID string, descriptors []string) error {
+	ctr, err := i.Runtime.LookupContainer(nameOrID)
+	if err != nil {
+		return call.ReplyContainerNotFound(ctr.ID(), err.Error())
+	}
+	topInfo, err := ctr.Top(descriptors)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyTop(topInfo)
+}
