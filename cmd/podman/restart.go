@@ -2,11 +2,9 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +20,6 @@ var (
 		RunE: func(cmd *cobra.Command, args []string) error {
 			restartCommand.InputArgs = args
 			restartCommand.GlobalFlags = MainGlobalOpts
-			restartCommand.Remote = remoteclient
 			return restartCmd(&restartCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -49,83 +46,30 @@ func init() {
 }
 
 func restartCmd(c *cliconfig.RestartValues) error {
-	var (
-		restartFuncs      []shared.ParallelWorkerInput
-		containers        []*libpod.Container
-		restartContainers []*libpod.Container
-	)
-
-	args := c.InputArgs
-	runOnly := c.Running
 	all := c.All
-	if len(args) < 1 && !c.Latest && !all {
+	if len(c.InputArgs) < 1 && !c.Latest && !all {
 		return errors.Wrapf(libpod.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	timeout := c.Timeout
-	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
-
-	// Handle --latest
-	if c.Latest {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
-		}
-		restartContainers = append(restartContainers, lastCtr)
-	} else if runOnly {
-		containers, err = getAllOrLatestContainers(&c.PodmanCommand, runtime, libpod.ContainerStateRunning, "running")
-		if err != nil {
-			return err
-		}
-		restartContainers = append(restartContainers, containers...)
-	} else if all {
-		containers, err = runtime.GetAllContainers()
-		if err != nil {
-			return err
-		}
-		restartContainers = append(restartContainers, containers...)
-	} else {
-		for _, id := range args {
-			ctr, err := runtime.LookupContainer(id)
-			if err != nil {
-				return err
+	ok, failures, err := runtime.Restart(getContext(), c)
+	if err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			if len(c.InputArgs) > 1 {
+				exitCode = 125
+			} else {
+				exitCode = 1
 			}
-			restartContainers = append(restartContainers, ctr)
 		}
+		return err
 	}
-
-	maxWorkers := shared.Parallelize("restart")
-	if c.GlobalIsSet("max-workers") {
-		maxWorkers = c.GlobalFlags.MaxWorks
+	if len(failures) > 0 {
+		exitCode = 125
 	}
-
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	// We now have a slice of all the containers to be restarted. Iterate them to
-	// create restart Funcs with a timeout as needed
-	for _, ctr := range restartContainers {
-		con := ctr
-		ctrTimeout := ctr.StopTimeout()
-		if useTimeout {
-			ctrTimeout = timeout
-		}
-
-		f := func() error {
-			return con.RestartWithTimeout(getContext(), ctrTimeout)
-		}
-
-		restartFuncs = append(restartFuncs, shared.ParallelWorkerInput{
-			ContainerID:  con.ID(),
-			ParallelFunc: f,
-		})
-	}
-
-	restartErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, restartFuncs)
-	return printParallelOutput(restartErrors, errCount)
+	return printCmdResults(ok, failures)
 }

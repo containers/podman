@@ -45,6 +45,12 @@ func (c *Container) ID() string {
 	return c.config.ID
 }
 
+// Restart a single container
+func (c *Container) Restart(timeout int64) error {
+	_, err := iopodman.RestartContainer().Call(c.Runtime.Conn, c.ID(), timeout)
+	return err
+}
+
 // Pause a container
 func (c *Container) Pause() error {
 	_, err := iopodman.PauseContainer().Call(c.Runtime.Conn, c.ID())
@@ -130,6 +136,23 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 			state,
 		},
 	}, nil
+}
+
+// GetAllContainers returns all containers in a slice
+func (r *LocalRuntime) GetAllContainers() ([]*Container, error) {
+	var containers []*Container
+	ctrs, err := iopodman.GetContainersByContext().Call(r.Conn, true, false, []string{})
+	if err != nil {
+		return nil, err
+	}
+	for _, ctr := range ctrs {
+		container, err := r.LookupContainer(ctr)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, container)
+	}
+	return containers, nil
 }
 
 func (r *LocalRuntime) LookupContainersWithStatus(filters []string) ([]*Container, error) {
@@ -745,6 +768,62 @@ func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.Unp
 	for _, c := range ctrs {
 		c := c
 		err := c.Unpause()
+		if err != nil {
+			failures[c.ID()] = err
+		} else {
+			ok = append(ok, c.ID())
+		}
+	}
+	return ok, failures, nil
+}
+
+// Restart restarts a container over varlink
+func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) ([]string, map[string]error, error) {
+	var (
+		containers        []*Container
+		restartContainers []*Container
+		err               error
+		ok                = []string{}
+		failures          = map[string]error{}
+	)
+	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
+	inputTimeout := c.Timeout
+
+	if c.Latest {
+		lastCtr, err := r.GetLatestContainer()
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "unable to get latest container")
+		}
+		restartContainers = append(restartContainers, lastCtr)
+	} else if c.Running {
+		containers, err = r.LookupContainersWithStatus([]string{libpod.ContainerStateRunning.String()})
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	} else if c.All {
+		containers, err = r.GetAllContainers()
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	} else {
+		for _, id := range c.InputArgs {
+			ctr, err := r.LookupContainer(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			restartContainers = append(restartContainers, ctr)
+		}
+	}
+
+	for _, c := range restartContainers {
+		c := c
+		timeout := c.config.StopTimeout
+		if useTimeout {
+			timeout = inputTimeout
+		}
+		err := c.Restart(int64(timeout))
 		if err != nil {
 			failures[c.ID()] = err
 		} else {

@@ -50,6 +50,7 @@ var mainCommands = []*cobra.Command{
 	&_psCommand,
 	_pullCommand,
 	_pushCommand,
+	_restartCommand,
 	_rmCommand,
 	&_rmiCommand,
 	_runCommand,
