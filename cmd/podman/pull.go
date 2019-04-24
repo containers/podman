@@ -46,7 +46,7 @@ func init() {
 	pullCommand.SetHelpTemplate(HelpTemplate())
 	pullCommand.SetUsageTemplate(UsageTemplate())
 	flags := pullCommand.Flags()
-	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images inthe repository will be pulled")
+	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
 	flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&pullCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
@@ -94,8 +94,9 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 			return errors.Errorf("tag can't be used with --all-tags")
 		}
 	}
+
 	ctx := getContext()
-	img := args[0]
+	imgArg := args[0]
 
 	var registryCreds *types.DockerAuthConfig
 
@@ -122,68 +123,86 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
-	// Possible for docker-archive to have multiple tags, so use LoadFromArchiveReference instead
-	if strings.HasPrefix(img, dockerarchive.Transport.Name()+":") {
-		srcRef, err := alltransports.ParseImageName(img)
+	// Special-case for docker-archive which allows multiple tags.
+	if strings.HasPrefix(imgArg, dockerarchive.Transport.Name()+":") {
+		srcRef, err := alltransports.ParseImageName(imgArg)
 		if err != nil {
-			return errors.Wrapf(err, "error parsing %q", img)
+			return errors.Wrapf(err, "error parsing %q", imgArg)
 		}
 		newImage, err := runtime.LoadFromArchiveReference(getContext(), srcRef, c.SignaturePolicy, writer)
 		if err != nil {
-			return errors.Wrapf(err, "error pulling image from %q", img)
+			return errors.Wrapf(err, "error pulling image from %q", imgArg)
 		}
 		fmt.Println(newImage[0].ID())
-	} else {
-		authfile := getAuthFile(c.String("authfile"))
-		spec := img
-		systemContext := image.GetSystemContext("", authfile, false)
-		srcRef, err := alltransports.ParseImageName(spec)
+
+		return nil
+	}
+
+	authfile := getAuthFile(c.String("authfile"))
+
+	// FIXME: the default pull consults the registries.conf's search registries
+	// while the all-tags pull does not. This behavior must be fixed in the
+	// future and span across c/buildah, c/image and c/libpod to avoid redundant
+	// and error prone code.
+	//
+	// See https://bugzilla.redhat.com/show_bug.cgi?id=1701922 for background
+	// information.
+	if !c.Bool("all-tags") {
+		newImage, err := runtime.New(getContext(), imgArg, c.SignaturePolicy, authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
 		if err != nil {
-			dockerTransport := "docker://"
-			logrus.Debugf("error parsing image name %q, trying with transport %q: %v", spec, dockerTransport, err)
-			spec = dockerTransport + spec
-			srcRef2, err2 := alltransports.ParseImageName(spec)
-			if err2 != nil {
-				return errors.Wrapf(err2, "error parsing image name %q", img)
-			}
-			srcRef = srcRef2
+			return errors.Wrapf(err, "error pulling image %q", imgArg)
 		}
-		var names []string
-		if c.Bool("all-tags") {
-			if srcRef.DockerReference() == nil {
-				return errors.New("Non-docker transport is currently not supported")
-			}
-			tags, err := docker.GetRepositoryTags(ctx, systemContext, srcRef)
-			if err != nil {
-				return errors.Wrapf(err, "error getting repository tags")
-			}
-			for _, tag := range tags {
-				name := spec + ":" + tag
-				names = append(names, name)
-			}
-		} else {
-			names = append(names, spec)
+		fmt.Println(newImage.ID())
+		return nil
+	}
+
+	// FIXME: all-tags should use the libpod backend instead of baking its own bread.
+	spec := imgArg
+	systemContext := image.GetSystemContext("", authfile, false)
+	srcRef, err := alltransports.ParseImageName(spec)
+	if err != nil {
+		dockerTransport := "docker://"
+		logrus.Debugf("error parsing image name %q, trying with transport %q: %v", spec, dockerTransport, err)
+		spec = dockerTransport + spec
+		srcRef2, err2 := alltransports.ParseImageName(spec)
+		if err2 != nil {
+			return errors.Wrapf(err2, "error parsing image name %q", imgArg)
 		}
-		var foundIDs []string
-		foundImage := true
-		for _, name := range names {
-			newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
-			if err != nil {
-				logrus.Errorf("error pulling image %q", name)
-				foundImage = false
-				continue
-			}
-			foundIDs = append(foundIDs, newImage.ID())
+		srcRef = srcRef2
+	}
+	var names []string
+	if srcRef.DockerReference() == nil {
+		return errors.New("Non-docker transport is currently not supported")
+	}
+	tags, err := docker.GetRepositoryTags(ctx, systemContext, srcRef)
+	if err != nil {
+		return errors.Wrapf(err, "error getting repository tags")
+	}
+	for _, tag := range tags {
+		name := spec + ":" + tag
+		names = append(names, name)
+	}
+
+	var foundIDs []string
+	foundImage := true
+	for _, name := range names {
+		newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
+		if err != nil {
+			logrus.Errorf("error pulling image %q", name)
+			foundImage = false
+			continue
 		}
-		if len(names) == 1 && !foundImage {
-			return errors.Wrapf(err, "error pulling image %q", img)
-		}
-		if len(names) > 1 {
-			fmt.Println("Pulled Images:")
-		}
-		for _, id := range foundIDs {
-			fmt.Println(id)
-		}
-	} // end else if strings.HasPrefix(img, dockerarchive.Transport.Name()+":")
+		foundIDs = append(foundIDs, newImage.ID())
+	}
+	if len(names) == 1 && !foundImage {
+		return errors.Wrapf(err, "error pulling image %q", imgArg)
+	}
+	if len(names) > 1 {
+		fmt.Println("Pulled Images:")
+	}
+	for _, id := range foundIDs {
+		fmt.Println(id)
+	}
+
 	return nil
 }

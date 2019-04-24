@@ -49,6 +49,8 @@ Image stored in local container/storage
 
 All tagged images in the repository will be pulled.
 
+Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
+
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
