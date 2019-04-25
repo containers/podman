@@ -1018,6 +1018,8 @@ func (r *Runtime) Shutdown(force bool) error {
 // Refreshes the state, recreating temporary files
 // Does not check validity as the runtime is not valid until after this has run
 func (r *Runtime) refresh(alivePath string) error {
+	logrus.Debugf("Podman detected system restart - performing state refresh")
+
 	// First clear the state in the database
 	if err := r.state.Refresh(); err != nil {
 		return err
