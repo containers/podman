@@ -524,6 +524,8 @@ method Ps(opts: PsOpts) -> (containers: []PsContainer)
 
 method GetContainersByStatus(status: []string) -> (containerS: []Container)
 
+method Top (nameOrID: string, descriptors: []string) -> (top: []string)
+
 # GetContainer returns information about a single container.  If a container
 # with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
 # error will be returned.  See also [ListContainers](ListContainers) and

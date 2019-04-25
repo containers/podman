@@ -832,3 +832,23 @@ func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) 
 	}
 	return ok, failures, nil
 }
+
+// Top display the running processes of a container
+func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
+	var (
+		ctr         *Container
+		err         error
+		descriptors []string
+	)
+	if cli.Latest {
+		ctr, err = r.GetLatestContainer()
+		descriptors = cli.InputArgs
+	} else {
+		ctr, err = r.LookupContainer(cli.InputArgs[0])
+		descriptors = cli.InputArgs[1:]
+	}
+	if err != nil {
+		return nil, err
+	}
+	return iopodman.Top().Call(r.Conn, ctr.ID(), descriptors)
+}

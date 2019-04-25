@@ -21,7 +21,6 @@ func getMainCommands() []*cobra.Command {
 		_refreshCommand,
 		_searchCommand,
 		_statsCommand,
-		_topCommand,
 	}
 
 	if len(_varlinkCommand.Use) > 0 {
@@ -53,7 +52,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_runlabelCommand,
 		_statsCommand,
 		_stopCommand,
-		_topCommand,
 		_umountCommand,
 	}
 }
