@@ -66,6 +66,8 @@ type Runtime struct {
 	store               storage.Store
 	SignaturePolicyPath string
 	EventsLogFilePath   string
+	EventsLogger        string
+	Eventer             events.Eventer
 }
 
 // InfoImage keep information of Image along with all associated layers
@@ -1366,7 +1368,7 @@ func (ir *Runtime) newImageEvent(status events.Status, name string) {
 	e := events.NewEvent(status)
 	e.Type = events.Image
 	e.Name = name
-	if err := e.Write(ir.EventsLogFilePath); err != nil {
+	if err := ir.Eventer.Write(e); err != nil {
 		logrus.Infof("unable to write event to %s", ir.EventsLogFilePath)
 	}
 }
@@ -1379,7 +1381,7 @@ func (i *Image) newImageEvent(status events.Status) {
 	if len(i.Names()) > 0 {
 		e.Name = i.Names()[0]
 	}
-	if err := e.Write(i.imageruntime.EventsLogFilePath); err != nil {
+	if err := i.imageruntime.Eventer.Write(e); err != nil {
 		logrus.Infof("unable to write event to %s", i.imageruntime.EventsLogFilePath)
 	}
 }

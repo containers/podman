@@ -5,6 +5,7 @@ package adapter
 import (
 	"bufio"
 	"context"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"io"
 	"io/ioutil"
 	"os"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
@@ -322,10 +322,6 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 		fromStart   bool
 		eventsError error
 	)
-	options, err := shared.GenerateEventOptions(c.Filter, c.Since, c.Until)
-	if err != nil {
-		return errors.Wrapf(err, "unable to generate event options")
-	}
 	tmpl, err := template.New("events").Parse(c.Format)
 	if err != nil {
 		return err
@@ -335,7 +331,8 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 	eventChannel := make(chan *events.Event)
 	go func() {
-		eventsError = r.Runtime.Events(fromStart, c.Stream, options, eventChannel)
+		readOpts := events.ReadOptions{FromStart: fromStart, Stream: c.Stream, Filters: c.Filter, EventChannel: eventChannel, Since: c.Since, Until: c.Until}
+		eventsError = r.Runtime.Events(readOpts)
 	}()
 
 	if eventsError != nil {
