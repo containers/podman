@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
@@ -90,7 +91,8 @@ func loginCmd(c *cliconfig.LoginValues) error {
 
 	// username of user logged in to server (if one exists)
 	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
-	if err != nil {
+	// Do not return error if no credentials found in credHelpers, new credentials will be stored by config.SetAuthentication
+	if err != nil && err != credentials.NewErrCredentialsNotFound() {
 		return errors.Wrapf(err, "error reading auth file")
 	}
 
