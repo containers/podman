@@ -3,7 +3,7 @@
 load helpers
 
 @test "podman info - basic test" {
-    skip_if_remote
+    skip_if_remote "capitalization inconsistencies"
 
     run_podman info
 
@@ -28,7 +28,7 @@ RunRoot:
 }
 
 @test "podman info - json" {
-    skip_if_remote
+    skip_if_remote "capitalization inconsistencies"
 
     run_podman info --format=json
 
