@@ -796,7 +796,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 			mountProgram := exec.Command(d.options.mountProgram, "-o", label, target)
 			mountProgram.Dir = d.home
-			return mountProgram.Run()
+			var b bytes.Buffer
+			mountProgram.Stderr = &b
+			err := mountProgram.Run()
+			if err != nil {
+				output := b.String()
+				if output == "" {
+					output = "<stderr empty>"
+				}
+				return errors.Wrapf(err, "using mount program %s: %s", d.options.mountProgram, output)
+			}
+			return nil
 		}
 	} else if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores

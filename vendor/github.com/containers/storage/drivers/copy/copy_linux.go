@@ -1,4 +1,4 @@
-// +build linux
+// +build cgo
 
 package copy
 
@@ -153,8 +153,8 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 
 		isHardlink := false
 
-		switch f.Mode() & os.ModeType {
-		case 0: // Regular file
+		switch mode := f.Mode(); {
+		case mode.IsRegular():
 			id := fileID{dev: stat.Dev, ino: stat.Ino}
 			if copyMode == Hardlink {
 				isHardlink = true
@@ -172,12 +172,12 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 				copiedFiles[id] = dstPath
 			}
 
-		case os.ModeDir:
+		case mode.IsDir():
 			if err := os.Mkdir(dstPath, f.Mode()); err != nil && !os.IsExist(err) {
 				return err
 			}
 
-		case os.ModeSymlink:
+		case mode&os.ModeSymlink != 0:
 			link, err := os.Readlink(srcPath)
 			if err != nil {
 				return err
@@ -187,14 +187,15 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 				return err
 			}
 
-		case os.ModeNamedPipe:
+		case mode&os.ModeNamedPipe != 0:
 			fallthrough
-		case os.ModeSocket:
+
+		case mode&os.ModeSocket != 0:
 			if err := unix.Mkfifo(dstPath, stat.Mode); err != nil {
 				return err
 			}
 
-		case os.ModeDevice:
+		case mode&os.ModeDevice != 0:
 			if rsystem.RunningInUserNS() {
 				// cannot create a device if running in user namespace
 				return nil
@@ -204,7 +205,7 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 			}
 
 		default:
-			return fmt.Errorf("unknown file type for %s", srcPath)
+			return fmt.Errorf("unknown file type with mode %v for %s", mode, srcPath)
 		}
 
 		// Everything below is copying metadata from src to dst. All this metadata
