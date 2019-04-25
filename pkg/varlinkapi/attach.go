@@ -53,7 +53,13 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-
+	state, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if !start && state != libpod.ContainerStateRunning {
+		return call.ReplyErrorOccurred("container must be running to attach")
+	}
 	reader, writer, _, pw, streams := setupStreams(call)
 
 	go func() {
@@ -62,10 +68,10 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 		}
 	}()
 
-	if start {
-		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
-	} else {
+	if state == libpod.ContainerStateRunning {
 		finalErr = attach(ctr, streams, detachKeys, resize, errChan)
+	} else {
+		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
 	}
 
 	if finalErr != libpod.ErrDetach && finalErr != nil {

@@ -584,7 +584,10 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	}
 	inputStream := os.Stdin
 	if c.NoStdin {
-		inputStream = nil
+		inputStream, err = os.Open(os.DevNull)
+		if err != nil {
+			return err
+		}
 	}
 	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys)
 	if err != nil {
