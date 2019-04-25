@@ -49,6 +49,8 @@ func (e *Event) ToHumanReadable() string {
 		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s)", e.Time, e.Type, e.Status, e.ID, e.Image, e.Name)
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, e.ID, e.Name)
+	case System:
+		humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
 	case Volume:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
 	}
@@ -85,6 +87,8 @@ func StringToType(name string) (Type, error) {
 		return Image, nil
 	case Pod.String():
 		return Pod, nil
+	case System.String():
+		return System, nil
 	case Volume.String():
 		return Volume, nil
 	}
@@ -135,8 +139,14 @@ func StringToStatus(name string) (Status, error) {
 		return Pull, nil
 	case Push.String():
 		return Push, nil
+	case Refresh.String():
+		return Refresh, nil
 	case Remove.String():
 		return Remove, nil
+	case Renumber.String():
+		return Renumber, nil
+	case Restore.String():
+		return Restore, nil
 	case Save.String():
 		return Save, nil
 	case Start.String():

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 )
 
@@ -52,6 +53,8 @@ func (r *Runtime) renumberLocks() error {
 			return err
 		}
 	}
+
+	r.newSystemEvent(events.Renumber)
 
 	return nil
 }

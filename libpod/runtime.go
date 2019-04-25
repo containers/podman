@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/events"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/firewall"
@@ -754,6 +754,17 @@ func makeRuntime(runtime *Runtime) (err error) {
 		if err != nil {
 			return err
 		}
+
+		defer func() {
+			if err != nil && store != nil {
+				// Don't forcibly shut down
+				// We could be opening a store in use by another libpod
+				_, err2 := store.Shutdown(false)
+				if err2 != nil {
+					logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+				}
+			}
+		}()
 	}
 
 	runtime.store = store
@@ -779,17 +790,6 @@ func makeRuntime(runtime *Runtime) (err error) {
 	}
 	runtime.eventer = eventer
 	ir.Eventer = eventer
-
-	defer func() {
-		if err != nil && store != nil {
-			// Don't forcibly shut down
-			// We could be opening a store in use by another libpod
-			_, err2 := store.Shutdown(false)
-			if err2 != nil {
-				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
-			}
-		}
-	}()
 
 	// Set up a storage service for creating container root filesystems from
 	// images
@@ -1073,6 +1073,8 @@ func (r *Runtime) refresh(alivePath string) error {
 		return errors.Wrapf(err, "error creating runtime status file %s", alivePath)
 	}
 	defer file.Close()
+
+	r.newSystemEvent(events.Refresh)
 
 	return nil
 }

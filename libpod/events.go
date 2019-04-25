@@ -50,6 +50,16 @@ func (p *Pod) newPodEvent(status events.Status) {
 	}
 }
 
+// newSystemEvent creates a new event for libpod as a whole.
+func (r *Runtime) newSystemEvent(status events.Status) {
+	e := events.NewEvent(status)
+	e.Type = events.System
+
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("unable to write system event: %q", err)
+	}
+}
+
 // newVolumeEvent creates a new event for a libpod volume
 func (v *Volume) newVolumeEvent(status events.Status) {
 	e := events.NewEvent(status)

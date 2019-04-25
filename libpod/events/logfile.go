@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )
 
@@ -15,6 +16,13 @@ type EventLogFile struct {
 
 // Writes to the log file
 func (e EventLogFile) Write(ee Event) error {
+	// We need to lock events file
+	lock, err := storage.GetLockfile(e.options.LogFilePath + ".lock")
+	if err != nil {
+		return err
+	}
+	lock.Lock()
+	defer lock.Unlock()
 	f, err := os.OpenFile(e.options.LogFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0700)
 	if err != nil {
 		return err
