@@ -986,3 +986,26 @@ func (r *LocalRuntime) GetNamespaces(container shared.PsContainerOutput) *shared
 	}
 	return &ns
 }
+
+// Commit creates a local image from a container
+func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, container, imageName string) (string, error) {
+	var iid string
+	reply, err := iopodman.Commit().Send(r.Conn, varlink.More, container, imageName, c.Change, c.Author, c.Message, c.Pause, c.Format)
+	if err != nil {
+		return "", err
+	}
+	for {
+		responses, flags, err := reply()
+		if err != nil {
+			return "", err
+		}
+		for _, line := range responses.Logs {
+			fmt.Fprintln(os.Stderr, line)
+		}
+		iid = responses.Id
+		if flags&varlink.Continues == 0 {
+			break
+		}
+	}
+	return iid, nil
+}

@@ -11,7 +11,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func BuildImageHierarchyMap(name: string) string](#BuildImageHierarchyMap)
 
-[func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) string](#Commit)
+[func Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) MoreResponse](#Commit)
 
 [func ContainerArtifacts(name: string, artifactName: string) string](#ContainerArtifacts)
 
@@ -308,14 +308,14 @@ BuildImageHierarchyMap is for the development of Podman and should not be used.
 ### <a name="Commit"></a>func Commit
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method Commit(name: [string](https://godoc.org/builtin#string), image_name: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string), author: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), pause: [bool](https://godoc.org/builtin#bool), manifestType: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+method Commit(name: [string](https://godoc.org/builtin#string), image_name: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string), author: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), pause: [bool](https://godoc.org/builtin#bool), manifestType: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
 Commit, creates an image from an existing container. It requires the name or
 ID of the container as well as the resulting image name.  Optionally, you can define an author and message
 to be added to the resulting image.  You can also define changes to the resulting image for the following
 attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
 container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
-the resulting image's ID will be returned as a string.
+the resulting image's ID will be returned as a string inside a MoreResponse.
 ### <a name="ContainerArtifacts"></a>func ContainerArtifacts
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

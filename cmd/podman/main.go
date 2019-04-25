@@ -30,6 +30,7 @@ var (
 var mainCommands = []*cobra.Command{
 	_attachCommand,
 	_buildCommand,
+	_commitCommand,
 	_diffCommand,
 	_createCommand,
 	_eventsCommand,

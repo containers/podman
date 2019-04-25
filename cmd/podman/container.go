@@ -52,6 +52,7 @@ var (
 	containerCommands = []*cobra.Command{
 		_attachCommand,
 		_checkpointCommand,
+		_commitCommand,
 		_containerExistsCommand,
 		_contInspectSubCommand,
 		_cpCommand,
