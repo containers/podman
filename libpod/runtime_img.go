@@ -57,7 +57,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		}
 	}
 
-	hasChildren, err := img.IsParent()
+	hasChildren, err := img.IsParent(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -82,12 +82,12 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// reponames and no force is applied, we error out.
 		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
 	}
-	err = img.Remove(force)
+	err = img.Remove(ctx, force)
 	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
 		if errStorage := r.rmStorageContainers(force, img); errStorage == nil {
 			// Containers associated with the image should be deleted now,
 			// let's try removing the image again.
-			err = img.Remove(force)
+			err = img.Remove(ctx, force)
 		} else {
 			err = errStorage
 		}

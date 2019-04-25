@@ -256,7 +256,7 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 // IsParent goes through the layers in the store and checks if i.TopLayer is
 // the parent of any other layer in store. Double check that image with that
 // layer exists as well.
-func (ci *ContainerImage) IsParent() (bool, error) {
+func (ci *ContainerImage) IsParent(context.Context) (bool, error) {
 	return ci.remoteImage.isParent, nil
 }
 
@@ -338,7 +338,7 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 }
 
 // PruneImages is the wrapper call for a remote-client to prune images
-func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
+func (r *LocalRuntime) PruneImages(ctx context.Context, all bool) ([]string, error) {
 	return iopodman.ImagesPrune().Call(r.Conn, all)
 }
 

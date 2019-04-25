@@ -119,8 +119,8 @@ func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, for
 }
 
 // PruneImages is wrapper into PruneImages within the image pkg
-func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
-	return r.ImageRuntime().PruneImages(all)
+func (r *LocalRuntime) PruneImages(ctx context.Context, all bool) ([]string, error) {
+	return r.ImageRuntime().PruneImages(ctx, all)
 }
 
 // Export is a wrapper to container export to a tarfile

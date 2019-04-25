@@ -201,7 +201,7 @@ func imageUniqueSize(ctx context.Context, images []*image.Image) (map[string]uin
 	for _, img := range images {
 		parentImg := img
 		for {
-			next, err := parentImg.GetParent()
+			next, err := parentImg.GetParent(ctx)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error getting parent of image %s", parentImg.ID())
 			}
@@ -246,11 +246,11 @@ func getImageDiskUsage(ctx context.Context, images []*image.Image, imageUsedbyCi
 
 		unreclaimableSize += imageUsedSize(img, imgUniqueSizeMap, imageUsedbyCintainerMap, imageUsedbyActiveContainerMap)
 
-		isParent, err := img.IsParent()
+		isParent, err := img.IsParent(ctx)
 		if err != nil {
 			return imageDiskUsage, err
 		}
-		parent, err := img.GetParent()
+		parent, err := img.GetParent(ctx)
 		if err != nil {
 			return imageDiskUsage, errors.Wrapf(err, "error getting parent of image %s", img.ID())
 		}
@@ -437,11 +437,11 @@ func getImageVerboseDiskUsage(ctx context.Context, images []*image.Image, images
 		return imagesVerboseDiskUsage, errors.Wrapf(err, "error getting unique size of images")
 	}
 	for _, img := range images {
-		isParent, err := img.IsParent()
+		isParent, err := img.IsParent(ctx)
 		if err != nil {
 			return imagesVerboseDiskUsage, errors.Wrapf(err, "error checking if %s is a parent images", img.ID())
 		}
-		parent, err := img.GetParent()
+		parent, err := img.GetParent(ctx)
 		if err != nil {
 			return imagesVerboseDiskUsage, errors.Wrapf(err, "error getting parent of image %s", img.ID())
 		}
