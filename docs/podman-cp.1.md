@@ -8,6 +8,7 @@ podman\-cp - Copy files/folders between a container and the local filesystem
 
 ## DESCRIPTION
 Copies the contents of **src_path** to the **dest_path**. You can copy from the containers's filesystem to the local machine or the reverse, from the local filesystem to the container.
+If - is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT.
 
 The CONTAINER can be a running or stopped container. The **src_path** or **dest_path** can be a file or directory.
 
@@ -106,6 +107,8 @@ podman cp containerID:/myapp/ /myapp/
 podman cp containerID:/home/myuser/. /home/myuser/
 
 podman cp --extract /home/myuser/myfiles.tar.gz containerID:/myfiles
+
+podman cp - containerID:/myfiles.tar.gz < myfiles.tar.gz
 
 ## SEE ALSO
 podman(1), podman-mount(1), podman-umount(1)
