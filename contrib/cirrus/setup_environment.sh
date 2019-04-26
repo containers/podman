@@ -55,7 +55,6 @@ then
     # Some setup needs to vary between distros
     case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
         ubuntu-18)
-            sudo apt-get -qq -y install libsystemd-dev
             # Always install runc on Ubuntu
             install_runc_from_git
             ;;
