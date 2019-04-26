@@ -67,7 +67,7 @@ func rmCmd(c *cliconfig.RmValues) error {
 	}
 
 	if len(failures) > 0 {
-		exitCode = 125
+		exitCode = 2
 	}
 
 	return printCmdResults(ok, failures)
