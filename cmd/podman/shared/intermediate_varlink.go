@@ -141,6 +141,7 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		PublishAll:             BoolToPtr(g.Find("publish-all")),
 		Quiet:                  BoolToPtr(g.Find("quiet")),
 		Readonly:               BoolToPtr(g.Find("read-only")),
+		Readonlytmpfs:          BoolToPtr(g.Find("read-only-tmpfs")),
 		Restart:                StringToPtr(g.Find("restart")),
 		Rm:                     BoolToPtr(g.Find("rm")),
 		Rootfs:                 BoolToPtr(g.Find("rootfs")),
@@ -397,6 +398,7 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["publish-all"] = boolFromVarlink(opts.PublishAll, "publish-all", false)
 	m["quiet"] = boolFromVarlink(opts.Quiet, "quiet", false)
 	m["read-only"] = boolFromVarlink(opts.Readonly, "read-only", false)
+	m["read-only-tmpfs"] = boolFromVarlink(opts.Readonlytmpfs, "read-only-tmpfs", true)
 	m["restart"] = stringFromVarlink(opts.Restart, "restart", nil)
 	m["rm"] = boolFromVarlink(opts.Rm, "rm", false)
 	m["rootfs"] = boolFromVarlink(opts.Rootfs, "rootfs", false)

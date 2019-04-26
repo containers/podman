@@ -534,6 +534,9 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere.  By specifying the `--read-only` flag the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
+**--read-only-tmpfs**=*true*|*false*
+If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp.  The default is *true*
+
 **--restart=""**
 
 Not implemented.
@@ -905,7 +908,11 @@ still need to write temporary data.  The best way to handle this is to mount
 tmpfs directories on /run and /tmp.
 
 ```
-$ podman run --read-only --tmpfs /run --tmpfs /tmp -i -t fedora /bin/bash
+$ podman run --read-only -i -t fedora /bin/bash
+```
+
+```
+$ podman run --read-only --read-only-tmpfs=false --tmpfs /run -i -t fedora /bin/bash
 ```
 
 ### Exposing log messages from the container to the host's log

@@ -434,6 +434,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"read-only", false,
 		"Make containers root filesystem read-only",
 	)
+	createFlags.Bool(
+		"read-only-tmpfs", true,
+		"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
+	)
 	createFlags.String(
 		"restart", "",
 		"Restart is not supported.  Please use a systemd unit file for restart",

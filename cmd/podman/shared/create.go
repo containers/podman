@@ -650,6 +650,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		PortBindings:   portBindings,
 		Quiet:          c.Bool("quiet"),
 		ReadOnlyRootfs: c.Bool("read-only"),
+		ReadOnlyTmpfs:  c.Bool("read-only-tmpfs"),
 		Resources: cc.CreateResourceConfig{
 			BlkioWeight:       blkioWeight,
 			BlkioWeightDevice: c.StringSlice("blkio-weight-device"),

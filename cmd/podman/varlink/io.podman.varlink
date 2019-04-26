@@ -346,6 +346,7 @@ type Create (
     publishAll: ?bool,
     quiet: ?bool,
     readonly: ?bool,
+    readonlytmpfs: ?bool,
     restart: ?string,
     rm: ?bool,
     rootfs: ?bool,
