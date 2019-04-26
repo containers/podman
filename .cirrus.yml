@@ -28,15 +28,15 @@ env:
     #### Cache-image names to test with
     ###
     ACTIVE_CACHE_IMAGE_NAMES: >-
-        fedora-28-libpod-6318419153518592
-        fedora-29-libpod-6318419153518592
-        ubuntu-18-libpod-6318419153518592
-        rhel-7-libpod-6318419153518592
+        fedora-29-libpod-548c1c05
+        fedora-28-libpod-548c1c05
+        ubuntu-18-libpod-548c1c05
+        rhel-7-libpod-548c1c05
         image-builder-image-1541772081
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-6318419153518592"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-6318419153518592"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-6318419153518592"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-6318419153518592"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-548c1c05"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-548c1c05"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-548c1c05"
+    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-548c1c05"
     # RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
     # CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
 
@@ -49,7 +49,7 @@ env:
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
-    RUNC_COMMIT: "25f3f893c86d07426df93b7aa172f33fdf093fbd"
+    RUNC_COMMIT: "029124da7af7360afa781a0234d1b083550f797c"
     # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
     PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28,rhel-7"  # TODO: rhel-8,centos-7
     # Version of packer to use
