@@ -129,20 +129,20 @@ func resolveModifiedTime(rootdir, filename, historyTime string) (bool, error) {
 func modTimeIsGreater(rootdir, path string, historyTime string) (bool, error) {
 	var timeIsGreater bool
 
-	// the Walk below doesn't work if rootdir and path are equal
-	if rootdir == path {
-		return false, nil
-	}
-
 	// Convert historyTime from string to time.Time for comparison
 	histTime, err := time.Parse(time.RFC3339Nano, historyTime)
 	if err != nil {
 		return false, errors.Wrapf(err, "error converting string to time.Time %q", historyTime)
 	}
+
+	// Since we are chroot in rootdir, we want a relative path, i.e (path - rootdir)
+	relPath, err := filepath.Rel(rootdir, path)
+	if err != nil {
+		return false, errors.Wrapf(err, "error making path %q relative to %q", path, rootdir)
+	}
+
 	// Walk the file tree and check the time stamps.
-	// Since we are chroot in rootdir, only want the path of the actual filename, i.e path - rootdir.
-	// +1 to account for the extra "/" (e.g rootdir=/home/user/mydir, path=/home/user/mydir/myfile.json)
-	err = filepath.Walk(path[len(rootdir)+1:], func(path string, info os.FileInfo, err error) error {
+	err = filepath.Walk(relPath, func(path string, info os.FileInfo, err error) error {
 		// If using cached images, it is possible for files that are being copied to come from
 		// previous build stages. But if using cached images, then the copied file won't exist
 		// since a container won't have been created for the previous build stage and info will be nil.
@@ -154,6 +154,9 @@ func modTimeIsGreater(rootdir, path string, historyTime string) (bool, error) {
 		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
 			// Evaluate any symlink that occurs to get updated modified information
 			resolvedPath, err := filepath.EvalSymlinks(path)
+			if err != nil && os.IsNotExist(err) {
+				return errors.Wrapf(errDanglingSymlink, "%q", path)
+			}
 			if err != nil {
 				return errors.Wrapf(err, "error evaluating symlink %q", path)
 			}
@@ -169,7 +172,12 @@ func modTimeIsGreater(rootdir, path string, historyTime string) (bool, error) {
 		}
 		return nil
 	})
+
 	if err != nil {
+		// if error is due to dangling symlink, ignore error and return nil
+		if errors.Cause(err) == errDanglingSymlink {
+			return false, nil
+		}
 		return false, errors.Wrapf(err, "error walking file tree %q", path)
 	}
 	return timeIsGreater, err

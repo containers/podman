@@ -64,12 +64,9 @@ type CommitOptions struct {
 	// manifest of the new image will reference the blobs rather than
 	// on-disk layers.
 	BlobDirectory string
-
-	// OnBuild is a list of commands to be run by images based on this image
-	OnBuild []string
-	// Parent is the base image that this image was created by.
-	Parent string
-
+	// EmptyLayer tells the builder to omit the diff for the working
+	// container.
+	EmptyLayer bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool
@@ -169,7 +166,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		}
 	}
 	// Build an image reference from which we can copy the finished image.
-	src, err := b.makeImageRef(options.PreferredManifestType, options.Parent, exportBaseLayers, options.Squash, options.BlobDirectory, options.Compression, options.HistoryTimestamp, options.OmitTimestamp)
+	src, err := b.makeImageRef(options, exportBaseLayers)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error computing layer digests and building metadata for container %q", b.ContainerID)
 	}

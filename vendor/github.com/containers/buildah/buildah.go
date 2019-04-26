@@ -26,7 +26,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.8-dev"
+	Version = "1.8.0"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -282,6 +282,8 @@ type CommonBuildOptions struct {
 	CPUSetCPUs string
 	// CPUSetMems memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
 	CPUSetMems string
+	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
+	HTTPProxy bool
 	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
 	// DNSSearch is the list of DNS search domains to add to the build container's /etc/resolv.conf
