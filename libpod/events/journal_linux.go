@@ -7,6 +7,7 @@ import (
 	"github.com/coreos/go-systemd/journal"
 	"github.com/coreos/go-systemd/sdjournal"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // EventJournalD is the journald implementation of an eventer
@@ -87,7 +88,11 @@ func (e EventJournalD) Read(options ReadOptions) error {
 		}
 		newEvent, err := newEventFromJournalEntry(entry)
 		if err != nil {
-			return err
+			// We can't decode this event.
+			// Don't fail hard - that would make events unusable.
+			// Instead, log and continue.
+			logrus.Errorf("Unable to decode event: %v", err)
+			continue
 		}
 		include := true
 		for _, filter := range eventOptions {

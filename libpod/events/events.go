@@ -92,7 +92,7 @@ func StringToType(name string) (Type, error) {
 	case Volume.String():
 		return Volume, nil
 	}
-	return "", errors.Errorf("unknown event type %s", name)
+	return "", errors.Errorf("unknown event type %q", name)
 }
 
 // StringToStatus converts a string to an Event Status
@@ -111,7 +111,6 @@ func StringToStatus(name string) (Status, error) {
 	case Commit.String():
 		return Commit, nil
 	case Create.String():
-
 		return Create, nil
 	case Exec.String():
 		return Exec, nil
@@ -164,7 +163,7 @@ func StringToStatus(name string) (Status, error) {
 	case Untag.String():
 		return Untag, nil
 	}
-	return "", errors.Errorf("unknown event status %s", name)
+	return "", errors.Errorf("unknown event status %q", name)
 }
 
 func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
