@@ -93,7 +93,7 @@ func translateDescriptors(descriptors []string) ([]aixFormatDescriptor, error) {
 			}
 		}
 		if !found {
-			return nil, errors.Wrapf(ErrUnkownDescriptor, "'%s'", d)
+			return nil, errors.Wrapf(ErrUnknownDescriptor, "'%s'", d)
 		}
 	}
 
@@ -104,8 +104,8 @@ var (
 	// DefaultDescriptors is the `ps -ef` compatible default format.
 	DefaultDescriptors = []string{"user", "pid", "ppid", "pcpu", "etime", "tty", "time", "args"}
 
-	// ErrUnkownDescriptor is returned when an unknown descriptor is parsed.
-	ErrUnkownDescriptor = errors.New("unknown descriptor")
+	// ErrUnknownDescriptor is returned when an unknown descriptor is parsed.
+	ErrUnknownDescriptor = errors.New("unknown descriptor")
 
 	aixFormatDescriptors = []aixFormatDescriptor{
 		{
@@ -327,7 +327,10 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 			dataErr = err
 			return
 		}
-		unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+		if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
+			dataErr = err
+			return
+		}
 
 		// extract all pids mentioned in pid's mount namespace
 		pids, err := proc.GetPIDs()
