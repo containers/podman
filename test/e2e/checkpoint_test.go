@@ -21,6 +21,7 @@ var _ = Describe("Podman checkpoint", func() {
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -41,11 +42,12 @@ var _ = Describe("Podman checkpoint", func() {
 		if !criu.CheckForCriu() {
 			Skip("CRIU is missing or too old.")
 		}
-		// TODO: Remove the skip when the current CRIU SELinux problem is solved.
-		// See: https://github.com/containers/libpod/issues/2334
+		// Only Fedora 29 and newer has a new enough selinux-policy and
+		// container-selinux package to support CRIU in correctly
+		// restoring threaded processes
 		hostInfo := podmanTest.Host
-		if hostInfo.Distribution == "fedora" {
-			Skip("Checkpointing containers on Fedora currently broken.")
+		if hostInfo.Distribution == "fedora" && hostInfo.Version < "29" {
+			Skip("Checkpoint/Restore with SELinux only works on Fedora >= 29")
 		}
 
 	})
