@@ -84,6 +84,9 @@ const (
 	Image Type = "image"
 	// Pod - event is related to pods
 	Pod Type = "pod"
+	// System - event is related to Podman whole and not to any specific
+	// container/pod/image/volume
+	System Type = "system"
 	// Volume - event is related to volumes
 	Volume Type = "volume"
 
@@ -123,8 +126,14 @@ const (
 	Pull Status = "pull"
 	// Push ...
 	Push Status = "push"
+	// Refresh indicates that the system refreshed the state after a
+	// reboot.
+	Refresh Status = "refresh"
 	// Remove ...
 	Remove Status = "remove"
+	// Renumber indicates that lock numbers were reallocated at user
+	// request.
+	Renumber Status = "renumber"
 	// Restore ...
 	Restore Status = "restore"
 	// Save ...
