@@ -16,7 +16,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/archive"
@@ -320,6 +320,8 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		mergedDir := filepath.Join(layerDir, "merged")
 		lower1Dir := filepath.Join(layerDir, "lower1")
 		lower2Dir := filepath.Join(layerDir, "lower2")
+		upperDir := filepath.Join(layerDir, "upper")
+		workDir := filepath.Join(layerDir, "work")
 		defer func() {
 			// Permitted to fail, since the various subdirectories
 			// can be empty or not even there, and the home might
@@ -331,7 +333,9 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 		_ = idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower1Dir, 0700, rootUID, rootGID)
 		_ = idtools.MkdirAs(lower2Dir, 0700, rootUID, rootGID)
-		flags := fmt.Sprintf("lowerdir=%s:%s", lower1Dir, lower2Dir)
+		_ = idtools.MkdirAs(upperDir, 0700, rootUID, rootGID)
+		_ = idtools.MkdirAs(workDir, 0700, rootUID, rootGID)
+		flags := fmt.Sprintf("lowerdir=%s:%s,upperdir=%s,workdir=%s", lower1Dir, lower2Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -341,7 +345,7 @@ func supportsOverlay(home string, homeMagic graphdriver.FsMagic, rootUID, rootGI
 				logrus.Debugf("overlay test mount with multiple lowers failed %v", err)
 			}
 		}
-		flags = fmt.Sprintf("lowerdir=%s", lower1Dir)
+		flags = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", lower1Dir, upperDir, workDir)
 		if len(flags) < unix.Getpagesize() {
 			err := mountFrom(filepath.Dir(home), "overlay", mergedDir, "overlay", 0, flags)
 			if err == nil {
@@ -677,6 +681,40 @@ func (d *Driver) Remove(id string) error {
 	return nil
 }
 
+// recreateSymlinks goes through the driver's home directory and checks if the diff directory
+// under each layer has a symlink created for it under the linkDir. If the symlink does not
+// exist, it creates them
+func (d *Driver) recreateSymlinks() error {
+	// List all the directories under the home directory
+	dirs, err := ioutil.ReadDir(d.home)
+	if err != nil {
+		return fmt.Errorf("error reading driver home directory %q: %v", d.home, err)
+	}
+	for _, dir := range dirs {
+		// Skip over the linkDir
+		if dir.Name() == linkDir || dir.Mode().IsRegular() {
+			continue
+		}
+		// Read the "link" file under each layer to get the name of the symlink
+		data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
+		if err != nil {
+			return fmt.Errorf("error reading name of symlink for %q: %v", dir, err)
+		}
+		linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
+		// Check if the symlink exists, and if it doesn't create it again with the name we
+		// got from the "link" file
+		_, err = os.Stat(linkPath)
+		if err != nil && os.IsNotExist(err) {
+			if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
+				return err
+			}
+		} else if err != nil {
+			return fmt.Errorf("error trying to stat %q: %v", linkPath, err)
+		}
+	}
+	return nil
+}
+
 // Get creates and mounts the required file system for the given id and returns the mount path.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
 	return d.get(id, false, options)
@@ -732,7 +770,16 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				}
 				lower = ""
 			}
-			if lower == "" {
+			// if it is a "not found" error, that means the symlinks were lost in a sudden reboot
+			// so call the recreateSymlinks function to go through all the layer dirs and recreate
+			// the symlinks with the name from their respective "link" files
+			if lower == "" && os.IsNotExist(err) {
+				logrus.Warnf("Can't stat lower layer %q because it does not exist. Going through storage to recreate the missing symlinks.", newpath)
+				if err := d.recreateSymlinks(); err != nil {
+					return "", fmt.Errorf("error recreating the missing symlinks: %v", err)
+				}
+				lower = newpath
+			} else if lower == "" {
 				return "", fmt.Errorf("Can't stat lower layer %q: %v", newpath, err)
 			}
 		} else {
