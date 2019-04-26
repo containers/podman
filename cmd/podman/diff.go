@@ -87,7 +87,7 @@ func diffCmd(c *cliconfig.DiffValues) error {
 		return errors.Errorf("container, image, or layer name must be specified: podman diff [options [...]] ID-NAME")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

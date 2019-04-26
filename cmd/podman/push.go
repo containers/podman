@@ -100,7 +100,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 		registryCreds = creds
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}

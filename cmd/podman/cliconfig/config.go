@@ -581,6 +581,10 @@ type SystemRenumberValues struct {
 	PodmanCommand
 }
 
+type SystemMigrateValues struct {
+	PodmanCommand
+}
+
 type SystemDfValues struct {
 	PodmanCommand
 	Verbose bool

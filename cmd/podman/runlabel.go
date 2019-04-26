@@ -85,7 +85,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	}
 
 	opts := make(map[string]string)
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

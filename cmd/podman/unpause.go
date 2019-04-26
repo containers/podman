@@ -42,7 +42,7 @@ func unpauseCmd(c *cliconfig.UnpauseValues) error {
 		return errors.New("unpause is not supported for rootless containers")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

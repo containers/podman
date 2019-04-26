@@ -103,7 +103,7 @@ func profileOff(cmd *cobra.Command) error {
 }
 
 func setupRootless(cmd *cobra.Command, args []string) error {
-	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || strings.HasPrefix(cmd.Use, "help") {
+	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || cmd == _migrateCommand || strings.HasPrefix(cmd.Use, "help") {
 		return nil
 	}
 	podmanCmd := cliconfig.PodmanCommand{
@@ -112,7 +112,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		MainGlobalOpts,
 		remoteclient,
 	}
-	runtime, err := libpodruntime.GetRuntime(&podmanCmd)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

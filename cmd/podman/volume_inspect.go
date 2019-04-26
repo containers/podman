@@ -43,7 +43,7 @@ func volumeInspectCmd(c *cliconfig.VolumeInspectValues) error {
 		return errors.New("provide one or more volume names or use --all")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

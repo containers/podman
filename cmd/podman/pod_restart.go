@@ -47,7 +47,7 @@ func init() {
 
 func podRestartCmd(c *cliconfig.PodRestartValues) error {
 	var lastError error
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

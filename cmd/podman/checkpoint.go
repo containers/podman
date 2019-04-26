@@ -54,7 +54,7 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		return errors.New("checkpointing a container requires root")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

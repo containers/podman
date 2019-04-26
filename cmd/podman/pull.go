@@ -73,7 +73,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 		defer span.Finish()
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

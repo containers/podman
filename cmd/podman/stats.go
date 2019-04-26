@@ -88,7 +88,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 		return errors.Errorf("you must specify --all, --latest, or at least one container")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

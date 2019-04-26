@@ -211,7 +211,7 @@ func psCmd(c *cliconfig.PsValues) error {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

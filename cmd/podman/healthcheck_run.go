@@ -38,7 +38,7 @@ func init() {
 }
 
 func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrap(err, "could not get runtime")
 	}

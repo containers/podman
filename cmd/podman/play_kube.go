@@ -75,7 +75,7 @@ func playKubeCmd(c *cliconfig.KubePlayValues) error {
 	}
 
 	ctx := getContext()
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(ctx, &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

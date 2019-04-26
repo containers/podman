@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -100,6 +101,8 @@ type Runtime struct {
 	// unused.
 	doRenumber bool
 
+	doMigrate bool
+
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
 	// and remains true until the runtime is shut down (rendering its
@@ -109,6 +112,8 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
+
+	ctx context.Context
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -961,6 +966,24 @@ func makeRuntime(runtime *Runtime) (err error) {
 	// Mark the runtime as valid - ready to be used, cannot be modified
 	// further
 	runtime.valid = true
+
+	if runtime.doMigrate {
+		if os.Geteuid() != 0 {
+			aliveLock.Unlock()
+			locked = false
+
+			became, ret, err := rootless.BecomeRootInUserNS()
+			if err != nil {
+				return err
+			}
+			if became {
+				os.Exit(ret)
+			}
+		}
+		if err := runtime.migrate(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
