@@ -49,7 +49,7 @@ var _ = Describe("Podman rm", func() {
 
 		result := podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result.ExitCode()).To(Equal(2))
 	})
 
 	It("podman rm created container", func() {

@@ -138,7 +138,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 		result = podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result.ExitCode()).To(Equal(2))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		result = podmanTest.Podman([]string{"rm", "-f", cid})
