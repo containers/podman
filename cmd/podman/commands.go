@@ -51,7 +51,6 @@ func getContainerSubCommands() []*cobra.Command {
 		_restoreCommand,
 		_runlabelCommand,
 		_statsCommand,
-		_stopCommand,
 		_umountCommand,
 	}
 }
