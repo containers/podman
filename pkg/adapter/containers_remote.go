@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -61,6 +62,19 @@ func (c *Container) Pause() error {
 func (c *Container) Unpause() error {
 	_, err := iopodman.UnpauseContainer().Call(c.Runtime.Conn, c.ID())
 	return err
+}
+
+func (c *Container) PortMappings() ([]ocicni.PortMapping, error) {
+	// First check if the container belongs to a network namespace (like a pod)
+	// Taken from libpod portmappings()
+	if len(c.config.NetNsCtr) > 0 {
+		netNsCtr, err := c.Runtime.LookupContainer(c.config.NetNsCtr)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to lookup network namespace for container %s", c.ID())
+		}
+		return netNsCtr.PortMappings()
+	}
+	return c.config.PortMappings, nil
 }
 
 // Config returns a container config
@@ -887,4 +901,24 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 // Cleanup any leftovers bits of stopped containers
 func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.CleanupValues) ([]string, map[string]error, error) {
 	return nil, nil, errors.New("container cleanup not supported for remote clients")
+}
+
+// Port displays port information about existing containers
+func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
+	var (
+		containers []*Container
+		err        error
+	)
+	// This one is a bit odd because when all is used, we only use running containers.
+	if !c.All {
+		containers, err = r.GetContainersByContext(false, c.Latest, c.InputArgs)
+	} else {
+		//	we need to only use running containers if all
+		filters := []string{libpod.ContainerStateRunning.String()}
+		containers, err = r.LookupContainersWithStatus(filters)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return containers, nil
 }

@@ -889,3 +889,20 @@ func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *
 	err = json.Unmarshal([]byte(reply.Service), &service)
 	return &pod, &service, err
 }
+
+// GetContainersByContext looks up containers based on the cli input of all, latest, or a list
+func (r *LocalRuntime) GetContainersByContext(all bool, latest bool, namesOrIDs []string) ([]*Container, error) {
+	var containers []*Container
+	cids, err := iopodman.GetContainersByContext().Call(r.Conn, all, latest, namesOrIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, cid := range cids {
+		ctr, err := r.LookupContainer(cid)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, ctr)
+	}
+	return containers, nil
+}
