@@ -35,8 +35,7 @@ var (
 // Handles --volumes-from, --volumes, --tmpfs, --init, and --init-path flags.
 // TODO: Named volume options -  should we default to rprivate? It bakes into a
 // bind mount under the hood...
-// TODO: Tmpfs options - we should probably check user-given ones, provide sane
-// defaults even if the user provides a few...
+// TODO: handle options parsing/processing via containers/storage/pkg/mount
 func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount, []*libpod.ContainerNamedVolume, error) {
 	// Add image volumes.
 	baseMounts, baseVolumes, err := config.getImageVolumes()
@@ -136,6 +135,34 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		unifiedMounts[initMount.Destination] = initMount
 	}
 
+	// If requested, add tmpfs filesystems for read-only containers.
+	// Need to keep track of which we created, so we don't modify options
+	// for them later...
+	readonlyTmpfs := map[string]bool{
+		"/tmp":     false,
+		"/var/tmp": false,
+		"/run":     false,
+	}
+	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
+		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup", "size=65536k"}
+		for dest := range readonlyTmpfs {
+			if _, ok := unifiedMounts[dest]; ok {
+				continue
+			}
+			localOpts := options
+			if dest == "/run" {
+				localOpts = append(localOpts, "noexec")
+			}
+			unifiedMounts[dest] = spec.Mount{
+				Destination: dest,
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     localOpts,
+			}
+			readonlyTmpfs[dest] = true
+		}
+	}
+
 	// Supercede volumes-from/image volumes with unified volumes from above.
 	// This is an unconditional replacement.
 	for dest, mount := range unifiedMounts {
@@ -146,13 +173,13 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	}
 
 	// Check for conflicts between named volumes and mounts
-	for dest := range unifiedMounts {
-		if _, ok := unifiedVolumes[dest]; ok {
+	for dest := range baseMounts {
+		if _, ok := baseVolumes[dest]; ok {
 			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
-	for dest := range unifiedVolumes {
-		if _, ok := unifiedMounts[dest]; ok {
+	for dest := range baseVolumes {
+		if _, ok := baseMounts[dest]; ok {
 			return nil, nil, errors.Wrapf(errDuplicateDest, "conflict at mount destination %v", dest)
 		}
 	}
@@ -161,7 +188,9 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	finalMounts := make([]spec.Mount, 0, len(baseMounts))
 	for _, mount := range baseMounts {
 		// All user-added tmpfs mounts need their options processed.
-		if mount.Type == TypeTmpfs {
+		// Exception: mounts added by the ReadOnlyTmpfs option, which
+		// contain several exceptions to normal options rules.
+		if mount.Type == TypeTmpfs && !readonlyTmpfs[mount.Destination] {
 			opts, err := util.ProcessTmpfsOptions(mount.Options)
 			if err != nil {
 				return nil, nil, err
