@@ -64,6 +64,7 @@ var (
 		_runCommand,
 		_rmCommand,
 		_startCommand,
+		_stopCommand,
 		_topCommand,
 		_unpauseCommand,
 		_waitCommand,
