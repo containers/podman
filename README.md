@@ -2,7 +2,7 @@
 
 # Library and tool for running OCI-based containers in Pods
 
-Libpod provides a library for applications looking to use the Container Pod concept,
+Libpod provides a library for applications looking to use the *Container Pod* concept,
 popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
 
 * [Latest Version: 1.2.0](https://github.com/containers/libpod/releases/latest)
