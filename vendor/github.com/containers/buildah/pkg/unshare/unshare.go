@@ -3,6 +3,7 @@
 package unshare
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -15,7 +16,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containers/buildah/util"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -157,7 +158,7 @@ func (c *Cmd) Start() error {
 		}
 
 		if len(c.UidMappings) == 0 || len(c.GidMappings) == 0 {
-			uidmap, gidmap, err := util.GetHostIDMappings("")
+			uidmap, gidmap, err := GetHostIDMappings("")
 			if err != nil {
 				fmt.Fprintf(continueWrite, "error reading ID mappings in parent: %v", err)
 				return errors.Wrapf(err, "error reading ID mappings in parent")
@@ -352,7 +353,7 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 		// Read the set of ID mappings that we're allowed to use.  Each
 		// range in /etc/subuid and /etc/subgid file is a starting host
 		// ID and a range size.
-		uidmap, gidmap, err = util.GetSubIDMappings(me.Username, me.Username)
+		uidmap, gidmap, err = GetSubIDMappings(me.Username, me.Username)
 		bailOnError(err, "error reading allowed ID mappings")
 		if len(uidmap) == 0 {
 			logrus.Warnf("Found no UID ranges set aside for user %q in /etc/subuid.", me.Username)
@@ -384,7 +385,7 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 			return
 		}
 		// Read the set of ID mappings that we're currently using.
-		uidmap, gidmap, err = util.GetHostIDMappings("")
+		uidmap, gidmap, err = GetHostIDMappings("")
 		bailOnError(err, "error reading current ID mappings")
 		// Just reuse them.
 		for i := range uidmap {
@@ -403,6 +404,16 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	// If, somehow, we don't become UID 0 in our child, indicate that the child shouldn't try again.
 	err = os.Setenv(UsernsEnvName, "1")
 	bailOnError(err, "error setting %s=1 in environment", UsernsEnvName)
+
+	// Set the default isolation type to use the "rootless" method.
+	if _, present := os.LookupEnv("BUILDAH_ISOLATION"); !present {
+		if err = os.Setenv("BUILDAH_ISOLATION", "rootless"); err != nil {
+			if err := os.Setenv("BUILDAH_ISOLATION", "rootless"); err != nil {
+				logrus.Errorf("error setting BUILDAH_ISOLATION=rootless in environment: %v", err)
+				os.Exit(1)
+			}
+		}
+	}
 
 	// Reuse our stdio.
 	cmd.Stdin = os.Stdin
@@ -445,4 +456,90 @@ func ExecRunnable(cmd Runnable) {
 		os.Exit(1)
 	}
 	os.Exit(0)
+}
+
+// getHostIDMappings reads mappings from the named node under /proc.
+func getHostIDMappings(path string) ([]specs.LinuxIDMapping, error) {
+	var mappings []specs.LinuxIDMapping
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading ID mappings from %q", path)
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		fields := strings.Fields(line)
+		if len(fields) != 3 {
+			return nil, errors.Errorf("line %q from %q has %d fields, not 3", line, path, len(fields))
+		}
+		cid, err := strconv.ParseUint(fields[0], 10, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing container ID value %q from line %q in %q", fields[0], line, path)
+		}
+		hid, err := strconv.ParseUint(fields[1], 10, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing host ID value %q from line %q in %q", fields[1], line, path)
+		}
+		size, err := strconv.ParseUint(fields[2], 10, 32)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing size value %q from line %q in %q", fields[2], line, path)
+		}
+		mappings = append(mappings, specs.LinuxIDMapping{ContainerID: uint32(cid), HostID: uint32(hid), Size: uint32(size)})
+	}
+	return mappings, nil
+}
+
+// GetHostIDMappings reads mappings for the specified process (or the current
+// process if pid is "self" or an empty string) from the kernel.
+func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
+	if pid == "" {
+		pid = "self"
+	}
+	uidmap, err := getHostIDMappings(fmt.Sprintf("/proc/%s/uid_map", pid))
+	if err != nil {
+		return nil, nil, err
+	}
+	gidmap, err := getHostIDMappings(fmt.Sprintf("/proc/%s/gid_map", pid))
+	if err != nil {
+		return nil, nil, err
+	}
+	return uidmap, gidmap, nil
+}
+
+// GetSubIDMappings reads mappings from /etc/subuid and /etc/subgid.
+func GetSubIDMappings(user, group string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
+	mappings, err := idtools.NewIDMappings(user, group)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error reading subuid mappings for user %q and subgid mappings for group %q", user, group)
+	}
+	var uidmap, gidmap []specs.LinuxIDMapping
+	for _, m := range mappings.UIDs() {
+		uidmap = append(uidmap, specs.LinuxIDMapping{
+			ContainerID: uint32(m.ContainerID),
+			HostID:      uint32(m.HostID),
+			Size:        uint32(m.Size),
+		})
+	}
+	for _, m := range mappings.GIDs() {
+		gidmap = append(gidmap, specs.LinuxIDMapping{
+			ContainerID: uint32(m.ContainerID),
+			HostID:      uint32(m.HostID),
+			Size:        uint32(m.Size),
+		})
+	}
+	return uidmap, gidmap, nil
+}
+
+// ParseIDMappings parses mapping triples.
+func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap, error) {
+	uid, err := idtools.ParseIDMap(uidmap, "userns-uid-map")
+	if err != nil {
+		return nil, nil, err
+	}
+	gid, err := idtools.ParseIDMap(gidmap, "userns-gid-map")
+	if err != nil {
+		return nil, nil, err
+	}
+	return uid, gid, nil
 }

@@ -292,7 +292,7 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 						break
 					}
 					// combine the filename with the dest directory
-					fpath := strings.TrimPrefix(path, options.ContextDir)
+					fpath := strings.TrimPrefix(path, esrc)
 					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", path, dest)
 					}

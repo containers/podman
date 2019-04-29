@@ -4,6 +4,9 @@ package unshare
 
 import (
 	"os"
+
+	"github.com/containers/storage/pkg/idtools"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 const (
@@ -28,4 +31,15 @@ func RootlessEnv() []string {
 
 // MaybeReexecUsingUserNamespace re-exec the process in a new namespace
 func MaybeReexecUsingUserNamespace(evenForRoot bool) {
+}
+
+// GetHostIDMappings reads mappings for the specified process (or the current
+// process if pid is "self" or an empty string) from the kernel.
+func GetHostIDMappings(pid string) ([]specs.LinuxIDMapping, []specs.LinuxIDMapping, error) {
+	return nil, nil, nil
+}
+
+// ParseIDMappings parses mapping triples.
+func ParseIDMappings(uidmap, gidmap []string) ([]idtools.IDMap, []idtools.IDMap, error) {
+	return nil, nil, nil
 }

@@ -13,7 +13,7 @@ import (
 // setSelinuxLabel sets the process label for child processes that we'll start.
 func setSelinuxLabel(spec *specs.Spec) error {
 	logrus.Debugf("setting selinux label")
-	if spec.Process.SelinuxLabel != "" && selinux.EnforceMode() != selinux.Disabled {
+	if spec.Process.SelinuxLabel != "" && selinux.GetEnabled() {
 		if err := label.SetProcessLabel(spec.Process.SelinuxLabel); err != nil {
 			return errors.Wrapf(err, "error setting process label to %q", spec.Process.SelinuxLabel)
 		}

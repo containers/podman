@@ -89,6 +89,7 @@ type FromAndBudResults struct {
 	DNSSearch    []string
 	DNSServers   []string
 	DNSOptions   []string
+	HttpProxy    bool
 	Isolation    string
 	Memory       string
 	MemorySwap   string
@@ -182,6 +183,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringSliceVar(&flags.DNSSearch, "dns-search", []string{}, "Set custom DNS search domains")
 	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers")
 	fs.StringSliceVar(&flags.DNSOptions, "dns-option", []string{}, "Set custom DNS options")
+	fs.BoolVar(&flags.HttpProxy, "http-proxy", true, "pass thru HTTP Proxy environment variables")
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
 	fs.StringVar(&flags.MemorySwap, "memory-swap", "", "swap limit equal to memory plus swap: '-1' to enable unlimited swap")
