@@ -365,6 +365,18 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 	return call.ReplyStartContainer(ctr.ID())
 }
 
+// InitContainer initializes the container given by Varlink.
+func (i *LibpodAPI) InitContainer(call iopodman.VarlinkCall, name string) error {
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name, err.Error())
+	}
+	if err := ctr.Init(getContext()); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyInitContainer(ctr.ID())
+}
+
 // StopContainer ...
 func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeout int64) error {
 	ctr, err := i.Runtime.LookupContainer(name)

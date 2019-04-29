@@ -34,6 +34,7 @@ Command                                                                  | Descr
 [podman-images(1)](/docs/podman-images.1.md)                             | List images in local storage                                               | [![...](/docs/play.png)](https://podman.io/asciinema/podman/images/) | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_images.sh)
 [podman-import(1)](/docs/podman-import.1.md)                             | Import a tarball and save it as a filesystem image                         |
 [podman-info(1)](/docs/podman-info.1.md)                                 | Display system information                                                 |
+[podman-init(1)](/docs/podman-init.1.md)                                 | Initialize a container                                                     |
 [podman-inspect(1)](/docs/podman-inspect.1.md)                           | Display the configuration of a container or image                          | [![...](/docs/play.png)](https://asciinema.org/a/133418)
 [podman-kill(1)](/docs/podman-kill.1.md)                                 | Kill the main process in one or more running containers                    |
 [podman-load(1)](/docs/podman-load.1.md)                                 | Load an image from a container image archive                               |

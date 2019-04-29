@@ -780,6 +780,10 @@ _podman_container_export() {
      _podman_export
 }
 
+_podman_container_init() {
+     _podman_init
+}
+
 _podman_container_inspect() {
      _podman_inspect
 }
@@ -2221,6 +2225,27 @@ _podman_ps() {
 	  --sync
      "
      _complete_ "$options_with_args" "$boolean_options"
+}
+
+_podman_init() {
+    local boolean_options="
+        --all
+        -a
+        --help
+        -h
+        --latest
+        -l
+    "
+    local options_with_args="
+    "
+    case "$cur" in
+        -*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+            ;;
+        *)
+            __podman_complete_containers_unpauseable
+	    ;;
+    esac
 }
 
 _podman_start() {

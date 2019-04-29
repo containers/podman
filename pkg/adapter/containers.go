@@ -133,6 +133,43 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 	return pool.Run()
 }
 
+// InitContainers initializes container(s) based on CLI inputs.
+// Returns list of successful id(s), map of failed id(s) to errors, or a general
+// error not from the container.
+func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitValues) ([]string, map[string]error, error) {
+	maxWorkers := shared.DefaultPoolSize("init")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum init workers to %d", maxWorkers)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pool := shared.NewPool("init", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+
+		pool.Add(shared.Job{
+			ctr.ID(),
+			func() error {
+				err := ctr.Init(ctx)
+				if err != nil {
+					// If we're initializing all containers, ignore invalid state errors
+					if cli.All && errors.Cause(err) == libpod.ErrCtrStateInvalid {
+						return nil
+					}
+					return err
+				}
+				return nil
+			},
+		})
+	}
+	return pool.Run()
+}
+
 // RemoveContainers removes container(s) based on CLI inputs.
 func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
 	var (

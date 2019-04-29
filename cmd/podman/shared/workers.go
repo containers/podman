@@ -110,9 +110,14 @@ func (p *Pool) newWorker(slot int) {
 func DefaultPoolSize(name string) int {
 	numCpus := runtime.NumCPU()
 	switch name {
+	case "init":
+		fallthrough
 	case "kill":
+		fallthrough
 	case "pause":
+		fallthrough
 	case "rm":
+		fallthrough
 	case "unpause":
 		if numCpus <= 3 {
 			return numCpus * 3

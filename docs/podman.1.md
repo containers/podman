@@ -147,6 +147,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-images(1)](podman-images.1.md)    | List images in local storage.                                                  |
 | [podman-import(1)](podman-import.1.md)    | Import a tarball and save it as a filesystem image.                            |
 | [podman-info(1)](podman-info.1.md)        | Displays Podman related system information.                                    |
+| [podman-init(1)](podman-init.1.md)        | Initialize a container                                                         |
 | [podman-inspect(1)](podman-inspect.1.md)  | Display a container or image's configuration.                                  |
 | [podman-kill(1)](podman-kill.1.md)        | Kill the main process in one or more containers.                               |
 | [podman-load(1)](podman-load.1.md)        | Load an image from a container image archive into container storage.           |
