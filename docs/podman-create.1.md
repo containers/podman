@@ -542,6 +542,9 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere.  By specifying the `--read-only` flag the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
+**--read-only-tmpfs**=*true*|*false*
+If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp.  The default is *true*
+
 **--restart=""**
 
 Not implemented.

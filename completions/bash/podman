@@ -1765,6 +1765,7 @@ _podman_container_run() {
 	    --publish-all -P
 	    --quiet
 	    --read-only
+	    --read-only-tmpfs
 	    --tty -t
 	"
 

@@ -38,7 +38,8 @@ type HostConfig struct {
 	PidMode              string                      `json:"PidMode"`
 	Privileged           bool                        `json:"Privileged"`
 	PublishAllPorts      bool                        `json:"PublishAllPorts"` //TODO
-	ReadonlyRootfs       bool                        `json:"ReadonlyRootfs"`
+	ReadOnlyRootfs       bool                        `json:"ReadonlyRootfs"`
+	ReadOnlyTmpfs        bool                        `json:"ReadonlyTmpfs"`
 	SecurityOpt          []string                    `json:"SecurityOpt"`
 	UTSMode              string                      `json:"UTSMode"`
 	UsernsMode           string                      `json:"UsernsMode"`

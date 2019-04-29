@@ -341,6 +341,31 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 	}
 
+	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
+		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
+		for _, i := range []string{"/tmp", "/var/tmp"} {
+			if libpod.MountExists(g.Config.Mounts, i) {
+				continue
+			}
+			// Default options if nothing passed
+			tmpfsMnt := spec.Mount{
+				Destination: i,
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     options,
+			}
+			g.AddMount(tmpfsMnt)
+		}
+		if !libpod.MountExists(g.Config.Mounts, "/run") {
+			tmpfsMnt := spec.Mount{
+				Destination: "/run",
+				Type:        "tmpfs",
+				Source:      "tmpfs",
+				Options:     append(options, "noexec", "size=65536k"),
+			}
+			g.AddMount(tmpfsMnt)
+		}
+	}
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}

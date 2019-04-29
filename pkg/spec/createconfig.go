@@ -113,6 +113,7 @@ type CreateConfig struct {
 	PublishAll         bool     //publish-all
 	Quiet              bool     //quiet
 	ReadOnlyRootfs     bool     //read-only
+	ReadOnlyTmpfs      bool     //read-only-tmpfs
 	Resources          CreateResourceConfig
 	Rm                 bool              //rm
 	StopSignal         syscall.Signal    // stop-signal
