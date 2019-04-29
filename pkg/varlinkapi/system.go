@@ -86,15 +86,18 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Graph_status:         graphStatus,
 	}
 
-	registriesInterface := info[2].Data["registries"]
-	insecureRegistriesInterface := info[3].Data["registries"]
-	if registriesInterface != nil {
-		registries = registriesInterface.([]string)
+	if len(info) > 2 {
+		registriesInterface := info[2].Data["registries"]
+		if registriesInterface != nil {
+			registries = registriesInterface.([]string)
+		}
 	}
-	if insecureRegistriesInterface != nil {
-		insecureRegistries = insecureRegistriesInterface.([]string)
+	if len(info) > 3 {
+		insecureRegistriesInterface := info[3].Data["registries"]
+		if insecureRegistriesInterface != nil {
+			insecureRegistries = insecureRegistriesInterface.([]string)
+		}
 	}
-
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo
 	podmanInfo.Registries = registries

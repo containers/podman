@@ -38,6 +38,7 @@ type RemoteImageRuntime struct{}
 type RemoteRuntime struct {
 	Conn   *varlink.Connection
 	Remote bool
+	cmd    cliconfig.MainFlags
 }
 
 // LocalRuntime describes a typical libpod runtime
@@ -47,17 +48,17 @@ type LocalRuntime struct {
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
-	runtime := RemoteRuntime{}
+	runtime := RemoteRuntime{
+		Remote: true,
+		cmd:    c.GlobalFlags,
+	}
 	conn, err := runtime.Connect()
 	if err != nil {
 		return nil, err
 	}
-
+	runtime.Conn = conn
 	return &LocalRuntime{
-		&RemoteRuntime{
-			Conn:   conn,
-			Remote: true,
-		},
+		&runtime,
 	}, nil
 }
 

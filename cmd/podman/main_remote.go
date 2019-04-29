@@ -9,7 +9,11 @@ import (
 const remote = true
 
 func init() {
-	//	remote client specific flags can go here.
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", "", "username on the remote host")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
+	// TODO maybe we allow the altering of this for bridge connections?
+	//rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic")
 }
 
 func setSyslog() error {

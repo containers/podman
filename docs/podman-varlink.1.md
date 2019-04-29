@@ -7,8 +7,10 @@ podman\-varlink - Runs the varlink backend interface
 **podman varlink** [*options*] *uri*
 
 ## DESCRIPTION
-Starts the varlink service listening on *uri* that allows varlink clients to interact with podman.  This should generally be done
-with systemd.  See _Configuration_ below.
+Starts the varlink service listening on *uri* that allows varlink clients to interact with podman.  If no *uri* is provided, a default
+URI will be used depending on the user calling the varlink service.  The default for the root user is `unix:/run/podman/io.podman`. Regular
+users will have a default *uri* of `$XDG_RUNTIME_DIR/podman/io.podman`.  For example, `unix:/run/user/1000/podman/io.podman`
+The varlink service should generally be done with systemd.  See _Configuration_ below.
 
 ## GLOBAL OPTIONS
 
@@ -23,16 +25,23 @@ second. A value of `0` means no timeout and the session will not expire.
 
 ## EXAMPLES
 
-Run the podman varlink service manually and accept the default timeout.
+Run the podman varlink service accepting all default options.
 
 ```
-$ podman varlink unix:/run/podman/io.podman
+$ podman varlink
+```
+
+
+Run the podman varlink service with an alternate URI and accept the default timeout.
+
+```
+$ podman varlink unix:/tmp/io.podman
 ```
 
 Run the podman varlink service manually with a 5 second timeout.
 
 ```
-$ podman varlink --timeout 5000 unix:/run/podman/io.podman
+$ podman varlink --timeout 5000
 ```
 
 ## CONFIGURATION
