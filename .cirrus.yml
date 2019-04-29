@@ -140,6 +140,9 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
 
+    # Verify expected bash environment (-o pipefail)
+    pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
+
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
