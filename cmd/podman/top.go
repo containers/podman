@@ -33,7 +33,7 @@ var (
 %s`, getDescriptorString())
 
 	_topCommand = &cobra.Command{
-		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS]",
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS|ARGS]",
 		Short: "Display the running processes of a container",
 		Long:  topDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -42,9 +42,11 @@ var (
 			topCommand.Remote = remoteclient
 			return topCmd(&topCommand)
 		},
+		Args: cobra.ArbitraryArgs,
 		Example: `podman top ctrID
-  podman top --latest
-  podman top ctrID pid seccomp args %C`,
+podman top --latest
+podman top ctrID pid seccomp args %C
+podman top ctrID -eo user,pid,comm`,
 	}
 )
 
@@ -53,6 +55,7 @@ func init() {
 	topCommand.SetHelpTemplate(HelpTemplate())
 	topCommand.SetUsageTemplate(UsageTemplate())
 	flags := topCommand.Flags()
+	flags.SetInterspersed(false)
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")
 	flags.MarkHidden("list-descriptors")
 	flags.BoolVarP(&topCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")

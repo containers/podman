@@ -3,6 +3,7 @@
 package adapter
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
+	"github.com/containers/psgo"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -822,7 +824,69 @@ func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to lookup requested container")
 	}
-	return container.Top(descriptors)
+
+	output, psgoErr := container.Top(descriptors)
+	if psgoErr == nil {
+		return output, nil
+	}
+
+	// If we encountered an ErrUnknownDescriptor error, fallback to executing
+	// ps(1). This ensures backwards compatibility to users depending on ps(1)
+	// and makes sure we're ~compatible with docker.
+	if errors.Cause(psgoErr) != psgo.ErrUnknownDescriptor {
+		return nil, psgoErr
+	}
+
+	output, err = r.execPS(container, descriptors)
+	if err != nil {
+		// Note: return psgoErr to guide users into using the AIX descriptors
+		// instead of using ps(1).
+		return nil, psgoErr
+	}
+
+	// Trick: filter the ps command from the output instead of
+	// checking/requiring PIDs in the output.
+	filtered := []string{}
+	cmd := strings.Join(descriptors, " ")
+	for _, line := range output {
+		if !strings.Contains(line, cmd) {
+			filtered = append(filtered, line)
+		}
+	}
+
+	return filtered, nil
+}
+
+func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, error) {
+	rPipe, wPipe, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer wPipe.Close()
+	defer rPipe.Close()
+
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = wPipe
+	streams.ErrorStream = wPipe
+	streams.InputStream = os.Stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	psOutput := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rPipe)
+		for scanner.Scan() {
+			psOutput = append(psOutput, scanner.Text())
+		}
+	}()
+
+	cmd := append([]string{"ps"}, args...)
+	if err := c.Exec(false, false, []string{}, cmd, "", "", streams, 0); err != nil {
+		return nil, err
+	}
+
+	return psOutput, nil
 }
 
 // Prune removes stopped containers
