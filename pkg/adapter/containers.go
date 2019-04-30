@@ -834,3 +834,45 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 	}
 	return pool.Run()
 }
+
+// CleanupContainers any leftovers bits of stopped containers
+func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.CleanupValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, ctr := range ctrs {
+		if cli.Remove {
+			err = removeContainer(ctx, ctr, r)
+		} else {
+			err = cleanupContainer(ctx, ctr, r)
+		}
+
+		if err == nil {
+			ok = append(ok, ctr.ID())
+		} else {
+			failures[ctr.ID()] = err
+		}
+	}
+	return ok, failures, nil
+}
+
+func removeContainer(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	if err := runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
+		return errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
+	}
+	return nil
+}
+
+func cleanupContainer(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	if err := ctr.Cleanup(ctx); err != nil {
+		return errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
+	}
+	return nil
+}
