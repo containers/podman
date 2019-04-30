@@ -852,3 +852,31 @@ func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
 	}
 	return iopodman.Top().Call(r.Conn, ctr.ID(), descriptors)
 }
+
+// Prune removes stopped containers
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([]string, map[string]error, error) {
+
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*Container
+		err      error
+	)
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	filters := []string{libpod.ContainerStateExited.String()}
+	ctrs, err = r.LookupContainersWithStatus(filters)
+	if err != nil {
+		return ok, failures, err
+	}
+	for _, c := range ctrs {
+		c := c
+		_, err := iopodman.RemoveContainer().Call(r.Conn, c.ID(), false, false)
+		if err != nil {
+			failures[c.ID()] = err
+		} else {
+			ok = append(ok, c.ID())
+		}
+	}
+	return ok, failures, nil
+}

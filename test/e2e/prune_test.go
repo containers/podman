@@ -39,7 +39,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman container prune containers", func() {
-		SkipIfRemote()
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
 		Expect(top.ExitCode()).To(Equal(0))
@@ -102,8 +101,6 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman system prune pods", func() {
-		SkipIfRemote()
-
 		session := podmanTest.Podman([]string{"pod", "create"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

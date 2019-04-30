@@ -61,6 +61,7 @@ var (
 		_logsCommand,
 		_pauseCommand,
 		_restartCommand,
+		_pruneContainersCommand,
 		_runCommand,
 		_rmCommand,
 		_startCommand,

@@ -786,3 +786,51 @@ func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
 	}
 	return container.Top(descriptors)
 }
+
+// Prune removes stopped containers
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		err      error
+	)
+
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	filter := func(c *libpod.Container) bool {
+		state, err := c.State()
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		if c.PodID() != "" {
+			return false
+		}
+		if state == libpod.ContainerStateStopped || state == libpod.ContainerStateExited {
+			return true
+		}
+		return false
+	}
+	delContainers, err := r.Runtime.GetContainers(filter)
+	if err != nil {
+		return ok, failures, err
+	}
+	if len(delContainers) < 1 {
+		return ok, failures, err
+	}
+	pool := shared.NewPool("prune", maxWorkers, len(delContainers))
+	for _, c := range delContainers {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := r.Runtime.RemoveContainer(ctx, ctr, force, false)
+				if err != nil {
+					logrus.Debugf("Failed to prune container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
