@@ -415,6 +415,36 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
 Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
 
+**--mount**=*type=TYPE,TYPE-SPECIFIC-OPTION[,...]*
+
+Attach a filesystem mount to the container
+
+Current supported mount TYPES are bind, and tmpfs.
+
+       e.g.
+
+       type=bind,source=/path/on/host,destination=/path/in/container
+
+       type=tmpfs,tmpfs-size=512M,destination=/path/in/container
+
+       Common Options:
+
+	      · src, source: mount source spec for bind and volume. Mandatory for bind.
+
+	      · dst, destination, target: mount destination spec.
+
+	      · ro, read-only: true or false (default).
+
+       Options specific to bind:
+
+	      · bind-propagation: Z, z, shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+
+       Options specific to tmpfs:
+
+	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
+
+	      · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
+
 **--name**=""
 
 Assign a name to the container
@@ -710,36 +740,6 @@ Set the UTS mode for the container
 `ns`: specify the user namespace to use.
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
-
-**--mount**=*type=TYPE,TYPE-SPECIFIC-OPTION[,...]*
-
-Attach a filesystem mount to the container
-
-Current supported mount TYPES are bind, and tmpfs.
-
-       e.g.
-
-       type=bind,source=/path/on/host,destination=/path/in/container
-
-       type=tmpfs,tmpfs-size=512M,destination=/path/in/container
-
-       Common Options:
-
-	      · src, source: mount source spec for bind and volume. Mandatory for bind.
-
-	      · dst, destination, target: mount destination spec.
-
-	      · ro, read-only: true or false (default).
-
-       Options specific to bind:
-
-	      · bind-propagation: Z, z, shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
-
-       Options specific to tmpfs:
-
-	      · tmpfs-size: Size of the tmpfs mount in bytes. Unlimited by default in Linux.
-
-	      · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
 
 **--userns**=""
 
