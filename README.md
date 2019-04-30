@@ -29,7 +29,15 @@ This project tests all builds against each supported version of Fedora, the late
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
 
-## [Shortcomings of Rootless Podman](https://github.com/containers/libpod/blob/master/rootless.md)
+## Rootless
+Podman can be easily run as a normal user, without requiring a setuid binary.
+When run without root, Podman containers use user namespaces to set root in the container to the user running Podman.
+Rootless Podman runs locked-down containers with no privileges that the user running the container does not have.
+Some of these restrictions can be lifted (via `--privileged`, for example), but rootless containers will never have more privileges than the user that launched them.
+If you run Podman as your user and mount in `/etc/passwd` from the host, you still won't be able to change it, since your user doesn't have permission to do so.
+
+Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/libpod/blob/master/rootless.md).
+Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/libpod/blob/master/install.md).
 
 ## Out of scope
 
