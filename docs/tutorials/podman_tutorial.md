@@ -99,7 +99,7 @@ sudo cp bin/* /usr/libexec/cni
 Add a most basic network config
 ```console
 mkdir -p /etc/cni/net.d
-curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf
+curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/99-loopback.conf
 ```
 #### Installing runc
 ```console
