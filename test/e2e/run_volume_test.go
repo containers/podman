@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Podman run", func() {
+var _ = Describe("Podman run with volumes", func() {
 	var (
 		tempdir    string
 		err        error
@@ -41,21 +41,25 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,relatime"))
+		found, matches := session.GrepString("/run/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("rw"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:ro", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("/run/test ro,relatime"))
+		found, matches = session.GrepString("/run/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("ro"))
 
 		mountPath = filepath.Join(podmanTest.TempDir, "secrets")
 		os.Mkdir(mountPath, 0755)
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:shared", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		found, matches := session.GrepString("/run/test")
+		found, matches = session.GrepString("/run/test")
 		Expect(found).Should(BeTrue())
 		Expect(matches[0]).To(ContainSubstring("rw"))
 		Expect(matches[0]).To(ContainSubstring("shared"))
