@@ -137,7 +137,7 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin'
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
@@ -166,7 +166,7 @@ vendor_task:
         - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
 build_each_commit_task:
@@ -193,7 +193,7 @@ build_each_commit_task:
         - 'env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH'
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
 # Update metadata on VM images referenced by this repository state
@@ -253,9 +253,14 @@ testing_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh'
+    audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
+    journalctl_b_script: 'journalctl -b'
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        # Job has already failed, don't fail again and miss collecting data
+        failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
+        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
 
 # This task executes tests under unique environments/conditions
@@ -283,9 +288,14 @@ special_testing_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh'
+    audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
+    journalctl_b_script: 'journalctl -b'
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        # Job has already failed, don't fail again and miss collecting data
+        failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
+        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
 
 # Because system tests are stored within the repository, it is sometimes
@@ -361,7 +371,7 @@ cache_images_task:
     #   - commit_and_create_upstream_pr.sh
 
     on_failure:
-        master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
 # Post message to IRC if everything passed
