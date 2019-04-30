@@ -11,12 +11,6 @@ variables:
     TIMESTAMP:
     # Required for output from qemu builders
     TTYDEV:
-    # RHEL images require click-through agreements to obtain (required)
-    RHEL_BASE_IMAGE_NAME:
-    RHEL_IMAGE_FILE:
-    RHEL_CSUM_FILE:
-    # RHEL requires a subscription to install/update packages
-    RHSM_COMMAND:
 
     # Latest Fedora release
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
@@ -26,9 +20,6 @@ variables:
     PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2"
     PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-28-1.1-x86_64-CHECKSUM"
     PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-28-1-1'  # Name to use in GCE
-    FAH_IMAGE_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1.x86_64.qcow2"
-    FAH_CSUM_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1-x86_64-CHECKSUM"
-    FAH_BASE_IMAGE_NAME: 'fedora-atomichost-29-20181025-1'  # Name to use in GCE
 
     # The name of the image in GCE used for packer build libpod_images.yml
     IBI_BASE_NAME: 'image-builder-image'
@@ -45,28 +36,9 @@ variables:
 sensitive-variables:
     - 'GOOGLE_APPLICATION_CREDENTIALS'
     - 'GCP_PROJECT_ID'
-    - 'RHSM_COMMAND'
 
 # What images to produce in which cloud
 builders:
-    - name: '{{user `IBI_BASE_NAME`}}'
-      type: 'googlecompute'
-      image_name: '{{user `IBI_BASE_NAME`}}-{{user `TIMESTAMP`}}'
-      image_family: '{{user `IBI_BASE_NAME`}}'
-      source_image_project_id: 'centos-cloud'
-      source_image_family: 'centos-7'
-      project_id: '{{user `GCP_PROJECT_ID`}}'
-      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
-      communicator: 'ssh'
-      ssh_username: 'centos'
-      ssh_pty: 'true'
-      # The only supported zone in Cirrus-CI, as of addition of this comment
-      zone: 'us-central1-a'
-      # Enable nested virtualization in case it's ever needed
-      image_licenses:
-        - 'https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx'
-      min_cpu_platform: "Intel Broadwell"  # nested-virt requirement
-
     - &nested_virt
       name: 'fedora'
       type: 'qemu'
@@ -109,18 +81,6 @@ builders:
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
-    - <<: *nested_virt
-      name: 'fah'
-      iso_url: '{{user `FAH_IMAGE_URL`}}'
-      iso_checksum_url: '{{user `FAH_CSUM_URL`}}'
-      disk_size: 10240
-
-    - <<: *nested_virt
-      name: 'rhel'
-      iso_url: 'file://{{user `RHEL_IMAGE_FILE`}}'
-      iso_checksum_url: 'file://{{user `RHEL_CSUM_FILE`}}'
-      disk_size: 10240
-
 provisioners:
     - type: 'shell'
       inline:
@@ -150,7 +110,6 @@ provisioners:
           - 'GOSRC=/tmp/libpod'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
           - 'PACKER_BASE={{user `PACKER_BASE`}}'
-          - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
 
     - <<: *shell_script
       inline: ['{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh']
@@ -161,7 +120,7 @@ provisioners:
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'prior-fedora', 'fah', 'rhel']
+        only: ['fedora', 'prior-fedora']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -180,14 +139,4 @@ post-processors:
         image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'
-      - <<: *gcp_import
-        only: ['fah']
-        image_name: "{{user `FAH_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
-        image_description: 'Based on {{user `FAH_IMAGE_URL`}}'
-        image_family: '{{user `FAH_BASE_IMAGE_NAME`}}'
-      - <<: *gcp_import
-        only: ['rhel']
-        image_name: "{{user `RHEL_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
-        image_description: 'Based on {{user `RHEL_IMAGE_FILE`}}'
-        image_family: '{{user `RHEL_BASE_IMAGE_NAME`}}'
       - type: 'manifest'

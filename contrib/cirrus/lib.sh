@@ -3,6 +3,9 @@
 # Library of common, shared utility functions.  This file is intended
 # to be sourced by other scripts, not called directly.
 
+# Global details persist here
+source /etc/environment  # not always loaded under all circumstances
+
 # Under some contexts these values are not set, make sure they are.
 USER="$(whoami)"
 HOME="$(getent passwd $USER | cut -d : -f 6)"
@@ -18,6 +21,9 @@ then
     eval "$(go env)"
     # required by make and other tools
     export $(go env | cut -d '=' -f 1)
+
+    # Ensure compiled tooling is reachable
+    export PATH="$PATH:$GOPATH/bin"
 fi
 CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/libpod}"
 export GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
@@ -47,29 +53,25 @@ CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and uniq
 # Vars. for image-building
 PACKER_VER="1.3.5"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
-PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28,rhel-7,centos-7}"
 
 # Base-images rarely change, define them here so they're out of the way.
+PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28}"
 # Google-maintained base-image names
 UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
-CENTOS_BASE_IMAGE="centos-7-v20181113"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
 PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
-FAH_BASE_IMAGE="fedora-atomichost-29-20181025-1-1541787861"
-# RHEL image must be imported, native image bills for subscription.
-RHEL_BASE_IMAGE="rhel-guest-image-7-6-210-x86-64-qcow2-1548099756"
 BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
-RHSM_COMMAND="${RHSM_COMMAND:-/bin/true}"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)'
 # Unsafe env. vars for display
-SECRET_ENV_RE='(IRCID)|(RHSM)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
+SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
+
 # When running as root, this may be empty or not, as a user, it MUST be set.
 if [[ "$USER" == "root" ]]
 then
@@ -79,9 +81,9 @@ else
 fi
 
 # GCE image-name compatible string representation of distribution name
-OS_RELEASE_ID="$(egrep -m 1 '^ID=' /etc/os-release | cut -d = -f 2 | tr -d \' | tr -d \")"
-# GCE image-name compatible string representation of distribution major version
-OS_RELEASE_VER="$(egrep -m 1 '^VERSION_ID=' /etc/os-release | cut -d = -f 2 | tr -d \' | tr -d \" | cut -d '.' -f 1)"
+OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
+# GCE image-name compatible string representation of distribution _major_ version
+OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 
@@ -118,8 +120,7 @@ show_env_vars() {
     for _env_var_name in $_ENV_VAR_NAMES
     do
         # Supports older BASH versions
-        _value="$(printenv $_env_var_name)"
-        printf "    ${_env_var_name}=%q\n" "${_value}"
+        printf "    ${_env_var_name}=%q\n" "$(printenv $_env_var_name)"
     done
     echo ""
     echo "##### $(go version) #####"
@@ -127,12 +128,14 @@ show_env_vars() {
 }
 
 die() {
-    echo "${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
+    echo "************************************************"
+    echo ">>>>> ${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
+    echo "************************************************"
     exit ${1:-1}
 }
 
 bad_os_id_ver() {
-    echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $ARGS"
+    echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $(basename $0)"
     exit 42
 }
 
@@ -141,7 +144,7 @@ stub() {
 }
 
 ircmsg() {
-    req_env_var CIRRUS_TASK_ID MSG
+    req_env_var CIRRUS_TASK_ID IRCID
     [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
     # Sometimes setup_environment.sh didn't run
     SCRIPT="$(dirname $0)/podbot.py"
@@ -193,14 +196,15 @@ setup_rootless() {
     # Env. vars set by Cirrus and setup_environment.sh must be explicitly
     # transfered to the test-user.
     echo "Configuring rootless user's environment variables:"
+    echo "# Added by $GOSRC/$SCRIPT_PATH/lib.sh setup_rootless()"
     _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
         egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
         egrep "$ROOTLESS_ENV_RE" | \
         sort -u)
     for _env_var_name in $_ENV_VAR_NAMES
     do
-        _value="$(printenv $_env_var_name)"
-         printf "${_env_var_name}=%q" "${_value}" | tee -a "/home/$ROOTLESS_USER/.bashrc"
+        # Works with older versions of bash
+        printf "${_env_var_name}=%q\n" "$(printenv $_env_var_name)" >> "/home/$ROOTLESS_USER/.bashrc"
     done
 }
 
@@ -312,21 +316,6 @@ install_criu(){
         ooe.sh sudo -E add-apt-repository -y ppa:criu/ppa
         ooe.sh sudo -E apt-get -qq -y update
         ooe.sh sudo -E apt-get -qq -y install criu
-    elif [[ ( "$OS_RELEASE_ID" =~ "centos" || "$OS_RELEASE_ID" =~ "rhel" ) && "$OS_RELEASE_VER" =~ "7"* ]]; then
-        echo "Configuring Repositories for latest CRIU"
-        ooe.sh sudo tee /etc/yum.repos.d/adrian-criu-el7.repo <<EOF
-[adrian-criu-el7]
-name=Copr repo for criu-el7 owned by adrian
-baseurl=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/epel-7-$basearch/
-type=rpm-md
-skip_if_unavailable=True
-gpgcheck=1
-gpgkey=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/pubkey.gpg
-repo_gpgcheck=0
-enabled=1
-enabled_metadata=1
-EOF
-        ooe.sh sudo yum -y install criu
     elif [[ "$OS_RELEASE_ID" =~ "fedora" ]]; then
         echo "Using CRIU from distribution"
     else
@@ -369,7 +358,7 @@ rh_finalize(){
     fi
     echo "Resetting to fresh-state for usage as cloud-image."
     PKG=$(type -P dnf || type -P yum || echo "")
-    [[ -z "$PKG" ]] || sudo $PKG clean all  # not on atomic
+    sudo $PKG clean all
     sudo rm -rf /var/cache/{yum,dnf}
     sudo rm -f /etc/udev/rules.d/*-persistent-*.rules
     sudo touch /.unconfigured  # force firstboot to run
@@ -381,26 +370,4 @@ ubuntu_finalize(){
     echo "Resetting to fresh-state for usage as cloud-image."
     sudo rm -rf /var/cache/apt
     _finalize
-}
-
-rhel_exit_handler() {
-    set +ex
-    req_env_var GOPATH RHSMCMD
-    cd /
-    sudo rm -rf "$RHSMCMD"
-    sudo rm -rf "$GOPATH"
-    sudo subscription-manager remove --all
-    sudo subscription-manager unregister
-    sudo subscription-manager clean
-}
-
-rhsm_enable() {
-    req_env_var RHSM_COMMAND
-    export GOPATH="$(mktemp -d)"
-    export RHSMCMD="$(mktemp)"
-    trap "rhel_exit_handler" EXIT
-    # Avoid logging sensitive details
-    echo "$RHSM_COMMAND" > "$RHSMCMD"
-    ooe.sh sudo bash "$RHSMCMD"
-    sudo rm -rf "$RHSMCMD"
 }

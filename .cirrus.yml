@@ -29,12 +29,9 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-5699523102900224"
-    RHEL_CACHE_IMAGE_NAME: "rhel-8-notready"
-    CENTOS_CACHE_IMAGE_NAME: "centos-7-notready"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5170730531028992"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5170730531028992"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5170730531028992"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -46,12 +43,6 @@ env:
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
     CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
-    # Only RHEL/Centos VM cache-image building needs RUNC_COMMIT
-    RUNC_COMMIT: "029124da7af7360afa781a0234d1b083550f797c"
-    # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
-    PACKER_BUILDS: "ubuntu-18,fedora-29,fedora-28,rhel-7"  # TODO: rhel-8,centos-7
-    # Version of packer to use
-    PACKER_VER: "1.3.2"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"
 
@@ -66,8 +57,6 @@ env:
     ####
     # Freenode IRC credentials for posting status messages
     IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
-    # Command to register a RHEL VM to install/update packages
-    RHSM_COMMAND: ENCRYPTED[5caa5ff8c5370c3d25c7a1a28168501ab0fa2e5e3b627926f6eaba02b3fed965a7638a6151657809661f8c905c7dc187]
     # Needed to build GCE images, within a GCE VM
     SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
     # User ID for cirrus to ssh into VMs
@@ -244,10 +233,6 @@ meta_task:
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
-            ${PRIOR_RHEL_CACHE_IMAGE_NAME}
-            ${RHEL_CACHE_IMAGE_NAME}
-            ${PRIOR_CENTOS_CACHE_IMAGE_NAME}
-            ${CENTOS_CACHE_IMAGE_NAME}
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
@@ -352,10 +337,6 @@ optional_testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_CENTOS_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
 
     timeout_in: 60m
 

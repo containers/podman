@@ -25,16 +25,19 @@ then
 elif [[ "$SPECIALMODE" == "rootless" ]]
 then
     req_env_var ROOTLESS_USER
-    set -x
-    ssh $ROOTLESS_USER@localhost \
+
+    if [[ "$USER" == "$ROOTLESS_USER" ]]
+    then
+        $GOSRC/$SCRIPT_BASE/rootless_test.sh
+    else
+        ssh $ROOTLESS_USER@localhost \
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \
                 $GOSRC/$SCRIPT_BASE/rootless_test.sh
-    exit $?
+    fi
 else
     make
     make install PREFIX=/usr ETCDIR=/etc
     make test-binaries
-    make install.tools
     if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
     then
         make remoteintegration

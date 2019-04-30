@@ -10,12 +10,13 @@ rc=0
 
 function check_result {
     testnum=$(expr $testnum + 1)
-    if [ "$1" = "$2" ]; then
-        echo "ok $testnum $3 = $1"
+    MSG=$(echo "$1" | tr -d '*>\012'|sed -e 's/^ \+//')
+    if [ "$MSG" = "$2" ]; then
+        echo "ok $testnum $3 = $MSG"
     else
         echo "not ok $testnum $3"
         echo "#  expected: $2"
-        echo "#    actual: $1"
+        echo "#    actual: $MSG"
         rc=1
     fi
 }
@@ -64,10 +65,16 @@ test_rev '' 1 'FATAL: req_env_var: invoked without arguments'
 unset FOO BAR
 test_rev FOO 9 'FATAL: test_rev() requires $FOO to be non-empty'
 test_rev BAR 9 'FATAL: test_rev() requires $BAR to be non-empty'
-
-# OK if desired envariable is unset
+# OK if desired envariable was unset
 FOO=1
 test_rev FOO 0 ''
+
+# OK if multiple vars are non-empty
+FOO="stuff"
+BAR="things"
+ENV_VARS="FOO BAR"
+test_rev "$ENV_VARS" 0 ''
+unset BAR
 
 # ...but error if any single desired one is unset
 test_rev "FOO BAR" 9 'FATAL: test_rev() requires $BAR to be non-empty'

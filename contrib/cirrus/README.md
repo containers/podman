@@ -136,11 +136,10 @@ you'll find the new image names displayed at the end of the
 `test_build_cache_images_task` in the `build_vm_images` output.
 For example:
 
+
 ```
 ...cut...
 ==> Builds finished. The artifacts of successful builds are:
---> rhel-7: A disk image was created: rhel-7-libpod-5699523102900224
---> rhel-7:
 --> ubuntu-18: A disk image was created: ubuntu-18-libpod-5699523102900224
 --> ubuntu-18:
 --> fedora-29: A disk image was created: fedora-29-libpod-5699523102900224
@@ -148,8 +147,8 @@ For example:
 --> fedora-28: A disk image was created: fedora-28-libpod-5699523102900224
 ```
 
-An updated (or new) pull-request with this change, will utilize
-the new cache-images:
+Now edit `.cirrus.yml`, updating the `*_IMAGE_NAME` lines to reflect the
+images from above:
 
 
 ```yaml
@@ -161,14 +160,14 @@ env:
     FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
-    PRIOR_RHEL_CACHE_IMAGE_NAME: "rhel-7-libpod-5699523102900224"
     ...cut...
 ```
 
-Take care to also update the PR description if any 'magic' phrases were used
-(they affect which tests run).  In other words, you'll likely want to
-remove the ``***CIRRUS: TEST IMAGES***`` string - otherwise Cirrus-CI will
-simply build new and test again.
+***NOTE:*** If re-using the same PR with new images in `.cirrus.yml`,
+take care to also *update the PR description* to remove
+the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
+`--force` pushing would needlessly cause Cirrus-CI to build
+and test images again.
 
 
 ### ``build_cache_images`` Task  *(Deprecated)*
@@ -216,15 +215,6 @@ the ``cache_images`` Task) some input parameters are required:
   or [end-user
   credentials](https://cloud.google.com/docs/authentication/end-user#creating_your_client_credentials)
 
-* ``RHEL_IMAGE_FILE`` and ``RHEL_CSUM_FILE`` complete paths
-  to a `rhel-server-ec2-*.raw.xz` and it's cooresponding
-  checksum file.  These must be supplied manually because
-  they're not available directly via URL like other images.
-
-* ``RHSM_COMMAND`` contains the complete string needed to register
-  the VM for installing package dependencies.  The VM will be de-registered
-  upon completion.
-
 *  Optionally, CSV's may be specified to ``PACKER_BUILDS``
    to limit the base-images produced.  For example,
    ``PACKER_BUILDS=fedora,image-builder-image``.
@@ -270,9 +260,6 @@ When ready, change to the ``packer`` sub-directory, and build the images:
 $ cd libpod/contrib/cirrus/packer
 $ make libpod_base_images GCP_PROJECT_ID=<VALUE> \
     GOOGLE_APPLICATION_CREDENTIALS=<VALUE> \
-    RHEL_IMAGE_FILE=<VALUE> \
-    RHEL_CSUM_FILE=<VALUE> \
-    RHSM_COMMAND=<VALUE> \
     PACKER_BUILDS=<OPTIONAL>
 ```
 

@@ -12,14 +12,10 @@ exithandler() {
     RET=$?
     set +e
     show_env_vars
-    record_timestamp "env. setup end"
     echo "$(basename $0) exit status: $RET"
     [[ "$RET" -eq "0" ]] && date +%s >> "SETUP_MARKER_FILEPATH"
 }
 trap exithandler EXIT
-
-# Must be bash, always bash
-[[ "$SHELL" =~ "bash" ]] || chsh -s /bin/bash
 
 # Verify basic dependencies
 for depbin in go rsync unzip sha256sum curl make python3 git
@@ -39,8 +35,10 @@ case "${OS_REL_VER}" in
     ubuntu-18) ;;
     fedora-29) ;;
     fedora-28) ;;
-    centos-7) ;;
-    rhel-7) ;;
+    centos-7)  # Current VM is an image-builder-image no local podman/testing
+        echo "No further setup required for VM image building"
+        exit 0
+        ;;
     *) bad_os_id_ver ;;
 esac
 
@@ -59,19 +57,27 @@ sudo install -D -m 755 $GOSRC/test/registries.conf \
 # cri-o if installed will mess with testing in non-obvious ways
 rm -f /etc/cni/net.d/*cri*
 
-go get github.com/onsi/ginkgo/ginkgo
-go get github.com/onsi/gomega/...
+make install.tools
 
 case "$SPECIALMODE" in
+    none) ;;  # Do the normal thing
     rootless)
-        X=$(echo "export ROOTLESS_USER='some${RANDOM}dude'" | \
-            tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
-        X=$(echo "export SPECIALMODE='$SPECIALMODE'"| \
-            tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
-        setup_rootless
+        # Only do this once, even if ROOTLESS_USER (somehow) changes
+        if ! grep -q 'ROOTLESS_USER' /etc/environment
+        then
+            X=$(echo "export ROOTLESS_USER='${ROOTLESS_USER:-some${RANDOM}dude}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            X=$(echo "export SPECIALMODE='${SPECIALMODE}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            X=$(echo "export TEST_REMOTE_CLIENT='${TEST_REMOTE_CLIENT}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            setup_rootless
+        fi
         ;;
     in_podman)  # Assumed to be Fedora
         dnf install -y podman buildah
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
+    *)
+        die 111 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
 esac
