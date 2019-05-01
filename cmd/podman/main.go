@@ -83,7 +83,7 @@ var MainGlobalOpts cliconfig.MainFlags
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.TraverseChildren = true
+	rootCmd.TraverseChildren = false
 	rootCmd.Version = version.Version
 	// Override default --help information of `--version` global flag
 	var dummyVersion bool
