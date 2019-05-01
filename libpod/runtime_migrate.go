@@ -1,13 +1,14 @@
 package libpod
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func (r *Runtime) migrate() error {
+func (r *Runtime) migrate(ctx context.Context) error {
 	runningContainers, err := r.GetRunningContainers()
 	if err != nil {
 		return err
@@ -38,7 +39,7 @@ func (r *Runtime) migrate() error {
 	}
 
 	for _, ctr := range runningContainers {
-		if err := ctr.Start(r.ctx, true); err != nil {
+		if err := ctr.Start(ctx, true); err != nil {
 			logrus.Errorf("error restarting container %s", ctr.ID())
 		}
 	}

@@ -78,8 +78,6 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 		options = append(options, libpod.WithRenumber())
 	}
 
-	options = append(options, libpod.WithContext(ctx))
-
 	// Only set this if the user changes storage config on the command line
 	if storageSet {
 		options = append(options, libpod.WithStorageConfig(storageOpts))
@@ -146,7 +144,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}
 	if c.Flags().Changed("config") {
-		return libpod.NewRuntimeFromConfig(c.GlobalFlags.Config, options...)
+		return libpod.NewRuntimeFromConfig(ctx, c.GlobalFlags.Config, options...)
 	}
-	return libpod.NewRuntime(options...)
+	return libpod.NewRuntime(ctx, options...)
 }
