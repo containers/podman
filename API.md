@@ -45,6 +45,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
 
+[func GenerateKube(name: string, service: bool) KubePodService](#GenerateKube)
+
+[func GenerateSystemd(name: string, restart: string, timeout: int, useName: bool) string](#GenerateSystemd)
+
 [func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
 [func GetContainer(id: string) Container](#GetContainer)
@@ -56,6 +60,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func GetContainerStatsWithHistory(previousStats: ContainerStats) ContainerStats](#GetContainerStatsWithHistory)
 
 [func GetContainersByContext(all: bool, latest: bool, args: []string) []string](#GetContainersByContext)
+
+[func GetContainersByStatus(status: []string) Container](#GetContainersByStatus)
 
 [func GetContainersLogs(names: []string, follow: bool, latest: bool, since: string, tail: int, timestamps: bool) LogLine](#GetContainersLogs)
 
@@ -73,6 +79,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetPodsByContext(all: bool, latest: bool, args: []string) []string](#GetPodsByContext)
 
+[func GetPodsByStatus(statuses: []string) []string](#GetPodsByStatus)
+
 [func GetVersion() string, string, string, string, string, int](#GetVersion)
 
 [func GetVolumes(args: []string, all: bool) Volume](#GetVolumes)
@@ -86,6 +94,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func ImagesPrune(all: bool) []string](#ImagesPrune)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) string](#ImportImage)
+
+[func InitContainer(name: string) string](#InitContainer)
 
 [func InspectContainer(name: string) string](#InspectContainer)
 
@@ -153,6 +163,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func TagImage(name: string, tagged: string) string](#TagImage)
 
+[func Top(nameOrID: string, descriptors: []string) []string](#Top)
+
 [func TopPod(pod: string, latest: bool, descriptors: []string) []string](#TopPod)
 
 [func UnmountContainer(name: string, force: bool) ](#UnmountContainer)
@@ -211,6 +223,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type InfoStore](#InfoStore)
 
+[type KubePodService](#KubePodService)
+
 [type ListPodContainerInfo](#ListPodContainerInfo)
 
 [type ListPodData](#ListPodData)
@@ -248,6 +262,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [error ErrorOccurred](#ErrorOccurred)
 
 [error ImageNotFound](#ImageNotFound)
+
+[error InvalidState](#InvalidState)
 
 [error NoContainerRunning](#NoContainerRunning)
 
@@ -445,6 +461,17 @@ a booleon option to force compression.  It also takes in a string array of tags 
 tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 error will be returned. See also [ImportImage](ImportImage).
+### <a name="GenerateKube"></a>func GenerateKube
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GenerateKube(name: [string](https://godoc.org/builtin#string), service: [bool](https://godoc.org/builtin#bool)) [KubePodService](#KubePodService)</div>
+GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
+and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
+### <a name="GenerateSystemd"></a>func GenerateSystemd
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GenerateSystemd(name: [string](https://godoc.org/builtin#string), restart: [string](https://godoc.org/builtin#string), timeout: [int](https://godoc.org/builtin#int), useName: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -522,6 +549,11 @@ method GetContainersByContext(all: [bool](https://godoc.org/builtin#bool), lates
 GetContainersByContext allows you to get a list of container ids depending on all, latest, or a list of
 container names.  The definition of latest container means the latest by creation date.  In a multi-
 user environment, results might differ from what you expect.
+### <a name="GetContainersByStatus"></a>func GetContainersByStatus
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetContainersByStatus(status: [[]string](#[]string)) [Container](#Container)</div>
+
 ### <a name="GetContainersLogs"></a>func GetContainersLogs
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -621,6 +653,11 @@ method GetPodsByContext(all: [bool](https://godoc.org/builtin#bool), latest: [bo
 GetPodsByContext allows you to get a list pod ids depending on all, latest, or a list of
 pod names.  The definition of latest pod means the latest by creation date.  In a multi-
 user environment, results might differ from what you expect.
+### <a name="GetPodsByStatus"></a>func GetPodsByStatus
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetPodsByStatus(statuses: [[]string](#[]string)) [[]string](#[]string)</div>
+GetPodsByStatus searches for pods whose status is included in statuses
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -669,6 +706,16 @@ the IDs of the removed images are returned.
 method ImportImage(source: [string](https://godoc.org/builtin#string), reference: [string](https://godoc.org/builtin#string), message: [string](https://godoc.org/builtin#string), changes: [[]string](#[]string), delete: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
 ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
+### <a name="InitContainer"></a>func InitContainer
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method InitContainer(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+InitContainer initializes the given container. It accepts a container name or
+ID, and will initialize the container matching that ID if possible, and error
+if not. Containers can only be initialized when they are in the Created or
+Exited states. Initialization prepares a container to be started, but does not
+start the container. It is intended to be used to debug a container's state
+prior to starting it.
 ### <a name="InspectContainer"></a>func InspectContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1039,6 +1086,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.StopPod '{"name": "135d71
 method TagImage(name: [string](https://godoc.org/builtin#string), tagged: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
+### <a name="Top"></a>func Top
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Top(nameOrID: [string](https://godoc.org/builtin#string), descriptors: [[]string](#[]string)) [[]string](#[]string)</div>
+
 ### <a name="TopPod"></a>func TopPod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1445,6 +1497,8 @@ quiet [](#)
 
 readonly [](#)
 
+readonlytmpfs [](#)
+
 restart [](#)
 
 rm [](#)
@@ -1666,6 +1720,13 @@ graph_root [string](https://godoc.org/builtin#string)
 graph_status [InfoGraphStatus](#InfoGraphStatus)
 
 run_root [string](https://godoc.org/builtin#string)
+### <a name="KubePodService"></a>type KubePodService
+
+
+
+pod [string](https://godoc.org/builtin#string)
+
+service [string](https://godoc.org/builtin#string)
 ### <a name="ListPodContainerInfo"></a>type ListPodContainerInfo
 
 ListPodContainerInfo is a returned struct for describing containers
@@ -1924,6 +1985,9 @@ is includes as part of the error's text.
 ### <a name="ImageNotFound"></a>type ImageNotFound
 
 ImageNotFound means the image could not be found by the provided name or ID in local storage.
+### <a name="InvalidState"></a>type InvalidState
+
+InvalidState indicates that a container or pod was in an improper state for the requested operation
 ### <a name="NoContainerRunning"></a>type NoContainerRunning
 
 NoContainerRunning means none of the containers requested are running in a command that requires a running container.
@@ -1933,7 +1997,7 @@ NoContainersInPod means a pod has no containers on which to perform the operatio
 the pod ID.
 ### <a name="PodContainerError"></a>type PodContainerError
 
-PodContainerError means a container associated with a pod failed to preform an operation. It contains
+PodContainerError means a container associated with a pod failed to perform an operation. It contains
 a container ID of the container that failed.
 ### <a name="PodNotFound"></a>type PodNotFound
 
