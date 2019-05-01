@@ -315,7 +315,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.Bool(
 		"http-proxy", true,
-		"Set proxy environment variables in container based on the host proxy vars",
+		"Set proxy environment variables in the container based on the host proxy vars",
 	)
 	createFlags.String(
 		"image-volume", cliconfig.DefaultImageVolume,
