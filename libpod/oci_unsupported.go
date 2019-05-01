@@ -26,3 +26,15 @@ func (r *OCIRuntime) pathPackage() string {
 func (r *OCIRuntime) conmonPackage() string {
 	return ""
 }
+
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
+	return ErrOSNotSupported
+}
+
+func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
+	return ErrOSNotSupported
+}
+
+func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
+	return ErrOSNotSupported
+}

@@ -44,8 +44,8 @@ func NewBridge(bridge string) (*Connection, error) {
 	}
 	c.conn = PipeCon{nil, cmd, &r, &w}
 	c.address = ""
-	c.reader = bufio.NewReader(r)
-	c.writer = bufio.NewWriter(w)
+	c.Reader = bufio.NewReader(r)
+	c.Writer = bufio.NewWriter(w)
 
 	err = cmd.Start()
 	if err != nil {

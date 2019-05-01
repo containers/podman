@@ -120,6 +120,9 @@ podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on 
 podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote OSX environment
 	GOOS=darwin $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
 
+podman-remote-windows: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman for a remote windows environment
+	GOOS=windows $(GO) build -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@.exe $(PROJECT)/cmd/podman
+
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
 bin/podman.cross.%: .gopathok

@@ -24,6 +24,22 @@ func init() {
 	reexec.Register(symlinkModifiedTime, resolveSymlinkTimeModified)
 }
 
+// resolveSymlink uses a child subprocess to resolve any symlinks in filename
+// in the context of rootdir.
+func resolveSymlink(rootdir, filename string) (string, error) {
+	// The child process expects a chroot and one path that
+	// will be consulted relative to the chroot directory and evaluated
+	// for any symbolic links present.
+	cmd := reexec.Command(symlinkChrootedCommand, rootdir, filename)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", errors.Wrapf(err, string(output))
+	}
+
+	// Hand back the resolved symlink, will be filename if a symlink is not found
+	return string(output), nil
+}
+
 // main() for resolveSymlink()'s subprocess.
 func resolveChrootedSymlinks() {
 	status := 0
@@ -53,22 +69,6 @@ func resolveChrootedSymlinks() {
 		os.Exit(1)
 	}
 	os.Exit(status)
-}
-
-// resolveSymlink uses a child subprocess to resolve any symlinks in filename
-// in the context of rootdir.
-func resolveSymlink(rootdir, filename string) (string, error) {
-	// The child process expects a chroot and one path that
-	// will be consulted relative to the chroot directory and evaluated
-	// for any symbolic links present.
-	cmd := reexec.Command(symlinkChrootedCommand, rootdir, filename)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", errors.Wrapf(err, string(output))
-	}
-
-	// Hand back the resolved symlink, will be filename if a symlink is not found
-	return string(output), nil
 }
 
 // main() for grandparent subprocess.  Its main job is to shuttle stdio back

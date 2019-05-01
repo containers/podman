@@ -6,12 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -186,76 +184,6 @@ var (
 	rootlessRuntimeDirOnce sync.Once
 	rootlessRuntimeDir     string
 )
-
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
-	var rootlessRuntimeDirError error
-
-	rootlessRuntimeDirOnce.Do(func() {
-		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-		if runtimeDir == "" {
-			tmpDir := filepath.Join("/run", "user", uid)
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			home := os.Getenv("HOME")
-			if home == "" {
-				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-				return
-			}
-			resolvedHome, err := filepath.EvalSymlinks(home)
-			if err != nil {
-				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
-				return
-			}
-			runtimeDir = filepath.Join(resolvedHome, "rundir")
-		}
-		rootlessRuntimeDir = runtimeDir
-	})
-
-	if rootlessRuntimeDirError != nil {
-		return "", rootlessRuntimeDirError
-	}
-	return rootlessRuntimeDir, nil
-}
-
-// GetRootlessDirInfo returns the parent path of where the storage for containers and
-// volumes will be in rootless mode
-func GetRootlessDirInfo() (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", "", fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	return dataDir, rootlessRuntime, nil
-}
 
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`

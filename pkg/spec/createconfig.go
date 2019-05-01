@@ -19,7 +19,6 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 // Type constants
@@ -642,10 +641,4 @@ func NatToOCIPortBindings(ports nat.PortMap) ([]ocicni.PortMapping, error) {
 // host devices to the spec
 func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
 	return c.addPrivilegedDevices(g)
-}
-
-func getStatFromPath(path string) (unix.Stat_t, error) {
-	s := unix.Stat_t{}
-	err := unix.Stat(path, &s)
-	return s, err
 }

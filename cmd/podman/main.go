@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"os"
-	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
@@ -13,7 +12,6 @@ import (
 	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -118,25 +116,13 @@ func before(cmd *cobra.Command, args []string) error {
 	}
 	logrus.SetLevel(level)
 
-	rlimits := new(syscall.Rlimit)
-	rlimits.Cur = 1048576
-	rlimits.Max = 1048576
-	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error getting rlimits")
-		}
-		rlimits.Cur = rlimits.Max
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error setting new rlimits")
-		}
+	if err := setRLimits(); err != nil {
+		return err
 	}
-
 	if rootless.IsRootless() {
 		logrus.Info("running as rootless")
 	}
-
-	// Be sure we can create directories with 0755 mode.
-	syscall.Umask(0022)
+	setUMask()
 	return profileOn(cmd)
 }
 

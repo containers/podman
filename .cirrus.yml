@@ -135,6 +135,7 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh clean podman-remote'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp"'
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin'
+        - '/usr/local/bin/entrypoint.sh podman-remote-windows'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
