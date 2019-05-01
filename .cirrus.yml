@@ -208,6 +208,8 @@ build_each_commit_task:
 
     depends_on:
         - "gating"
+        - "vendor"
+        - "varlink_api"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
     only_if: $CIRRUS_BRANCH != 'master'
@@ -260,6 +262,8 @@ testing_task:
 
     depends_on:
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit"
 
     gce_instance:
@@ -303,6 +307,8 @@ special_testing_task:
 
     depends_on:
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit"
 
     gce_instance:
@@ -416,6 +422,8 @@ success_task:
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit_task"
         - "testing"
         - "rootless_testing_task"
