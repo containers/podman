@@ -251,6 +251,16 @@ inside of the container.
 
 Read in a line delimited file of environment variables
 
+**--http-proxy**=*true*|*false*
+
+By default proxy environment variables are passed into the container if set
+for the podman process.  This can be disabled by setting the `--http-proxy`
+option to `false`.  The environment variables passed in include `http_proxy`,
+`https_proxy`, `ftp_proxy`, `no_proxy`, and also the upper case versions of
+those.
+
+Defaults to `true`
+
 **--expose**=[]
 
 Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection

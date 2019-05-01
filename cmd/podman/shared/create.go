@@ -624,6 +624,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		GroupAdd:    c.StringSlice("group-add"),
 		Hostname:    c.String("hostname"),
 		HostAdd:     c.StringSlice("add-host"),
+		HTTPProxy:   c.Bool("http-proxy"),
 		NoHosts:     c.Bool("no-hosts"),
 		IDMappings:  idmappings,
 		Image:       imageName,
