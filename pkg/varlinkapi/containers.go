@@ -372,6 +372,9 @@ func (i *LibpodAPI) InitContainer(call iopodman.VarlinkCall, name string) error 
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.Init(getContext()); err != nil {
+		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyInitContainer(ctr.ID())

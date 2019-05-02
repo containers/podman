@@ -251,7 +251,16 @@ func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitVa
 	for _, id := range ids {
 		initialized, err := iopodman.InitContainer().Call(r.Conn, id)
 		if err != nil {
-			failures[id] = err
+			if cli.All {
+				switch err.(type) {
+				case *iopodman.InvalidState:
+					ok = append(ok, initialized)
+				default:
+					failures[id] = err
+				}
+			} else {
+				failures[id] = err
+			}
 		} else {
 			ok = append(ok, initialized)
 		}

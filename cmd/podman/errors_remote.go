@@ -33,6 +33,8 @@ func outputError(err error) {
 			ne = errors.New(e.Reason)
 		case *iopodman.VolumeNotFound:
 			ne = errors.New(e.Reason)
+		case *iopodman.InvalidState:
+			ne = errors.New(e.Reason)
 		case *iopodman.ErrorOccurred:
 			ne = errors.New(e.Reason)
 		default:
