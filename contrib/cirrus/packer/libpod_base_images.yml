@@ -13,13 +13,14 @@ variables:
     TTYDEV:
 
     # Latest Fedora release
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
-    FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-29-1-2'  # Name to use in GCE
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-Base-30-1.2.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-30-1.2-x86_64-CHECKSUM"
+    FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-30-1-2'
+
     # Prior Fedora release
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2"
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-28-1.1-x86_64-CHECKSUM"
-    PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-28-1-1'  # Name to use in GCE
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
+    PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-29-1-2'  # Name to use in GCE
 
     # The name of the image in GCE used for packer build libpod_images.yml
     IBI_BASE_NAME: 'image-builder-image'

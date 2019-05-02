@@ -3,7 +3,7 @@
 # builder name(s) from applicable YAML file,
 # e.g for names see libpod_images.yml
 
-PACKER_VER ?= 1.3.2
+PACKER_VER ?= 1.3.5
 GOARCH=$(shell go env GOARCH)
 ARCH=$(uname -m)
 PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
@@ -79,6 +79,9 @@ endif
 ifndef GOOGLE_APPLICATION_CREDENTIALS
 	$(error GOOGLE_APPLICATION_CREDENTIALS is undefined, expected absolute path to JSON file, like $HOME/.config/gcloud/legacy_credentials/*/adc.json)
 endif
+ifndef PACKER_BUILDS
+	$(error PACKER_BUILDS is undefined, expected builder-names CSV)
+endif
 	PACKER_CACHE_DIR=/tmp ./packer build \
 		-force \
 		-var TIMESTAMP=$(TIMESTAMP) \
@@ -88,6 +91,5 @@ endif
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
-		-var POST_MERGE_BUCKET_SUFFIX=$(POST_MERGE_BUCKET_SUFFIX) \
 		-only $(PACKER_BUILDS) \
 		libpod_base_images.json

@@ -24,6 +24,8 @@ env:
     # Command to prefix every output line with a timestamp
     # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
     TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
+    # Command to log critical filesystems, types, and sizes.
+    DFCMD: "df -lhTx tmpfs"
     CIRRUS_CLONE_DEPTH: 50
 
     ####
@@ -276,6 +278,7 @@ testing_task:
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
+    df_script: '${DFCMD}'
     audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
     journalctl_b_script: 'journalctl -b'
 
@@ -283,6 +286,7 @@ testing_task:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
         # Job has already failed, don't fail again and miss collecting data
         failed_ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
+        failed_df_script: '${DFCMD}'
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
@@ -307,12 +311,14 @@ special_testing_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    df_script: '${DFCMD}'
     audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
     journalctl_b_script: 'journalctl -b'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
         # Job has already failed, don't fail again and miss collecting data
+        failed_df_script: '${DFCMD}'
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
@@ -402,7 +408,18 @@ verify_test_built_images_task:
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
+    df_script: '${DFCMD}'
+    audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
+    journalctl_b_script: 'journalctl -b'
+    on_failure:
+        # Job has already failed, don't fail again and miss collecting data
+        failed_ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
+        failed_df_script: '${DFCMD}'
+        failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
+        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
 
 # Build new cache-images for future PR testing, but only after a PR merge.

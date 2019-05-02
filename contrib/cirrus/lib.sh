@@ -60,7 +60,9 @@ PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28}"
 UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
+# FEDORA_BASE_IMAGE: "fedora-cloud-base-30-1-2-1556821664"
 PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
+# PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
 BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
