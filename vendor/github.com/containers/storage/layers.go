@@ -614,6 +614,7 @@ func (r *layerStore) Put(id string, parentLayer *Layer, names []string, mountLab
 	opts := drivers.CreateOpts{
 		MountLabel: mountLabel,
 		StorageOpt: options,
+		IDMappings: idMappings,
 	}
 	if moreOptions.TemplateLayer != "" {
 		if err = r.driver.CreateFromTemplate(id, moreOptions.TemplateLayer, templateIDMappings, parent, parentMappings, &opts, writeable); err != nil {
