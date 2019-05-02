@@ -40,6 +40,7 @@ var (
 type CreateOpts struct {
 	MountLabel string
 	StorageOpt map[string]string
+	*idtools.IDMappings
 }
 
 // MountOpts contains optional arguments for LayerStope.Mount() methods.
