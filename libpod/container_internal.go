@@ -811,8 +811,9 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 	span.SetTag("struct", "container")
 	defer span.Finish()
 
-	// If the container is not ContainerStateStopped, do nothing
-	if c.state.State != ContainerStateStopped {
+	// If the container is not ContainerStateStopped or
+	// ContainerStateCreated, do nothing.
+	if c.state.State != ContainerStateStopped && c.state.State != ContainerStateCreated {
 		return nil
 	}
 
@@ -825,9 +826,14 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 		return err
 	}
 
-	// Our state is now Exited, as we've removed ourself from
-	// the runtime.
-	c.state.State = ContainerStateExited
+	// If we were Stopped, we are now Exited, as we've removed ourself
+	// from the runtime.
+	// If we were Created, we are now Configured.
+	if c.state.State == ContainerStateStopped {
+		c.state.State = ContainerStateExited
+	} else if c.state.State == ContainerStateCreated {
+		c.state.State = ContainerStateConfigured
+	}
 
 	if c.valid {
 		if err := c.save(); err != nil {

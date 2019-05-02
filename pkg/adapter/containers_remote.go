@@ -248,6 +248,40 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	return ok, failures, nil
 }
 
+// InitContainers initializes container(s) based on Varlink.
+// It returns a list of successful ID(s), a map of failed container ID to error,
+// or an error if a more general error occurred.
+func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, id := range ids {
+		initialized, err := iopodman.InitContainer().Call(r.Conn, id)
+		if err != nil {
+			if cli.All {
+				switch err.(type) {
+				case *iopodman.InvalidState:
+					ok = append(ok, initialized)
+				default:
+					failures[id] = err
+				}
+			} else {
+				failures[id] = err
+			}
+		} else {
+			ok = append(ok, initialized)
+		}
+	}
+	return ok, failures, nil
+}
+
 // KillContainers sends signal to container(s) based on varlink.
 // Returns list of successful id(s), map of failed id(s) + error, or error not from container
 func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillValues, signal syscall.Signal) ([]string, map[string]error, error) {

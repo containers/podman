@@ -56,6 +56,7 @@ var (
 		_diffCommand,
 		_exportCommand,
 		_createCommand,
+		_initCommand,
 		_killCommand,
 		_listSubCommand,
 		_logsCommand,

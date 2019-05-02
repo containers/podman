@@ -39,6 +39,7 @@ var mainCommands = []*cobra.Command{
 	&_imagesCommand,
 	_importCommand,
 	_infoCommand,
+	_initCommand,
 	&_inspectCommand,
 	_killCommand,
 	_loadCommand,

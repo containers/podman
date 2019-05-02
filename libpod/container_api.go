@@ -40,7 +40,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 	if !(c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateStopped ||
 		c.state.State == ContainerStateExited) {
-		return errors.Wrapf(ErrCtrExists, "container %s has already been created in runtime", c.ID())
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
 	// don't recursively start

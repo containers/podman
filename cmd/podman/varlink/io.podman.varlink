@@ -641,6 +641,14 @@ method StartContainer(name: string) -> (container: string)
 # ~~~
 method StopContainer(name: string, timeout: int) -> (container: string)
 
+# InitContainer initializes the given container. It accepts a container name or
+# ID, and will initialize the container matching that ID if possible, and error
+# if not. Containers can only be initialized when they are in the Created or
+# Exited states. Initialization prepares a container to be started, but does not
+# start the container. It is intended to be used to debug a container's state
+# prior to starting it.
+method InitContainer(name: string) -> (container: string)
+
 # RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
 # value is the time before a forcible stop is used to stop the container.  If the container cannot be found by
 # name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
@@ -1225,13 +1233,16 @@ error PodNotFound (name: string, reason: string)
 # VolumeNotFound means the volume could not be found by the name or ID in local storage.
 error VolumeNotFound (id: string, reason: string)
 
-# PodContainerError means a container associated with a pod failed to preform an operation. It contains
+# PodContainerError means a container associated with a pod failed to perform an operation. It contains
 # a container ID of the container that failed.
 error PodContainerError (podname: string, errors: []PodContainerErrorData)
 
 # NoContainersInPod means a pod has no containers on which to perform the operation. It contains
 # the pod ID.
 error NoContainersInPod (name: string)
+
+# InvalidState indicates that a container or pod was in an improper state for the requested operation
+error InvalidState (id: string, reason: string)
 
 # ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
 # is includes as part of the error's text.

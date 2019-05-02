@@ -177,6 +177,12 @@ type InfoValues struct {
 	Format string
 }
 
+type InitValues struct {
+	PodmanCommand
+	All    bool
+	Latest bool
+}
+
 type InspectValues struct {
 	PodmanCommand
 	TypeObject string
