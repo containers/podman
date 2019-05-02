@@ -25,7 +25,6 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/google/shlex"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -114,6 +113,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			}
 		}
 	}
+
 	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, data)
 	if err != nil {
 		return nil, nil, err
@@ -123,7 +123,16 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// at this point. The rest is done by WithOptions.
 	createConfig.HealthCheck = healthCheck
 
-	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, nil)
+	// TODO: Should be able to return this from ParseCreateOpts
+	var pod *libpod.Pod
+	if createConfig.Pod != "" {
+		pod, err = runtime.LookupPod(createConfig.Pod)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "error looking up pod to join")
+		}
+	}
+
+	ctr, err := CreateContainerFromCreateConfig(runtime, createConfig, ctx, pod)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -139,7 +148,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	return ctr, createConfig, nil
 }
 
-func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
+func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *libpod.Runtime) error {
 	var (
 		labelOpts []string
 	)
@@ -147,7 +156,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	if config.PidMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
 	} else if config.PidMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(config.PidMode.Container())
+		ctr, err := runtime.LookupContainer(config.PidMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.PidMode.Container())
 		}
@@ -161,7 +170,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string) error {
 	if config.IpcMode.IsHost() {
 		labelOpts = append(labelOpts, label.DisableSecOpt()...)
 	} else if config.IpcMode.IsContainer() {
-		ctr, err := config.Runtime.LookupContainer(config.IpcMode.Container())
+		ctr, err := runtime.LookupContainer(config.IpcMode.Container())
 		if err != nil {
 			return errors.Wrapf(err, "container %q not found", config.IpcMode.Container())
 		}
@@ -330,18 +339,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, errors.Wrapf(err, "invalid value for blkio-weight")
 		}
 		blkioWeight = uint16(u)
-	}
-	var mountList []spec.Mount
-	if mountList, err = parseMounts(c.StringArray("mount")); err != nil {
-		return nil, err
-	}
-
-	if err = parseVolumes(c.StringArray("volume")); err != nil {
-		return nil, err
-	}
-
-	if err = parseVolumesFrom(c.StringSlice("volumes-from")); err != nil {
-		return nil, err
 	}
 
 	tty := c.Bool("tty")
@@ -604,7 +601,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	memorySwappiness := c.Int64("memory-swappiness")
 
 	config := &cc.CreateConfig{
-		Runtime:           runtime,
 		Annotations:       annotations,
 		BuiltinImgVolumes: ImageVolumes,
 		ConmonPidFile:     c.String("conmon-pidfile"),
@@ -627,6 +623,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		HTTPProxy:   c.Bool("http-proxy"),
 		NoHosts:     c.Bool("no-hosts"),
 		IDMappings:  idmappings,
+		Init:        c.Bool("init"),
+		InitPath:    c.String("init-path"),
 		Image:       imageName,
 		ImageID:     imageID,
 		Interactive: c.Bool("interactive"),
@@ -687,31 +685,18 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Tty:         tty,
 		User:        user,
 		UsernsMode:  usernsMode,
-		Mounts:      mountList,
+		MountsFlag:  c.StringArray("mount"),
 		Volumes:     c.StringArray("volume"),
 		WorkDir:     workDir,
 		Rootfs:      rootfs,
 		VolumesFrom: c.StringSlice("volumes-from"),
 		Syslog:      c.Bool("syslog"),
 	}
-	if c.Bool("init") {
-		initPath := c.String("init-path")
-		if initPath == "" {
-			rtc, err := runtime.GetConfig()
-			if err != nil {
-				return nil, err
-			}
-			initPath = rtc.InitPath
-		}
-		if err := config.AddContainerInitBinary(initPath); err != nil {
-			return nil, err
-		}
-	}
 
 	if config.Privileged {
 		config.LabelOpts = label.DisableSecOpt()
 	} else {
-		if err := parseSecurityOpt(config, c.StringArray("security-opt")); err != nil {
+		if err := parseSecurityOpt(config, c.StringArray("security-opt"), runtime); err != nil {
 			return nil, err
 		}
 	}
@@ -727,12 +712,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 }
 
 func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateConfig, ctx context.Context, pod *libpod.Pod) (*libpod.Container, error) {
-	runtimeSpec, err := cc.CreateConfigToOCISpec(createConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	options, err := createConfig.GetContainerCreateOptions(r, pod)
+	runtimeSpec, options, err := createConfig.MakeContainerConfig(r, pod)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -1273,7 +1274,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			ctr.config.NamedVolumes = append(ctr.config.NamedVolumes, &ContainerNamedVolume{
 				Name:    vol.Name,
 				Dest:    vol.Dest,
-				Options: vol.Options,
+				Options: util.ProcessOptions(vol.Options),
 			})
 		}
 

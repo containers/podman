@@ -2,13 +2,11 @@ package createconfig
 
 import (
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage/pkg/mount"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
@@ -20,61 +18,6 @@ import (
 )
 
 const cpuPeriod = 100000
-
-func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.Mount {
-	if len(mounts) > 0 {
-		// If we have overlappings mounts, remove them from the spec in favor of
-		// the user-added volume mounts
-		destinations := make(map[string]bool)
-		for _, mount := range mounts {
-			destinations[path.Clean(mount.Destination)] = true
-		}
-		// Copy all mounts from spec to defaultMounts, except for
-		//  - mounts overridden by a user supplied mount;
-		//  - all mounts under /dev if a user supplied /dev is present;
-		mountDev := destinations["/dev"]
-		for _, mount := range configMount {
-			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
-				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
-					// filter out everything under /dev if /dev is user-mounted
-					continue
-				}
-
-				logrus.Debugf("Adding mount %s", mount.Destination)
-				mounts = append(mounts, mount)
-			}
-		}
-		return mounts
-	}
-	return configMount
-}
-
-// Split named volumes from normal volumes
-func splitNamedVolumes(mounts []spec.Mount) ([]spec.Mount, []*libpod.ContainerNamedVolume) {
-	newMounts := make([]spec.Mount, 0)
-	namedVolumes := make([]*libpod.ContainerNamedVolume, 0)
-	for _, mount := range mounts {
-		// If it's not a named volume, append unconditionally
-		if mount.Type != TypeBind {
-			newMounts = append(newMounts, mount)
-			continue
-		}
-		// Volumes that are not named volumes must be an absolute or
-		// relative path.
-		// Volume names may not begin with a non-alphanumeric character
-		// so the HasPrefix() check is safe here.
-		if strings.HasPrefix(mount.Source, "/") || strings.HasPrefix(mount.Source, ".") {
-			newMounts = append(newMounts, mount)
-		} else {
-			namedVolume := new(libpod.ContainerNamedVolume)
-			namedVolume.Name = mount.Source
-			namedVolume.Dest = mount.Destination
-			namedVolume.Options = mount.Options
-			namedVolumes = append(namedVolumes, namedVolume)
-		}
-	}
-	return newMounts, namedVolumes
-}
 
 func getAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
@@ -89,7 +32,7 @@ func getAvailableGids() (int64, error) {
 }
 
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
-func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
+func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userMounts []spec.Mount) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {
@@ -334,56 +277,6 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		addedResources = true
 	}
 
-	for _, i := range config.Tmpfs {
-		// Default options if nothing passed
-		options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev", "size=65536k"}
-		spliti := strings.SplitN(i, ":", 2)
-		if len(spliti) > 1 {
-			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
-				return nil, err
-			}
-			options = strings.Split(spliti[1], ",")
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: spliti[0],
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-
-	for _, m := range config.Mounts {
-		if m.Type == "tmpfs" {
-			g.AddMount(m)
-		}
-	}
-
-	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
-		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
-		for _, i := range []string{"/tmp", "/var/tmp"} {
-			if libpod.MountExists(g.Config.Mounts, i) {
-				continue
-			}
-			// Default options if nothing passed
-			tmpfsMnt := spec.Mount{
-				Destination: i,
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     options,
-			}
-			g.AddMount(tmpfsMnt)
-		}
-		if !libpod.MountExists(g.Config.Mounts, "/run") {
-			tmpfsMnt := spec.Mount{
-				Destination: "/run",
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, "noexec", "size=65536k"),
-			}
-			g.AddMount(tmpfsMnt)
-		}
-	}
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}
@@ -439,23 +332,9 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 
 	// BIND MOUNTS
-	if err := config.GetVolumesFrom(); err != nil {
-		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
-	}
-
-	volumeMounts, err := config.GetVolumeMounts(configSpec.Mounts)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting volume mounts")
-	}
-
-	configSpec.Mounts = supercedeUserMounts(volumeMounts, configSpec.Mounts)
-	//--mount
-	configSpec.Mounts = supercedeUserMounts(config.initFSMounts(), configSpec.Mounts)
-
-	// Split normal mounts and named volumes
-	newMounts, namedVolumes := splitNamedVolumes(configSpec.Mounts)
-	configSpec.Mounts = newMounts
-	config.NamedVolumes = namedVolumes
+	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
+	// Process mounts to ensure correct options
+	configSpec.Mounts = initFSMounts(configSpec.Mounts)
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
