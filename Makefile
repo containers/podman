@@ -188,6 +188,7 @@ localunit: test/goecho/goecho varlink_generate
 		--tags "$(BUILDTAGS)" \
 		--succinct
 	$(MAKE) -C contrib/cirrus/packer test
+	./contrib/cirrus/lib.sh.t
 
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 test/e2e/.

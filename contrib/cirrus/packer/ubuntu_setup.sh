@@ -8,13 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-SCRIPT_BASE $SCRIPT_BASE
-CNI_COMMIT $CNI_COMMIT
-CRIO_COMMIT $CRIO_COMMIT
-CRIU_COMMIT $CRIU_COMMIT
-RUNC_COMMIT $RUNC_COMMIT
-"
+req_env_var SCRIPT_BASE CNI_COMMIT CRIO_COMMIT CRIU_COMMIT RUNC_COMMIT
 
 install_ooe
 

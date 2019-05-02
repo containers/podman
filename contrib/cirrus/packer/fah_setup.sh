@@ -8,9 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-SCRIPT_BASE $SCRIPT_BASE
-"
+req_env_var SCRIPT_BASE
 
 install_ooe
 

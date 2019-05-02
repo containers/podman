@@ -10,9 +10,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-    RHSM_COMMAND $RHSM_COMMAND
-"
+req_env_var RHSM_COMMAND
 
 install_ooe
 

@@ -6,12 +6,7 @@ source $(dirname $0)/lib.sh
 
 record_timestamp "env. setup start"
 
-req_env_var "
-USER $USER
-HOME $HOME
-ENVLIB $ENVLIB
-SCRIPT_BASE $SCRIPT_BASE
-CIRRUS_BUILD_ID $CIRRUS_BUILD_ID"
+req_env_var USER HOME ENVLIB SCRIPT_BASE CIRRUS_BUILD_ID
 
 [[ "$SHELL" =~ "bash" ]] || chsh -s /bin/bash
 
