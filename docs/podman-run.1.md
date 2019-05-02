@@ -287,7 +287,7 @@ The example maps gids 0-2000 in the container to the gids 30000-31999 on the hos
 
 Add additional groups to run as
 
-**--healthchech**=""
+**--healthcheck**=""
 
 Set or alter a healthcheck for a container.  The value must be of the format of:
 
