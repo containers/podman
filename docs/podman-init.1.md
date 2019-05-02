@@ -16,7 +16,7 @@ This can be used to inspect the container before it runs, or debug why a contain
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Initialize all containers. Containers that have already initialized (including containers that have been started and are running) are ignored.
 
