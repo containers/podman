@@ -96,7 +96,7 @@ type FromAndBudResults struct {
 	SecurityOpt  []string
 	ShmSize      string
 	Ulimit       []string
-	Volume       []string
+	Volumes      []string
 }
 
 // GetUserNSFlags returns the common flags for usernamespace
@@ -190,7 +190,7 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
 	fs.StringVar(&flags.ShmSize, "shm-size", "65536k", "size of '/dev/shm'. The format is `<number><unit>`.")
 	fs.StringSliceVar(&flags.Ulimit, "ulimit", []string{}, "ulimit options (default [])")
-	fs.StringSliceVarP(&flags.Volume, "volume", "v", []string{}, "bind mount a volume into the container (default [])")
+	fs.StringSliceVarP(&flags.Volumes, "volume", "v", []string{}, "bind mount a volume into the container (default [])")
 
 	// Add in the usernamespace and namespaceflags
 	usernsFlags := GetUserNSFlags(usernsResults)

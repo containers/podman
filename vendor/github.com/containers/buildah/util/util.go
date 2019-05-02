@@ -197,7 +197,7 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 		break
 	}
 	if ref == nil || img == nil {
-		return nil, nil, errors.Wrapf(err, "error locating image with name %q", image)
+		return nil, nil, errors.Wrapf(err, "error locating image with name %q (%v)", image, names)
 	}
 	return ref, img, nil
 }

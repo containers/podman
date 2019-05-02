@@ -142,7 +142,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	g = nil
 
 	logrus.Debugf("ensuring working directory %q exists", filepath.Join(mountPoint, spec.Process.Cwd))
-	if err = os.MkdirAll(filepath.Join(mountPoint, spec.Process.Cwd), 0755); err != nil {
+	if err = os.MkdirAll(filepath.Join(mountPoint, spec.Process.Cwd), 0755); err != nil && !os.IsExist(err) {
 		return errors.Wrapf(err, "error ensuring working directory %q exists", spec.Process.Cwd)
 	}
 
