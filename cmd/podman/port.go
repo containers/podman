@@ -6,8 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -51,10 +50,7 @@ func portCmd(c *cliconfig.PortValues) error {
 	var (
 		userProto, containerName string
 		userPort                 int
-		container                *libpod.Container
-		containers               []*libpod.Container
 	)
-
 	args := c.InputArgs
 
 	if c.Latest && c.All {
@@ -65,9 +61,6 @@ func portCmd(c *cliconfig.PortValues) error {
 	}
 	if len(args) == 0 && !c.Latest && !c.All {
 		return errors.Errorf("you must supply a running container name or id")
-	}
-	if !c.Latest && !c.All {
-		containerName = args[0]
 	}
 
 	port := ""
@@ -98,36 +91,14 @@ func portCmd(c *cliconfig.PortValues) error {
 		}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if !c.Latest && !c.All {
-		container, err = runtime.LookupContainer(containerName)
-		if err != nil {
-			return errors.Wrapf(err, "unable to find container %s", containerName)
-		}
-		containers = append(containers, container)
-	} else if c.Latest {
-		container, err = runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get last created container")
-		}
-		containers = append(containers, container)
-	} else {
-		containers, err = runtime.GetRunningContainers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get all containers")
-		}
-	}
-
+	containers, err := runtime.Port(c)
 	for _, con := range containers {
-		if state, _ := con.State(); state != libpod.ContainerStateRunning {
-			continue
-		}
-
 		portmappings, err := con.PortMappings()
 		if err != nil {
 			return err

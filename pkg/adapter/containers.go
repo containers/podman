@@ -876,3 +876,30 @@ func cleanupContainer(ctx context.Context, ctr *libpod.Container, runtime *Local
 	}
 	return nil
 }
+
+// Port displays port information about existing containers
+func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
+	var (
+		portContainers []*Container
+		containers     []*libpod.Container
+		err            error
+	)
+
+	if !c.All {
+		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
+	} else {
+		containers, err = r.Runtime.GetRunningContainers()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	//Convert libpod containers to adapter Containers
+	for _, con := range containers {
+		if state, _ := con.State(); state != libpod.ContainerStateRunning {
+			continue
+		}
+		portContainers = append(portContainers, &Container{con})
+	}
+	return portContainers, nil
+}

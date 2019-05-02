@@ -45,6 +45,7 @@ var mainCommands = []*cobra.Command{
 	_logsCommand,
 	_pauseCommand,
 	podCommand.Command,
+	_portCommand,
 	&_psCommand,
 	_pullCommand,
 	_pushCommand,
