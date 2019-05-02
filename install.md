@@ -8,6 +8,8 @@
 sudo pacman -S podman
 ```
 
+If you have problems when running podman in [rootless](README.md#rootless) mode follow [these instructions](https://wiki.archlinux.org/index.php/Linux_Containers#Enable_support_to_run_unprivileged_containers_(optional))
+
 #### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
 
 ```bash
