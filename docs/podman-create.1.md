@@ -279,7 +279,7 @@ The following example maps uids 0-2000 in the container to the uids 30000-31999 
 
 Add additional groups to run as
 
-**--healthchech**=""
+**--healthcheck**=""
 
 Set or alter a healthcheck for a container.  The value must be of the format of:
 
