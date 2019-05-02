@@ -112,8 +112,6 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
-
-	ctx context.Context
 }
 
 // OCIRuntimePath contains information about an OCI runtime.
@@ -353,8 +351,8 @@ func SetXdgRuntimeDir(val string) error {
 
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
-func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
-	return newRuntimeFromConfig("", options...)
+func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime, err error) {
+	return newRuntimeFromConfig(ctx, "", options...)
 }
 
 // NewRuntimeFromConfig creates a new container runtime using the given
@@ -362,14 +360,14 @@ func NewRuntime(options ...RuntimeOption) (runtime *Runtime, err error) {
 // functions can be used to mutate this configuration further.
 // An error will be returned if the configuration file at the given path does
 // not exist or cannot be loaded
-func NewRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	if userConfigPath == "" {
 		return nil, errors.New("invalid configuration file specified")
 	}
-	return newRuntimeFromConfig(userConfigPath, options...)
+	return newRuntimeFromConfig(ctx, userConfigPath, options...)
 }
 
-func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
 	runtime.configuredFrom = new(runtimeConfiguredFrom)
@@ -563,7 +561,7 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 			}
 		}
 	}
-	if err := makeRuntime(runtime); err != nil {
+	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
 	}
 	return runtime, nil
@@ -571,7 +569,7 @@ func newRuntimeFromConfig(userConfigPath string, options ...RuntimeOption) (runt
 
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
-func makeRuntime(runtime *Runtime) (err error) {
+func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Backward compatibility for `runtime_path`
 	if runtime.config.RuntimePath != nil {
 		// Don't print twice in rootless mode.
@@ -980,7 +978,7 @@ func makeRuntime(runtime *Runtime) (err error) {
 				os.Exit(ret)
 			}
 		}
-		if err := runtime.migrate(); err != nil {
+		if err := runtime.migrate(ctx); err != nil {
 			return err
 		}
 	}

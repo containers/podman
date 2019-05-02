@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"context"
 	"net"
 	"os"
 	"path/filepath"
@@ -437,10 +436,9 @@ func WithRenumber() RuntimeOption {
 	}
 }
 
-// WithMigrate instructs libpod to perform a lock migrateing while
-// initializing. This will handle migrations from early versions of libpod with
-// file locks to newer versions with SHM locking, as well as changes in the
-// number of configured locks.
+// WithMigrate instructs libpod to migrate container configurations to account
+// for changes between Libpod versions. All running containers will be stopped
+// during a migration, then restarted after the migration is complete.
 func WithMigrate() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
@@ -463,19 +461,6 @@ func WithShmDir(dir string) CtrCreateOption {
 		}
 
 		ctr.config.ShmDir = dir
-		return nil
-	}
-}
-
-// WithContext sets the context to use.
-func WithContext(ctx context.Context) RuntimeOption {
-	return func(rt *Runtime) error {
-		if rt.valid {
-			return ErrRuntimeFinalized
-		}
-
-		rt.ctx = ctx
-
 		return nil
 	}
 }
