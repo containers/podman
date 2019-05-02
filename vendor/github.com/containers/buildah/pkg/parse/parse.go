@@ -149,26 +149,41 @@ func parseSecurityOpts(securityOpts []string, commonOpts *buildah.CommonBuildOpt
 	return nil
 }
 
+func ParseVolume(volume string) (specs.Mount, error) {
+	mount := specs.Mount{}
+	arr := strings.SplitN(volume, ":", 3)
+	if len(arr) < 2 {
+		return mount, errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
+	}
+	if err := validateVolumeHostDir(arr[0]); err != nil {
+		return mount, err
+	}
+	if err := validateVolumeCtrDir(arr[1]); err != nil {
+		return mount, err
+	}
+	mountOptions := ""
+	if len(arr) > 2 {
+		mountOptions = arr[2]
+		if err := validateVolumeOpts(arr[2]); err != nil {
+			return mount, err
+		}
+	}
+	mountOpts := strings.Split(mountOptions, ",")
+	mount.Source = arr[0]
+	mount.Destination = arr[1]
+	mount.Type = "rbind"
+	mount.Options = mountOpts
+	return mount, nil
+}
+
 // ParseVolumes validates the host and container paths passed in to the --volume flag
 func ParseVolumes(volumes []string) error {
 	if len(volumes) == 0 {
 		return nil
 	}
 	for _, volume := range volumes {
-		arr := strings.SplitN(volume, ":", 3)
-		if len(arr) < 2 {
-			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
-		}
-		if err := validateVolumeHostDir(arr[0]); err != nil {
+		if _, err := ParseVolume(volume); err != nil {
 			return err
-		}
-		if err := validateVolumeCtrDir(arr[1]); err != nil {
-			return err
-		}
-		if len(arr) > 2 {
-			if err := validateVolumeOpts(arr[2]); err != nil {
-				return err
-			}
 		}
 	}
 	return nil

@@ -267,7 +267,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		MemorySwap:   memorySwap,
 		ShmSize:      c.ShmSize,
 		Ulimit:       c.Ulimit,
-		Volumes:      c.Volume,
+		Volumes:      c.Volumes,
 	}
 
 	options := imagebuildah.BuildOptions{
