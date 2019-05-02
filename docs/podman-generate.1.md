@@ -14,6 +14,7 @@ The generate command will create structured output (like YAML) based on a contai
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | kube     | [podman-generate-kube(1)](podman-generate-kube.1.md)| Generate Kubernetes YAML based on a pod or container.                        |
+| systemd  | [podman-generate-systemd(1)](podman-generate-systemd.1.md)| Generate a systemd unit file for a container.                        |
 
 ## SEE ALSO
 podman, podman-pod, podman-container
