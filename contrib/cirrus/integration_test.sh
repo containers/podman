@@ -3,13 +3,7 @@
 set -e
 source $(dirname $0)/lib.sh
 
-req_env_var "
-GOSRC $GOSRC
-SCRIPT_BASE $SCRIPT_BASE
-OS_RELEASE_ID $OS_RELEASE_ID
-OS_RELEASE_VER $OS_RELEASE_VER
-CONTAINER_RUNTIME $CONTAINER_RUNTIME
-"
+req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME
 
 exit_handler() {
     set +ex
@@ -39,7 +33,7 @@ then
     exit $?
 elif [[ "$SPECIALMODE" == "rootless" ]]
 then
-    req_env_var "ROOTLESS_USER $ROOTLESS_USER"
+    req_env_var ROOTLESS_USER
     set -x
     ssh $ROOTLESS_USER@localhost \
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \

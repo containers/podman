@@ -3,11 +3,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var "
-GOSRC $GOSRC
-OS_RELEASE_ID $OS_RELEASE_ID
-CONTAINER_RUNTIME $CONTAINER_RUNTIME
-"
+req_env_var GOSRC OS_RELEASE_ID CONTAINER_RUNTIME
 
 DIST=$OS_RELEASE_ID
 IMAGE=${DIST}podmanbuild

@@ -33,15 +33,27 @@ then
     source "$HOME/$ENVLIB"
 fi
 
-# Pass in a line delimited list of, space delimited name/value pairs
-# exit non-zero with helpful error message if any value is empty
+# Pass in a list of one or more envariable names; exit non-zero with
+# helpful error message if any value is empty
 req_env_var() {
-    echo "$1" | while read NAME VALUE
-    do
-        if [[ -n "$NAME" ]] && [[ -z "$VALUE" ]]
-        then
-            echo "Required env. var. \$$NAME is not set"
-            exit 9
+    # Provide context. If invoked from function use its name; else script name
+    local caller=${FUNCNAME[1]}
+    if [[ -n "$caller" ]]; then
+        # Indicate that it's a function name
+        caller="$caller()"
+    else
+        # Not called from a function: use script name
+        caller=$(basename $0)
+    fi
+
+    # Usage check
+    [[ -n "$1" ]] || die 1 "FATAL: req_env_var: invoked without arguments"
+
+    # Each input arg is an envariable name, e.g. HOME PATH etc. Expand each.
+    # If any is empty, bail out and explain why.
+    for i; do
+        if [[ -z "${!i}" ]]; then
+            die 9 "FATAL: $caller requires \$$i to be non-empty"
         fi
     done
 }
@@ -97,20 +109,14 @@ PACKER_BUILDS $PACKER_BUILDS
 
 # Unset environment variables not needed for testing purposes
 clean_env() {
-    req_env_var "
-        UNSET_ENV_VARS $UNSET_ENV_VARS
-    "
+    req_env_var UNSET_ENV_VARS
     echo "Unsetting $(echo $UNSET_ENV_VARS | wc -w) environment variables"
     unset -v UNSET_ENV_VARS $UNSET_ENV_VARS || true  # don't fail on read-only
 }
 
 die() {
-    req_env_var "
-        1 $1
-        2 $2
-    "
-    echo "$2"
-    exit $1
+    echo "${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
+    exit ${1:-1}
 }
 
 # Return a GCE image-name compatible string representation of distribution name
@@ -135,10 +141,8 @@ stub() {
 }
 
 ircmsg() {
-    req_env_var "
-        CIRRUS_TASK_ID $CIRRUS_TASK_ID
-        @ $@
-    "
+    req_env_var CIRRUS_TASK_ID
+    [[ -n "$*" ]] || die 9 "ircmsg() invoked without args"
     # Sometimes setup_environment.sh didn't run
     SCRIPT="$(dirname $0)/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
@@ -151,7 +155,7 @@ ircmsg() {
 
 record_timestamp() {
     set +x  # sometimes it's turned on
-    req_env_var "TIMESTAMPS_FILEPATH $TIMESTAMPS_FILEPATH"
+    req_env_var TIMESTAMPS_FILEPATH
     echo "."  # cirrus webui strips blank-lines
     STAMPMSG="The $1 time at the tone will be:"
     echo -e "$STAMPMSG\t$(date --iso-8601=seconds)" | \
@@ -160,11 +164,7 @@ record_timestamp() {
 }
 
 setup_rootless() {
-    req_env_var "
-        ROOTLESS_USER $ROOTLESS_USER
-        GOSRC $GOSRC
-        ENVLIB $ENVLIB
-    "
+    req_env_var ROOTLESS_USER GOSRC ENVLIB
 
     if passwd --status $ROOTLESS_USER
     then
@@ -220,7 +220,7 @@ setup_rootless() {
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
 install_ooe() {
-    req_env_var "SCRIPT_BASE $SCRIPT_BASE"
+    req_env_var SCRIPT_BASE
     echo "Installing script to mask stdout/stderr unless non-zero exit."
     sudo install -D -m 755 "/tmp/libpod/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
 }
@@ -241,10 +241,7 @@ EOF
 
 install_cni_plugins() {
     echo "Installing CNI Plugins from commit $CNI_COMMIT"
-    req_env_var "
-        GOPATH $GOPATH
-        CNI_COMMIT $CNI_COMMIT
-    "
+    req_env_var GOPATH CNI_COMMIT
     DEST="$GOPATH/src/github.com/containernetworking/plugins"
     rm -rf "$DEST"
     ooe.sh git clone "https://github.com/containernetworking/plugins.git" "$DEST"
@@ -272,11 +269,7 @@ install_runc(){
     OS_RELEASE_ID=$(os_release_id)
     echo "Installing RunC from commit $RUNC_COMMIT"
     echo "Platform is $OS_RELEASE_ID"
-    req_env_var "
-        GOPATH $GOPATH
-        RUNC_COMMIT $RUNC_COMMIT
-        OS_RELEASE_ID $OS_RELEASE_ID
-    "
+    req_env_var GOPATH RUNC_COMMIT OS_RELEASE_ID
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
         echo "Running make install.libseccomp.sudo for ubuntu"
         if ! [[ -d "/tmp/libpod" ]]
@@ -295,7 +288,7 @@ install_runc(){
 
 install_buildah() {
     echo "Installing buildah from latest upstream master"
-    req_env_var "GOPATH $GOPATH"
+    req_env_var GOPATH
     DEST="$GOPATH/src/github.com/containers/buildah"
     rm -rf "$DEST"
     ooe.sh git clone https://github.com/containers/buildah "$DEST"
@@ -307,10 +300,7 @@ install_buildah() {
 # Requires $GOPATH and $CRIO_COMMIT to be set
 install_conmon(){
     echo "Installing conmon from commit $CRIO_COMMIT"
-    req_env_var "
-        GOPATH $GOPATH
-        CRIO_COMMIT $CRIO_COMMIT
-    "
+    req_env_var GOPATH CRIO_COMMIT
     DEST="$GOPATH/src/github.com/kubernetes-sigs/cri-o.git"
     rm -rf "$DEST"
     ooe.sh git clone https://github.com/kubernetes-sigs/cri-o.git "$DEST"
@@ -327,9 +317,7 @@ install_criu(){
     echo "Installing CRIU"
     echo "Installing CRIU from commit $CRIU_COMMIT"
     echo "Platform is $OS_RELEASE_ID"
-    req_env_var "
-    CRIU_COMMIT $CRIU_COMMIT
-    "
+    req_env_var CRIU_COMMIT
 
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
         ooe.sh sudo -E add-apt-repository -y ppa:criu/ppa
@@ -418,10 +406,7 @@ ubuntu_finalize(){
 
 rhel_exit_handler() {
     set +ex
-    req_env_var "
-        GOPATH $GOPATH
-        RHSMCMD $RHSMCMD
-    "
+    req_env_var GOPATH RHSMCMD
     cd /
     sudo rm -rf "$RHSMCMD"
     sudo rm -rf "$GOPATH"
@@ -431,9 +416,7 @@ rhel_exit_handler() {
 }
 
 rhsm_enable() {
-    req_env_var "
-        RHSM_COMMAND $RHSM_COMMAND
-    "
+    req_env_var RHSM_COMMAND
     export GOPATH="$(mktemp -d)"
     export RHSMCMD="$(mktemp)"
     trap "rhel_exit_handler" EXIT

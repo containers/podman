@@ -4,10 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var "
-    CIRRUS_BRANCH $CIRRUS_BRANCH
-    CIRRUS_BUILD_ID $CIRRUS_BUILD_ID
-"
+req_env_var CIRRUS_BRANCH CIRRUS_BUILD_ID
 
 REF=$(basename $CIRRUS_BRANCH)  # PR number or branch named
 URL="https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"

@@ -11,12 +11,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-    TIMESTAMP $TIMESTAMP
-    GOSRC $GOSRC
-    SCRIPT_BASE $SCRIPT_BASE
-    PACKER_BASE $PACKER_BASE
-"
+req_env_var TIMESTAMP GOSRC SCRIPT_BASE PACKER_BASE
 
 install_ooe
 
