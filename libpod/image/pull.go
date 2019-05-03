@@ -13,7 +13,6 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/containers/image/pkg/sysregistries"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -284,9 +283,8 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	}
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
 	if len(images) == 0 {
-		registryPath := sysregistries.RegistriesConfPath(&types.SystemContext{SystemRegistriesConfPath: systemRegistriesConfPath})
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
-			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in %s.", registryPath)
+			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
 		}
 		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
 		if !goal.usedSearchRegistries {

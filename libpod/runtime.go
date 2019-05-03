@@ -1122,16 +1122,20 @@ func (r *Runtime) Info() ([]InfoData, error) {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	registries := make(map[string]interface{})
-	registries["registries"] = reg
-	info = append(info, InfoData{Type: "registries", Data: registries})
+	registries["search"] = reg
 
-	i, err := sysreg.GetInsecureRegistries()
+	ireg, err := sysreg.GetInsecureRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	insecureRegistries := make(map[string]interface{})
-	insecureRegistries["registries"] = i
-	info = append(info, InfoData{Type: "insecure registries", Data: insecureRegistries})
+	registries["insecure"] = ireg
+
+	breg, err := sysreg.GetBlockedRegistries()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting registries")
+	}
+	registries["blocked"] = breg
+	info = append(info, InfoData{Type: "registries", Data: registries})
 	return info, nil
 }
 
