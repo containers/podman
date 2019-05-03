@@ -18,6 +18,11 @@ var LsDockerfile = `
 FROM  alpine:latest
 LABEL RUN ls -la`
 
+var GlobalDockerfile = `
+FROM alpine:latest
+LABEL RUN echo \$GLOBAL_OPTS
+`
+
 var _ = Describe("podman container runlabel", func() {
 	var (
 		tempdir    string
@@ -77,5 +82,19 @@ var _ = Describe("podman container runlabel", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).ToNot(Equal(0))
 
+	})
+
+	It("podman container runlabel global options", func() {
+		image := "podman-global-test:ls"
+		podmanTest.BuildImage(GlobalDockerfile, image, "false")
+		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		Expect(result.OutputToString()).To(ContainSubstring("--syslog true"))
+		Expect(result.OutputToString()).To(ContainSubstring("--log-level debug"))
+		result = podmanTest.Podman([]string{"rmi", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
 	})
 })

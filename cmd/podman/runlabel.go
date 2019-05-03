@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -145,7 +146,8 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return errors.Errorf("%s does not have a label of %s", runlabelImage, label)
 	}
 
-	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs)
+	globalOpts := util.GetGlobalOpts(c)
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs, globalOpts)
 	if err != nil {
 		return err
 	}
