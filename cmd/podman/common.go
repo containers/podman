@@ -444,7 +444,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"restart", "",
-		"Restart is not supported.  Please use a systemd unit file for restart",
+		"Restart policy to apply when a container exits",
 	)
 	createFlags.Bool(
 		"rm", false,

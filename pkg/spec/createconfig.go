@@ -108,6 +108,7 @@ type CreateConfig struct {
 	ReadOnlyRootfs     bool     //read-only
 	ReadOnlyTmpfs      bool     //read-only-tmpfs
 	Resources          CreateResourceConfig
+	RestartPolicy      string
 	Rm                 bool              //rm
 	StopSignal         syscall.Signal    // stop-signal
 	StopTimeout        uint              // stop-timeout
@@ -357,6 +358,25 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 	if c.CgroupParent != "" {
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
+	}
+
+	if c.RestartPolicy != "" {
+		if c.RestartPolicy == "unless-stopped" {
+			return nil, errors.Wrapf(libpod.ErrInvalidArg, "the unless-stopped restart policy is not supported")
+		}
+
+		split := strings.Split(c.RestartPolicy, ":")
+		if len(split) > 1 {
+			numTries, err := strconv.Atoi(split[1])
+			if err != nil {
+				return nil, errors.Wrapf(err, "%s is not a valid number of retries for restart policy", split[1])
+			}
+			if numTries < 0 {
+				return nil, errors.Wrapf(libpod.ErrInvalidArg, "restart policy requires a positive number of retries")
+			}
+			options = append(options, libpod.WithRestartRetries(uint(numTries)))
+		}
+		options = append(options, libpod.WithRestartPolicy(split[0]))
 	}
 
 	// Always use a cleanup process to clean up Podman after termination

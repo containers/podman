@@ -364,6 +364,13 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		}
 
 		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
+
+		ctr.state.StoppedByUser = true
+		if err := ctr.save(); err != nil {
+			ctrErrors[ctr.ID()] = err
+		}
+
+		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {

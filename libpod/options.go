@@ -1239,6 +1239,41 @@ func WithUseImageHosts() CtrCreateOption {
 	}
 }
 
+// WithRestartPolicy sets the container's restart policy. Valid values are
+// "no", "on-failure", and "always". The empty string is allowed, and will be
+// equivalent to "no".
+func WithRestartPolicy(policy string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		switch policy {
+		case RestartPolicyNone, RestartPolicyNo, RestartPolicyOnFailure, RestartPolicyAlways:
+			ctr.config.RestartPolicy = policy
+		default:
+			return errors.Wrapf(ErrInvalidArg, "%q is not a valid restart policy", policy)
+		}
+
+		return nil
+	}
+}
+
+// WithRestartRetries sets the number of retries to use when restarting a
+// container with the "on-failure" restart policy.
+// 0 is an allowed value, and indicates infinite retries.
+func WithRestartRetries(tries uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+
+		ctr.config.RestartRetries = tries
+
+		return nil
+	}
+}
+
 // withIsInfra sets the container to be an infra container. This means the container will be sometimes hidden
 // and expected to be the first container in the pod.
 func withIsInfra() CtrCreateOption {

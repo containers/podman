@@ -57,11 +57,11 @@ func (c *Container) Init(ctx context.Context) (err error) {
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container
-		return c.reinit(ctx)
+		return c.reinit(ctx, false)
 	}
 
 	// Initialize the container for the first time
-	return c.init(ctx)
+	return c.init(ctx, false)
 }
 
 // Start starts a container.
@@ -199,8 +199,15 @@ func (c *Container) Kill(signal uint) error {
 	if c.state.State != ContainerStateRunning {
 		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
 	}
+
 	defer c.newContainerEvent(events.Kill)
-	return c.runtime.ociRuntime.killContainer(c, signal)
+	if err := c.runtime.ociRuntime.killContainer(c, signal); err != nil {
+		return err
+	}
+
+	c.state.StoppedByUser = true
+
+	return c.save()
 }
 
 // Exec starts a new process inside the container
@@ -583,6 +590,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
@@ -592,6 +600,19 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
+
+	// Handle restart policy.
+	// Returns a bool indicating whether we actually restarted.
+	// If we did, don't proceed to cleanup - just exit.
+	didRestart, err := c.handleRestartPolicy(ctx)
+	if err != nil {
+		return err
+	}
+	if didRestart {
+		return nil
+	}
+
+	// If we didn't restart, we perform a normal cleanup
 
 	// Check if we have active exec sessions
 	if len(c.state.ExecSessions) != 0 {
@@ -754,7 +775,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 		if err := c.prepare(); err != nil {
 			return err
 		}
-		if err := c.init(ctx); err != nil {
+		if err := c.init(ctx, false); err != nil {
 			return err
 		}
 	}
