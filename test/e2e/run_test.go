@@ -725,15 +725,19 @@ USER mail`
 	It("podman run with restart-policy always restarts containers", func() {
 		podmanTest.RestoreArtifact(fedoraMinimal)
 
-		aliveFile := filepath.Join(podmanTest.RunRoot, "running")
+		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
+		err := os.Mkdir(testDir, 0755)
+		Expect(err).To(BeNil())
+
+		aliveFile := filepath.Join(testDir, "running")
 		file, err := os.Create(aliveFile)
 		Expect(err).To(BeNil())
 		file.Close()
 
-		session := podmanTest.Podman([]string{"run", "-dt", "--restart", "always", "-v", fmt.Sprintf("%s:/tmp/runroot", podmanTest.RunRoot), fedoraMinimal, "bash", "-c", "date +%N > /tmp/runroot/ran && while test -r /tmp/runroot/running; do sleep 0.1s; done"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--restart", "always", "-v", fmt.Sprintf("%s:/tmp/runroot:Z", testDir), fedoraMinimal, "bash", "-c", "date +%N > /tmp/runroot/ran && while test -r /tmp/runroot/running; do sleep 0.1s; done"})
 
 		found := false
-		testFile := filepath.Join(podmanTest.RunRoot, "ran")
+		testFile := filepath.Join(testDir, "ran")
 		for i := 0; i < 10; i++ {
 			time.Sleep(1 * time.Second)
 			if _, err := os.Stat(testFile); err == nil {
