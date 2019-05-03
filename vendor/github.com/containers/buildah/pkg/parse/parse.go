@@ -287,8 +287,8 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.SignaturePolicyPath = sigPolicy
 	}
 	authfile, err := c.Flags().GetString("authfile")
-	if err == nil && c.Flag("authfile").Changed {
-		ctx.AuthFilePath = authfile
+	if err == nil {
+		ctx.AuthFilePath = getAuthFile(authfile)
 	}
 	regConf, err := c.Flags().GetString("registries-conf")
 	if err == nil && c.Flag("registries-conf").Changed {
@@ -300,6 +300,13 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", buildah.Version)
 	return ctx, nil
+}
+
+func getAuthFile(authfile string) string {
+	if authfile != "" {
+		return authfile
+	}
+	return os.Getenv("REGISTRY_AUTH_FILE")
 }
 
 func parseCreds(creds string) (string, string) {
@@ -575,4 +582,23 @@ func IsolationOption(c *cobra.Command) (buildah.Isolation, error) {
 		}
 	}
 	return defaultIsolation()
+}
+
+// ScrubServer removes 'http://' or 'https://' from the front of the
+// server/registry string if either is there.  This will be mostly used
+// for user input from 'buildah login' and 'buildah logout'.
+func ScrubServer(server string) string {
+	server = strings.TrimPrefix(server, "https://")
+	return strings.TrimPrefix(server, "http://")
+}
+
+// RegistryFromFullName gets the registry from the input. If the input is of the form
+// quay.io/myuser/myimage, it will parse it and just return quay.io
+// It also returns true if a full image name was given
+func RegistryFromFullName(input string) string {
+	split := strings.Split(input, "/")
+	if len(split) > 1 {
+		return split[0]
+	}
+	return split[0]
 }
