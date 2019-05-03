@@ -235,7 +235,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 				logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
 					c.ID(), c.state.RestartCount, c.config.RestartRetries)
 			} else {
-				logrus.Debugf("Container %s restart policy trigger: retries exhausted")
+				logrus.Debugf("Container %s restart policy trigger: retries exhausted", c.ID())
 				return false, nil
 			}
 		}
