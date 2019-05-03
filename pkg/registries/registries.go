@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/distribution/reference"
@@ -34,22 +34,57 @@ func SystemRegistriesConfPath() string {
 	return ""
 }
 
-// GetRegistries obtains the list of registries defined in the global registries file.
-func GetRegistries() ([]string, error) {
-	searchRegistries, err := sysregistries.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: SystemRegistriesConfPath()})
-	if err != nil {
-		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
-	}
-	return searchRegistries, nil
-}
-
-// GetInsecureRegistries obtains the list of insecure registries from the global registration file.
-func GetInsecureRegistries() ([]string, error) {
-	registries, err := sysregistries.GetInsecureRegistries(&types.SystemContext{SystemRegistriesConfPath: SystemRegistriesConfPath()})
+func getRegistries() ([]sysregistriesv2.Registry, error) {
+	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: SystemRegistriesConfPath()})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
 	}
 	return registries, nil
+}
+
+// GetRegistries obtains the list of search registries defined in the global registries file.
+func GetRegistries() ([]string, error) {
+	var searchRegistries []string
+	registries, err := getRegistries()
+	if err != nil {
+		return nil, err
+	}
+	for _, reg := range registries {
+		if reg.Search {
+			searchRegistries = append(searchRegistries, reg.URL)
+		}
+	}
+	return searchRegistries, nil
+}
+
+// GetBlockedRegistries obtains the list of blocked registries defined in the global registries file.
+func GetBlockedRegistries() ([]string, error) {
+	var blockedRegistries []string
+	registries, err := getRegistries()
+	if err != nil {
+		return nil, err
+	}
+	for _, reg := range registries {
+		if reg.Blocked {
+			blockedRegistries = append(blockedRegistries, reg.URL)
+		}
+	}
+	return blockedRegistries, nil
+}
+
+// GetInsecureRegistries obtains the list of insecure registries from the global registration file.
+func GetInsecureRegistries() ([]string, error) {
+	var insecureRegistries []string
+	registries, err := getRegistries()
+	if err != nil {
+		return nil, err
+	}
+	for _, reg := range registries {
+		if reg.Insecure {
+			insecureRegistries = append(insecureRegistries, reg.URL)
+		}
+	}
+	return insecureRegistries, nil
 }
 
 // GetRegistry returns the registry name from a string if specified

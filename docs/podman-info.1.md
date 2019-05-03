@@ -52,14 +52,14 @@ host:
   kernel: 4.18.7-200.fc28.x86_64
   os: linux
   uptime: 218h 49m 33.66s (Approximately 9.08 days)
-insecure registries:
-  registries: []
 registries:
-  registries:
+  blocked: null
+  insecure: null
+  search:
   - quay.io
   - registry.fedoraproject.org
   - docker.io
-  - registry.access.redhat.com
+  - registry.redhat.io
 store:
   ConfigFile: /etc/containers/storage.conf
   ContainerStore:
