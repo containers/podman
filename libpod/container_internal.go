@@ -213,20 +213,47 @@ func (c *Container) handleExitFile(exitFile string, fi os.FileInfo) error {
 // Handle container restart policy.
 // This is called when a container has exited, and was not explicitly stopped by
 // an API call to stop the container or pod it is in.
-func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
+func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, err error) {
+	// If we did not get a restart policy match, exit immediately.
+	// Do the same if we're not a policy that restarts.
+	if !c.state.RestartPolicyMatch ||
+		c.config.RestartPolicy == RestartPolicyNo ||
+		c.config.RestartPolicy == RestartPolicyNone {
+		return false, nil
+	}
+
+	// If we're RestartPolicyOnFailure, we need to check retries and exit
+	// code.
+	if c.config.RestartPolicy == RestartPolicyOnFailure {
+		if c.state.ExitCode == 0 {
+			return false, nil
+		}
+
+		// If we don't have a max retries set, continue
+		if c.config.RestartRetries > 0 {
+			if c.state.RestartCount < c.config.RestartRetries {
+				logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
+					c.ID(), c.state.RestartCount, c.config.RestartRetries)
+			} else {
+				logrus.Debugf("Container %s restart policy trigger: retries exhausted")
+				return false, nil
+			}
+		}
+	}
+
 	logrus.Debugf("Restarting container %s due to restart policy %s", c.ID(), c.config.RestartPolicy)
 
 	// Need to check if dependencies are alive.
 	if err = c.checkDependenciesAndHandleError(ctx); err != nil {
-		return err
+		return false, err
 	}
 
 	// Is the container running again?
 	// If so, we don't have to do anything
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
-		return nil
+		return false, nil
 	} else if c.state.State == ContainerStateUnknown {
-		return errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
+		return false, errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
 	}
 
 	c.newContainerEvent(events.Restart)
@@ -235,7 +262,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 	c.state.RestartCount = c.state.RestartCount + 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
-		return err
+		return false, err
 	}
 
 	defer func() {
@@ -246,22 +273,25 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (err error) {
 		}
 	}()
 	if err := c.prepare(); err != nil {
-		return err
+		return false, err
 	}
 
 	if c.state.State == ContainerStateStopped {
 		// Reinitialize the container if we need to
 		if err := c.reinit(ctx, true); err != nil {
-			return err
+			return false, err
 		}
 	} else if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateExited {
 		// Initialize the container
 		if err := c.init(ctx, true); err != nil {
-			return err
+			return false, err
 		}
 	}
-	return c.start()
+	if err := c.start(); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // Sync this container with on-disk state and runtime status

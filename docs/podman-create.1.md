@@ -576,8 +576,8 @@ Valid values are:
 - `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
 
 Please note that restart will not restart containers after a system reboot.
-If you require this functionality, please add your Podman commands to a systemd unit file, or create an init script for your init system of choice.
-There is an example of restarting a container with systemd below.
+This this functionality is required in your environment, you can invoke Podman from a systemd unit file, or create an init script for whichever init system is in use.
+To generate systemd unit files, please see *podman generate systemd*
 
 **--rm**=*true*|*false*
 
@@ -863,21 +863,6 @@ the uids and gids from the host.
 
 ```
 $ podman create --uidmap 0:30000:7000 --gidmap 0:30000:7000 fedora echo hello
-```
-
-### Running a podman container to restart inside of a systemd unit file
-
-
-```
-[Unit]
-Description=My App
-[Service]
-Restart=always
-ExecStart=/usr/bin/podman start -a my_app
-ExecStop=/usr/bin/podman stop -t 10 my_app
-KillMode=process
-[Install]
-WantedBy=multi-user.target
 ```
 
 ### Rootless Containers

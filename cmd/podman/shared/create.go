@@ -42,7 +42,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		defer span.Finish()
 	}
 	if c.Bool("rm") && c.String("restart") != "" && c.String("restart") != "no" {
-		return nil, nil, errors.Errorf("the --rm flag conflicts with --restart")
+		return nil, nil, errors.Errorf("the --rm option conflicts with --restart")
 	}
 
 	rtc, err := runtime.GetConfig()

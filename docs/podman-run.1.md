@@ -598,8 +598,8 @@ Valid values are:
 - `always`                   : Restart containers when they exit, regardless of status, retrying indefinitely
 
 Please note that restart will not restart containers after a system reboot.
-If you require this functionality, please add your Podman commands to a systemd unit file, or create an init script for your init system of choice.
-To manage container restart via systemd, see *podman generate systemd*.
+This this functionality is required in your environment, you can invoke Podman from a systemd unit file, or create an init script for whichever init system is in use.
+To generate systemd unit files, please see *podman generate systemd*
 
 **--rm**=*true*|*false*
 

@@ -601,23 +601,18 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
 
-	// If we have a restart policy match when updating the state, we need to
-	// restart the container.
-	// However, perform a full validation of restart policy first.
-	if c.state.RestartPolicyMatch {
-		if c.config.RestartPolicy == RestartPolicyOnFailure && c.state.ExitCode != 0 {
-			logrus.Debugf("Container %s restart policy trigger: on retry %d (of %d)",
-				c.ID(), c.state.RestartCount, c.config.RestartRetries)
-		}
-		if (c.config.RestartPolicy == RestartPolicyOnFailure && c.state.ExitCode != 0 &&
-			(c.config.RestartRetries > 0 && c.state.RestartCount < c.config.RestartRetries)) ||
-			c.config.RestartPolicy == RestartPolicyAlways {
-			// The container stopped. We need to restart it.
-			return c.handleRestartPolicy(ctx)
-		}
+	// Handle restart policy.
+	// Returns a bool indicating whether we actually restarted.
+	// If we did, don't proceed to cleanup - just exit.
+	didRestart, err := c.handleRestartPolicy(ctx)
+	if err != nil {
+		return err
+	}
+	if didRestart {
+		return nil
 	}
 
-	// If we aren't hitting restart policy, we perform a normal cleanup
+	// If we didn't restart, we perform a normal cleanup
 
 	// Check if we have active exec sessions
 	if len(c.state.ExecSessions) != 0 {
