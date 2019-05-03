@@ -144,6 +144,8 @@ func StringToStatus(name string) (Status, error) {
 		return Remove, nil
 	case Renumber.String():
 		return Renumber, nil
+	case Restart.String():
+		return Restart, nil
 	case Restore.String():
 		return Restore, nil
 	case Save.String():
