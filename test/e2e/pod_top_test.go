@@ -93,7 +93,11 @@ var _ = Describe("Podman top", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "top", podid, "invalid"})
+		// We need to pass -eo to force executing ps in the Alpine container.
+		// Alpines stripped down ps(1) is accepting any kind of weird input in
+		// contrast to others, such that a `ps invalid` will silently ignore
+		// the wrong input and still print the -ef output instead.
+		result := podmanTest.Podman([]string{"pod", "top", podid, "-eo", "invalid"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))
 	})
