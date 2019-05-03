@@ -5,14 +5,6 @@ source $(dirname $0)/lib.sh
 
 req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME
 
-exit_handler() {
-    set +ex
-    record_timestamp "integration test end"
-}
-trap exit_handler EXIT
-
-record_timestamp "integration test start"
-
 cd "$GOSRC"
 
 if [[ "$SPECIALMODE" == "in_podman" ]]
