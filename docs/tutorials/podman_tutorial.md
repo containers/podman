@@ -8,114 +8,9 @@ commands with Podman.
 **NOTE**: the code samples are intended to be run as a non-root user, and use `sudo` where
 root escalation is required.
 
-## Install Podman on Fedora from RPM Repositories
-Fedora 27 and later provide Podman via the package manager.
-```console
-sudo dnf install -y podman
-```
+## Installing Podman
 
-*Optional*: If you've already installed podman on Fedora and you're feeling
-adventerous, you can test the very latest podman in Fedora's `updates-testing`
-repository before it goes out to all Fedora users.
-```console
-sudo yum distro-sync --enablerepo=updates-testing podman
-```
-
-If you use a newer podman package from Fedora's `updates-testing`, we would
-appreciate your `+1` feedback in [Bodhi, Fedora's update management
-system](https://bodhi.fedoraproject.org/updates/?packages=podman).
-
-## Install Podman on Fedora from Source
-Many of the basic components to run Podman are readily available from the Fedora RPM repositories.
-In this section, we will help you install all the runtime and build dependencies for Podman,
-acquire the source, and build it.
-
-### Installing build and runtime dependencies
-```console
-sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
-                                  gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
-                                  atomic-registries iptables containers-common containernetworking-cni \
-                                  conmon ostree-devel
-```
-### Building and installing podman
-
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
-and make libpod.
-
-```console
-export GOPATH=~/go
-mkdir -p $GOPATH
-git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
-cd $GOPATH/src/github.com/containers/libpod
-make
-sudo make install PREFIX=/usr
-```
-
-You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](#familiarizing-yourself-with-podman)
-to begin using Podman.
-
-## Install podman on Ubuntu
-
-The default Ubuntu cloud image size will not allow for the following exercise to be done without increasing its
-capacity.  Be sure to add at least 5GB to the image. Instructions to do this are outside the scope of this
-tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was used.
-
-### Installing build and runtime dependencies
-
-#### Installing base packages
-```console
-sudo apt-get update
-sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev libostree-dev \
-                        go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev python3-setuptools
-```
-#### Building and installing conmon
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
-and make libpod.
-
-```console
-export GOPATH=~/go
-mkdir -p $GOPATH
-git clone https://github.com/kubernetes-sigs/cri-o $GOPATH/src/github.com/kubernetes-sigs/cri-o
-cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
-mkdir bin
-make bin/conmon
-sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
-```
-#### Adding required configuration files
-```console
-sudo mkdir -p /etc/containers
-sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-sudo curl https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o /etc/containers/policy.json
-```
-#### Installing CNI plugins
-```console
-git clone https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
-cd $GOPATH/src/github.com/containernetworking/plugins
-./build_linux.sh
-sudo mkdir -p /usr/libexec/cni
-sudo cp bin/* /usr/libexec/cni
-```
-#### Installing CNI config
-Add a most basic network config
-```console
-mkdir -p /etc/cni/net.d
-curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/99-loopback.conf
-```
-#### Installing runc
-```console
-git clone https://github.com/opencontainers/runc.git $GOPATH/src/github.com/opencontainers/runc
-cd $GOPATH/src/github.com/opencontainers/runc
-make BUILDTAGS="seccomp"
-sudo cp runc /usr/bin/runc
-```
-
-### Building and installing Podman
-```console
-git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
-cd $GOPATH/src/github.com/containers/libpod
-make
-sudo make install PREFIX=/usr
-```
+For installing or building Podman, please see the [installation instructions](install.md).
 
 ## Familiarizing yourself with Podman
 
@@ -128,7 +23,7 @@ podman run -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CO
                   -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
                   registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
 ```
-Because the container is being run in detached mode, represented by the *-d* in the podman run command, podman
+Because the container is being run in detached mode, represented by the *-d* in the `podman run` command, Podman
 will print the container ID after it has run. Note that we use port forwarding to be able to
 access the HTTP server. For successful running at least slirp4netns v0.3.0 is needed.
 
