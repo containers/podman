@@ -51,6 +51,7 @@ var (
 	// Commands that are universally implemented.
 	containerCommands = []*cobra.Command{
 		_attachCommand,
+		_checkpointCommand,
 		_containerExistsCommand,
 		_contInspectSubCommand,
 		_diffCommand,
@@ -64,6 +65,7 @@ var (
 		_portCommand,
 		_pruneContainersCommand,
 		_restartCommand,
+		_restoreCommand,
 		_runCommand,
 		_rmCommand,
 		_startCommand,

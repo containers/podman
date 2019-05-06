@@ -39,13 +39,11 @@ func getImageSubCommands() []*cobra.Command {
 func getContainerSubCommands() []*cobra.Command {
 
 	return []*cobra.Command{
-		_checkpointCommand,
 		_cleanupCommand,
 		_commitCommand,
 		_execCommand,
 		_mountCommand,
 		_refreshCommand,
-		_restoreCommand,
 		_runlabelCommand,
 		_statsCommand,
 		_umountCommand,
