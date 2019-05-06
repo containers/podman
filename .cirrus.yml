@@ -176,10 +176,40 @@ vendor_task:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
 
 
+# This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
+# whether the git tree is clean.
+varlink_api_task:
+
+    depends_on:
+        - "gating"
+
+    env:
+        CIRRUS_WORKING_DIR: "/usr/src/libpod"
+        # Used by tree_status.sh
+        SUGGESTION: 'remove API.md, then "make varlink_api_generate" and commit changes.'
+
+    # Runs within Cirrus's "community cluster"
+    container:
+        image: "quay.io/libpod/gate:latest"
+        cpu: 4
+        memory: 12
+
+    timeout_in: 10m
+
+    vendor_script:
+        - '/usr/local/bin/entrypoint.sh varlink_api_generate'
+        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
+
+    on_failure:
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+
+
 build_each_commit_task:
 
     depends_on:
         - "gating"
+        - "vendor"
+        - "varlink_api"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
     only_if: $CIRRUS_BRANCH != 'master'
@@ -232,6 +262,8 @@ testing_task:
 
     depends_on:
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit"
 
     gce_instance:
@@ -275,6 +307,8 @@ special_testing_task:
 
     depends_on:
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit"
 
     gce_instance:
@@ -388,6 +422,8 @@ success_task:
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
+        - "varlink_api"
+        - "vendor"
         - "build_each_commit_task"
         - "testing"
         - "rootless_testing_task"
