@@ -57,6 +57,25 @@ func (m *SHMLockManager) AllocateLock() (Locker, error) {
 	return lock, nil
 }
 
+// AllocateAndRetrieveLock allocates the lock with the given ID and returns it.
+// If the lock is already allocated, error.
+func (m *SHMLockManager) AllocateAndRetrieveLock(id uint32) (Locker, error) {
+	lock := new(SHMLock)
+	lock.lockID = id
+	lock.manager = m
+
+	if id >= m.locks.GetMaxLocks() {
+		return nil, errors.Wrapf(syscall.EINVAL, "lock ID %d is too large - max lock size is %d",
+			id, m.locks.GetMaxLocks()-1)
+	}
+
+	if err := m.locks.AllocateGivenSemaphore(id); err != nil {
+		return nil, err
+	}
+
+	return lock, nil
+}
+
 // RetrieveLock retrieves a lock from the manager given its ID.
 func (m *SHMLockManager) RetrieveLock(id uint32) (Locker, error) {
 	lock := new(SHMLock)

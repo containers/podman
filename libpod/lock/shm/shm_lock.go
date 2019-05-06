@@ -134,6 +134,23 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	return uint32(retCode), nil
 }
 
+// AllocateGivenSemaphore allocates the given semaphore from the shared-memory
+// segment for use by a container or pod.
+// If the semaphore is already in use or the index is invalid an error will be
+// returned.
+func (locks *SHMLocks) AllocateGivenSemaphore(sem uint32) error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	retCode := C.allocate_given_semaphore(locks.lockStruct, C.uint32_t(sem))
+	if retCode < 0 {
+		return syscall.Errno(-1 * retCode)
+	}
+
+	return nil
+}
+
 // DeallocateSemaphore frees a semaphore in a shared-memory segment so it can be
 // reallocated to another container or pod.
 // The given semaphore must be already allocated, or an error will be returned.

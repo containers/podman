@@ -516,7 +516,7 @@ func (c *Container) refresh() error {
 	}
 
 	// We need to pick up a new lock
-	lock, err := c.runtime.lockManager.RetrieveLock(c.config.LockID)
+	lock, err := c.runtime.lockManager.AllocateAndRetrieveLock(c.config.LockID)
 	if err != nil {
 		return errors.Wrapf(err, "error acquiring lock for container %s", c.ID())
 	}
