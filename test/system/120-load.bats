@@ -87,6 +87,10 @@ verify_iid_and_name() {
 
 
 @test "podman load - will not read from tty" {
+    if [ ! -t 0 ]; then
+        skip "STDIN is not a tty"
+    fi
+
     run_podman 125 load
     is "$output" \
        "Error: cannot read from terminal. Use command-line redirection" \
