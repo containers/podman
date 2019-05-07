@@ -961,3 +961,18 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
 	return iopodman.GenerateSystemd().Call(r.Conn, c.InputArgs[0], c.RestartPolicy, int64(c.StopTimeout), c.Name)
 }
+
+// GetNamespaces returns namespace information about a container for PS
+func (r *LocalRuntime) GetNamespaces(container shared.PsContainerOutput) *shared.Namespace {
+	ns := shared.Namespace{
+		PID:    container.PID,
+		Cgroup: container.Cgroup,
+		IPC:    container.IPC,
+		MNT:    container.MNT,
+		NET:    container.NET,
+		PIDNS:  container.PIDNS,
+		User:   container.User,
+		UTS:    container.UTS,
+	}
+	return &ns
+}

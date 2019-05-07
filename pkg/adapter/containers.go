@@ -1022,3 +1022,8 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 	}
 	return systemdgen.CreateSystemdUnitAsString(name, ctr.ID(), c.RestartPolicy, ctr.Config().StaticDir, timeout)
 }
+
+// GetNamespaces returns namespace information about a container for PS
+func (r *LocalRuntime) GetNamespaces(container shared.PsContainerOutput) *shared.Namespace {
+	return shared.GetNamespaces(container.Pid)
+}
