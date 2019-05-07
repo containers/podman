@@ -20,12 +20,7 @@ func (r RemoteRuntime) Info() ([]libpod.InfoData, error) {
 
 	registries := make(map[string]interface{})
 	insecureRegistries := make(map[string]interface{})
-	conn, err := r.Connect()
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Close()
-	info, err := iopodman.GetInfo().Call(conn)
+	info, err := iopodman.GetInfo().Call(r.Conn)
 	if err != nil {
 		return nil, err
 	}

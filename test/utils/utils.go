@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -42,6 +41,7 @@ type PodmanTest struct {
 	RemotePodmanBinary string
 	VarlinkSession     *os.Process
 	VarlinkEndpoint    string
+	VarlinkCommand     *exec.Cmd
 }
 
 // PodmanSession wraps the gexec.session so we can extend it
@@ -69,9 +69,7 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
-		if !rootless.IsRootless() {
-			env = append(env, fmt.Sprintf("PODMAN_VARLINK_ADDRESS=%s", p.VarlinkEndpoint))
-		}
+		env = append(env, fmt.Sprintf("PODMAN_VARLINK_ADDRESS=%s", p.VarlinkEndpoint))
 	}
 
 	if env == nil {

@@ -119,6 +119,9 @@ func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, lates
 
 	ctrs, err := shortcuts.GetContainersByContext(all, latest, input, i.Runtime)
 	if err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			return call.ReplyContainerNotFound("", err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
@@ -359,7 +362,11 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 	if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
 		return call.ReplyErrorOccurred("container is already running or paused")
 	}
-	if err := ctr.Start(getContext(), false); err != nil {
+	recursive := false
+	if ctr.PodID() != "" {
+		recursive = true
+	}
+	if err := ctr.Start(getContext(), recursive); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyStartContainer(ctr.ID())
@@ -386,7 +393,13 @@ func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeou
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	if err := ctr.StopWithTimeout(uint(timeout)); err != nil && err != libpod.ErrCtrStopped {
+	if err := ctr.StopWithTimeout(uint(timeout)); err != nil {
+		if errors.Cause(err) == libpod.ErrCtrStopped {
+			return call.ReplyErrCtrStopped(ctr.ID())
+		}
+		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyStopContainer(ctr.ID())

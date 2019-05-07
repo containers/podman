@@ -234,15 +234,25 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 
 	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
 	if err != nil {
-		return ok, failures, err
+		return ok, failures, TranslateError(err)
 	}
 
 	for _, id := range ids {
-		stopped, err := iopodman.StopContainer().Call(r.Conn, id, int64(cli.Timeout))
-		if err != nil {
+		if _, err := iopodman.StopContainer().Call(r.Conn, id, int64(cli.Timeout)); err != nil {
+			transError := TranslateError(err)
+			if errors.Cause(transError) == libpod.ErrCtrStopped {
+				ok = append(ok, id)
+				continue
+			}
+			if errors.Cause(transError) == libpod.ErrCtrStateInvalid && cli.All {
+				ok = append(ok, id)
+				continue
+			}
 			failures[id] = err
 		} else {
-			ok = append(ok, stopped)
+			// We should be using ID here because in varlink, only successful returns
+			// include the string id
+			ok = append(ok, id)
 		}
 	}
 	return ok, failures, nil
@@ -310,7 +320,7 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
 	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, TranslateError(err)
 	}
 
 	var (

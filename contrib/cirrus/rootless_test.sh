@@ -14,8 +14,6 @@ then
     exit 1
 fi
 
-export PODMAN_VARLINK_ADDRESS=unix:/tmp/podman-$(id -u)
-
 echo "."
 echo "Hello, my name is $USER and I live in $PWD can I be your friend?"
 

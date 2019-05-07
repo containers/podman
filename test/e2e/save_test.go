@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/libpod/pkg/rootless"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -75,6 +76,9 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with oci format", func() {
+		if rootless.IsRootless() && podmanTest.RemoteTest {
+			Skip("Requires a fix in containers image for chown/lchown")
+		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--format", "oci-dir", "-o", outdir, ALPINE})
@@ -83,6 +87,9 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with v2s2 docker format", func() {
+		if rootless.IsRootless() && podmanTest.RemoteTest {
+			Skip("Requires a fix in containers image for chown/lchown")
+		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--format", "docker-dir", "-o", outdir, ALPINE})
@@ -91,6 +98,9 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save to directory with docker format and compression", func() {
+		if rootless.IsRootless() && podmanTest.RemoteTest {
+			Skip("Requires a fix in containers image for chown/lchown")
+		}
 		outdir := filepath.Join(podmanTest.TempDir, "save")
 
 		save := podmanTest.Podman([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})

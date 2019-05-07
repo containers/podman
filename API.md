@@ -259,6 +259,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [error ContainerNotFound](#ContainerNotFound)
 
+[error ErrCtrStopped](#ErrCtrStopped)
+
 [error ErrorOccurred](#ErrorOccurred)
 
 [error ImageNotFound](#ImageNotFound)
@@ -1978,6 +1980,9 @@ force [bool](https://godoc.org/builtin#bool)
 ### <a name="ContainerNotFound"></a>type ContainerNotFound
 
 ContainerNotFound means the container could not be found by the provided name or ID in local storage.
+### <a name="ErrCtrStopped"></a>type ErrCtrStopped
+
+Container is already stopped
 ### <a name="ErrorOccurred"></a>type ErrorOccurred
 
 ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message

@@ -922,7 +922,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if os.IsNotExist(errors.Cause(err)) {
 			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "failed to get new shm lock manager")
 			}
 		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
 			logrus.Debugf("Number of locks does not match - removing old locks")
