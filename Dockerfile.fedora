@@ -1,9 +1,8 @@
-FROM registry.fedoraproject.org/fedora:29
+FROM registry.fedoraproject.org/fedora:30
 
 RUN dnf -y install btrfs-progs-devel \
               atomic-registries \
               bzip2 \
-              conmon \
               device-mapper-devel \
               findutils \
               git \

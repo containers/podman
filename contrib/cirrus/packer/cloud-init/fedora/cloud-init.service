@@ -1,0 +1,20 @@
+[Unit]
+Description=Initial cloud-init job (metadata service crawler)
+DefaultDependencies=no
+Wants=cloud-init-local.service
+After=cloud-init-local.service
+Wants=google-network-daemon.service
+After=google-network-daemon.service
+Before=systemd-user-sessions.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/cloud-init init
+RemainAfterExit=yes
+TimeoutSec=0
+
+# Output needs to appear in instance console output
+StandardOutput=journal+console
+
+[Install]
+WantedBy=cloud-init.target

@@ -55,11 +55,11 @@ builders:
 
     #      v----- is a YAML alias, allows partial re-use of the anchor object
     - <<: *gce_hosted_image
-      name: 'fedora-29'
+      name: 'fedora-30'
       source_image: '{{user `FEDORA_BASE_IMAGE`}}'
 
     - <<: *gce_hosted_image
-      name: 'fedora-28'
+      name: 'fedora-29'
       source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
 
 # The brains of the operation, making actual modifications to the base-image.

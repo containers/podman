@@ -55,15 +55,15 @@ PACKER_VER="1.3.5"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28}"
+PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,fedora-29}"
 # Google-maintained base-image names
 UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
-# FEDORA_BASE_IMAGE: "fedora-cloud-base-30-1-2-1556821664"
-PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
-# PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
+FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
+PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
 BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+# IN_PODMAN container image
+IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
@@ -73,9 +73,6 @@ SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
-
-# IN_PODMAN container image
-IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
 
 # When running as root, this may be empty or not, as a user, it MUST be set.
 if [[ "$USER" == "root" ]]
@@ -347,7 +344,7 @@ _finalize(){
     set +e  # make errors non-fatal
     echo "Removing leftover giblets from cloud-init"
     cd /
-    sudo rm -rf /var/lib/cloud/instance?
+    sudo rm -rf /var/lib/cloud/instanc*
     sudo rm -rf /root/.ssh/*
     sudo rm -rf /home/*
     sudo rm -rf /tmp/*

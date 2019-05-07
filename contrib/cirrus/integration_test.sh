@@ -28,8 +28,6 @@ then
         -e "DIST=$OS_RELEASE_ID" \
         -e "CONTAINER_RUNTIME=$CONTAINER_RUNTIME" \
         $IN_PODMAN_IMAGE bash $GOSRC/$SCRIPT_BASE/container_test.sh -b -i -t
-
-    exit $?
 elif [[ "$SPECIALMODE" == "rootless" ]]
 then
     req_env_var ROOTLESS_USER
@@ -52,5 +50,4 @@ else
     else
         make local${TESTSUITE}
     fi
-    exit $?
 fi
