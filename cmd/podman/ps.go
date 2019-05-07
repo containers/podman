@@ -497,7 +497,7 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 
 		} else {
 			// Print namespace information
-			ns := shared.GetNamespaces(container.Pid)
+			ns := runtime.GetNamespaces(container)
 			fmt.Fprintf(w, "\n%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Names, container.Pid, ns.Cgroup, ns.IPC, ns.MNT, ns.NET, ns.PIDNS, ns.User, ns.UTS)
 		}
 
