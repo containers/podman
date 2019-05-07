@@ -251,6 +251,56 @@ inside of the container.
 
 Read in a line delimited file of environment variables
 
+**--expose**=[]
+
+Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
+on the host system.
+
+**--gidmap**=container_gid:host_gid:amount
+**--gidmap**=0:30000:2000
+
+Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subgidname flags.
+This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
+The example maps gids 0-2000 in the container to the gids 30000-31999 on the host.
+
+**--group-add**=[]
+
+Add additional groups to run as
+
+**--healthcheck**=""
+
+Set or alter a healthcheck command for a container. The command is a command to be executed inside your
+container that determines your container health.  The command is required for other healthcheck options
+to be applied.  A value of `none` disables existing healthchecks.
+
+**--healthcheck-interval**=""
+
+Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
+
+**--healthcheck-retries=**
+
+The number of retries allowed before a healthcheck is considered to be unhealthy.  The default value is `3`.
+
+**--healthcheck-start-period**=""
+
+The initialization time needed for a container to bootstrap. The value can be expressed in time format like
+`2m3s`.  The default value is `0s`
+
+**--healthcheck-timeout**=""
+
+The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
+value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
+
+**--hostname**=""
+
+Container host name
+
+Sets the container host name that is available inside the container.
+
+**--help**
+
+Print usage statement
+
 **--http-proxy**=*true*|*false*
 
 By default proxy environment variables are passed into the container if set
@@ -270,49 +320,6 @@ container:
 `--http-proxy=false`
 
 Defaults to `true`
-
-**--expose**=[]
-
-Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
-on the host system.
-
-**--gidmap**=container_gid:host_gid:amount
-**--gidmap**=0:30000:2000
-
-Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subgidname flags.
-This option can be passed several times to map different ranges. If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
-The example maps gids 0-2000 in the container to the gids 30000-31999 on the host.
-
-**--group-add**=[]
-
-Add additional groups to run as
-
-**--healthcheck**=""
-
-Set or alter a healthcheck for a container.  The value must be of the format of:
-
- `[OPTIONS] CMD command`
-
- where options can be any of the follow:
- * --interval=DURATION (default: 30s)
- * --timeout=DURATION (default: 30s)
- * --start-period=DURATION (default: 0s)
- * --retries=N (default: 3)
-
-Note: options are *not* required.
-
-The command is a command to be executed inside your container that determines your container health.  The
-command is required.
-
-**--hostname**=""
-
-Container host name
-
-Sets the container host name that is available inside the container.
-
-**--help**
-
-Print usage statement
 
 **--image-volume**, **builtin-volume**=*bind*|*tmpfs*|*ignore*
 
