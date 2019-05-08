@@ -32,6 +32,10 @@ type MainFlags struct {
 	CpuProfile string
 	LogLevel   string
 	TmpDir     string
+
+	RemoteUserName string
+	RemoteHost     string
+	VarlinkAddress string
 }
 
 type AttachValues struct {

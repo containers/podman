@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"io"
 	"net"
+	"os"
 	"os/exec"
 )
 
@@ -28,12 +29,13 @@ func (p PipeCon) Close() error {
 	return nil
 }
 
-// NewConnection returns a new connection to the given address.
-func NewBridge(bridge string) (*Connection, error) {
+// NewBridgeWithStderr returns a new connection with the given bridge.
+func NewBridgeWithStderr(bridge string, stderr io.Writer) (*Connection, error) {
 	//var err error
 
 	c := Connection{}
 	cmd := exec.Command("cmd", "/C", bridge)
+	cmd.Stderr = stderr
 	r, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -53,4 +55,9 @@ func NewBridge(bridge string) (*Connection, error) {
 	}
 
 	return &c, nil
+}
+
+// NewBridge returns a new connection with the given bridge.
+func NewBridge(bridge string) (*Connection, error) {
+	return NewBridgeWithStderr(bridge, os.Stderr)
 }

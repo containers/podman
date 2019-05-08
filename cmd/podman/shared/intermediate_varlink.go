@@ -3,8 +3,6 @@
 package shared
 
 import (
-	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/pkg/rootless"
@@ -209,7 +207,6 @@ func boolFromVarlink(v *bool, flagName string, defaultValue bool) CRBool {
 		cr.Val = defaultValue
 		cr.Changed = false
 	} else {
-		fmt.Println(flagName, cr.Val)
 		cr.Val = *v
 		cr.Changed = true
 	}

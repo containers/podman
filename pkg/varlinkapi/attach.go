@@ -60,6 +60,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	if !start && state != libpod.ContainerStateRunning {
 		return call.ReplyErrorOccurred("container must be running to attach")
 	}
+	call.Reply(nil)
 	reader, writer, _, pw, streams := setupStreams(call)
 
 	go func() {

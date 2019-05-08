@@ -3,11 +3,17 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
@@ -45,13 +51,31 @@ func init() {
 }
 
 func varlinkCmd(c *cliconfig.VarlinkValues) error {
+	varlinkURI := adapter.DefaultAddress
+	if rootless.IsRootless() {
+		xdg, err := util.GetRootlessRuntimeDir()
+		if err != nil {
+			return err
+		}
+		socketDir := filepath.Join(xdg, "podman/io.podman")
+		if _, err := os.Stat(filepath.Dir(socketDir)); os.IsNotExist(err) {
+			if err := os.Mkdir(filepath.Dir(socketDir), 0755); err != nil {
+				return err
+			}
+		}
+		varlinkURI = fmt.Sprintf("unix:%s", socketDir)
+	}
 	args := c.InputArgs
-	if len(args) < 1 {
-		return errors.Errorf("you must provide a varlink URI")
-	}
+
 	if len(args) > 1 {
-		return errors.Errorf("too many arguments. Requires exactly 1")
+		return errors.Errorf("too many arguments. you may optionally provide 1")
 	}
+
+	if len(args) > 0 {
+		varlinkURI = args[0]
+	}
+
+	logrus.Debugf("Using varlink socket: %s", varlinkURI)
 	timeout := time.Duration(c.Timeout) * time.Millisecond
 
 	// Create a single runtime for varlink
@@ -81,7 +105,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	}
 
 	// Run the varlink server at the given address
-	if err = service.Listen(args[0], timeout); err != nil {
+	if err = service.Listen(varlinkURI, timeout); err != nil {
 		switch err.(type) {
 		case varlink.ServiceTimeoutError:
 			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms, 0 means never timeout)", c.Int64("timeout"))
