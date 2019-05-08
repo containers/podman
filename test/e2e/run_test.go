@@ -12,6 +12,7 @@ import (
 	"time"
 
 	. "github.com/containers/libpod/test/utils"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -104,6 +105,46 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run a container with a --rootfs", func() {
+		rootfs := filepath.Join(tempdir, "rootfs")
+		uls := filepath.Join("/", "usr", "local", "share")
+		uniqueString := stringid.GenerateNonCryptoID()
+		testFilePath := filepath.Join(uls, uniqueString)
+		tarball := filepath.Join(tempdir, "rootfs.tar")
+
+		err := os.Mkdir(rootfs, 0770)
+		Expect(err).Should(BeNil())
+
+		// Change image in predictable way to validate export
+		csession := podmanTest.Podman([]string{"run", "--name", uniqueString, ALPINE,
+			"/bin/sh", "-c", fmt.Sprintf("echo %s > %s", uniqueString, testFilePath)})
+		csession.WaitWithDefaultTimeout()
+		Expect(csession.ExitCode()).To(Equal(0))
+
+		// Export from working container image guarantees working root
+		esession := podmanTest.Podman([]string{"export", "--output", tarball, uniqueString})
+		esession.WaitWithDefaultTimeout()
+		Expect(esession.ExitCode()).To(Equal(0))
+		Expect(tarball).Should(BeARegularFile())
+
+		// N/B: This will loose any extended attributes like SELinux types
+		fmt.Fprintf(os.Stderr, "Extracting container root tarball\n")
+		tarsession := SystemExec("tar", []string{"xf", tarball, "-C", rootfs})
+		Expect(tarsession.ExitCode()).To(Equal(0))
+		Expect(filepath.Join(rootfs, uls)).Should(BeADirectory())
+
+		// Other tests confirm SELinux types, just confirm --rootfs is working.
+		session := podmanTest.Podman([]string{"run", "-i", "--security-opt", "label=disable",
+			"--rootfs", rootfs, "cat", testFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Validate changes made in original container and export
+		stdoutLines := session.OutputToStringArray()
+		Expect(stdoutLines).Should(HaveLen(1))
+		Expect(stdoutLines[0]).Should(Equal(uniqueString))
 	})
 
 	It("podman run a container with --init", func() {
