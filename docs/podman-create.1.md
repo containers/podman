@@ -592,7 +592,7 @@ Automatically remove the container when it exits. The default is *false*.
 
 Note that the container will not be removed when it could not be created or
 started successfully. This allows the user to inspect the container after
-failure. The `--rm` flag is incompatible with the `-d` flag.
+failure.
 
 **--rootfs**
 
