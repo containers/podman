@@ -18,7 +18,23 @@ SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= ${DESTDIR}/etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
-BUILDTAGS ?= seccomp $(shell hack/btrfs_tag.sh) $(shell hack/btrfs_installed_tag.sh) $(shell hack/ostree_tag.sh) $(shell hack/selinux_tag.sh) $(shell hack/apparmor_tag.sh) varlink exclude_graphdriver_devicemapper
+BUILDTAGS ?= \
+	$(shell hack/apparmor_tag.sh) \
+	$(shell hack/btrfs_installed_tag.sh) \
+	$(shell hack/btrfs_tag.sh) \
+	$(shell hack/ostree_tag.sh) \
+	$(shell hack/selinux_tag.sh) \
+	$(shell hack/systemd_tag.sh) \
+	exclude_graphdriver_devicemapper \
+	seccomp \
+	varlink
+
+ifeq (,$(findstring systemd,$(BUILDTAGS)))
+$(warning \
+	Podman is being compiled without the systemd build tag.\
+	Install libsystemd for journald support)
+endif
+
 BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go

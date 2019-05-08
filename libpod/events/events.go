@@ -10,6 +10,10 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ErrNoJournaldLogging indicates that there is no journald logging
+// supported (requires libsystemd)
+var ErrNoJournaldLogging = errors.New("No support for journald logging")
+
 // String returns a string representation of EventerType
 func (et EventerType) String() string {
 	if et == LogFile {
