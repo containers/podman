@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/pkg/errors"
@@ -21,7 +22,7 @@ func (r *Runtime) migrate(ctx context.Context) error {
 
 	logrus.Infof("stopping all containers")
 	for _, ctr := range runningContainers {
-		logrus.Infof("stopping %s", ctr.ID())
+		fmt.Printf("stopped %s\n", ctr.ID())
 		if err := ctr.Stop(); err != nil {
 			return errors.Wrapf(err, "cannot stop container %s", ctr.ID())
 		}
@@ -35,12 +36,6 @@ func (r *Runtime) migrate(ctx context.Context) error {
 			if err := r.state.RewriteContainerConfig(ctr, ctr.config); err != nil {
 				return errors.Wrapf(err, "error rewriting config for container %s", ctr.ID())
 			}
-		}
-	}
-
-	for _, ctr := range runningContainers {
-		if err := ctr.Start(ctx, true); err != nil {
-			logrus.Errorf("error restarting container %s", ctr.ID())
 		}
 	}
 
