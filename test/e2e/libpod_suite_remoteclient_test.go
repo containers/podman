@@ -77,6 +77,7 @@ func (p *PodmanTestIntegration) StartVarlink() {
 	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	p.VarlinkCommand = command
 	p.VarlinkSession = command.Process
+	p.DelayForVarlink()
 }
 
 func (p *PodmanTestIntegration) StopVarlink() {
