@@ -22,7 +22,9 @@ import (
 )
 
 /*
+#cgo remoteclient CFLAGS: -DDISABLE_JOIN_SHORTCUT
 #include <stdlib.h>
+extern uid_t rootless_uid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path);
 extern int reexec_in_user_namespace_wait(int pid);
 extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
@@ -46,6 +48,12 @@ var (
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
+		rootlessUIDInit := int(C.rootless_uid())
+		if rootlessUIDInit != 0 {
+			// This happens if we joined the user+mount namespace as part of
+			os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
+			os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit))
+		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 	})
 	return isRootless
