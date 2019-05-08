@@ -15,7 +15,7 @@ func IsRootless() bool {
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
-func BecomeRootInUserNS() (bool, int, error) {
+func BecomeRootInUserNS(pausePid string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
@@ -28,6 +28,6 @@ func GetRootlessUID() int {
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.  It is a convenience function for JoinUserAndMountNSWithOpts
 // with a default configuration.
-func JoinUserAndMountNS(pid uint) (bool, int, error) {
+func JoinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }

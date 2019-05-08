@@ -22,9 +22,10 @@ import (
 )
 
 /*
-extern int reexec_in_user_namespace(int ready);
+#include <stdlib.h>
+extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path);
 extern int reexec_in_user_namespace_wait(int pid);
-extern int reexec_userns_join(int userns, int mountns);
+extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
 */
 import "C"
 
@@ -168,10 +169,13 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 // JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
-func JoinUserAndMountNS(pid uint) (bool, int, error) {
+func JoinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
+
+	cPausePid := C.CString(pausePid)
+	defer C.free(unsafe.Pointer(cPausePid))
 
 	userNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/user", pid))
 	if err != nil {
@@ -189,7 +193,7 @@ func JoinUserAndMountNS(pid uint) (bool, int, error) {
 	if err != nil {
 		return false, -1, err
 	}
-	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()))
+	pidC := C.reexec_userns_join(C.int(fd.Fd()), C.int(mountNS.Fd()), cPausePid)
 	if int(pidC) < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
@@ -206,7 +210,7 @@ func JoinUserAndMountNS(pid uint) (bool, int, error) {
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
-func BecomeRootInUserNS() (bool, int, error) {
+func BecomeRootInUserNS(pausePid string) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
@@ -214,18 +218,23 @@ func BecomeRootInUserNS() (bool, int, error) {
 		return false, 0, nil
 	}
 
+	cPausePid := C.CString(pausePid)
+	defer C.free(unsafe.Pointer(cPausePid))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	r, w, err := os.Pipe()
+	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
 	if err != nil {
 		return false, -1, err
 	}
+	r, w := os.NewFile(uintptr(fds[0]), "sync host"), os.NewFile(uintptr(fds[1]), "sync child")
+
 	defer r.Close()
 	defer w.Close()
 	defer w.Write([]byte("0"))
 
-	pidC := C.reexec_in_user_namespace(C.int(r.Fd()))
+	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid)
 	pid := int(pidC)
 	if pid < 0 {
 		return false, -1, errors.Errorf("cannot re-exec process")
@@ -280,9 +289,33 @@ func BecomeRootInUserNS() (bool, int, error) {
 		}
 	}
 
-	_, err = w.Write([]byte("1"))
+	_, err = w.Write([]byte("0"))
 	if err != nil {
 		return false, -1, errors.Wrapf(err, "write to sync pipe")
+	}
+
+	b := make([]byte, 1, 1)
+	_, err = w.Read(b)
+	if err != nil {
+		return false, -1, errors.Wrapf(err, "read from sync pipe")
+	}
+
+	if b[0] == '2' {
+		// We have lost the race for writing the PID file, as probably another
+		// process created a namespace and wrote the PID.
+		// Try to join it.
+		data, err := ioutil.ReadFile(pausePid)
+		if err == nil {
+			pid, err := strconv.ParseUint(string(data), 10, 0)
+			if err == nil {
+				return JoinUserAndMountNS(uint(pid), "")
+			}
+		}
+		return false, -1, errors.Wrapf(err, "error setting up the process")
+	}
+
+	if b[0] != '0' {
+		return false, -1, errors.Wrapf(err, "error setting up the process")
 	}
 
 	c := make(chan os.Signal, 1)

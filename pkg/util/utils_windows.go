@@ -15,3 +15,9 @@ func GetRootlessRuntimeDir() (string, error) {
 func IsCgroup2UnifiedMode() (bool, error) {
 	return false, errors.New("this function is not implemented for windows")
 }
+
+// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
+// the pause process
+func GetRootlessPauseProcessPidPath() (string, error) {
+	return "", errors.New("this function is not implemented for windows")
+}
