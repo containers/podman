@@ -45,22 +45,24 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	var finalErr error
 	resize := make(chan remotecommand.TerminalSize)
 	errChan := make(chan error)
+	varlink := VarlinkCall{&call}
 
-	if !call.WantsUpgrade() {
-		return call.ReplyErrorOccurred("client must use upgraded connection to attach")
+	if err := varlink.RequiresUpgrade(); err != nil {
+		return varlink.ReplyErrorOccurred(err.Error())
 	}
+
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return varlink.ReplyErrorOccurred(err.Error())
 	}
 	state, err := ctr.State()
 	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		return varlink.ReplyErrorOccurred(err.Error())
 	}
 	if !start && state != libpod.ContainerStateRunning {
-		return call.ReplyErrorOccurred("container must be running to attach")
+		return varlink.ReplyErrorOccurred("container must be running to attach")
 	}
-	call.Reply(nil)
+
 	reader, writer, _, pw, streams := setupStreams(call)
 
 	go func() {
@@ -81,7 +83,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	quitWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.Quit)
 	_, err = quitWriter.Write([]byte("HANG-UP"))
 	// TODO error handling is not quite right here yet
-	return call.Writer.Flush()
+	return varlink.Writer.Flush()
 }
 
 func attach(ctr *libpod.Container, streams *libpod.AttachStreams, detachKeys string, resize chan remotecommand.TerminalSize, errChan chan error) error {
