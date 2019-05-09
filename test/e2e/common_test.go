@@ -226,9 +226,9 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	}
 
 	// Ubuntu doesn't use systemd cgroups
-	if host.Distribution == "ubuntu" {
-		cgroupManager = "cgroupfs"
-	}
+	// if host.Distribution == "ubuntu" {
+	// 	cgroupManager = "cgroupfs"
+	// }
 
 	ociRuntime := os.Getenv("OCI_RUNTIME")
 	if ociRuntime == "" {
