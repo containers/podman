@@ -275,7 +275,9 @@ showrun $SSH_CMD --command "rm -f /tmp/$TARBALL"
 echo -e "\n${YEL}Executing environment setup${NOR}"
 showrun $SSH_CMD --command "$SETUP_CMD"
 
-echo -e "\n${YEL}Connecting to $VMNAME\n${RED}(option to delete VM upon logout).${NOR}\n"
+VMIP=$($PGCLOUD compute instances describe $VMNAME --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+
+echo -e "\n${YEL}Connecting to $VMNAME${NOR}\nPublic IP Address: $VMIP\n${RED}(option to delete VM upon logout).${NOR}\n"
 if [[ -n "$ROOTLESS_USER" ]]
 then
     echo "Re-chowning source files after transfer"
