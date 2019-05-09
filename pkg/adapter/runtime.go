@@ -5,11 +5,12 @@ package adapter
 import (
 	"bufio"
 	"context"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"io"
 	"io/ioutil"
 	"os"
 	"text/template"
+
+	"github.com/containers/libpod/cmd/podman/shared"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
@@ -391,4 +392,9 @@ func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*libpod.Pod, error)
 	}
 
 	return pods, nil
+}
+
+// GetVersion is an alias to satisfy interface{}
+func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
+	return libpod.GetVersion()
 }

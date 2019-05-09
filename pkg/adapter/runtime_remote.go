@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"strings"
 	"text/template"
 	"time"
+
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/docker/reference"
@@ -415,19 +416,19 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 		Compression:           string(options.Compression),
 		DefaultsMountFilePath: options.DefaultMountsFilePath,
 		Dockerfiles:           dockerfiles,
-		//Err: string(options.Err),
+		// Err: string(options.Err),
 		ForceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
 		Iidfile:                 options.IIDFile,
 		Label:                   options.Labels,
 		Layers:                  options.Layers,
 		Nocache:                 options.NoCache,
-		//Out:
+		// Out:
 		Output:                 options.Output,
 		OutputFormat:           options.OutputFormat,
 		PullPolicy:             options.PullPolicy.String(),
 		Quiet:                  options.Quiet,
 		RemoteIntermediateCtrs: options.RemoveIntermediateCtrs,
-		//ReportWriter:
+		// ReportWriter:
 		RuntimeArgs:         options.RuntimeArgs,
 		SignaturePolicyPath: options.SignaturePolicyPath,
 		Squash:              options.Squash,
@@ -611,7 +612,7 @@ func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeIn
 	return varlinkVolumeToVolume(r, reply), nil
 }
 
-//Volumes returns a slice of adapter.volumes based on information about libpod
+// Volumes returns a slice of adapter.volumes based on information about libpod
 // volumes over a varlink connection
 func (r *LocalRuntime) Volumes(ctx context.Context) ([]*Volume, error) {
 	reply, err := iopodman.GetVolumes().Call(r.Conn, []string{}, true)
@@ -906,4 +907,30 @@ func (r *LocalRuntime) GetContainersByContext(all bool, latest bool, namesOrIDs 
 		containers = append(containers, ctr)
 	}
 	return containers, nil
+}
+
+// GetVersion returns version information from service
+func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
+	version, goVersion, gitCommit, built, osArch, apiVersion, err := iopodman.GetVersion().Call(r.Conn)
+	if err != nil {
+		return libpod.Version{}, errors.Wrapf(err, "Unable to obtain server version information")
+	}
+
+	var buildTime int64
+	if built != "" {
+		t, err := time.Parse(time.RFC3339, built)
+		if err != nil {
+			return libpod.Version{}, nil
+		}
+		buildTime = t.Unix()
+	}
+
+	return libpod.Version{
+		RemoteAPIVersion: apiVersion,
+		Version:          version,
+		GoVersion:        goVersion,
+		GitCommit:        gitCommit,
+		Built:            buildTime,
+		OsArch:           osArch,
+	}, nil
 }

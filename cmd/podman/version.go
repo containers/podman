@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -10,6 +11,7 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -38,7 +40,7 @@ func init() {
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cliconfig.VersionValues) error {
-	output, err := libpod.GetVersion()
+	clientVersion, err := libpod.GetVersion()
 	if err != nil {
 		errors.Wrapf(err, "unable to determine version")
 	}
@@ -51,25 +53,49 @@ func versionCmd(c *cliconfig.VersionValues) error {
 		var out formats.Writer
 		switch versionOutputFormat {
 		case formats.JSONString:
-			out = formats.JSONStruct{Output: output}
+			out = formats.JSONStruct{Output: clientVersion}
 		default:
-			out = formats.StdoutTemplate{Output: output, Template: versionOutputFormat}
+			out = formats.StdoutTemplate{Output: clientVersion, Template: versionOutputFormat}
 		}
 		return formats.Writer(out).Out()
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()
-	fmt.Fprintf(w, "Version:\t%s\n", output.Version)
-	fmt.Fprintf(w, "RemoteAPI Version:\t%d\n", output.RemoteAPIVersion)
-	fmt.Fprintf(w, "Go Version:\t%s\n", output.GoVersion)
-	if output.GitCommit != "" {
-		fmt.Fprintf(w, "Git Commit:\t%s\n", output.GitCommit)
+
+	if remote {
+		fmt.Fprintf(w, "Client:\n")
+	}
+	formatVersion(w, clientVersion)
+
+	if remote {
+		fmt.Fprintf(w, "\nService:\n")
+
+		runtime, err := adapter.GetRuntime(getContext(), nil)
+		if err != nil {
+			return errors.Wrapf(err, "could not get runtime")
+		}
+		defer runtime.Shutdown(false)
+
+		serviceVersion, err := runtime.GetVersion()
+		if err != nil {
+			return err
+		}
+		formatVersion(w, serviceVersion)
+	}
+	return nil
+}
+
+func formatVersion(writer io.Writer, version libpod.Version) {
+	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
+	fmt.Fprintf(writer, "RemoteAPI Version:\t%d\n", version.RemoteAPIVersion)
+	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)
+	if version.GitCommit != "" {
+		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
 	}
 	// Prints out the build time in readable format
-	if output.Built != 0 {
-		fmt.Fprintf(w, "Built:\t%s\n", time.Unix(output.Built, 0).Format(time.ANSIC))
+	if version.Built != 0 {
+		fmt.Fprintf(writer, "Built:\t%s\n", time.Unix(version.Built, 0).Format(time.ANSIC))
 	}
 
-	fmt.Fprintf(w, "OS/Arch:\t%s\n", output.OsArch)
-	return nil
+	fmt.Fprintf(writer, "OS/Arch:\t%s\n", version.OsArch)
 }
