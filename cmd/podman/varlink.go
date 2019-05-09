@@ -29,7 +29,7 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	_varlinkCommand = &cobra.Command{
-		Use:   "varlink [flags] URI",
+		Use:   "varlink [flags] [URI]",
 		Short: "Run varlink interface",
 		Long:  varlinkDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -68,7 +68,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	args := c.InputArgs
 
 	if len(args) > 1 {
-		return errors.Errorf("too many arguments. you may optionally provide 1")
+		return errors.Errorf("too many arguments. You may optionally provide 1")
 	}
 
 	if len(args) > 0 {
