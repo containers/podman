@@ -1,7 +1,9 @@
 package main
 
 import (
+	"archive/tar"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -142,7 +144,11 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	var lastError error
 	for _, src := range glob {
-		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, extract)
+		if src == "-" {
+			src = os.Stdin.Name()
+			extract = true
+		}
+		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, extract, isFromHostToCtr)
 		if lastError != nil {
 			logrus.Error(lastError)
 		}
@@ -195,7 +201,7 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 	return path, srcfi, nil
 }
 
-func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract bool) error {
+func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
 	srcPath, err := filepath.EvalSymlinks(src)
 	if err != nil {
 		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
@@ -205,6 +211,16 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	if err != nil {
 		return err
 	}
+
+	filename := filepath.Base(destPath)
+	if filename == "-" && !isFromHostToCtr {
+		err := streamFileToStdout(srcPath, srcfi)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming source file %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
 	destdir := destPath
 	if !srcfi.IsDir() && !strings.HasSuffix(dest, string(os.PathSeparator)) {
 		destdir = filepath.Dir(destPath)
@@ -224,7 +240,6 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	untarPath := chrootarchive.UntarPathAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
 
 	if srcfi.IsDir() {
-
 		logrus.Debugf("copying %q to %q", srcPath+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
 		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
 			destPath = filepath.Join(destPath, filepath.Base(srcPath))
@@ -275,4 +290,63 @@ func convertIDMap(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxIDMapping
 		convertedIDMap = append(convertedIDMap, tempIDMap)
 	}
 	return convertedIDMap
+}
+
+func streamFileToStdout(srcPath string, srcfi os.FileInfo) error {
+	if srcfi.IsDir() {
+		tw := tar.NewWriter(os.Stdout)
+		err := filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil || !info.Mode().IsRegular() || path == srcPath {
+				return err
+			}
+			hdr, err := tar.FileInfoHeader(info, "")
+			if err != nil {
+				return err
+			}
+
+			if err = tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			fh, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+
+			_, err = io.Copy(tw, fh)
+			return err
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error streaming directory %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	file, err := os.Open(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "error opening file %s", srcPath)
+	}
+	defer file.Close()
+	if !archive.IsArchivePath(srcPath) {
+		tw := tar.NewWriter(os.Stdout)
+		hdr, err := tar.FileInfoHeader(srcfi, "")
+		if err != nil {
+			return err
+		}
+		err = tw.WriteHeader(hdr)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming archive %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	_, err = io.Copy(os.Stdout, file)
+	if err != nil {
+		return errors.Wrapf(err, "error streaming file to Stdout")
+	}
+	return nil
 }
