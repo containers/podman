@@ -247,6 +247,11 @@ would potentially allow one user to attack another user.
 
 You could also use the usermod program to assign UIDs to a user.
 
+If you update either the /etc/subuid or /etc/subgid file, you need to
+stop all running containers and kill the pause process.  This is done
+automatically by the `system migrate` command, which can also be used
+to stop all the containers and kill the pause process.
+
 ```
 usermod --add-subuids 200000-201000 --add-subgids 200000-201000 johndoe
 grep johndoe /etc/subuid /etc/subgid
