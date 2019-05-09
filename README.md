@@ -5,7 +5,7 @@
 Libpod provides a library for applications looking to use the Container Pod concept,
 popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
 
-* [Latest Version: 1.2.0](https://github.com/containers/libpod/releases/latest)
+* [Latest Version: 1.3.1](https://github.com/containers/libpod/releases/latest)
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 
 ## Overview and scope
