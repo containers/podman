@@ -132,6 +132,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		became, ret, err := rootless.JoinUserAndMountNS(uint(pausePid), "")
 		if err != nil {
 			logrus.Errorf("cannot join pause process pid %d.  You may need to remove %s and stop all containers", pausePid, pausePidPath)
+			logrus.Errorf("you can use `system migrate` to recreate the pause process")
 			logrus.Errorf(err.Error())
 			os.Exit(1)
 		}
