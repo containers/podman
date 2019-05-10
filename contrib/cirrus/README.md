@@ -13,7 +13,6 @@ which alter this behavior.  Within each task, each script executes in sequence,
 so long as any previous script exited successfully.  The overall state of each
 task (pass or fail) is set based on the exit status of the last script to execute.
 
-
 ### ``gating`` Task
 
 ***N/B: Steps below are performed by automation***
@@ -62,6 +61,12 @@ task (pass or fail) is set based on the exit status of the last script to execut
    resources like container images and code from other repositories.
    Total execution time is capped at 2-hours (includes all the above)
    but this script normally completes in less than an hour.
+
+
+### ``special_testing_cross`` Task
+
+Confirm that cross-compile of podman-remote functions for both `windows`
+and `darwin` targets.
 
 
 ### ``test_build_cache_images_task`` Task
@@ -142,8 +147,22 @@ the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
 `--force` pushing would needlessly cause Cirrus-CI to build
 and test images again.
 
+### `release` Task
 
-### Base-images
+Gathers up zip files uploaded by other tasks, from the local Cirrus-CI caching service.
+Depending on the execution context (a PR or a branch), this task uploads the files
+found to storage buckets at:
+
+* [https://storage.cloud.google.com/libpod-pr-releases](https://storage.cloud.google.com/libpod-pr-releases)
+* [https://storage.cloud.google.com/libpod-master-releases](https://storage.cloud.google.com/libpod-master-releases)
+
+***Note:*** Repeated builds from the same PR or branch, will clobber previous archives
+            *by design*.  This is intended so that the "latest" archive is always
+            available at a consistent URL.  The precise details regarding a particular
+            build is encoded within the zip-archive comment.
+
+
+## Base-images
 
 Base-images are VM disk-images specially prepared for executing as GCE VMs.
 In particular, they run services on startup similar in purpose/function
@@ -236,3 +255,16 @@ console output.  Simply set the ``TTYDEV`` parameter, for example:
 $ make libpod_base_images ... TTYDEV=$(tty)
   ...
 ```
+
+## `$SPECIALMODE`
+
+Some tasks alter their behavior based on this value.  A summary of supported
+values follows:
+
+* `none`: Operate as normal, this is the default value if unspecified.
+* `rootless`: Causes a random, ordinary user account to be created
+              and utilized for testing.
+* `in_podman`: Causes testing to occur within a container executed by
+               podman on the host.
+* `windows`: See **darwin**
+* `darwin`: Signals the ``special_testing_cross`` task to cross-compile the remote client.

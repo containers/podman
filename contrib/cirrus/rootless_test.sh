@@ -5,7 +5,7 @@ set -e
 remote=0
 
 # The TEST_REMOTE_CLIENT environment variable decides whether
-# to test varlinke
+# to test varlink
 if [[ "$TEST_REMOTE_CLIENT" == "true" ]]; then
     remote=1
 fi

@@ -13,7 +13,7 @@ exithandler() {
     set +e
     show_env_vars
     echo "$(basename $0) exit status: $RET"
-    [[ "$RET" -eq "0" ]] && date +%s >> "SETUP_MARKER_FILEPATH"
+    [[ "$RET" -eq "0" ]] && date +%s >> "$SETUP_MARKER_FILEPATH"
 }
 trap exithandler EXIT
 
@@ -78,6 +78,8 @@ case "$SPECIALMODE" in
         dnf install -y podman
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
+    windows) ;&  # for podman-remote building only
+    darwin) ;;
     *)
         die 111 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
 esac

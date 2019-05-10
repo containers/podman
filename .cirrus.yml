@@ -310,6 +310,9 @@ testing_task:
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
+    cache_release_archive_script: >-
+        [[ "$TEST_REMOTE_CLIENT" == "false" ]] || \
+            $SCRIPT_BASE/cache_release_archive.sh |& ${TIMESTAMP}
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
@@ -377,6 +380,29 @@ special_testing_in_podman_task:
 
     always:
         <<: *standardlogs
+
+
+special_testing_cross_task:
+
+    depends_on:
+        - "gating"
+        - "varlink_api"
+        - "vendor"
+
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    env:
+        matrix:
+            SPECIALMODE: 'windows'  # See docs
+            SPECIALMODE: 'darwin'
+
+    timeout_in: 20m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    cache_release_archive_script: '$SCRIPT_BASE/cache_release_archive.sh |& ${TIMESTAMP}'
+
+    on_failure:
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
@@ -464,6 +490,7 @@ success_task:
         - "testing"
         - "special_testing_rootless"
         - "special_testing_in_podman"
+        - "special_testing_cross"
         - "test_build_cache_images"
         - "verify_test_built_images"
         - "build_without_cgo"
@@ -479,3 +506,26 @@ success_task:
         memory: 1
 
     success_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
+
+
+release_task:
+
+    # TODO: Uncomment both to not affect pass/fail status of entire job?
+    # allow_failures: $CI == "true"
+    # skip_notifications: $CI == "true"
+
+    depends_on:
+        - "success"
+
+    gce_instance:
+        image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
+
+    timeout_in: 30m
+
+    env:
+        CIRRUS_CLONE_DEPTH: 1  # source is not used, only Makefile
+        GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
+        GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
+        GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
+
+    uncache_release_archives_script: '$SCRIPT_BASE/uncache_release_archives.sh |& ${TIMESTAMP}'
