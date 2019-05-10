@@ -148,124 +148,51 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		return errors.Wrapf(ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
 	}
 
-	// Go through and lock all containers so we can operate on them all at once
+	// Go through and lock all containers so we can operate on them all at
+	// once.
+	// First loop also checks that we are ready to go ahead and remove.
 	for _, ctr := range ctrs {
 		ctrLock := ctr.lock
 		ctrLock.Lock()
 		defer ctrLock.Unlock()
+
+		// If we're force-removing, no need to check status.
+		if force {
+			continue
+		}
 
 		// Sync all containers
 		if err := ctr.syncContainer(); err != nil {
 			return err
 		}
 
-		// Check if the container is in a good state to be removed
-		if ctr.state.State == ContainerStatePaused {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains paused container %s, cannot remove", p.ID(), ctr.ID())
-		}
-
-		if ctr.state.State == ContainerStateUnknown {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s with invalid state", p.ID(), ctr.ID())
-		}
-
-		// If the container is running and force is not set we can't do anything
-		if ctr.state.State == ContainerStateRunning && !force {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
-		}
-
-		// If the container has active exec sessions and force is not set we can't do anything
-		if len(ctr.state.ExecSessions) != 0 && !force {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which has active exec sessions", p.ID(), ctr.ID())
+		// Ensure state appropriate for removal
+		if err := ctr.checkReadyForRemoval(); err != nil {
+			return errors.Wrapf(err, "pod %s has containers that are not ready to be removed", p.ID())
 		}
 	}
 
-	// We maintain the invariant that container dependencies must all exist
-	// within the container's pod.
-	// No need to check dependencies as such - we're removing all containers
-	// in the pod at once, no dependency issues.
+	var removalErr error
 
-	// First loop through all containers and stop them
-	// Do not remove in this loop to ensure that we don't remove unless all
-	// containers are in a good state
-	if force {
-		for _, ctr := range ctrs {
-			// If force is set and the container is running, stop it now
-			if ctr.state.State == ContainerStateRunning {
-				if err := r.ociRuntime.stopContainer(ctr, ctr.StopTimeout()); err != nil {
-					return errors.Wrapf(err, "error stopping container %s to remove pod %s", ctr.ID(), p.ID())
-				}
-
-				// Sync again to pick up stopped state
-				if err := ctr.syncContainer(); err != nil {
-					return err
-				}
-			}
-			// If the container has active exec sessions, stop them now
-			if len(ctr.state.ExecSessions) != 0 {
-				if err := r.ociRuntime.execStopContainer(ctr, ctr.StopTimeout()); err != nil {
-					return err
-				}
+	// Second loop - all containers are good, so we should be clear to
+	// remove.
+	for _, ctr := range ctrs {
+		// Remove the container
+		if err := r.removeContainer(ctx, ctr, force, true, true); err != nil {
+			if removalErr != nil {
+				removalErr = err
+			} else {
+				logrus.Errorf("Error removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
 			}
 		}
 	}
 
 	// Remove all containers in the pod from the state.
 	if err := r.state.RemovePodContainers(p); err != nil {
+		// If this fails, there isn't much more we can do.
+		// The containers in the pod are unusable, but they still exist,
+		// so pod removal will fail.
 		return err
-	}
-
-	var removalErr error
-
-	// Clean up after our removed containers.
-	// Errors here are nonfatal - the containers have already been evicted.
-	// We'll do our best to clean up after them, but we have to keep going
-	// and remove the pod as well.
-	// From here until we remove the pod from the state, no error returns.
-	for _, ctr := range ctrs {
-		// The container no longer exists in the state, mark invalid.
-		ctr.valid = false
-
-		ctr.newContainerEvent(events.Remove)
-
-		// Clean up network namespace, cgroups, mounts
-		if err := ctr.cleanup(ctx); err != nil {
-			if removalErr == nil {
-				removalErr = err
-			} else {
-				logrus.Errorf("Unable to clean up container %s: %v", ctr.ID(), err)
-			}
-		}
-
-		// Stop container's storage
-		if err := ctr.teardownStorage(); err != nil {
-			if removalErr == nil {
-				removalErr = err
-			} else {
-				logrus.Errorf("Unable to tear down container %s storage: %v", ctr.ID(), err)
-			}
-		}
-
-		// Delete the container from runtime (only if we are not
-		// ContainerStateConfigured)
-		if ctr.state.State != ContainerStateConfigured &&
-			ctr.state.State != ContainerStateExited {
-			if err := ctr.delete(ctx); err != nil {
-				if removalErr == nil {
-					removalErr = err
-				} else {
-					logrus.Errorf("Unable to remove container %s from OCI runtime: %v", ctr.ID(), err)
-				}
-			}
-		}
-
-		// Free the container's lock
-		if err := ctr.lock.Free(); err != nil {
-			if removalErr == nil {
-				removalErr = errors.Wrapf(err, "error freeing container %s lock", ctr.ID())
-			} else {
-				logrus.Errorf("Unable to free container %s lock: %v", ctr.ID(), err)
-			}
-		}
 	}
 
 	// Remove pod cgroup, if present

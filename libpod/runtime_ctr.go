@@ -238,12 +238,15 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-	return r.removeContainer(ctx, c, force, removeVolume)
+	return r.removeContainer(ctx, c, force, removeVolume, false)
 }
 
-// Internal function to remove a container
-// Locks the container, but does not lock the runtime
-func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool, removeVolume bool) error {
+// Internal function to remove a container.
+// Locks the container, but does not lock the runtime.
+// removePod is used only when removing pods. It instructs Podman to ignore
+// infra container protections, and *not* remove from the database (as pod
+// remove will handle that).
+func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool, removeVolume bool, removePod bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "removeContainer")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -256,12 +259,14 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	// We need to lock the pod before we lock the container
-	// To avoid races around removing a container and the pod it is in
+	// We need to lock the pod before we lock the container.
+	// To avoid races around removing a container and the pod it is in.
+	// Don't need to do this in pod removal case - we're evicting the entire
+	// pod.
 	var pod *Pod
 	var err error
 	runtime := c.runtime
-	if c.config.Pod != "" {
+	if c.config.Pod != "" && !removePod {
 		pod, err = r.state.Pod(c.config.Pod)
 		if err != nil {
 			return errors.Wrapf(err, "container %s is in pod %s, but pod cannot be retrieved", c.ID(), pod.ID())
@@ -280,8 +285,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	// For pod removal, the container is already locked by the caller
+	if !removePod {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+	}
 
 	if !r.valid {
 		return ErrRuntimeStopped
@@ -292,10 +300,15 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		return err
 	}
 
-	if c.state.State == ContainerStatePaused {
-		if !force {
-			return errors.Wrapf(ErrCtrStateInvalid, "container %s is paused, cannot remove until unpaused", c.ID())
+	// If we're not force-removing, we need to check if we're in a good
+	// state to remove.
+	if !force {
+		if err := c.checkReadyForRemoval(); err != nil {
+			return err
 		}
+	}
+
+	if c.state.State == ContainerStatePaused {
 		if err := c.runtime.ociRuntime.killContainer(c, 9); err != nil {
 			return err
 		}
@@ -309,7 +322,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	// Check that the container's in a good state to be removed
-	if c.state.State == ContainerStateRunning && force {
+	if c.state.State == ContainerStateRunning {
 		if err := r.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
@@ -318,42 +331,41 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		if err := c.waitForExitFileAndSync(); err != nil {
 			return err
 		}
-	} else if !(c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateCreated ||
-		c.state.State == ContainerStateStopped ||
-		c.state.State == ContainerStateExited) {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
 	// Check that all of our exec sessions have finished
 	if len(c.state.ExecSessions) != 0 {
-		if force {
-			if err := r.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
-				return err
-			}
-		} else {
-			return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+		if err := r.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
+			return err
 		}
 	}
 
-	// Check that no other containers depend on the container
-	deps, err := r.state.ContainerInUse(c)
-	if err != nil {
-		return err
-	}
-	if len(deps) != 0 {
-		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+	// Check that no other containers depend on the container.
+	// Only used if not removing a pod - pods guarantee that all
+	// deps will be evicted at the same time.
+	if !removePod {
+		deps, err := r.state.ContainerInUse(c)
+		if err != nil {
+			return err
+		}
+		if len(deps) != 0 {
+			depsStr := strings.Join(deps, ", ")
+			return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+		}
 	}
 
 	var cleanupErr error
 	// Remove the container from the state
 	if c.config.Pod != "" {
-		if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("removing container from pod: %v", err)
+		// If we're removing the pod, the container will be evicted
+		// from the state elsewhere
+		if !removePod {
+			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
+				if cleanupErr == nil {
+					cleanupErr = err
+				} else {
+					logrus.Errorf("removing container from pod: %v", err)
+				}
 			}
 		}
 	} else {

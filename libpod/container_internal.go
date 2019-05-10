@@ -1490,3 +1490,25 @@ func (c *Container) copyWithTarFromImage(src, dest string) error {
 	}
 	return a.CopyWithTar(source, dest)
 }
+
+// checkReadyForRemoval checks whether the given container is ready to be
+// removed.
+// These checks are only used if force-remove is not specified.
+// If it is, we'll remove the container anyways.
+// Returns nil if safe to remove, or an error describing why it's unsafe if not.
+func (c *Container) checkReadyForRemoval() error {
+	if c.state.State == ContainerStateUnknown {
+		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
+	}
+
+	if c.state.State == ContainerStateRunning ||
+		c.state.State == ContainerStatePaused {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
+	}
+
+	if len(c.state.ExecSessions) != 0 {
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+	}
+
+	return nil
+}
