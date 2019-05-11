@@ -131,9 +131,9 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Ps(opts: PsOpts) PsContainer](#Ps)
 
-[func PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ) MoreResponse](#PullImage)
+[func PullImage(name: string) MoreResponse](#PullImage)
 
-[func PushImage(name: string, tag: string, tlsverify: , signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
+[func PushImage(name: string, tag: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
 
 [func ReceiveFile(path: string, delete: bool) int](#ReceiveFile)
 
@@ -147,7 +147,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: , tlsVerify: , filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: , filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -921,16 +921,15 @@ method Ps(opts: [PsOpts](#PsOpts)) [PsContainer](#PsContainer)</div>
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PullImage(name: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), signaturePolicy: [string](https://godoc.org/builtin#string), tlsVerify: [](#)) [MoreResponse](#MoreResponse)</div>
+method PullImage(name: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
 PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
 are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
 status as it occurs.
 ### <a name="PushImage"></a>func PushImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), tlsverify: [](#), signaturePolicy: [string](https://godoc.org/builtin#string), creds: [string](https://godoc.org/builtin#string), certDir: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
-PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
-and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
+method PushImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), format: [string](https://godoc.org/builtin#string), removeSignatures: [bool](https://godoc.org/builtin#bool), signBy: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
+PushImage takes two input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 It will return an [ImageNotFound](#ImageNotFound) error if
 the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
 ### <a name="ReceiveFile"></a>func ReceiveFile
@@ -1013,7 +1012,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
 ### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), tlsVerify: [](#), filter: [ImageSearchFilter](#ImageSearchFilter)) [ImageSearchResult](#ImageSearchResult)</div>
+method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), filter: [ImageSearchFilter](#ImageSearchFilter)) [ImageSearchResult](#ImageSearchResult)</div>
 SearchImages searches available registries for images that contain the
 contents of "query" in their name. If "limit" is given, limits the amount of
 search results per registry.
@@ -1206,8 +1205,6 @@ remoteIntermediateCtrs [bool](https://godoc.org/builtin#bool)
 reportWriter [string](https://godoc.org/builtin#string)
 
 runtimeArgs [[]string](#[]string)
-
-signaturePolicyPath [string](https://godoc.org/builtin#string)
 
 squash [bool](https://godoc.org/builtin#bool)
 ### <a name="BuildOptions"></a>type BuildOptions
@@ -1908,19 +1905,11 @@ image [string](https://godoc.org/builtin#string)
 
 authfile [string](https://godoc.org/builtin#string)
 
-certDir [string](https://godoc.org/builtin#string)
-
-creds [string](https://godoc.org/builtin#string)
-
 display [bool](https://godoc.org/builtin#bool)
 
 name [string](https://godoc.org/builtin#string)
 
 pull [bool](https://godoc.org/builtin#bool)
-
-signaturePolicyPath [string](https://godoc.org/builtin#string)
-
-tlsVerify [](#)
 
 label [string](https://godoc.org/builtin#string)
 

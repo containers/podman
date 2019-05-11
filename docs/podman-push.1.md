@@ -47,7 +47,7 @@ Image stored in local container/storage
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
@@ -61,7 +61,7 @@ value can be entered.  The password is entered without echo.
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands) (Not available for remote commands)
 
 **--compress**
 
@@ -81,12 +81,6 @@ When writing the output image, suppress progress output
 
 Discard any pre-existing signatures in the image
 
-**--signature-policy="PATHNAME"**
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred
-
 **--sign-by="KEY"**
 
 Add a signature at the destination using the specified key
@@ -95,7 +89,7 @@ Add a signature at the destination using the specified key
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf. (Not available for remote commands)
 
 ## EXAMPLE
 

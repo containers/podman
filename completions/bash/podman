@@ -968,7 +968,7 @@ _podman_container() {
 	 export
 	 inspect
 	 kill
-	 ls
+	 list
 	 logs
 	 mount
 	 pause
@@ -979,6 +979,7 @@ _podman_container() {
 	 restore
 	 rm
 	 run
+	 runlabel
 	 start
 	 stats
 	 stop
@@ -1145,7 +1146,6 @@ _podman_build() {
      --runtime-flag
      --security-opt
      --shm-size
-     --signature-policy
      -t
      --tag
      --ulimit
@@ -1564,7 +1564,6 @@ _podman_pull() {
     --authfile
     --creds
     --cert-dir
-    --signature-policy
     "
     local boolean_options="
 	--all-tags
@@ -1655,7 +1654,6 @@ _podman_push() {
 	-h
 	--quiet
 	-q
-	--remove-signatures
 	--tls-verify
   "
 
@@ -1665,7 +1663,6 @@ _podman_push() {
     --cert-dir
     --creds
     --sign-by
-    --signature-policy
   "
 
     local all_options="$options_with_args $boolean_options"
@@ -2366,7 +2363,6 @@ _complete_() {
 _podman_load() {
     local options_with_args="
     --input -i
-    --signature-policy
     "
     local boolean_options="
 	 --help
@@ -2492,7 +2488,6 @@ _podman_play_kube() {
     --authfile
     --cert-dir
     --creds
-    --signature-policy
     "
 
     local boolean_options="
@@ -2535,7 +2530,6 @@ _podman_container_runlabel() {
      --cert-dir
      --creds
      --name
-     --signature-policy
     "
 
     local boolean_options="

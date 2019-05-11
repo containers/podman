@@ -40,6 +40,13 @@ error. It can even pretend to be a TTY (this is what most commandline
 executables expect) and pass along signals. The **-a** option can be set for
 each of stdin, stdout, and stderr.
 
+**--authfile**
+
+Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path` (Not available for remote commands)
+
 **--blkio-weight**=*0*
 
 Block IO weight (relative weight) accepts a weight value between 10 and 1000.

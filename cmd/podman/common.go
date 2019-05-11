@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -161,6 +162,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.StringSliceP(
 		"attach", "a", []string{},
 		"Attach to STDIN, STDOUT or STDERR (default [])",
+	)
+	createFlags.String(
+		"authfile", getAuthFile(""),
+		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
 	createFlags.String(
 		"blkio-weight", "",
@@ -553,7 +558,18 @@ func getAuthFile(authfile string) string {
 	if authfile != "" {
 		return authfile
 	}
-	return os.Getenv("REGISTRY_AUTH_FILE")
+	if remote {
+		return ""
+	}
+	authfile = os.Getenv("REGISTRY_AUTH_FILE")
+	if authfile != "" {
+		return authfile
+	}
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir != "" {
+		return filepath.Join(runtimeDir, "containers/auth.json")
+	}
+	return ""
 }
 
 // scrubServer removes 'http://' or 'https://' from the front of the

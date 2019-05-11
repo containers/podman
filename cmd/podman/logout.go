@@ -24,20 +24,23 @@ var (
 			logoutCommand.Remote = remoteclient
 			return logoutCmd(&logoutCommand)
 		},
-		Example: `podman logout docker.io
-  podman logout --authfile authdir/myauths.json docker.io
+		Example: `podman logout quay.io
   podman logout --all`,
 	}
 )
 
 func init() {
+	if !remote {
+		_logoutCommand.Example = fmt.Sprintf("%s\n  podman logout --authfile authdir/myauths.json quay.io", _logoutCommand.Example)
+
+	}
 	logoutCommand.Command = _logoutCommand
 	logoutCommand.SetHelpTemplate(HelpTemplate())
 	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
 	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
-	flags.StringVar(&logoutCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-
+	flags.StringVar(&logoutCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
 // logoutCmd uses the authentication package to remove the authenticated of a registry
@@ -54,9 +57,8 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 	if len(args) == 1 {
 		server = scrubServer(args[0])
 	}
-	authfile := getAuthFile(c.Authfile)
 
-	sc := image.GetSystemContext("", authfile, false)
+	sc := image.GetSystemContext("", c.Authfile, false)
 
 	if c.All {
 		if err := config.RemoveAllAuthentication(sc); err != nil {
