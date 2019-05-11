@@ -11,6 +11,7 @@ import (
 
 	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/libpod/events"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -173,6 +174,41 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	}
 
 	var removalErr error
+
+	// We're going to be removing containers.
+	// If we are CGroupfs cgroup driver, to avoid races, we need to hit
+	// the pod and conmon CGroups with a PID limit to prevent them from
+	// spawning any further processes (particularly cleanup processes) which
+	// would prevent removing the CGroups.
+	if p.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+		// Get the conmon CGroup
+		v1CGroups := GetV1CGroups(getExcludedCGroups())
+		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
+		conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+		if err != nil && err != cgroups.ErrCgroupDeleted {
+			if removalErr == nil {
+				removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
+			} else {
+				logrus.Errorf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+			}
+		}
+
+		// New resource limits
+		resLimits := new(spec.LinuxResources)
+		resLimits.Pids = new(spec.LinuxPids)
+		resLimits.Pids.Limit = 1 // Inhibit forks with very low pids limit
+
+		// Don't try if we failed to retrieve the cgroup
+		if err == nil {
+			if err := conmonCgroup.Update(resLimits); err != nil {
+				if removalErr == nil {
+					removalErr = errors.Wrapf(err, "error updating pod %s conmon group", p.ID())
+				} else {
+					logrus.Errorf("Error updating pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+				}
+			}
+		}
+	}
 
 	// Second loop - all containers are good, so we should be clear to
 	// remove.
