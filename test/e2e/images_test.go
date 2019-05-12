@@ -169,12 +169,13 @@ var _ = Describe("Podman images", func() {
 			Skip("Does not work on remote client")
 		}
 		dockerfile := `FROM docker.io/library/alpine:latest
+RUN apk update && apk add man
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray()) >= 1).To(BeTrue())
 	})
 
 	It("podman images filter after image", func() {
