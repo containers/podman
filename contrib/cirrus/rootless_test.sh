@@ -22,4 +22,3 @@ make
 make varlink_generate
 make test-binaries
 make ginkgo
-make ginkgo-remote

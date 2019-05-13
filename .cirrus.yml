@@ -104,337 +104,35 @@ env:
         CIRRUS_WORKING_DIR CIRRUS_HTTP_CACHE_HOST PACKER_BUILDS BUILT_IMAGE_SUFFIX
         XDG_DATA_DIRS XDG_RUNTIME_DIR XDG_SESSION_ID ROOTLESS_USER
 
+gce_instance:
+    image_project: "libpod-218412"
+    zone: "us-central1-a"  # Required by Cirrus for the time being
+    cpu: 2
+    memory: "4Gb"
+    disk: 200
+    # A matrix could be used here, for now just one VM
+    image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
-# Every *_task runs in parallel in separate VMsd. The name prefix only for reference
-# in WebUI, and will be followed by matrix details.  This task gates all others with
-# quick format, lint, and unit tests on the standard platform.
-gating_task:
-
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        GOSRC: "/go/src/github.com/containers/libpod"
-
-    # Runs within Cirrus's "community cluster"
-    container:
-        image: "quay.io/libpod/gate:latest"
-        cpu: 4
-        memory: 12
-
-    timeout_in: 20m
-
-    gate_script:
-        # N/B: entrypoint.sh resets $GOSRC (same as make clean)
-        - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh validate |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh lint |& ${TIMESTAMP}'
-        - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/test/test_dot_cirrus_yaml.py |& ${TIMESTAMP}'
-
-    # This task builds Podman with different buildtags to ensure the build does
-    # not break.  It also verifies all sub-commands have man pages.
-    build_script:
-        - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
-        - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
-        # N/B: need 'clean' so some commited files are re-generated.
-        - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
-
-    # Verify expected bash environment (-o pipefail)
-    pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
-
-
-# This task runs `make vendor` followed by ./hack/tree_status.sh to check
-# whether the git tree is clean.  The reasoning for that is to make sure
-# that the vendor.conf, the code and the vendored packages in ./vendor are
-# in sync at all times.
-vendor_task:
-
-    depends_on:
-        - "gating"
-
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-
-    # Runs within Cirrus's "community cluster"
-    container:
-        image: "quay.io/libpod/gate:latest"
-        cpu: 4
-        memory: 12
-
-    timeout_in: 30m
-
-    vendor_script:
-        - '/usr/local/bin/entrypoint.sh .install.vndr |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh vendor |& ${TIMESTAMP}'
-        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
-
-
-# This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
-# whether the git tree is clean.
-varlink_api_task:
-
-    depends_on:
-        - "gating"
-
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-        # Used by tree_status.sh
-        SUGGESTION: 'remove API.md, then "make varlink_api_generate" and commit changes.'
-
-    # Runs within Cirrus's "community cluster"
-    container:
-        image: "quay.io/libpod/gate:latest"
-        cpu: 4
-        memory: 12
-
-    timeout_in: 10m
-
-    vendor_script:
-        - '/usr/local/bin/entrypoint.sh varlink_api_generate'
-        - 'cd /go/src/github.com/containers/libpod && ./hack/tree_status.sh'
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
-
-
-build_each_commit_task:
-
-    depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-
-    # $CIRRUS_BASE_BRANCH is only set when testing a PR
-    only_if: $CIRRUS_BRANCH != 'master'
-
-    gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 8
-        memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-
-    timeout_in: 30m
-
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_each_commit_script:
-        - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
-        - 'env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
-
-
-# Update metadata on VM images referenced by this repository state
-meta_task:
-
-    depends_on:
-        - "gating"
-
-    container:
-        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
-        cpu: 1
-        memory: 1
-
-    env:
-        # Space-separated list of images used by this repository state
-        IMGNAMES: "${ACTIVE_CACHE_IMAGE_NAMES}"
-        BUILDID: "${CIRRUS_BUILD_ID}"
-        REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
-        GCPJSON: ENCRYPTED[950d9c64ad78f7b1f0c7e499b42dc058d2b23aa67e38b315e68f557f2aba0bf83068d4734f7b1e1bdd22deabe99629df]
-        GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
-        GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-        CIRRUS_CLONE_DEPTH: 1  # source not used
-
-    script: '/usr/local/bin/entrypoint.sh |& ${TIMESTAMP}'
-
-
-# This task does the unit and integration testing for every platform
-testing_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-        - "build_each_commit"
-
-    gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 2
-        memory: "4Gb"
-        disk: 200  # see https://developers.google.com/compute/docs/disks#performance
-        # Generate multiple parallel tasks, covering all possible
-        # 'matrix' combinations.
-        matrix:
-            # Images are generated separately, from build_images_task (below)
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-
-            # TODO: Make these work (also optional_testing_task below)
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
-
-    timeout_in: 120m
-
-    # Every *_script runs in sequence, for each task. The name prefix is for
-    # WebUI reference.  The values may be strings...
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
-    journalctl_b_script: 'journalctl -b'
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
-        # Job has already failed, don't fail again and miss collecting data
-        failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
-        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
-
-
-# This task executes tests under unique environments/conditions
 special_testing_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-        - "build_each_commit"
-
-    gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 2
-        memory: "4Gb"
-        disk: 200
-        # A matrix could be used here, for now just one VM
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-
     env:
+        SPECIALMODE: 'rootless'  # See docs
         matrix:
-            SPECIALMODE: 'rootless'  # See docs
-            SPECIALMODE: 'in_podman'  # See docs
-
+            JUNK: 0
+            JUNK: 1
+            JUNK: 2
+            JUNK: 3
+            JUNK: 4
+            JUNK: 5
+            JUNK: 6
+            JUNK: 7
+            JUNK: 8
+            JUNK: 9
     timeout_in: 120m
-
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
     journalctl_b_script: 'journalctl -b'
-
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
-        # Job has already failed, don't fail again and miss collecting data
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
-
-
-# Because system tests are stored within the repository, it is sometimes
-# necessary to execute them within a PR to validate changes.
-optional_testing_task:
-
-    # Only run system tests in PRs (not on merge) if magic string is present
-    # in the PR description.  Post-merge system testing is assumed to happen
-    # later from OS distribution's build systems.
-    only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
-
-    gce_instance:
-        image_project: "libpod-218412"
-        matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            # TODO: Make these work (also testing_task above)
-            # image_name: "${RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${PRIOR_RHEL_CACHE_IMAGE_NAME}"
-            # image_name: "${CENTOS_CACHE_IMAGE_NAME}"
-
-    timeout_in: 60m
-
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
-
-
-# Build new cache-images for future PR testing, but only after a PR merge.
-# The cache-images save install/setup time needed test every PR.  The 'active' images
-# are selected by the 'image_name' items tasks above.  Currently this requires
-# manually updating the names, but this could be automated (see comment below).
-cache_images_task:
-    # Only produce new cache-images after a PR merge, and if a magic string
-    # is present in the most recent commit-message.
-    only_if: >-
-        $CIRRUS_BRANCH == 'master' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
-
-    # Require tests to pass first.
-    depends_on:
-        - "gating"
-        - "testing"
-
-    # VMs created by packer are not cleaned up by cirrus
-    auto_cancellation: $CI != "true"
-
-    gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 4
-        memory: "4Gb"
-        disk: 200
-        image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
-        # Additional permissions for building GCE images, within a GCE VM
-        scopes:
-            - compute
-            - devstorage.full_control
-    environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
-
-    # TODO,Continuous Delivery: Automatically open a libpod PR after using 'sed' to replace
-    #                           the image_names with the new (just build) images.  That will
-    #                           cause a new round of testing to happen (via the PR) using
-    #                           the new images.  When all is good, the PR may be manually
-    #                           merged so all PR testing uses the new images.  The script
-    #                           names (below) describe their purpose in this workflow.
-    # deploy_images_script:
-    #   - clone_podman_release_branch.sh
-    #   - modify_cirrus_yaml_image_names.sh
-    #   - commit_and_create_upstream_pr.sh
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
-
-
-# Post message to IRC if everything passed
-success_task:
-
-    only_if: $CIRRUS_BRANCH != 'master'
-
-    depends_on:  # ignores any dependent task conditions
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-        - "build_each_commit_task"
-        - "testing"
-        - "rootless_testing_task"
-        - "optional_testing"
-
-    env:
-        CIRRUS_WORKING_DIR: "/usr/src/libpod"
-
-    container:
-        image: "quay.io/libpod/gate:latest"
-        cpu: 1
-        memory: 1
-
-    success_script: '$SCRIPT_BASE/success.sh |& ${TIMESTAMP}'
