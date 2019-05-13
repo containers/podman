@@ -10,6 +10,10 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/containers/image/docker/reference"
 )
 
 // systemRegistriesConfPath is the path to the system-wide registry
@@ -22,34 +26,56 @@ var systemRegistriesConfPath = builtinRegistriesConfPath
 // DO NOT change this, instead see systemRegistriesConfPath above.
 const builtinRegistriesConfPath = "/etc/containers/registries.conf"
 
-// Mirror represents a mirror. Mirrors can be used as pull-through caches for
-// registries.
-type Mirror struct {
-	// The mirror's URL.
-	URL string `toml:"url"`
+// Endpoint describes a remote location of a registry.
+type Endpoint struct {
+	// The endpoint's remote location.
+	Location string `toml:"location"`
 	// If true, certs verification will be skipped and HTTP (non-TLS)
 	// connections will be allowed.
 	Insecure bool `toml:"insecure"`
 }
 
+// RewriteReference will substitute the provided reference `prefix` to the
+// endpoints `location` from the `ref` and creates a new named reference from it.
+// The function errors if the newly created reference is not parsable.
+func (e *Endpoint) RewriteReference(ref reference.Named, prefix string) (reference.Named, error) {
+	if ref == nil {
+		return nil, fmt.Errorf("provided reference is nil")
+	}
+	if prefix == "" {
+		return ref, nil
+	}
+	refString := ref.String()
+	if refMatchesPrefix(refString, prefix) {
+		newNamedRef := strings.Replace(refString, prefix, e.Location, 1)
+		newParsedRef, err := reference.ParseNamed(newNamedRef)
+		if newParsedRef != nil {
+			logrus.Debugf("reference rewritten from '%v' to '%v'", refString, newParsedRef.String())
+		}
+		if err != nil {
+			return nil, errors.Wrapf(err, "error rewriting reference")
+		}
+		return newParsedRef, nil
+	}
+
+	return nil, fmt.Errorf("invalid prefix '%v' for reference '%v'", prefix, refString)
+}
+
 // Registry represents a registry.
 type Registry struct {
-	// Serializable registry URL.
-	URL string `toml:"url"`
+	// A registry is an Endpoint too
+	Endpoint
 	// The registry's mirrors.
-	Mirrors []Mirror `toml:"mirror"`
+	Mirrors []Endpoint `toml:"mirror"`
 	// If true, pulling from the registry will be blocked.
 	Blocked bool `toml:"blocked"`
-	// If true, certs verification will be skipped and HTTP (non-TLS)
-	// connections will be allowed.
-	Insecure bool `toml:"insecure"`
 	// If true, the registry can be used when pulling an unqualified image.
 	Search bool `toml:"unqualified-search"`
 	// Prefix is used for matching images, and to translate one namespace to
-	// another.  If `Prefix="example.com/bar"`, `URL="example.com/foo/bar"`
+	// another.  If `Prefix="example.com/bar"`, `location="example.com/foo/bar"`
 	// and we pull from "example.com/bar/myimage:latest", the image will
 	// effectively be pulled from "example.com/foo/bar/myimage:latest".
-	// If no Prefix is specified, it defaults to the specified URL.
+	// If no Prefix is specified, it defaults to the specified location.
 	Prefix string `toml:"prefix"`
 }
 
@@ -84,18 +110,18 @@ func (e *InvalidRegistries) Error() string {
 	return e.s
 }
 
-// parseURL parses the input string, performs some sanity checks and returns
+// parseLocation parses the input string, performs some sanity checks and returns
 // the sanitized input string.  An error is returned if the input string is
 // empty or if contains an "http{s,}://" prefix.
-func parseURL(input string) (string, error) {
+func parseLocation(input string) (string, error) {
 	trimmed := strings.TrimRight(input, "/")
 
 	if trimmed == "" {
-		return "", &InvalidRegistries{s: "invalid URL: cannot be empty"}
+		return "", &InvalidRegistries{s: "invalid location: cannot be empty"}
 	}
 
 	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
-		msg := fmt.Sprintf("invalid URL '%s': URI schemes are not supported", input)
+		msg := fmt.Sprintf("invalid location '%s': URI schemes are not supported", input)
 		return "", &InvalidRegistries{s: msg}
 	}
 
@@ -111,21 +137,21 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	// to minimize behavior inconsistency and not contribute to difficult-to-reproduce situations.
 	registryOrder := []string{}
 
-	getRegistry := func(url string) (*Registry, error) { // Note: _pointer_ to a long-lived object
+	getRegistry := func(location string) (*Registry, error) { // Note: _pointer_ to a long-lived object
 		var err error
-		url, err = parseURL(url)
+		location, err = parseLocation(location)
 		if err != nil {
 			return nil, err
 		}
-		reg, exists := regMap[url]
+		reg, exists := regMap[location]
 		if !exists {
 			reg = &Registry{
-				URL:     url,
-				Mirrors: []Mirror{},
-				Prefix:  url,
+				Endpoint: Endpoint{Location: location},
+				Mirrors:  []Endpoint{},
+				Prefix:   location,
 			}
-			regMap[url] = reg
-			registryOrder = append(registryOrder, url)
+			regMap[location] = reg
+			registryOrder = append(registryOrder, location)
 		}
 		return reg, nil
 	}
@@ -155,15 +181,15 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	}
 
 	registries := []Registry{}
-	for _, url := range registryOrder {
-		reg := regMap[url]
+	for _, location := range registryOrder {
+		reg := regMap[location]
 		registries = append(registries, *reg)
 	}
 	return registries, nil
 }
 
 // postProcessRegistries checks the consistency of all registries (e.g., set
-// the Prefix to URL if not set) and applies conflict checks.  It returns an
+// the Prefix to Location if not set) and applies conflict checks.  It returns an
 // array of cleaned registries and error in case of conflicts.
 func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	var registries []Registry
@@ -172,16 +198,16 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	for _, reg := range regs {
 		var err error
 
-		// make sure URL and Prefix are valid
-		reg.URL, err = parseURL(reg.URL)
+		// make sure Location and Prefix are valid
+		reg.Location, err = parseLocation(reg.Location)
 		if err != nil {
 			return nil, err
 		}
 
 		if reg.Prefix == "" {
-			reg.Prefix = reg.URL
+			reg.Prefix = reg.Location
 		} else {
-			reg.Prefix, err = parseURL(reg.Prefix)
+			reg.Prefix, err = parseLocation(reg.Prefix)
 			if err != nil {
 				return nil, err
 			}
@@ -189,13 +215,13 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 
 		// make sure mirrors are valid
 		for _, mir := range reg.Mirrors {
-			mir.URL, err = parseURL(mir.URL)
+			mir.Location, err = parseLocation(mir.Location)
 			if err != nil {
 				return nil, err
 			}
 		}
 		registries = append(registries, reg)
-		regMap[reg.URL] = append(regMap[reg.URL], reg)
+		regMap[reg.Location] = append(regMap[reg.Location], reg)
 	}
 
 	// Given a registry can be mentioned multiple times (e.g., to have
@@ -205,15 +231,15 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	// Note: we need to iterate over the registries array to ensure a
 	// deterministic behavior which is not guaranteed by maps.
 	for _, reg := range registries {
-		others, _ := regMap[reg.URL]
+		others, _ := regMap[reg.Location]
 		for _, other := range others {
 			if reg.Insecure != other.Insecure {
-				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.URL)
+				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.Location)
 
 				return nil, &InvalidRegistries{s: msg}
 			}
 			if reg.Blocked != other.Blocked {
-				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'blocked' setting", reg.URL)
+				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'blocked' setting", reg.Location)
 				return nil, &InvalidRegistries{s: msg}
 			}
 		}

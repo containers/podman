@@ -27,6 +27,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cyphar/filepath-securejoin"
 	docker "github.com/fsouza/go-dockerclient"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -480,22 +481,22 @@ func (s *StageExecutor) volumeCacheRestore() error {
 }
 
 // Copy copies data into the working tree.  The "Download" field is how
-// imagebuilder tells us the instruction was "ADD" and not "COPY".
+// imagebuilder tells us the instruction was "ADD" and not "COPY"
 func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
 	for _, copy := range copies {
-		// If the file exists, check to see if it's a symlink.
-		// If it is a symlink, convert to it's target otherwise
-		// the symlink will be overwritten.
-		fileDest, _ := os.Lstat(filepath.Join(s.mountPoint, copy.Dest))
-		if fileDest != nil {
-			if fileDest.Mode()&os.ModeSymlink != 0 {
-				if symLink, err := resolveSymlink(s.mountPoint, copy.Dest); err == nil {
-					copy.Dest = symLink
-				} else {
-					return errors.Wrapf(err, "error reading symbolic link to %q", copy.Dest)
-				}
-			}
+		// Check the file and see if part of it is a symlink.
+		// Convert it to the target if so.  To be ultrasafe
+		// do the same for the mountpoint.
+		secureMountPoint, err := securejoin.SecureJoin("", s.mountPoint)
+		finalPath, err := securejoin.SecureJoin(secureMountPoint, copy.Dest)
+		if err != nil {
+			return errors.Wrapf(err, "error resolving symlinks for copy destination %s", copy.Dest)
 		}
+		if !strings.HasPrefix(finalPath, secureMountPoint) {
+			return errors.Wrapf(err, "error resolving copy destination %s", copy.Dest)
+		}
+		copy.Dest = strings.TrimPrefix(finalPath, secureMountPoint)
+
 		if copy.Download {
 			logrus.Debugf("ADD %#v, %#v", excludes, copy)
 		} else {
@@ -1219,15 +1220,18 @@ func (s *StageExecutor) layerExists(ctx context.Context, currNode *parser.Node, 
 		return "", errors.Wrap(err, "error getting image list from store")
 	}
 	for _, image := range images {
-		layer, err := s.executor.store.Layer(image.TopLayer)
-		if err != nil {
-			return "", errors.Wrapf(err, "error getting top layer info")
+		var imageTopLayer *storage.Layer
+		if image.TopLayer != "" {
+			imageTopLayer, err = s.executor.store.Layer(image.TopLayer)
+			if err != nil {
+				return "", errors.Wrapf(err, "error getting top layer info")
+			}
 		}
 		// If the parent of the top layer of an image is equal to the last entry in b.topLayers
 		// it means that this image is potentially a cached intermediate image from a previous
 		// build. Next we double check that the history of this image is equivalent to the previous
 		// lines in the Dockerfile up till the point we are at in the build.
-		if layer.Parent == s.executor.topLayers[len(s.executor.topLayers)-1] || layer.ID == s.executor.topLayers[len(s.executor.topLayers)-1] {
+		if imageTopLayer == nil || imageTopLayer.Parent == s.executor.topLayers[len(s.executor.topLayers)-1] || imageTopLayer.ID == s.executor.topLayers[len(s.executor.topLayers)-1] {
 			history, err := s.executor.getImageHistory(ctx, image.ID)
 			if err != nil {
 				return "", errors.Wrapf(err, "error getting history of %q", image.ID)
@@ -1816,8 +1820,8 @@ func (b *Executor) deleteSuccessfulIntermediateCtrs() error {
 }
 
 func (s *StageExecutor) EnsureContainerPath(path string) error {
-	targetPath := filepath.Join(s.mountPoint, path)
-	_, err := os.Lstat(targetPath)
+	targetPath, err := securejoin.SecureJoin(s.mountPoint, path)
+	_, err = os.Lstat(targetPath)
 	if err != nil && os.IsNotExist(err) {
 		err = os.MkdirAll(targetPath, 0755)
 	}

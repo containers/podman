@@ -4,7 +4,6 @@ package storage
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -181,7 +180,7 @@ func (s *storageTransport) GetStore() (storage.Store, error) {
 	// Return the transport's previously-set store.  If we don't have one
 	// of those, initialize one now.
 	if s.store == nil {
-		options, err := storage.DefaultStoreOptions(os.Getuid() != 0, os.Getuid())
+		options, err := storage.DefaultStoreOptionsAutoDetectUID()
 		if err != nil {
 			return nil, err
 		}

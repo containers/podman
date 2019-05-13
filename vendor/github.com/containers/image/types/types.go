@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/pkg/progress"
 	"github.com/opencontainers/go-digest"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // ImageTransport is a top-level namespace for ways to to store/load an image.
@@ -262,20 +263,27 @@ type ImageDestination interface {
 	// inputInfo.Size is the expected length of stream, if known.
 	// inputInfo.MediaType describes the blob format, if known.
 	// May update cache.
+	// layerIndexInImage must be properly set to the layer index of the corresponding blob in the image. This value is required to allow parallel executions of
+	// layerIndexInImage is set to the layer index of the corresponding blob in the image. This value is required to allow parallel executions of
+	// PutBlob() and TryReusingBlob() where the layers must be written to the destination in sequential order. A value >= 0 indicates that the blob is a layer.
+	// The bar can optionally be specified to allow replacing/updating it. Note that only the containers-storage transport updates the bar; other transports ignore it.
+	// Same applies to bar, which is used in the containers-storage destination to update the progress bars displayed in the terminal. If it's nil, it will be ignored.
 	// WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 	// to any other readers for download using the supplied digest.
 	// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-	PutBlob(ctx context.Context, stream io.Reader, inputInfo BlobInfo, cache BlobInfoCache, isConfig bool) (BlobInfo, error)
+	PutBlob(ctx context.Context, stream io.Reader, inputInfo BlobInfo, layerIndexInImage int, cache BlobInfoCache, isConfig bool, bar *progress.Bar) (BlobInfo, error)
 	// HasThreadSafePutBlob indicates whether PutBlob can be executed concurrently.
 	HasThreadSafePutBlob() bool
 	// TryReusingBlob checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 	// info.Digest must not be empty.
-	// If canSubstitute, TryReusingBlob can use an equivalent equivalent of the desired blob; in that case the returned info may not match the input.
-	// If the blob has been succesfully reused, returns (true, info, nil); info must contain at least a digest and size.
+	// layerIndexInImage is set to the layer index of the corresponding blob in the image. This value is required to allow parallel executions of
+	// PutBlob() and TryReusingBlob() where the layers must be written to the destination in sequential order. A value >= 0 indicates that the blob is a layer.
+	// The bar can optionally be specified to allow replacing/updating it. Note that only the containers-storage transport updates the bar; other transports ignore it.
+	// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size.
 	// If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 	// May use and/or update cache.
-	TryReusingBlob(ctx context.Context, info BlobInfo, cache BlobInfoCache, canSubstitute bool) (bool, BlobInfo, error)
+	TryReusingBlob(ctx context.Context, info BlobInfo, layerIndexInImage int, cache BlobInfoCache, canSubstitute bool, bar *progress.Bar) (bool, BlobInfo, error)
 	// PutManifest writes manifest to the destination.
 	// FIXME? This should also receive a MIME type if known, to differentiate between schema versions.
 	// If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
@@ -401,6 +409,7 @@ type ImageInspectInfo struct {
 }
 
 // DockerAuthConfig contains authorization information for connecting to a registry.
+// the value of Username and Password can be empty for accessing the registry anonymously
 type DockerAuthConfig struct {
 	Username string
 	Password string

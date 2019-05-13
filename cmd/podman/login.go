@@ -75,7 +75,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	if c.Flag("get-login").Changed {
-		user, err := config.GetUserLoggedIn(sc, server)
+		user, _, err := config.GetAuthentication(sc, server)
 
 		if err != nil {
 			return errors.Wrapf(err, "unable to check for login user")

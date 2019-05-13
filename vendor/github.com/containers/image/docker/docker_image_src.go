@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
 	"github.com/opencontainers/go-digest"
@@ -28,17 +29,89 @@ type dockerImageSource struct {
 	cachedManifestMIMEType string // Only valid if cachedManifest != nil
 }
 
-// newImageSource creates a new ImageSource for the specified image reference.
-// The caller must call .Close() on the returned ImageSource.
-func newImageSource(sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
-	c, err := newDockerClientFromRef(sys, ref, false, "pull")
+// newImageSource creates a new `ImageSource` for the specified image reference
+// `ref`.
+//
+// The following steps will be done during the instance creation:
+//
+// - Lookup the registry within the configured location in
+//   `sys.SystemRegistriesConfPath`. If there is no configured registry available,
+//   we fallback to the provided docker reference `ref`.
+//
+// - References which contain a configured prefix will be automatically rewritten
+//   to the correct target reference. For example, if the configured
+//   `prefix = "example.com/foo"`, `location = "example.com"` and the image will be
+//   pulled from the ref `example.com/foo/image`, then the resulting pull will
+//   effectively point to `example.com/image`.
+//
+// - If the rewritten reference succeeds, it will be used as the `dockerRef`
+//   in the client. If the rewrite fails, the function immediately returns an error.
+//
+// - Each mirror will be used (in the configured order) to test the
+//   availability of the image manifest on the remote location. For example,
+//   if the manifest is not reachable due to connectivity issues, then the next
+//   mirror will be tested instead. If no mirror is configured or contains the
+//   target manifest, then the initial `ref` will be tested as fallback. The
+//   creation of the new `dockerImageSource` only succeeds if a remote
+//   location with the available manifest was found.
+//
+// A cleanup call to `.Close()` is needed if the caller is done using the returned
+// `ImageSource`.
+func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerReference) (*dockerImageSource, error) {
+	registry, err := sysregistriesv2.FindRegistry(sys, ref.ref.Name())
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "error loading registries configuration")
 	}
-	return &dockerImageSource{
-		ref: ref,
-		c:   c,
-	}, nil
+
+	if registry == nil {
+		// No configuration was found for the provided reference, so we create
+		// a fallback registry by hand to make the client creation below work
+		// as intended.
+		registry = &sysregistriesv2.Registry{
+			Endpoint: sysregistriesv2.Endpoint{
+				Location: ref.ref.String(),
+			},
+		}
+	}
+
+	// Found the registry within the sysregistriesv2 configuration. Now we test
+	// all endpoints for the manifest availability. If a working image source
+	// was found, it will be used for all future pull actions.
+	var (
+		imageSource     *dockerImageSource
+		manifestLoadErr error
+	)
+	for _, endpoint := range append(registry.Mirrors, registry.Endpoint) {
+		logrus.Debugf("Trying to pull %q from endpoint %q", ref.ref, endpoint.Location)
+
+		newRef, err := endpoint.RewriteReference(ref.ref, registry.Prefix)
+		if err != nil {
+			return nil, err
+		}
+		dockerRef, err := newReference(newRef)
+		if err != nil {
+			return nil, err
+		}
+
+		client, err := newDockerClientFromRef(sys, dockerRef, false, "pull")
+		if err != nil {
+			return nil, err
+		}
+		client.tlsClientConfig.InsecureSkipVerify = endpoint.Insecure
+
+		testImageSource := &dockerImageSource{
+			ref: dockerRef,
+			c:   client,
+		}
+
+		manifestLoadErr = testImageSource.ensureManifestIsLoaded(ctx)
+		if manifestLoadErr == nil {
+			imageSource = testImageSource
+			break
+		}
+	}
+
+	return imageSource, manifestLoadErr
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_
@@ -274,7 +347,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 			return nil, false, err
 		}
 		req = req.WithContext(ctx)
-		res, err := s.c.client.Do(req)
+		res, err := s.c.doHTTP(req)
 		if err != nil {
 			return nil, false, err
 		}

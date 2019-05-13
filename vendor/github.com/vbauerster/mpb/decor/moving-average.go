@@ -6,9 +6,9 @@ import (
 	"github.com/VividCortex/ewma"
 )
 
-// MovingAverage is the interface that computes a moving average over a time-
-// series stream of numbers. The average may be over a window or exponentially
-// decaying.
+// MovingAverage is the interface that computes a moving average over
+// a time-series stream of numbers. The average may be over a window
+// or exponentially decaying.
 type MovingAverage interface {
 	Add(float64)
 	Value() float64
@@ -57,7 +57,8 @@ func (s *medianEwma) Add(v float64) {
 	s.count++
 }
 
-// NewMedianEwma is ewma based MovingAverage, which gets its values from median MovingAverage.
+// NewMedianEwma is ewma based MovingAverage, which gets its values
+// from median MovingAverage.
 func NewMedianEwma(age ...float64) MovingAverage {
 	return &medianEwma{
 		MovingAverage: ewma.NewMovingAverage(age...),

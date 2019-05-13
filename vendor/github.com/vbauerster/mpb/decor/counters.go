@@ -141,12 +141,14 @@ func CountersNoUnit(pairFormat string, wcc ...WC) Decorator {
 	return Counters(0, pairFormat, wcc...)
 }
 
-// CountersKibiByte is a wrapper around Counters with predefined unit UnitKiB (bytes/1024).
+// CountersKibiByte is a wrapper around Counters with predefined unit
+// UnitKiB (bytes/1024).
 func CountersKibiByte(pairFormat string, wcc ...WC) Decorator {
 	return Counters(UnitKiB, pairFormat, wcc...)
 }
 
-// CountersKiloByte is a wrapper around Counters with predefined unit UnitKB (bytes/1000).
+// CountersKiloByte is a wrapper around Counters with predefined unit
+// UnitKB (bytes/1000).
 func CountersKiloByte(pairFormat string, wcc ...WC) Decorator {
 	return Counters(UnitKB, pairFormat, wcc...)
 }

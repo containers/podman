@@ -252,7 +252,7 @@ func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, dest typ
 				logrus.Debugf("Uploading empty layer during conversion to schema 1")
 				// Ideally we should update the relevant BlobInfoCache about this layer, but that would require passing it down here,
 				// and anyway this blob is so small that it’s easier to just copy it than to worry about figuring out another location where to get it.
-				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}, none.NoCache, false)
+				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}, -1, none.NoCache, false, nil)
 				if err != nil {
 					return nil, errors.Wrap(err, "Error uploading empty layer")
 				}

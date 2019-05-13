@@ -15,6 +15,10 @@ type Locker interface {
 	// Acquire a writer lock.
 	Lock()
 
+	// Acquire a writer lock recursively, allowing for recursive acquisitions
+	// within the same process space.
+	RecursiveLock()
+
 	// Unlock the lock.
 	Unlock()
 

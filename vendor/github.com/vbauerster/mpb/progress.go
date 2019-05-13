@@ -2,6 +2,7 @@ package mpb
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,8 +18,6 @@ const (
 	prr = 120 * time.Millisecond
 	// default width
 	pwidth = 80
-	// default format
-	pformat = "[=>-]"
 )
 
 // Progress represents the container that renders Progress bars
@@ -42,24 +41,24 @@ type pState struct {
 	pMatrix         map[int][]chan int
 	aMatrix         map[int][]chan int
 
-	// following are provided by user
+	// following are provided/overrided by user
+	ctx              context.Context
 	uwg              *sync.WaitGroup
 	manualRefreshCh  <-chan time.Time
-	cancel           <-chan struct{}
 	shutdownNotifier chan struct{}
 	waitBars         map[*Bar]*Bar
 	debugOut         io.Writer
 }
 
-// New creates new Progress instance, which orchestrates bars rendering process.
-// Accepts mpb.ProgressOption funcs for customization.
+// New creates new Progress instance, which orchestrates bars rendering
+// process. Accepts mpb.ProgressOption funcs for customization.
 func New(options ...ProgressOption) *Progress {
 	pq := make(priorityQueue, 0)
 	heap.Init(&pq)
 	s := &pState{
+		ctx:      context.Background(),
 		bHeap:    &pq,
 		width:    pwidth,
-		format:   pformat,
 		cw:       cwriter.New(os.Stdout),
 		rr:       prr,
 		waitBars: make(map[*Bar]*Bar),
@@ -84,12 +83,28 @@ func New(options ...ProgressOption) *Progress {
 
 // AddBar creates a new progress bar and adds to the container.
 func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
+	return p.Add(total, newDefaultBarFiller(), options...)
+}
+
+// AddSpinner creates a new spinner bar and adds to the container.
+func (p *Progress) AddSpinner(total int64, alignment SpinnerAlignment, options ...BarOption) *Bar {
+	filler := &spinnerFiller{
+		frames:    defaultSpinnerStyle,
+		alignment: alignment,
+	}
+	return p.Add(total, filler, options...)
+}
+
+// Add creates a bar which renders itself by provided filler.
+func (p *Progress) Add(total int64, filler Filler, options ...BarOption) *Bar {
+	if filler == nil {
+		filler = newDefaultBarFiller()
+	}
 	p.wg.Add(1)
 	result := make(chan *Bar)
 	select {
 	case p.operateState <- func(s *pState) {
-		options = append(options, barWidth(s.width), barFormat(s.format))
-		b := newBar(p.wg, s.idCounter, total, s.cancel, options...)
+		b := newBar(s.ctx, p.wg, filler, s.idCounter, s.width, total, options...)
 		if b.runningBar != nil {
 			s.waitBars[b.runningBar] = b
 		} else {
@@ -106,10 +121,10 @@ func (p *Progress) AddBar(total int64, options ...BarOption) *Bar {
 	}
 }
 
-// Abort is only effective while bar progress is running,
-// it means remove bar now without waiting for its completion.
-// If bar is already completed, there is nothing to abort.
-// If you need to remove bar after completion, use BarRemoveOnComplete BarOption.
+// Abort is only effective while bar progress is running, it means
+// remove bar now without waiting for its completion. If bar is already
+// completed, there is nothing to abort. If you need to remove bar
+// after completion, use BarRemoveOnComplete BarOption.
 func (p *Progress) Abort(b *Bar, remove bool) {
 	select {
 	case p.operateState <- func(s *pState) {
@@ -145,9 +160,10 @@ func (p *Progress) BarCount() int {
 	}
 }
 
-// Wait first waits for user provided *sync.WaitGroup, if any,
-// then waits far all bars to complete and finally shutdowns master goroutine.
-// After this method has been called, there is no way to reuse *Progress instance.
+// Wait first waits for user provided *sync.WaitGroup, if any, then
+// waits far all bars to complete and finally shutdowns master goroutine.
+// After this method has been called, there is no way to reuse *Progress
+// instance.
 func (p *Progress) Wait() {
 	if p.uwg != nil {
 		p.uwg.Wait()
@@ -205,8 +221,8 @@ func (s *pState) flush(lineCount int) error {
 		defer func() {
 			if frameReader.toShutdown {
 				// shutdown at next flush, in other words decrement underlying WaitGroup
-				// only after the bar with completed state has been flushed.
-				// this ensures no bar ends up with less than 100% rendered.
+				// only after the bar with completed state has been flushed. this
+				// ensures no bar ends up with less than 100% rendered.
 				s.shutdownPending = append(s.shutdownPending, bar)
 				if replacementBar, ok := s.waitBars[bar]; ok {
 					heap.Push(s.bHeap, replacementBar)

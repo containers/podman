@@ -25,6 +25,7 @@ type lockfile struct {
 	locktype   int16
 	locked     bool
 	ro         bool
+	recursive  bool
 }
 
 // openLock opens the file at path and returns the corresponding file
@@ -75,7 +76,7 @@ func createLockerForPath(path string, ro bool) (Locker, error) {
 
 // lock locks the lockfile via FCTNL(2) based on the specified type and
 // command.
-func (l *lockfile) lock(l_type int16) {
+func (l *lockfile) lock(l_type int16, recursive bool) {
 	lk := unix.Flock_t{
 		Type:   l_type,
 		Whence: int16(os.SEEK_SET),
@@ -86,7 +87,13 @@ func (l *lockfile) lock(l_type int16) {
 	case unix.F_RDLCK:
 		l.rwMutex.RLock()
 	case unix.F_WRLCK:
-		l.rwMutex.Lock()
+		if recursive {
+			// NOTE: that's okay as recursive is only set in RecursiveLock(), so
+			// there's no need to protect against hypothetical RDLCK cases.
+			l.rwMutex.RLock()
+		} else {
+			l.rwMutex.Lock()
+		}
 	default:
 		panic(fmt.Sprintf("attempted to acquire a file lock of unrecognized type %d", l_type))
 	}
@@ -110,6 +117,7 @@ func (l *lockfile) lock(l_type int16) {
 	}
 	l.locktype = l_type
 	l.locked = true
+	l.recursive = recursive
 	l.counter++
 }
 
@@ -119,13 +127,24 @@ func (l *lockfile) Lock() {
 	if l.ro {
 		l.RLock()
 	} else {
-		l.lock(unix.F_WRLCK)
+		l.lock(unix.F_WRLCK, false)
+	}
+}
+
+// RecursiveLock locks the lockfile as a writer but allows for recursive
+// acquisitions within the same process space.  Note that RLock() will be called
+// if it's a lockTypReader lock.
+func (l *lockfile) RecursiveLock() {
+	if l.ro {
+		l.RLock()
+	} else {
+		l.lock(unix.F_WRLCK, true)
 	}
 }
 
 // LockRead locks the lockfile as a reader.
 func (l *lockfile) RLock() {
-	l.lock(unix.F_RDLCK)
+	l.lock(unix.F_RDLCK, false)
 }
 
 // Unlock unlocks the lockfile.
@@ -161,7 +180,7 @@ func (l *lockfile) Unlock() {
 		// Close the file descriptor on the last unlock.
 		unix.Close(int(l.fd))
 	}
-	if l.locktype == unix.F_RDLCK {
+	if l.locktype == unix.F_RDLCK || l.recursive {
 		l.rwMutex.RUnlock()
 	} else {
 		l.rwMutex.Unlock()
