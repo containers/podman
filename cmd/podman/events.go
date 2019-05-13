@@ -13,7 +13,7 @@ var (
 	_eventsCommand    = &cobra.Command{
 		Use:   "events",
 		Args:  noSubArgs,
-		Short: "show podman events",
+		Short: "Show podman events",
 		Long:  eventsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eventsCommand.InputArgs = args
