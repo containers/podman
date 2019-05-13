@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/coreos/go-systemd/dbus"
 	"github.com/pkg/errors"
@@ -61,7 +62,13 @@ func (c *Container) removeTimer() error {
 		return errors.Wrapf(err, "unable to get systemd connection to remove healthchecks")
 	}
 	defer conn.Close()
-	serviceFile := fmt.Sprintf("%s.timer", c.ID())
-	_, err = conn.StopUnit(serviceFile, "fail", nil)
+	timerFile := fmt.Sprintf("%s.timer", c.ID())
+	_, err = conn.StopUnit(timerFile, "fail", nil)
+
+	// We want to ignore errors where the timer unit has already been removed. The error
+	// return is generic so we have to check against the string in the error
+	if err != nil && strings.HasSuffix(err.Error(), ".timer not loaded.") {
+		return nil
+	}
 	return err
 }
