@@ -1,3 +1,5 @@
+// +build systemd
+
 package events
 
 import (
@@ -13,6 +15,11 @@ import (
 // EventJournalD is the journald implementation of an eventer
 type EventJournalD struct {
 	options EventerOptions
+}
+
+// newEventJournalD creates a new journald Eventer
+func newEventJournalD(options EventerOptions) (Eventer, error) {
+	return EventJournalD{options}, nil
 }
 
 // Write to journald
