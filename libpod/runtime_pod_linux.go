@@ -308,5 +308,15 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	// Mark pod invalid
 	p.valid = false
 	p.newPodEvent(events.Remove)
+
+	// Deallocate the pod lock
+	if err := p.lock.Free(); err != nil {
+		if removalErr == nil {
+			removalErr = errors.Wrapf(err, "error freeing pod %s lock", p.ID())
+		} else {
+			logrus.Errorf("Error freeing pod %s lock: %v", p.ID(), err)
+		}
+	}
+
 	return removalErr
 }
