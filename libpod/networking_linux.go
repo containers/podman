@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/netns"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -100,6 +101,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
+	if rootless.IsRootless() {
+		return nil, nil, errors.New("cannot configure a new network namespace in rootless mode, only --network=slirp4netns is supported")
+	}
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
