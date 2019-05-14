@@ -13,6 +13,8 @@ accessed from the host, and returns its location.
 If you execute the command without any arguments, the tool will list all of the
 currently mounted containers.
 
+Note that when running in rootless mode, the mount command only works with the vfs storage driver.
+
 ## RETURN VALUE
 The location of the mounted file system.  On error an empty string and errno is
 returned.
