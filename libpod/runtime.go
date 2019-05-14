@@ -304,7 +304,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
-		EventsLogger:          "journald",
+		EventsLogger:          events.DefaultEventerType.String(),
 	}, nil
 }
 

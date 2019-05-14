@@ -12,6 +12,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// DefaultEventerType is journald when systemd is available
+const DefaultEventerType = Journald
+
 // EventJournalD is the journald implementation of an eventer
 type EventJournalD struct {
 	options EventerOptions
