@@ -1029,6 +1029,13 @@ func (c *Container) start() error {
 
 	c.state.State = ContainerStateRunning
 
+	// While we hold the lock, ensure the container is still running.
+	// The container could have already stopped by the time "$runtime start"
+	// exits and we mistakenly report it as "running".
+	if err := c.runtime.state.UpdateContainer(c); err != nil {
+		return err
+	}
+
 	if c.config.HealthCheckConfig != nil {
 		if err := c.updateHealthStatus(HealthCheckStarting); err != nil {
 			logrus.Error(err)
