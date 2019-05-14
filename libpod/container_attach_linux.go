@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/containers/libpod/pkg/kubeutils"
 	"github.com/containers/libpod/utils"
@@ -31,7 +32,7 @@ const (
 
 // Attach to the given container
 // Does not check if state is appropriate
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool) error {
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, wg *sync.WaitGroup) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -48,12 +49,17 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 
 	logrus.Debugf("Attaching to container %s", c.ID())
 
-	return c.attachContainerSocket(resize, detachKeys, streams, startContainer)
+	return c.attachContainerSocket(resize, detachKeys, streams, startContainer, wg)
 }
 
-// attachContainerSocket connects to the container's attach socket and deals with the IO
+// attachContainerSocket connects to the container's attach socket and deals with the IO.
+// wg is only required if startContainer is true
 // TODO add a channel to allow interrupting
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams, startContainer bool) error {
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams, startContainer bool, wg *sync.WaitGroup) error {
+	if startContainer && wg == nil {
+		return errors.Wrapf(ErrInternal, "wait group not passed when startContainer set")
+	}
+
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
 		controlPath := filepath.Join(c.bundlePath(), "ctl")
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
@@ -84,10 +90,13 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	}
 	defer conn.Close()
 
+	// If starting was requested, start the container and notify when that's
+	// done.
 	if startContainer {
 		if err := c.start(); err != nil {
 			return err
 		}
+		wg.Done()
 	}
 
 	receiveStdoutError := make(chan error)

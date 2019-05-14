@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
@@ -119,13 +120,20 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 
 	attachChan := make(chan error)
 
+	// We need to ensure that we don't return until start() fired in attach.
+	// Use a WaitGroup to sync this.
+	wg := new(sync.WaitGroup)
+	wg.Add(1)
+
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true); err != nil {
+		if err := c.attach(streams, keys, resize, true, wg); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
 	}()
+
+	wg.Wait()
 	c.newContainerEvent(events.Attach)
 	return attachChan, nil
 }
@@ -398,7 +406,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 	defer c.newContainerEvent(events.Attach)
-	return c.attach(streams, keys, resize, false)
+	return c.attach(streams, keys, resize, false, nil)
 }
 
 // Mount mounts a container's filesystem on the host
