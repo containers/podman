@@ -1,5 +1,25 @@
 # Release Notes
 
+## 1.3.1
+### Features
+- The `podman cp` command can now read input redirected to `STDIN`, and output to `STDOUT` instead of a file, using `-` instead of an argument.
+- The Podman remote client now displays version information from both the client and server in `podman version`
+
+### Bugfixes
+- Fixed a bug where Podman containers with the `--rm` flag were removing created volumes when they were automatically removed ([#3071](https://github.com/containers/libpod/issues/3071))
+- Fixed a bug where container and pod locks were incorrectly marked as released after a system reboot, causing errors on container and pod removal ([#2900](https://github.com/containers/libpod/issues/2900))
+- Fixed a bug where Podman pods could not be removed if any container in the pod encountered an error during removal ([#3088](https://github.com/containers/libpod/issues/3088))
+- Fixed a bug where Podman pods run with the `cgroupfs` CGroup driver would encounter a race condition during removal, potentially failing to remove the pod CGroup
+- Fixed a bug where the `podman container checkpoint` and `podman container restore` commands were not visible in the remote client
+- Fixed a bug where `podman remote ps --ns` would not print the container's namespaces ([#2938](https://github.com/containers/libpod/issues/2938))
+- Fixed a bug where removing stopped containers with healthchecks could cause an error
+- Fixed a bug where the default `libpod.conf` file was causing parsing errors ([#3095](https://github.com/containers/libpod/issues/3095))
+- Fixed a bug where pod locks were not being freed when pods were removed, potentially leading to lock exhaustion
+- Fixed a bug where 'podman run' with SD_NOTIFY set could, on short-running containers, create an inconsistent state rendering the container unusable
+
+### Misc
+- The remote Podman client now uses the Varlink bridge to establish remote connections by default
+
 ## 1.3.0
 ### Features
 - Podman now supports container restart policies! The `--restart-policy` flag on `podman create` and `podman run` allows containers to be restarted after they exit. Please note that Podman cannot restart containers after a system reboot - for that, see our next feature
