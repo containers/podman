@@ -23,7 +23,7 @@ var _ = Describe("Podman events", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

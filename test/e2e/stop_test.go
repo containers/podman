@@ -23,7 +23,7 @@ var _ = Describe("Podman stop", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

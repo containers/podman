@@ -37,7 +37,7 @@ var _ = Describe("podman container runlabel", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

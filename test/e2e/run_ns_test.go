@@ -25,7 +25,7 @@ var _ = Describe("Podman run ns", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreArtifact(fedoraMinimal)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

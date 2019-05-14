@@ -28,7 +28,7 @@ var _ = Describe("Podman checkpoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 		// Check if the runtime implements checkpointing. Currently only
 		// runc's checkpoint/restore implementation is supported.
 		cmd := exec.Command(podmanTest.OCIRuntime, "checkpoint", "-h")
@@ -221,7 +221,6 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with established tcp connections", func() {
-		podmanTest.RestoreArtifact(redis)
 		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", redis})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

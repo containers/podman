@@ -27,7 +27,7 @@ var _ = Describe("Podman pause", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -249,7 +249,6 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("Pause a bunch of running containers", func() {
-		podmanTest.RestoreArtifact(nginx)
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test%d", i)
 			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, nginx})
@@ -277,7 +276,6 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("Unpause a bunch of running containers", func() {
-		podmanTest.RestoreArtifact(nginx)
 		for i := 0; i < 3; i++ {
 			name := fmt.Sprintf("test%d", i)
 			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, nginx})

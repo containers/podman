@@ -24,7 +24,7 @@ var _ = Describe("Podman run entrypoint", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreArtifact(ALPINE)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

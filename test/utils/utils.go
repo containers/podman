@@ -42,6 +42,8 @@ type PodmanTest struct {
 	VarlinkSession     *os.Process
 	VarlinkEndpoint    string
 	VarlinkCommand     *exec.Cmd
+	ImageCacheDir      string
+	ImageCacheFS       string
 }
 
 // PodmanSession wraps the gexec.session so we can extend it
@@ -63,13 +65,17 @@ func (p *PodmanTest) MakeOptions(args []string) []string {
 
 // PodmanAsUserBase exec podman as user. uid and gid is set for credentials useage. env is used
 // to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string) *PodmanSession {
+func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, nocache bool) *PodmanSession {
 	var command *exec.Cmd
 	podmanOptions := p.MakeOptions(args)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 		env = append(env, fmt.Sprintf("PODMAN_VARLINK_ADDRESS=%s", p.VarlinkEndpoint))
+	}
+	if !nocache && !p.RemoteTest {
+		cacheOptions := []string{"--storage-opt", fmt.Sprintf("%s.imagestore=%s", p.ImageCacheFS, p.ImageCacheDir)}
+		podmanOptions = append(cacheOptions, podmanOptions...)
 	}
 
 	if env == nil {
@@ -99,8 +105,8 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 }
 
 // PodmanBase exec podman with default env.
-func (p *PodmanTest) PodmanBase(args []string) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, "", nil)
+func (p *PodmanTest) PodmanBase(args []string, nocache bool) *PodmanSession {
+	return p.PodmanAsUserBase(args, 0, 0, "", nil, nocache)
 }
 
 // WaitForContainer waits on a started container
@@ -118,7 +124,7 @@ func (p *PodmanTest) WaitForContainer() bool {
 // containers are currently running.
 func (p *PodmanTest) NumberOfContainersRunning() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-q"})
+	ps := p.PodmanBase([]string{"ps", "-q"}, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -133,7 +139,7 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 // containers are currently defined.
 func (p *PodmanTest) NumberOfContainers() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-aq"})
+	ps := p.PodmanBase([]string{"ps", "-aq"}, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -148,7 +154,7 @@ func (p *PodmanTest) NumberOfContainers() int {
 // pods are currently defined.
 func (p *PodmanTest) NumberOfPods() int {
 	var pods []string
-	ps := p.PodmanBase([]string{"pod", "ps", "-q"})
+	ps := p.PodmanBase([]string{"pod", "ps", "-q"}, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -164,7 +170,7 @@ func (p *PodmanTest) NumberOfPods() int {
 func (p *PodmanTest) GetContainerStatus() string {
 	var podmanArgs = []string{"ps"}
 	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
-	session := p.PodmanBase(podmanArgs)
+	session := p.PodmanBase(podmanArgs, true)
 	session.WaitWithDefaultTimeout()
 	return session.OutputToString()
 }
@@ -172,7 +178,7 @@ func (p *PodmanTest) GetContainerStatus() string {
 // WaitContainerReady waits process or service inside container start, and ready to be used.
 func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, step int) bool {
 	startTime := time.Now()
-	s := p.PodmanBase([]string{"logs", id})
+	s := p.PodmanBase([]string{"logs", id}, true)
 	s.WaitWithDefaultTimeout()
 
 	for {
@@ -185,7 +191,7 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 			return true
 		}
 		time.Sleep(time.Duration(step) * time.Second)
-		s = p.PodmanBase([]string{"logs", id})
+		s = p.PodmanBase([]string{"logs", id}, true)
 		s.WaitWithDefaultTimeout()
 	}
 }

@@ -32,7 +32,7 @@ var _ = Describe("Podman run", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -51,7 +51,6 @@ var _ = Describe("Podman run", func() {
 	It("podman run a container based on a complex local image name", func() {
 		SkipIfRootless()
 		imageName := strings.TrimPrefix(nginx, "quay.io/")
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ErrorToString()).ToNot(ContainSubstring("Trying to pull"))
@@ -59,7 +58,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run a container based on on a short name with localhost", func() {
-		podmanTest.RestoreArtifact(nginx)
 		tag := podmanTest.Podman([]string{"tag", nginx, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
@@ -73,7 +71,6 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman container run a container based on on a short name with localhost", func() {
-		podmanTest.RestoreArtifact(nginx)
 		tag := podmanTest.Podman([]string{"image", "tag", nginx, "localhost/libpod/alpine_nginx:latest"})
 		tag.WaitWithDefaultTimeout()
 
@@ -229,7 +226,6 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run limits test", func() {
 		SkipIfRootless()
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -349,11 +345,12 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run tagged image", func() {
-		tag := podmanTest.Podman([]string{"tag", "busybox", "bb"})
+		podmanTest.RestoreArtifact(BB)
+		tag := podmanTest.PodmanNoCache([]string{"tag", "busybox", "bb"})
 		tag.WaitWithDefaultTimeout()
 		Expect(tag.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", "--rm", "bb", "ls"})
+		session := podmanTest.PodmanNoCache([]string{"run", "--rm", "bb", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -536,12 +533,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run with built-in volume image", func() {
-		podmanTest.RestoreArtifact(redis)
 		session := podmanTest.Podman([]string{"run", "--rm", redis, "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-		session = podmanTest.Podman([]string{"rmi", redis})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -555,10 +547,6 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("mail root"))
-
-		session = podmanTest.Podman([]string{"rmi", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run --volumes-from flag", func() {
@@ -571,7 +559,6 @@ USER mail`
 		err = ioutil.WriteFile(volFile, []byte(data), 0755)
 		Expect(err).To(BeNil())
 
-		podmanTest.RestoreArtifact(redis)
 		session := podmanTest.Podman([]string{"create", "--volume", vol + ":/myvol", redis, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -587,7 +574,6 @@ USER mail`
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {
-		podmanTest.RestoreArtifact(redis)
 		session := podmanTest.Podman([]string{"create", redis, "sh"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -641,7 +627,6 @@ USER mail`
 	})
 
 	It("podman run findmnt nothing shared", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).To(BeNil())
@@ -657,7 +642,6 @@ USER mail`
 	})
 
 	It("podman run findmnt shared", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).To(BeNil())
@@ -765,10 +749,9 @@ USER mail`
 	})
 
 	It("podman run with restart-policy always restarts containers", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
 
 		testDir := filepath.Join(podmanTest.RunRoot, "restart-test")
-		err := os.Mkdir(testDir, 0755)
+		err := os.MkdirAll(testDir, 0755)
 		Expect(err).To(BeNil())
 
 		aliveFile := filepath.Join(testDir, "running")

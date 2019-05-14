@@ -22,7 +22,8 @@ var _ = Describe("Podman image tree", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.Setup()
+		podmanTest.RestoreArtifact(BB)
 	})
 
 	AfterEach(func() {
@@ -36,7 +37,7 @@ var _ = Describe("Podman image tree", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
-		session := podmanTest.Podman([]string{"pull", "docker.io/library/busybox:latest"})
+		session := podmanTest.PodmanNoCache([]string{"pull", "docker.io/library/busybox:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -47,17 +48,17 @@ ENV foo=bar
 `
 		podmanTest.BuildImage(dockerfile, "test:latest", "true")
 
-		session = podmanTest.Podman([]string{"image", "tree", "test:latest"})
+		session = podmanTest.PodmanNoCache([]string{"image", "tree", "test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"image", "tree", "--whatrequires", "docker.io/library/busybox:latest"})
+		session = podmanTest.PodmanNoCache([]string{"image", "tree", "--whatrequires", "docker.io/library/busybox:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", "test:latest"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"rmi", "docker.io/library/busybox:latest"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", "docker.io/library/busybox:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
