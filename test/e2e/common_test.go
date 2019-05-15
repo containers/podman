@@ -176,13 +176,13 @@ func (p *PodmanTestIntegration) Setup() {
 // LockTmpDir = path
 // })
 
-var _ = AfterSuite(func() {
-	sort.Sort(testResultsSortedLength{testResults})
-	fmt.Println("integration timing results")
-	for _, result := range testResults {
-		fmt.Printf("%s\t\t%f\n", result.name, result.length)
-	}
-})
+// var _ = AfterSuite(func() {
+// 	sort.Sort(testResultsSortedLength{testResults})
+// 	fmt.Println("integration timing results")
+// 	for _, result := range testResults {
+// 		fmt.Printf("%s\t\t%f\n", result.name, result.length)
+// 	}
+// })
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
