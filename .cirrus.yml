@@ -73,6 +73,7 @@ env:
     #### Default to NOT operating in any special-case testing mode
     ####
     SPECIALMODE: "none"  # don't do anything special
+    TEST_REMOTE_CLIENT: false  # don't test remote client by default
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -265,6 +266,11 @@ testing_task:
         - "varlink_api"
         - "vendor"
         - "build_each_commit"
+
+    env:
+        matrix:
+            TEST_REMOTE_CLIENT: true
+            TEST_REMOTE_CLIENT: false
 
     gce_instance:
         image_project: "libpod-218412"

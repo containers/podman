@@ -36,6 +36,7 @@ else
     make
     make install PREFIX=/usr ETCDIR=/etc
     make test-binaries
+    make install.tools
     clean_env
 
     case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
@@ -49,6 +50,11 @@ else
             ;;
         *) bad_os_id_ver ;;
     esac
-    make localintegration
+    if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
+    then
+        make remoteintegration
+    else
+        make localintegration
+    fi
     exit $?
 fi

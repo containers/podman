@@ -185,6 +185,14 @@ Provides: bundled(golang(k8s.io/utils)) = 258e2a2fa64568210fbd6267cf1d8fd87c3cb8
 %{repo} provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
+%package remote
+Summary:       Remote Podman client
+
+%description -n podman-remote
+%{summary}
+This package provides the Podman remote client which
+can be used to access Podman running on a server.
+
 %if 0%{?with_devel}
 %package devel
 Summary:       Library for applications looking to use Container Pods
@@ -490,6 +498,11 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %endif
+
+%files -n podman-remote
+%license LICENSE
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%{_bindir}/%{name}-remote
 
 %changelog
 * Sat Aug 4 2018 Dan Walsh <dwalsh@redhat.com> - 0.8.1-1.git6b4ab2a
