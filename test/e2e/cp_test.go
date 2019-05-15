@@ -40,15 +40,11 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp file", func() {
 		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		filePath := filepath.Join(path, "cp_test.txt")
 		fromHostToContainer := []byte("copy from host to container")
 		err = ioutil.WriteFile(filePath, fromHostToContainer, 0644)
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "cat", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -69,15 +65,12 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp file to dir", func() {
 		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		filePath := filepath.Join(path, "cp_test.txt")
 		fromHostToContainer := []byte("copy from host to container directory")
 		err = ioutil.WriteFile(filePath, fromHostToContainer, 0644)
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
+
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foodir/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -97,14 +90,10 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp dir to dir", func() {
 		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		testDirPath := filepath.Join(path, "TestDir")
 		err = os.Mkdir(testDirPath, 0777)
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "/foodir"})
 		session.WaitWithDefaultTimeout()
@@ -124,19 +113,13 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp stdin/stdout", func() {
 		path, err := os.Getwd()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		testDirPath := filepath.Join(path, "TestDir")
 		err = os.Mkdir(testDirPath, 0777)
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 		cmd := exec.Command("tar", "-zcvf", "file.tar.gz", testDirPath)
 		_, err = cmd.Output()
-		if err != nil {
-			os.Exit(1)
-		}
+		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foo"})
 		session.WaitWithDefaultTimeout()

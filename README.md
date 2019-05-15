@@ -10,7 +10,7 @@ popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`
 
 ## Overview and scope
 
-At a high level, the scope of libpod and podman is the following:
+At a high level, the scope of libpod and Podman is the following:
 
 * Support multiple image formats including the OCI and Docker image formats.
 * Support for multiple means to download images including trust & image verification.

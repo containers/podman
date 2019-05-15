@@ -298,12 +298,14 @@ testing_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
     audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
     journalctl_b_script: 'journalctl -b'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
         # Job has already failed, don't fail again and miss collecting data
+        failed_ginkgo_node_logs_script: 'cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log || echo "Ginkgo node logs not found"'
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
