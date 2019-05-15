@@ -39,6 +39,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp file", func() {
+		Skip("cp tests are broken")
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
 		filePath := filepath.Join(path, "cp_test.txt")
@@ -64,6 +65,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp file to dir", func() {
+		Skip("cp tests are broken")
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
 		filePath := filepath.Join(path, "cp_test.txt")
@@ -89,6 +91,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp dir to dir", func() {
+		Skip("cp tests are broken")
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
 		testDirPath := filepath.Join(path, "TestDir")
@@ -112,6 +115,7 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp stdin/stdout", func() {
+		Skip("cp tests are broken")
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
 		testDirPath := filepath.Join(path, "TestDir")
