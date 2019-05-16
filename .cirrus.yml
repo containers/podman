@@ -123,6 +123,9 @@ gating_task:
 
     timeout_in: 20m
 
+    networking_script:  # Don't bother going further if something is down
+        - 'while read host port; do nc -zv -w 13 $host $port || exit 1; done < ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt'
+
     gate_script:
         # N/B: entrypoint.sh resets $GOSRC (same as make clean)
         - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
