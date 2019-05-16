@@ -231,10 +231,10 @@ then
            "$HOME/.config/gcloud/configurations/config_default"
 fi
 
-# Couldn't make rsync work with gcloud's ssh wrapper: ssh-keys generated on the fly
+# Couldn't make rsync work with gcloud's ssh wrapper because ssh-keys generated on the fly
 TARBALL=$VMNAME.tar.bz2
 echo -e "\n${YEL}Packing up local repository into a tarball.${NOR}"
-showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed --exclude=.git --exclude=bin -C $LIBPODROOT .
+showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed --exclude-vcs-ignores -C $LIBPODROOT .
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
