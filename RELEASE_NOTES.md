@@ -4,6 +4,7 @@
 ### Features
 - The `podman cp` command can now read input redirected to `STDIN`, and output to `STDOUT` instead of a file, using `-` instead of an argument.
 - The Podman remote client now displays version information from both the client and server in `podman version`
+- The `podman unshare` command has been added, allowing easy entry into the user namespace set up by rootless Podman (allowing the removal of files created by rootless Podman, among other things)
 
 ### Bugfixes
 - Fixed a bug where Podman containers with the `--rm` flag were removing created volumes when they were automatically removed ([#3071](https://github.com/containers/libpod/issues/3071))
