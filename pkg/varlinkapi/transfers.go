@@ -15,61 +15,58 @@ import (
 
 // SendFile allows a client to send a file to the varlink server
 func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int64) error {
-	varlink := VarlinkCall{&call}
-	if err := varlink.RequiresUpgrade(); err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+	if !call.WantsUpgrade() {
+		return call.ReplyErrorOccurred("client must use upgraded connection to send files")
 	}
 
 	outputFile, err := ioutil.TempFile("", "varlink_send")
 	if err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	defer outputFile.Close()
 
-	if err = varlink.ReplySendFile(outputFile.Name()); err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+	if err = call.ReplySendFile(outputFile.Name()); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
 	}
 
 	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
-	reader := varlink.Call.Reader
+	reader := call.Call.Reader
 	if _, err := io.CopyN(writer, reader, length); err != nil {
 		return err
 	}
 
 	logrus.Debugf("successfully received %s", outputFile.Name())
 	// Send an ACK to the client
-	varlink.Call.Writer.WriteString(fmt.Sprintf("%s:", outputFile.Name()))
-	varlink.Call.Writer.Flush()
+	call.Call.Writer.WriteString(fmt.Sprintf("%s:", outputFile.Name()))
+	call.Call.Writer.Flush()
 	return nil
 
 }
 
 // ReceiveFile allows the varlink server to send a file to a client
 func (i *LibpodAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, delete bool) error {
-	varlink := VarlinkCall{&call}
-	if err := varlink.RequiresUpgrade(); err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+	if !call.WantsUpgrade() {
+		return call.ReplyErrorOccurred("client must use upgraded connection to send files")
 	}
-
 	fs, err := os.Open(filepath)
 	if err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	fileInfo, err := fs.Stat()
 	if err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+		return call.ReplyErrorOccurred(err.Error())
 	}
 
 	// Send the file length down to client
 	// Varlink connection upraded
-	if err = varlink.ReplyReceiveFile(fileInfo.Size()); err != nil {
-		return varlink.ReplyErrorOccurred(err.Error())
+	if err = call.ReplyReceiveFile(fileInfo.Size()); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
 	}
 
 	reader := bufio.NewReader(fs)
-	_, err = reader.WriteTo(varlink.Writer)
+	_, err = reader.WriteTo(call.Writer)
 	if err != nil {
 		return err
 	}
@@ -78,5 +75,5 @@ func (i *LibpodAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, dele
 			return err
 		}
 	}
-	return varlink.Writer.Flush()
+	return call.Writer.Flush()
 }

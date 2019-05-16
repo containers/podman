@@ -21,7 +21,3 @@ func New(cli *cliconfig.PodmanCommand, runtime *libpod.Runtime) *iopodman.Varlin
 	lp := LibpodAPI{Cli: cli.Command, Runtime: runtime}
 	return iopodman.VarlinkNew(&lp)
 }
-
-type VarlinkCall struct {
-	*iopodman.VarlinkCall
-}
