@@ -398,3 +398,8 @@ func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*libpod.Pod, error)
 func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
 	return libpod.GetVersion()
 }
+
+// RemoteEndpoint resolve interface requirement
+func (r *LocalRuntime) RemoteEndpoint() (*Endpoint, error) {
+	return nil, errors.New("RemoteEndpoint() not implemented for local connection")
+}

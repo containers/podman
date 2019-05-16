@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -60,7 +61,16 @@ func infoCmd(c *cliconfig.InfoValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}
+
 	if runtime.Remote {
+		endpoint, err := runtime.RemoteEndpoint()
+		if err != nil {
+			logrus.Errorf("Failed to obtain server connection: %s", err.Error())
+		} else {
+			remoteClientInfo["Connection"] = endpoint.Connection
+			remoteClientInfo["Connection Type"] = endpoint.Type.String()
+		}
+
 		remoteClientInfo["RemoteAPI Version"] = version.RemoteAPIVersion
 		remoteClientInfo["Podman Version"] = version.Version
 		remoteClientInfo["OS Arch"] = fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH)
