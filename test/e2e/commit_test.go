@@ -194,4 +194,24 @@ var _ = Describe("Podman commit", func() {
 		Expect(r.ExitCode()).To(Equal(0))
 	})
 
+	It("podman commit container check env variables", func() {
+		s := podmanTest.Podman([]string{"run", "--name", "test1", "-e", "TEST=1=1-01=9.01", "-it", "alpine", "true"})
+		s.WaitWithDefaultTimeout()
+		Expect(s.ExitCode()).To(Equal(0))
+
+		c := podmanTest.Podman([]string{"commit", "test1", "newimage"})
+		c.WaitWithDefaultTimeout()
+		Expect(c.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "newimage"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		image := inspect.InspectImageJSON()
+
+		envMap := make(map[string]bool)
+		for _, v := range image[0].Config.Env {
+			envMap[v] = true
+		}
+		Expect(envMap["TEST=1=1-01=9.01"]).To(BeTrue())
+	})
 })
