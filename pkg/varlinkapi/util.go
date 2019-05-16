@@ -13,11 +13,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/pkg/errors"
-)
-
-var (
-	ErrUpgradedConnectionRequired = errors.New("peer must use upgraded connection for operation")
 )
 
 // getContext returns a non-nil, empty context
@@ -198,15 +193,5 @@ func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
 		Sort:      derefString(inOpts.Sort),
 		Namespace: true,
 		Sync:      derefBool(inOpts.Sync),
-	}
-}
-
-// RequiresUpgrade tests if varlink connection has been marked for upgrade.
-func (v *VarlinkCall) RequiresUpgrade() error {
-	if v.WantsUpgrade() {
-		// A nil is sent to the peer as required by the varlink protocol.
-		return v.Reply(nil)
-	} else {
-		return ErrUpgradedConnectionRequired
 	}
 }
