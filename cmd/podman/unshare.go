@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/containers/buildah/pkg/unshare"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -30,9 +30,13 @@ func init() {
 	flags.SetInterspersed(false)
 }
 
+func unshareEnv() []string {
+	return append(os.Environ(), "_CONTAINERS_USERNS_CONFIGURED=done")
+}
+
 // unshareCmd execs whatever using the ID mappings that we want to use for ourselves
 func unshareCmd(c *cobra.Command, args []string) error {
-	if isRootless := unshare.IsRootless(); !isRootless {
+	if isRootless := rootless.IsRootless(); !isRootless {
 		return errors.Errorf("please use unshare with rootless")
 	}
 	// exec the specified command, if there is one
@@ -45,10 +49,9 @@ func unshareCmd(c *cobra.Command, args []string) error {
 		args = []string{shell}
 	}
 	cmd := exec.Command(args[0], args[1:]...)
-	cmd.Env = unshare.RootlessEnv()
+	cmd.Env = unshareEnv()
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	unshare.ExecRunnable(cmd)
-	return nil
+	return cmd.Run()
 }
