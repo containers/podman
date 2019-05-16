@@ -20,6 +20,7 @@ func getMainCommands() []*cobra.Command {
 		_refreshCommand,
 		_searchCommand,
 		_statsCommand,
+		_unshareCommand,
 	}
 
 	if len(_varlinkCommand.Use) > 0 {
