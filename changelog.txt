@@ -1,3 +1,48 @@
+- Changelog for v1.3.1 (2019-05-16)
+  * More release notes
+  * Add unshare to podman
+  * Release notes for 1.3.1
+  * Kill os.Exit() in tests, replace with asserts
+  * Minor capitalization fix in Readme
+  * Add debug mode to Ginkgo, collect debug logs in Cirrus
+  * set default event logger based on build tags
+  * Add VarlinkCall.RequiresUpgrade() type and method
+  * Ensure that start() in StartAndAttach() is locked
+  * When removing pods, free their locks
+  * network: raise a clearer error when using CNI
+  * Fix libpod.conf option ordering
+  * split remote tests from distro tests
+  * varlink: fix usage message, URI is now optional
+  * Update containerd/cgroups to 4994991857f9b0ae
+  * healthcheck benign error
+  * Add `systemd` build tag
+  * podman: fix events help string
+  * When removing a pod with CGroupfs, set pids limit to 0
+  * Add fix for an issue breaking our CI
+  * Use standard remove functions for removing pod ctrs
+  * implement cp reads tar file from stdin/stdout
+  * Add information when running podman version on client
+  * add varlink bridge
+  * Add negative command-line test
+  * Preserve errors returned by removing pods
+  * Improve robustness of pod removal
+  * enable integration tests for remote-client
+  * fix podman-remote ps --ns
+  * podman-run|create man updates
+  * Update installation instructions
+  * remote-podman checkpoint and restore add to container submenu
+  * Remove tests for deprecated podman-refresh command
+  * When refreshing after a reboot, force lock allocation
+  * Do not remove volumes when --rm removes a container
+  * add unit tests for generate systemd
+  * Bump gitvalidation epoch
+  * Bump to v1.3.1-dev
+  * Upgrade to latest criu and selinux-policy
+  * Only run checkpoint/restore tests on Fedora >= 29
+  * Fix API.md
+  * Cirrus: Add missing task dependencies
+  * Cirrus: Add check for make varlink_api_generate
+
 - Changelog for v1.3.0 (2019-05-06)
   * Update release notes for 1.3.0 release
   * Bump to Buildah v1.8.2
