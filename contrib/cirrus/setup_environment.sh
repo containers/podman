@@ -33,7 +33,19 @@ done
 #       (see docs).
 case "${OS_REL_VER}" in
     ubuntu-18) ;;
-    fedora-29) ;;
+    fedora-29)
+        # Occasionally, and seemingly only on F29 the root disk fails to expand
+        # upon boot.  When this happens, any number of failures could occur if
+        # space runs out.  Until there is time to investigate the actual cause,
+        # workaround this problem by detecting it and acting accordingly.
+        REMAINING=$(df /dev/sda1 | tail -1 | awk '{print $4}')
+        if [[ "$REMAINING" -lt "100000000" ]]  # .cirrus.yml specifies 200gig
+        then
+            echo "Fixing failure to expand root filesystem"
+            growpart /dev/sda 1  # device guaranteed by cloud provider
+            resize2fs /dev/sda1  # growpart & resuze guaranteed by base-image
+        fi
+        ;;
     fedora-28) ;;
     centos-7)  # Current VM is an image-builder-image no local podman/testing
         echo "No further setup required for VM image building"
