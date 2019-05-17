@@ -44,7 +44,7 @@ Any recent Podman release should be able to run rootless without any additional 
 * Specializing in signing and pushing images to various storage backends.
   See [Skopeo](https://github.com/containers/skopeo/) for those tasks.
 * Container runtimes daemons for working with the Kubernetes CRI interface.
-  [CRI-O](https://github.com/kubernetes-sigs/cri-o) specializes in that.
+  [CRI-O](https://github.com/cri-o/cri-o) specializes in that.
 * Supporting `docker-compose`.  We believe that Kubernetes is the defacto
   standard for composing Pods and for orchestrating containers, making
   Kubernetes YAML a defacto standard file format. Hence, Podman allows the
@@ -67,7 +67,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 - Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
-- Conmon: [Conmon](https://github.com/kubernetes-sigs/cri-o) is a tool for monitoring OCI runtimes. It is part of the CRI-O package
+- Conmon: [Conmon](https://github.com/cri-o/cri-o) is a tool for monitoring OCI runtimes. It is part of the CRI-O package
 
 ## Podman Information for Developers
 
