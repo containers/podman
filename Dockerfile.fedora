@@ -68,15 +68,14 @@ RUN set -x \
       && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
 # Install conmon
-ENV CRIO_COMMIT 7a283c391abb7bd25086a8ff91dbb36ebdd24466
+ENV CONMON_COMMIT f02c053eb37010fc76d1e2966de7f2cb9f969ef2
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
-	&& cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
+	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
+	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CRIO_COMMIT" \
+	&& git checkout -q "$CONMON_COMMIT" \
 	&& make \
-	&& make bin/conmon \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 

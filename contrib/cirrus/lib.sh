@@ -283,16 +283,16 @@ install_buildah() {
     ooe.sh sudo make install
 }
 
-# Requires $GOPATH and $CRIO_COMMIT to be set
+# Requires $GOPATH and $CONMON_COMMIT to be set
 install_conmon(){
-    echo "Installing conmon from commit $CRIO_COMMIT"
-    req_env_var GOPATH CRIO_COMMIT
-    DEST="$GOPATH/src/github.com/kubernetes-sigs/cri-o.git"
+    echo "Installing conmon from commit $CONMON_COMMIT"
+    req_env_var GOPATH CONMON_COMMIT
+    DEST="$GOPATH/src/github.com/containers/conmon.git"
     rm -rf "$DEST"
-    ooe.sh git clone https://github.com/kubernetes-sigs/cri-o.git "$DEST"
+    ooe.sh git clone https://github.com/containers/conmon.git "$DEST"
     cd "$DEST"
     ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$CRIO_COMMIT"
+    ooe.sh git checkout -q "$CONMON_COMMIT"
     ooe.sh make
     sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 }

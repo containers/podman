@@ -16,4 +16,4 @@ build_binary:
 
 clean:
 	rm -fr rpms
-	rm -fr cri-o
+	rm -fr conmon
