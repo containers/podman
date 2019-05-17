@@ -23,7 +23,7 @@
 
 ## 1.3.0
 ### Features
-- Podman now supports container restart policies! The `--restart-policy` flag on `podman create` and `podman run` allows containers to be restarted after they exit. Please note that Podman cannot restart containers after a system reboot - for that, see our next feature
+- Podman now supports container restart policies! The `--restart` flag on `podman create` and `podman run` allows containers to be restarted after they exit. Please note that Podman cannot restart containers after a system reboot - for that, see our next feature
 - Podman `podman generate systemd` command was added to generate systemd unit files for managing Podman containers
 - The `podman runlabel` command now allows a `$GLOBAL_OPTS` variable, which will be populated by global options passed to the `podman runlabel` command, allowing custom storage configurations to be passed into containers run with `runlabel` ([#2399](https://github.com/containers/libpod/issues/2399))
 - The `podman play kube` command now allows `File` and `FileOrCreate` volumes
