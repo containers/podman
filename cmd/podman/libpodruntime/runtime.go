@@ -107,7 +107,11 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 	if c.Flags().Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(c.GlobalFlags.CGroupManager))
 	} else {
-		if rootless.IsRootless() {
+		unified, err := util.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
+		}
+		if rootless.IsRootless() && !unified {
 			options = append(options, libpod.WithCgroupManager("cgroupfs"))
 		}
 	}

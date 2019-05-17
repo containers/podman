@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
@@ -347,10 +348,13 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	if rootless.IsRootless() {
-		if addedResources {
-			return nil, errors.New("invalid configuration, cannot set resources with rootless containers")
+		cgroup2, err := util.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
 		}
-		configSpec.Linux.Resources = &spec.LinuxResources{}
+		if addedResources && !cgroup2 {
+			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
+		}
 	}
 
 	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
