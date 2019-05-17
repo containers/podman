@@ -402,11 +402,9 @@ func (r *layerStore) Save() error {
 	if err != nil {
 		return err
 	}
+	defer r.Touch()
 	if err := ioutils.AtomicWriteFile(rpath, jldata, 0600); err != nil {
 		return err
-	}
-	if !r.IsReadWrite() {
-		return nil
 	}
 	r.mountsLockfile.Lock()
 	defer r.mountsLockfile.Unlock()
