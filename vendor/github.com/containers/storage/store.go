@@ -1197,18 +1197,20 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 		imageID = cimage.ID
 
-		createMappedLayer := imageHomeStore == istore
+		if cimage.TopLayer != "" {
+			createMappedLayer := imageHomeStore == istore
+			ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
+			if err != nil {
+				return nil, err
+			}
+			imageTopLayer = ilayer
 
-		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
-		if err != nil {
-			return nil, err
-		}
-		imageTopLayer = ilayer
-		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
-			uidMap = ilayer.UIDMap
-		}
-		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
-			gidMap = ilayer.GIDMap
+			if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+				uidMap = ilayer.UIDMap
+			}
+			if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+				gidMap = ilayer.GIDMap
+			}
 		}
 	} else {
 		rlstore.Lock()
