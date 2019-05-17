@@ -188,13 +188,12 @@ export PATH=$GOPATH/bin:$PATH
 #### conmon
 
 The latest version of `conmon` is expected to be installed on the system. Conmon is used to monitor OCI Runtimes.
-To build from source, use the following (if not already executed above, run `export GOPATH=~/go && mkdir -p $GOPATH`):
+To build from source, use the following:
 
 ```bash
-git clone https://github.com/cri-o/cri-o $GOPATH/src/github.com/cri-o/cri-o
-cd $GOPATH/src/github.com/cri-o/cri-o
-mkdir bin
-make bin/conmon
+git clone https://github.com/containers/conmon
+cd conmon
+make
 sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
 ```
 

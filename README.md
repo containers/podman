@@ -67,7 +67,7 @@ The plan is to use OCI projects and best of breed libraries for different aspect
 - Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage)
 - Networking: Networking support through use of [CNI](https://github.com/containernetworking/cni)
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
-- Conmon: [Conmon](https://github.com/cri-o/cri-o) is a tool for monitoring OCI runtimes. It is part of the CRI-O package
+- Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes.
 
 ## Podman Information for Developers
 
