@@ -70,7 +70,7 @@ func versionCmd(c *cliconfig.VersionValues) error {
 	if remote {
 		fmt.Fprintf(w, "\nService:\n")
 
-		runtime, err := adapter.GetRuntime(getContext(), nil)
+		runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 		if err != nil {
 			return errors.Wrapf(err, "could not get runtime")
 		}
