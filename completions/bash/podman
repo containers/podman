@@ -486,7 +486,7 @@ __podman_complete_log_drivers() {
 		none
 		splunk
 		syslog
-        k8s-file
+		k8s-file
 	" -- "$cur" ) )
 }
 

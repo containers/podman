@@ -368,6 +368,8 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogDriver driver for logs
+	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
 	// RestartPolicy indicates what action the container will take upon
@@ -773,6 +775,11 @@ func (c *Container) RestartPolicy() string {
 // using the "on-failure" restart policy
 func (c *Container) RestartRetries() uint {
 	return c.config.RestartRetries
+}
+
+// LogDriver returns the log driver for this container
+func (c *Container) LogDriver() string {
+	return c.config.LogDriver
 }
 
 // RuntimeName returns the name of the runtime

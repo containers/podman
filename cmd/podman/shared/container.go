@@ -631,6 +631,10 @@ func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *inspect.C
 	memKernel, memReservation, memSwap, memSwappiness, memDisableOOMKiller := getMemoryInfo(spec)
 	pidsLimit := getPidsInfo(spec)
 	cgroup := getCgroup(spec)
+	logConfig := inspect.LogConfig{
+		config.LogDriver,
+		make(map[string]string),
+	}
 
 	data := &inspect.ContainerData{
 		ctrInspectData,
@@ -681,6 +685,7 @@ func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *inspect.C
 			Ulimits:              createArtifact.Resources.Ulimit,
 			SecurityOpt:          createArtifact.SecurityOpts,
 			Tmpfs:                createArtifact.Tmpfs,
+			LogConfig:            &logConfig,
 		},
 		&inspect.CtrConfig{
 			Hostname:    spec.Hostname,

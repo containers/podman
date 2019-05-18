@@ -53,6 +53,11 @@ func (r *Runtime) Log(containers []*Container, options *LogOptions, logChannel c
 
 // ReadLog reads a containers log based on the input options and returns loglines over a channel
 func (c *Container) ReadLog(options *LogOptions, logChannel chan *LogLine) error {
+	// TODO Skip sending logs until journald logs can be read
+	// TODO make this not a magic string
+	if c.LogDriver() == "journald" {
+		return ErrNotImplemented
+	}
 	t, tailLog, err := getLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.

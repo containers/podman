@@ -367,8 +367,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	args := []string{}
 
 	// TODO - should we maintain separate logpaths for exec sessions?
-	args = append(args, "--log", c.LogPath())
-
 	args = append(args, "exec")
 
 	if cwd != "" {
@@ -402,9 +400,10 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		args = append(args, "--env", envVar)
 	}
 
-	// Append container ID and command
+	// Append container ID, name and command
 	args = append(args, c.ID())
 	args = append(args, cmd...)
+	args = append(args, c.Name())
 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 
