@@ -99,7 +99,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	// Should we store the ENV we actually want in the spec separately?
 	if c.config.Spec.Process != nil {
 		for _, e := range c.config.Spec.Process.Env {
-			splitEnv := strings.Split(e, "=")
+			splitEnv := strings.SplitN(e, "=", 2)
 			importBuilder.SetEnv(splitEnv[0], splitEnv[1])
 		}
 	}
