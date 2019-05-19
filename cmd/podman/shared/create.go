@@ -603,7 +603,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	memorySwappiness := c.Int64("memory-swappiness")
 
-	logDriver := "k8s-file"
+	logDriver := libpod.KubernetesLogging
 	if c.Changed("log-driver") {
 		logDriver = c.String("log-driver")
 	}

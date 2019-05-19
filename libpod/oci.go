@@ -42,6 +42,12 @@ const (
 	// NsRunDir is the default directory in which running network namespaces
 	// are stored
 	NsRunDir = "/var/run/netns"
+
+	// JournaldLogging is the string conmon expects to specify journald logging
+	JournaldLogging = "journald"
+
+	// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
+	KubernetesLogging = "k8s-file"
 )
 
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into

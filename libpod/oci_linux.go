@@ -237,7 +237,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
 
-	logDriver := "k8s-file"
+	logDriver := KubernetesLogging
 	if ctr.LogDriver() != "" {
 		logDriver = ctr.LogDriver()
 	}
