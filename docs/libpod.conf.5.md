@@ -34,7 +34,7 @@ libpod to manage containers.
 
   Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
-  Paths listed later in the array higher precedence (`oci-hooks(5)` discusses directory precedence).
+  Paths listed later in the array have higher precedence (`oci-hooks(5)` discusses directory precedence).
 
   For the annotation conditions, libpod uses any annotations set in the generated OCI configuration.
 
