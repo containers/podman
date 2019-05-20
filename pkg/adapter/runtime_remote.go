@@ -14,9 +14,8 @@ import (
 	"text/template"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -32,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"
+	v1 "k8s.io/api/core/v1"
 )
 
 // ImageRuntime is wrapper for image runtime
@@ -820,9 +820,13 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 
 	w := bufio.NewWriter(os.Stdout)
-	tmpl, err := template.New("events").Parse(c.Format)
-	if err != nil {
-		return err
+	var tmpl *template.Template
+	if c.Format != formats.JSONString {
+		template, err := template.New("events").Parse(c.Format)
+		if err != nil {
+			return err
+		}
+		tmpl = template
 	}
 
 	for {
@@ -856,7 +860,15 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 			Time:   eTime,
 			Type:   eType,
 		}
-		if len(c.Format) > 0 {
+		if c.Format == formats.JSONString {
+			jsonStr, err := event.ToJSONString()
+			if err != nil {
+				return errors.Wrapf(err, "unable to format json")
+			}
+			if _, err := w.Write([]byte(jsonStr)); err != nil {
+				return err
+			}
+		} else if len(c.Format) > 0 {
 			if err := tmpl.Execute(w, event); err != nil {
 				return err
 			}
