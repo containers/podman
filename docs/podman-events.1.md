@@ -68,7 +68,7 @@ Print usage statement.
 
 **--format**
 
-Format the output using the given Go template.  An output value of *json* is not supported.
+Format the output to JSON Lines or using the given Go template.
 
 
 **--filter**=*filter*
@@ -132,6 +132,13 @@ $ sudo podman events --since 5m
 2019-03-02 10:44:29.601746633 -0600 CST pod create 1df5ebca7b44 (image=, name=confident_hawking)
 2019-03-02 10:44:42.371100253 -0600 CST container create 170a0f457d00 (image=k8s.gcr.io/pause:3.1, name=ca731231718e-infra)
 2019-03-02 10:44:42.374637304 -0600 CST pod create ca731231718e (image=, name=webapp)
+```
+
+Show podman events in JSON Lines format
+```
+events --format json
+{"ID":"683b0909d556a9c02fa8cd2b61c3531a965db42158627622d1a67b391964d519","Image":"localhost/myshdemo:latest","Name":"agitated_diffie","Status":"cleanup","Time":"2019-04-27T22:47:00.849932843-04:00","Type":"container"}
+{"ID":"a0f8ab051bfd43f9c5141a8a2502139707e4b38d98ac0872e57c5315381e88ad","Image":"docker.io/library/alpine:latest","Name":"friendly_tereshkova","Status":"unmount","Time":"2019-04-28T13:43:38.063017276-04:00","Type":"container"}
 ```
 
 ## SEE ALSO

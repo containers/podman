@@ -5,22 +5,22 @@ package adapter
 import (
 	"bufio"
 	"context"
-	"github.com/containers/libpod/libpod/define"
 	"io"
 	"io/ioutil"
 	"os"
 	"text/template"
 
-	"github.com/containers/libpod/cmd/podman/shared"
-
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
@@ -351,9 +351,13 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 		fromStart   bool
 		eventsError error
 	)
-	tmpl, err := template.New("events").Parse(c.Format)
-	if err != nil {
-		return err
+	var tmpl *template.Template
+	if c.Format != formats.JSONString {
+		template, err := template.New("events").Parse(c.Format)
+		if err != nil {
+			return err
+		}
+		tmpl = template
 	}
 	if len(c.Since) > 0 || len(c.Until) > 0 {
 		fromStart = true
@@ -369,7 +373,15 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 	w := bufio.NewWriter(os.Stdout)
 	for event := range eventChannel {
-		if len(c.Format) > 0 {
+		if c.Format == formats.JSONString {
+			jsonStr, err := event.ToJSONString()
+			if err != nil {
+				return errors.Wrapf(err, "unable to format json")
+			}
+			if _, err := w.Write([]byte(jsonStr)); err != nil {
+				return err
+			}
+		} else if len(c.Format) > 0 {
 			if err := tmpl.Execute(w, event); err != nil {
 				return err
 			}
