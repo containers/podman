@@ -298,4 +298,17 @@ ENV foo=bar
 		Expect(session2.ExitCode()).To(Equal(0))
 		Expect(len(session2.OutputToStringArray())).To(Equal(6))
 	})
+
+	It("podman images filter by label", func() {
+		SkipIfRemote()
+		dockerfile := `FROM docker.io/library/alpine:latest
+LABEL version="1.0"
+LABEL "com.example.vendor"="Example Vendor"
+`
+		podmanTest.BuildImage(dockerfile, "test", "true")
+		session := podmanTest.Podman([]string{"images", "-f", "label=version=1.0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+	})
 })

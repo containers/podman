@@ -362,7 +362,7 @@ func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []s
 	var filterFuncs []imagefilters.ResultFilter
 	for _, filter := range filters {
 		splitFilter := strings.Split(filter, "=")
-		if len(splitFilter) != 2 {
+		if len(splitFilter) < 2 {
 			return nil, errors.Errorf("invalid filter syntax %s", filter)
 		}
 		switch splitFilter[0] {
