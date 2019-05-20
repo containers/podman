@@ -387,6 +387,7 @@ popd
 install -dp %{buildroot}%{_unitdir}
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
+        install.remote \
         install.man \
         install.cni \
         install.systemd \
