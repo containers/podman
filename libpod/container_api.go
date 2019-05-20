@@ -289,8 +289,8 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	chWait := make(chan error)
 	go func() {
 		chWait <- execCmd.Wait()
+		close(chWait)
 	}()
-	defer close(chWait)
 
 	pidFile := c.execPidPath(sessionID)
 	// 60 second seems a reasonable time to wait
