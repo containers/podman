@@ -90,11 +90,7 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 
 // WaitForFile waits until a file has been created or the given timeout has occurred
 func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
-	done := make(chan struct{})
-	chControl := make(chan struct{})
-
 	var inotifyEvents chan fsnotify.Event
-	var timer chan struct{}
 	watcher, err := fsnotify.NewWatcher()
 	if err == nil {
 		if err := watcher.Add(filepath.Dir(path)); err == nil {
@@ -102,51 +98,36 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		}
 		defer watcher.Close()
 	}
-	if inotifyEvents == nil {
-		// If for any reason we fail to create the inotify
-		// watcher, fallback to polling the file
-		timer = make(chan struct{})
-		go func() {
-			select {
-			case <-chControl:
-				close(timer)
-				return
-			default:
-				time.Sleep(25 * time.Millisecond)
-				timer <- struct{}{}
-			}
-		}()
-	}
 
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			case <-timer:
-				_, err := os.Stat(path)
-				if err == nil {
-					close(done)
-					return
-				}
-			case <-inotifyEvents:
-				_, err := os.Stat(path)
-				if err == nil {
-					close(done)
-					return
-				}
+	timeoutChan := time.After(timeout)
+
+	for {
+		select {
+		case e := <-chWait:
+			return true, e
+		case <-inotifyEvents:
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
 			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-time.After(25 * time.Millisecond):
+			// Check periodically for the file existence.  It is needed
+			// if the inotify watcher could not have been created.  It is
+			// also useful when using inotify as if for any reasons we missed
+			// a notification, we won't hang the process.
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
+			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-timeoutChan:
+			return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 		}
-	}()
-
-	select {
-	case e := <-chWait:
-		return true, e
-	case <-done:
-		return false, nil
-	case <-time.After(timeout):
-		close(chControl)
-		return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
 }
 
