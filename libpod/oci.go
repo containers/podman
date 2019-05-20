@@ -42,12 +42,6 @@ const (
 	// NsRunDir is the default directory in which running network namespaces
 	// are stored
 	NsRunDir = "/var/run/netns"
-
-	// JournaldLogging is the string conmon expects to specify journald logging
-	JournaldLogging = "journald"
-
-	// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
-	KubernetesLogging = "k8s-file"
 )
 
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into
@@ -409,7 +403,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	// Append container ID, name and command
 	args = append(args, c.ID())
 	args = append(args, cmd...)
-	args = append(args, c.Name())
 
 	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
 

@@ -196,8 +196,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 	}
 
-	// TODO magic string
-	if ctr.config.LogPath == "" && ctr.config.LogDriver != "journald" {
+	if ctr.config.LogPath == "" && ctr.config.LogDriver != JournaldLogging {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
 

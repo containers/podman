@@ -1,4 +1,5 @@
 //+build linux
+//+build systemd
 
 package libpod
 
@@ -22,8 +23,8 @@ const (
 
 	// bufLen is the length of the buffer to read from a k8s-file
 	// formatted log line
-	// It consists of conmon.TSBUFLEN+2+conmon.STDIOBUFSIZE+'\0'
-	bufLen = 44 + 2 + 8192 + 1
+	// let's set it as 2k just to be safe if k8s-file format ever changes
+	bufLen = 16384
 )
 
 func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLine) error {
@@ -84,7 +85,7 @@ func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLin
 func journalFormatter(entry *journal.JournalEntry) (string, error) {
 	usec := entry.RealtimeTimestamp
 	timestamp := time.Unix(0, int64(usec)*int64(time.Microsecond))
-	output := timestamp.Format(readLogTimeFormat) + " "
+	output := timestamp.Format(logTimeFormat) + " "
 	priority, ok := entry.Fields["PRIORITY"]
 	if !ok {
 		return "", errors.Errorf("no PRIORITY field present in journal entry")

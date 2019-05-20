@@ -214,6 +214,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	}
 	args = append(args, "-c", ctr.ID())
 	args = append(args, "-u", ctr.ID())
+	args = append(args, "-n", ctr.Name())
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))

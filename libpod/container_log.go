@@ -20,9 +20,6 @@ const (
 	// https://github.com/golang/go/issues/19635
 	logTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
-	// readLogTimeFormat is the format the log lines will be read in
-	readLogTimeFormat = time.RFC3339Nano
-
 	// partialLogType signifies a log line that exceeded the buffer
 	// length and needed to spill into a new line
 	partialLogType = "P"
@@ -213,7 +210,7 @@ func newLogLine(line string) (*LogLine, error) {
 	if len(splitLine) < 4 {
 		return nil, errors.Errorf("'%s' is not a valid container log line", line)
 	}
-	logTime, err := time.Parse(readLogTimeFormat, splitLine[0])
+	logTime, err := time.Parse(logTimeFormat, splitLine[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to convert time %s from container log", splitLine[0])
 	}

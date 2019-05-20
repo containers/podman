@@ -985,10 +985,12 @@ func WithLogDriver(driver string) CtrCreateOption {
 		if ctr.valid {
 			return ErrCtrFinalized
 		}
-		if driver == "" {
+		switch driver {
+		case "":
 			return errors.Wrapf(ErrInvalidArg, "log driver must be set")
-		}
-		if driver != "journald" && driver != "k8s-file" && driver != "json-file" {
+		case JournaldLogging, KubernetesLogging, JSONLogging:
+			break
+		default:
 			return errors.Wrapf(ErrInvalidArg, "invalid log driver")
 		}
 
