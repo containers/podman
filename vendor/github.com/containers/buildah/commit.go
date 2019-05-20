@@ -106,6 +106,22 @@ type PushOptions struct {
 	Quiet bool
 }
 
+var (
+	// commitPolicy bypasses any signing requirements when committing containers to images
+	commitPolicy = &signature.Policy{
+		Default: []signature.PolicyRequirement{signature.NewPRReject()},
+		Transports: map[string]signature.PolicyTransportScopes{
+			is.Transport.Name(): {
+				"": []signature.PolicyRequirement{
+					signature.NewPRInsecureAcceptAnything(),
+				},
+			},
+		},
+	}
+	// pushPolicy bypasses any signing requirements when pushing (copying) images from local storage
+	pushPolicy = commitPolicy
+)
+
 // Commit writes the contents of the container, along with its updated
 // configuration, to a new image in the specified location, and if we know how,
 // add any additional tags that were specified. Returns the ID of the new image
@@ -141,11 +157,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		return "", nil, "", errors.Errorf("commit access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
-	policy, err := signature.DefaultPolicy(systemContext)
-	if err != nil {
-		return imgID, nil, "", errors.Wrapf(err, "error obtaining default signature policy")
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
+	policyContext, err := signature.NewPolicyContext(commitPolicy)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error creating new signature policy context")
 	}
@@ -280,11 +292,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		return nil, "", errors.Errorf("push access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
-	policy, err := signature.DefaultPolicy(systemContext)
-	if err != nil {
-		return nil, "", errors.Wrapf(err, "error obtaining default signature policy")
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
+	policyContext, err := signature.NewPolicyContext(pushPolicy)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "error creating new signature policy context")
 	}
@@ -330,6 +338,5 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 			logrus.Warnf("error generating canonical reference with name %q and digest %s: %v", name, manifestDigest.String(), err)
 		}
 	}
-	fmt.Printf("Successfully pushed %s@%s\n", dest.StringWithinTransport(), manifestDigest.String())
 	return ref, manifestDigest, nil
 }

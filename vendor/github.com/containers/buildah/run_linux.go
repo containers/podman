@@ -23,6 +23,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/buildah/bind"
 	"github.com/containers/buildah/chroot"
+	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/buildah/util"
@@ -184,6 +185,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "error resolving mountpoints for container %q", b.ContainerID)
 	}
+	defer b.cleanupTempVolumes()
 
 	if options.CNIConfigDir == "" {
 		options.CNIConfigDir = b.CNIConfigDir
@@ -214,7 +216,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if options.NoPivot {
 			moreCreateArgs = append(moreCreateArgs, "--no-pivot")
 		}
-		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID); err != nil {
+		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID, b.CommonBuildOpts.ShmSize); err != nil {
 			return err
 		}
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
@@ -438,7 +440,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of explicitly-specified volume mounts.
-	volumes, err := runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts, optionMounts)
+	volumes, err := b.runSetupVolumeMounts(spec.Linux.MountLabel, volumeMounts, optionMounts, int(rootUID), int(rootGID))
 	if err != nil {
 		return err
 	}
@@ -1537,11 +1539,21 @@ func addRlimits(ulimit []string, g *generate.Generator) error {
 	return nil
 }
 
-func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount) ([]specs.Mount, error) {
-	var mounts []specs.Mount
+func (b *Builder) cleanupTempVolumes() {
+	for tempVolume, val := range b.TempVolumes {
+		if val {
+			if err := overlay.RemoveTemp(tempVolume); err != nil {
+				logrus.Errorf(err.Error())
+			}
+			b.TempVolumes[tempVolume] = false
+		}
+	}
+}
+
+func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, rootUID, rootGID int) (mounts []specs.Mount, Err error) {
 
 	parseMount := func(host, container string, options []string) (specs.Mount, error) {
-		var foundrw, foundro, foundz, foundZ bool
+		var foundrw, foundro, foundz, foundZ, foundO bool
 		var rootProp string
 		for _, opt := range options {
 			switch opt {
@@ -1553,6 +1565,8 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 				foundz = true
 			case "Z":
 				foundZ = true
+			case "O":
+				foundO = true
 			case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 				rootProp = opt
 			}
@@ -1570,6 +1584,14 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 				return specs.Mount{}, errors.Wrapf(err, "relabeling %q failed", host)
 			}
 		}
+		if foundO {
+			overlayMount, contentDir, err := overlay.MountTemp(b.store, b.ContainerID, host, container, rootUID, rootGID)
+			if err == nil {
+
+				b.TempVolumes[contentDir] = true
+			}
+			return overlayMount, err
+		}
 		if rootProp == "" {
 			options = append(options, "private")
 		}
@@ -1577,13 +1599,14 @@ func runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts
 			Destination: container,
 			Type:        "bind",
 			Source:      host,
-			Options:     options,
+			Options:     append(options, "rbind"),
 		}, nil
 	}
+
 	// Bind mount volumes specified for this particular Run() invocation
 	for _, i := range optionMounts {
 		logrus.Debugf("setting up mounted volume at %q", i.Destination)
-		mount, err := parseMount(i.Source, i.Destination, append(i.Options, "rbind"))
+		mount, err := parseMount(i.Source, i.Destination, i.Options)
 		if err != nil {
 			return nil, err
 		}
@@ -1809,7 +1832,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 	}
 }
 
-func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, rootUID, rootGID uint32) error {
+func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, rootUID, rootGID uint32, shmSize string) error {
 	spec.Hostname = ""
 	spec.Process.User.AdditionalGids = nil
 	spec.Linux.Resources = nil
@@ -1843,7 +1866,7 @@ func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, rootUID, rootG
 			Source:      "shm",
 			Destination: "/dev/shm",
 			Type:        "tmpfs",
-			Options:     []string{"private", "nodev", "noexec", "nosuid", "mode=1777", "size=65536k"},
+			Options:     []string{"private", "nodev", "noexec", "nosuid", "mode=1777", fmt.Sprintf("size=%s", shmSize)},
 		},
 		{
 			Source:      "/proc",

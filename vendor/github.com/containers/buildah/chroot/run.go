@@ -1071,7 +1071,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		// Skip anything that isn't a bind or tmpfs mount.
-		if m.Type != "bind" && m.Type != "tmpfs" {
+		if m.Type != "bind" && m.Type != "tmpfs" && m.Type != "overlay" {
 			logrus.Debugf("skipping mount of type %q on %q", m.Type, m.Destination)
 			continue
 		}
@@ -1083,10 +1083,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			if err != nil {
 				return undoBinds, errors.Wrapf(err, "error examining %q for mounting in mount namespace", m.Source)
 			}
+		case "overlay":
+			fallthrough
 		case "tmpfs":
 			srcinfo, err = os.Stat("/")
 			if err != nil {
-				return undoBinds, errors.Wrapf(err, "error examining / to use as a template for a tmpfs")
+				return undoBinds, errors.Wrapf(err, "error examining / to use as a template for a %s", m.Type)
 			}
 		}
 		target := filepath.Join(spec.Root.Path, m.Destination)
@@ -1145,6 +1147,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				return undoBinds, errors.Wrapf(err, "error mounting tmpfs to %q in mount namespace (%q, %q)", m.Destination, target, strings.Join(m.Options, ","))
 			}
 			logrus.Debugf("mounted a tmpfs to %q", target)
+		case "overlay":
+			// Mount a overlay.
+			if err := mount.Mount(m.Source, target, m.Type, strings.Join(append(m.Options, "private"), ",")); err != nil {
+				return undoBinds, errors.Wrapf(err, "error mounting overlay to %q in mount namespace (%q, %q)", m.Destination, target, strings.Join(m.Options, ","))
+			}
+			logrus.Debugf("mounted a overlay to %q", target)
 		}
 		if err = unix.Statfs(target, &fs); err != nil {
 			return undoBinds, errors.Wrapf(err, "error checking if directory %q was bound read-only", target)

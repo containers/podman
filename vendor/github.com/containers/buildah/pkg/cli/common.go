@@ -7,6 +7,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -137,7 +138,7 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringArrayVar(&flags.Annotation, "annotation", []string{}, "Set metadata for an image (default [])")
-	fs.StringVar(&flags.Authfile, "authfile", "", "path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json")
+	fs.StringVar(&flags.Authfile, "authfile", GetDefaultAuthFile(), "path of the authentication file.")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
 	fs.StringVar(&flags.CacheFrom, "cache-from", "", "Images to utilise as potential cache sources. The build process does not currently support caching so this is a NOOP.")
 	fs.StringVar(&flags.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
@@ -245,4 +246,16 @@ func VerifyFlagsArgsOrder(args []string) error {
 		}
 	}
 	return nil
+}
+
+func GetDefaultAuthFile() string {
+	authfile := os.Getenv("REGISTRY_AUTH_FILE")
+	if authfile != "" {
+		return authfile
+	}
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir != "" {
+		return filepath.Join(runtimeDir, "containers/auth.json")
+	}
+	return ""
 }

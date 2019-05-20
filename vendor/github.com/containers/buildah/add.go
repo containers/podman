@@ -15,6 +15,7 @@ import (
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -88,7 +89,7 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
 func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, source ...string) error {
-	excludes := DockerIgnoreHelper(options.Excludes, options.ContextDir)
+	excludes := dockerIgnoreHelper(options.Excludes, options.ContextDir)
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
 		return err
@@ -177,16 +178,16 @@ func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
 	return u, err
 }
 
-// DockerIgnore struct keep info from .dockerignore
-type DockerIgnore struct {
+// dockerIgnore struct keep info from .dockerignore
+type dockerIgnore struct {
 	ExcludePath string
 	IsExcluded  bool
 }
 
-// DockerIgnoreHelper returns the lines from .dockerignore file without the comments
+// dockerIgnoreHelper returns the lines from .dockerignore file without the comments
 // and reverses the order
-func DockerIgnoreHelper(lines []string, contextDir string) []DockerIgnore {
-	var excludes []DockerIgnore
+func dockerIgnoreHelper(lines []string, contextDir string) []dockerIgnore {
+	var excludes []dockerIgnore
 	// the last match of a file in the .dockerignmatches determines whether it is included or excluded
 	// reverse the order
 	for i := len(lines) - 1; i >= 0; i-- {
@@ -200,15 +201,15 @@ func DockerIgnoreHelper(lines []string, contextDir string) []DockerIgnore {
 			exclude = strings.TrimPrefix(exclude, "!")
 			excludeFlag = false
 		}
-		excludes = append(excludes, DockerIgnore{ExcludePath: filepath.Join(contextDir, exclude), IsExcluded: excludeFlag})
+		excludes = append(excludes, dockerIgnore{ExcludePath: filepath.Join(contextDir, exclude), IsExcluded: excludeFlag})
 	}
 	if len(excludes) != 0 {
-		excludes = append(excludes, DockerIgnore{ExcludePath: filepath.Join(contextDir, ".dockerignore"), IsExcluded: true})
+		excludes = append(excludes, dockerIgnore{ExcludePath: filepath.Join(contextDir, ".dockerignore"), IsExcluded: true})
 	}
 	return excludes
 }
 
-func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
+func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
 	dirsInDockerignore, err := getDirsInDockerignore(options.ContextDir, excludes)
 	if err != nil {
 		return errors.Wrapf(err, "error checking directories in .dockerignore")
@@ -270,9 +271,6 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 					if err != nil {
 						return err
 					}
-					if info.IsDir() {
-						return nil
-					}
 					for _, exclude := range excludes {
 						match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
 						if err != nil {
@@ -292,7 +290,25 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 						break
 					}
 					// combine the filename with the dest directory
-					fpath := strings.TrimPrefix(path, esrc)
+					fpath, err := filepath.Rel(esrc, path)
+					if err != nil {
+						return errors.Wrapf(err, "error converting %s to a path relative to %s", path, esrc)
+					}
+					mtime := info.ModTime()
+					atime := mtime
+					times := []syscall.Timespec{
+						{Sec: atime.Unix(), Nsec: atime.UnixNano() % 1000000000},
+						{Sec: mtime.Unix(), Nsec: mtime.UnixNano() % 1000000000},
+					}
+					if info.IsDir() {
+						return addHelperDirectory(esrc, path, filepath.Join(dest, fpath), info, hostOwner, times)
+					}
+					if info.Mode()&os.ModeSymlink == os.ModeSymlink {
+						return addHelperSymlink(path, filepath.Join(dest, fpath), info, hostOwner, times)
+					}
+					if !info.Mode().IsRegular() {
+						return errors.Errorf("error copying %q to %q: source is not a regular file; file mode is %s", path, dest, info.Mode())
+					}
 					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", path, dest)
 					}
@@ -343,7 +359,41 @@ func addHelper(excludes []DockerIgnore, extract bool, dest string, destfi os.Fil
 	return nil
 }
 
-func getDirsInDockerignore(srcAbsPath string, excludes []DockerIgnore) (map[string]string, error) {
+func addHelperDirectory(esrc, path, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
+	if err := idtools.MkdirAllAndChownNew(dest, info.Mode().Perm(), hostOwner); err != nil {
+		// discard only EEXIST on the top directory, which would have been created earlier in the caller
+		if !os.IsExist(err) || path != esrc {
+			return errors.Errorf("error creating directory %q", dest)
+		}
+	}
+	if err := idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
+		return errors.Wrapf(err, "error setting owner of directory %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
+	}
+	if err := system.LUtimesNano(dest, times); err != nil {
+		return errors.Wrapf(err, "error setting dates on directory %q", dest)
+	}
+	return nil
+}
+
+func addHelperSymlink(src, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
+	linkContents, err := os.Readlink(src)
+	if err != nil {
+		return errors.Wrapf(err, "error reading contents of symbolic link at %q", src)
+	}
+	if err = os.Symlink(linkContents, dest); err != nil {
+		return errors.Wrapf(err, "error creating symbolic link to %q at %q", linkContents, dest)
+	}
+	if err = idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
+		return errors.Wrapf(err, "error setting owner of symbolic link %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
+	}
+	if err = system.LUtimesNano(dest, times); err != nil {
+		return errors.Wrapf(err, "error setting dates on symbolic link %q", dest)
+	}
+	logrus.Debugf("Symlink(%s, %s)", linkContents, dest)
+	return nil
+}
+
+func getDirsInDockerignore(srcAbsPath string, excludes []dockerIgnore) (map[string]string, error) {
 	visitedDir := make(map[string]string)
 	if len(excludes) == 0 {
 		return visitedDir, nil

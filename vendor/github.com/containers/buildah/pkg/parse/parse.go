@@ -14,6 +14,7 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/go-units"
@@ -155,16 +156,16 @@ func ParseVolume(volume string) (specs.Mount, error) {
 	if len(arr) < 2 {
 		return mount, errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
 	}
-	if err := validateVolumeHostDir(arr[0]); err != nil {
+	if err := ValidateVolumeHostDir(arr[0]); err != nil {
 		return mount, err
 	}
-	if err := validateVolumeCtrDir(arr[1]); err != nil {
+	if err := ValidateVolumeCtrDir(arr[1]); err != nil {
 		return mount, err
 	}
 	mountOptions := ""
 	if len(arr) > 2 {
 		mountOptions = arr[2]
-		if err := validateVolumeOpts(arr[2]); err != nil {
+		if err := ValidateVolumeOpts(arr[2]); err != nil {
 			return mount, err
 		}
 	}
@@ -189,7 +190,7 @@ func ParseVolumes(volumes []string) error {
 	return nil
 }
 
-func validateVolumeHostDir(hostDir string) error {
+func ValidateVolumeHostDir(hostDir string) error {
 	if !filepath.IsAbs(hostDir) {
 		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
 	}
@@ -199,14 +200,14 @@ func validateVolumeHostDir(hostDir string) error {
 	return nil
 }
 
-func validateVolumeCtrDir(ctrDir string) error {
+func ValidateVolumeCtrDir(ctrDir string) error {
 	if !filepath.IsAbs(ctrDir) {
 		return errors.Errorf("invalid container path, must be an absolute path %q", ctrDir)
 	}
 	return nil
 }
 
-func validateVolumeOpts(option string) error {
+func ValidateVolumeOpts(option string) error {
 	var foundRootPropagation, foundRWRO, foundLabelChange int
 	options := strings.Split(option, ",")
 	for _, opt := range options {
@@ -216,9 +217,12 @@ func validateVolumeOpts(option string) error {
 				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", option)
 			}
 			foundRWRO++
-		case "z", "Z":
+		case "z", "Z", "O":
+			if opt == "O" && unshare.IsRootless() {
+				return errors.Errorf("invalid options %q, overlay mounts not supported in rootless mode", option)
+			}
 			if foundLabelChange > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
+				return errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", option)
 			}
 			foundLabelChange++
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":

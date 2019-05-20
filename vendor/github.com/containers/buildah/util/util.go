@@ -112,7 +112,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	}
 	for _, registry := range searchRegistries {
 		if !registry.Blocked {
-			registries = append(registries, registry.URL)
+			registries = append(registries, registry.Location)
 		}
 	}
 	searchRegistriesAreEmpty := len(registries) == 0
