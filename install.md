@@ -91,7 +91,6 @@ Fedora, CentOS, RHEL, and related distributions:
 sudo yum install -y \
   atomic-registries \
   btrfs-progs-devel \
-  conmon \
   containernetworking-cni \
   device-mapper-devel \
   git \
