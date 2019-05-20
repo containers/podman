@@ -268,7 +268,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
 
-	g.SetProcessApparmorProfile(config.ApparmorProfile)
+	if !config.Privileged {
+		g.SetProcessApparmorProfile(config.ApparmorProfile)
+	}
 
 	blockAccessToKernelFilesystems(config, &g)
 
