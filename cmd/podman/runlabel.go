@@ -152,7 +152,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return err
 	}
 	if !c.Quiet {
-		fmt.Printf("command: %s\n", strings.Join(cmd, " "))
+		fmt.Printf("command: %s\n", strings.Join(append([]string{os.Args[0]}, cmd[1:]...), " "))
 		if c.Display {
 			return nil
 		}
