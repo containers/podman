@@ -158,6 +158,7 @@ type ContainerInspectData struct {
 	HostnamePath    string                 `json:"HostnamePath"`
 	HostsPath       string                 `json:"HostsPath"`
 	StaticDir       string                 `json:"StaticDir"`
+	OCISpecPath     string                 `json:"OCISpecPath,omitempty"`
 	LogPath         string                 `json:"LogPath"`
 	ConmonPidFile   string                 `json:"ConmonPidFile"`
 	Name            string                 `json:"Name"`

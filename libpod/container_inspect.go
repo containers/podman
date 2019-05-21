@@ -92,6 +92,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *inspect.Data)
 		HostnamePath:    hostnamePath,
 		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
+		OCISpecPath:     c.state.ConfigPath,
 		LogPath:         config.LogPath,
 		ConmonPidFile:   config.ConmonPidFile,
 		Name:            config.Name,
