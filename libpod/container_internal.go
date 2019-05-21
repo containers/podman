@@ -25,7 +25,6 @@ import (
 	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	kwait "k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -146,20 +145,10 @@ func (c *Container) exitFilePath() string {
 func (c *Container) waitForExitFileAndSync() error {
 	exitFile := c.exitFilePath()
 
-	err := kwait.ExponentialBackoff(
-		kwait.Backoff{
-			Duration: 500 * time.Millisecond,
-			Factor:   1.2,
-			Steps:    6,
-		},
-		func() (bool, error) {
-			_, err := os.Stat(exitFile)
-			if err != nil {
-				// wait longer
-				return false, nil
-			}
-			return true, nil
-		})
+	chWait := make(chan error)
+	defer close(chWait)
+
+	_, err := WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		// Exit file did not appear
 		// Reset our state
