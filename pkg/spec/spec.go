@@ -357,6 +357,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if addedResources && !cgroup2 {
 			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
 		}
+		if !cgroup2 {
+			// Force the resources block to be empty instead of having default values.
+			configSpec.Linux.Resources = &spec.LinuxResources{}
+		}
 	}
 
 	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
