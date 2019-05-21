@@ -291,15 +291,15 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
 
+**--help**
+
+Print usage statement
+
 **--hostname**=""
 
 Container host name
 
 Sets the container host name that is available inside the container.
-
-**--help**
-
-Print usage statement
 
 **--http-proxy**=*true*|*false*
 
@@ -769,24 +769,10 @@ This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 
 Set the UTS mode for the container
 
-`host`: use the host's UTS namespace inside the container.
-`ns`: specify the user namespace to use.
+- `host`: use the host's UTS namespace inside the container.
+- `ns`: specify the user namespace to use.
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
-
-**--userns**=""
-
-Set the user namespace mode for the container. The use of userns is disabled by default.
-
-    **host**: use the host user namespace and enable all privileged options (e.g., `pid=host` or `--privileged`).
-    **ns**: specify the user namespace to use.
-
-**--uts**=*host*
-
-Set the UTS mode for the container
-    **host**: use the host's UTS namespace inside the container.
-    **ns**: specify the user namespace to use.
-    Note: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
 **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
