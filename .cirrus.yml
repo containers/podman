@@ -43,7 +43,7 @@ env:
     # Git commits to use while building dependencies into cache-images
     FEDORA_CNI_COMMIT: "412b6d31280682bb4fab4446f113c22ff1886554"
     CNI_COMMIT: "7480240de9749f9a0a5c8614b17f1f03e0c06ab9"
-    CRIO_COMMIT: "7a283c391abb7bd25086a8ff91dbb36ebdd24466"
+    CONMON_COMMIT: "f02c053eb37010fc76d1e2966de7f2cb9f969ef2"
     CRIU_COMMIT: "c74b83cd49c00589c0c0468ba5fe685b67fdbd0a"
     # Special image w/ nested-libvirt + tools for creating new cache and base images
     IMAGE_BUILDER_CACHE_IMAGE_NAME: "image-builder-image-1541772081"

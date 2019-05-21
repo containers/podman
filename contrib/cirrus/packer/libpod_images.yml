@@ -10,7 +10,7 @@ variables:
     # libpod dependencies to build and install into images
     FEDORA_CNI_COMMIT: "{{env `FEDORA_CNI_COMMIT`}}"
     CNI_COMMIT: "{{env `CNI_COMMIT`}}"
-    CRIO_COMMIT: "{{env `CRIO_COMMIT`}}"
+    CONMON_COMMIT: "{{env `CONMON_COMMIT`}}"
     CRIU_COMMIT: "{{env `CRIU_COMMIT`}}"
     RUNC_COMMIT: "{{env `RUNC_COMMIT`}}"
 
@@ -74,7 +74,7 @@ provisioners:
           - 'GOSRC=/tmp/libpod'
           - 'CNI_COMMIT={{user `CNI_COMMIT`}}'
           - 'FEDORA_CNI_COMMIT={{user `FEDORA_CNI_COMMIT`}}'
-          - 'CRIO_COMMIT={{user `CRIO_COMMIT`}}'
+          - 'CONMON_COMMIT={{user `CONMON_COMMIT`}}'
           - 'CRIU_COMMIT={{user `CRIU_COMMIT`}}'
           - 'RUNC_COMMIT={{user `RUNC_COMMIT`}}'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
