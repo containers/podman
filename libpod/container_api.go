@@ -10,9 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/oci/caps"
@@ -533,32 +531,6 @@ func (c *Container) RemoveArtifact(name string) error {
 	}
 
 	return os.Remove(c.getArtifactPath(name))
-}
-
-// Inspect a container for low-level information
-func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-
-	storeCtr, err := c.runtime.store.Container(c.ID())
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting container from store %q", c.ID())
-	}
-	layer, err := c.runtime.store.Layer(storeCtr.LayerID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading information about layer %q", storeCtr.LayerID)
-	}
-	driverData, err := driver.GetDriverData(c.runtime.store, layer.ID)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting graph driver info %q", c.ID())
-	}
-	return c.getContainerInspectData(size, driverData)
 }
 
 // Wait blocks until the container exits and returns its exit code.

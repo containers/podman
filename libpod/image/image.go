@@ -659,7 +659,7 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 }
 
 // DriverData gets the driver data from the store on a layer
-func (i *Image) DriverData() (*inspect.Data, error) {
+func (i *Image) DriverData() (*driver.Data, error) {
 	topLayer, err := i.Layer()
 	if err != nil {
 		return nil, err

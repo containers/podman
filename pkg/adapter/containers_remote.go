@@ -16,7 +16,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
@@ -29,12 +28,12 @@ import (
 )
 
 // Inspect returns an inspect struct from varlink
-func (c *Container) Inspect(size bool) (*inspect.ContainerInspectData, error) {
+func (c *Container) Inspect(size bool) (*libpod.InspectContainerData, error) {
 	reply, err := iopodman.ContainerInspectData().Call(c.Runtime.Conn, c.ID(), size)
 	if err != nil {
 		return nil, err
 	}
-	data := inspect.ContainerInspectData{}
+	data := libpod.InspectContainerData{}
 	if err := json.Unmarshal([]byte(reply), &data); err != nil {
 		return nil, err
 	}

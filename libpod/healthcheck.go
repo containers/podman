@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -52,6 +51,28 @@ const (
 	// to be running) expires.
 	HealthCheckStarting string = "starting"
 )
+
+// HealthCheckResults describes the results/logs from a healthcheck
+type HealthCheckResults struct {
+	// Status healthy or unhealthy
+	Status string `json:"Status"`
+	// FailingStreak is the number of consecutive failed healthchecks
+	FailingStreak int `json:"FailingStreak"`
+	// Log describes healthcheck attempts and results
+	Log []HealthCheckLog `json:"Log"`
+}
+
+// HealthCheckLog describes the results of a single healthcheck
+type HealthCheckLog struct {
+	// Start time as string
+	Start string `json:"Start"`
+	// End time as a string
+	End string `json:"End"`
+	// Exitcode is 0 or 1
+	ExitCode int `json:"ExitCode"`
+	// Output is the stdout/stderr from the healthcheck command
+	Output string `json:"Output"`
+}
 
 // hcWriteCloser allows us to use bufio as a WriteCloser
 type hcWriteCloser struct {
@@ -157,8 +178,8 @@ func checkHealthCheckCanBeRun(c *Container) (HealthCheckStatus, error) {
 	return HealthCheckDefined, nil
 }
 
-func newHealthCheckLog(start, end time.Time, exitCode int, log string) inspect.HealthCheckLog {
-	return inspect.HealthCheckLog{
+func newHealthCheckLog(start, end time.Time, exitCode int, log string) HealthCheckLog {
+	return HealthCheckLog{
 		Start:    start.Format(time.RFC3339Nano),
 		End:      end.Format(time.RFC3339Nano),
 		ExitCode: exitCode,
@@ -182,7 +203,7 @@ func (c *Container) updateHealthStatus(status string) error {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl inspect.HealthCheckLog, inStartPeriod bool) error {
+func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool) error {
 	healthCheck, err := c.GetHealthCheckLog()
 	if err != nil {
 		return err
@@ -223,8 +244,8 @@ func (c *Container) healthCheckLogPath() string {
 // GetHealthCheckLog returns HealthCheck results by reading the container's
 // health check log file.  If the health check log file does not exist, then
 // an empty healthcheck struct is returned
-func (c *Container) GetHealthCheckLog() (inspect.HealthCheckResults, error) {
-	var healthCheck inspect.HealthCheckResults
+func (c *Container) GetHealthCheckLog() (HealthCheckResults, error) {
+	var healthCheck HealthCheckResults
 	if _, err := os.Stat(c.healthCheckLogPath()); os.IsNotExist(err) {
 		return healthCheck, nil
 	}
