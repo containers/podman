@@ -104,4 +104,18 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
+
+	It("podman run with conflict between image volume and user mount succeeds", func() {
+		podmanTest.RestoreArtifact(redis)
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		err := os.Mkdir(mountPath, 0755)
+		Expect(err).To(BeNil())
+		testFile := filepath.Join(mountPath, "test1")
+		f, err := os.Create(testFile)
+		f.Close()
+		Expect(err).To(BeNil())
+		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/data", mountPath), redis, "ls", "/data/test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
