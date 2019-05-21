@@ -892,7 +892,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		// we will need to access the storage.
 		if os.Geteuid() != 0 {
 			aliveLock.Unlock()
-			became, ret, err := rootless.BecomeRootInUserNS()
+			pausePid, err := util.GetRootlessPauseProcessPidPath()
+			if err != nil {
+				return errors.Wrapf(err, "could not get pause process pid file path")
+			}
+			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
 			if err != nil {
 				return err
 			}
@@ -966,18 +970,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	runtime.valid = true
 
 	if runtime.doMigrate {
-		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
-			locked = false
-
-			became, ret, err := rootless.BecomeRootInUserNS()
-			if err != nil {
-				return err
-			}
-			if became {
-				os.Exit(ret)
-			}
-		}
 		if err := runtime.migrate(ctx); err != nil {
 			return err
 		}

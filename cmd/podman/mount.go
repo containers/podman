@@ -78,7 +78,7 @@ func mountCmd(c *cliconfig.MountValues) error {
 			return fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
 		}
 
-		became, ret, err := rootless.BecomeRootInUserNS()
+		became, ret, err := rootless.BecomeRootInUserNS("")
 		if err != nil {
 			return err
 		}

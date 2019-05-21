@@ -1,12 +1,46 @@
+// +build linux
+
 package libpod
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"path/filepath"
+	"strconv"
+	"syscall"
 
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+func stopPauseProcess() error {
+	if rootless.IsRootless() {
+		pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+		if err != nil {
+			return errors.Wrapf(err, "could not get pause process pid file path")
+		}
+		data, err := ioutil.ReadFile(pausePidPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return errors.Wrapf(err, "cannot read pause process pid file %s", pausePidPath)
+		}
+		pausePid, err := strconv.Atoi(string(data))
+		if err != nil {
+			return errors.Wrapf(err, "cannot parse pause pid file %s", pausePidPath)
+		}
+		if err := os.Remove(pausePidPath); err != nil {
+			return errors.Wrapf(err, "cannot delete pause pid file %s", pausePidPath)
+		}
+		syscall.Kill(pausePid, syscall.SIGKILL)
+	}
+	return nil
+}
 
 func (r *Runtime) migrate(ctx context.Context) error {
 	runningContainers, err := r.GetRunningContainers()
@@ -21,7 +55,7 @@ func (r *Runtime) migrate(ctx context.Context) error {
 
 	logrus.Infof("stopping all containers")
 	for _, ctr := range runningContainers {
-		logrus.Infof("stopping %s", ctr.ID())
+		fmt.Printf("stopped %s\n", ctr.ID())
 		if err := ctr.Stop(); err != nil {
 			return errors.Wrapf(err, "cannot stop container %s", ctr.ID())
 		}
@@ -38,11 +72,5 @@ func (r *Runtime) migrate(ctx context.Context) error {
 		}
 	}
 
-	for _, ctr := range runningContainers {
-		if err := ctr.Start(ctx, true); err != nil {
-			logrus.Errorf("error restarting container %s", ctr.ID())
-		}
-	}
-
-	return nil
+	return stopPauseProcess()
 }

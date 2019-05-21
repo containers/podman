@@ -82,3 +82,13 @@ func GetRootlessRuntimeDir() (string, error) {
 	}
 	return rootlessRuntimeDir, nil
 }
+
+// GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
+// the pause process
+func GetRootlessPauseProcessPidPath() (string, error) {
+	runtimeDir, err := GetRootlessRuntimeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(runtimeDir, "libpod", "pause.pid"), nil
+}

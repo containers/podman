@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -113,6 +114,35 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		MainGlobalOpts,
 		remoteclient,
 	}
+
+	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	if err != nil {
+		return errors.Wrapf(err, "could not get pause process pid file path")
+	}
+
+	data, err := ioutil.ReadFile(pausePidPath)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "cannot read pause process pid file %s", pausePidPath)
+	}
+	if err == nil {
+		pausePid, err := strconv.Atoi(string(data))
+		if err != nil {
+			return errors.Wrapf(err, "cannot parse pause pid file %s", pausePidPath)
+		}
+		became, ret, err := rootless.JoinUserAndMountNS(uint(pausePid), "")
+		if err != nil {
+			logrus.Errorf("cannot join pause process pid %d.  You may need to remove %s and stop all containers", pausePid, pausePidPath)
+			logrus.Errorf("you can use `system migrate` to recreate the pause process")
+			logrus.Errorf(err.Error())
+			os.Exit(1)
+		}
+		if became {
+			os.Exit(ret)
+		}
+	}
+
+	// if there is no pid file, try to join existing containers, and create a pause process.
+
 	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
@@ -127,20 +157,20 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	var became bool
 	var ret int
 	if len(ctrs) == 0 {
-		became, ret, err = rootless.BecomeRootInUserNS()
+		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 	} else {
 		for _, ctr := range ctrs {
 			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
 			if err != nil {
 				logrus.Errorf(err.Error())
-				os.Exit(1)
+				continue
 			}
 			conmonPid, err := strconv.Atoi(string(data))
 			if err != nil {
 				logrus.Errorf(err.Error())
-				os.Exit(1)
+				continue
 			}
-			became, ret, err = rootless.JoinUserAndMountNS(uint(conmonPid))
+			became, ret, err = rootless.JoinUserAndMountNS(uint(conmonPid), pausePidPath)
 			if err == nil {
 				break
 			}
