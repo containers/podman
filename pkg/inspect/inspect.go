@@ -146,7 +146,7 @@ type Data struct {
 
 // ContainerInspectData handles the data used when inspecting a container
 type ContainerInspectData struct {
-	ID              string                 `json:"ID"`
+	ID              string                 `json:"Id"`
 	Created         time.Time              `json:"Created"`
 	Path            string                 `json:"Path"`
 	Args            []string               `json:"Args"`
