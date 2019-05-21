@@ -217,7 +217,7 @@ func playKubeYAMLCmd(c *cliconfig.KubePlayValues, ctx context.Context, runtime *
 		if err != nil {
 			return pod, err
 		}
-		createConfig, err := kubeContainerToCreateConfig(ctx, container, runtime, newImage, namespaces, volumes)
+		createConfig, err := kubeContainerToCreateConfig(ctx, container, runtime, newImage, namespaces, volumes, pod.ID())
 		if err != nil {
 			return pod, err
 		}
@@ -274,7 +274,7 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 	)
@@ -287,6 +287,8 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.Name = containerYAML.Name
 	containerConfig.Tty = containerYAML.TTY
 	containerConfig.WorkDir = containerYAML.WorkingDir
+
+	containerConfig.Pod = podID
 
 	imageData, _ := newImage.Inspect(ctx)
 
