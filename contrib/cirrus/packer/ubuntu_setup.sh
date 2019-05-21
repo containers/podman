@@ -86,7 +86,8 @@ ooe.sh sudo -E apt-get -qq install \
     socat \
     unzip \
     vim \
-    xz-utils
+    xz-utils \
+    zip
 
 echo "Fixing Ubuntu kernel not enabling swap accounting by default"
 SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
