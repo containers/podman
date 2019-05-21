@@ -15,9 +15,8 @@ install_ooe
 echo "Updating packages"
 ooe.sh dnf -y update
 
-echo "Installing necessary packages and  google services"
-ooe.sh dnf -y copr enable ngompa/gce-oslogin
-ooe.sh dnf -y install rng-tools google-compute-engine google-compute-engine-oslogin
+echo "Installing necessary packages and google services"
+ooe.sh dnf -y install rng-tools google-compute-engine-tools google-compute-engine-oslogin
 
 echo "Enabling services"
 ooe.sh systemctl enable rngd

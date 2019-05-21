@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE FEDORA_CNI_COMMIT CNI_COMMIT CRIO_COMMIT CRIU_COMMIT RUNC_COMMIT
+req_env_var SCRIPT_BASE FEDORA_CNI_COMMIT CNI_COMMIT CONMON_COMMIT CRIU_COMMIT
 
 install_ooe
 
@@ -22,6 +22,7 @@ ooe.sh sudo dnf install -y \
     bats \
     btrfs-progs-devel \
     bzip2 \
+    criu \
     device-mapper-devel \
     emacs-nox \
     findutils \
@@ -35,6 +36,7 @@ ooe.sh sudo dnf install -y \
     gpgme-devel \
     iptables \
     iproute \
+    jq \
     libassuan-devel \
     libcap-devel \
     libnet \
@@ -68,16 +70,14 @@ ooe.sh sudo dnf install -y \
 
 install_varlink
 
+install_conmon
+
 CNI_COMMIT=$FEDORA_CNI_COMMIT
 install_cni_plugins
 
 install_buildah
 
-install_conmon
-
-install_criu
-
-install_packer_copied_files
+sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize # N/B: Halts system!
 

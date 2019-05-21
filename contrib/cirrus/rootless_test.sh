@@ -1,12 +1,8 @@
 #!/bin/bash
 
 set -e
-source $HOME/.bash_profile
 
-cd $GOSRC
 source $(dirname $0)/lib.sh
-
-req_env_var GOSRC OS_RELEASE_ID OS_RELEASE_VER
 
 if [[ "$UID" == "0" ]]
 then
@@ -14,9 +10,17 @@ then
     exit 1
 fi
 
+# Ensure environment setup correctly
+req_env_var GOSRC ROOTLESS_USER
+
 echo "."
 echo "Hello, my name is $USER and I live in $PWD can I be your friend?"
+echo "."
 
+export PODMAN_VARLINK_ADDRESS=unix:/tmp/podman-$(id -u)
+show_env_vars
+
+set -x
 cd "$GOSRC"
 make
 make varlink_generate

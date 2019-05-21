@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE CNI_COMMIT CRIO_COMMIT CRIU_COMMIT RUNC_COMMIT
+req_env_var SCRIPT_BASE CNI_COMMIT CONMON_COMMIT CRIU_COMMIT
 
 install_ooe
 
@@ -26,6 +26,8 @@ ooe.sh sudo -E apt-get -qq install software-properties-common
 
 # Required to have Go 1.11 on Ubuntu 18.0.4
 ooe.sh sudo -E add-apt-repository --yes ppa:longsleep/golang-backports
+ooe.sh sudo -E add-apt-repository --yes ppa:projectatomic/ppa
+ooe.sh sudo -E add-apt-repository --yes ppa:criu/ppa
 ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
 
 ooe.sh sudo -E apt-get -qq install \
@@ -36,6 +38,8 @@ ooe.sh sudo -E apt-get -qq install \
     bison \
     btrfs-tools \
     build-essential \
+    cri-o-runc \
+    criu \
     curl \
     e2fslibs-dev \
     emacs-nox \
@@ -45,6 +49,7 @@ ooe.sh sudo -E apt-get -qq install \
     golang \
     iproute2 \
     iptables \
+    jq \
     libaio-dev \
     libapparmor-dev \
     libcap-dev \
@@ -89,20 +94,17 @@ ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
 ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
 ooe.sh sudo update-grub
 
-install_runc
-
 install_conmon
-
-install_criu
 
 install_cni_plugins
 
 install_buildah
 
-install_packer_copied_files
+sudo /tmp/libpod/hack/install_catatonit.sh
 
 install_varlink
 
+sudo mkdir -p /etc/containers
 sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora\
           -o /etc/containers/registries.conf
 

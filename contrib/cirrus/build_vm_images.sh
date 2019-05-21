@@ -3,7 +3,10 @@
 set -e
 source $(dirname $0)/lib.sh
 
-req_env_var CNI_COMMIT CRIO_COMMIT RUNC_COMMIT PACKER_BUILDS BUILT_IMAGE_SUFFIX CENTOS_BASE_IMAGE UBUNTU_BASE_IMAGE FEDORA_BASE_IMAGE FAH_BASE_IMAGE RHEL_BASE_IMAGE RHSM_COMMAND SERVICE_ACCOUNT GCE_SSH_USERNAME GCP_PROJECT_ID PACKER_VER SCRIPT_BASE PACKER_BASE
+ENV_VARS='CNI_COMMIT CONMON_COMMIT PACKER_BUILDS BUILT_IMAGE_SUFFIX UBUNTU_BASE_IMAGE FEDORA_BASE_IMAGE PRIOR_FEDORA_BASE_IMAGE SERVICE_ACCOUNT GCE_SSH_USERNAME GCP_PROJECT_ID PACKER_VER SCRIPT_BASE PACKER_BASE'
+req_env_var $ENV_VARS
+# Must also be made available through make, into packer process
+export $ENV_VARS
 
 show_env_vars
 
@@ -46,7 +49,4 @@ make libpod_images \
 URI="gs://packer-import${POST_MERGE_BUCKET_SUFFIX}/manifest${BUILT_IMAGE_SUFFIX}.json"
 gsutil cp packer-manifest.json "$URI"
 
-echo "Finished."
-echo "Any tarball URI's referenced above at at $URI"
-echo "may be used to create VM images suitable for use in"
-echo ".cirrus.yml as values for the 'image_name' keys."
+echo "Finished. A JSON manifest of produced images is available at $URI"

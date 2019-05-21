@@ -99,43 +99,88 @@ contents of the ``$SPECIALMODE`` environment variable.
    then execute `make localsystem` from the repository root.
 
 
-### ``cache_images`` Task
+### ``test_build_cache_images_task`` Task
 
-Modifying the contents of cache-images is done by making changes to
-one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Testing
-those changes currently requires adding a temporary commit to a PR that
-updates ``.cirrus.yml``:
-
-* Remove all task sections except ``cache_images_task``.
-* Remove the ``only_if`` condition and ``depends_on`` dependencies
-
-The new image names will be displayed at the end of output, assuming the build
-is successful, at that point the temporary commit may be removed.  Finally,
-the new names may be used as ``image_name`` values in ``.cirrus.yml``.
+Modifying the contents of cache-images is tested by making changes to
+one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Then
+in the PR description, add the magic string:  ``***CIRRUS: TEST IMAGES***``
 
 ***N/B: Steps below are performed by automation***
 
-1. When a PR is merged (``$CIRRUS_BRANCH`` == ``master``), run another
-   round of the ``gating`` and ``testing`` tasks (above).
+1. ``setup_environment.sh``: Same as for other tasks.
 
-2. Assuming tests pass, if the commit message contains the magic string
-   ``***CIRRUS: REBUILD IMAGES***``, then this task continues.  Otherwise
-   simply mark the master branch as 'passed'.
-
-3. ``setup_environment.sh``: Same as for other tasks.
-
-4. ``build_vm_images.sh``: Utilize [the packer tool](http://packer.io/docs/)
+2. ``build_vm_images.sh``: Utilize [the packer tool](http://packer.io/docs/)
    to produce new VM images.  Create a new VM from each base-image, connect
    to them with ``ssh``, and perform the steps as defined by the
-   ``$PACKER_BASE/libpod_images.json`` file:
+   ``$PACKER_BASE/libpod_images.yml`` file:
 
     1. On a base-image VM, as root, copy the current state of the repository
        into ``/tmp/libpod``.
     2. Execute distribution-specific scripts to prepare the image for
-       use by the ``integration_testing`` task (above).  For example,
-       ``fedora_setup.sh``.
-    3. If successful, shut down each VM and create a new GCE Image
-       named with the base image, and the commit sha of the merge.
+       use.  For example, ``fedora_setup.sh``.
+    3. If successful, shut down each VM and record the names, and dates
+       into a json manifest file.
+    4. Move the manifest file, into a google storage bucket object.
+       This is a retained as a secondary method for tracking/auditing
+       creation of VM images, should it ever be needed.
+
+### ``verify_test_built_images`` Task
+
+Only runs following successful ``test_build_cache_images_task`` task.  Uses
+images following the standard naming format; ***however, only runs a limited
+sub-set of automated tests***.  Validating newly built images fully, requires
+updating ``.cirrus.yml``.
+
+***Manual Steps:***  Assuming `verify_test_built_images` passes, then
+you'll find the new image names displayed at the end of the
+`test_build_cache_images_task` in the `build_vm_images` output.
+For example:
+
+
+```
+...cut...
+==> Builds finished. The artifacts of successful builds are:
+--> ubuntu-18: A disk image was created: ubuntu-18-libpod-5699523102900224
+--> ubuntu-18:
+--> fedora-29: A disk image was created: fedora-29-libpod-5699523102900224
+--> fedora-29:
+--> fedora-28: A disk image was created: fedora-28-libpod-5699523102900224
+```
+
+Now edit `.cirrus.yml`, updating the `*_IMAGE_NAME` lines to reflect the
+images from above:
+
+
+```yaml
+env:
+    ...cut...
+    ####
+    #### Cache-image names to test with
+    ###
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
+    ...cut...
+```
+
+***NOTE:*** If re-using the same PR with new images in `.cirrus.yml`,
+take care to also *update the PR description* to remove
+the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
+`--force` pushing would needlessly cause Cirrus-CI to build
+and test images again.
+
+
+### ``build_cache_images`` Task  *(Deprecated)*
+
+Exactly the same as ``test_build_cache_images_task`` task, but only runs on
+the master branch.  Requires a magic string to be in the `HEAD`
+commit message: ``***CIRRUS: BUILD IMAGES***``
+
+When successful, the manifest file along with all VM disks, are moved
+into a dedicated google storage bucket, separate from the one used by
+`test_build_cache_images_task`.  These may be used to create new cache-images for
+PR testing by manually importing them as described above.
+
 
 ### Base-images
 
@@ -169,15 +214,6 @@ the ``cache_images`` Task) some input parameters are required:
   account](https://cloud.google.com/docs/authentication/production#obtaining_and_providing_service_account_credentials_manually)
   or [end-user
   credentials](https://cloud.google.com/docs/authentication/end-user#creating_your_client_credentials)
-
-* ``RHEL_IMAGE_FILE`` and ``RHEL_CSUM_FILE`` complete paths
-  to a `rhel-server-ec2-*.raw.xz` and it's cooresponding
-  checksum file.  These must be supplied manually because
-  they're not available directly via URL like other images.
-
-* ``RHSM_COMMAND`` contains the complete string needed to register
-  the VM for installing package dependencies.  The VM will be de-registered
-  upon completion.
 
 *  Optionally, CSV's may be specified to ``PACKER_BUILDS``
    to limit the base-images produced.  For example,
@@ -224,9 +260,6 @@ When ready, change to the ``packer`` sub-directory, and build the images:
 $ cd libpod/contrib/cirrus/packer
 $ make libpod_base_images GCP_PROJECT_ID=<VALUE> \
     GOOGLE_APPLICATION_CREDENTIALS=<VALUE> \
-    RHEL_IMAGE_FILE=<VALUE> \
-    RHEL_CSUM_FILE=<VALUE> \
-    RHSM_COMMAND=<VALUE> \
     PACKER_BUILDS=<OPTIONAL>
 ```
 
