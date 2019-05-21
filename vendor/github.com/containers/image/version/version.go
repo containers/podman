@@ -4,11 +4,11 @@ import "fmt"
 
 const (
 	// VersionMajor is for an API incompatible changes
-	VersionMajor = 0
+	VersionMajor = 1
 	// VersionMinor is for functionality in a backwards-compatible manner
-	VersionMinor = 1
+	VersionMinor = 7
 	// VersionPatch is for backwards-compatible bug fixes
-	VersionPatch = 6
+	VersionPatch = 0
 
 	// VersionDev indicates development branch. Releases will be empty string.
 	VersionDev = "-dev"

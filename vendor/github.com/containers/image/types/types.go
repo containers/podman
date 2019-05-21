@@ -401,6 +401,7 @@ type ImageInspectInfo struct {
 }
 
 // DockerAuthConfig contains authorization information for connecting to a registry.
+// the value of Username and Password can be empty for accessing the registry anonymously
 type DockerAuthConfig struct {
 	Username string
 	Password string

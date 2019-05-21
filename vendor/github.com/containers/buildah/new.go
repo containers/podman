@@ -351,6 +351,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		TopLayer:         topLayer,
 		Args:             options.Args,
 		Format:           options.Format,
+		TempVolumes:      map[string]bool{},
 	}
 
 	if options.Mount {

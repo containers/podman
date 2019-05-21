@@ -61,8 +61,13 @@ func ParseReference(refString string) (types.ImageReference, error) {
 
 // NewReference returns a Docker reference for a named reference. The reference must satisfy !reference.IsNameOnly().
 func NewReference(ref reference.Named) (types.ImageReference, error) {
+	return newReference(ref)
+}
+
+// newReference returns a dockerReference for a named reference.
+func newReference(ref reference.Named) (dockerReference, error) {
 	if reference.IsNameOnly(ref) {
-		return nil, errors.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
+		return dockerReference{}, errors.Errorf("Docker reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
 	}
 	// A github.com/distribution/reference value can have a tag and a digest at the same time!
 	// The docker/distribution API does not really support that (we can’t ask for an image with a specific
@@ -72,8 +77,9 @@ func NewReference(ref reference.Named) (types.ImageReference, error) {
 	_, isTagged := ref.(reference.NamedTagged)
 	_, isDigested := ref.(reference.Canonical)
 	if isTagged && isDigested {
-		return nil, errors.Errorf("Docker references with both a tag and digest are currently not supported")
+		return dockerReference{}, errors.Errorf("Docker references with both a tag and digest are currently not supported")
 	}
+
 	return dockerReference{
 		ref: ref,
 	}, nil
@@ -135,7 +141,7 @@ func (ref dockerReference) NewImage(ctx context.Context, sys *types.SystemContex
 // NewImageSource returns a types.ImageSource for this reference.
 // The caller must call .Close() on the returned ImageSource.
 func (ref dockerReference) NewImageSource(ctx context.Context, sys *types.SystemContext) (types.ImageSource, error) {
-	return newImageSource(sys, ref)
+	return newImageSource(ctx, sys, ref)
 }
 
 // NewImageDestination returns a types.ImageDestination for this reference.

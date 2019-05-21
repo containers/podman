@@ -85,21 +85,6 @@ func GetAuthentication(sys *types.SystemContext, registry string) (string, strin
 	return "", "", nil
 }
 
-// GetUserLoggedIn returns the username logged in to registry from either
-// auth.json or XDG_RUNTIME_DIR
-// Used to tell the user if someone is logged in to the registry when logging in
-func GetUserLoggedIn(sys *types.SystemContext, registry string) (string, error) {
-	path, err := getPathToAuth(sys)
-	if err != nil {
-		return "", err
-	}
-	username, _, _ := findAuthentication(registry, path, false)
-	if username != "" {
-		return username, nil
-	}
-	return "", nil
-}
-
 // RemoveAuthentication deletes the credentials stored in auth.json
 func RemoveAuthentication(sys *types.SystemContext, registry string) error {
 	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {

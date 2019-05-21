@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/containers/image/pkg/blobinfocache/boltdb"
 	"github.com/containers/image/pkg/blobinfocache/memory"
@@ -47,9 +48,18 @@ func blobInfoCacheDir(sys *types.SystemContext, euid int) (string, error) {
 	return filepath.Join(dataDir, "containers", "cache"), nil
 }
 
+func getRootlessUID() int {
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Geteuid()
+}
+
 // DefaultCache returns the default BlobInfoCache implementation appropriate for sys.
 func DefaultCache(sys *types.SystemContext) types.BlobInfoCache {
-	dir, err := blobInfoCacheDir(sys, os.Geteuid())
+	dir, err := blobInfoCacheDir(sys, getRootlessUID())
 	if err != nil {
 		logrus.Debugf("Error determining a location for %s, using a memory-only cache", blobInfoCacheFilename)
 		return memory.New()

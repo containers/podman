@@ -2,7 +2,6 @@ package buildah
 
 import (
 	"context"
-	"fmt"
 	"io"
 
 	"strings"
@@ -152,8 +151,9 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 	return name, nil
 }
 
-// Pull copies the contents of the image from somewhere else to local storage.
-func Pull(ctx context.Context, imageName string, options PullOptions) error {
+// Pull copies the contents of the image from somewhere else to local storage.  Returns the
+// ID of the local image or an error.
+func Pull(ctx context.Context, imageName string, options PullOptions) (imageID string, err error) {
 	systemContext := getSystemContext(options.Store, options.SystemContext, options.SignaturePolicyPath)
 
 	boptions := BuilderOptions{
@@ -166,23 +166,23 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 
 	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var errs *multierror.Error
 	if options.AllTags {
 		if transport != util.DefaultTransport {
-			return errors.New("Non-docker transport is not supported, for --all-tags pulling")
+			return "", errors.New("Non-docker transport is not supported, for --all-tags pulling")
 		}
 
 		repo := reference.TrimNamed(storageRef.DockerReference())
 		dockerRef, err := docker.NewReference(reference.TagNameOnly(storageRef.DockerReference()))
 		if err != nil {
-			return errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
+			return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
 		}
 		tags, err := docker.GetRepositoryTags(ctx, systemContext, dockerRef)
 		if err != nil {
-			return errors.Wrapf(err, "error getting repository tags")
+			return "", errors.Wrapf(err, "error getting repository tags")
 		}
 		for _, tag := range tags {
 			tagged, err := reference.WithTag(repo, tag)
@@ -192,7 +192,7 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 			}
 			taggedRef, err := docker.NewReference(tagged)
 			if err != nil {
-				return errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
+				return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
 			}
 			if options.ReportWriter != nil {
 				options.ReportWriter.Write([]byte("Pulling " + tagged.String() + "\n"))
@@ -207,13 +207,13 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 				errs = multierror.Append(errs, err)
 				continue
 			}
-			fmt.Printf("%s\n", taggedImg.ID)
+			imageID = taggedImg.ID
 		}
 	} else {
-		fmt.Printf("%s\n", img.ID)
+		imageID = img.ID
 	}
 
-	return errs.ErrorOrNil()
+	return imageID, errs.ErrorOrNil()
 }
 
 func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {

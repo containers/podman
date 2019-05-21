@@ -5,9 +5,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/boltdb/bolt"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
+	bolt "github.com/etcd-io/bbolt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
