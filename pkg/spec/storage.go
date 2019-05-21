@@ -135,6 +135,29 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		unifiedMounts[initMount.Destination] = initMount
 	}
 
+	// Before superceding, we need to find volume mounts which conflict with
+	// named volumes, and vice versa.
+	// We'll delete the conflicts here as we supercede.
+	for dest := range unifiedMounts {
+		if _, ok := baseVolumes[dest]; ok {
+			delete(baseVolumes, dest)
+		}
+	}
+	for dest := range unifiedVolumes {
+		if _, ok := baseMounts[dest]; ok {
+			delete(baseMounts, dest)
+		}
+	}
+
+	// Supercede volumes-from/image volumes with unified volumes from above.
+	// This is an unconditional replacement.
+	for dest, mount := range unifiedMounts {
+		baseMounts[dest] = mount
+	}
+	for dest, volume := range unifiedVolumes {
+		baseVolumes[dest] = volume
+	}
+
 	// If requested, add tmpfs filesystems for read-only containers.
 	// Need to keep track of which we created, so we don't modify options
 	// for them later...
@@ -146,14 +169,14 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
 		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup", "size=65536k"}
 		for dest := range readonlyTmpfs {
-			if _, ok := unifiedMounts[dest]; ok {
+			if _, ok := baseMounts[dest]; ok {
 				continue
 			}
 			localOpts := options
 			if dest == "/run" {
 				localOpts = append(localOpts, "noexec")
 			}
-			unifiedMounts[dest] = spec.Mount{
+			baseMounts[dest] = spec.Mount{
 				Destination: dest,
 				Type:        "tmpfs",
 				Source:      "tmpfs",
@@ -161,15 +184,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 			}
 			readonlyTmpfs[dest] = true
 		}
-	}
-
-	// Supercede volumes-from/image volumes with unified volumes from above.
-	// This is an unconditional replacement.
-	for dest, mount := range unifiedMounts {
-		baseMounts[dest] = mount
-	}
-	for dest, volume := range unifiedVolumes {
-		baseVolumes[dest] = volume
 	}
 
 	// Check for conflicts between named volumes and mounts
