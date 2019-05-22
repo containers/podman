@@ -220,7 +220,6 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 			return kubeContainer, err
 		}
 		kubeContainer.VolumeMounts = volumes
-		//return kubeContainer, errors.Wrapf(ErrNotImplemented, "volume names")
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
