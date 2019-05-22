@@ -561,7 +561,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 	if err != nil {
 		return nil, err
 	}
-	resize := make(chan remotecommand.TerminalSize)
+	resize := make(chan remotecommand.TerminalSize, 5)
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
