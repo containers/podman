@@ -23,8 +23,6 @@ Note: If you are following a container which is removed `podman container rm`
 or removed on exit `podman run --rm ...`, then there is a chance the the log
 file will be removed before `podman logs` reads the final content.
 
-Also note: **--follow** is not currently supported when the container's log driver is journald
-
 **--latest, -l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman

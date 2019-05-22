@@ -57,6 +57,20 @@ func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLin
 		r.Rewind()
 	}
 
+	if options.Follow {
+		go func() {
+			follower := FollowBuffer{logChannel}
+			err := r.Follow(nil, follower)
+			if err != nil {
+				logrus.Debugf(err.Error())
+			}
+			r.Close()
+			options.WaitGroup.Done()
+			return
+		}()
+		return nil
+	}
+
 	go func() {
 		bytes := make([]byte, bufLen)
 		// /me complains about no do-while in go
@@ -84,8 +98,8 @@ func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLin
 
 func journalFormatter(entry *journal.JournalEntry) (string, error) {
 	usec := entry.RealtimeTimestamp
-	timestamp := time.Unix(0, int64(usec)*int64(time.Microsecond))
-	output := timestamp.Format(logTimeFormat) + " "
+	tsString := time.Unix(0, int64(usec)*int64(time.Microsecond)).Format(logTimeFormat)
+	output := fmt.Sprintf("%s ", tsString)
 	priority, ok := entry.Fields["PRIORITY"]
 	if !ok {
 		return "", errors.Errorf("no PRIORITY field present in journal entry")
@@ -112,4 +126,18 @@ func journalFormatter(entry *journal.JournalEntry) (string, error) {
 	}
 	output += strings.TrimSpace(msg)
 	return output, nil
+}
+
+type FollowBuffer struct {
+	logChannel chan *LogLine
+}
+
+func (f FollowBuffer) Write(p []byte) (int, error) {
+	bytestr := string(p)
+	logLine, err := newLogLine(bytestr)
+	if err != nil {
+		return -1, err
+	}
+	f.logChannel <- logLine
+	return len(p), nil
 }

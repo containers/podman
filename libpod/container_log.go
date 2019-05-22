@@ -63,9 +63,6 @@ func (c *Container) ReadLog(options *LogOptions, logChannel chan *LogLine) error
 	// TODO Skip sending logs until journald logs can be read
 	// TODO make this not a magic string
 	if c.LogDriver() == JournaldLogging {
-		if options.Follow {
-			return errors.Errorf("The follow option with journald logging is not currently supported")
-		}
 		return c.readFromJournal(options, logChannel)
 	}
 	return c.readFromLogFile(options, logChannel)
