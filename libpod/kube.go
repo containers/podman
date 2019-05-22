@@ -220,12 +220,11 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 			return kubeContainer, err
 		}
 		kubeContainer.VolumeMounts = volumes
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "volume names")
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, err
 	}
 
 	portmappings, err := c.PortMappings()
@@ -234,7 +233,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, err
 	}
 
 	containerCommands := c.Command()
@@ -345,7 +344,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
 	for _, hostSourcePath := range c.config.UserVolumes {
 		vm, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
 		if err != nil {
-			return vms, err
+			continue
 		}
 		vms = append(vms, vm)
 	}
