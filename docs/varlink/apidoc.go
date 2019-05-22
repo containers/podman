@@ -44,6 +44,8 @@ func typeToString(input *idl.Type) string {
 		return "map[string]"
 	case idl.TypeInt:
 		return "int"
+	case idl.TypeMaybe:
+		return fmt.Sprintf("?%s", typeToString(input.ElementType))
 	}
 	return ""
 }
