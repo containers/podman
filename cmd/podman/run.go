@@ -36,6 +36,8 @@ func init() {
 	flags.SetInterspersed(false)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
 	getCreateFlags(&runCommand.PodmanCommand)
+	markFlagHiddenForRemoteClient("authfile", flags)
+	flags.MarkHidden("signature-policy")
 }
 
 func runCmd(c *cliconfig.RunValues) error {

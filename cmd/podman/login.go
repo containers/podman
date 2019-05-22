@@ -32,25 +32,30 @@ var (
 			return loginCmd(&loginCommand)
 		},
 		Example: `podman login -u testuser -p testpassword localhost:5000
-  podman login --authfile authdir/myauths.json quay.io
   podman login -u testuser -p testpassword localhost:5000`,
 	}
 )
 
 func init() {
+	if !remote {
+		_loginCommand.Example = fmt.Sprintf("%s\n  podman login --authfile authdir/myauths.json quay.io", _loginCommand.Example)
+
+	}
 	loginCommand.Command = _loginCommand
 	loginCommand.SetHelpTemplate(HelpTemplate())
 	loginCommand.SetUsageTemplate(UsageTemplate())
 	flags := loginCommand.Flags()
 
-	flags.StringVar(&loginCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
 	flags.BoolVar(&loginCommand.GetLogin, "get-login", true, "Return the current login user for the registry")
 	flags.StringVarP(&loginCommand.Password, "password", "p", "", "Password for registry")
-	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
 	flags.BoolVar(&loginCommand.StdinPassword, "password-stdin", false, "Take the password from stdin")
-
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&loginCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
+		flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
 // loginCmd uses the authentication package to store a user's authenticated credentials
@@ -64,9 +69,8 @@ func loginCmd(c *cliconfig.LoginValues) error {
 		return errors.Errorf("please specify a registry to login to")
 	}
 	server := registryFromFullName(scrubServer(args[0]))
-	authfile := getAuthFile(c.Authfile)
 
-	sc := image.GetSystemContext("", authfile, false)
+	sc := image.GetSystemContext("", c.Authfile, false)
 	if c.Flag("tls-verify").Changed {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}

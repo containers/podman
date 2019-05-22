@@ -55,7 +55,7 @@ Any additional arguments will be appended to the command.
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
@@ -68,7 +68,7 @@ The runlabel command will not execute if --display is specified.
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--creds**
 
@@ -92,17 +92,11 @@ Suppress output information when pulling images
 If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be
 created from this image.
 
-**--signature-policy="PATHNAME"**
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred
-
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
-TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf (Not available for remote commands)
 
 ## Examples ##
 

@@ -45,8 +45,6 @@ func init() {
 	runlabelCommand.SetHelpTemplate(HelpTemplate())
 	runlabelCommand.SetUsageTemplate(UsageTemplate())
 	flags := runlabelCommand.Flags()
-	flags.StringVar(&runlabelCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&runlabelCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVar(&runlabelCommand.Display, "display", false, "Preview the command that the label would run")
 	flags.BoolVar(&runlabelCommand.Replace, "replace", false, "Replace existing container with a new one from the image")
@@ -61,10 +59,17 @@ func init() {
 
 	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
-	flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-	flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&runlabelCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+		flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
-	flags.MarkDeprecated("pull", "podman will pull if not found in local storage")
+		flags.MarkDeprecated("pull", "podman will pull if not found in local storage")
+		flags.MarkHidden("signature-policy")
+	}
+	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
 // installCmd gets the data from the command line and calls installImage
@@ -137,8 +142,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
-	authfile := getAuthFile(c.Authfile)
-	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, true, c.Creds, dockerRegistryOptions, authfile, c.SignaturePolicy, stdOut)
+	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, true, c.Creds, dockerRegistryOptions, c.Authfile, c.SignaturePolicy, stdOut)
 	if err != nil {
 		return err
 	}

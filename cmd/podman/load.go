@@ -40,8 +40,11 @@ func init() {
 	flags := loadCommand.Flags()
 	flags.StringVarP(&loadCommand.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
-
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
+		flags.MarkHidden("signature-policy")
+	}
 }
 
 // loadCmd gets the image/file to be loaded from the command line

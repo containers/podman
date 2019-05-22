@@ -414,7 +414,6 @@ type BuildInfo (
     remoteIntermediateCtrs: bool,
     reportWriter: string,
     runtimeArgs: []string,
-    signaturePolicyPath: string,
     squash: bool
 )
 
@@ -467,13 +466,9 @@ type PodContainerErrorData (
 type Runlabel(
     image: string,
     authfile: string,
-    certDir: string,
-    creds: string,
     display: bool,
     name: string,
     pull: bool,
-    signaturePolicyPath: string,
-    tlsVerify: ?bool,
     label: string,
     extraArgs: []string,
     opts: [string]string
@@ -759,11 +754,10 @@ method InspectImage(name: string) -> (image: string)
 # [ImageNotFound](#ImageNotFound) error is returned.
 method HistoryImage(name: string) -> (history: []ImageHistory)
 
-# PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
-# and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
+# PushImage takes two input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 # It will return an [ImageNotFound](#ImageNotFound) error if
 # the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
-method PushImage(name: string, tag: string, tlsverify: ?bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
+method PushImage(name: string, tag: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
 
 # TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
@@ -784,7 +778,7 @@ method RemoveImage(name: string, force: bool) -> (image: string)
 # SearchImages searches available registries for images that contain the
 # contents of "query" in their name. If "limit" is given, limits the amount of
 # search results per registry.
-method SearchImages(query: string, limit: ?int, tlsVerify: ?bool, filter: ImageSearchFilter) -> (results: []ImageSearchResult)
+method SearchImages(query: string, limit: ?int, filter: ImageSearchFilter) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
@@ -825,7 +819,7 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 # PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
 # are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
 # status as it occurs.
-method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) -> (reply: MoreResponse)
+method PullImage(name: string) -> (reply: MoreResponse)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.

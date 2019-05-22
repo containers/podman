@@ -32,12 +32,6 @@ The remote client requires the use of this option.
 
 Suppress the progress output
 
-**--signature-policy="PATHNAME"**
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred
-
 **--help**, **-h**
 
 Print usage statement
@@ -49,7 +43,7 @@ $ podman load --quiet -i fedora.tar
 ```
 
 ```
-$ podman load -q --signature-policy /etc/containers/policy.json -i fedora.tar
+$ podman load -q -i fedora.tar
 ```
 
 ```

@@ -43,12 +43,15 @@ func init() {
 	searchCommand.SetHelpTemplate(HelpTemplate())
 	searchCommand.SetUsageTemplate(UsageTemplate())
 	flags := searchCommand.Flags()
-	flags.StringVar(&searchCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringSliceVarP(&searchCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
 	flags.StringVar(&searchCommand.Format, "format", "", "Change the output format to a Go template")
 	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&searchCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
 func searchCmd(c *cliconfig.SearchValues) error {
@@ -70,7 +73,7 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		NoTrunc:  c.NoTrunc,
 		Limit:    c.Limit,
 		Filter:   *filter,
-		Authfile: getAuthFile(c.Authfile),
+		Authfile: c.Authfile,
 	}
 	if c.Flag("tls-verify").Changed {
 		searchOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)

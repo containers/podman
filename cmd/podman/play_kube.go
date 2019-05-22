@@ -47,22 +47,28 @@ var (
 			playKubeCommand.Remote = remoteclient
 			return playKubeCmd(&playKubeCommand)
 		},
-		Example: `podman play kube demo.yml
-  podman play kube --cert-dir /mycertsdir --tls-verify=true --quiet myWebPod`,
+		Example: `podman play kube demo.yml`,
 	}
 )
 
 func init() {
+	if !remote {
+		_playKubeCommand.Example = fmt.Sprintf("%s\n  podman play kube --cert-dir /mycertsdir --tls-verify=true --quiet myWebPod", _playKubeCommand.Example)
+	}
 	playKubeCommand.Command = _playKubeCommand
 	playKubeCommand.SetHelpTemplate(HelpTemplate())
 	playKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := playKubeCommand.Flags()
-	flags.StringVar(&playKubeCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&playKubeCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&playKubeCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&playKubeCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
-	flags.StringVar(&playKubeCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-	flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&playKubeCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&playKubeCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+		flags.StringVar(&playKubeCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+		flags.MarkHidden("signature-policy")
+	}
 }
 
 func playKubeCmd(c *cliconfig.KubePlayValues) error {

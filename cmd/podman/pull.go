@@ -36,28 +36,31 @@ var (
 			return pullCmd(&pullCommand)
 		},
 		Example: `podman pull imageName
-  podman pull --cert-dir image/certs --authfile temp-auths/myauths.json docker://docker.io/myrepo/finaltest
   podman pull fedora:latest`,
 	}
 )
 
 func init() {
+
+	if !remote {
+		_pullCommand.Example = fmt.Sprintf("%s\n  podman pull --cert-dir image/certs --authfile temp-auths/myauths.json docker://docker.io/myrepo/finaltest", _pullCommand.Example)
+
+	}
 	pullCommand.Command = _pullCommand
 	pullCommand.SetHelpTemplate(HelpTemplate())
 	pullCommand.SetUsageTemplate(UsageTemplate())
 	flags := pullCommand.Flags()
 	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
-	flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&pullCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
-
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&pullCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pullCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+		flags.MarkHidden("signature-policy")
 	}
-
 }
 
 // pullCmd gets the data from the command line and calls pullImage
@@ -138,8 +141,6 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 		return nil
 	}
 
-	authfile := getAuthFile(c.String("authfile"))
-
 	// FIXME: the default pull consults the registries.conf's search registries
 	// while the all-tags pull does not. This behavior must be fixed in the
 	// future and span across c/buildah, c/image and c/libpod to avoid redundant
@@ -148,7 +149,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	// See https://bugzilla.redhat.com/show_bug.cgi?id=1701922 for background
 	// information.
 	if !c.Bool("all-tags") {
-		newImage, err := runtime.New(getContext(), imgArg, c.SignaturePolicy, authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
+		newImage, err := runtime.New(getContext(), imgArg, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", imgArg)
 		}
@@ -158,7 +159,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 
 	// FIXME: all-tags should use the libpod backend instead of baking its own bread.
 	spec := imgArg
-	systemContext := image.GetSystemContext("", authfile, false)
+	systemContext := image.GetSystemContext("", c.Authfile, false)
 	srcRef, err := alltransports.ParseImageName(spec)
 	if err != nil {
 		dockerTransport := "docker://"
@@ -186,7 +187,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	var foundIDs []string
 	foundImage := true
 	for _, name := range names {
-		newImage, err := runtime.New(getContext(), name, c.String("signature-policy"), authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
+		newImage, err := runtime.New(getContext(), name, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
 		if err != nil {
 			logrus.Errorf("error pulling image %q", name)
 			foundImage = false

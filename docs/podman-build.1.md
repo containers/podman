@@ -36,7 +36,7 @@ Note: this information is not present in Docker image formats, so it is discarde
 **--authfile** *path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
@@ -75,7 +75,7 @@ given.
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--cgroup-parent**=""
 
@@ -354,12 +354,6 @@ Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater tha
 Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 
-**--signature-policy** *signaturepolicy*
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred.
-
 **--squash**
 
 Squash all of the new image's layers (including those inherited from a base image) into a single new layer.
@@ -378,7 +372,7 @@ Commands after the target stage will be skipped.
 
 **--tls-verify** *bool-value*
 
-Require HTTPS and verify certificates when talking to container registries (defaults to true).
+Require HTTPS and verify certificates when talking to container registries (defaults to true). (Not available for remote commands)
 
 **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 

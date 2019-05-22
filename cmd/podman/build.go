@@ -43,7 +43,7 @@ var (
 			return buildCmd(&buildCommand)
 		},
 		Example: `podman build .
-  podman build --cert-dir ~/auth --creds=username:password -t imageName -f Dockerfile.simple .
+  podman build --creds=username:password -t imageName -f Dockerfile.simple .
   podman build --layers --force-rm --tag imageName .`,
 	}
 )
@@ -72,6 +72,7 @@ func init() {
 	flags.AddFlagSet(&budFlags)
 	flags.AddFlagSet(&layerFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
+	flags.MarkHidden("signature-policy")
 }
 
 func getDockerfiles(files []string) []string {
