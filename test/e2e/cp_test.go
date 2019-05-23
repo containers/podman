@@ -143,4 +143,31 @@ var _ = Describe("Podman cp", func() {
 		os.Remove("file.tar.gz")
 		os.RemoveAll(testDirPath)
 	})
+
+	It("podman cp tar", func() {
+		path, err := os.Getwd()
+		Expect(err).To(BeNil())
+		testDirPath := filepath.Join(path, "TestDir")
+		err = os.Mkdir(testDirPath, 0777)
+		Expect(err).To(BeNil())
+		cmd := exec.Command("tar", "-cvf", "file.tar", testDirPath)
+		_, err = cmd.Output()
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"create", "--name", "testctr", ALPINE, "ls", "-l", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "file.tar", "testctr:/foo/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"start", "-a", "testctr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("file.tar"))
+
+		os.Remove("file.tar")
+		os.RemoveAll(testDirPath)
+	})
 })
