@@ -231,10 +231,10 @@ then
            "$HOME/.config/gcloud/configurations/config_default"
 fi
 
-# Couldn't make rsync work with gcloud's ssh wrapper :(
+# Couldn't make rsync work with gcloud's ssh wrapper because ssh-keys generated on the fly
 TARBALL=$VMNAME.tar.bz2
-echo -e "\n${YEL}Packing up repository into a tarball $VMNAME.${NOR}"
-showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed -C $LIBPODROOT .
+echo -e "\n${YEL}Packing up local repository into a tarball.${NOR}"
+showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed --exclude-vcs-ignores -C $LIBPODROOT .
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
@@ -275,7 +275,9 @@ showrun $SSH_CMD --command "rm -f /tmp/$TARBALL"
 echo -e "\n${YEL}Executing environment setup${NOR}"
 showrun $SSH_CMD --command "$SETUP_CMD"
 
-echo -e "\n${YEL}Connecting to $VMNAME\n${RED}(option to delete VM upon logout).${NOR}\n"
+VMIP=$($PGCLOUD compute instances describe $VMNAME --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+
+echo -e "\n${YEL}Connecting to $VMNAME${NOR}\nPublic IP Address: $VMIP\n${RED}(option to delete VM upon logout).${NOR}\n"
 if [[ -n "$ROOTLESS_USER" ]]
 then
     echo "Re-chowning source files after transfer"
