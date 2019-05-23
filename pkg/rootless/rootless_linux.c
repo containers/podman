@@ -69,6 +69,19 @@ rootless_gid ()
 static void
 do_pause ()
 {
+  int i;
+  struct sigaction act;
+  int const sig[] =
+    {
+     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGTERM, SIGPOLL,
+     SIGPROF, SIGVTALRM, SIGXCPU, SIGXFSZ, 0
+    };
+
+  act.sa_handler = SIG_IGN;
+
+  for (i = 0; sig[i]; i++)
+    sigaction (sig[i], &act, NULL);
+
   prctl (PR_SET_NAME, "podman pause", NULL, NULL, NULL);
   while (1)
     pause ();
@@ -574,6 +587,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   char *listen_pid = NULL;
   bool do_socket_activation = false;
   char *cwd = getcwd (NULL, 0);
+  sigset_t sigset, oldsigset;
 
   if (cwd == NULL)
     {
@@ -619,6 +633,22 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
           unsetenv ("LISTEN_FDNAMES");
         }
       return pid;
+    }
+
+  if (sigfillset (&sigset) < 0)
+    {
+      fprintf (stderr, "cannot fill sigset: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGCHLD) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
     }
 
   argv = get_cmd_line_args (ppid);
@@ -684,6 +714,12 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
     ret = write (ready, "0", 1) < 0;
   while (ret < 0 && errno == EINTR);
   close (ready);
+
+  if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
 
   execvp (argv[0], argv);
 
