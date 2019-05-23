@@ -147,7 +147,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
-[func SearchImages(query: string, limit: , filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
+[func SearchImages(query: string, limit: ?int, filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
 
@@ -1012,7 +1012,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
 ### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [](#), filter: [ImageSearchFilter](#ImageSearchFilter)) [ImageSearchResult](#ImageSearchResult)</div>
+method SearchImages(query: [string](https://godoc.org/builtin#string), limit: [?int](#?int), filter: [ImageSearchFilter](#ImageSearchFilter)) [ImageSearchResult](#ImageSearchResult)</div>
 SearchImages searches available registries for images that contain the
 contents of "query" in their name. If "limit" is given, limits the amount of
 search results per registry.
@@ -1352,197 +1352,197 @@ Create is an input structure for creating containers.
 
 args [[]string](#[]string)
 
-addHost [](#)
+addHost [?[]string](#?[]string)
 
-annotation [](#)
+annotation [?[]string](#?[]string)
 
-attach [](#)
+attach [?[]string](#?[]string)
 
-blkioWeight [](#)
+blkioWeight [?string](#?string)
 
-blkioWeightDevice [](#)
+blkioWeightDevice [?[]string](#?[]string)
 
-capAdd [](#)
+capAdd [?[]string](#?[]string)
 
-capDrop [](#)
+capDrop [?[]string](#?[]string)
 
-cgroupParent [](#)
+cgroupParent [?string](#?string)
 
-cidFile [](#)
+cidFile [?string](#?string)
 
-conmonPidfile [](#)
+conmonPidfile [?string](#?string)
 
-command [](#)
+command [?[]string](#?[]string)
 
-cpuPeriod [](#)
+cpuPeriod [?int](#?int)
 
-cpuQuota [](#)
+cpuQuota [?int](#?int)
 
-cpuRtPeriod [](#)
+cpuRtPeriod [?int](#?int)
 
-cpuRtRuntime [](#)
+cpuRtRuntime [?int](#?int)
 
-cpuShares [](#)
+cpuShares [?int](#?int)
 
-cpus [](#)
+cpus [?float](#?float)
 
-cpuSetCpus [](#)
+cpuSetCpus [?string](#?string)
 
-cpuSetMems [](#)
+cpuSetMems [?string](#?string)
 
-detach [](#)
+detach [?bool](#?bool)
 
-detachKeys [](#)
+detachKeys [?string](#?string)
 
-device [](#)
+device [?[]string](#?[]string)
 
-deviceReadBps [](#)
+deviceReadBps [?[]string](#?[]string)
 
-deviceReadIops [](#)
+deviceReadIops [?[]string](#?[]string)
 
-deviceWriteBps [](#)
+deviceWriteBps [?[]string](#?[]string)
 
-deviceWriteIops [](#)
+deviceWriteIops [?[]string](#?[]string)
 
-dns [](#)
+dns [?[]string](#?[]string)
 
-dnsOpt [](#)
+dnsOpt [?[]string](#?[]string)
 
-dnsSearch [](#)
+dnsSearch [?[]string](#?[]string)
 
-dnsServers [](#)
+dnsServers [?[]string](#?[]string)
 
-entrypoint [](#)
+entrypoint [?string](#?string)
 
-env [](#)
+env [?[]string](#?[]string)
 
-envFile [](#)
+envFile [?[]string](#?[]string)
 
-expose [](#)
+expose [?[]string](#?[]string)
 
-gidmap [](#)
+gidmap [?[]string](#?[]string)
 
-groupadd [](#)
+groupadd [?[]string](#?[]string)
 
-healthcheckCommand [](#)
+healthcheckCommand [?string](#?string)
 
-healthcheckInterval [](#)
+healthcheckInterval [?string](#?string)
 
-healthcheckRetries [](#)
+healthcheckRetries [?int](#?int)
 
-healthcheckStartPeriod [](#)
+healthcheckStartPeriod [?string](#?string)
 
-healthcheckTimeout [](#)
+healthcheckTimeout [?string](#?string)
 
-hostname [](#)
+hostname [?string](#?string)
 
-imageVolume [](#)
+imageVolume [?string](#?string)
 
-init [](#)
+init [?bool](#?bool)
 
-initPath [](#)
+initPath [?string](#?string)
 
-interactive [](#)
+interactive [?bool](#?bool)
 
-ip [](#)
+ip [?string](#?string)
 
-ipc [](#)
+ipc [?string](#?string)
 
-kernelMemory [](#)
+kernelMemory [?string](#?string)
 
-label [](#)
+label [?[]string](#?[]string)
 
-labelFile [](#)
+labelFile [?[]string](#?[]string)
 
-logDriver [](#)
+logDriver [?string](#?string)
 
-logOpt [](#)
+logOpt [?[]string](#?[]string)
 
-macAddress [](#)
+macAddress [?string](#?string)
 
-memory [](#)
+memory [?string](#?string)
 
-memoryReservation [](#)
+memoryReservation [?string](#?string)
 
-memorySwap [](#)
+memorySwap [?string](#?string)
 
-memorySwappiness [](#)
+memorySwappiness [?int](#?int)
 
-name [](#)
+name [?string](#?string)
 
-net [](#)
+net [?string](#?string)
 
-network [](#)
+network [?string](#?string)
 
-noHosts [](#)
+noHosts [?bool](#?bool)
 
-oomKillDisable [](#)
+oomKillDisable [?bool](#?bool)
 
-oomScoreAdj [](#)
+oomScoreAdj [?int](#?int)
 
-pid [](#)
+pid [?string](#?string)
 
-pidsLimit [](#)
+pidsLimit [?int](#?int)
 
-pod [](#)
+pod [?string](#?string)
 
-privileged [](#)
+privileged [?bool](#?bool)
 
-publish [](#)
+publish [?[]string](#?[]string)
 
-publishAll [](#)
+publishAll [?bool](#?bool)
 
-quiet [](#)
+quiet [?bool](#?bool)
 
-readonly [](#)
+readonly [?bool](#?bool)
 
-readonlytmpfs [](#)
+readonlytmpfs [?bool](#?bool)
 
-restart [](#)
+restart [?string](#?string)
 
-rm [](#)
+rm [?bool](#?bool)
 
-rootfs [](#)
+rootfs [?bool](#?bool)
 
-securityOpt [](#)
+securityOpt [?[]string](#?[]string)
 
-shmSize [](#)
+shmSize [?string](#?string)
 
-stopSignal [](#)
+stopSignal [?string](#?string)
 
-stopTimeout [](#)
+stopTimeout [?int](#?int)
 
-storageOpt [](#)
+storageOpt [?[]string](#?[]string)
 
-subuidname [](#)
+subuidname [?string](#?string)
 
-subgidname [](#)
+subgidname [?string](#?string)
 
-sysctl [](#)
+sysctl [?[]string](#?[]string)
 
-systemd [](#)
+systemd [?bool](#?bool)
 
-tmpfs [](#)
+tmpfs [?[]string](#?[]string)
 
-tty [](#)
+tty [?bool](#?bool)
 
-uidmap [](#)
+uidmap [?[]string](#?[]string)
 
-ulimit [](#)
+ulimit [?[]string](#?[]string)
 
-user [](#)
+user [?string](#?string)
 
-userns [](#)
+userns [?string](#?string)
 
-uts [](#)
+uts [?string](#?string)
 
-mount [](#)
+mount [?[]string](#?[]string)
 
-volume [](#)
+volume [?[]string](#?[]string)
 
-volumesFrom [](#)
+volumesFrom [?[]string](#?[]string)
 
-workDir [](#)
+workDir [?string](#?string)
 ### <a name="DiffInfo"></a>type DiffInfo
 
 
@@ -1628,9 +1628,9 @@ compress [bool](https://godoc.org/builtin#bool)
 
 
 
-is_official [](#)
+is_official [?bool](#?bool)
 
-is_automated [](#)
+is_automated [?bool](#?bool)
 
 star_count [int](https://godoc.org/builtin#int)
 ### <a name="ImageSearchResult"></a>type ImageSearchResult
@@ -1882,21 +1882,21 @@ mounts [string](https://godoc.org/builtin#string)
 
 all [bool](https://godoc.org/builtin#bool)
 
-filters [](#)
+filters [?[]string](#?[]string)
 
-last [](#)
+last [?int](#?int)
 
-latest [](#)
+latest [?bool](#?bool)
 
-noTrunc [](#)
+noTrunc [?bool](#?bool)
 
-pod [](#)
+pod [?bool](#?bool)
 
-quiet [](#)
+quiet [?bool](#?bool)
 
-sort [](#)
+sort [?string](#?string)
 
-sync [](#)
+sync [?bool](#?bool)
 ### <a name="Runlabel"></a>type Runlabel
 
 Runlabel describes the required input for container runlabel
