@@ -45,7 +45,7 @@ type Process struct {
 	Hgroup string
 }
 
-// LookupGID returns the textual group ID, if it can be optained, or the
+// LookupGID returns the textual group ID, if it can be obtained, or the
 // decimal representation otherwise.
 func LookupGID(gid string) (string, error) {
 	gidNum, err := strconv.Atoi(gid)
@@ -59,7 +59,7 @@ func LookupGID(gid string) (string, error) {
 	return g.Name, nil
 }
 
-// LookupUID return the textual user ID, if it can be optained, or the decimal
+// LookupUID return the textual user ID, if it can be obtained, or the decimal
 // representation otherwise.
 func LookupUID(uid string) (string, error) {
 	uidNum, err := strconv.Atoi(uid)
