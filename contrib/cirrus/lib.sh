@@ -114,6 +114,30 @@ req_env_var() {
     done
 }
 
+item_test() {
+    ITEM="$1"
+    shift
+    TEST_ARGS="$@"
+    req_env_var ITEM TEST_ARGS
+
+    if ERR=$(test "$@" 2>&1)
+    then
+        echo "ok $ITEM"
+        return 0
+    else
+        RET=$?
+        echo -n "not ok $ITEM: $TEST_ARGS"
+        if [[ -z "$ERR" ]]
+        then
+            echo ""
+        else  # test command itself failed
+            echo -n ":"  # space follows :'s in $ERR
+            echo "$ERR" | cut -d : -f 4-  # omit filename, line number, and command
+        fi
+        return $RET
+    fi
+}
+
 show_env_vars() {
     echo "Showing selection of environment variable definitions:"
     _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
