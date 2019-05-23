@@ -410,7 +410,7 @@ verify_test_built_images_task:
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-
+    check_image_script: '$SCRIPT_BASE/check_image.sh'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
 
     always:

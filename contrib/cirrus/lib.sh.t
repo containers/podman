@@ -12,7 +12,7 @@ function check_result {
     testnum=$(expr $testnum + 1)
     MSG=$(echo "$1" | tr -d '*>\012'|sed -e 's/^ \+//')
     if [ "$MSG" = "$2" ]; then
-        echo "ok $testnum $3 = $MSG"
+        echo "ok $testnum $(echo $3) = $(echo $MSG)"
     else
         echo "not ok $testnum $3"
         echo "#  expected: $2"
@@ -82,6 +82,41 @@ test_rev "FOO BAR" 9 'FATAL: test_rev() requires $BAR to be non-empty'
 # ...and OK if all args are set
 BAR=1
 test_rev "FOO BAR" 0 ''
+
+###############################################################################
+# tests for test_okay()
+
+function test_item_test {
+    local exp_msg=$1
+    local exp_ret=$2
+    local item=$3
+    shift 3
+    local test_args="$@"
+    local msg
+    msg=$(item_test "$item" "$@")
+    local status=$?
+
+    check_result "$msg"    "$exp_msg" "test_item $item $test_args"
+    check_result "$status" "$exp_ret" "test_item $item $test_args (actual rc $status)"
+}
+
+# negative tests
+test_item_test "FATAL: item_test() requires \$ITEM to be non-empty" 9 "" ""
+test_item_test "FATAL: item_test() requires \$TEST_ARGS to be non-empty" 9 "foo" ""
+test_item_test "not ok foo: -gt 5 ~= bar: too many arguments" 2 "foo" "-gt" "5" "~=" "bar"
+test_item_test "not ok bar: a -ge 10: a: integer expression expected" 2 "bar" "a" "-ge" "10"
+test_item_test "not ok basic logic: 0 -ne 0" 1 "basic logic" "0" "-ne" "0"
+
+# positive tests
+test_item_test "ok snafu" 0 "snafu" "foo" "!=" "bar"
+test_item_test "ok foobar" 0 "foobar" "one two three" "=" "one two three"
+test_item_test "ok oh boy" 0 "oh boy" "line 1
+line2" "!=" "line 1
+
+line2"
+test_item_test "ok okay enough" 0 "okay enough" "line 1
+line2" "=" "line 1
+line2"
 
 ###############################################################################
 
