@@ -25,6 +25,7 @@ import (
 #cgo remoteclient CFLAGS: -DDISABLE_JOIN_SHORTCUT
 #include <stdlib.h>
 extern uid_t rootless_uid();
+extern uid_t rootless_gid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path);
 extern int reexec_in_user_namespace_wait(int pid);
 extern int reexec_userns_join(int userns, int mountns, char *pause_pid_file_path);
@@ -49,10 +50,12 @@ var (
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
 		rootlessUIDInit := int(C.rootless_uid())
+		rootlessGIDInit := int(C.rootless_gid())
 		if rootlessUIDInit != 0 {
 			// This happens if we joined the user+mount namespace as part of
 			os.Setenv("_CONTAINERS_USERNS_CONFIGURED", "done")
 			os.Setenv("_CONTAINERS_ROOTLESS_UID", fmt.Sprintf("%d", rootlessUIDInit))
+			os.Setenv("_CONTAINERS_ROOTLESS_GID", fmt.Sprintf("%d", rootlessGIDInit))
 		}
 		isRootless = os.Geteuid() != 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != ""
 	})
@@ -67,6 +70,23 @@ func GetRootlessUID() int {
 		return u
 	}
 	return os.Geteuid()
+}
+
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	gidEnv := os.Getenv("_CONTAINERS_ROOTLESS_GID")
+	if gidEnv != "" {
+		u, _ := strconv.Atoi(gidEnv)
+		return u
+	}
+
+	/* If the _CONTAINERS_ROOTLESS_UID is set, assume the gid==uid.  */
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Getegid()
 }
 
 func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) error {
