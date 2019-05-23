@@ -31,9 +31,9 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5170730531028992"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5170730531028992"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5170730531028992"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5171433328607232"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5171433328607232"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5171433328607232"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
