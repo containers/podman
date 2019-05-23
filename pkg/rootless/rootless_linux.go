@@ -194,10 +194,24 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	}
 }
 
+func enableLinger(pausePid string) {
+	if pausePid == "" {
+		return
+	}
+	// If we are trying to write a pause pid file, make sure we can leave processes
+	// running longer than the user session.
+	err := exec.Command("loginctl", "enable-linger", fmt.Sprintf("%d", GetRootlessUID())).Run()
+	if err != nil {
+		logrus.Warnf("cannot run `loginctl enable-linger` for the current user: %v", err)
+	}
+}
+
 // JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
 func JoinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
+	enableLinger(pausePid)
+
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
@@ -388,6 +402,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNS(pausePid string) (bool, int, error) {
+	enableLinger(pausePid)
 	return becomeRootInUserNS(pausePid, "", nil)
 }
 
