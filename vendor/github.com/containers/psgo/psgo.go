@@ -28,6 +28,7 @@ package psgo
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"sort"
@@ -43,6 +44,31 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// IDMap specifies a mapping range from the host to the container IDs.
+type IDMap struct {
+	// ContainerID is the first ID in the container.
+	ContainerID int
+	// HostID is the first ID in the host.
+	HostID int
+	// Size specifies how long is the range.  e.g. 1 means a single user
+	// is mapped.
+	Size int
+}
+
+// JoinNamespaceOpts specifies different options for joining the specified namespaces.
+type JoinNamespaceOpts struct {
+	// UIDMap specifies a mapping for UIDs in the container.  If specified
+	// huser will perform the reverse mapping.
+	UIDMap []IDMap
+	// GIDMap specifies a mapping for GIDs in the container.  If specified
+	// hgroup will perform the reverse mapping.
+	GIDMap []IDMap
+
+	// FillMappings specified whether UIDMap and GIDMap must be initialized
+	// with the current user namespace.
+	FillMappings bool
+}
+
 type psContext struct {
 	// Processes in the container.
 	containersProcesses []*process.Process
@@ -50,6 +76,8 @@ type psContext struct {
 	hostProcesses []*process.Process
 	// tty and pty devices.
 	ttys *[]dev.TTY
+	// Various options
+	opts *JoinNamespaceOpts
 }
 
 // processFunc is used to map a given aixFormatDescriptor to a corresponding
@@ -69,8 +97,34 @@ type aixFormatDescriptor struct {
 	// onHost controls if data of the corresponding host processes will be
 	// extracted as well.
 	onHost bool
-	// procFN points to the corresponding method to etract the desired data.
+	// procFN points to the corresponding method to extract the desired data.
 	procFn processFunc
+}
+
+// findID converts the specified id to the host mapping
+func findID(idStr string, mapping []IDMap, lookupFunc func(uid string) (string, error), overflowFile string) (string, error) {
+	if len(mapping) == 0 {
+		return idStr, nil
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 0)
+	if err != nil {
+		return "", errors.Wrapf(err, "cannot parse %s", idStr)
+	}
+	for _, m := range mapping {
+		if int(id) >= m.ContainerID && int(id) < m.ContainerID+m.Size {
+			user := fmt.Sprintf("%d", m.HostID+(int(id)-m.ContainerID))
+
+			return lookupFunc(user)
+		}
+	}
+
+	// User not found, read the overflow
+	overflow, err := ioutil.ReadFile(overflowFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "cannot read %s", overflowFile)
+	}
+	return string(overflow), nil
 }
 
 // translateDescriptors parses the descriptors and returns a correspodning slice of
@@ -272,6 +326,46 @@ func ListDescriptors() (list []string) {
 // JoinNamespaceAndProcessInfo has the same semantics as ProcessInfo but joins
 // the mount namespace of the specified pid before extracting data from `/proc`.
 func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, error) {
+	return JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, &JoinNamespaceOpts{})
+}
+
+func readMappings(path string) ([]IDMap, error) {
+	mappings, err := proc.ReadMappings(path)
+	if err != nil {
+		return nil, err
+	}
+	var res []IDMap
+	for _, i := range mappings {
+		m := IDMap{ContainerID: i.ContainerID, HostID: i.HostID, Size: i.Size}
+		res = append(res, m)
+	}
+	return res, nil
+}
+
+func contextFromOptions(options *JoinNamespaceOpts) (*psContext, error) {
+	ctx := new(psContext)
+	ctx.opts = options
+	if ctx.opts != nil && ctx.opts.FillMappings {
+		uidMappings, err := readMappings("/proc/self/uid_map")
+		if err != nil {
+			return nil, err
+		}
+
+		gidMappings, err := readMappings("/proc/self/gid_map")
+		if err != nil {
+			return nil, err
+		}
+		ctx.opts.UIDMap = uidMappings
+		ctx.opts.GIDMap = gidMappings
+
+		ctx.opts.FillMappings = false
+	}
+	return ctx, nil
+}
+
+// JoinNamespaceAndProcessInfoWithOptions has the same semantics as ProcessInfo but joins
+// the mount namespace of the specified pid before extracting data from `/proc`.
+func JoinNamespaceAndProcessInfoWithOptions(pid string, descriptors []string, options *JoinNamespaceOpts) ([][]string, error) {
 	var (
 		data    [][]string
 		dataErr error
@@ -283,7 +377,10 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 		return nil, err
 	}
 
-	ctx := new(psContext)
+	ctx, err := contextFromOptions(options)
+	if err != nil {
+		return nil, err
+	}
 
 	// extract data from host processes only on-demand / when at least one
 	// of the specified descriptors requires host data
@@ -356,10 +453,10 @@ func JoinNamespaceAndProcessInfo(pid string, descriptors []string) ([][]string, 
 	return data, dataErr
 }
 
-// JoinNamespaceAndProcessInfoByPids has similar semantics to
+// JoinNamespaceAndProcessInfoByPidsWithOptions has similar semantics to
 // JoinNamespaceAndProcessInfo and avoids duplicate entries by joining a giving
-// PID namepsace only once.
-func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) {
+// PID namespace only once.
+func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []string, options *JoinNamespaceOpts) ([][]string, error) {
 	// Extracting data from processes that share the same PID namespace
 	// would yield duplicate results.  Avoid that by extracting data only
 	// from the first process in `pids` from a given PID namespace.
@@ -385,7 +482,7 @@ func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][
 
 	data := [][]string{}
 	for i, pid := range pidList {
-		pidData, err := JoinNamespaceAndProcessInfo(pid, descriptors)
+		pidData, err := JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, options)
 		if os.IsNotExist(errors.Cause(err)) {
 			// catch race conditions
 			continue
@@ -400,6 +497,13 @@ func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][
 	}
 
 	return data, nil
+}
+
+// JoinNamespaceAndProcessInfoByPids has similar semantics to
+// JoinNamespaceAndProcessInfo and avoids duplicate entries by joining a giving
+// PID namespace only once.
+func JoinNamespaceAndProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) {
+	return JoinNamespaceAndProcessInfoByPidsWithOptions(pids, descriptors, &JoinNamespaceOpts{})
 }
 
 // ProcessInfo returns the process information of all processes in the current
@@ -425,7 +529,10 @@ func ProcessInfoByPids(pids []string, descriptors []string) ([][]string, error) 
 		return nil, err
 	}
 
-	ctx := new(psContext)
+	ctx, err := contextFromOptions(nil)
+	if err != nil {
+		return nil, err
+	}
 	ctx.containersProcesses, err = process.FromPIDs(pids, false)
 	if err != nil {
 		return nil, err
@@ -725,6 +832,9 @@ func processHPID(p *process.Process, ctx *psContext) (string, error) {
 // of the (container) or "?" if no corresponding process could be found.
 func processHUSER(p *process.Process, ctx *psContext) (string, error) {
 	if hp := findHostProcess(p, ctx); hp != nil {
+		if ctx.opts != nil && len(ctx.opts.UIDMap) > 0 {
+			return findID(p.Status.Uids[1], ctx.opts.UIDMap, process.LookupUID, "/proc/sys/fs/overflowuid")
+		}
 		return hp.Huser, nil
 	}
 	return "?", nil
@@ -735,6 +845,9 @@ func processHUSER(p *process.Process, ctx *psContext) (string, error) {
 // found.
 func processHGROUP(p *process.Process, ctx *psContext) (string, error) {
 	if hp := findHostProcess(p, ctx); hp != nil {
+		if ctx.opts != nil && len(ctx.opts.GIDMap) > 0 {
+			return findID(p.Status.Gids[1], ctx.opts.GIDMap, process.LookupGID, "/proc/sys/fs/overflowgid")
+		}
 		return hp.Hgroup, nil
 	}
 	return "?", nil

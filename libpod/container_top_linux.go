@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
 )
@@ -47,7 +48,9 @@ func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, 
 	//       filters on the data.  We need to change the API here and the
 	//       varlink API to return a [][]string if we want to make use of
 	//       filtering.
-	psgoOutput, err := psgo.JoinNamespaceAndProcessInfo(pid, descriptors)
+	opts := psgo.JoinNamespaceOpts{FillMappings: rootless.IsRootless()}
+
+	psgoOutput, err := psgo.JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, &opts)
 	if err != nil {
 		return nil, err
 	}
