@@ -206,10 +206,10 @@ func enableLinger(pausePid string) {
 	}
 }
 
-// JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
+// joinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
-func JoinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
+func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	enableLinger(pausePid)
 
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
@@ -357,7 +357,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		if err == nil {
 			pid, err := strconv.ParseUint(string(data), 10, 0)
 			if err == nil {
-				return JoinUserAndMountNS(uint(pid), "")
+				return joinUserAndMountNS(uint(pid), "")
 			}
 		}
 		return false, -1, errors.Wrapf(err, "error setting up the process")
@@ -480,5 +480,5 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 		return false, 0, lastErr
 	}
 
-	return JoinUserAndMountNS(uint(pausePid), pausePidPath)
+	return joinUserAndMountNS(uint(pausePid), pausePidPath)
 }
