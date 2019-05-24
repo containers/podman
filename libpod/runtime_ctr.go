@@ -167,7 +167,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	}()
 
 	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
-		ctr.config.ConmonPidFile = filepath.Join(ctr.config.StaticDir, "conmon.pid")
+		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
 	}
 
 	// Go through named volumes and add them.
