@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -70,6 +71,10 @@ func createInit(c *cliconfig.PodmanCommand) error {
 	if !remote && c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "createInit")
 		defer span.Finish()
+	}
+
+	if c.IsSet("privileged") && c.IsSet("security-opt") {
+		logrus.Warn("setting security options with --privileged has no effect")
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for
