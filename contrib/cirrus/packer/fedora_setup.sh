@@ -66,7 +66,8 @@ ooe.sh sudo dnf install -y \
     unzip \
     vim \
     which \
-    xz
+    xz \
+    zip
 
 install_varlink
 

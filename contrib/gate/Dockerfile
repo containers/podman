@@ -31,11 +31,12 @@ RUN dnf -y install \
       python3-pytoml \
       python3-pyyaml \
       python3-varlink \
-      containers-common \
-      slirp4netns \
       rsync \
+      slirp4netns \
+      unzip \
       which \
       xz \
+      zip \
       && dnf clean all
 
 ENV GOPATH="/go" \
