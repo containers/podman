@@ -40,6 +40,7 @@ static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivilege
 static int open_files_max_fd;
 fd_set open_files_set;
 static uid_t rootless_uid_init;
+static gid_t rootless_gid_init;
 
 static int
 syscall_setresuid (uid_t ruid, uid_t euid, uid_t suid)
@@ -57,6 +58,12 @@ uid_t
 rootless_uid ()
 {
   return rootless_uid_init;
+}
+
+uid_t
+rootless_gid ()
+{
+  return rootless_gid_init;
 }
 
 static void
@@ -224,6 +231,7 @@ static void __attribute__((constructor)) init()
       long pid;
       char buf[12];
       uid_t uid;
+      gid_t gid;
       char path[PATH_MAX];
       const char *const suffix = "/libpod/pause.pid";
       char *cwd = getcwd (NULL, 0);
@@ -263,6 +271,7 @@ static void __attribute__((constructor)) init()
         }
 
       uid = geteuid ();
+      gid = getegid ();
 
       sprintf (path, "/proc/%d/ns/user", pid);
       fd = open (path, O_RDONLY);
@@ -310,6 +319,7 @@ static void __attribute__((constructor)) init()
 
       free (cwd);
       rootless_uid_init = uid;
+      rootless_gid_init = gid;
     }
 }
 
@@ -440,6 +450,7 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
 {
   pid_t ppid = getpid ();
   char uid[16];
+  char gid[16];
   char **argv;
   int pid;
   char *cwd = getcwd (NULL, 0);
@@ -451,6 +462,7 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
     }
 
   sprintf (uid, "%d", geteuid ());
+  sprintf (gid, "%d", getegid ());
 
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
@@ -477,6 +489,7 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_ROOTLESS_GID", gid, 1);
 
   if (prctl (PR_SET_PDEATHSIG, SIGTERM, 0, 0, 0) < 0)
     {
@@ -556,6 +569,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   pid_t ppid = getpid ();
   char **argv;
   char uid[16];
+  char gid[16];
   char *listen_fds = NULL;
   char *listen_pid = NULL;
   bool do_socket_activation = false;
@@ -577,6 +591,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   }
 
   sprintf (uid, "%d", geteuid ());
+  sprintf (gid, "%d", getegid ());
 
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid < 0)
@@ -621,6 +636,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
+  setenv ("_CONTAINERS_ROOTLESS_GID", gid, 1);
 
   do
     ret = read (ready, &b, 1) < 0;

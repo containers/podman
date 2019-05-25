@@ -19,6 +19,7 @@ import (
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/pkg/signal"
@@ -283,7 +284,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		namespaces                                               map[string]string
 	)
 
-	idmappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
+	idmappings, err := util.ParseIDMapping(ns.UsernsMode(c.String("userns")), c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidname"), c.String("subgidname"))
 	if err != nil {
 		return nil, err
 	}
@@ -451,7 +452,9 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// USER
 	user := c.String("user")
 	if user == "" {
-		if data == nil {
+		if usernsMode.IsKeepID() {
+			user = fmt.Sprintf("%d:%d", rootless.GetRootlessUID(), rootless.GetRootlessGID())
+		} else if data == nil {
 			user = "0"
 		} else {
 			user = data.Config.User

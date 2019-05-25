@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	ouser "os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -11,6 +12,8 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
@@ -131,11 +134,59 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
+func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
 	options := storage.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
+
+	if mode.IsKeepID() {
+		if len(UIDMapSlice) > 0 || len(GIDMapSlice) > 0 {
+			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")
+		}
+		if len(subUIDMap) > 0 || len(subGIDMap) > 0 {
+			return nil, errors.New("cannot specify subuidmap or subgidmap with --userns=keep-id")
+		}
+		if rootless.IsRootless() {
+			uid := rootless.GetRootlessUID()
+			gid := rootless.GetRootlessGID()
+
+			username := os.Getenv("USER")
+			if username == "" {
+				user, err := ouser.LookupId(fmt.Sprintf("%d", uid))
+				if err == nil {
+					username = user.Username
+				}
+			}
+			mappings, err := idtools.NewIDMappings(username, username)
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot find mappings for user %s", username)
+			}
+			maxUID, maxGID := 0, 0
+			for _, u := range mappings.UIDs() {
+				maxUID += u.Size
+			}
+			for _, g := range mappings.GIDs() {
+				maxGID += g.Size
+			}
+
+			options.UIDMap, options.GIDMap = nil, nil
+
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: uid})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: gid})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+
+			options.HostUIDMapping = false
+			options.HostGIDMapping = false
+		}
+		// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
+		return &options, nil
+	}
+
 	if subGIDMap == "" && subUIDMap != "" {
 		subGIDMap = subUIDMap
 	}

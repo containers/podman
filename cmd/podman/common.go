@@ -517,7 +517,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", "",
+		"userns", os.Getenv("PODMAN_USERNS"),
 		"User namespace to use",
 	)
 	createFlags.String(

@@ -24,6 +24,11 @@ func GetRootlessUID() int {
 	return -1
 }
 
+// GetRootlessGID returns the GID of the user in the parent userNS
+func GetRootlessGID() int {
+	return -1
+}
+
 // JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.  It is a convenience function for JoinUserAndMountNSWithOpts

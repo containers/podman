@@ -12,6 +12,11 @@ func (n UsernsMode) IsHost() bool {
 	return n == "host"
 }
 
+// IsKeepID indicates whether container uses a mapping where the (uid, gid) on the host is lept inside of the namespace.
+func (n UsernsMode) IsKeepID() bool {
+	return n == "keep-id"
+}
+
 // IsPrivate indicates whether the container uses the a private userns.
 func (n UsernsMode) IsPrivate() bool {
 	return !(n.IsHost())
@@ -21,7 +26,7 @@ func (n UsernsMode) IsPrivate() bool {
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", "host":
+	case "", "host", "keep-id":
 	default:
 		return false
 	}
