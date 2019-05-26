@@ -159,7 +159,7 @@ git submodule update --init
 # for Fedora, CentOS, RHEL
 sudo yum install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel
 # for Debian, Ubuntu etc.
-sudo apt-get install -y automake bison e2fsprogs fuse liblzma-dev libtool zlib1g
+sudo apt-get install -y automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libtool zlib1g
 
 ./autogen.sh --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc
 # remove --nonet option due to https:/github.com/ostreedev/ostree/issues/1374
