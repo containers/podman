@@ -272,6 +272,10 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		}
 		return nil
 	}
+
+	if destDirIsExist || strings.HasSuffix(dest, string(os.PathSeparator)) {
+		destPath = filepath.Join(destPath, filepath.Base(srcPath))
+	}
 	// Copy the file, preserving attributes.
 	logrus.Debugf("copying %q to %q", srcPath, destPath)
 	if err = copyFileWithTar(srcPath, destPath); err != nil {
