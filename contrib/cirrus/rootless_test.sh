@@ -18,6 +18,12 @@ then
     exit 1
 fi
 
+# Which set of tests to run; possible alternative is "system"
+TESTSUITE=integration
+if [[ -n "$*" ]]; then
+    TESTSUITE="$1"
+fi
+
 # Ensure environment setup correctly
 req_env_var GOSRC ROOTLESS_USER
 
@@ -34,7 +40,7 @@ make
 make varlink_generate
 make test-binaries
 if [ $remote -eq 0 ]; then
-    make ginkgo
+    make local${TESTSUITE}
 else
-    make ginkgo-remote
+    make remote${TESTSUITE}
 fi

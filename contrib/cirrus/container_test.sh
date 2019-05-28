@@ -133,8 +133,8 @@ fi
 if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
     make varlink_generate
-    make ginkgo $INTEGRATION_TEST_ENVS
+    make localintegration $INTEGRATION_TEST_ENVS
     if [ $remote -eq 1 ]; then
-        make ginkgo-remote $INTEGRATION_TEST_ENVS
+        make remoteintegration $INTEGRATION_TEST_ENVS
     fi
 fi
