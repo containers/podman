@@ -2388,6 +2388,7 @@ _podman_cp() {
 	  --help
 	  -h
 	  --extract
+	  --pause
      "
 	_complete_ "$boolean_options"
 }

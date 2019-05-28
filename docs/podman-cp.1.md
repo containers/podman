@@ -61,6 +61,10 @@ If you use a : in a local machine path, you must be explicit with a relative or 
 
 Extract the tar file into the destination directory. If the destination directory is not provided, extract the tar file into the root directory.
 
+**--pause**
+
+Pause the container while copying into it to avoid potential security issues around symlinks. Defaults to *true*.
+
 ## ALTERNATIVES
 
 Podman has much stronger capabilities than just `podman cp` to achieve copy files between host and container.
