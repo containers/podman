@@ -33,9 +33,11 @@ type MainFlags struct {
 	LogLevel   string
 	TmpDir     string
 
-	RemoteUserName string
-	RemoteHost     string
-	VarlinkAddress string
+	RemoteUserName       string
+	RemoteHost           string
+	VarlinkAddress       string
+	ConnectionName       string
+	RemoteConfigFilePath string
 }
 
 type AttachValues struct {
