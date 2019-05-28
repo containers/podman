@@ -17,6 +17,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -112,19 +113,38 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	var glob []string
 	if isFromHostToCtr {
 		if filepath.IsAbs(destPath) {
-			destPath = filepath.Join(mountPoint, destPath)
-
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
 		} else {
-			if err = idtools.MkdirAllAndChownNew(filepath.Join(mountPoint, ctr.WorkingDir()), 0755, hostOwner); err != nil {
+			ctrWorkDir, err := securejoin.SecureJoin(mountPoint, ctr.WorkingDir())
+			if err != nil {
+				return err
+			}
+			if err = idtools.MkdirAllAndChownNew(ctrWorkDir, 0755, hostOwner); err != nil {
 				return errors.Wrapf(err, "error creating directory %q", destPath)
 			}
-			destPath = filepath.Join(mountPoint, ctr.WorkingDir(), destPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), destPath))
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
 		}
 	} else {
 		if filepath.IsAbs(srcPath) {
-			srcPath = filepath.Join(mountPoint, srcPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, srcPath)
+			if err != nil {
+				return err
+			}
+			srcPath = cleanedPath
 		} else {
-			srcPath = filepath.Join(mountPoint, ctr.WorkingDir(), srcPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), srcPath))
+			if err != nil {
+				return err
+			}
+			srcPath = cleanedPath
 		}
 	}
 	glob, err = filepath.Glob(srcPath)
