@@ -25,7 +25,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -188,11 +188,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
-	updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
-	if err != nil {
-		return nil, err
+	if !c.config.Privileged {
+		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
+		if err != nil {
+			return nil, err
+		}
+		g.SetProcessApparmorProfile(updatedProfile)
 	}
-	g.SetProcessApparmorProfile(updatedProfile)
 
 	if err := c.makeBindMounts(); err != nil {
 		return nil, err
