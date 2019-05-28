@@ -56,7 +56,7 @@ RUN set -x \
 	&& rm -rf "$GOPATH"
 
 # Install conmon
-ENV CONMON_COMMIT f02c053eb37010fc76d1e2966de7f2cb9f969ef2
+ENV CONMON_COMMIT 59952292a3b07ac125575024ae21956efe0ecdfb
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
