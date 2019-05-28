@@ -50,6 +50,7 @@ func init() {
 	cpCommand.Command = _cpCommand
 	flags := cpCommand.Flags()
 	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
+	flags.BoolVar(&cpCommand.Pause, "pause", true, "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
 	rootCmd.AddCommand(cpCommand.Command)
@@ -67,11 +68,10 @@ func cpCmd(c *cliconfig.CpValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	extract := c.Flag("extract").Changed
-	return copyBetweenHostAndContainer(runtime, args[0], args[1], extract)
+	return copyBetweenHostAndContainer(runtime, args[0], args[1], c.Extract, c.Pause)
 }
 
-func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool) error {
+func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool, pause bool) error {
 
 	srcCtr, srcPath := parsePath(runtime, src)
 	destCtr, destPath := parsePath(runtime, dest)
@@ -94,6 +94,18 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		return err
 	}
 	defer ctr.Unmount(false)
+
+	if pause {
+		if err := ctr.Pause(); err != nil {
+			return err
+		}
+		defer func() {
+			if err := ctr.Unpause(); err != nil {
+				logrus.Errorf("Error unpausing container after copying: %v", err)
+			}
+		}()
+	}
+
 	user, err := getUser(mountPoint, ctr.User())
 	if err != nil {
 		return err
