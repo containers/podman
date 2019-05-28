@@ -19,6 +19,11 @@ manually clearing storage and other data related to images and containers.
 It is also useful if you want to use the `podman mount` command.  If an unprivileged users wants to mount and work with a container, then they need to execute
 podman unshare.  Executing `podman mount` fails for unprivileged users unless the user is running inside a `podman unshare` session.
 
+The unshare session defines two environment variables:
+
+**CONTAINERS_GRAPHROOT** the path to the persistent containers data.
+**CONTAINERS_RUNROOT** the path to the volatile containers data.
+
 ## EXAMPLE
 
 ```
