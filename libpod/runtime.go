@@ -877,10 +877,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// TODO: we can't close the FD in this lock, so we should keep it around
 	// and use it to lock important operations
 	aliveLock.Lock()
-	locked := true
 	doRefresh := false
 	defer func() {
-		if locked {
+		if aliveLock.Locked() {
 			aliveLock.Unlock()
 		}
 	}()
@@ -891,7 +890,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		// no containers running.  Create immediately a namespace, as
 		// we will need to access the storage.
 		if os.Geteuid() != 0 {
-			aliveLock.Unlock()
+			aliveLock.Unlock() // Unlock to avoid deadlock as BecomeRootInUserNS will reexec.
 			pausePid, err := util.GetRootlessPauseProcessPidPath()
 			if err != nil {
 				return errors.Wrapf(err, "could not get pause process pid file path")
