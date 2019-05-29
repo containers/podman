@@ -97,13 +97,22 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	if pause {
 		if err := ctr.Pause(); err != nil {
-			return err
-		}
-		defer func() {
-			if err := ctr.Unpause(); err != nil {
-				logrus.Errorf("Error unpausing container after copying: %v", err)
+			// An invalid state error is fine.
+			// The container isn't running or is already paused.
+			// TODO: We can potentially start the container while
+			// the copy is running, which still allows a race where
+			// malicious code could mess with the symlink.
+			if errors.Cause(err) != libpod.ErrCtrStateInvalid {
+				return err
 			}
-		}()
+		} else if err == nil {
+			// Only add the defer if we actually paused
+			defer func() {
+				if err := ctr.Unpause(); err != nil {
+					logrus.Errorf("Error unpausing container after copying: %v", err)
+				}
+			}()
+		}
 	}
 
 	user, err := getUser(mountPoint, ctr.User())
