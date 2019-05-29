@@ -11,7 +11,7 @@ ${YEL}WARNING: This will not work without local sudo access to run podman,${NOR}
          ${YEL}possession of the proper ssh private key is required.${NOR}
 "
 # TODO: Many/most of these values should come from .cirrus.yml
-ZONE="us-central1-a"
+ZONE="${ZONE:-us-central1-a}"
 CPUS="2"
 MEMORY="4Gb"
 DISK="200"
@@ -238,10 +238,14 @@ showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed --exclud
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
-echo -e "\n${YEL}Trying to creating a VM named $VMNAME\n${RED}(might take a minute/two.  Errors ignored).${NOR}"
+echo -e "\n${YEL}Trying to creating a VM named $VMNAME${NOR}\n${YEL}in GCE region/zone $ZONE${NOR}"
+echo -e "For faster access, export ZONE='something-closer-<any letter>'"
+echo 'List of regions and zones: https://cloud.google.com/compute/docs/regions-zones/'
+echo -e "${RED}(might take a minute/two.  Errors ignored).${NOR}"
 showrun $CREATE_CMD || true # allow re-running commands below when "delete: N"
 
 # Any subsequent failure should prompt for VM deletion
+trap - INT
 trap delvm EXIT
 
 echo -e "\n${YEL}Waiting up to 30s for ssh port to open${NOR}"
