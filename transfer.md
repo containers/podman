@@ -91,10 +91,11 @@ Those Docker commands currently do not have equivalents in `podman`:
 
 | Missing command | Description|
 | :--- | :--- |
+| `docker container update`  | podman does not support altering running containers. We recommend recreating containers with the correct arguments.|
+| `docker container rename`   | podman does not support `container rename` - or the `rename` shorthand. We recommend using `podman rm` and  `podman create` to create a container with a specific name.|
 | `docker network`  ||
 | `docker node`     ||
 | `docker plugin`   | podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
-| `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||

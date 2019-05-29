@@ -54,6 +54,7 @@ var (
 		_checkpointCommand,
 		_containerExistsCommand,
 		_contInspectSubCommand,
+		_cpCommand,
 		_diffCommand,
 		_exportCommand,
 		_createCommand,
