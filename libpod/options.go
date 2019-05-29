@@ -979,6 +979,27 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 	}
 }
 
+// WithLogDriver sets the log driver for the container
+func WithLogDriver(driver string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return ErrCtrFinalized
+		}
+		switch driver {
+		case "":
+			return errors.Wrapf(ErrInvalidArg, "log driver must be set")
+		case JournaldLogging, KubernetesLogging, JSONLogging:
+			break
+		default:
+			return errors.Wrapf(ErrInvalidArg, "invalid log driver")
+		}
+
+		ctr.config.LogDriver = driver
+
+		return nil
+	}
+}
+
 // WithLogPath sets the path to the log file.
 func WithLogPath(path string) CtrCreateOption {
 	return func(ctr *Container) error {

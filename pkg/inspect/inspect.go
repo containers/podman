@@ -103,7 +103,7 @@ type CtrConfig struct {
 
 // LogConfig holds the log information for a container
 type LogConfig struct {
-	Type   string            `json:"Type"`   // TODO
+	Type   string            `json:"Type"`
 	Config map[string]string `json:"Config"` //idk type, TODO
 }
 

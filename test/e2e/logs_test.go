@@ -140,4 +140,82 @@ var _ = Describe("Podman logs", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(BeZero())
 	})
+
+	It("podman journald logs for container", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
+
+	It("podman journald logs tail two lines", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman journald logs tail 99 lines", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "99", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
+
+	It("podman journald logs tail 2 lines with timestamps", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman journald logs latest with since time", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
+
+	It("podman journald logs latest with since duration", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(3))
+	})
 })

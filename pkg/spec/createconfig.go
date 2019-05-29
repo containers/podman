@@ -319,6 +319,9 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
 	}
+
+	options = append(options, libpod.WithLogDriver(c.LogDriver))
+
 	if c.IPAddress != "" {
 		ip := net.ParseIP(c.IPAddress)
 		if ip == nil {

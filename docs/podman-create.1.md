@@ -380,7 +380,7 @@ Read in a line delimited file of labels
 
 Not implemented
 
-**--log-driver**="*json-file*"
+**--log-driver**="*k8s-file*"
 
 Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
 

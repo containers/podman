@@ -19,6 +19,13 @@ const (
 	// zeroes are not trimmed, taken from
 	// https://github.com/golang/go/issues/19635
 	logTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
+
+	// partialLogType signifies a log line that exceeded the buffer
+	// length and needed to spill into a new line
+	partialLogType = "P"
+
+	// fullLogType signifies a log line is full
+	fullLogType = "F"
 )
 
 // LogOptions is the options you can use for logs
@@ -53,6 +60,15 @@ func (r *Runtime) Log(containers []*Container, options *LogOptions, logChannel c
 
 // ReadLog reads a containers log based on the input options and returns loglines over a channel
 func (c *Container) ReadLog(options *LogOptions, logChannel chan *LogLine) error {
+	// TODO Skip sending logs until journald logs can be read
+	// TODO make this not a magic string
+	if c.LogDriver() == JournaldLogging {
+		return c.readFromJournal(options, logChannel)
+	}
+	return c.readFromLogFile(options, logChannel)
+}
+
+func (c *Container) readFromLogFile(options *LogOptions, logChannel chan *LogLine) error {
 	t, tailLog, err := getLogFile(c.LogPath(), options)
 	if err != nil {
 		// If the log file does not exist, this is not fatal.
@@ -191,7 +207,7 @@ func newLogLine(line string) (*LogLine, error) {
 	if len(splitLine) < 4 {
 		return nil, errors.Errorf("'%s' is not a valid container log line", line)
 	}
-	logTime, err := time.Parse(time.RFC3339Nano, splitLine[0])
+	logTime, err := time.Parse(logTimeFormat, splitLine[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to convert time %s from container log", splitLine[0])
 	}
@@ -206,7 +222,7 @@ func newLogLine(line string) (*LogLine, error) {
 
 // Partial returns a bool if the log line is a partial log type
 func (l *LogLine) Partial() bool {
-	if l.ParseLogType == "P" {
+	if l.ParseLogType == partialLogType {
 		return true
 	}
 	return false

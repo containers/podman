@@ -196,7 +196,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 		}
 	}
 
-	if ctr.config.LogPath == "" {
+	if ctr.config.LogPath == "" && ctr.config.LogDriver != JournaldLogging {
 		ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
 	}
 

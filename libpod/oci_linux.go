@@ -214,10 +214,10 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	}
 	args = append(args, "-c", ctr.ID())
 	args = append(args, "-u", ctr.ID())
+	args = append(args, "-n", ctr.Name())
 	args = append(args, "-r", r.path)
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
-	args = append(args, "-l", ctr.LogPath())
 	args = append(args, "--exit-dir", r.exitsDir)
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
@@ -237,6 +237,13 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	if r.logSizeMax >= 0 {
 		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
+
+	logDriver := KubernetesLogging
+	if ctr.LogDriver() != "" {
+		logDriver = ctr.LogDriver()
+	}
+	args = append(args, "-l", fmt.Sprintf("%s:%s", logDriver, ctr.LogPath()))
+
 	if r.noPivot {
 		args = append(args, "--no-pivot")
 	}

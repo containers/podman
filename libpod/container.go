@@ -51,6 +51,15 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 // manager in libpod
 const SystemdDefaultCgroupParent = "machine.slice"
 
+// JournaldLogging is the string conmon expects to specify journald logging
+const JournaldLogging = "journald"
+
+// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
+const KubernetesLogging = "k8s-file"
+
+// JSONLogging is the string conmon expects when specifying to use the json logging format
+const JSONLogging = "json-file"
+
 // DefaultWaitInterval is the default interval between container status checks
 // while waiting.
 const DefaultWaitInterval = 250 * time.Millisecond
@@ -368,6 +377,8 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogDriver driver for logs
+	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
 	// RestartPolicy indicates what action the container will take upon
@@ -773,6 +784,11 @@ func (c *Container) RestartPolicy() string {
 // using the "on-failure" restart policy
 func (c *Container) RestartRetries() uint {
 	return c.config.RestartRetries
+}
+
+// LogDriver returns the log driver for this container
+func (c *Container) LogDriver() string {
+	return c.config.LogDriver
 }
 
 // RuntimeName returns the name of the runtime
