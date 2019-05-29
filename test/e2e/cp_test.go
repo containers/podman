@@ -165,7 +165,7 @@ var _ = Describe("Podman cp", func() {
 		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
 		Expect(err).To(BeNil())
 
-		session := podmanTest.Podman([]string{"create", ALPINE, "cat", "foo"})
+		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
