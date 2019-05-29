@@ -29,10 +29,14 @@ func GetRootlessGID() int {
 	return -1
 }
 
-// JoinUserAndMountNS re-exec podman in a new userNS and join the user and mount
-// namespace of the specified PID without looking up its parent.  Useful to join directly
-// the conmon process.  It is a convenience function for JoinUserAndMountNSWithOpts
-// with a default configuration.
-func JoinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
+// TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
+// This is useful when there are already running containers and we
+// don't have a pause process yet.  We can use the paths to the conmon
+// processes to attempt joining their namespaces.
+// If needNewNamespace is set, the file is read from a temporary user
+// namespace, this is useful for containers that are running with a
+// different uidmap and the unprivileged user has no way to read the
+// file owned by the root in the container.
+func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }

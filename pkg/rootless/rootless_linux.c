@@ -69,6 +69,19 @@ rootless_gid ()
 static void
 do_pause ()
 {
+  int i;
+  struct sigaction act;
+  int const sig[] =
+    {
+     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGTERM, SIGPOLL,
+     SIGPROF, SIGVTALRM, SIGXCPU, SIGXFSZ, 0
+    };
+
+  act.sa_handler = SIG_IGN;
+
+  for (i = 0; sig[i]; i++)
+    sigaction (sig[i], &act, NULL);
+
   prctl (PR_SET_NAME, "podman pause", NULL, NULL, NULL);
   while (1)
     pause ();
@@ -333,6 +346,26 @@ syscall_clone (unsigned long flags, void *child_stack)
 #endif
 }
 
+int
+reexec_in_user_namespace_wait (int pid, int options)
+{
+  pid_t p;
+  int status;
+
+  do
+    p = waitpid (pid, &status, 0);
+  while (p < 0 && errno == EINTR);
+
+  if (p < 0)
+    return -1;
+
+  if (WIFEXITED (status))
+    return WEXITSTATUS (status);
+  if (WIFSIGNALED (status))
+    return 128 + WTERMSIG (status);
+  return -1;
+}
+
 static int
 create_pause_process (const char *pause_pid_file_path, char **argv)
 {
@@ -355,6 +388,8 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
         r = read (p[0], &b, 1);
       while (r < 0 && errno == EINTR);
       close (p[0]);
+
+      reexec_in_user_namespace_wait(r, 0);
 
       return r == 1 && b == '0' ? 0 : -1;
     }
@@ -560,8 +595,51 @@ check_proc_sys_userns_file (const char *path)
     }
 }
 
+static int
+copy_file_to_fd (const char *file_to_read, int outfd)
+{
+  char buf[512];
+  int fd;
+
+  fd = open (file_to_read, O_RDONLY);
+  if (fd < 0)
+    return fd;
+
+  for (;;)
+    {
+      ssize_t r, w, t = 0;
+
+      do
+        r = read (fd, buf, sizeof buf);
+      while (r < 0 && errno == EINTR);
+      if (r < 0)
+        {
+          close (fd);
+          return r;
+        }
+
+      if (r == 0)
+        break;
+
+      while (t < r)
+        {
+          do
+            w = write (outfd, &buf[t], r - t);
+          while (w < 0 && errno == EINTR);
+          if (w < 0)
+            {
+              close (fd);
+              return w;
+            }
+          t += w;
+        }
+    }
+  close (fd);
+  return 0;
+}
+
 int
-reexec_in_user_namespace (int ready, char *pause_pid_file_path)
+reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_read, int outputfd)
 {
   int ret;
   pid_t pid;
@@ -574,6 +652,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   char *listen_pid = NULL;
   bool do_socket_activation = false;
   char *cwd = getcwd (NULL, 0);
+  sigset_t sigset, oldsigset;
 
   if (cwd == NULL)
     {
@@ -584,11 +663,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   listen_pid = getenv("LISTEN_PID");
   listen_fds = getenv("LISTEN_FDS");
 
-  if (listen_pid != NULL && listen_fds != NULL) {
-    if (strtol(listen_pid, NULL, 10) == getpid()) {
-      do_socket_activation = true;
+  if (listen_pid != NULL && listen_fds != NULL)
+    {
+      if (strtol(listen_pid, NULL, 10) == getpid())
+        do_socket_activation = true;
     }
-  }
 
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
@@ -621,6 +700,22 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
       return pid;
     }
 
+  if (sigfillset (&sigset) < 0)
+    {
+      fprintf (stderr, "cannot fill sigset: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGCHLD) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
   argv = get_cmd_line_args (ppid);
   if (argv == NULL)
     {
@@ -628,11 +723,12 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  if (do_socket_activation) {
-    char s[32];
-    sprintf (s, "%d", getpid());
-    setenv ("LISTEN_PID", s, true);
-  }
+  if (do_socket_activation)
+    {
+      char s[32];
+      sprintf (s, "%d", getpid());
+      setenv ("LISTEN_PID", s, true);
+    }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
@@ -685,27 +781,20 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path)
   while (ret < 0 && errno == EINTR);
   close (ready);
 
+  if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+
+  if (file_to_read && file_to_read[0])
+    {
+      ret = copy_file_to_fd (file_to_read, outputfd);
+      close (outputfd);
+      _exit (ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
+    }
+
   execvp (argv[0], argv);
 
   _exit (EXIT_FAILURE);
-}
-
-int
-reexec_in_user_namespace_wait (int pid)
-{
-  pid_t p;
-  int status;
-
-  do
-    p = waitpid (pid, &status, 0);
-  while (p < 0 && errno == EINTR);
-
-  if (p < 0)
-    return -1;
-
-  if (WIFEXITED (status))
-    return WEXITSTATUS (status);
-  if (WIFSIGNALED (status))
-    return 128 + WTERMSIG (status);
-  return -1;
 }

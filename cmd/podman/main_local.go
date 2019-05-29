@@ -4,11 +4,9 @@ package main
 
 import (
 	"context"
-	"io/ioutil"
 	"log/syslog"
 	"os"
 	"runtime/pprof"
-	"strconv"
 	"strings"
 	"syscall"
 
@@ -120,18 +118,10 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "could not get pause process pid file path")
 	}
 
-	data, err := ioutil.ReadFile(pausePidPath)
-	if err != nil && !os.IsNotExist(err) {
-		return errors.Wrapf(err, "cannot read pause process pid file %s", pausePidPath)
-	}
-	if err == nil {
-		pausePid, err := strconv.Atoi(string(data))
+	if _, err := os.Stat(pausePidPath); err == nil {
+		became, ret, err := rootless.TryJoinFromFilePaths("", false, []string{pausePidPath})
 		if err != nil {
-			return errors.Wrapf(err, "cannot parse pause pid file %s", pausePidPath)
-		}
-		became, ret, err := rootless.JoinUserAndMountNS(uint(pausePid), "")
-		if err != nil {
-			logrus.Errorf("cannot join pause process pid %d.  You may need to remove %s and stop all containers", pausePid, pausePidPath)
+			logrus.Errorf("cannot join pause process.  You may need to remove %s and stop all containers", pausePidPath)
 			logrus.Errorf("you can use `system migrate` to recreate the pause process")
 			logrus.Errorf(err.Error())
 			os.Exit(1)
@@ -154,28 +144,13 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
-	var became bool
-	var ret int
-	if len(ctrs) == 0 {
-		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
-	} else {
-		for _, ctr := range ctrs {
-			data, err := ioutil.ReadFile(ctr.Config().ConmonPidFile)
-			if err != nil {
-				logrus.Errorf(err.Error())
-				continue
-			}
-			conmonPid, err := strconv.Atoi(string(data))
-			if err != nil {
-				logrus.Errorf(err.Error())
-				continue
-			}
-			became, ret, err = rootless.JoinUserAndMountNS(uint(conmonPid), pausePidPath)
-			if err == nil {
-				break
-			}
-		}
+
+	paths := []string{}
+	for _, ctr := range ctrs {
+		paths = append(paths, ctr.Config().ConmonPidFile)
 	}
+
+	became, ret, err := rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
 	if err != nil {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
@@ -185,6 +160,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	}
 	return nil
 }
+
 func setRLimits() error {
 	rlimits := new(syscall.Rlimit)
 	rlimits.Cur = 1048576
