@@ -764,6 +764,10 @@ _podman_container_commit() {
      _podman_commit
 }
 
+_podman_container_cp() {
+     _podman_cp
+}
+
 _podman_container_create() {
      _podman_create
 }
@@ -961,6 +965,7 @@ _podman_container() {
 	 attach
 	 checkpoint
 	 commit
+	 cp
 	 create
 	 diff
 	 exec
