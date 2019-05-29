@@ -250,6 +250,7 @@ type runtimeConfiguredFrom struct {
 	volPathSet            bool
 	conmonPath            bool
 	conmonEnvVars         bool
+	initPath              bool
 	ociRuntimes           bool
 	runtimePath           bool
 	cniPluginDir          bool
@@ -475,6 +476,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		if tmpConfig.ConmonEnvVars != nil {
 			runtime.configuredFrom.conmonEnvVars = true
 		}
+		if tmpConfig.InitPath != "" {
+			runtime.configuredFrom.initPath = true
+		}
 		if tmpConfig.OCIRuntimes != nil {
 			runtime.configuredFrom.ociRuntimes = true
 		}
@@ -511,6 +515,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 			if !runtime.configuredFrom.conmonEnvVars {
 				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
+			}
+			if !runtime.configuredFrom.initPath {
+				runtime.config.InitPath = tmpConfig.InitPath
 			}
 			if !runtime.configuredFrom.ociRuntimes {
 				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
