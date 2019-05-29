@@ -583,7 +583,15 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 
 	}
 	// TODO add detach keys support
-	_, err = iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
+	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
+	if err != nil {
+		restoreTerminal(oldTermState)
+		return nil, err
+	}
+
+	// See if the server accepts the upgraded connection or returns an error
+	_, err = reply()
+
 	if err != nil {
 		restoreTerminal(oldTermState)
 		return nil, err
