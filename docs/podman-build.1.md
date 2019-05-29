@@ -174,6 +174,18 @@ This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 soley for scripting compatibility.
 
+**--dns**=[]
+
+Set custom DNS servers
+
+**--dns-option**=[]
+
+Set custom DNS options
+
+**--dns-search**=[]
+
+Set custom DNS search domains
+
 **--file, -f** *Dockerfile*
 
 Specifies a Dockerfile which contains instructions for building the image,
