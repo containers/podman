@@ -35,7 +35,7 @@ options=0
 noremote=0
 install_tools_made=0
 
-while getopts "biptuv" opt; do
+while getopts "bitnuv" opt; do
     case "$opt" in
     b) build=1
        options=1
