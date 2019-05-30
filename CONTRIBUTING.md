@@ -8,6 +8,7 @@ that we follow.
 
 * [Reporting Issues](#reporting-issues)
 * [Contributing to libpod](#contributing-to-libpod)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -295,6 +296,48 @@ be provided with PRs.
 
 For details on how to run the tests for Podman in your test environment, see the
 Integration Tests [README.md](test/README.md).
+
+## Continuous Integration
+
+All pull requests and branch-merges automatically run:
+
+* Go format/lint checking
+* Unit testing
+* Integration Testing
+* Special testing (like running inside a container, or as a regular user)
+
+For a more in-depth reference of the CI system, please [refer to it's dedicated
+documentation.](contrib/cirrus/README.md)
+
+There is always additional complexity added by automation, and so it sometimes
+can fail for any number of reasons.  This includes post-merge testing on all
+branches, which you may occasionally see [red bars on the status graph
+.](https://cirrus-ci.com/github/containers/libpod/master)
+
+When the graph shows mostly green bars on the right, it's a good indication
+the master branch is currently stable.  Alternating red/green bars is indicitave
+of a testing "flake", and should be examined (anybody can do this):
+
+* *One or a small handful of tests, on a single task, (i.e. specific distro/version)
+  where all others ran successfully:*  Frequently the cause is networking or a brief
+  external service outage.  The failed tasks may simply be re-run by pressing the
+  corresponding button on the task details page.
+
+* *Multiple tasks failing*: Logically this should be due to some shared/common element.
+  If that element is identifiable as a networking or external service (e.g. packaging
+  repository outage), a re-run should be attempted.
+
+* *All tasks are failing*: If a common element is **not** identifiable as
+  temporary (i.e. container registry outage), please seek assistance via
+  [the methods below](#communications) as this may be early indication of
+  a more serious problem.
+
+In the (hopefully) rare case there are multiple, contiguous red bars, this is
+a ***very bad*** sign.  It means additional merges are occurring despite an uncorrected
+or persistently faulty condition.  This risks additional bugs being introduced
+and further complication of necessary corrective measures.  Most likely people
+are aware and working on this, but it doesn't hurt [to confirm and/or try and help
+if possible.](#communications)
 
 ## Communications
 
