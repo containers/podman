@@ -13,10 +13,12 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -49,6 +51,7 @@ func init() {
 	cpCommand.Command = _cpCommand
 	flags := cpCommand.Flags()
 	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
+	flags.BoolVar(&cpCommand.Pause, "pause", true, "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
 	rootCmd.AddCommand(cpCommand.Command)
@@ -66,11 +69,10 @@ func cpCmd(c *cliconfig.CpValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	extract := c.Flag("extract").Changed
-	return copyBetweenHostAndContainer(runtime, args[0], args[1], extract)
+	return copyBetweenHostAndContainer(runtime, args[0], args[1], c.Extract, c.Pause)
 }
 
-func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool) error {
+func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest string, extract bool, pause bool) error {
 
 	srcCtr, srcPath := parsePath(runtime, src)
 	destCtr, destPath := parsePath(runtime, dest)
@@ -93,6 +95,38 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		return err
 	}
 	defer ctr.Unmount(false)
+
+	// We can't pause rootless containers.
+	if pause && rootless.IsRootless() {
+		state, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		if state == libpod.ContainerStateRunning {
+			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
+		}
+	}
+
+	if pause && !rootless.IsRootless() {
+		if err := ctr.Pause(); err != nil {
+			// An invalid state error is fine.
+			// The container isn't running or is already paused.
+			// TODO: We can potentially start the container while
+			// the copy is running, which still allows a race where
+			// malicious code could mess with the symlink.
+			if errors.Cause(err) != libpod.ErrCtrStateInvalid {
+				return err
+			}
+		} else if err == nil {
+			// Only add the defer if we actually paused
+			defer func() {
+				if err := ctr.Unpause(); err != nil {
+					logrus.Errorf("Error unpausing container after copying: %v", err)
+				}
+			}()
+		}
+	}
+
 	user, err := getUser(mountPoint, ctr.User())
 	if err != nil {
 		return err
@@ -112,19 +146,38 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	var glob []string
 	if isFromHostToCtr {
 		if filepath.IsAbs(destPath) {
-			destPath = filepath.Join(mountPoint, destPath)
-
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
 		} else {
-			if err = idtools.MkdirAllAndChownNew(filepath.Join(mountPoint, ctr.WorkingDir()), 0755, hostOwner); err != nil {
+			ctrWorkDir, err := securejoin.SecureJoin(mountPoint, ctr.WorkingDir())
+			if err != nil {
+				return err
+			}
+			if err = idtools.MkdirAllAndChownNew(ctrWorkDir, 0755, hostOwner); err != nil {
 				return errors.Wrapf(err, "error creating directory %q", destPath)
 			}
-			destPath = filepath.Join(mountPoint, ctr.WorkingDir(), destPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), destPath))
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
 		}
 	} else {
 		if filepath.IsAbs(srcPath) {
-			srcPath = filepath.Join(mountPoint, srcPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, srcPath)
+			if err != nil {
+				return err
+			}
+			srcPath = cleanedPath
 		} else {
-			srcPath = filepath.Join(mountPoint, ctr.WorkingDir(), srcPath)
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), srcPath))
+			if err != nil {
+				return err
+			}
+			srcPath = cleanedPath
 		}
 	}
 	glob, err = filepath.Glob(srcPath)

@@ -158,4 +158,27 @@ var _ = Describe("Podman cp", func() {
 		os.Remove("file.tar")
 		os.RemoveAll(testDirPath)
 	})
+
+	It("podman cp symlink", func() {
+		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
+		fromHostToContainer := []byte("copy from host to container")
+		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		name := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"exec", name, "ln", "-s", "/tmp", "/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "--pause=false", srcPath, name + ":/test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		_, err = os.Stat("/tmp/cp_test.txt")
+		Expect(err).To(Not(BeNil()))
+	})
 })
