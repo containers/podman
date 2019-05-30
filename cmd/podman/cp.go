@@ -145,7 +145,19 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	var glob []string
 	if isFromHostToCtr {
-		if filepath.IsAbs(destPath) {
+		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol {
+			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, destPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting destination path from volume %s", volDestName)
+			}
+			destPath = path
+		} else if isBindMount, mount := isBindMountDestName(destPath, ctr); isBindMount {
+			path, err := pathWithBindMountSource(mount, destPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting destination path from bind mount %s", mount.Destination)
+			}
+			destPath = path
+		} else if filepath.IsAbs(destPath) {
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
 			if err != nil {
 				return err
@@ -166,7 +178,19 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			destPath = cleanedPath
 		}
 	} else {
-		if filepath.IsAbs(srcPath) {
+		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol {
+			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, srcPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source path from volume %s", volDestName)
+			}
+			srcPath = path
+		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount {
+			path, err := pathWithBindMountSource(mount, srcPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source path from bind moutn %s", mount.Destination)
+			}
+			srcPath = path
+		} else if filepath.IsAbs(srcPath) {
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, srcPath)
 			if err != nil {
 				return err
@@ -406,4 +430,73 @@ func streamFileToStdout(srcPath string, srcfi os.FileInfo) error {
 		return errors.Wrapf(err, "error streaming file to Stdout")
 	}
 	return nil
+}
+
+func isVolumeDestName(path string, ctr *libpod.Container) (bool, string, string) {
+	separator := string(os.PathSeparator)
+	if filepath.IsAbs(path) {
+		path = strings.TrimPrefix(path, separator)
+	}
+	if path == "" {
+		return false, "", ""
+	}
+	for _, vol := range ctr.Config().NamedVolumes {
+		volNamePath := strings.TrimPrefix(vol.Dest, separator)
+		if matchVolumePath(path, volNamePath) {
+			return true, vol.Dest, vol.Name
+		}
+	}
+	return false, "", ""
+}
+
+// if SRCPATH or DESTPATH is from volume mount's destination -v or --mount type=volume, generates the path with volume mount point
+func pathWithVolumeMount(ctr *libpod.Container, runtime *libpod.Runtime, volDestName, volName, path string) (string, error) {
+	destVolume, err := runtime.GetVolume(volName)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting volume destination %s", volName)
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(string(os.PathSeparator), path)
+	}
+	path, err = securejoin.SecureJoin(destVolume.MountPoint(), strings.TrimPrefix(path, volDestName))
+	return path, err
+}
+
+func isBindMountDestName(path string, ctr *libpod.Container) (bool, specs.Mount) {
+	separator := string(os.PathSeparator)
+	if filepath.IsAbs(path) {
+		path = strings.TrimPrefix(path, string(os.PathSeparator))
+	}
+	if path == "" {
+		return false, specs.Mount{}
+	}
+	for _, m := range ctr.Config().Spec.Mounts {
+		if m.Type != "bind" {
+			continue
+		}
+		mDest := strings.TrimPrefix(m.Destination, separator)
+		if matchVolumePath(path, mDest) {
+			return true, m
+		}
+	}
+	return false, specs.Mount{}
+}
+
+func matchVolumePath(path, target string) bool {
+	pathStr := filepath.Clean(path)
+	target = filepath.Clean(target)
+	for len(pathStr) > len(target) && strings.Contains(pathStr, string(os.PathSeparator)) {
+		pathStr = pathStr[:strings.LastIndex(pathStr, string(os.PathSeparator))]
+	}
+	if pathStr == target {
+		return true
+	}
+	return false
+}
+
+func pathWithBindMountSource(m specs.Mount, path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(string(os.PathSeparator), path)
+	}
+	return securejoin.SecureJoin(m.Source, strings.TrimPrefix(path, m.Destination))
 }
