@@ -98,7 +98,13 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	// We can't pause rootless containers.
 	if pause && rootless.IsRootless() {
-		logrus.Warnf("Cannot pause rootless containers - pause option will be ignored")
+		state, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		if state == libpod.ContainerStateRunning {
+			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
+		}
 	}
 
 	if pause && !rootless.IsRootless() {
