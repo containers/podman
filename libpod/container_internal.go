@@ -1407,10 +1407,6 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 	} else {
 		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"})
 		if err != nil {
-			if os.IsNotExist(err) {
-				logrus.Warnf("Requested OCI hooks directory %q does not exist", c.runtime.config.HooksDir)
-				return nil, nil
-			}
 			return nil, err
 		}
 
