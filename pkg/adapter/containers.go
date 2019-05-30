@@ -426,7 +426,16 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 			logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
 		}
 	}
-
+	// if c.IsSet("genseccomp") {
+	// 	profile, err := ioutil.ReadFile(ctr.StaticDir() + "/profile.json")
+	// 	if err != nil {
+	// 		logrus.Errorln(err)
+	// 	}
+	// 	destFile := c.String("genseccomp")
+	// 	if err = ioutil.WriteFile(destFile, profile, 0644); err != nil {
+	// 		logrus.Errorf("Cannot write file %s to the disk", destFile)
+	// 	}
+	// }
 	return exitCode, nil
 }
 

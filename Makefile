@@ -306,7 +306,7 @@ run-perftest: perftest ## Build and run perf tests
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman podman-remote  ## Build podman
+binaries: varlink_generate podman podman-remote oci-trace-hook ## Build podman
 
 install.catatonit:
 	./hack/install_catatonit.sh
@@ -394,7 +394,7 @@ changelog: ## Generate changelog
 	$(shell cat $(TMPFILE) >> changelog.txt)
 	$(shell rm $(TMPFILE))
 
-install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
+install: .gopathok install.bin install.remote install.man install.cni install.systemd install.oci-trace-hook ## Install binaries to system locations
 
 install.remote: podman-remote
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
@@ -497,6 +497,20 @@ endef
 		./autogen.sh --prefix=/usr/local; \
 		make all install; \
 	fi
+
+
+HOOK_BIN_DIR ?= /usr/libexec/oci/hooks.d/
+HOOK_DIR ?= /usr/share/containers/oci/hooks.d
+
+install.oci-trace-hook:
+	install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR)
+	install ${SELINUXOPT} -d -m 755 $(HOOK_DIR)
+	install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook
+	cp cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR)
+	cp cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR)
+
+oci-trace-hook:
+	$(GO) build -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
 varlink_api_generate: .gopathok API.md

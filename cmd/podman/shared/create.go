@@ -12,6 +12,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/errorhandling"
+
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
@@ -584,6 +586,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, errors.Errorf("Annotations must be formatted KEY=VALUE")
 		}
 		annotations[splitAnnotation[0]] = splitAnnotation[1]
+	}
+
+	if c.IsSet("genseccomp") {
+		annotations["io.podman.trace-syscall"] = c.String("genseccomp")
 	}
 
 	// WORKING DIRECTORY
