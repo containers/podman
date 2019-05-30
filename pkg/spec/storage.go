@@ -797,7 +797,7 @@ func initFSMounts(inputMounts []spec.Mount) []spec.Mount {
 		if m.Type == TypeBind {
 			m.Options = util.ProcessOptions(m.Options)
 		}
-		if m.Type == TypeTmpfs {
+		if m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev" {
 			m.Options = append(m.Options, "tmpcopyup")
 		}
 		mounts = append(mounts, m)
