@@ -26,7 +26,7 @@ var _ = Describe("Podman port", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -49,7 +49,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port  -l nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -62,7 +61,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman container port  -l nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"container", "run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -75,7 +73,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l port nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -88,7 +85,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -a nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

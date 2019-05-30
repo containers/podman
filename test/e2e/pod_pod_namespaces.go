@@ -25,8 +25,7 @@ var _ = Describe("Podman pod create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
-		podmanTest.RestoreArtifact(infra)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

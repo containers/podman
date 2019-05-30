@@ -75,8 +75,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
+		podmanTest.SeedImages()
 
-		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
@@ -168,7 +168,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		lock := GetPortLock(registryEndpoints[0].Port)
 		defer lock.Unlock()
 
-		podmanTest.RestoreArtifact(registry)
 		fakereg := podmanTest.Podman([]string{"run", "-d", "--name", "registry",
 			"-p", fmt.Sprintf("%s:5000", registryEndpoints[0].Port),
 			registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
@@ -196,7 +195,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 		lock := GetPortLock(registryEndpoints[3].Port)
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "--name", "registry3",
 			"-p", fmt.Sprintf("%s:5000", registryEndpoints[3].Port), registry,
 			"/entrypoint.sh", "/etc/docker/registry/config.yml"})
@@ -207,11 +205,12 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("Can not start docker registry.")
 		}
 
+		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[3].Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
-		search := podmanTest.Podman([]string{"search", image, "--tls-verify=false"})
+		search := podmanTest.PodmanNoCache([]string{"search", image, "--tls-verify=false"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -225,7 +224,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		lock := GetPortLock(registryEndpoints[4].Port)
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[4].Port),
 			"--name", "registry4", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		registry.WaitWithDefaultTimeout()
@@ -235,8 +233,9 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("Can not start docker registry.")
 		}
 
+		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[4].Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -246,7 +245,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry4.conf", tempdir), buffer.Bytes(), 0644)
 
-		search := podmanTest.Podman([]string{"search", image})
+		search := podmanTest.PodmanNoCache([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -264,7 +263,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 		lock := GetPortLock(registryEndpoints[5].Port)
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[5].Port),
 			"--name", "registry5", registry})
 		registry.WaitWithDefaultTimeout()
@@ -274,8 +272,9 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("Can not start docker registry.")
 		}
 
+		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[5].Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -284,7 +283,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry5.conf", tempdir), buffer.Bytes(), 0644)
 
-		search := podmanTest.Podman([]string{"search", image, "--tls-verify=true"})
+		search := podmanTest.PodmanNoCache([]string{"search", image, "--tls-verify=true"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -302,7 +301,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 		lock := GetPortLock(registryEndpoints[6].Port)
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
 		registry := podmanTest.Podman([]string{"run", "-d", "-p", fmt.Sprintf("%s:5000", registryEndpoints[6].Port),
 			"--name", "registry6", registry})
 		registry.WaitWithDefaultTimeout()
@@ -312,8 +310,9 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("Can not start docker registry.")
 		}
 
+		podmanTest.RestoreArtifact(ALPINE)
 		image := fmt.Sprintf("%s/my-alpine", registryEndpoints[6].Address())
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, image})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -322,7 +321,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry6.conf", tempdir), buffer.Bytes(), 0644)
 
-		search := podmanTest.Podman([]string{"search", image})
+		search := podmanTest.PodmanNoCache([]string{"search", image})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))
@@ -343,7 +342,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		lock8 := GetPortLock("6000")
 		defer lock8.Unlock()
 
-		podmanTest.RestoreArtifact(registry)
 		registryLocal := podmanTest.Podman([]string{"run", "-d", "--net=host", "-p", fmt.Sprintf("%s:5000", registryEndpoints[7].Port),
 			"--name", "registry7", registry})
 		registryLocal.WaitWithDefaultTimeout()
@@ -361,7 +359,8 @@ registries = ['{{.Host}}:{{.Port}}']`
 			Skip("Can not start docker registry.")
 		}
 
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
+		podmanTest.RestoreArtifact(ALPINE)
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:6000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
@@ -371,7 +370,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 		podmanTest.setRegistriesConfigEnv(buffer.Bytes())
 		ioutil.WriteFile(fmt.Sprintf("%s/registry8.conf", tempdir), buffer.Bytes(), 0644)
 
-		search := podmanTest.Podman([]string{"search", "my-alpine"})
+		search := podmanTest.PodmanNoCache([]string{"search", "my-alpine"})
 		search.WaitWithDefaultTimeout()
 
 		Expect(search.ExitCode()).To(Equal(0))

@@ -25,8 +25,7 @@ var _ = Describe("Podman pod create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
-		podmanTest.RestoreArtifact(infra)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -113,12 +112,10 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
 		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "localhost:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -138,7 +135,6 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'touch /dev/shm/hi'"})
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() != 0 {
@@ -216,7 +212,6 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
 		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

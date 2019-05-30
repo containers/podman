@@ -33,7 +33,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		}
 		podmanTest = PodmanTestCreate(tmpdir)
 		podmanTest.Setup()
-		podmanTest.RestoreArtifact(fedoraMinimal)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {

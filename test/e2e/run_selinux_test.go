@@ -25,7 +25,7 @@ var _ = Describe("Podman run", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
 		}

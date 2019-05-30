@@ -28,7 +28,7 @@ var _ = Describe("Podman cp", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -42,13 +42,14 @@ var _ = Describe("Podman cp", func() {
 		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
 		dstPath := filepath.Join(podmanTest.RunRoot, "cp_from_container")
 		fromHostToContainer := []byte("copy from host to container")
-		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
-		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "cat", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
+
+		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
+		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo"})
 		session.WaitWithDefaultTimeout()
@@ -63,15 +64,16 @@ var _ = Describe("Podman cp", func() {
 		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
 		dstDir := filepath.Join(podmanTest.RunRoot, "receive")
 		fromHostToContainer := []byte("copy from host to container directory")
-		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
-		Expect(err).To(BeNil())
-		err = os.Mkdir(dstDir, 0755)
-		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foodir/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
+
+		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
+		Expect(err).To(BeNil())
+		err = os.Mkdir(dstDir, 0755)
+		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foodir/"})
 		session.WaitWithDefaultTimeout()
@@ -87,13 +89,14 @@ var _ = Describe("Podman cp", func() {
 
 	It("podman cp dir to dir", func() {
 		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir")
-		err := os.Mkdir(testDirPath, 0755)
-		Expect(err).To(BeNil())
 
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "/foodir"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
+
+		err := os.Mkdir(testDirPath, 0755)
+		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":/foodir"})
 		session.WaitWithDefaultTimeout()
@@ -105,17 +108,17 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp stdin/stdout", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		name := session.OutputToString()
+
 		testDirPath := filepath.Join(podmanTest.RunRoot, "TestDir")
 		err := os.Mkdir(testDirPath, 0755)
 		Expect(err).To(BeNil())
 		cmd := exec.Command("tar", "-zcvf", "file.tar.gz", testDirPath)
 		_, err = cmd.Output()
 		Expect(err).To(BeNil())
-
-		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		name := session.OutputToString()
 
 		data, err := ioutil.ReadFile("foo.tar.gz")
 		reader := strings.NewReader(string(data))
@@ -133,6 +136,10 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp tar", func() {
+		session := podmanTest.Podman([]string{"create", "--name", "testctr", ALPINE, "ls", "-l", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
 		path, err := os.Getwd()
 		Expect(err).To(BeNil())
 		testDirPath := filepath.Join(path, "TestDir")
@@ -141,10 +148,6 @@ var _ = Describe("Podman cp", func() {
 		cmd := exec.Command("tar", "-cvf", "file.tar", testDirPath)
 		_, err = cmd.Output()
 		Expect(err).To(BeNil())
-
-		session := podmanTest.Podman([]string{"create", "--name", "testctr", ALPINE, "ls", "-l", "foo"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"cp", "file.tar", "testctr:/foo/"})
 		session.WaitWithDefaultTimeout()

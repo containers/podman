@@ -23,13 +23,19 @@ func SkipIfRootless() {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args)
+	podmanSession := p.PodmanBase(args, false)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+// PodmanNoCache calls the podman command with no configured imagecache
+func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
 func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env)
+	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -75,9 +81,40 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	fmt.Printf("Restoring %s...\n", image)
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	restore := p.Podman([]string{"load", "-q", "-i", destName})
+	restore := p.PodmanNoCache([]string{"load", "-q", "-i", destName})
 	restore.Wait(90)
 	return nil
 }
+
+// RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier
+func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+
+	p.CrioRoot = p.ImageCacheDir
+	restore := p.PodmanNoCache([]string{"load", "-q", "-i", destName})
+	restore.WaitWithDefaultTimeout()
+	return nil
+}
+
 func (p *PodmanTestIntegration) StopVarlink()     {}
 func (p *PodmanTestIntegration) DelayForVarlink() {}
+
+func populateCache(podman *PodmanTestIntegration) {
+	for _, image := range CACHE_IMAGES {
+		podman.RestoreArtifactToCache(image)
+	}
+}
+
+func removeCache() {
+	// Remove cache dirs
+	if err := os.RemoveAll(ImageCacheDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
+// SeedImages is a no-op for localized testing
+func (p *PodmanTestIntegration) SeedImages() error {
+	return nil
+}

@@ -100,12 +100,23 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		}
 	}
 
+	// make cache dir
+	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
+		fmt.Printf("%q\n", err)
+		os.Exit(1)
+	}
+
 	for _, image := range CACHE_IMAGES {
 		if err := podman.CreateArtifact(image); err != nil {
 			fmt.Printf("%q\n", err)
 			os.Exit(1)
 		}
 	}
+
+	// If running localized tests, the cache dir is created and populated. if the
+	// tests are remote, this is a no-op
+	populateCache(podman)
+
 	host := GetHostDistributionInfo()
 	if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
 		f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
@@ -136,53 +147,29 @@ func (p *PodmanTestIntegration) Setup() {
 	p.ArtifactPath = ARTIFACT_DIR
 }
 
-// var _ = BeforeSuite(func() {
-// 	cwd, _ := os.Getwd()
-// 	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
-// 	podman := PodmanTestCreate("/tmp")
-// 	podman.ArtifactPath = ARTIFACT_DIR
-// 	if _, err := os.Stat(ARTIFACT_DIR); os.IsNotExist(err) {
-// 		if err = os.Mkdir(ARTIFACT_DIR, 0777); err != nil {
-// 			fmt.Printf("%q\n", err)
-// 			os.Exit(1)
-// 		}
-// 	}
-// })
-// for _, image := range CACHE_IMAGES {
-// 	if err := podman.CreateArtifact(image); err != nil {
-// 		fmt.Printf("%q\n", err)
-// 		os.Exit(1)
-// 	}
-// }
-// host := GetHostDistributionInfo()
-// if host.Distribution == "rhel" && strings.HasPrefix(host.Version, "7") {
-// 	f, err := os.OpenFile("/proc/sys/user/max_user_namespaces", os.O_WRONLY, 0644)
-// 	if err != nil {
-// 		fmt.Println("Unable to enable userspace on RHEL 7")
-// 		os.Exit(1)
-// 	}
-// 	_, err = f.WriteString("15000")
-// 	if err != nil {
-// 		fmt.Println("Unable to enable userspace on RHEL 7")
-// 		os.Exit(1)
-// 	}
-// 	f.Close()
-// }
-// path, err := ioutil.TempDir("", "libpodlock")
-// if err != nil {
-// 	fmt.Println(err)
-// 	os.Exit(1)
-// }
-// LockTmpDir = path
-// })
+var _ = SynchronizedAfterSuite(func() {},
+	func() {
+		sort.Sort(testResultsSortedLength{testResults})
+		fmt.Println("integration timing results")
+		for _, result := range testResults {
+			fmt.Printf("%s\t\t%f\n", result.name, result.length)
+		}
 
-var _ = AfterSuite(func() {
-	sort.Sort(testResultsSortedLength{testResults})
-	fmt.Println("integration timing results")
-	for _, result := range testResults {
-		fmt.Printf("%s\t\t%f\n", result.name, result.length)
-	}
-})
+		// previous crio-run
+		tempdir, err := CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
+		podmanTest := PodmanTestCreate(tempdir)
+
+		if err := os.RemoveAll(podmanTest.CrioRoot); err != nil {
+			fmt.Printf("%q\n", err)
+		}
+
+		// for localized tests, this removes the image cache dir and for remote tests
+		// this is a no-op
+		removeCache()
+	})
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
@@ -244,12 +231,18 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 	os.Setenv("DISABLE_HC_SYSTEMD", "true")
 	CNIConfigDir := "/etc/cni/net.d"
 
+	storageFs := STORAGE_FS
+	if rootless.IsRootless() {
+		storageFs = ROOTLESS_STORAGE_FS
+	}
 	p := &PodmanTestIntegration{
 		PodmanTest: PodmanTest{
-			PodmanBinary: podmanBinary,
-			ArtifactPath: ARTIFACT_DIR,
-			TempDir:      tempDir,
-			RemoteTest:   remote,
+			PodmanBinary:  podmanBinary,
+			ArtifactPath:  ARTIFACT_DIR,
+			TempDir:       tempDir,
+			RemoteTest:    remote,
+			ImageCacheFS:  storageFs,
+			ImageCacheDir: ImageCacheDir,
 		},
 		ConmonBinary:        conmonBinary,
 		CrioRoot:            filepath.Join(tempDir, "crio"),
@@ -304,10 +297,10 @@ func (p *PodmanTestIntegration) CreateArtifact(image string) error {
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
-		pull := p.Podman([]string{"pull", image})
+		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(90)
 
-		save := p.Podman([]string{"save", "-o", destName, image})
+		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
 		save.Wait(90)
 		fmt.Printf("\n")
 	} else {
@@ -390,7 +383,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
 	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).To(BeNil())
-	session := p.Podman([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
+	session := p.PodmanNoCache([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
 	session.Wait(120)
 	Expect(session.ExitCode()).To(Equal(0))
 }
@@ -465,7 +458,7 @@ func (p *PodmanTestIntegration) PullImages(images []string) error {
 // PullImage pulls a single image
 // TODO should the timeout be configurable?
 func (p *PodmanTestIntegration) PullImage(image string) error {
-	session := p.Podman([]string{"pull", image})
+	session := p.PodmanNoCache([]string{"pull", image})
 	session.Wait(60)
 	Expect(session.ExitCode()).To(Equal(0))
 	return nil
@@ -507,4 +500,10 @@ func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSe
 	}
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
 	return p.Podman(podmanArgs)
+}
+
+func (p *PodmanTestIntegration) ImageExistsInMainStore(idOrName string) bool {
+	results := p.PodmanNoCache([]string{"image", "exists", idOrName})
+	results.WaitWithDefaultTimeout()
+	return Expect(results.ExitCode()).To(Equal(0))
 }

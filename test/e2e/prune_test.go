@@ -28,7 +28,7 @@ var _ = Describe("Podman prune", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -77,11 +77,12 @@ var _ = Describe("Podman prune", func() {
 	})
 
 	It("podman image prune unused images", func() {
-		prune := podmanTest.Podman([]string{"image", "prune", "-a"})
+		podmanTest.RestoreAllArtifacts()
+		prune := podmanTest.PodmanNoCache([]string{"image", "prune", "-a"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-aq"})
+		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
@@ -89,12 +90,13 @@ var _ = Describe("Podman prune", func() {
 
 	It("podman system image prune unused images", func() {
 		SkipIfRemote()
+		podmanTest.RestoreAllArtifacts()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
-		prune := podmanTest.Podman([]string{"system", "prune", "-a", "--force"})
+		prune := podmanTest.PodmanNoCache([]string{"system", "prune", "-a", "--force"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-aq"})
+		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))

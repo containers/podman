@@ -24,7 +24,8 @@ var _ = Describe("Podman healthcheck run", func() {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -42,7 +43,6 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on valid container", func() {
-		podmanTest.RestoreArtifact(healthcheck)
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -63,7 +63,6 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on stopped container", func() {
-		podmanTest.RestoreArtifact(healthcheck)
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
