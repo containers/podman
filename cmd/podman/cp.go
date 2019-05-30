@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
@@ -95,7 +96,12 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	}
 	defer ctr.Unmount(false)
 
-	if pause {
+	// We can't pause rootless containers.
+	if pause && rootless.IsRootless() {
+		logrus.Warnf("Cannot pause rootless containers - pause option will be ignored")
+	}
+
+	if pause && !rootless.IsRootless() {
 		if err := ctr.Pause(); err != nil {
 			// An invalid state error is fine.
 			// The container isn't running or is already paused.
