@@ -66,13 +66,16 @@ PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
 BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
-ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)'
+ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
+
+# IN_PODMAN container image
+IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
 
 # When running as root, this may be empty or not, as a user, it MUST be set.
 if [[ "$USER" == "root" ]]

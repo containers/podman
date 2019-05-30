@@ -292,7 +292,7 @@ testing_task:
 
 
 # This task executes tests under unique environments/conditions
-special_testing_task:
+special_testing_rootless_task:
 
     depends_on:
         - "gating"
@@ -303,9 +303,11 @@ special_testing_task:
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     env:
+        SPECIALMODE: 'rootless'  # See docs
+
         matrix:
-            SPECIALMODE: 'rootless'  # See docs
-            SPECIALMODE: 'in_podman'  # See docs
+            TEST_REMOTE_CLIENT: true
+            TEST_REMOTE_CLIENT: false
 
     timeout_in: 60m
 
@@ -322,6 +324,33 @@ special_testing_task:
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
+special_testing_in_podman_task:
+
+    depends_on:
+        - "gating"
+        - "varlink_api"
+        - "vendor"
+        - "build_each_commit"
+
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    env:
+        SPECIALMODE: 'in_podman'  # See docs
+
+    timeout_in: 60m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    df_script: '${DFCMD}'
+    audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log'
+    journalctl_b_script: 'journalctl -b'
+
+    on_failure:
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        # Job has already failed, don't fail again and miss collecting data
+        failed_df_script: '${DFCMD}'
+        failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
+        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
 # Because system tests are stored within the repository, it is sometimes
 # necessary to execute them within a PR to validate changes.

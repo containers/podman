@@ -2,6 +2,14 @@
 
 set -e
 
+remote=0
+
+# The TEST_REMOTE_CLIENT environment variable decides whether
+# to test varlinke
+if [[ "$TEST_REMOTE_CLIENT" == "true" ]]; then
+    remote=1
+fi
+
 source $(dirname $0)/lib.sh
 
 if [[ "$UID" == "0" ]]
@@ -25,5 +33,8 @@ cd "$GOSRC"
 make
 make varlink_generate
 make test-binaries
-make ginkgo
-make ginkgo-remote
+if [ $remote -eq 0 ]; then
+    make ginkgo
+else
+    make ginkgo-remote
+fi

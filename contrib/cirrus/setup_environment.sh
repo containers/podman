@@ -87,7 +87,7 @@ case "$SPECIALMODE" in
         fi
         ;;
     in_podman)  # Assumed to be Fedora
-        dnf install -y podman buildah
+        dnf install -y podman
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
     *)
