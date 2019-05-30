@@ -58,6 +58,12 @@ cd "${GOSRC}/"
 # Reload to incorporate any changes from above
 source "$SCRIPT_BASE/lib.sh"
 
+if [[ -r "/etc/containers/storage.conf" ]]
+then
+    echo ">>>>> WORKAROUND/HACK (05/30/19): metacopy=on breaks tests using VFS"
+    sed -i -r -e 's/^mountopt =.+/mountopt = "nodev"/' /etc/containers/storage.conf
+fi
+
 echo "Installing cni config, policy and registry config"
 req_env_var GOSRC
 sudo install -D -m 755 $GOSRC/cni/87-podman-bridge.conflist \

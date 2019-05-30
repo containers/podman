@@ -89,6 +89,10 @@ RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
+# WORKAROUND/HACK (05/30/19): metacopy=on breaks tests using VFS"
+RUN echo "WORKAROUND/HACK (05/30/19): metacopy=on breaks tests using VFS" && \
+    sed -i -r -e 's/^mountopt =.+/mountopt = "nodev"/' /etc/containers/storage.conf
+
 # Install varlink stuff
 RUN pip3 install varlink
 
