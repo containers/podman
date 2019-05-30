@@ -174,7 +174,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"cp", srcPath, name + ":/test"})
+		session = podmanTest.Podman([]string{"cp", "--pause=false", srcPath, name + ":/test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
