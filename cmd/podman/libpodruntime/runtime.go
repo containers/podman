@@ -67,7 +67,10 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 	if c.Flags().Changed("storage-driver") {
 		storageSet = true
 		storageOpts.GraphDriverName = c.GlobalFlags.StorageDriver
+		// Overriding the default storage driver caused GraphDriverOptions from storage.conf to be ignored
+		storageOpts.GraphDriverOptions = []string{}
 	}
+	// This should always be checked after storage-driver is checked
 	if len(c.GlobalFlags.StorageOpts) > 0 {
 		storageSet = true
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts

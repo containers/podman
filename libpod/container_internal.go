@@ -360,7 +360,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 			}
 			return false
 		}
-		defOptions, err := storage.GetDefaultMountOptions()
+
+		defOptions, err := storage.GetMountOptions(c.runtime.store.GraphDriverName(), c.runtime.store.GraphOptions())
 		if err != nil {
 			return errors.Wrapf(err, "error getting default mount options")
 		}
