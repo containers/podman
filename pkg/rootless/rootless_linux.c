@@ -180,7 +180,7 @@ can_use_shortcut ()
 
   argv = get_cmd_line_args (0);
   if (argv == NULL)
-    return NULL;
+    return false;
 
   for (argc = 0; argv[argc]; argc++)
     {
