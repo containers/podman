@@ -29,6 +29,12 @@ func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
+	// FIXME return parameter
+	if err = call.ReplySendFile("FIXME_file_handle"); err != nil {
+		// If an error occurs while sending the reply, return the error
+		return err
+	}
+
 	writer := bufio.NewWriter(outputFile)
 	defer writer.Flush()
 
@@ -60,9 +66,10 @@ func (i *LibpodAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, dele
 	}
 
 	// Send the file length down to client
-	// Varlink connection upraded
+	// Varlink connection upgraded
 	if err = call.ReplyReceiveFile(fileInfo.Size()); err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		// If an error occurs while sending the reply, return the error
+		return err
 	}
 
 	reader := bufio.NewReader(fs)
