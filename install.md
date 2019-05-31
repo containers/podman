@@ -2,7 +2,7 @@
 
 ## Installing packaged versions of Podman
 
-#### [Arch Linux](https://www.archlinux.org)
+#### [Arch Linux](https://www.archlinux.org) & [Manjaro Linux](https://manjaro.org)
 
 ```bash
 sudo pacman -S podman
@@ -136,6 +136,26 @@ sudo apt-get install \
   pkg-config \
   runc \
   uidmap
+```
+
+On Manjaro (and maybe other Linux distributions):
+
+Make sure that the Linux kernel supports user namespaces:
+
+```
+> zgrep CONFIG_USER_NS /proc/config.gz
+CONFIG_USER_NS=y
+
+```
+
+If not, please update the kernel.
+For Manjaro Linux the instructions could be found here:
+https://wiki.manjaro.org/index.php/Manjaro_Kernels
+
+After that enable user namespaces:
+
+```
+sudo sysctl kernel.unprivileged_userns_clone=1
 ```
 
 ### Building missing dependencies
