@@ -15,11 +15,11 @@ flag is being used. To remove all the volumes, use the **--all** flag.
 
 ## OPTIONS
 
-**-a**, **--all**=""
+**-a**, **--all**
 
 Remove all volumes.
 
-**-f**, **--force**=""
+**-f**, **--force**
 
 Remove a volume by force.
 If it is being used by containers, the containers will be removed first.

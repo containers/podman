@@ -7,7 +7,7 @@ podman\-commit - Create new image based on the changed container
 **podman commit** [*options*] *container* *image*
 
 ## DESCRIPTION
-`podman commit` creates an image based on a changed container. The author of the
+**podman commit** creates an image based on a changed container. The author of the
 image can be set using the `--author` flag. Various image instructions can be
 configured with the `--change` flag and a commit message can be set using the
 `--message` flag. The container and its processes are paused while the image is
@@ -19,23 +19,23 @@ If *image* does not begin with a registry name component, `localhost` will be ad
 
 ## OPTIONS
 
-**--author, -a**
+**--author**, **-a**=*author*
 
 Set the author for the committed image
 
-**--change, -c**
+**--change**, **-c**=*instruction*
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **ONBUILD** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 
 Can be set multiple times
 
-**--format, -f**
+**--format**, **-f**=*format*
 
 Set the format of the image manifest and metadata.  The currently supported formats are _oci_ and _docker_.  If
 not specifically set, the default format used is _oci_.
 
-**--iidfile** *ImageIDfile*
+**--iidfile**=*ImageIDfile*
 
 Write the image ID to the file.
 
@@ -43,15 +43,15 @@ Write the image ID to the file.
 
 Include in the committed image any volumes added to the container by the `--volume` or `--mount` options to the `podman create` and `podman run` commands.
 
-**--message, -m**
+**--message**, **-m**=*message*
 
 Set commit message for committed image.  The message field is not supported in _oci_ format.
 
-**--pause, -p**
+**--pause**, **-p**
 
 Pause the container when creating an image
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress output
 

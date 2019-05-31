@@ -1,21 +1,24 @@
-% PODMAN(1) Podman Man Pages
-% Brent Baude
-% December 2018
-# NAME
+% podman-image-prune(1)
+
+## NAME
 podman-image-prune - Remove all unused images
 
-# SYNOPSIS
-**podman image prune** [*-a*|*--all*] [*-h*|*--help*]
+## SYNOPSIS
+**podman image prune** [*options*]
 
-# DESCRIPTION
+## DESCRIPTION
 **podman image prune** removes all dangling images from local storage. With the `all` option,
 you can delete all unused images.  Unused images are dangling images as well as any image that
 does not have any containers based on it.
 
 ## OPTIONS
-**--all, -a**
+**--all**, **-a**
 
 Remove dangling images and images that have no associated containers.
+
+**--help**, **-h**
+
+Print usage statement
 
 ## Examples ##
 
@@ -41,5 +44,5 @@ e4e5109420323221f170627c138817770fb64832da7d8fe2babd863148287fca
 ## SEE ALSO
 podman(1), podman-images
 
-# HISTORY
+## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

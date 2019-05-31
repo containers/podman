@@ -14,11 +14,11 @@ You can detach from the container (and leave it running) using a configurable ke
 sequence is `ctrl-p,ctrl-q`. You configure the key sequence using the --detach-keys option
 
 ## OPTIONS
-**--detach-keys**=""
+**--detach-keys**=*char*
 
 Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
@@ -33,7 +33,7 @@ Do not attach STDIN. The default is false.
 
 Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true*.
 
-## EXAMPLES ##
+## EXAMPLES
 
 ```
 $ podman attach foobar

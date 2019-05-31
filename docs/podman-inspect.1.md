@@ -4,7 +4,7 @@
 podman\-inspect - Display a container or image's configuration
 
 ## SYNOPSIS
-**podman inspect** [*options*] *name* ...
+**podman inspect** [*options*] *name* [...]
 
 **podman image inspect** [*options*] *image*
 
@@ -17,24 +17,24 @@ unspecified type. If a format is specified, the given template will be executed 
 
 ## OPTIONS
 
-**--type, -t="TYPE"**
+**--type**, **-t**=*type*
 
 Return JSON for the specified type.  Type can be 'container', 'image' or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
-**--format, -f="FORMAT"**
+**--format**, **-f**=*format*
 
 Format the output using the given Go template.
 The keys of the returned JSON can be used as the values for the --format flag (see examples below).
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client or when invoked as *podman image inspect*.
 
-**--size, -s**
+**--size**, **-s**
 
 Display the total file size if the type is a container
 

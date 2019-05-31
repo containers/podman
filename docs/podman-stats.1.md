@@ -1,4 +1,4 @@
-% podman-stats "1"
+% podman-stats(1)
 
 ## NAME
 podman\-stats - Display a live stream of 1 or more containers' resource usage statistics
@@ -11,11 +11,11 @@ Display a live stream of one or more containers' resource usage statistics
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Show all containers.  Only running containers are shown by default
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
@@ -30,7 +30,7 @@ Do not clear the terminal/screen in between reporting intervals
 
 Disable streaming stats and only pull the first result, default setting is false
 
-**--format="TEMPLATE"**
+**--format**=*template*
 
 Pretty-print container statistics to JSON or using a Go template
 
@@ -49,6 +49,7 @@ Valid placeholders for the Go template are listed below:
 | .PIDS           | Number of PIDs    |
 
 When using a GO template, you may preceed the format with `table` to print headers.
+
 ## EXAMPLE
 
 ```

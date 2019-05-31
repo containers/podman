@@ -1,4 +1,4 @@
-% podman-wait "1"
+% podman-wait(1)
 
 ## NAME
 podman\-wait - Wait on one or more containers to stop and print their exit codes
@@ -13,14 +13,14 @@ After the container stops, the container's return code is printed.
 
 ## OPTIONS
 
-**--help, -h**
+**--help**, **-h**
 
-  Print usage statement
+ Print usage statement
 
-**--interval, -i**"
+**--interval**, **-i**=*microseconds*
   Microseconds to wait before polling for completion
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.

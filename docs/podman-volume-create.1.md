@@ -15,7 +15,7 @@ driver options can be set using the **--opt** flag.
 
 ## OPTIONS
 
-**--driver**=""
+**--driver**=*driver*
 
 Specify the volume driver name (default local).
 
@@ -23,11 +23,11 @@ Specify the volume driver name (default local).
 
 Print usage statement
 
-**-l**, **--label**=[]
+**-l**, **-label**=*label*
 
 Set metadata for a volume (e.g., --label mykey=value).
 
-**-o**, **--opt**=[]
+**-o**, **--opt**=*option*
 
 Set driver specific options.
 

@@ -1,4 +1,4 @@
-% podman-system-migrate(1) podman
+% podman-system-migrate(1)
 
 ## NAME
 podman\-system\-migrate - Migrate container to the latest version of podman
@@ -17,5 +17,5 @@ podman\-system\-migrate - Migrate container to the latest version of podman
 ## SEE ALSO
 `podman(1)`, `libpod.conf(5)`
 
-# HISTORY
+## HISTORY
 April 2019, Originally compiled by Giuseppe Scrivano (gscrivan at redhat dot com)

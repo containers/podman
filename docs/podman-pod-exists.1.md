@@ -1,13 +1,12 @@
-% podman-pod-exits(1) Podman Man Pages
-% Brent Baude
-% December 2018
-# NAME
+% podman-pod-exists(1)
+
+## NAME
 podman-pod-exists - Check if a pod exists in local storage
 
-# SYNOPSIS
-**podman pod exists** [*-h*|*--help*] *pod*
+## SYNOPSIS
+**podman pod exists** *pod*
 
-# DESCRIPTION
+## DESCRIPTION
 **podman pod exists** checks if a pod exists in local storage. The **ID** or **Name**
 of the pod may be used as input.  Podman will return an exit code
 of `0` when the pod is found.  A `1` will be returned otherwise. An exit code of `125` indicates there
@@ -34,5 +33,5 @@ $
 ## SEE ALSO
 podman-pod(1), podman(1)
 
-# HISTORY
+## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

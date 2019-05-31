@@ -20,11 +20,11 @@ all the containers information.  By default it lists:
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Show all the containers, default is only running containers
 
-**--pod, -p**
+**--pod**, **-p**
 
 Display the pods the containers are associated with
 
@@ -32,11 +32,11 @@ Display the pods the containers are associated with
 
 Display the extended information
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Print the numeric IDs of the containers only
 
-**--format**
+**--format**=*format*
 
 Pretty-print containers to JSON or using a Go template
 
@@ -63,25 +63,25 @@ Sort by command, created, id, image, names, runningfor, size, or status",
 Note: Choosing size will sort by size of rootFs, not alphabetically like the rest of the options
 Default: created
 
-**--size, -s**
+**--size**, **-s**
 
 Display the total file size
 
-**--last, -n**
+**--last**, **-n**
 
 Print the n last created containers (all states)
 
-**--latest, -l**
+**--latest**, **-l**
 
 Show the latest container created (all states)
 
 The latest option is not supported on the remote client.
 
-**--namespace, --ns**
+**--namespace**, **--ns**
 
 Display namespace information
 
-**--filter, -f**
+**--filter**, **-f**
 
 Filter what containers are shown in the output.
 Multiple filters can be given with multiple uses of the --filter flag.
@@ -113,7 +113,7 @@ In some cases, a container's state in the runtime can become out of sync with Po
 This will update Podman's state based on what the OCI runtime reports.
 Forcibly syncing is much slower, but can resolve inconsistent state issues.
 
-**--watch, -w**
+**--watch**, **-w**
 
 Refresh the output with current containers on an interval in seconds.
 

@@ -1,16 +1,21 @@
-% podman-container-prune (1)
-% Brent Baude
-% December 2018
-# NAME
+% podman-container-prune(1)
+
+## NAME
 podman-container-prune - Remove all stopped containers
 
-# SYNOPSIS
-**podman container prune** [*-h*|*--help*]
+## SYNOPSIS
+**podman container prune** [*options*]
 
-# DESCRIPTION
+## DESCRIPTION
 **podman container prune** removes all stopped containers from local storage.
 
-## Examples ##
+## OPTIONS
+
+**-h**, **--help**
+
+Print usage statement
+
+## Examples
 
 Remove all stopped containers from local storage
 ```
@@ -26,5 +31,5 @@ fff1c5b6c3631746055ec40598ce8ecaa4b82aef122f9e3a85b03b55c0d06c23
 ## SEE ALSO
 podman(1), podman-ps
 
-# HISTORY
+## HISTORY
 December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

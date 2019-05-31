@@ -14,7 +14,7 @@ unused volumes. To bypass the confirmation, use the **--force** flag.
 
 ## OPTIONS
 
-**-f**, **--force**=""
+**-f**, **--force**
 
 Do not prompt for confirmation.
 

@@ -1,12 +1,12 @@
-% podman-container-logs(1)
+% podman-logs(1)
 
 ## NAME
 podman\-container\-logs (podman\-logs) - Fetch the logs of one or more containers
 
 ## SYNOPSIS
-**podman** **container** **logs** [*options*] *container* [*container...*]
+**podman container logs** [*options*] *container* [*container...*]
 
-**podman** **logs** [*options*] *container* [*container...*]
+**podman logs** [*options*] *container* [*container...*]
 
 ## DESCRIPTION
 The podman logs command batch-retrieves whatever logs are present for one or more containers at the time of execution.
@@ -15,7 +15,7 @@ any logs at the time you execute podman logs
 
 ## OPTIONS
 
-**--follow, -f**
+**--follow**, **-f**
 
 Follow log output.  Default is false.
 
@@ -23,26 +23,26 @@ Note: If you are following a container which is removed `podman container rm`
 or removed on exit `podman run --rm ...`, then there is a chance the the log
 file will be removed before `podman logs` reads the final content.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client.
 
-**--since=TIMESTAMP**
+**--since**=*TIMESTAMP*
 
 Show logs since TIMESTAMP. The --since option can be Unix timestamps, date formatted timestamps, or Go duration
 strings (e.g. 10m, 1h30m) computed relative to the client machine's time. Supported formats for date formatted
 time stamps include RFC3339Nano, RFC3339, 2006-01-02T15:04:05, 2006-01-02T15:04:05.999999999, 2006-01-02Z07:00,
 and 2006-01-02.
 
-**--tail=LINES**
+**--tail**=*LINES*
 
 Output the specified number of LINES at the end of the logs.  LINES must be a positive integer.  Defaults to 0,
 which prints all lines
 
-**--timestamps, -t**
+**--timestamps**, **-t**
 
 Show timestamps in the log outputs.  The default is false
 

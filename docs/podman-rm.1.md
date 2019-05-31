@@ -1,4 +1,4 @@
-% podman-container-rm(1)
+% podman-rm(1)
 
 ## NAME
 podman\-container\-rm (podman\-rm) - Remove one or more containers
@@ -13,24 +13,24 @@ podman\-container\-rm (podman\-rm) - Remove one or more containers
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Remove all containers.  Can be used in conjunction with -f as well.
 
-**--force, -f**
+**--force**, **-f**
 
 Force the removal of running and paused containers.  Forcing a containers removal also
 removes containers from container storage even if the container is not known to podman.
 Containers could have been created by a different container engine.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client.
 
-**--volumes, -v**
+**--volumes**, **-v**
 
 Remove the volumes associated with the container.
 

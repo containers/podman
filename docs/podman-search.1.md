@@ -25,14 +25,14 @@ Note, searching without a search term will only work for registries that impleme
 
 ## OPTIONS
 
-**--authfile**
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--filter, -f**
+**--filter**, **-f**=*filter*
 
 Filter output based on conditions provided (default [])
 
@@ -42,7 +42,7 @@ Supported filters are:
 * is-automated (boolean - true | false) - is the image automated or not
 * is-official (boolean - true | false) - is the image official or not
 
-**--format**
+**--format**=*format*
 
 Change the output format to a Go template
 
@@ -57,7 +57,7 @@ Valid placeholders for the Go template are listed below:
 | .Official       | "[OK]" if image is official  |
 | .Automated      | "[OK]" if image is automated |
 
-**--limit**
+**--limit**=*limit*
 
 Limit the number of results
 Note: The results from each registry will be limited to this value.
@@ -69,7 +69,7 @@ The order of the search results is the order in which the API endpoint returns t
 
 Do not truncate the output
 
-**--tls-verify**
+**--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used if needed. If not specified,

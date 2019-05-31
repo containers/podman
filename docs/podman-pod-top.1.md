@@ -11,11 +11,11 @@ Display the running processes of containers in a pod. The *format-descriptors* a
 
 ## OPTIONS
 
-**--help, -h**
+**--help**, **-h**
 
   Print usage statement
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod.
 
@@ -25,7 +25,7 @@ The latest option is not supported on the remote client.
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
 
-**args, capbnd, capeff, capinh, capprm, comm, etime, group, hgroup, hpid, huser, label, nice, pcpu, pgid, pid, ppid, rgroup, ruser, seccomp, state, time, tty, user, vsz**
+**args**, **capbnd**, **capeff**, **capinh**, **capprm**, **comm**, **etime**, **group**, **hgroup**, **hpid**, **huser**, **label**, **nice**, **pcpu**, **pgid**, **pid**, **ppid**, **rgroup**, **ruser**, **seccomp**, **state**, **time**, **tty**, **user**, **vsz**
 
 **capbnd**
 

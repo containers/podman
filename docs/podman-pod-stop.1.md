@@ -11,17 +11,17 @@ Stop containers in one or more pods.  You may use pod IDs or names as input.
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Stops all pods
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the pod name or ID, stop the last created pod.
 
 The latest option is not supported on the remote client.
 
-**--timeout, --time, -t**
+**--timeout**, **--time**, **-t**=*time*
 
 Timeout to wait before forcibly stopping the containers in the pod.
 

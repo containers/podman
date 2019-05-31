@@ -17,19 +17,19 @@ any point.
 The initial status of the container created with **podman create** is 'created'.
 
 ## OPTIONS
-**--add-host**=[]
+**--add-host**=*host*
 
 Add a custom host-to-IP mapping (host:ip)
 
 Add a line to /etc/hosts. The format is hostname:ip.  The **--add-host**
 option can be set multiple times.
 
-**--annotation**=[]
+**--annotation**=*key=value*
 
 Add an annotation to the container. The format is key=value.
 The **--annotation** option can be set multiple times.
 
-**--attach**, **-a**=[]
+**--attach**, **-a**=*location*
 
 Attach to STDIN, STDOUT or STDERR.
 
@@ -40,42 +40,42 @@ error. It can even pretend to be a TTY (this is what most commandline
 executables expect) and pass along signals. The **-a** option can be set for
 each of stdin, stdout, and stderr.
 
-**--authfile**
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path` (Not available for remote commands)
 
-**--blkio-weight**=*0*
+**--blkio-weight**=*weight*
 
 Block IO weight (relative weight) accepts a weight value between 10 and 1000.
 
-**--blkio-weight-device**=[]
+**--blkio-weight-device**=*weight*
 
 Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
 
-**--cap-add**=[]
+**--cap-add**=*capabilitiy*
 
 Add Linux capabilities
 
-**--cap-drop**=[]
+**--cap-drop**=*capabilitiy*
 
 Drop Linux capabilities
 
-**--cgroup-parent**=""
+**--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
-**--cidfile**=""
+**--cidfile**=*id*
 
 Write the container ID to the file
 
-**--conmon-pidfile**=""
+**--conmon-pidfile**=*path*
 
 Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
 
-**--cpu-count**=*0*
+**--cpu-count**=*limit*
 
 Limit the number of CPUs available for execution by the container.
 
@@ -83,13 +83,13 @@ On Windows Server containers, this is approximated as a percentage of total CPU 
 
 On Windows Server containers, the processor resource controls are mutually exclusive, the order of precedence is CPUCount first, then CPUShares, and CPUPercent last.
 
-**--cpu-period**=*0*
+**--cpu-period**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) period
 
 Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
 
-**--cpu-quota**=*0*
+**--cpu-quota**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) quota
 
@@ -97,13 +97,13 @@ Limit the container's CPU usage. By default, containers run with the full
 CPU resource. This flag tell the kernel to restrict the container's CPU usage
 to the quota you specify.
 
-**--cpu-rt-period**=0
+**--cpu-rt-period**=*microseconds*
 
 Limit the CPU real-time period in microseconds
 
 Limit the container's Real Time CPU usage. This flag tell the kernel to restrict the container's Real Time CPU usage to the period you specify.
 
-**--cpu-rt-runtime**=0
+**--cpu-rt-runtime**=*microseconds*
 
 Limit the CPU real-time runtime in microseconds
 
@@ -112,7 +112,7 @@ Period of 1,000,000us and Runtime of 950,000us means that this container could c
 
 The sum of all runtimes across containers cannot exceed the amount allotted to the parent cgroup.
 
-**--cpu-shares**=*0*
+**--cpu-shares**=*shares*
 
 CPU shares (relative weight)
 
@@ -149,15 +149,15 @@ PID    container	CPU	CPU share
 101    {C1}		1	100% of CPU1
 102    {C1}		2	100% of CPU2
 
-**--cpus**=0.0
+**--cpus**=*number*
 
 Number of CPUs. The default is *0.0* which means no limit.
 
-**--cpuset-cpus**=""
+**--cpuset-cpus**=*cpus*
 
 CPUs in which to allow execution (0-3, 0,1)
 
-**--cpuset-mems**=""
+**--cpuset-mems**=*nodes*
 
 Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
 
@@ -165,7 +165,7 @@ If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
 two memory nodes.
 
-**--detach**, **-d**=*true*|*false*
+**--detach**, **-d**=*true|false*
 
 Detached mode: run the container in the background and print the new container ID. The default is *false*.
 
@@ -178,31 +178,31 @@ running) using a configurable key sequence. The default sequence is `ctrl-p,ctrl
 You configure the key sequence using the **--detach-keys** option or a configuration file.
 See **config-json(5)** for documentation on using a configuration file.
 
-**--detach-keys**=""
+**--detach-keys**=*char*
 
 Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
-**--device**=[]
+**--device**=*device*
 
 Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
 
-**--device-read-bps**=[]
+**--device-read-bps**=*path*
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
 
-**--device-read-iops**=[]
+**--device-read-iops**=*path*
 
 Limit read rate (IO per second) from a device (e.g. --device-read-iops=/dev/sda:1000)
 
-**--device-write-bps**=[]
+**--device-write-bps**=*path*
 
 Limit write rate (bytes per second) to a device (e.g. --device-write-bps=/dev/sda:1mb)
 
-**--device-write-iops**=[]
+**--device-write-iops**=*path*
 
 Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)
 
-**--dns**=[]
+**--dns**=*dns*
 
 Set custom DNS servers
 
@@ -214,15 +214,15 @@ is the case the **--dns** flags is necessary for every run.
 The special value **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
 The **/etc/resolv.conf** file in the image will be used without changes.
 
-**--dns-option**=[]
+**--dns-option**=*option*
 
 Set custom DNS options
 
-**--dns-search**=[]
+**--dns-search**=*domain*
 
 Set custom DNS search domains (Use --dns-search=. if you don't wish to set the search domain)
 
-**--entrypoint** *"command"* | *'["command", "arg1", ...]'*
+**--entrypoint**=*"command"* | *'["command", "arg1", ...]'*
 
 Overwrite the default ENTRYPOINT of the image
 
@@ -239,7 +239,7 @@ ENTRYPOINT.
 
 You need to specify multi option commands in the form of a json string.
 
-**--env**, **-e**=[]
+**--env**, **-e**=*env*
 
 Set environment variables
 
@@ -247,50 +247,50 @@ This option allows you to specify arbitrary
 environment variables that are available for the process that will be launched
 inside of the container.
 
-**--env-file**=[]
+**--env-file**=*file*
 
 Read in a line delimited file of environment variables
 
-**--expose**=[]
+**--expose**=*port*
 
 Expose a port, or a range of ports (e.g. --expose=3300-3310) to set up port redirection
 on the host system.
 
-**--gidmap**=map
+**--gidmap**=*container_gid:host_gid:amount*
 
 GID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subgidname` flags.
 
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host.
+The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
 
-**--group-add**=[]
+**--group-add**=*group*
 
 Add additional groups to run as
 
-**--healthcheck**=""
+**--healthcheck**=*command*
 
 Set or alter a healthcheck command for a container. The command is a command to be executed inside your
 container that determines your container health.  The command is required for other healthcheck options
 to be applied.  A value of `none` disables existing healthchecks.
 
-**--healthcheck-interval**=""
+**--healthcheck-interval**=*interval*
 
 Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
 
-**--healthcheck-retries=**
+**--healthcheck-retries**=*retries*
 
 The number of retries allowed before a healthcheck is considered to be unhealthy.  The default value is `3`.
 
-**--healthcheck-start-period**=""
+**--healthcheck-start-period**=*period*
 
 The initialization time needed for a container to bootstrap. The value can be expressed in time format like
 `2m3s`.  The default value is `0s`
 
-**--healthcheck-timeout**=""
+**--healthcheck-timeout**=*timeout*
 
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
 
-**--hostname**=""
+**--hostname**=*name*
 
 Container host name
 
@@ -300,7 +300,7 @@ Sets the container host name that is available inside the container.
 
 Print usage statement
 
-**--http-proxy**=*true*|*false*
+**--http-proxy**=*true|false*
 
 By default proxy environment variables are passed into the container if set
 for the podman process.  This can be disabled by setting the `--http-proxy`
@@ -320,7 +320,7 @@ container:
 
 Defaults to `true`
 
-**--image-volume**, **builtin-volume**=*bind*|*tmpfs*|*ignore*
+**--image-volume**, **builtin-volume**=*bind|tmpfs|ignore*
 
 Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind').
 bind: A directory is created inside the container state directory and bind mounted into
@@ -333,32 +333,32 @@ ignore: All volumes are just ignored and no action is taken.
 
 Run an init inside the container that forwards signals and reaps processes.
 
-**--init-path**=""
+**--init-path**=*path*
 
 Path to the container-init binary.
 
-**--interactive**, **-i**=*true*|*false*
+**--interactive**, **i**=*true|false*
 
 Keep STDIN open even if not attached. The default is *false*.
 
-**--ip6**=""
+**--ip6**=*ip*
 
 Not implemented
 
-**--ip**=""
+**--ip**=*ip*
 
 Specify a static IP address for the container, for example '10.88.64.128'.
 Can only be used if no additional CNI networks to join were specified via '--network=<network-name>', and if the container is not joining another container's network namespace via '--network=container:<name|id>'.
 The address must be within the default CNI network's pool (default 10.88.0.0/16).
 
-**--ipc**=""
+**--ipc**=*ipc*
 
 Default is to create a private IPC namespace (POSIX SysV IPC) for the container
                 'container:<name|id>': reuses another container shared memory, semaphores and message queues
                 'host': use the host shared memory,semaphores and message queues inside the container.  Note: the host mode gives the container full access to local shared memory and is therefore considered insecure.
                 'ns:<path>' path to an IPC namespace to join.
 
-**--kernel-memory**=""
+**--kernel-memory**=*number[unit]*
 
 Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)
 
@@ -368,15 +368,15 @@ is not limited. If you specify a limit, it may be rounded up to a multiple
 of the operating system's page size and the value can be very large,
 millions of trillions.
 
-**--label**, **-l**=[]
+**--label**, **-l**=*label*
 
 Add metadata to a container (e.g., --label com.example.key=value)
 
-**--label-file**=[]
+**--label-file**=*file*
 
 Read in a line delimited file of labels
 
-**--link-local-ip**=[]
+**--link-local-ip**=*ip*
 
 Not implemented
 
@@ -384,13 +384,13 @@ Not implemented
 
 Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
 
-**--log-opt**=[]
+**--log-opt**=*path*
 
 Logging driver specific options.  Used to set the path to the container log file.  For example:
 
 `--log-opt path=/var/log/container/mycontainer.json`
 
-**--mac-address**=""
+**--mac-address**=*address*
 
 Container MAC address (e.g. 92:d0:c6:0a:29:33)
 
@@ -400,7 +400,7 @@ according to RFC4862.
 
 Not currently supported
 
-**--memory**, **-m**=""
+**--memory**, **-m**=*limit*
 
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
 
@@ -410,7 +410,7 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
-**--memory-reservation**=""
+**--memory-reservation**=*limit*
 
 Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)
 
@@ -420,7 +420,7 @@ reservation. So you should always set the value below **--memory**, otherwise th
 hard limit will take precedence. By default, memory reservation will be the same
 as memory limit.
 
-**--memory-swap**="LIMIT"
+**--memory-swap**=*limit*
 
 A limit value equal to memory plus swap. Must be used with the  **-m**
 (**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
@@ -431,7 +431,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-**--memory-swappiness**=""
+**--memory-swappiness**=*number*
 
 Tune a container's memory swappiness behavior. Accepts an integer between 0 and 100.
 
@@ -465,7 +465,7 @@ Current supported mount TYPES are bind, and tmpfs.
 
               · tmpfs-mode: File mode of the tmpfs in octal. (e.g. 700 or 0700.) Defaults to 1777 in Linux.
 
-**--name**=""
+**--name**=*name*
 
 Assign a name to the container
 
@@ -490,26 +490,26 @@ Set the Network mode for the container
                 'ns:<path>': path to a network namespace to join
                 'slirp4netns': use slirp4netns to create a user network stack.  This is the default for rootless containers
 
-**--network-alias**=[]
+**--network-alias**=*alias*
 
 Not implemented
 
-**--no-hosts**=*true*|*false*
+**--no-hosts**=*true|false*
 
 Do not create /etc/hosts for the container.
 By default, Podman will manage /etc/hosts, adding the container's own IP address and any hosts from **--add-host**.
 **--no-hosts** disables this, and the image's **/etc/host** will be preserved unmodified.
 This option conflicts with **--add-host**.
 
-**--oom-kill-disable**=*true*|*false*
+**--oom-kill-disable**=*true|false*
 
 Whether to disable OOM Killer for the container or not.
 
-**--oom-score-adj**=""
+**--oom-score-adj**=*num*
 
 Tune the host's OOM preferences for containers (accepts -1000 to 1000)
 
-**--pid**=""
+**--pid**=*pid*
 
 Set the PID mode for the container
 Default is to create a private PID namespace for the container
@@ -517,16 +517,16 @@ Default is to create a private PID namespace for the container
                 'host': use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
                  'ns': join the specified PID namespace
 
-**--pids-limit**=""
+**--pids-limit**=*limit*
 
 Tune the container's pids limit. Set `-1` to have unlimited pids for the container.
 
-**--pod**=""
+**--pod**=*name*
 
 Run container in an existing pod. If you want podman to make the pod for you, preference the pod name with `new:`.
 To make a pod with more granular options, use the `podman pod create` command before creating a container.
 
-**--privileged**=*true*|*false*
+**--privileged**=*true|false*
 
 Give extended privileges to this container. The default is *false*.
 
@@ -540,7 +540,7 @@ to all devices on the host, turns off graphdriver mount options, as well as
 turning off most of the security measures protecting the host from the
 container.
 
-**--publish**, **-p**=[]
+**--publish**, **-p**=*port*
 
 Publish a container's port, or range of ports, to the host
 
@@ -552,7 +552,7 @@ but not `podman run -p 1230-1236:1230-1240 --name RangeContainerPortsBiggerThanR
 With ip: `podman run -p 127.0.0.1:$HOSTPORT:$CONTAINERPORT --name CONTAINER -t someimage`
 Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
 
-**--publish-all**, **-P**=*true*|*false*
+**--publish-all**, **-P**=*true|false*
 
 Publish all exposed ports to random ports on the host interfaces. The default is *false*.
 
@@ -564,11 +564,11 @@ port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress output information when pulling images
 
-**--read-only**=*true*|*false*
+**--read-only**=*true|false*
 
 Mount the container's root filesystem as read only.
 
@@ -576,10 +576,11 @@ By default a container will have its root filesystem writable allowing processes
 to write files anywhere.  By specifying the `--read-only` flag the container will have
 its root filesystem mounted as read only prohibiting any writes.
 
-**--read-only-tmpfs**=*true*|*false*
+**--read-only-tmpfs**=*true|false*
+
 If container is running in --read-only mode, then mount a read-write tmpfs on /run, /tmp, and /var/tmp.  The default is *true*
 
-**--restart=""**
+**--restart**=*policy*
 
 Restart policy to follow when containers exit.
 Restart policy will not take effect if a container is stopped via the `podman kill` or `podman stop` commands.
@@ -593,7 +594,7 @@ Please note that restart will not restart containers after a system reboot.
 If this functionality is required in your environment, you can invoke Podman from a systemd unit file, or create an init script for whichever init system is in use.
 To generate systemd unit files, please see *podman generate systemd*
 
-**--rm**=*true*|*false*
+**--rm**=*true|false*
 
 Automatically remove the container when it exits. The default is *false*.
 
@@ -608,7 +609,7 @@ If specified, the first argument refers to an exploded container on the file sys
 This is useful to run a container without requiring any image management, the rootfs
 of the container is assumed to be managed externally.
 
-**--security-opt**=[]
+**--security-opt**=*option*
 
 Security Options
 
@@ -628,7 +629,7 @@ Security Options
 
 Note: Labelling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
 
-**--shm-size**=""
+**--shm-size**=*size*
 
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
 Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
@@ -638,19 +639,19 @@ If you omit the unit, the system uses bytes. If you omit the size entirely, the 
 
 Signal to stop a container. Default is SIGTERM.
 
-**--stop-timeout**=*10*
+**--stop-timeout**=*seconds*
 
 Timeout (in seconds) to stop a container. Default is 10.
 
-**--subgidname**=name
+**--subgidname**=*name*
 
 Name for GID map from the `/etc/subgid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--gidmap`.
 
-**--subuidname**=name
+**--subuidname**=*name*
 
 Name for UID map from the `/etc/subuid` file.  Using this flag will run the container with user namespace enabled.  This flag conflicts with `--userns` and `--uidmap`.
 
-**--sysctl**=SYSCTL
+**--sysctl**=*SYSCTL*
 
 Configure namespaced kernel parameters at runtime
 
@@ -666,7 +667,7 @@ Network Namespace - current sysctls allowed:
 
 Note: if you use the --network=host option these sysctls will not be allowed.
 
-**--systemd**=*true*|*false*
+**--systemd**=*true|false*
 
 Run container in systemd mode. The default is *true*.
 
@@ -685,7 +686,9 @@ The `container_manage_cgroup` boolean must be enabled for this to be allowed on 
 
 `setsebool -P container_manage_cgroup true`
 
-**--tmpfs**=[] Create a tmpfs mount
+**--tmpfs**=*fs*
+
+Create a tmpfs mount
 
 Mount a temporary filesystem (`tmpfs`) mount into a container, for example:
 
@@ -696,7 +699,7 @@ options are the same as the Linux default `mount` flags. If you do not specify
 any options, the systems uses the following options:
 `rw,noexec,nosuid,nodev,size=65536k`.
 
-**--tty**, **-t**=*true*|*false*
+**--tty**, **-t**=*true|false*
 
 Allocate a pseudo-TTY. The default is *false*.
 
@@ -707,17 +710,17 @@ interactive shell. The default is false.
 Note: The **-t** option is incompatible with a redirection of the podman client
 standard input.
 
-**--uidmap**=map
+**--uidmap**=*container_uid:host_uid:amount*
 
 UID map for the user namespace.  Using this flag will run the container with user namespace enabled.  It conflicts with the `--userns` and `--subuidname` flags.
 
-The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host.
+The following example maps uids 0-2000 in the container to the uids 30000-31999 on the host and gids 0-2000 in the container to the gids 30000-31999 on the host. `--uidmap=0:30000:2000`
 
-**--ulimit**=[]
+**--ulimit**=*option*
 
 Ulimit options
 
-**--user**, **-u**=""
+**--user**, **-u**=*user*
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 
@@ -726,9 +729,9 @@ The followings examples are all valid:
 
 Without this argument the command will be run as root in the container.
 
-**--userns**=host
-**--userns**=keep-id
-**--userns**=ns:my_namespace
+**--userns**=*host*
+**--userns**=*keep-id*
+**--userns**=*ns:my_namespace*
 
 Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value means user namespaces are disabled.
 
@@ -844,7 +847,7 @@ If the location of the volume from the source container overlaps with
 data residing on a target container, then the volume hides
 that data on the target.
 
-**--workdir**, **-w**=""
+**--workdir**, **-w**=*dir*
 
 Working directory inside the container
 

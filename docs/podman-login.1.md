@@ -21,7 +21,7 @@ flag. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
 
 ## OPTIONS
 
-**--password, -p**
+**--password**, **-p**=*password*
 
 Password for registry
 
@@ -29,11 +29,11 @@ Password for registry
 
 Take the password from stdin
 
-**--username, -u**
+**--username**, **-u=***username*
 
 Username for registry
 
-**--authfile**
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
 
@@ -44,12 +44,12 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 
 Return the logged-in user for the registry.  Return error if no login is found.
 
-**--cert-dir** *path*
+**--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--tls-verify**
+**--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,

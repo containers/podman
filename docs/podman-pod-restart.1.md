@@ -14,11 +14,11 @@ When restarting multiple pods, an error from restarting one pod will not effect 
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Restarts all pods
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the pod name or ID, restart the last created pod.
 

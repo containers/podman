@@ -11,12 +11,12 @@ List port mappings for the *container* or lookup the public-facing port that is 
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 List all known port mappings for running containers.  When using this option, you cannot pass any container names
 or private ports/protocols as filters.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.

@@ -1,13 +1,13 @@
-% podman-system-renumber(1) podman
+% podman-system-renumber(1)
 
 ## NAME
 podman\-system\-renumber - Renumber container locks
 
 ## SYNOPSIS
-** podman system renumber**
+**podman system renumber**
 
 ## DESCRIPTION
-** podman system renumber** renumbers locks used by containers and pods.
+**podman system renumber** renumbers locks used by containers and pods.
 
 Each Podman container and pod is allocated a lock at creation time, up to a maximum number controlled by the **num_locks** parameter in **libpod.conf**.
 
@@ -19,11 +19,8 @@ When all available locks are exhausted, no further containers and pods can be cr
 
 If possible, avoid calling **podman system renumber** while there are other Podman processes running.
 
-## SYNOPSIS
-**podman system renumber**
-
 ## SEE ALSO
 `podman(1)`, `libpod.conf(5)`
 
-# HISTORY
+## HISTORY
 February 2019, Originally compiled by Matt Heon (mheon at redhat dot com)

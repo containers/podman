@@ -20,7 +20,7 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-**--output, -o**
+**--output**, **-o**
 
 Write to a file, default is STDOUT
 

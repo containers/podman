@@ -1,30 +1,25 @@
-% podman-generate Podman Man Pages
-% Brent Baude
-% December 2018
-# NAME
+% podman-generate-kube(1)
+## NAME
 podman-generate-kube - Generate Kubernetes YAML
 
-# SYNOPSIS
-**podman generate kube** [*-s*|*--service*] *container* | *pod*
+## SYNOPSIS
+**podman generate kube** [*options*] *container* | *pod*
 
-# DESCRIPTION
+## DESCRIPTION
 **podman generate kube** will generate Kubernetes Pod YAML (v1 specification) from a podman container or pod. Whether
 the input is for a container or pod, Podman will always generate the specification as a Pod. The input may be in the form
 of a pod or container name or ID.
 
-The **service** option can be used to generate a Service specification for the corresponding Pod ouput.  In particular,
-if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A
-random port is assigned by Podman in the specification.
-
 Note that the generated Kubernetes YAML file can be used to re-run the deployment via podman-play-kube(1).
 
-# OPTIONS:
+## OPTIONS:
 
-**--service** **-s**
+**--service**, **-s**
 
-Generate a Kubernetes service object in addition to the Pods.
+Generate a Kubernetes service object in addition to the Pods. Used to generate a Service specification for the corresponding Pod ouput. In particular, if the object has portmap bindings, the service specification will include a NodePort declaration to expose the service. A
+random port is assigned by Podman in the specification.
 
-## Examples ##
+## Examples
 
 Create Kubernetes Pod YAML for a container called `some-mariadb` .
 ```
@@ -147,5 +142,5 @@ status:
 ## SEE ALSO
 podman(1), podman-container(1), podman-pod(1), podman-play-kube(1)
 
-# HISTORY
+## HISTORY
 Decemeber 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

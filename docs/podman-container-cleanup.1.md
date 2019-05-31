@@ -7,16 +7,16 @@ podman\-container\-cleanup - Cleanup Container storage and networks
 **podman container cleanup** [*options*] *container*
 
 ## DESCRIPTION
-`podman container cleanup` cleans up exited containers by removing all mountpoints and network configuration from the host.  The container name or ID can be used.  The cleanup command does not remove the containers.  Running containers will not be cleaned up.
+**podman container cleanup** cleans up exited containers by removing all mountpoints and network configuration from the host.  The container name or ID can be used.  The cleanup command does not remove the containers.  Running containers will not be cleaned up.
 Sometimes container's mount points and network stacks can remain if the podman command was killed or the container ran in daemon mode.  This command is automatically executed when you run containers in daemon mode by the conmon process when the container exits.
 
 ## OPTIONS
 
-**--all, a**
+**--all**, **a**
 
 Cleanup all containers.
 
-**--latest, -l**
+**--latest**, **-l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 

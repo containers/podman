@@ -1,4 +1,4 @@
-% podman-top "1"
+% podman-top(1)
 
 ## NAME
 podman\-top - Display the running processes of a container
@@ -11,11 +11,11 @@ Display the running processes of the container. The *format-descriptors* are ps 
 
 ## OPTIONS
 
-**--help, -h**
+**--help**, **-h**
 
-  Print usage statement
+Print usage statement
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.

@@ -38,7 +38,7 @@ Includes the container IDs in the container info field
 
 Includes the container statuses in the container info field
 
-**--latest, -l**
+**--latest**,**-l**
 
 Show the latest pod created (all states)
 
@@ -48,11 +48,11 @@ The latest option is not supported on the remote client.
 
 Display the extended information
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Print the numeric IDs of the pods only
 
-**--format**
+**--format**=*format*
 
 Pretty-print containers to JSON or using a Go template
 
@@ -75,7 +75,7 @@ Sort by created, ID, name, status, or number of containers
 
 Default: created
 
-**--filter, -f**
+**--filter**, **-f=***filter*
 
 Filter output based on conditions given
 

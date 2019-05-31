@@ -1,21 +1,12 @@
-% PODMAN(1) Podman Man Pages
-% Brent Baude
-% September 2018
-# NAME
+% podman-container-runlabel(1)
+
+## NAME
 podman-container-runlabel - Execute Image Label Method
 
-# SYNOPSIS
-**podman container runlabel**
-[**-h**|**--help**]
-[**--display**]
-[**-n**][**--name**[=*NAME*]]
-[**--rootfs**=*ROOTFS*]
-[**--set**=*NAME*=*VALUE*]
-[**--storage**]
-[**--replace**]
-LABEL IMAGE [ARG...]
+## SYNOPSIS
+**podman container runlabel** [*options*] *LABEL* *IMAGE* [ARG...]
 
-# DESCRIPTION
+## DESCRIPTION
 **podman container runlabel** reads the provided `LABEL` field in the container
 IMAGE and executes the provided value for the label as a command. If this field does not
 exist, `podman container runlabel` will just exit.
@@ -51,8 +42,8 @@ is used.
 
 Any additional arguments will be appended to the command.
 
-# OPTIONS:
-**--authfile**
+## OPTIONS:
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
@@ -65,25 +56,25 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 Display the label's value of the image having populated its environment variables.
 The runlabel command will not execute if --display is specified.
 
-**--cert-dir** *path*
+**--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--creds**
+**--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--help** **-h**
+**--help**, **-h**
 Print usage statement
 
-**--name** **-n**=""
+**--name**, **-n**=*name*
 
 Use this name for creating content for the container. NAME will default to the IMAGENAME if it is not specified.
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress output information when pulling images
 
@@ -92,13 +83,24 @@ Suppress output information when pulling images
 If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be
 created from this image.
 
+**--rootfs**=*ROOTFS*
+
+Set rootfs
+
+**--set**=*NAME*=*VALUE*
+
+Set name & value
+
+**--storage**
+Use storage
+
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
 TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf (Not available for remote commands)
 
-## Examples ##
+## Examples
 
 Execute the run label of an image called foobar.
 ```
@@ -118,5 +120,5 @@ $ sudo podman container runlabel --display run foobar
 ## SEE ALSO
 podman(1)
 
-# HISTORY
+## HISTORY
 September 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

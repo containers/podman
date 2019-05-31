@@ -1,11 +1,11 @@
-% podman-tag "1"
+% podman-tag(1)
 
 ## NAME
 podman\-tag - Add an additional name to a local image
 
 ## SYNOPSIS
-**podman tag** *image*[:*tag*] *target-name*[:*tag*]
-[**--help**|**-h**]
+**podman tag** *image*[:*tag*] *target-name*[:*tag*] [*options*]
+
 
 ## DESCRIPTION
 Assigns a new alias to an image.  An alias refers to the entire image name, including the optional

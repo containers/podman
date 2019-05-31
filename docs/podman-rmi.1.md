@@ -1,12 +1,12 @@
-% podman-image-rm(1)
+% podman-rmi(1)
 
 ## NAME
 podman\-image\-rm (podman\-rmi) - Removes one or more images
 
 ## SYNOPSIS
-**podman image rm** *image* ...
+**podman image rm** *image* [...]
 
-**podman rmi** *image* ...
+**podman rmi** *image* [...]
 
 ## DESCRIPTION
 Removes one or more locally stored images.
