@@ -149,7 +149,7 @@ CONFIG_USER_NS=y
 ```
 
 If not, please update the kernel.
-For Manjaro Linux the instructions could be found here:
+For Manjaro Linux the instructions can be found here:
 https://wiki.manjaro.org/index.php/Manjaro_Kernels
 
 After that enable user namespaces:
