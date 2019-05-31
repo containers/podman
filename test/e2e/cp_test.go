@@ -163,15 +163,15 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp symlink", func() {
-		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
-		fromHostToContainer := []byte("copy from host to container")
-		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
-		Expect(err).To(BeNil())
-
 		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		name := session.OutputToString()
+
+		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
+		fromHostToContainer := []byte("copy from host to container")
+		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
+		Expect(err).To(BeNil())
 
 		session = podmanTest.Podman([]string{"exec", name, "ln", "-s", "/tmp", "/test"})
 		session.WaitWithDefaultTimeout()

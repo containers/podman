@@ -18,6 +18,7 @@ At a high level, the scope of libpod and Podman is the following:
 * Full management of container lifecycle
 * Support for pods to manage groups of containers together
 * Resource isolation of containers and pods.
+* Support for a Docker-compatible CLI interface through Podman.
 * Integration with CRI-O to share containers and backend code.
 
 This project tests all builds against each supported version of Fedora, the latest released version of Red Hat Enterprise Linux, and the latest Ubuntu Long Term Support release. The community has also reported success with other Linux flavors.
