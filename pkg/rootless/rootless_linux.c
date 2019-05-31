@@ -276,6 +276,8 @@ static void __attribute__((constructor)) init()
           free (cwd);
           return;
         }
+      buf[r] = '\0';
+
       pid = strtol (buf, NULL, 10);
       if (pid == LONG_MAX)
         {
