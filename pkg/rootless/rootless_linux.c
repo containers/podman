@@ -34,6 +34,15 @@ int renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newp
 }
 #endif
 
+#ifndef TEMP_FAILURE_RETRY
+#define TEMP_FAILURE_RETRY(expression) \
+  (__extension__                                                              \
+    ({ long int __result;                                                     \
+       do __result = (long int) (expression);                                 \
+       while (__result == -1L && errno == EINTR);                             \
+       __result; }))
+#endif
+
 static const char *_max_user_namespaces = "/proc/sys/user/max_user_namespaces";
 static const char *_unprivileged_user_namespaces = "/proc/sys/kernel/unprivileged_userns_clone";
 
@@ -113,9 +122,7 @@ get_cmd_line_args (pid_t pid)
     return NULL;
   for (;;)
     {
-      do
-        ret = read (fd, buffer + used, allocated - used);
-      while (ret < 0 && errno == EINTR);
+      ret = TEMP_FAILURE_RETRY (read (fd, buffer + used, allocated - used));
       if (ret < 0)
         {
           free (buffer);
@@ -180,7 +187,7 @@ can_use_shortcut ()
 
   argv = get_cmd_line_args (0);
   if (argv == NULL)
-    return NULL;
+    return false;
 
   for (argc = 0; argv[argc]; argc++)
     {
@@ -269,13 +276,15 @@ static void __attribute__((constructor)) init()
           return;
         }
 
-      r = read (fd, buf, sizeof (buf));
+      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf)));
       close (fd);
       if (r < 0)
         {
           free (cwd);
           return;
         }
+      buf[r] = '\0';
+
       pid = strtol (buf, NULL, 10);
       if (pid == LONG_MAX)
         {
@@ -352,10 +361,7 @@ reexec_in_user_namespace_wait (int pid, int options)
   pid_t p;
   int status;
 
-  do
-    p = waitpid (pid, &status, 0);
-  while (p < 0 && errno == EINTR);
-
+  p = TEMP_FAILURE_RETRY (waitpid (pid, &status, 0));
   if (p < 0)
     return -1;
 
@@ -384,12 +390,10 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
       close (p[1]);
       /* Block until we write the pid file.  */
-      do
-        r = read (p[0], &b, 1);
-      while (r < 0 && errno == EINTR);
+      r = TEMP_FAILURE_RETRY (read (p[0], &b, 1));
       close (p[0]);
 
-      reexec_in_user_namespace_wait(r, 0);
+      reexec_in_user_namespace_wait (r, 0);
 
       return r == 1 && b == '0' ? 0 : -1;
     }
@@ -426,9 +430,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
               _exit (EXIT_FAILURE);
             }
 
-          do
-            r = write (fd, pid_str, strlen (pid_str));
-          while (r < 0 && errno == EINTR);
+          r = TEMP_FAILURE_RETRY (write (fd, pid_str, strlen (pid_str)));
           if (r < 0)
             {
               kill (pid, SIGKILL);
@@ -445,9 +447,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
               _exit (EXIT_FAILURE);
             }
 
-          do
-             r = write (p[1], "0", 1);
-          while (r < 0 && errno == EINTR);
+          r = TEMP_FAILURE_RETRY (write (p[1], "0", 1));
           close (p[1]);
 
           _exit (EXIT_SUCCESS);
@@ -609,9 +609,7 @@ copy_file_to_fd (const char *file_to_read, int outfd)
     {
       ssize_t r, w, t = 0;
 
-      do
-        r = read (fd, buf, sizeof buf);
-      while (r < 0 && errno == EINTR);
+      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof buf));
       if (r < 0)
         {
           close (fd);
@@ -623,9 +621,7 @@ copy_file_to_fd (const char *file_to_read, int outfd)
 
       while (t < r)
         {
-          do
-            w = write (outfd, &buf[t], r - t);
-          while (w < 0 && errno == EINTR);
+          w = TEMP_FAILURE_RETRY (write (outfd, &buf[t], r - t));
           if (w < 0)
             {
               close (fd);
@@ -734,9 +730,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
   setenv ("_CONTAINERS_ROOTLESS_GID", gid, 1);
 
-  do
-    ret = read (ready, &b, 1) < 0;
-  while (ret < 0 && errno == EINTR);
+  ret = TEMP_FAILURE_RETRY (read (ready, &b, 1));
   if (ret < 0)
     {
       fprintf (stderr, "cannot read from sync pipe: %s\n", strerror (errno));
@@ -748,21 +742,21 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   if (syscall_setresgid (0, 0, 0) < 0)
     {
       fprintf (stderr, "cannot setresgid: %s\n", strerror (errno));
-      write (ready, "1", 1);
+      TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
 
   if (syscall_setresuid (0, 0, 0) < 0)
     {
       fprintf (stderr, "cannot setresuid: %s\n", strerror (errno));
-      write (ready, "1", 1);
+      TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
 
   if (chdir (cwd) < 0)
     {
       fprintf (stderr, "cannot chdir: %s\n", strerror (errno));
-      write (ready, "1", 1);
+      TEMP_FAILURE_RETRY (write (ready, "1", 1));
       _exit (EXIT_FAILURE);
     }
   free (cwd);
@@ -771,14 +765,12 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
     {
       if (create_pause_process (pause_pid_file_path, argv) < 0)
         {
-          write (ready, "2", 1);
+          TEMP_FAILURE_RETRY (write (ready, "2", 1));
           _exit (EXIT_FAILURE);
         }
     }
 
-  do
-    ret = write (ready, "0", 1) < 0;
-  while (ret < 0 && errno == EINTR);
+  ret = TEMP_FAILURE_RETRY (write (ready, "0", 1));
   close (ready);
 
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
