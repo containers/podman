@@ -177,8 +177,8 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-umount(1)](podman-umount.1.md)           | Unmount a working container's root filesystem.                              |
 | [podman-unpause(1)](podman-unpause.1.md)         | Unpause one or more containers.                                             |
 | [podman-unshare(1)](podman-unshare.1.md)         | Run a command inside of a modified user namespace.                          |
-| [podman-version(1)](podman-varlink.1.md)         | Runs the varlink backend interface.                                         |
-| [podman-varlink(1)](podman-version.1.md)         | Display the Podman version information.                                     |
+| [podman-varlink(1)](podman-varlink.1.md)         | Runs the varlink backend interface.                                         |
+| [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
 | [podman-volume(1)](podman-volume.1.md)           | Manage Volumes.                                                             |
 | [podman-wait(1)](podman-wait.1.md)               | Wait on one or more containers to stop and print their exit codes.          |
 
