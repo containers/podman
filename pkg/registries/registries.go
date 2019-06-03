@@ -56,7 +56,7 @@ func GetBlockedRegistries() ([]string, error) {
 	}
 	for _, reg := range registries {
 		if reg.Blocked {
-			blockedRegistries = append(blockedRegistries, reg.Location)
+			blockedRegistries = append(blockedRegistries, reg.Prefix)
 		}
 	}
 	return blockedRegistries, nil
@@ -71,7 +71,7 @@ func GetInsecureRegistries() ([]string, error) {
 	}
 	for _, reg := range registries {
 		if reg.Insecure {
-			insecureRegistries = append(insecureRegistries, reg.Location)
+			insecureRegistries = append(insecureRegistries, reg.Prefix)
 		}
 	}
 	return insecureRegistries, nil
