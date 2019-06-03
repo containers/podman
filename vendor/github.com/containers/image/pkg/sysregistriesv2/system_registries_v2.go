@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -35,10 +36,10 @@ type Endpoint struct {
 	Insecure bool `toml:"insecure"`
 }
 
-// RewriteReference will substitute the provided reference `prefix` to the
+// rewriteReference will substitute the provided reference `prefix` to the
 // endpoints `location` from the `ref` and creates a new named reference from it.
 // The function errors if the newly created reference is not parsable.
-func (e *Endpoint) RewriteReference(ref reference.Named, prefix string) (reference.Named, error) {
+func (e *Endpoint) rewriteReference(ref reference.Named, prefix string) (reference.Named, error) {
 	refString := ref.String()
 	if !refMatchesPrefix(refString, prefix) {
 		return nil, fmt.Errorf("invalid prefix '%v' for reference '%v'", prefix, refString)
@@ -61,14 +62,51 @@ type Registry struct {
 	Mirrors []Endpoint `toml:"mirror"`
 	// If true, pulling from the registry will be blocked.
 	Blocked bool `toml:"blocked"`
-	// If true, the registry can be used when pulling an unqualified image.
-	Search bool `toml:"unqualified-search"`
+	// If true, mirrors will only be used for digest pulls. Pulling images by
+	// tag can potentially yield different images, depending on which endpoint
+	// we pull from.  Forcing digest-pulls for mirrors avoids that issue.
+	MirrorByDigestOnly bool `toml:"mirror-by-digest-only"`
 	// Prefix is used for matching images, and to translate one namespace to
 	// another.  If `Prefix="example.com/bar"`, `location="example.com/foo/bar"`
 	// and we pull from "example.com/bar/myimage:latest", the image will
 	// effectively be pulled from "example.com/foo/bar/myimage:latest".
 	// If no Prefix is specified, it defaults to the specified location.
 	Prefix string `toml:"prefix"`
+}
+
+// PullSource consists of an Endpoint and a Reference. Note that the reference is
+// rewritten according to the registries prefix and the Endpoint's location.
+type PullSource struct {
+	Endpoint  Endpoint
+	Reference reference.Named
+}
+
+// PullSourcesFromReference returns a slice of PullSource's based on the passed
+// reference.
+func (r *Registry) PullSourcesFromReference(ref reference.Named) ([]PullSource, error) {
+	var endpoints []Endpoint
+
+	if r.MirrorByDigestOnly {
+		// Only use mirrors when the reference is a digest one.
+		if _, isDigested := ref.(reference.Canonical); isDigested {
+			endpoints = append(r.Mirrors, r.Endpoint)
+		} else {
+			endpoints = []Endpoint{r.Endpoint}
+		}
+	} else {
+		endpoints = append(r.Mirrors, r.Endpoint)
+	}
+
+	sources := []PullSource{}
+	for _, ep := range endpoints {
+		rewritten, err := ep.rewriteReference(ref, r.Prefix)
+		if err != nil {
+			return nil, err
+		}
+		sources = append(sources, PullSource{Endpoint: ep, Reference: rewritten})
+	}
+
+	return sources, nil
 }
 
 // V1TOMLregistries is for backwards compatibility to sysregistries v1
@@ -83,11 +121,35 @@ type V1TOMLConfig struct {
 	Block    V1TOMLregistries `toml:"block"`
 }
 
+// V1RegistriesConf is the sysregistries v1 configuration format.
+type V1RegistriesConf struct {
+	V1TOMLConfig `toml:"registries"`
+}
+
+// Nonempty returns true if config contains at least one configuration entry.
+func (config *V1RegistriesConf) Nonempty() bool {
+	return (len(config.V1TOMLConfig.Search.Registries) != 0 ||
+		len(config.V1TOMLConfig.Insecure.Registries) != 0 ||
+		len(config.V1TOMLConfig.Block.Registries) != 0)
+}
+
+// V2RegistriesConf is the sysregistries v2 configuration format.
+type V2RegistriesConf struct {
+	Registries []Registry `toml:"registry"`
+	// An array of host[:port] (not prefix!) entries to use for resolving unqualified image references
+	UnqualifiedSearchRegistries []string `toml:"unqualified-search-registries"`
+}
+
+// Nonempty returns true if config contains at least one configuration entry.
+func (config *V2RegistriesConf) Nonempty() bool {
+	return (len(config.Registries) != 0 ||
+		len(config.UnqualifiedSearchRegistries) != 0)
+}
+
 // tomlConfig is the data type used to unmarshal the toml config.
 type tomlConfig struct {
-	Registries []Registry `toml:"registry"`
-	// backwards compatability to sysregistries v1
-	V1TOMLConfig `toml:"registries"`
+	V2RegistriesConf
+	V1RegistriesConf // for backwards compatibility with sysregistries v1
 }
 
 // InvalidRegistries represents an invalid registry configurations.  An example
@@ -120,12 +182,10 @@ func parseLocation(input string) (string, error) {
 	return trimmed, nil
 }
 
-// getV1Registries transforms v1 registries in the config into an array of v2
-// registries of type Registry.
-func getV1Registries(config *tomlConfig) ([]Registry, error) {
+// ConvertToV2 returns a v2 config corresponding to a v1 one.
+func (config *V1RegistriesConf) ConvertToV2() (*V2RegistriesConf, error) {
 	regMap := make(map[string]*Registry)
-	// We must preserve the order of config.V1Registries.Search.Registries at least.  The order of the
-	// other registries is not really important, but make it deterministic (the same for the same config file)
+	// The order of the registries is not really important, but make it deterministic (the same for the same config file)
 	// to minimize behavior inconsistency and not contribute to difficult-to-reproduce situations.
 	registryOrder := []string{}
 
@@ -148,15 +208,6 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 		return reg, nil
 	}
 
-	// Note: config.V1Registries.Search needs to be processed first to ensure registryOrder is populated in the right order
-	// if one of the search registries is also in one of the other lists.
-	for _, search := range config.V1TOMLConfig.Search.Registries {
-		reg, err := getRegistry(search)
-		if err != nil {
-			return nil, err
-		}
-		reg.Search = true
-	}
 	for _, blocked := range config.V1TOMLConfig.Block.Registries {
 		reg, err := getRegistry(blocked)
 		if err != nil {
@@ -172,28 +223,31 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 		reg.Insecure = true
 	}
 
-	registries := []Registry{}
+	res := &V2RegistriesConf{
+		UnqualifiedSearchRegistries: config.V1TOMLConfig.Search.Registries,
+	}
 	for _, location := range registryOrder {
 		reg := regMap[location]
-		registries = append(registries, *reg)
+		res.Registries = append(res.Registries, *reg)
 	}
-	return registries, nil
+	return res, nil
 }
 
-// postProcessRegistries checks the consistency of all registries (e.g., set
-// the Prefix to Location if not set) and applies conflict checks.  It returns an
-// array of cleaned registries and error in case of conflicts.
-func postProcessRegistries(regs []Registry) ([]Registry, error) {
-	var registries []Registry
-	regMap := make(map[string][]Registry)
+// anchoredDomainRegexp is an internal implementation detail of postProcess, defining the valid values of elements of UnqualifiedSearchRegistries.
+var anchoredDomainRegexp = regexp.MustCompile("^" + reference.DomainRegexp.String() + "$")
 
-	for _, reg := range regs {
-		var err error
+// postProcess checks the consistency of all the configuration, looks for conflicts,
+// and normalizes the configuration (e.g., sets the Prefix to Location if not set).
+func (config *V2RegistriesConf) postProcess() error {
+	regMap := make(map[string][]*Registry)
 
+	for i := range config.Registries {
+		reg := &config.Registries[i]
 		// make sure Location and Prefix are valid
+		var err error
 		reg.Location, err = parseLocation(reg.Location)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if reg.Prefix == "" {
@@ -201,7 +255,7 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 		} else {
 			reg.Prefix, err = parseLocation(reg.Prefix)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -209,10 +263,9 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 		for _, mir := range reg.Mirrors {
 			mir.Location, err = parseLocation(mir.Location)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
-		registries = append(registries, reg)
 		regMap[reg.Location] = append(regMap[reg.Location], reg)
 	}
 
@@ -222,22 +275,32 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	//
 	// Note: we need to iterate over the registries array to ensure a
 	// deterministic behavior which is not guaranteed by maps.
-	for _, reg := range registries {
+	for _, reg := range config.Registries {
 		others, _ := regMap[reg.Location]
 		for _, other := range others {
 			if reg.Insecure != other.Insecure {
 				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.Location)
-
-				return nil, &InvalidRegistries{s: msg}
+				return &InvalidRegistries{s: msg}
 			}
 			if reg.Blocked != other.Blocked {
 				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'blocked' setting", reg.Location)
-				return nil, &InvalidRegistries{s: msg}
+				return &InvalidRegistries{s: msg}
 			}
 		}
 	}
 
-	return registries, nil
+	for i := range config.UnqualifiedSearchRegistries {
+		registry, err := parseLocation(config.UnqualifiedSearchRegistries[i])
+		if err != nil {
+			return err
+		}
+		if !anchoredDomainRegexp.MatchString(registry) {
+			return &InvalidRegistries{fmt.Sprintf("Invalid unqualified-search-registries entry %#v", registry)}
+		}
+		config.UnqualifiedSearchRegistries[i] = registry
+	}
+
+	return nil
 }
 
 // getConfigPath returns the system-registries config path if specified.
@@ -260,7 +323,7 @@ var configMutex = sync.Mutex{}
 // configCache caches already loaded configs with config paths as keys and is
 // used to avoid redudantly parsing configs. Concurrent accesses to the cache
 // are synchronized via configMutex.
-var configCache = make(map[string][]Registry)
+var configCache = make(map[string]*V2RegistriesConf)
 
 // InvalidateCache invalidates the registry cache.  This function is meant to be
 // used for long-running processes that need to reload potential changes made to
@@ -268,20 +331,18 @@ var configCache = make(map[string][]Registry)
 func InvalidateCache() {
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	configCache = make(map[string][]Registry)
+	configCache = make(map[string]*V2RegistriesConf)
 }
 
-// GetRegistries loads and returns the registries specified in the config.
-// Note the parsed content of registry config files is cached.  For reloading,
-// use `InvalidateCache` and re-call `GetRegistries`.
-func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
+// getConfig returns the config object corresponding to ctx, loading it if it is not yet cached.
+func getConfig(ctx *types.SystemContext) (*V2RegistriesConf, error) {
 	configPath := getConfigPath(ctx)
 
 	configMutex.Lock()
 	defer configMutex.Unlock()
 	// if the config has already been loaded, return the cached registries
-	if registries, inCache := configCache[configPath]; inCache {
-		return registries, nil
+	if config, inCache := configCache[configPath]; inCache {
+		return config, nil
 	}
 
 	// load the config
@@ -292,51 +353,53 @@ func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 		// isn't set.  Note: if ctx.SystemRegistriesConfPath points to
 		// the default config, we will still return an error.
 		if os.IsNotExist(err) && (ctx == nil || ctx.SystemRegistriesConfPath == "") {
-			return []Registry{}, nil
+			return &V2RegistriesConf{Registries: []Registry{}}, nil
 		}
 		return nil, err
 	}
 
-	registries := config.Registries
+	v2Config := &config.V2RegistriesConf
 
 	// backwards compatibility for v1 configs
-	v1Registries, err := getV1Registries(config)
-	if err != nil {
-		return nil, err
-	}
-	if len(v1Registries) > 0 {
-		if len(registries) > 0 {
+	if config.V1RegistriesConf.Nonempty() {
+		if config.V2RegistriesConf.Nonempty() {
 			return nil, &InvalidRegistries{s: "mixing sysregistry v1/v2 is not supported"}
 		}
-		registries = v1Registries
+		v2, err := config.V1RegistriesConf.ConvertToV2()
+		if err != nil {
+			return nil, err
+		}
+		v2Config = v2
 	}
 
-	registries, err = postProcessRegistries(registries)
-	if err != nil {
+	if err := v2Config.postProcess(); err != nil {
 		return nil, err
 	}
 
 	// populate the cache
-	configCache[configPath] = registries
-
-	return registries, err
+	configCache[configPath] = v2Config
+	return v2Config, nil
 }
 
-// FindUnqualifiedSearchRegistries returns all registries that are configured
-// for unqualified image search (i.e., with Registry.Search == true).
-func FindUnqualifiedSearchRegistries(ctx *types.SystemContext) ([]Registry, error) {
-	registries, err := GetRegistries(ctx)
+// GetRegistries loads and returns the registries specified in the config.
+// Note the parsed content of registry config files is cached.  For reloading,
+// use `InvalidateCache` and re-call `GetRegistries`.
+func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
+	config, err := getConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
+	return config.Registries, nil
+}
 
-	unqualified := []Registry{}
-	for _, reg := range registries {
-		if reg.Search {
-			unqualified = append(unqualified, reg)
-		}
+// UnqualifiedSearchRegistries returns a list of host[:port] entries to try
+// for unqualified image search, in the returned order)
+func UnqualifiedSearchRegistries(ctx *types.SystemContext) ([]string, error) {
+	config, err := getConfig(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return unqualified, nil
+	return config.UnqualifiedSearchRegistries, nil
 }
 
 // refMatchesPrefix returns true iff ref,
@@ -371,14 +434,14 @@ func refMatchesPrefix(ref, prefix string) bool {
 // — note that this requires the name to start with an explicit hostname!).
 // If no Registry prefixes the image, nil is returned.
 func FindRegistry(ctx *types.SystemContext, ref string) (*Registry, error) {
-	registries, err := GetRegistries(ctx)
+	config, err := getConfig(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	reg := Registry{}
 	prefixLen := 0
-	for _, r := range registries {
+	for _, r := range config.Registries {
 		if refMatchesPrefix(ref, r.Prefix) {
 			length := len(r.Prefix)
 			if length > prefixLen {
@@ -393,21 +456,12 @@ func FindRegistry(ctx *types.SystemContext, ref string) (*Registry, error) {
 	return nil, nil
 }
 
-// Reads the global registry file from the filesystem. Returns a byte array.
-func readRegistryConf(configPath string) ([]byte, error) {
-	configBytes, err := ioutil.ReadFile(configPath)
-	return configBytes, err
-}
-
-// Used in unittests to parse custom configs without a types.SystemContext.
-var readConf = readRegistryConf
-
 // Loads the registry configuration file from the filesystem and then unmarshals
 // it.  Returns the unmarshalled object.
 func loadRegistryConf(configPath string) (*tomlConfig, error) {
 	config := &tomlConfig{}
 
-	configBytes, err := readConf(configPath)
+	configBytes, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		return nil, err
 	}

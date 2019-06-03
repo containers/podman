@@ -37,6 +37,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	var (
 		memoryLimit int64
 		memorySwap  int64
+		noDNS       bool
 		err         error
 	)
 
@@ -67,9 +68,26 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		}
 	}
 
+	noDNS = false
 	dnsServers, _ := c.Flags().GetStringSlice("dns")
+	for _, server := range dnsServers {
+		if strings.ToLower(server) == "none" {
+			noDNS = true
+		}
+	}
+	if noDNS && len(dnsServers) > 1 {
+		return nil, errors.Errorf("invalid --dns, --dns=none may not be used with any other --dns options")
+	}
+
 	dnsSearch, _ := c.Flags().GetStringSlice("dns-search")
+	if noDNS && len(dnsSearch) > 0 {
+		return nil, errors.Errorf("invalid --dns-search, --dns-search may not be used with --dns=none")
+	}
+
 	dnsOptions, _ := c.Flags().GetStringSlice("dns-option")
+	if noDNS && len(dnsOptions) > 0 {
+		return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
+	}
 
 	if _, err := units.FromHumanSize(c.Flag("shm-size").Value.String()); err != nil {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
@@ -80,7 +98,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	}
 	cpuPeriod, _ := c.Flags().GetUint64("cpu-period")
 	cpuQuota, _ := c.Flags().GetInt64("cpu-quota")
-	cpuShares, _ := c.Flags().GetUint64("cpu-shared")
+	cpuShares, _ := c.Flags().GetUint64("cpu-shares")
 	httpProxy, _ := c.Flags().GetBool("http-proxy")
 	ulimit, _ := c.Flags().GetStringSlice("ulimit")
 	commonOpts := &buildah.CommonBuildOptions{

@@ -27,7 +27,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	docker "github.com/fsouza/go-dockerclient"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -210,7 +210,6 @@ type Executor struct {
 	annotations                    []string
 	onbuild                        []string
 	layers                         bool
-	topLayers                      []string
 	useCache                       bool
 	removeIntermediateCtrs         bool
 	forceRmIntermediateCtrs        bool
@@ -515,26 +514,55 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		for _, src := range copy.Src {
 			contextDir := s.executor.contextDir
 			copyExcludes := excludes
+			var idMappingOptions *buildah.IDMappingOptions
 			if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 				sources = append(sources, src)
 			} else if len(copy.From) > 0 {
+				var srcRoot string
 				if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
-					sources = append(sources, filepath.Join(other.mountPoint, src))
+					srcRoot = other.mountPoint
 					contextDir = other.mountPoint
+					idMappingOptions = &other.builder.IDMappingOptions
 				} else if builder, ok := s.executor.containerMap[copy.From]; ok {
-					sources = append(sources, filepath.Join(builder.MountPoint, src))
+					srcRoot = builder.MountPoint
 					contextDir = builder.MountPoint
+					idMappingOptions = &builder.IDMappingOptions
 				} else {
 					return errors.Errorf("the stage %q has not been built", copy.From)
 				}
+				srcSecure, err := securejoin.SecureJoin(srcRoot, src)
+				if err != nil {
+					return err
+				}
+				// If destination is a folder, we need to take extra care to
+				// ensure that files are copied with correct names (since
+				// resolving a symlink may result in a different name).
+				if hadFinalPathSeparator {
+					_, srcName := filepath.Split(src)
+					_, srcNameSecure := filepath.Split(srcSecure)
+					if srcName != srcNameSecure {
+						options := buildah.AddAndCopyOptions{
+							Chown:      copy.Chown,
+							ContextDir: contextDir,
+							Excludes:   copyExcludes,
+						}
+						if err := s.builder.Add(filepath.Join(copy.Dest, srcName), copy.Download, options, srcSecure); err != nil {
+							return err
+						}
+						continue
+					}
+				}
+				sources = append(sources, srcSecure)
+
 			} else {
 				sources = append(sources, filepath.Join(s.executor.contextDir, src))
 				copyExcludes = append(s.executor.excludes, excludes...)
 			}
 			options := buildah.AddAndCopyOptions{
-				Chown:      copy.Chown,
-				ContextDir: contextDir,
-				Excludes:   copyExcludes,
+				Chown:            copy.Chown,
+				ContextDir:       contextDir,
+				Excludes:         copyExcludes,
+				IDMappingOptions: idMappingOptions,
 			}
 			if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
 				return err
@@ -860,9 +888,6 @@ func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, f
 		// Make this our "current" working container.
 		s.mountPoint = mountPoint
 		s.builder = builder
-		// Add the top layer of this image to b.topLayers so we can
-		// keep track of them when building with cached images.
-		s.executor.topLayers = append(s.executor.topLayers, builder.TopLayer)
 	}
 	logrus.Debugln("Container ID:", builder.ContainerID)
 	return builder, nil
@@ -967,7 +992,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 	}
 	logImageID := func(imgID string) {
 		if s.executor.iidfile == "" {
-			fmt.Fprintf(s.executor.out, "--> %s\n", imgID)
+			fmt.Fprintf(s.executor.out, "%s\n", imgID)
 		}
 	}
 
@@ -985,7 +1010,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			// We don't need to squash the base image, so just
 			// reuse the base image.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.copyExistingImage(ctx, s.builder.FromImageID, s.output); err != nil {
+			if imgID, ref, err = s.tagExistingImage(ctx, s.builder.FromImageID, s.output); err != nil {
 				return "", nil, err
 			}
 		}
@@ -1110,7 +1135,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			imgID = cacheID
 			if commitName != "" {
 				logCommit(commitName, i)
-				if imgID, ref, err = s.copyExistingImage(ctx, cacheID, commitName); err != nil {
+				if imgID, ref, err = s.tagExistingImage(ctx, cacheID, commitName); err != nil {
 					return "", nil, err
 				}
 				logImageID(imgID)
@@ -1179,8 +1204,8 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 	return imgID, ref, nil
 }
 
-// copyExistingImage creates a copy of an image already in the store
-func (s *StageExecutor) copyExistingImage(ctx context.Context, cacheID, output string) (string, reference.Canonical, error) {
+// tagExistingImage adds names to an image already in the store
+func (s *StageExecutor) tagExistingImage(ctx context.Context, cacheID, output string) (string, reference.Canonical, error) {
 	// If we don't need to attach a name to the image, just return the cache ID.
 	if output == "" {
 		return cacheID, nil, nil
@@ -1247,11 +1272,11 @@ func (s *StageExecutor) layerExists(ctx context.Context, currNode *parser.Node, 
 				return "", errors.Wrapf(err, "error getting top layer info")
 			}
 		}
-		// If the parent of the top layer of an image is equal to the last entry in b.topLayers
+		// If the parent of the top layer of an image is equal to the current build image's top layer,
 		// it means that this image is potentially a cached intermediate image from a previous
 		// build. Next we double check that the history of this image is equivalent to the previous
 		// lines in the Dockerfile up till the point we are at in the build.
-		if imageTopLayer == nil || imageTopLayer.Parent == s.executor.topLayers[len(s.executor.topLayers)-1] || imageTopLayer.ID == s.executor.topLayers[len(s.executor.topLayers)-1] {
+		if imageTopLayer == nil || (s.builder.TopLayer != "" && (imageTopLayer.Parent == s.builder.TopLayer || imageTopLayer.ID == s.builder.TopLayer)) {
 			history, err := s.executor.getImageHistory(ctx, image.ID)
 			if err != nil {
 				return "", errors.Wrapf(err, "error getting history of %q", image.ID)
@@ -1340,26 +1365,8 @@ func (b *Executor) historyMatches(baseHistory []v1.History, child *parser.Node, 
 			return false
 		}
 	}
-	instruction := child.Original
-	switch strings.ToUpper(child.Value) {
-	case "RUN":
-		instruction = instruction[4:]
-		buildArgs := b.getBuildArgs()
-		// If a previous image was built with some build-args but the new build process doesn't have any build-args
-		// specified, the command might be expanded differently, so compare the lengths of the old instruction with
-		// the current one.  11 is the length of "/bin/sh -c " that is used to run the run commands.
-		if buildArgs == "" && len(history[len(baseHistory)].CreatedBy) > len(instruction)+11 {
-			return false
-		}
-		// There are build-args, so check if anything with the build-args has changed
-		if buildArgs != "" && !strings.Contains(history[len(baseHistory)].CreatedBy, buildArgs) {
-			return false
-		}
-		fallthrough
-	default:
-		if !strings.Contains(history[len(baseHistory)].CreatedBy, instruction) {
-			return false
-		}
+	if history[len(baseHistory)].CreatedBy != b.getCreatedBy(child) {
+		return false
 	}
 	return true
 }
@@ -1373,6 +1380,7 @@ func (b *Executor) getBuildArgs() string {
 			buildArgs = append(buildArgs, k+"="+v)
 		}
 	}
+	sort.Strings(buildArgs)
 	return strings.Join(buildArgs, " ")
 }
 
@@ -1545,7 +1553,6 @@ func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, cr
 	options := buildah.CommitOptions{
 		Compression:           s.executor.compression,
 		SignaturePolicyPath:   s.executor.signaturePolicyPath,
-		AdditionalTags:        s.executor.additionalTags,
 		ReportWriter:          writer,
 		PreferredManifestType: s.executor.outputFormat,
 		SystemContext:         s.executor.systemContext,
@@ -1729,6 +1736,24 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 		}
 		sort.Strings(unusedList)
 		fmt.Fprintf(b.out, "[Warning] one or more build args were not consumed: %v\n", unusedList)
+	}
+
+	if len(b.additionalTags) > 0 {
+		if dest, err := b.resolveNameToImageRef(b.output); err == nil {
+			switch dest.Transport().Name() {
+			case is.Transport.Name():
+				img, err := is.Transport.GetStoreImage(b.store, dest)
+				if err != nil {
+					return imageID, ref, errors.Wrapf(err, "error locating just-written image %q", transports.ImageName(dest))
+				}
+				if err = util.AddImageNames(b.store, "", b.systemContext, img, b.additionalTags); err != nil {
+					return imageID, ref, errors.Wrapf(err, "error setting image names to %v", append(img.Names, b.additionalTags...))
+				}
+				logrus.Debugf("assigned names %v to image %q", img.Names, img.ID)
+			default:
+				logrus.Warnf("don't know how to add tags to images stored in %q transport", dest.Transport().Name())
+			}
+		}
 	}
 
 	if err := cleanup(); err != nil {

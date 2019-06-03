@@ -195,13 +195,25 @@ func (c *Cmd) Start() error {
 				if err == nil {
 					gidmapSet = true
 				} else {
-					fmt.Fprintf(continueWrite, "error running newgidmap: %v: %s", err, g.String())
-					fmt.Fprintf(continueWrite, "falling back to single mapping\n")
+					logrus.Warnf("error running newgidmap: %v: %s", err, g.String())
+					logrus.Warnf("falling back to single mapping")
 					g.Reset()
 					g.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Getegid())))
 				}
 			}
 			if !gidmapSet {
+				if c.UseNewgidmap {
+					setgroups, err := os.OpenFile(fmt.Sprintf("/proc/%s/setgroups", pidString), os.O_TRUNC|os.O_WRONLY, 0)
+					if err != nil {
+						fmt.Fprintf(continueWrite, "error opening /proc/%s/setgroups: %v", pidString, err)
+						return errors.Wrapf(err, "error opening /proc/%s/setgroups", pidString)
+					}
+					defer setgroups.Close()
+					if _, err := fmt.Fprintf(setgroups, "deny"); err != nil {
+						fmt.Fprintf(continueWrite, "error writing 'deny' to /proc/%s/setgroups: %v", pidString, err)
+						return errors.Wrapf(err, "error writing 'deny' to /proc/%s/setgroups", pidString)
+					}
+				}
 				gidmap, err := os.OpenFile(fmt.Sprintf("/proc/%s/gid_map", pidString), os.O_TRUNC|os.O_WRONLY, 0)
 				if err != nil {
 					fmt.Fprintf(continueWrite, "error opening /proc/%s/gid_map: %v", pidString, err)
@@ -232,8 +244,8 @@ func (c *Cmd) Start() error {
 				if err == nil {
 					uidmapSet = true
 				} else {
-					fmt.Fprintf(continueWrite, "error running newuidmap: %v: %s", err, u.String())
-					fmt.Fprintf(continueWrite, "falling back to single mapping\n")
+					logrus.Warnf("error running newuidmap: %v: %s", err, u.String())
+					logrus.Warnf("falling back to single mapping")
 					u.Reset()
 					u.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Geteuid())))
 				}
