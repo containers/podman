@@ -371,7 +371,6 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 				done = true
 			default:
 				if !call.WantsMore() {
-					time.Sleep(1 * time.Second)
 					break
 				}
 				br := iopodman.MoreResponse{
@@ -495,6 +494,9 @@ func (i *LibpodAPI) DeleteUnusedImages(call iopodman.VarlinkCall) error {
 
 // Commit ...
 func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool, manifestType string) error {
+	var newImage *image.Image
+
+	output := bytes.NewBuffer([]byte{})
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
@@ -515,7 +517,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	}
 	coptions := buildah.CommitOptions{
 		SignaturePolicyPath:   rtc.SignaturePolicyPath,
-		ReportWriter:          nil,
+		ReportWriter:          output,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,
 	}
@@ -527,11 +529,61 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 		Author:        author,
 	}
 
-	newImage, err := ctr.Commit(getContext(), imageName, options)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+	if call.WantsMore() {
+		call.Continues = true
 	}
-	return call.ReplyCommit(newImage.ID())
+
+	c := make(chan error)
+
+	go func() {
+		newImage, err = ctr.Commit(getContext(), imageName, options)
+		if err != nil {
+			c <- err
+		}
+		c <- nil
+		close(c)
+	}()
+
+	var log []string
+	done := false
+	for {
+		line, err := output.ReadString('\n')
+		if err == nil {
+			log = append(log, line)
+			continue
+		} else if err == io.EOF {
+			select {
+			case err := <-c:
+				if err != nil {
+					logrus.Errorf("reading of output during commit failed for %s", name)
+					return call.ReplyErrorOccurred(err.Error())
+				}
+				done = true
+			default:
+				if !call.WantsMore() {
+					break
+				}
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				call.ReplyCommit(br)
+				log = []string{}
+			}
+		} else {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if done {
+			break
+		}
+	}
+	call.Continues = false
+
+	br := iopodman.MoreResponse{
+		Logs: log,
+		Id:   newImage.ID(),
+	}
+
+	return call.ReplyCommit(br)
 }
 
 // ImportImage imports an image from a tarball to the image store
@@ -633,7 +685,6 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 				done = true
 			default:
 				if !call.WantsMore() {
-					time.Sleep(1 * time.Second)
 					break
 				}
 				br := iopodman.MoreResponse{
@@ -764,7 +815,6 @@ func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageS
 				done = true
 			default:
 				if !call.WantsMore() {
-					time.Sleep(1 * time.Second)
 					break
 				}
 				br := iopodman.MoreResponse{
@@ -844,7 +894,6 @@ func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string,
 				done = true
 			default:
 				if !call.WantsMore() {
-					time.Sleep(1 * time.Second)
 					break
 				}
 				br := iopodman.MoreResponse{

@@ -6,6 +6,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,9 +16,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah"
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
 	"github.com/containers/psgo"
@@ -1029,4 +1033,56 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 // GetNamespaces returns namespace information about a container for PS
 func (r *LocalRuntime) GetNamespaces(container shared.PsContainerOutput) *shared.Namespace {
 	return shared.GetNamespaces(container.Pid)
+}
+
+// Commit creates a local image from a container
+func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, container, imageName string) (string, error) {
+	var (
+		writer   io.Writer
+		mimeType string
+	)
+	switch c.Format {
+	case "oci":
+		mimeType = buildah.OCIv1ImageManifest
+		if c.Flag("message").Changed {
+			return "", errors.Errorf("messages are only compatible with the docker image format (-f docker)")
+		}
+	case "docker":
+		mimeType = manifest.DockerV2Schema2MediaType
+	default:
+		return "", errors.Errorf("unrecognized image format %q", c.Format)
+	}
+	if !c.Quiet {
+		writer = os.Stderr
+	}
+	ctr, err := r.Runtime.LookupContainer(container)
+	if err != nil {
+		return "", errors.Wrapf(err, "error looking up container %q", container)
+	}
+
+	rtc, err := r.Runtime.GetConfig()
+	if err != nil {
+		return "", err
+	}
+
+	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	coptions := buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		ReportWriter:          writer,
+		SystemContext:         sc,
+		PreferredManifestType: mimeType,
+	}
+	options := libpod.ContainerCommitOptions{
+		CommitOptions:  coptions,
+		Pause:          c.Pause,
+		IncludeVolumes: c.IncludeVolumes,
+		Message:        c.Message,
+		Changes:        c.Change,
+		Author:         c.Author,
+	}
+	newImage, err := ctr.Commit(ctx, imageName, options)
+	if err != nil {
+		return "", err
+	}
+	return newImage.ID(), nil
 }
