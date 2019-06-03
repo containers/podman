@@ -149,6 +149,13 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		// Need to load in all the repo tags from the manifest
 		res := []pullRefPair{}
 		for _, dst := range manifest[0].RepoTags {
+			//check if image exists and gives a warning of untagging
+			localImage, err := ir.NewFromLocal(dst)
+			imageID := strings.TrimSuffix(manifest[0].Config, ".json")
+			if err == nil && imageID != localImage.ID() {
+				logrus.Errorf("the image %s already exists, renaming the old one with ID %s to empty string", dst, localImage.ID())
+			}
+
 			pullInfo, err := ir.getPullRefPair(srcRef, dst)
 			if err != nil {
 				return nil, err
@@ -168,7 +175,6 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		if err != nil {
 			return nil, errors.Wrapf(err, "error loading manifest for %q", srcRef)
 		}
-
 		var dest string
 		if manifest.Annotations == nil || manifest.Annotations["org.opencontainers.image.ref.name"] == "" {
 			// If the input image has no image.ref.name, we need to feed it a dest anyways
