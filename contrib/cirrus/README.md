@@ -63,41 +63,6 @@ task (pass or fail) is set based on the exit status of the last script to execut
    Total execution time is capped at 2-hours (includes all the above)
    but this script normally completes in less than an hour.
 
-### ``special_testing`` Task
-
-This task exercises podman under specialized environments or conditions.
-The specific differences from the ``testing`` task depend upon the
-contents of the ``$SPECIALMODE`` environment variable.
-
-| Value     | Meaning                                                               |
-| rootless  | Setup a regular user to build/run integration tests.                  |
-| in_podman | Setup a container image, build/run integration tests inside container |
-
-***N/B: Steps below are performed by automation***
-
-1. After `gating` passes, spin up one VM per
-   `matrix: image_name` item.
-
-2. ``setup_environment.sh``: Mostly the same as
-   in ``testing`` task, then specialized depending on ``$SPECIALMODE``.
-
-3. Which tests and how they execute depends on ``$SPECIALMODE``.
-
-
-### ``optional_testing`` Task
-
-***N/B: Steps below are performed by automation***
-
-1. Optionally executes in parallel with ``testing``.  Requires
-    **prior** to job-start, the magic string ``***CIRRUS: SYSTEM TEST***``
-   is found in the pull-request *description*.  The *description* is the first
-   text-box under the main *summary* line in the github WebUI.
-
-2. ``setup_environment.sh``: Same as for other tasks.
-
-3. ``system_test.sh``: Build both dependencies and libpod, install them,
-   then execute `make localsystem` from the repository root.
-
 
 ### ``test_build_cache_images_task`` Task
 
