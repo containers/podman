@@ -64,6 +64,7 @@ func (c *Cmd) Start() error {
 	if os.Geteuid() != 0 {
 		c.Env = append(c.Env, "_CONTAINERS_USERNS_CONFIGURED=done")
 		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%d", os.Geteuid()))
+		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_GID=%d", os.Getegid()))
 	}
 
 	// Create the pipe for reading the child's PID.
@@ -183,6 +184,7 @@ func (c *Cmd) Start() error {
 			for _, m := range c.GidMappings {
 				fmt.Fprintf(g, "%d %d %d\n", m.ContainerID, m.HostID, m.Size)
 			}
+			gidmapSet := false
 			// Set the GID map.
 			if c.UseNewgidmap {
 				cmd := exec.Command("newgidmap", append([]string{pidString}, strings.Fields(strings.Replace(g.String(), "\n", " ", -1))...)...)
@@ -190,11 +192,16 @@ func (c *Cmd) Start() error {
 				cmd.Stdout = g
 				cmd.Stderr = g
 				err := cmd.Run()
-				if err != nil {
+				if err == nil {
+					gidmapSet = true
+				} else {
 					fmt.Fprintf(continueWrite, "error running newgidmap: %v: %s", err, g.String())
-					return errors.Wrapf(err, "error running newgidmap: %s", g.String())
+					fmt.Fprintf(continueWrite, "falling back to single mapping\n")
+					g.Reset()
+					g.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Getegid())))
 				}
-			} else {
+			}
+			if !gidmapSet {
 				gidmap, err := os.OpenFile(fmt.Sprintf("/proc/%s/gid_map", pidString), os.O_TRUNC|os.O_WRONLY, 0)
 				if err != nil {
 					fmt.Fprintf(continueWrite, "error opening /proc/%s/gid_map: %v", pidString, err)
@@ -214,6 +221,7 @@ func (c *Cmd) Start() error {
 			for _, m := range c.UidMappings {
 				fmt.Fprintf(u, "%d %d %d\n", m.ContainerID, m.HostID, m.Size)
 			}
+			uidmapSet := false
 			// Set the GID map.
 			if c.UseNewuidmap {
 				cmd := exec.Command("newuidmap", append([]string{pidString}, strings.Fields(strings.Replace(u.String(), "\n", " ", -1))...)...)
@@ -221,11 +229,16 @@ func (c *Cmd) Start() error {
 				cmd.Stdout = u
 				cmd.Stderr = u
 				err := cmd.Run()
-				if err != nil {
+				if err == nil {
+					uidmapSet = true
+				} else {
 					fmt.Fprintf(continueWrite, "error running newuidmap: %v: %s", err, u.String())
-					return errors.Wrapf(err, "error running newuidmap: %s", u.String())
+					fmt.Fprintf(continueWrite, "falling back to single mapping\n")
+					u.Reset()
+					u.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Geteuid())))
 				}
-			} else {
+			}
+			if !uidmapSet {
 				uidmap, err := os.OpenFile(fmt.Sprintf("/proc/%s/uid_map", pidString), os.O_TRUNC|os.O_WRONLY, 0)
 				if err != nil {
 					fmt.Fprintf(continueWrite, "error opening /proc/%s/uid_map: %v", pidString, err)
@@ -354,7 +367,9 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 		// range in /etc/subuid and /etc/subgid file is a starting host
 		// ID and a range size.
 		uidmap, gidmap, err = GetSubIDMappings(me.Username, me.Username)
-		bailOnError(err, "error reading allowed ID mappings")
+		if err != nil {
+			logrus.Warnf("error reading allowed ID mappings: %v", err)
+		}
 		if len(uidmap) == 0 {
 			logrus.Warnf("Found no UID ranges set aside for user %q in /etc/subuid.", me.Username)
 		}

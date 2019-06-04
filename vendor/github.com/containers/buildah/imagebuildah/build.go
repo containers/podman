@@ -487,6 +487,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		// Check the file and see if part of it is a symlink.
 		// Convert it to the target if so.  To be ultrasafe
 		// do the same for the mountpoint.
+		hadFinalPathSeparator := len(copy.Dest) > 0 && copy.Dest[len(copy.Dest)-1] == os.PathSeparator
 		secureMountPoint, err := securejoin.SecureJoin("", s.mountPoint)
 		finalPath, err := securejoin.SecureJoin(secureMountPoint, copy.Dest)
 		if err != nil {
@@ -496,6 +497,11 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			return errors.Wrapf(err, "error resolving copy destination %s", copy.Dest)
 		}
 		copy.Dest = strings.TrimPrefix(finalPath, secureMountPoint)
+		if len(copy.Dest) == 0 || copy.Dest[len(copy.Dest)-1] != os.PathSeparator {
+			if hadFinalPathSeparator {
+				copy.Dest += string(os.PathSeparator)
+			}
+		}
 
 		if copy.Download {
 			logrus.Debugf("ADD %#v, %#v", excludes, copy)
@@ -507,29 +513,32 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		}
 		sources := []string{}
 		for _, src := range copy.Src {
+			contextDir := s.executor.contextDir
+			copyExcludes := excludes
 			if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 				sources = append(sources, src)
 			} else if len(copy.From) > 0 {
 				if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
 					sources = append(sources, filepath.Join(other.mountPoint, src))
+					contextDir = other.mountPoint
 				} else if builder, ok := s.executor.containerMap[copy.From]; ok {
 					sources = append(sources, filepath.Join(builder.MountPoint, src))
+					contextDir = builder.MountPoint
 				} else {
 					return errors.Errorf("the stage %q has not been built", copy.From)
 				}
 			} else {
 				sources = append(sources, filepath.Join(s.executor.contextDir, src))
+				copyExcludes = append(s.executor.excludes, excludes...)
 			}
-		}
-
-		options := buildah.AddAndCopyOptions{
-			Chown:      copy.Chown,
-			ContextDir: s.executor.contextDir,
-			Excludes:   s.executor.excludes,
-		}
-
-		if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
-			return err
+			options := buildah.AddAndCopyOptions{
+				Chown:      copy.Chown,
+				ContextDir: contextDir,
+				Excludes:   copyExcludes,
+			}
+			if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
@@ -590,7 +599,11 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 
 	args := run.Args
 	if run.Shell {
-		args = append([]string{"/bin/sh", "-c"}, args...)
+		if len(config.Shell) > 0 && s.builder.Format == buildah.Dockerv2ImageManifest {
+			args = append(config.Shell, args...)
+		} else {
+			args = append([]string{"/bin/sh", "-c"}, args...)
+		}
 	}
 	if err := s.volumeCacheSave(); err != nil {
 		return err

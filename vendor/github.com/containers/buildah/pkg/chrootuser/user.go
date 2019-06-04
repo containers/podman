@@ -18,7 +18,7 @@ var (
 // it will use the /etc/passwd and /etc/group files inside of the rootdir
 // to return this information.
 // userspec format [user | user:group | uid | uid:gid | user:gid | uid:group ]
-func GetUser(rootdir, userspec string) (uint32, uint32, error) {
+func GetUser(rootdir, userspec string) (uint32, uint32, string, error) {
 	var gid64 uint64
 	var gerr error = user.UnknownGroupError("error looking up group")
 
@@ -26,7 +26,7 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 	userspec = spec[0]
 	groupspec := ""
 	if userspec == "" {
-		return 0, 0, nil
+		return 0, 0, "/", nil
 	}
 	if len(spec) > 1 {
 		groupspec = spec[1]
@@ -65,15 +65,21 @@ func GetUser(rootdir, userspec string) (uint32, uint32, error) {
 		}
 	}
 
-	if uerr == nil && gerr == nil {
-		return uint32(uid64), uint32(gid64), nil
+	homedir, err := lookupHomedirInContainer(rootdir, uid64)
+	if err != nil {
+		homedir = "/"
 	}
 
-	err := errors.Wrapf(uerr, "error determining run uid")
+	if uerr == nil && gerr == nil {
+		return uint32(uid64), uint32(gid64), homedir, nil
+	}
+
+	err = errors.Wrapf(uerr, "error determining run uid")
 	if uerr == nil {
 		err = errors.Wrapf(gerr, "error determining run gid")
 	}
-	return 0, 0, err
+
+	return 0, 0, homedir, err
 }
 
 // GetGroup returns the gid by looking it up in the /etc/group file
