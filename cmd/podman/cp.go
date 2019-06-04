@@ -211,7 +211,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 }
 
 func getUser(mountPoint string, userspec string) (specs.User, error) {
-	uid, gid, err := chrootuser.GetUser(mountPoint, userspec)
+	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{
 		UID:      uid,
 		GID:      gid,

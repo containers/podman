@@ -84,9 +84,18 @@ type runUsingChrootExecSubprocOptions struct {
 // RunUsingChroot runs a chrooted process, using some of the settings from the
 // passed-in spec, and using the specified bundlePath to hold temporary files,
 // directories, and mountpoints.
-func RunUsingChroot(spec *specs.Spec, bundlePath string, stdin io.Reader, stdout, stderr io.Writer) (err error) {
+func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reader, stdout, stderr io.Writer) (err error) {
 	var confwg sync.WaitGroup
-
+	var homeFound bool
+	for _, env := range spec.Process.Env {
+		if strings.HasPrefix(env, "HOME=") {
+			homeFound = true
+			break
+		}
+	}
+	if !homeFound {
+		spec.Process.Env = append(spec.Process.Env, fmt.Sprintf("HOME=%s", homeDir))
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 

@@ -3,7 +3,6 @@ package buildah
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -269,21 +268,11 @@ func (b *Builder) Env() []string {
 // built using an image built from this container.
 func (b *Builder) SetEnv(k string, v string) {
 	reset := func(s *[]string) {
-		getenv := func(name string) string {
-			for i := range *s {
-				val := strings.SplitN((*s)[i], "=", 2)
-				if len(val) == 2 && val[0] == name {
-					return val[1]
-				}
-			}
-			return name
-		}
 		n := []string{}
 		for i := range *s {
 			if !strings.HasPrefix((*s)[i], k+"=") {
 				n = append(n, (*s)[i])
 			}
-			v = os.Expand(v, getenv)
 		}
 		n = append(n, k+"="+v)
 		*s = n

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -89,7 +90,10 @@ func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) 
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
 func (b *Builder) Add(destination string, extract bool, options AddAndCopyOptions, source ...string) error {
-	excludes := dockerIgnoreHelper(options.Excludes, options.ContextDir)
+	excludes, err := dockerIgnoreMatcher(options.Excludes, options.ContextDir)
+	if err != nil {
+		return err
+	}
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
 		return err
@@ -100,7 +104,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		}
 	}()
 	// Find out which user (and group) the destination should belong to.
-	user, err := b.user(mountPoint, options.Chown)
+	user, _, err := b.user(mountPoint, options.Chown)
 	if err != nil {
 		return err
 	}
@@ -153,12 +157,12 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 }
 
 // user returns the user (and group) information which the destination should belong to.
-func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
+func (b *Builder) user(mountPoint string, userspec string) (specs.User, string, error) {
 	if userspec == "" {
 		userspec = b.User()
 	}
 
-	uid, gid, err := chrootuser.GetUser(mountPoint, userspec)
+	uid, gid, homeDir, err := chrootuser.GetUser(mountPoint, userspec)
 	u := specs.User{
 		UID:      uid,
 		GID:      gid,
@@ -175,45 +179,48 @@ func (b *Builder) user(mountPoint string, userspec string) (specs.User, error) {
 		}
 
 	}
-	return u, err
+	return u, homeDir, err
 }
 
-// dockerIgnore struct keep info from .dockerignore
-type dockerIgnore struct {
-	ExcludePath string
-	IsExcluded  bool
-}
-
-// dockerIgnoreHelper returns the lines from .dockerignore file without the comments
-// and reverses the order
-func dockerIgnoreHelper(lines []string, contextDir string) []dockerIgnore {
-	var excludes []dockerIgnore
-	// the last match of a file in the .dockerignmatches determines whether it is included or excluded
-	// reverse the order
-	for i := len(lines) - 1; i >= 0; i-- {
-		exclude := lines[i]
-		// ignore the comment in .dockerignore
-		if strings.HasPrefix(exclude, "#") || len(exclude) == 0 {
+// dockerIgnoreMatcher returns a matcher based on the contents of the .dockerignore file under contextDir
+func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternMatcher, error) {
+	// if there's no context dir, there's no .dockerignore file to consult
+	if contextDir == "" {
+		return nil, nil
+	}
+	patterns := []string{".dockerignore"}
+	for _, ignoreSpec := range lines {
+		ignoreSpec = strings.TrimSpace(ignoreSpec)
+		// ignore comments passed back from .dockerignore
+		if ignoreSpec == "" || ignoreSpec[0] == '#' {
 			continue
 		}
-		excludeFlag := true
-		if strings.HasPrefix(exclude, "!") {
-			exclude = strings.TrimPrefix(exclude, "!")
-			excludeFlag = false
+		// if the spec starts with '!' it means the pattern
+		// should be included. make a note so that we can move
+		// it to the front of the updated pattern
+		includeFlag := ""
+		if strings.HasPrefix(ignoreSpec, "!") {
+			includeFlag = "!"
+			ignoreSpec = ignoreSpec[1:]
 		}
-		excludes = append(excludes, dockerIgnore{ExcludePath: filepath.Join(contextDir, exclude), IsExcluded: excludeFlag})
+		if ignoreSpec == "" {
+			continue
+		}
+		patterns = append(patterns, includeFlag+filepath.Join(contextDir, ignoreSpec))
 	}
-	if len(excludes) != 0 {
-		excludes = append(excludes, dockerIgnore{ExcludePath: filepath.Join(contextDir, ".dockerignore"), IsExcluded: true})
+	// if there are no patterns, save time by not constructing the object
+	if len(patterns) == 0 {
+		return nil, nil
 	}
-	return excludes
+	// return a matcher object
+	matcher, err := fileutils.NewPatternMatcher(patterns)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating file matcher using patterns %v", patterns)
+	}
+	return matcher, nil
 }
 
-func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
-	dirsInDockerignore, err := getDirsInDockerignore(options.ContextDir, excludes)
-	if err != nil {
-		return errors.Wrapf(err, "error checking directories in .dockerignore")
-	}
+func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
 	for _, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
 			// We assume that source is a file, and we're copying
@@ -242,7 +249,7 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 		if len(glob) == 0 {
 			return errors.Wrapf(syscall.ENOENT, "no files found matching %q", src)
 		}
-	outer:
+
 		for _, gsrc := range glob {
 			esrc, err := filepath.EvalSymlinks(gsrc)
 			if err != nil {
@@ -261,7 +268,7 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 					return errors.Wrapf(err, "error creating directory %q", dest)
 				}
 				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if len(excludes) == 0 {
+				if excludes == nil {
 					if err = copyWithTar(esrc, dest); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 					}
@@ -271,23 +278,12 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 					if err != nil {
 						return err
 					}
-					for _, exclude := range excludes {
-						match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
-						if err != nil {
-							return err
-						}
-						prefix, exist := dirsInDockerignore[exclude.ExcludePath]
-						hasPrefix := false
-						if exist {
-							hasPrefix = filepath.HasPrefix(path, prefix)
-						}
-						if !(match || hasPrefix) {
-							continue
-						}
-						if (hasPrefix && exclude.IsExcluded) || (match && exclude.IsExcluded) {
-							return nil
-						}
-						break
+					skip, err := excludes.Matches(path)
+					if err != nil {
+						return errors.Wrapf(err, "error checking if %s is an excluded path", path)
+					}
+					if skip {
+						return nil
 					}
 					// combine the filename with the dest directory
 					fpath, err := filepath.Rel(esrc, path)
@@ -297,8 +293,8 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 					mtime := info.ModTime()
 					atime := mtime
 					times := []syscall.Timespec{
-						{Sec: atime.Unix(), Nsec: atime.UnixNano() % 1000000000},
-						{Sec: mtime.Unix(), Nsec: mtime.UnixNano() % 1000000000},
+						syscall.NsecToTimespec(atime.Unix()),
+						syscall.NsecToTimespec(mtime.Unix()),
 					}
 					if info.IsDir() {
 						return addHelperDirectory(esrc, path, filepath.Join(dest, fpath), info, hostOwner, times)
@@ -320,20 +316,6 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 				continue
 			}
 
-			for _, exclude := range excludes {
-				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), esrc)
-				if err != nil {
-					return err
-				}
-				if !match {
-					continue
-				}
-				if exclude.IsExcluded {
-					continue outer
-				}
-				break
-			}
-
 			if !extract || !archive.IsArchivePath(esrc) {
 				// This source is a file, and either it's not an
 				// archive, or we don't care whether or not it's an
@@ -349,6 +331,7 @@ func addHelper(excludes []dockerIgnore, extract bool, dest string, destfi os.Fil
 				}
 				continue
 			}
+
 			// We're extracting an archive into the destination directory.
 			logrus.Debugf("extracting contents of %q into %q", esrc, dest)
 			if err = untarPath(esrc, dest); err != nil {
@@ -381,7 +364,15 @@ func addHelperSymlink(src, dest string, info os.FileInfo, hostOwner idtools.IDPa
 		return errors.Wrapf(err, "error reading contents of symbolic link at %q", src)
 	}
 	if err = os.Symlink(linkContents, dest); err != nil {
-		return errors.Wrapf(err, "error creating symbolic link to %q at %q", linkContents, dest)
+		if !os.IsExist(err) {
+			return errors.Wrapf(err, "error creating symbolic link to %q at %q", linkContents, dest)
+		}
+		if err = os.RemoveAll(dest); err != nil {
+			return errors.Wrapf(err, "error clearing symbolic link target %q", dest)
+		}
+		if err = os.Symlink(linkContents, dest); err != nil {
+			return errors.Wrapf(err, "error creating symbolic link to %q at %q (second try)", linkContents, dest)
+		}
 	}
 	if err = idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
 		return errors.Wrapf(err, "error setting owner of symbolic link %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
@@ -391,36 +382,4 @@ func addHelperSymlink(src, dest string, info os.FileInfo, hostOwner idtools.IDPa
 	}
 	logrus.Debugf("Symlink(%s, %s)", linkContents, dest)
 	return nil
-}
-
-func getDirsInDockerignore(srcAbsPath string, excludes []dockerIgnore) (map[string]string, error) {
-	visitedDir := make(map[string]string)
-	if len(excludes) == 0 {
-		return visitedDir, nil
-	}
-	err := filepath.Walk(srcAbsPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			for _, exclude := range excludes {
-				match, err := filepath.Match(filepath.Clean(exclude.ExcludePath), filepath.Clean(path))
-				if err != nil {
-					return err
-				}
-				if !match {
-					continue
-				}
-				if _, exist := visitedDir[exclude.ExcludePath]; exist {
-					continue
-				}
-				visitedDir[exclude.ExcludePath] = path
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return visitedDir, err
-	}
-	return visitedDir, nil
 }

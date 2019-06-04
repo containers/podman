@@ -17,7 +17,7 @@ import (
 )
 
 func cloneToDirectory(url, dir string) error {
-	if !strings.HasPrefix(url, "git://") {
+	if !strings.HasPrefix(url, "git://") && !strings.HasSuffix(url, ".git") {
 		url = "git://" + url
 	}
 	logrus.Debugf("cloning %q to %q", url, dir)
@@ -72,7 +72,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if err != nil {
 		return "", "", errors.Wrapf(err, "error creating temporary directory for %q", url)
 	}
-	if strings.HasPrefix(url, "git://") {
+	if strings.HasPrefix(url, "git://") || strings.HasSuffix(url, ".git") {
 		err = cloneToDirectory(url, name)
 		if err != nil {
 			if err2 := os.Remove(name); err2 != nil {
