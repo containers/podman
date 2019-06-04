@@ -350,7 +350,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
-	if c.config.Privileged {
+	if c.config.Privileged && c.runtime.config.StorageConfig.GraphDriverName != "vfs" {
 		privOpt := func(opt string) bool {
 			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
 				if opt == privopt {
