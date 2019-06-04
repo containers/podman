@@ -5,6 +5,7 @@ package integration
 import (
 	"fmt"
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -47,9 +48,19 @@ var _ = Describe("Podman healthcheck run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
-		hc.WaitWithDefaultTimeout()
-		Expect(hc.ExitCode()).To(Equal(0))
+		exitCode := 999
+
+		// Buy a little time to get container running
+		for i := 0; i < 5; i++ {
+			hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
+			hc.WaitWithDefaultTimeout()
+			exitCode = hc.ExitCode()
+			if exitCode == 0 || i == 4 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+		Expect(exitCode).To(Equal(0))
 	})
 
 	It("podman healthcheck that should fail", func() {
