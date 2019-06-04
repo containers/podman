@@ -44,20 +44,23 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck on valid container", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck})
+		session := podmanTest.Podman([]string{"--log-level=debug", "run", "-dt", "--name", "hc", healthcheck})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
 
 		exitCode := 999
 
 		// Buy a little time to get container running
 		for i := 0; i < 5; i++ {
-			hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
+			hc := podmanTest.Podman([]string{"--log-level=debug", "healthcheck", "run", "hc"})
 			hc.WaitWithDefaultTimeout()
 			exitCode = hc.ExitCode()
 			if exitCode == 0 || i == 4 {
 				break
 			}
+			logs := podmanTest.Podman([]string{"logs", cid})
+			logs.WaitWithDefaultTimeout()
 			time.Sleep(1 * time.Second)
 		}
 		Expect(exitCode).To(Equal(0))

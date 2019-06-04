@@ -149,7 +149,7 @@ func checkHealthCheckCanBeRun(c *Container) (HealthCheckStatus, error) {
 		return HealthCheckInternalError, err
 	}
 	if cstate != ContainerStateRunning {
-		return HealthCheckContainerStopped, errors.Errorf("container %s is not running", c.ID())
+		return HealthCheckContainerStopped, errors.Errorf("container %s is not running (state: %s)", c.ID(), cstate.String())
 	}
 	if !c.HasHealthCheck() {
 		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
