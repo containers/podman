@@ -273,7 +273,7 @@ First, ensure that the go version that is found first on the $PATH (in case you 
 git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
 cd $GOPATH/src/github.com/containers/libpod
 make BUILDTAGS="selinux seccomp"
-sudo make install PREFIX=
+sudo make install PREFIX=/usr
 ```
 
 #### Build Tags
