@@ -91,65 +91,65 @@ func (v VirtWriteCloser) Write(input []byte) (int, error) {
 
 // Reader decodes the content that comes over the wire and directs it to the proper destination.
 func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resize chan remotecommand.TerminalSize) error {
-	var saveb []byte
-	var eom int
+	var messageSize int64
+	headerBytes := make([]byte, 8)
+
 	for {
-		readb := make([]byte, 32*1024)
-		n, err := r.Read(readb)
-		// TODO, later may be worth checking in len of the read is 0
+		n, err := io.ReadFull(r, headerBytes)
 		if err != nil {
 			return err
 		}
-		b := append(saveb, readb[0:n]...)
-		// no sense in reading less than the header len
-		for len(b) > 7 {
-			eom = int(binary.BigEndian.Uint32(b[4:8])) + 8
-			// The message and header are togther
-			if len(b) >= eom {
-				out := append([]byte{}, b[8:eom]...)
+		if n < 8 {
+			return errors.New("short read and no full header read")
+		}
 
-				switch IntToSocketDest(int(b[0])) {
-				case ToStdout:
-					n, err := output.Write(out)
-					if err != nil {
-						return err
-					}
-					if n < len(out) {
-						return errors.New("short write error occurred on stdout")
-					}
-				case ToStderr:
-					n, err := errput.Write(out)
-					if err != nil {
-						return err
-					}
-					if n < len(out) {
-						return errors.New("short write error occurred on stderr")
-					}
-				case ToStdin:
-					n, err := input.Write(out)
-					if err != nil {
-						return err
-					}
-					if n < len(out) {
-						return errors.New("short write error occurred on stdin")
-					}
-				case TerminalResize:
-					// Resize events come over in bytes, need to be reserialized
-					resizeEvent := remotecommand.TerminalSize{}
-					if err := json.Unmarshal(out, &resizeEvent); err != nil {
-						return err
-					}
-					resize <- resizeEvent
-				case Quit:
-					return nil
-				}
-				b = b[eom:]
-			} else {
-				//	We do not have the header and full message, need to slurp again
-				saveb = b
-				break
+		messageSize = int64(binary.BigEndian.Uint32(headerBytes[4:8]))
+
+		switch IntToSocketDest(int(headerBytes[0])) {
+		case ToStdout:
+			_, err := io.CopyN(output, r, messageSize)
+			if err != nil {
+				return err
 			}
+		case ToStderr:
+			_, err := io.CopyN(errput, r, messageSize)
+			if err != nil {
+				return err
+			}
+		case ToStdin:
+			_, err := io.CopyN(input, r, messageSize)
+			if err != nil {
+				return err
+			}
+		case TerminalResize:
+			out := make([]byte, messageSize)
+			if messageSize > 0 {
+				_, err = io.ReadFull(r, out)
+
+				if err != nil {
+					return err
+				}
+			}
+			// Resize events come over in bytes, need to be reserialized
+			resizeEvent := remotecommand.TerminalSize{}
+			if err := json.Unmarshal(out, &resizeEvent); err != nil {
+				return err
+			}
+			resize <- resizeEvent
+		case Quit:
+			out := make([]byte, messageSize)
+			if messageSize > 0 {
+				_, err = io.ReadFull(r, out)
+
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+
+		default:
+			// Something really went wrong
+			return errors.New("Unknown multiplex destination")
 		}
 	}
-	return nil
 }
