@@ -9,7 +9,7 @@ import (
 const remote = true
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&MainGlobalOpts.ConnectionName, "connection", "c", "", "remote connection name")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.ConnectionName, "connection", "", "remote connection name")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteConfigFilePath, "remote-config-path", "", "alternate path for configuration file")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", "", "username on the remote host")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
