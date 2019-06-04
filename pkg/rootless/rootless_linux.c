@@ -489,6 +489,7 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
   char **argv;
   int pid;
   char *cwd = getcwd (NULL, 0);
+  sigset_t sigset, oldsigset;
 
   if (cwd == NULL)
     {
@@ -520,6 +521,22 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
             close (f);
         }
       return pid;
+    }
+
+  if (sigfillset (&sigset) < 0)
+    {
+      fprintf (stderr, "cannot fill sigset: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGCHLD) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
     }
 
   setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
@@ -569,6 +586,11 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
     {
       /* We ignore errors here as we didn't create the namespace anyway.  */
       create_pause_process (pause_pid_file_path, argv);
+    }
+  if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
+    {
+      fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
     }
 
   execvp (argv[0], argv);
