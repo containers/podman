@@ -20,6 +20,7 @@ import (
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/events"
@@ -40,6 +41,7 @@ type RemoteRuntime struct {
 	Conn   *varlink.Connection
 	Remote bool
 	cmd    cliconfig.MainFlags
+	config io.Reader
 }
 
 // LocalRuntime describes a typical libpod runtime
@@ -49,9 +51,34 @@ type LocalRuntime struct {
 
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	var (
+		customConfig bool
+		err          error
+		f            *os.File
+	)
 	runtime := RemoteRuntime{
 		Remote: true,
 		cmd:    c.GlobalFlags,
+	}
+	configPath := remoteclientconfig.GetConfigFilePath()
+	if len(c.GlobalFlags.RemoteConfigFilePath) > 0 {
+		configPath = c.GlobalFlags.RemoteConfigFilePath
+		customConfig = true
+	}
+
+	f, err = os.Open(configPath)
+	if err != nil {
+		// If user does not explicitly provide a configuration file path and we cannot
+		// find a default, no error should occur.
+		if os.IsNotExist(err) && !customConfig {
+			logrus.Debugf("unable to load configuration file at %s", configPath)
+			runtime.config = nil
+		} else {
+			return nil, errors.Wrapf(err, "unable to load configuration file at %s", configPath)
+		}
+	} else {
+		// create the io reader for the remote client
+		runtime.config = bufio.NewReader(f)
 	}
 	conn, err := runtime.Connect()
 	if err != nil {
