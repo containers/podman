@@ -2,7 +2,6 @@ FROM fedora:29
 RUN dnf -y install \
       atomic-registries \
       btrfs-progs-devel \
-      buildah \
       bzip2 \
       conmon \
       container-selinux \

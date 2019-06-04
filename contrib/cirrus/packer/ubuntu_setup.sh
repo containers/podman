@@ -99,8 +99,6 @@ install_conmon
 
 install_cni_plugins
 
-install_buildah
-
 sudo /tmp/libpod/hack/install_catatonit.sh
 
 install_varlink
