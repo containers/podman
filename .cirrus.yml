@@ -264,7 +264,7 @@ testing_task:
         matrix:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
@@ -370,7 +370,7 @@ optional_testing_task:
     gce_instance:
         matrix:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 60m
@@ -424,7 +424,7 @@ verify_test_built_images_task:
     gce_instance:
         matrix:
             # Images are generated separately, from build_images_task (below)
-            image_name: "fedora-28${BUILT_IMAGE_SUFFIX}"
+            #image_name: "fedora-28${BUILT_IMAGE_SUFFIX}"
             image_name: "fedora-29${BUILT_IMAGE_SUFFIX}"
             image_name: "ubuntu-18${BUILT_IMAGE_SUFFIX}"
 
