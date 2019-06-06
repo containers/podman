@@ -32,6 +32,7 @@ ARGS="--update-labels=last-used=$(date +%s)"
 # optional
 [[ -z "$BUILDID" ]] || ARGS="$ARGS --update-labels=build-id=$BUILDID"
 [[ -z "$REPOREF" ]] || ARGS="$ARGS --update-labels=repo-ref=$REPOREF"
+[[ -z "$GCPPROJECT" ]] || ARGS="$ARGS --update-labels=project=$GCPPROJECT"
 
 gcloud config set account "$GCPNAME"
 gcloud config set project "$GCPPROJECT"
