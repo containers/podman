@@ -169,6 +169,9 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	for {
 		nextFd, err := getParentUserNs(fd)
 		if err != nil {
+			if err == syscall.ENOTTY {
+				return os.NewFile(fd, "userns child"), nil
+			}
 			return nil, errors.Wrapf(err, "cannot get parent user namespace")
 		}
 
