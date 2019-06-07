@@ -5,6 +5,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -25,6 +26,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -496,6 +498,45 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
+func (c *Container) exportCheckpoint(dest string) (err error) {
+	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
+		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
+	}
+	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), dest)
+	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
+		Compression:      archive.Gzip,
+		IncludeSourceDir: true,
+		IncludeFiles: []string{
+			"checkpoint",
+			"artifacts",
+			"ctr.log",
+			"config.dump",
+			"spec.dump",
+			"network.status"},
+	})
+
+	if err != nil {
+		return errors.Wrapf(err, "error reading checkpoint directory %q", c.ID())
+	}
+
+	outFile, err := os.Create(dest)
+	if err != nil {
+		return errors.Wrapf(err, "error creating checkpoint export file %q", dest)
+	}
+	defer outFile.Close()
+
+	if err := os.Chmod(dest, 0600); err != nil {
+		return errors.Wrapf(err, "cannot chmod %q", dest)
+	}
+
+	_, err = io.Copy(outFile, input)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (c *Container) checkpointRestoreSupported() (err error) {
 	if !criu.CheckForCriu() {
 		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
@@ -549,6 +590,12 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
+	if options.TargetFile != "" {
+		if err = c.exportCheckpoint(options.TargetFile); err != nil {
+			return err
+		}
+	}
+
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
 	if !options.KeepRunning {
@@ -561,13 +608,48 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if !options.Keep {
-		// Remove log file
-		os.Remove(filepath.Join(c.bundlePath(), "dump.log"))
-		// Remove statistic file
-		os.Remove(filepath.Join(c.bundlePath(), "stats-dump"))
+		cleanup := []string{
+			"dump.log",
+			"stats-dump",
+			"config.dump",
+			"spec.dump",
+		}
+		for _, delete := range cleanup {
+			file := filepath.Join(c.bundlePath(), delete)
+			os.Remove(file)
+		}
 	}
 
 	return c.save()
+}
+
+func (c *Container) importCheckpoint(input string) (err error) {
+	archiveFile, err := os.Open(input)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
+	}
+
+	defer archiveFile.Close()
+	options := &archive.TarOptions{
+		ExcludePatterns: []string{
+			// config.dump and spec.dump are only required
+			// container creation
+			"config.dump",
+			"spec.dump",
+		},
+	}
+	err = archive.Untar(archiveFile, c.bundlePath(), options)
+	if err != nil {
+		return errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
+	}
+
+	// Make sure the newly created config.json exists on disk
+	g := generate.NewFromSpec(c.config.Spec)
+	if err = c.saveSpec(g.Spec()); err != nil {
+		return errors.Wrap(err, "Saving imported container specification for restore failed")
+	}
+
+	return nil
 }
 
 func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) (err error) {
@@ -578,6 +660,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {
 		return errors.Wrapf(ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
+	}
+
+	if options.TargetFile != "" {
+		if err = c.importCheckpoint(options.TargetFile); err != nil {
+			return err
+		}
 	}
 
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
@@ -593,7 +681,13 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
 	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
-	if err == nil {
+	// If the restored container should get a new name, the IP address of
+	// the container will not be restored. This assumes that if a new name is
+	// specified, the container is restored multiple times.
+	// TODO: This implicit restoring with or without IP depending on an
+	//       unrelated restore parameter (--name) does not seem like the
+	//       best solution.
+	if err == nil && options.Name == "" {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same IP address as during checkpointing.
 		defer networkStatusFile.Close()
@@ -637,23 +731,44 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
+	// Restoring from an import means that we are doing migration
+	if options.TargetFile != "" {
+		g.SetRootPath(c.state.Mountpoint)
+	}
+
 	// We want to have the same network namespace as before.
 	if c.config.CreateNetNS {
 		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
-	}
-
-	// Save the OCI spec to disk
-	if err := c.saveSpec(g.Spec()); err != nil {
-		return err
 	}
 
 	if err := c.makeBindMounts(); err != nil {
 		return err
 	}
 
+	if options.TargetFile != "" {
+		for dstPath, srcPath := range c.state.BindMounts {
+			newMount := spec.Mount{
+				Type:        "bind",
+				Source:      srcPath,
+				Destination: dstPath,
+				Options:     []string{"bind", "private"},
+			}
+			if c.IsReadOnly() && dstPath != "/dev/shm" {
+				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
+			}
+			if !MountExists(g.Mounts(), dstPath) {
+				g.AddMount(newMount)
+			}
+		}
+	}
+
 	// Cleanup for a working restore.
 	c.removeConmonFiles()
 
+	// Save the OCI spec to disk
+	if err := c.saveSpec(g.Spec()); err != nil {
+		return err
+	}
 	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
 		return err
 	}

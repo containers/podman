@@ -347,4 +347,49 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 	})
 
+	// This test does the same steps which are necessary for migrating
+	// a container from one host to another
+	It("podman checkpoint container with export (migration)", func() {
+		// CRIU does not work with seccomp correctly on RHEL7
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", "/tmp/checkpoint.tar.gz"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
+
+		// Remove all containers to simulate migration
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		// Restore container a second time with different name
+		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz", "-n", "restore_again"})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove("/tmp/checkpoint.tar.gz")
+	})
 })

@@ -664,6 +664,10 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 
 // Checkpoint one or more containers
 func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+	if c.Export != "" {
+		return errors.New("the remote client does not support exporting checkpoints")
+	}
+
 	var lastError error
 	ids, err := iopodman.GetContainersByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
 	if err != nil {
@@ -699,7 +703,11 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.
 }
 
 // Restore one or more containers
-func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+	if c.Import != "" {
+		return errors.New("the remote client does not support importing checkpoints")
+	}
+
 	var lastError error
 	ids, err := iopodman.GetContainersByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
 	if err != nil {

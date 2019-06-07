@@ -42,6 +42,24 @@ If the checkpoint image does not contain established TCP connections this
 option is ignored. Defaults to not restoring containers with established TCP
 connections.
 
+**--import, -i**
+
+Import a checkpoint tar.gz file, which was exported by Podman. This can be used
+to import a checkpointed container from another host. It is not necessary to specify
+a container when restoring from an exported checkpoint.
+
+**--name, -n**
+
+This is only available in combination with **--import, -i**. If a container is restored
+from a checkpoint tar.gz file it is possible to rename it with **--name, -n**. This
+way it is possible to restore a container from a checkpoint multiple times with different
+names.
+
+If the **--name, -n** option is used, Podman will not attempt to assign the same IP
+address to the container it was using before checkpointing as each IP address can only
+be used once and the restored container will have another IP address. This also means
+that **--name, -n** cannot be used in combination with **--tcp-established**.
+
 ## EXAMPLE
 
 podman container restore mywebserver

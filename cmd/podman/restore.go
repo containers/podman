@@ -24,10 +24,10 @@ var (
 			restoreCommand.InputArgs = args
 			restoreCommand.GlobalFlags = MainGlobalOpts
 			restoreCommand.Remote = remoteclient
-			return restoreCmd(&restoreCommand)
+			return restoreCmd(&restoreCommand, cmd)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllAndLatest(cmd, args, true)
 		},
 		Example: `podman container restore ctrID
   podman container restore --latest
@@ -43,13 +43,14 @@ func init() {
 	flags.BoolVarP(&restoreCommand.All, "all", "a", false, "Restore all checkpointed containers")
 	flags.BoolVarP(&restoreCommand.Keep, "keep", "k", false, "Keep all temporary checkpoint files")
 	flags.BoolVarP(&restoreCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	// TODO: add ContainerStateCheckpointed
-	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
+	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Restore a container with established TCP connections")
+	flags.StringVarP(&restoreCommand.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
+	flags.StringVarP(&restoreCommand.Name, "name", "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
-func restoreCmd(c *cliconfig.RestoreValues) error {
+func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	if rootless.IsRootless() {
 		return errors.New("restoring a container requires root")
 	}
@@ -63,6 +64,20 @@ func restoreCmd(c *cliconfig.RestoreValues) error {
 	options := libpod.ContainerCheckpointOptions{
 		Keep:           c.Keep,
 		TCPEstablished: c.TcpEstablished,
+		TargetFile:     c.Import,
+		Name:           c.Name,
 	}
-	return runtime.Restore(c, options)
+
+	if c.Import == "" && c.Name != "" {
+		return errors.Errorf("--name can only used with --import")
+	}
+
+	if c.Name != "" && c.TcpEstablished {
+		return errors.Errorf("--tcp-established cannot be used with --name")
+	}
+
+	if (c.Import != "") && (c.All || c.Latest) {
+		return errors.Errorf("Cannot use --import and --all or --latest at the same time")
+	}
+	return runtime.Restore(getContext(), c, options)
 }
