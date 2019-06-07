@@ -1,5 +1,9 @@
 # Release Notes
 
+## 1.4.0
+### Features
+-
+
 ## 1.3.1
 ### Features
 - The `podman cp` command can now read input redirected to `STDIN`, and output to `STDOUT` instead of a file, using `-` instead of an argument.
