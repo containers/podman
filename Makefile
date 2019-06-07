@@ -1,5 +1,5 @@
 GO ?= go
-DESTDIR ?= /
+DESTDIR ?=
 EPOCH_TEST_COMMIT ?= 90e3c9002b2293569e0cec168a30ecb962b00034
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
@@ -10,12 +10,12 @@ GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN ?= $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 LIBPOD_IMAGE ?= libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
 LIBPOD_INSTANCE := libpod_dev
-PREFIX ?= ${DESTDIR}/usr/local
+PREFIX ?= /usr/local
 BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
-ETCDIR ?= ${DESTDIR}/etc
+ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
 BUILDTAGS ?= \
@@ -51,7 +51,11 @@ COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT_NO}-dirty,${COMMIT_NO})
 BUILD_INFO ?= $(shell date +%s)
 LIBPOD := ${PROJECT}/libpod
-LDFLAGS_PODMAN ?= $(LDFLAGS) -X $(LIBPOD).gitCommit=$(GIT_COMMIT) -X $(LIBPOD).buildInfo=$(BUILD_INFO)
+LDFLAGS_PODMAN ?= $(LDFLAGS) \
+	  -X $(LIBPOD).gitCommit=$(GIT_COMMIT) \
+	  -X $(LIBPOD).buildInfo=$(BUILD_INFO) \
+	  -X $(LIBPOD).installPrefix=$(PREFIX) \
+	  -X $(LIBPOD).etcDir=$(ETCDIR)
 ISODATE ?= $(shell date --iso-8601)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
@@ -262,54 +266,54 @@ changelog: ## Generate changelog
 install: .gopathok install.bin install.remote install.man install.cni install.systemd  ## Install binaries to system locations
 
 install.remote:
-	install ${SELINUXOPT} -d -m 755 $(BINDIR)
-	install ${SELINUXOPT} -m 755 bin/podman-remote $(BINDIR)/podman-remote
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(BINDIR)/podman bin/podman-remote
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
+	install ${SELINUXOPT} -m 755 bin/podman-remote $(DESTDIR)$(BINDIR)/podman-remote
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman-remote
 
 install.bin:
-	install ${SELINUXOPT} -d -m 755 $(BINDIR)
-	install ${SELINUXOPT} -m 755 bin/podman $(BINDIR)/podman
-	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(BINDIR)/podman bin/podman
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
+	install ${SELINUXOPT} -m 755 bin/podman $(DESTDIR)$(BINDIR)/podman
+	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 
 install.man: docs
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man1
-	install ${SELINUXOPT} -d -m 755 $(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.config:
-	install ${SELINUXOPT} -d -m 755 $(SHAREDIR_CONTAINERS)
-	install ${SELINUXOPT} -m 644 libpod.conf $(SHAREDIR_CONTAINERS)/libpod.conf
-	install ${SELINUXOPT} -m 644 seccomp.json $(SHAREDIR_CONTAINERS)/seccomp.json
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
+	install ${SELINUXOPT} -m 644 libpod.conf $(DESTDIR)$(SHAREDIR_CONTAINERS)/libpod.conf
+	install ${SELINUXOPT} -m 644 seccomp.json $(DESTDIR)$(SHAREDIR_CONTAINERS)/seccomp.json
 
 install.completions:
-	install ${SELINUXOPT} -d -m 755 ${BASHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/bash/podman ${BASHINSTALLDIR}
-	install ${SELINUXOPT} -d -m 755 ${ZSHINSTALLDIR}
-	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${BASHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/bash/podman ${DESTDIR}${BASHINSTALLDIR}
+	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${ZSHINSTALLDIR}
+	install ${SELINUXOPT} -m 644 completions/zsh/_podman ${DESTDIR}${ZSHINSTALLDIR}
 
 install.cni:
-	install ${SELINUXOPT} -d -m 755 ${ETCDIR}/cni/net.d/
-	install ${SELINUXOPT} -m 644 cni/87-podman-bridge.conflist ${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	install ${SELINUXOPT} -d -m 755 ${DESTDIR}${ETCDIR}/cni/net.d/
+	install ${SELINUXOPT} -m 644 cni/87-podman-bridge.conflist ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 
 install.docker: docker-docs
-	install ${SELINUXOPT} -d -m 755 $(BINDIR) $(MANDIR)/man1
-	install ${SELINUXOPT} -m 755 docker $(BINDIR)/docker
-	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(MANDIR)/man1
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR) $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 755 docker $(DESTDIR)$(BINDIR)/docker
+	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.systemd:
-	install ${SELINUXOPT} -m 755 -d ${SYSTEMDDIR} ${TMPFILESDIR}
-	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${SYSTEMDDIR}/io.podman.socket
-	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${SYSTEMDDIR}/io.podman.service
-	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${TMPFILESDIR}/podman.conf
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
+	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
 	for i in $(filter %.1,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man1/$$(basename $${i}); \
+		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
 	done; \
 	for i in $(filter %.5,$(MANPAGES)); do \
-		rm -f $(MANDIR)/man5/$$(basename $${i}); \
+		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation

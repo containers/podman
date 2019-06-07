@@ -15,6 +15,12 @@ var (
 	// BuildInfo is the time at which the binary was built
 	// It will be populated by the Makefile.
 	buildInfo string
+	// InstallPrefix is the prefix where podman will be installed.
+	// It will be populated by the Makefile.
+	installPrefix string = "/usr/local"
+	// EtcDir is the sysconfdir where podman should look for system config files.
+	// It will be populated by the Makefile.
+	etcDir string = "/etc"
 )
 
 //Version is an output struct for varlink
