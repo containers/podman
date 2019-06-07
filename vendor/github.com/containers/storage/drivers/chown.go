@@ -55,6 +55,9 @@ func chownByMapsMain() {
 		if err != nil {
 			return fmt.Errorf("error walking to %q: %v", path, err)
 		}
+		if path == "." {
+			return nil
+		}
 		return platformLChown(path, info, toHost, toContainer)
 	}
 	if err := filepath.Walk(".", chown); err != nil {

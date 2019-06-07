@@ -572,6 +572,10 @@ func (r *containerStore) Lock() {
 	r.lockfile.Lock()
 }
 
+func (r *containerStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
 func (r *containerStore) RLock() {
 	r.lockfile.RLock()
 }
