@@ -45,6 +45,13 @@ const (
 )
 
 var (
+	// InstallPrefix is the prefix where podman will be installed.
+	// It can be overridden at build time.
+	installPrefix string = "/usr/local"
+	// EtcDir is the sysconfdir where podman should look for system config files.
+	// It can be overridden at build time.
+	etcDir string = "/etc"
+
 	// SeccompDefaultPath defines the default seccomp path
 	SeccompDefaultPath = installPrefix + "/share/containers/seccomp.json"
 	// SeccompOverridePath if this exists it overrides the default seccomp path
