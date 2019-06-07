@@ -58,3 +58,15 @@ func Stat(path string) (*StatT, error) {
 	}
 	return fromStatT(s)
 }
+
+// Fstat takes an open file descriptor and returns
+// a system.StatT type pertaining to that file.
+//
+// Throws an error if the file descriptor is invalid
+func Fstat(fd int) (*StatT, error) {
+	s := &syscall.Stat_t{}
+	if err := syscall.Fstat(fd, s); err != nil {
+		return nil, err
+	}
+	return fromStatT(s)
+}

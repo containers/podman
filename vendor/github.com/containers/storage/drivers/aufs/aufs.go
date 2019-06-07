@@ -255,6 +255,9 @@ func (a *Driver) AdditionalImageStores() []string {
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
 func (a *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	if opts == nil {
+		opts = &graphdriver.CreateOpts{}
+	}
 	return graphdriver.NaiveCreateFromTemplate(a, id, template, templateIDMappings, parent, parentIDMappings, opts, readWrite)
 }
 

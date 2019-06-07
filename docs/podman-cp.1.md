@@ -63,7 +63,7 @@ Extract the tar file into the destination directory. If the destination director
 
 **--pause**
 
-Pause the container while copying into it to avoid potential security issues around symlinks. Defaults to *true*.
+Pause the container while copying into it to avoid potential security issues around symlinks. Defaults to *false*.
 
 ## ALTERNATIVES
 

@@ -82,6 +82,9 @@ type Image struct {
 	// is set before using it.
 	Created time.Time `json:"created,omitempty"`
 
+	// ReadOnly is true if this image resides in a read-only layer store.
+	ReadOnly bool `json:"-"`
+
 	Flags map[string]interface{} `json:"flags,omitempty"`
 }
 
@@ -159,6 +162,7 @@ func copyImage(i *Image) *Image {
 		BigDataSizes:    copyStringInt64Map(i.BigDataSizes),
 		BigDataDigests:  copyStringDigestMap(i.BigDataDigests),
 		Created:         i.Created,
+		ReadOnly:        i.ReadOnly,
 		Flags:           copyStringInterfaceMap(i.Flags),
 	}
 }
@@ -269,6 +273,7 @@ func (r *imageStore) Load() error {
 				list := digests[digest]
 				digests[digest] = append(list, image)
 			}
+			image.ReadOnly = !r.IsReadWrite()
 		}
 	}
 	if shouldSave && (!r.IsReadWrite() || !r.Locked()) {
@@ -737,6 +742,10 @@ func (r *imageStore) Wipe() error {
 
 func (r *imageStore) Lock() {
 	r.lockfile.Lock()
+}
+
+func (r *imageStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
 }
 
 func (r *imageStore) RLock() {
