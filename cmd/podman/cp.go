@@ -51,7 +51,7 @@ func init() {
 	cpCommand.Command = _cpCommand
 	flags := cpCommand.Flags()
 	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
-	flags.BoolVar(&cpCommand.Pause, "pause", true, "Pause the container while copying")
+	flags.BoolVar(&cpCommand.Pause, "pause", false, "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
 	rootCmd.AddCommand(cpCommand.Command)
