@@ -1,3 +1,137 @@
+- Changelog for v1.4.0 (2019-06-07)
+  * Update release notes for v1.4.0
+  * Update release notes for v1.4.0
+  * Disable a very badly flaking healthcheck test
+  * rootless: skip NS_GET_PARENT on old kernels
+  * Cirrus: Track VM Image calling GCE project
+  * remove -c for podman remote global options
+  * Vendor Buildah v1.8.3
+  * Cirrus: Disable testing on F28 (EOL)
+  * migration: add possibility to restore a container with a new name
+  * Inherit rootless init_path from system libpod.conf
+  * Also download container images during restore
+  * Include container migration into tutorial
+  * Add man-pages for container migration
+  * Added bash completion for container migration
+  * Add test case for container migration
+  * Added support to migrate containers
+  * Added helper functions for container migration
+  * Fix restore options help text and comments
+  * fix timing issues with some tests
+  * pkg/varlinkapi/virtwriter/virtwriter.go: simplify func Reader
+  * rootless: block signals on re-exec
+  * cirrus: minor cleanup and refactoring
+  * manpage: podman-tool table: un-confuse version and varlink
+  * Create Dockerfiles for podmanimage
+  * rootless: use TEMP_FAILURE_RETRY macro
+  * rootless: fix return type
+  * rootless: make sure the buffer is NUL terminated
+  * split rootless local and remote testing
+  * Fix podman cp test by reordering operations
+  * Small fix to readme to force tests to run
+  * Do not set tmpcopyup on /dev
+  * do not run remote tests inside container
+  * podman remote-client commit
+  * Fix podman cp tests
+  * podman-remote.conf enablement
+  * Error when trying to copy into a running rootless ctr
+  * rootless: skip check fo /etc/containers/registries.conf
+  * We can't pause rootless containers during cp
+  * Fix bug in e2e tests for podman cp
+  * Tolerate non-running containers in paused cp
+  * Add test to ensure symlinks are resolved in ctr scope
+  * Add --pause to podman cp manpage and bash completions
+  * Pause containers while copying into them
+  * Use securejoin to merge paths in `podman cp`
+  * use imagecaches for local tests
+  * add dns flags to docs
+  * add missing container cp command
+  * Podman logs man page shouldn't include timestamps
+  * Fix the varlink upgraded calls
+  * hack: support setting local region/zone
+  * document missing container update command
+  * Add --follow to journald ctr logging
+  * Address comments
+  * Implement podman logs with log-driver journald
+  * bump go-systemd version
+  * Added --log-driver and journald logging
+  * Update completions and docs to use k8s file as log driver
+  * bump conmon to v0.2.0
+  * runtime: unlock the alive lock only once
+  * rootless: make JoinUserAndMountNS private
+  * Revert "rootless: change default path for conmon.pid"
+  * rootless: enable loginctl linger
+  * rootless: new function to join existing conmon processes
+  * rootless: block signals for pause
+  * Update install.md ostree Debian dependencies.
+  * fix bug dest path of copying tar
+  * podman: honor env variable PODMAN_USERNS
+  * userns: add new option --userns=keep-id
+  * warn when --security-opt and --privileged
+  * baseline tests: apparmor with --privileged
+  * rootless: store also the original GID in the host
+  * Fix a potential flake in the tests for podman cp
+  * cirrus: update images w/ zip pkg
+  * Cirrus: Add zip package to images
+  * rootless: fix top huser and hgroup
+  * vendor: update psgo to v1.3.0
+  * apparmor: don't load/set profile in privileged mode
+  * hack: ignore from all VCS files when tarballing
+  * hack: shrink xfer tarball size
+  * hack: Display IP address of VM from script
+  * document nullable types
+  * Add test cases for login and logout
+  * Remove unused return statement in kube volume code
+  * Fix play kube when a pod is specified
+  * Fix a 'generate kube' bug on ctrs with named volumes
+  * Add test for image volume conflict with user volume
+  * Cirrus: Fix missing CRIO_COMMIT -> CONMON_COMMIT
+  * When superceding mounts, check for opposite types
+  * make remote resize channel buffered
+  * Cirrus: workaround root expand failure
+  * Cirrus: Stub in F30 support
+  * Cirrus: fixups based on review feedback
+  * Cirrus: Overhaul/Simplify env. var setup
+  * Cirrus: Run tests on test-built cache-images
+  * Cirrus: Support testing of VM cache-image changes
+  * Cirrus: Remove "too new" runc hack
+  * libpod: prefer WaitForFile to polling
+  * Remove conmon from fedora install instructions
+  * rootless: force resources to be nil on cgroup v1
+  * Fixup Flags
+  * Minor fix filtering images by label
+  * container: move channel close to its writer
+  * util: fix race condition in WaitForFile
+  * Update vendor of buildah and containers/images
+  * Add Jhon Honce (@jwhonce on github) to OWNERS
+  * Don't set apparmor if --priviliged
+  * docs/libpod.conf.5: Add "have" to "higher precedence" typo
+  * Output name of process on runlabel command
+  * Minor fix splitting env vars in podman-commit
+  * Fixup conmon documentation
+  * troubleshooting.md: add note about updating subuid/subgid
+  * system: migrate stops the pause process
+  * rootless: join namespace immediately when possible
+  * rootless: use a pause process
+  * migrate: not create a new namespace
+  * install.remote should be separate for install.bin
+  * Cirrus: Confirm networking is working
+  * Use containers/conmon
+  * Fix a typo in release notes, and bump README version
+  * s|kubernetes-sigs/cri-o|cri-o/cri-o|g
+  * Bump github.com/containers/storage to v1.12.7
+  * remote: version: fix nil dereference
+  * Bump gitvalidation epoch
+  * Bump to v1.3.2-dev
+  * Add connection information to podman-remote info
+  * unshare: define CONTAINERS_GRAPHROOT and CONTAINERS_RUNROOT
+  * Touchup run man page
+  * unshare: use rootless from libpod
+  * Replace root-based rootless tests
+  * rootless: default --cgroup-manager=systemd in unified mode
+  * create: skip resources validation with cgroup v2
+  * rootless, spec: allow resources with cgroup v2
+
 - Changelog for v1.3.1 (2019-05-16)
   * More release notes
   * Add unshare to podman
