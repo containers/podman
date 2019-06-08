@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	v1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,15 +16,13 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/inspect"
-	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/google/shlex"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -619,145 +616,6 @@ func getStrFromSquareBrackets(cmd string) string {
 	}
 	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
 	return strings.Join(arr, ",")
-}
-
-// GetCtrInspectInfo takes container inspect data and collects all its info into a ContainerData
-// structure for inspection related methods
-func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *inspect.ContainerInspectData, createArtifact *cc.CreateConfig) (*inspect.ContainerData, error) {
-	spec := config.Spec
-
-	cpus, mems, period, quota, realtimePeriod, realtimeRuntime, shares := getCPUInfo(spec)
-	blkioWeight, blkioWeightDevice, blkioReadBps, blkioWriteBps, blkioReadIOPS, blkioeWriteIOPS := getBLKIOInfo(spec)
-	memKernel, memReservation, memSwap, memSwappiness, memDisableOOMKiller := getMemoryInfo(spec)
-	pidsLimit := getPidsInfo(spec)
-	cgroup := getCgroup(spec)
-	logConfig := inspect.LogConfig{
-		config.LogDriver,
-		make(map[string]string),
-	}
-
-	data := &inspect.ContainerData{
-		ctrInspectData,
-		&inspect.HostConfig{
-			ConsoleSize:          spec.Process.ConsoleSize,
-			OomScoreAdj:          spec.Process.OOMScoreAdj,
-			CPUShares:            shares,
-			BlkioWeight:          blkioWeight,
-			BlkioWeightDevice:    blkioWeightDevice,
-			BlkioDeviceReadBps:   blkioReadBps,
-			BlkioDeviceWriteBps:  blkioWriteBps,
-			BlkioDeviceReadIOps:  blkioReadIOPS,
-			BlkioDeviceWriteIOps: blkioeWriteIOPS,
-			CPUPeriod:            period,
-			CPUQuota:             quota,
-			CPURealtimePeriod:    realtimePeriod,
-			CPURealtimeRuntime:   realtimeRuntime,
-			CPUSetCPUs:           cpus,
-			CPUSetMems:           mems,
-			Devices:              spec.Linux.Devices,
-			KernelMemory:         memKernel,
-			MemoryReservation:    memReservation,
-			MemorySwap:           memSwap,
-			MemorySwappiness:     memSwappiness,
-			OomKillDisable:       memDisableOOMKiller,
-			PidsLimit:            pidsLimit,
-			Privileged:           config.Privileged,
-			ReadOnlyRootfs:       spec.Root.Readonly,
-			ReadOnlyTmpfs:        createArtifact.ReadOnlyTmpfs,
-			Runtime:              config.OCIRuntime,
-			NetworkMode:          string(createArtifact.NetMode),
-			IpcMode:              string(createArtifact.IpcMode),
-			Cgroup:               cgroup,
-			UTSMode:              string(createArtifact.UtsMode),
-			UsernsMode:           string(createArtifact.UsernsMode),
-			GroupAdd:             spec.Process.User.AdditionalGids,
-			ContainerIDFile:      createArtifact.CidFile,
-			AutoRemove:           createArtifact.Rm,
-			CapAdd:               createArtifact.CapAdd,
-			CapDrop:              createArtifact.CapDrop,
-			DNS:                  createArtifact.DNSServers,
-			DNSOptions:           createArtifact.DNSOpt,
-			DNSSearch:            createArtifact.DNSSearch,
-			PidMode:              string(createArtifact.PidMode),
-			CgroupParent:         createArtifact.CgroupParent,
-			ShmSize:              createArtifact.Resources.ShmSize,
-			Memory:               createArtifact.Resources.Memory,
-			Ulimits:              createArtifact.Resources.Ulimit,
-			SecurityOpt:          createArtifact.SecurityOpts,
-			Tmpfs:                createArtifact.Tmpfs,
-			LogConfig:            &logConfig,
-		},
-		&inspect.CtrConfig{
-			Hostname:    spec.Hostname,
-			User:        spec.Process.User,
-			Env:         spec.Process.Env,
-			Image:       config.RootfsImageName,
-			WorkingDir:  spec.Process.Cwd,
-			Labels:      config.Labels,
-			Annotations: spec.Annotations,
-			Tty:         spec.Process.Terminal,
-			OpenStdin:   config.Stdin,
-			StopSignal:  config.StopSignal,
-			Cmd:         config.Spec.Process.Args,
-			Entrypoint:  strings.Join(createArtifact.Entrypoint, " "),
-			Healthcheck: config.HealthCheckConfig,
-		},
-	}
-	return data, nil
-}
-
-func getCPUInfo(spec *specs.Spec) (string, string, *uint64, *int64, *uint64, *int64, *uint64) {
-	if spec.Linux.Resources == nil {
-		return "", "", nil, nil, nil, nil, nil
-	}
-	cpu := spec.Linux.Resources.CPU
-	if cpu == nil {
-		return "", "", nil, nil, nil, nil, nil
-	}
-	return cpu.Cpus, cpu.Mems, cpu.Period, cpu.Quota, cpu.RealtimePeriod, cpu.RealtimeRuntime, cpu.Shares
-}
-
-func getBLKIOInfo(spec *specs.Spec) (*uint16, []specs.LinuxWeightDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice, []specs.LinuxThrottleDevice) {
-	if spec.Linux.Resources == nil {
-		return nil, nil, nil, nil, nil, nil
-	}
-	blkio := spec.Linux.Resources.BlockIO
-	if blkio == nil {
-		return nil, nil, nil, nil, nil, nil
-	}
-	return blkio.Weight, blkio.WeightDevice, blkio.ThrottleReadBpsDevice, blkio.ThrottleWriteBpsDevice, blkio.ThrottleReadIOPSDevice, blkio.ThrottleWriteIOPSDevice
-}
-
-func getMemoryInfo(spec *specs.Spec) (*int64, *int64, *int64, *uint64, *bool) {
-	if spec.Linux.Resources == nil {
-		return nil, nil, nil, nil, nil
-	}
-	memory := spec.Linux.Resources.Memory
-	if memory == nil {
-		return nil, nil, nil, nil, nil
-	}
-	return memory.Kernel, memory.Reservation, memory.Swap, memory.Swappiness, memory.DisableOOMKiller
-}
-
-func getPidsInfo(spec *specs.Spec) *int64 {
-	if spec.Linux.Resources == nil {
-		return nil
-	}
-	pids := spec.Linux.Resources.Pids
-	if pids == nil {
-		return nil
-	}
-	return &pids.Limit
-}
-
-func getCgroup(spec *specs.Spec) string {
-	cgroup := "host"
-	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type == specs.CgroupNamespace && ns.Path != "" {
-			cgroup = "container"
-		}
-	}
-	return cgroup
 }
 
 func comparePorts(i, j ocicni.PortMapping) bool {

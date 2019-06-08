@@ -17,7 +17,6 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/libpod/pkg/firewall"
-	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -470,7 +469,7 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) getContainerNetworkInfo(data *inspect.ContainerInspectData) *inspect.ContainerInspectData {
+func (c *Container) getContainerNetworkInfo(data *InspectContainerData) *InspectContainerData {
 	if c.state.NetNS != nil && len(c.state.NetworkStatus) > 0 {
 		// Report network settings from the first pod network
 		result := c.state.NetworkStatus[0]
