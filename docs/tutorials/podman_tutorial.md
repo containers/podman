@@ -10,7 +10,7 @@ root escalation is required.
 
 ## Installing Podman
 
-For installing or building Podman, please see the [installation instructions](install.md).
+For installing or building Podman, please see the [installation instructions](https://github.com/containers/libpod/blob/master/install.md).
 
 ## Familiarizing yourself with Podman
 
