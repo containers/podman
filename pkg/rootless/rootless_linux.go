@@ -24,6 +24,7 @@ import (
 /*
 #cgo remoteclient CFLAGS: -DDISABLE_JOIN_SHORTCUT
 #include <stdlib.h>
+#include <sys/types.h>
 extern uid_t rootless_uid();
 extern uid_t rootless_gid();
 extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
