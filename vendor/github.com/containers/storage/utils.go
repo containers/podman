@@ -71,14 +71,16 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir(rootlessUid int) (string, error) {
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir == "" {
-		tmpDir := fmt.Sprintf("/run/user/%d", rootlessUid)
-		st, err := system.Stat(tmpDir)
-		if err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0700 == 0700 && st.Mode()&0066 == 0000 {
-			return tmpDir, nil
-		}
+
+	if runtimeDir != "" {
+		return runtimeDir, nil
 	}
-	tmpDir := fmt.Sprintf("%s/%d", os.TempDir(), rootlessUid)
+	tmpDir := fmt.Sprintf("/run/user/%d", rootlessUid)
+	st, err := system.Stat(tmpDir)
+	if err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0700 == 0700 && st.Mode()&0066 == 0000 {
+		return tmpDir, nil
+	}
+	tmpDir = fmt.Sprintf("%s/%d", os.TempDir(), rootlessUid)
 	if err := os.MkdirAll(tmpDir, 0700); err != nil {
 		logrus.Errorf("failed to create %s: %v", tmpDir, err)
 	} else {
