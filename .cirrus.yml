@@ -223,6 +223,9 @@ meta_task:
 
     depends_on:
         - "gating"
+        - "vendor"
+        - "varlink_api"
+        - "build_each_commit"
 
     container:
         image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
@@ -253,8 +256,8 @@ testing_task:
 
     depends_on:
         - "gating"
-        - "varlink_api"
         - "vendor"
+        - "varlink_api"
         - "build_each_commit"
 
     # Only test build cache-images, if that's what's requested
@@ -351,32 +354,6 @@ special_testing_in_podman_task:
         failed_df_script: '${DFCMD}'
         failed_audit_log_script: 'cat /var/log/audit/audit.log || cat /var/log/kern.log || echo "Uh oh, cat audit.log failed"'
         failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
-
-# Because system tests are stored within the repository, it is sometimes
-# necessary to execute them within a PR to validate changes.
-optional_testing_task:
-
-    depends_on:
-        - "gating"
-
-    # Only run system tests in PRs (not on merge) if magic string is present
-    # in the PR description.  Post-merge system testing is assumed to happen
-    # later from OS distribution's build systems.
-    only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
-
-    gce_instance:
-        matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-
-    timeout_in: 60m
-
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
@@ -508,12 +485,13 @@ success_task:
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
-        - "build_each_commit"
         - "vendor"
         - "varlink_api"
+        - "build_each_commit"
+        - "meta"
         - "testing"
-        - "special_testing"
-        - "optional_testing"
+        - "special_testing_rootless"
+        - "special_testing_in_podman"
         - "test_build_cache_images"
         - "verify_test_built_images"
         - "build_cache_images"
