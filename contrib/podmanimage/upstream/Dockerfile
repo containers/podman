@@ -21,7 +21,6 @@ RUN dnf -y install --exclude container-selinux \
      --enablerepo=updates-testing \
      atomic-registries \
      btrfs-progs-devel \
-     conmon \
      containernetworking-cni \
      device-mapper-devel \
      git \
@@ -49,7 +48,7 @@ RUN dnf -y install --exclude container-selinux \
      make BUILDTAGS="selinux seccomp"; \
      make install PREFIX=/usr; \
      cd /root/podman; \
-     git clone https://github.com/containers/conmon; \
+     git clone https://github.com/containers/conmon /root/podman/conmon; \
      cd conmon; \
      make; \
      install -D -m 755 bin/conmon /usr/libexec/podman/conmon; \
@@ -57,15 +56,15 @@ RUN dnf -y install --exclude container-selinux \
      cd $GOPATH/src/github.com/containernetworking/plugins; \
      ./build_linux.sh; \
      mkdir -p /usr/libexec/cni; \
-     cp bin/* /usr/libexec/cni; \
+     \cp -fR bin/* /usr/libexec/cni; \
      mkdir -p /etc/cni/net.d; \
-     curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/99-loopback.conf; \
+     curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | tee /etc/cni/net.d/99-loopback.conf; \
      mkdir -p /usr/share/containers; \
-     cp $GOPATH/podman/src/github.com/containers/libpod/libpod.conf /usr/share/containers; \
+     cp $GOPATH/src/github.com/containers/libpod/libpod.conf /usr/share/containers; \
      # Adjust libpod.conf to write logging to a file
      sed -i 's/events_logger = "journald"/events_logger = "file"/g' /usr/share/containers/libpod.conf; \
      rm -rf /root/podman/*; \
-     dnf -y remove bats git golang go-md2man make; \
+     dnf -y remove git golang go-md2man make; \
      dnf clean all;
 
 # Adjust storage.conf to enable Fuse storage.
