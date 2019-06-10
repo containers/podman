@@ -13,8 +13,8 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/docker/docker/builder/dockerfile/command"
-	"github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/openshift/imagebuilder/dockerfile/command"
+	"github.com/openshift/imagebuilder/dockerfile/parser"
 )
 
 // Copy defines a copy operation required on the container.
@@ -40,6 +40,7 @@ type Run struct {
 
 type Executor interface {
 	Preserve(path string) error
+	EnsureContainerPath(path string) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error
 	UnrecognizedInstruction(step *Step) error
@@ -49,6 +50,11 @@ type logExecutor struct{}
 
 func (logExecutor) Preserve(path string) error {
 	log.Printf("PRESERVE %s", path)
+	return nil
+}
+
+func (logExecutor) EnsureContainerPath(path string) error {
+	log.Printf("ENSURE %s", path)
 	return nil
 }
 
@@ -72,6 +78,10 @@ func (logExecutor) UnrecognizedInstruction(step *Step) error {
 type noopExecutor struct{}
 
 func (noopExecutor) Preserve(path string) error {
+	return nil
+}
+
+func (noopExecutor) EnsureContainerPath(path string) error {
 	return nil
 }
 
@@ -153,6 +163,7 @@ func (stages Stages) ByName(name string) (Stage, bool) {
 	return Stage{}, false
 }
 
+// Get just the target stage.
 func (stages Stages) ByTarget(target string) (Stages, bool) {
 	if len(target) == 0 {
 		return stages, true
@@ -165,6 +176,19 @@ func (stages Stages) ByTarget(target string) (Stages, bool) {
 	return nil, false
 }
 
+// Get all the stages up to and including the target.
+func (stages Stages) ThroughTarget(target string) (Stages, bool) {
+	if len(target) == 0 {
+		return stages, true
+	}
+	for i, stage := range stages {
+		if stage.Name == target {
+			return stages[0 : i+1], true
+		}
+	}
+	return nil, false
+}
+
 type Stage struct {
 	Position int
 	Name     string
@@ -172,8 +196,11 @@ type Stage struct {
 	Node     *parser.Node
 }
 
-func NewStages(node *parser.Node, b *Builder) Stages {
+func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 	var stages Stages
+	if err := b.extractHeadingArgsFromNode(node); err != nil {
+		return stages, err
+	}
 	for i, root := range SplitBy(node, command.From) {
 		name, _ := extractNameFromNode(root.Children[0])
 		if len(name) == 0 {
@@ -189,7 +216,36 @@ func NewStages(node *parser.Node, b *Builder) Stages {
 			Node: root,
 		})
 	}
-	return stages
+	return stages, nil
+}
+
+func (b *Builder) extractHeadingArgsFromNode(node *parser.Node) error {
+	var args []*parser.Node
+	var children []*parser.Node
+	extract := true
+	for _, child := range node.Children {
+		if extract && child.Value == command.Arg {
+			args = append(args, child)
+		} else {
+			if child.Value == command.From {
+				extract = false
+			}
+			children = append(children, child)
+		}
+	}
+
+	for _, c := range args {
+		step := b.Step()
+		if err := step.Resolve(c); err != nil {
+			return err
+		}
+		if err := b.Run(step, NoopExecutor, false); err != nil {
+			return err
+		}
+	}
+
+	node.Children = children
+	return nil
 }
 
 func extractNameFromNode(node *parser.Node) (string, bool) {
@@ -287,6 +343,13 @@ func (b *Builder) Run(step *Step, exec Executor, noRunsRemaining bool) error {
 	if err := exec.Copy(b.Excludes, copies...); err != nil {
 		return err
 	}
+
+	if len(b.RunConfig.WorkingDir) > 0 {
+		if err := exec.EnsureContainerPath(b.RunConfig.WorkingDir); err != nil {
+			return err
+		}
+	}
+
 	for _, run := range runs {
 		config := b.Config()
 		config.Env = step.Env
@@ -345,6 +408,9 @@ var ErrNoFROM = fmt.Errorf("no FROM statement found")
 // is set to the first From found, or left unchanged if already
 // set.
 func (b *Builder) From(node *parser.Node) (string, error) {
+	if err := b.extractHeadingArgsFromNode(node); err != nil {
+		return "", err
+	}
 	children := SplitChildren(node, command.From)
 	switch {
 	case len(children) == 0:

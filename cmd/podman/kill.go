@@ -1,97 +1,73 @@
 package main
 
 import (
-	"os"
-	"syscall"
-
-	"fmt"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	killFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "signal, s",
-			Usage: "Signal to send to the container",
-			Value: "KILL",
-		},
-		LatestFlag,
-	}
+	killCommand cliconfig.KillValues
+
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
-	killCommand     = cli.Command{
-		Name:                   "kill",
-		Usage:                  "Kill one or more running containers with a specific signal",
-		Description:            killDescription,
-		Flags:                  killFlags,
-		Action:                 killCmd,
-		ArgsUsage:              "[CONTAINER_NAME_OR_ID]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_killCommand    = &cobra.Command{
+		Use:   "kill [flags] CONTAINER [CONTAINER...]",
+		Short: "Kill one or more running containers with a specific signal",
+		Long:  killDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			killCommand.InputArgs = args
+			killCommand.GlobalFlags = MainGlobalOpts
+			killCommand.Remote = remoteclient
+			return killCmd(&killCommand)
+		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman kill mywebserver
+  podman kill 860a4b23
+  podman kill --signal TERM ctrID`,
 	}
 )
 
+func init() {
+	killCommand.Command = _killCommand
+	killCommand.SetHelpTemplate(HelpTemplate())
+	killCommand.SetUsageTemplate(UsageTemplate())
+	flags := killCommand.Flags()
+
+	flags.BoolVarP(&killCommand.All, "all", "a", false, "Signal all running containers")
+	flags.StringVarP(&killCommand.Signal, "signal", "s", "KILL", "Signal to send to the container")
+	flags.BoolVarP(&killCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
 // killCmd kills one or more containers with a signal
-func killCmd(c *cli.Context) error {
-	args := c.Args()
-	if len(args) == 0 && !c.Bool("latest") {
-		return errors.Errorf("specify one or more containers to kill")
+func killCmd(c *cliconfig.KillValues) error {
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "killCmd")
+		defer span.Finish()
 	}
-	if len(args) > 0 && c.Bool("latest") {
-		return errors.Errorf("you cannot specific any containers to kill with --latest")
-	}
-	if err := validateFlags(c, killFlags); err != nil {
+
+	// Check if the signalString provided by the user is valid
+	// Invalid signals will return err
+	killSignal, err := signal.ParseSignal(c.Signal)
+	if err != nil {
 		return err
 	}
 
-	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var killSignal uint = uint(syscall.SIGTERM)
-	if c.String("signal") != "" {
-		// Check if the signalString provided by the user is valid
-		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.String("signal"))
-		if err != nil {
-			return err
-		}
-		killSignal = uint(sysSignal)
+	ok, failures, err := runtime.KillContainers(getContext(), c, killSignal)
+	if err != nil {
+		return err
 	}
-
-	if c.Bool("latest") {
-		latestCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get latest container")
-		}
-		args = append(args, latestCtr.ID())
-	}
-
-	var lastError error
-	for _, container := range args {
-		ctr, err := runtime.LookupContainer(container)
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find container %v", container)
-			continue
-		}
-
-		if err := ctr.Kill(killSignal); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find container %v", container)
-		} else {
-			fmt.Println(ctr.ID())
-		}
-	}
-	return lastError
+	return printCmdResults(ok, failures)
 }

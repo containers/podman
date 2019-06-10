@@ -2,7 +2,6 @@ package otbuiltin
 
 import (
 	"fmt"
-	"strings"
 	"time"
 	"unsafe"
 
@@ -16,13 +15,7 @@ import (
 // #include "builtin.go.h"
 import "C"
 
-// Declare variables for options
-var logOpts logOptions
-
-// Set the format of the strings in the log
-const formatString = "2006-01-02 03:04;05 -0700"
-
-// Struct for the various pieces of data in a log entry
+// LogEntry is a struct for the various pieces of data in a log entry
 type LogEntry struct {
 	Checksum  []byte
 	Variant   []byte
@@ -39,24 +32,25 @@ func (l LogEntry) String() string {
 	return fmt.Sprintf("%s\n%s\n\n", l.Checksum, l.Variant)
 }
 
-type OstreeDumpFlags uint
+type ostreeDumpFlags uint
 
 const (
-	OSTREE_DUMP_NONE OstreeDumpFlags = 0
-	OSTREE_DUMP_RAW  OstreeDumpFlags = 1 << iota
+	ostreeDumpNone ostreeDumpFlags = 0
+	ostreeDumpRaw  ostreeDumpFlags = 1 << iota
 )
 
-// Contains all of the options for initializing an ostree repo
+// logOptions contains all of the options for initializing an ostree repo
 type logOptions struct {
-	Raw bool // Show raw variant data
+	// Raw determines whether to show raw variant data
+	Raw bool
 }
 
-//Instantiates and returns a logOptions struct with default values set
+// NewLogOptions instantiates and returns a logOptions struct with default values set
 func NewLogOptions() logOptions {
 	return logOptions{}
 }
 
-// Show the logs of a branch starting with a given commit or ref.  Returns a
+// Log shows the logs of a branch starting with a given commit or ref.  Returns a
 // slice of log entries on success and an error otherwise
 func Log(repoPath, branch string, options logOptions) ([]LogEntry, error) {
 	// attempt to open the repository
@@ -69,12 +63,12 @@ func Log(repoPath, branch string, options logOptions) ([]LogEntry, error) {
 	defer C.free(unsafe.Pointer(cbranch))
 	var checksum *C.char
 	defer C.free(unsafe.Pointer(checksum))
-	var flags OstreeDumpFlags = OSTREE_DUMP_NONE
 	var cerr *C.GError
 	defer C.free(unsafe.Pointer(cerr))
 
-	if logOpts.Raw {
-		flags |= OSTREE_DUMP_RAW
+	flags := ostreeDumpNone
+	if options.Raw {
+		flags |= ostreeDumpRaw
 	}
 
 	if !glib.GoBool(glib.GBoolean(C.ostree_repo_resolve_rev(repo.native(), cbranch, C.FALSE, &checksum, &cerr))) {
@@ -84,84 +78,86 @@ func Log(repoPath, branch string, options logOptions) ([]LogEntry, error) {
 	return logCommit(repo, checksum, false, flags)
 }
 
-func logCommit(repo *Repo, checksum *C.char, isRecursive bool, flags OstreeDumpFlags) ([]LogEntry, error) {
+func logCommit(repo *Repo, checksum *C.char, isRecursive bool, flags ostreeDumpFlags) ([]LogEntry, error) {
 	var variant *C.GVariant
-	var parent *C.char
-	defer C.free(unsafe.Pointer(parent))
 	var gerr = glib.NewGError()
 	var cerr = (*C.GError)(gerr.Ptr())
 	defer C.free(unsafe.Pointer(cerr))
-	entries := make([]LogEntry, 0, 1)
-	var err error
 
 	if !glib.GoBool(glib.GBoolean(C.ostree_repo_load_variant(repo.native(), C.OSTREE_OBJECT_TYPE_COMMIT, checksum, &variant, &cerr))) {
 		if isRecursive && glib.GoBool(glib.GBoolean(C.g_error_matches(cerr, C.g_io_error_quark(), C.G_IO_ERROR_NOT_FOUND))) {
 			return nil, nil
 		}
-		return entries, generateError(cerr)
+		return nil, generateError(cerr)
 	}
 
-	nextLogEntry := dumpLogObject(C.OSTREE_OBJECT_TYPE_COMMIT, checksum, variant, flags)
-
-	// get the parent of this commit
-	parent = (*C.char)(C.ostree_commit_get_parent(variant))
+	// Get the parent of this commit
+	parent := (*C.char)(C.ostree_commit_get_parent(variant))
 	defer C.free(unsafe.Pointer(parent))
+
+	entries := make([]LogEntry, 0, 1)
 	if parent != nil {
+		var err error
 		entries, err = logCommit(repo, parent, true, flags)
 		if err != nil {
 			return nil, err
 		}
 	}
-	entries = append(entries, *nextLogEntry)
+
+	nextLogEntry := dumpLogObject(C.OSTREE_OBJECT_TYPE_COMMIT, checksum, variant, flags)
+	entries = append(entries, nextLogEntry)
+
 	return entries, nil
 }
 
-func dumpLogObject(objectType C.OstreeObjectType, checksum *C.char, variant *C.GVariant, flags OstreeDumpFlags) *LogEntry {
-	objLog := new(LogEntry)
-	objLog.Checksum = []byte(C.GoString(checksum))
+func dumpLogObject(objectType C.OstreeObjectType, checksum *C.char, variant *C.GVariant, flags ostreeDumpFlags) LogEntry {
+	csum := []byte(C.GoString(checksum))
 
-	if (flags & OSTREE_DUMP_RAW) != 0 {
-		dumpVariant(objLog, variant)
-		return objLog
+	if (flags & ostreeDumpRaw) != 0 {
+		return dumpVariant(variant, csum)
 	}
 
 	switch objectType {
 	case C.OSTREE_OBJECT_TYPE_COMMIT:
-		dumpCommit(objLog, variant, flags)
-		return objLog
+		return dumpCommit(variant, flags, csum)
 	default:
-		return objLog
+		return LogEntry{
+			Checksum: csum,
+		}
 	}
 }
 
-func dumpVariant(log *LogEntry, variant *C.GVariant) {
-	var byteswappedVariant *C.GVariant
-
+func dumpVariant(variant *C.GVariant, csum []byte) LogEntry {
+	var logVariant []byte
 	if C.G_BYTE_ORDER != C.G_BIG_ENDIAN {
-		byteswappedVariant = C.g_variant_byteswap(variant)
-		log.Variant = []byte(C.GoString((*C.char)(C.g_variant_print(byteswappedVariant, C.TRUE))))
+		byteswappedVariant := C.g_variant_byteswap(variant)
+		logVariant = []byte(C.GoString((*C.char)(C.g_variant_print(byteswappedVariant, C.TRUE))))
 	} else {
-		log.Variant = []byte(C.GoString((*C.char)(C.g_variant_print(byteswappedVariant, C.TRUE))))
+		logVariant = []byte(C.GoString((*C.char)(C.g_variant_print(variant, C.TRUE))))
+	}
+
+	return LogEntry{
+		Checksum: csum,
+		Variant:  logVariant,
 	}
 }
 
-func dumpCommit(log *LogEntry, variant *C.GVariant, flags OstreeDumpFlags) {
-	var subject, body *C.char
+func dumpCommit(variant *C.GVariant, flags ostreeDumpFlags, csum []byte) LogEntry {
+	var subject *C.char
 	defer C.free(unsafe.Pointer(subject))
+	var body *C.char
 	defer C.free(unsafe.Pointer(body))
-	var timestamp C.guint64
+	var timeBigE C.guint64
 
-	C._g_variant_get_commit_dump(variant, C.CString("(a{sv}aya(say)&s&stayay)"), &subject, &body, &timestamp)
+	C._g_variant_get_commit_dump(variant, C.CString("(a{sv}aya(say)&s&stayay)"), &subject, &body, &timeBigE)
 
-	// Timestamp is now a Unix formatted timestamp as a guint64
-	timestamp = C._guint64_from_be(timestamp)
-	log.Timestamp = time.Unix((int64)(timestamp), 0)
+	// Translate to a host-endian epoch and convert to Go timestamp
+	timeHostE := C._guint64_from_be(timeBigE)
+	timestamp := time.Unix((int64)(timeHostE), 0)
 
-	if strings.Compare(C.GoString(subject), "") != 0 {
-		log.Subject = C.GoString(subject)
-	}
-
-	if strings.Compare(C.GoString(body), "") != 0 {
-		log.Body = C.GoString(body)
+	return LogEntry{
+		Timestamp: timestamp,
+		Subject:   C.GoString(subject),
+		Body:      C.GoString(body),
 	}
 }

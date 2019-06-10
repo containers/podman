@@ -3,12 +3,14 @@ package image
 import (
 	"context"
 	"fmt"
+	"github.com/containers/libpod/libpod/events"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
 	"github.com/containers/storage"
+	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,9 +88,10 @@ func TestImage_NewFromLocal(t *testing.T) {
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, false, false)
+	ir.Eventer = events.NewNullEventer()
+	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, false, nil)
 	assert.NoError(t, err)
-	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, false, false)
+	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, false, nil)
 	assert.NoError(t, err)
 
 	tm, err := makeLocalMatrix(bb, bbglibc)
@@ -126,6 +129,7 @@ func TestImage_New(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
 	names = append(names, fedoraNames...)
@@ -135,10 +139,10 @@ func TestImage_New(t *testing.T) {
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, false, false)
+		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, false, nil)
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
-		err = newImage.Remove(false)
+		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
 	}
 
@@ -163,7 +167,8 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, false, false)
+	ir.Eventer = events.NewNullEventer()
+	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, false, nil)
 	assert.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
 	assert.NoError(t, err)
@@ -192,6 +197,51 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	cleanup(workdir, ir)
 }
 
+// TestImage_RepoDigests tests RepoDigest generation.
+func TestImage_RepoDigests(t *testing.T) {
+	dgst, err := digest.Parse("sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		name     string
+		names    []string
+		expected []string
+	}{
+		{
+			name:     "empty",
+			names:    []string{},
+			expected: nil,
+		},
+		{
+			name:     "tagged",
+			names:    []string{"docker.io/library/busybox:latest"},
+			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+		},
+		{
+			name:     "digest",
+			names:    []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			image := &Image{
+				image: &storage.Image{
+					Names:  test.names,
+					Digest: dgst,
+				},
+			}
+			actual, err := image.RepoDigests()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, actual)
+		})
+	}
+}
+
 // Test_splitString tests the splitString function in image that
 // takes input and splits on / and returns the last array item
 func Test_splitString(t *testing.T) {
@@ -211,24 +261,25 @@ func Test_stripSha256(t *testing.T) {
 	assert.Equal(t, stripSha256("sha256:a"), "a")
 }
 
-func TestNormalizeTag(t *testing.T) {
+func TestNormalizedTag(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	for _, c := range []struct{ input, expected string }{
 		{"#", ""}, // Clearly invalid
 		{"example.com/busybox", "example.com/busybox:latest"},                                            // Qualified name-only
 		{"example.com/busybox:notlatest", "example.com/busybox:notlatest"},                               // Qualified name:tag
-		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix + ":none"},           // Qualified name@digest; FIXME: The result is not even syntactically valid!
+		{"example.com/busybox" + digestSuffix, "example.com/busybox" + digestSuffix},                     // Qualified name@digest; FIXME? Should we allow tagging with a digest at all?
 		{"example.com/busybox:notlatest" + digestSuffix, "example.com/busybox:notlatest" + digestSuffix}, // Qualified name:tag@digest
 		{"busybox:latest", "localhost/busybox:latest"},                                                   // Unqualified name-only
 		{"ns/busybox:latest", "localhost/ns/busybox:latest"},                                             // Unqualified with a dot-less namespace
+		{"docker.io/busybox:latest", "docker.io/library/busybox:latest"},                                 // docker.io without /library/
 	} {
-		res, err := normalizeTag(c.input)
+		res, err := normalizedTag(c.input)
 		if c.expected == "" {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			assert.Equal(t, c.expected, res)
+			assert.Equal(t, c.expected, res.String())
 		}
 	}
 }

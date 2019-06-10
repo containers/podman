@@ -5,7 +5,9 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	"github.com/docker/go-units"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +17,7 @@ var _ = Describe("Podman ps", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -23,15 +25,16 @@ var _ = Describe("Podman ps", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman ps no containers", func() {
@@ -61,7 +64,24 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 	})
 
+	It("podman container list all", func() {
+		_, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"container", "list", "-a"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+
+		result = podmanTest.Podman([]string{"container", "ls", "-a"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
+	})
+
 	It("podman ps size flag", func() {
+		SkipIfRootless()
+
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
@@ -145,10 +165,12 @@ var _ = Describe("Podman ps", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--format", "\"table {{.ID}} {{.Image}} {{.Labels}}\""})
+		result := podmanTest.Podman([]string{"ps", "-a", "--format", "table {{.ID}} {{.Image}} {{.Labels}}"})
 		result.WaitWithDefaultTimeout()
+		Expect(strings.Contains(result.OutputToStringArray()[0], "table")).To(BeFalse())
+		Expect(strings.Contains(result.OutputToStringArray()[0], "ID")).To(BeTrue())
+		Expect(strings.Contains(result.OutputToStringArray()[1], "alpine:latest")).To(BeTrue())
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(result.IsJSONOutputValid()).To(BeTrue())
 	})
 
 	It("podman ps ancestor filter flag", func() {
@@ -211,6 +233,8 @@ var _ = Describe("Podman ps", func() {
 	})
 
 	It("podman --sort by size", func() {
+		SkipIfRootless()
+
 		session := podmanTest.Podman([]string{"create", "busybox", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -250,8 +274,7 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
-		session = podmanTest.Podman([]string{"run", "-d", fedoraMinimal, "pwd"})
+		session = podmanTest.Podman([]string{"run", "-d", ALPINE, "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -281,5 +304,20 @@ var _ = Describe("Podman ps", func() {
 
 		Expect(session.OutputToString()).To(ContainSubstring(podid))
 
+	})
+
+	It("podman ps test with port range", func() {
+		SkipIfRootless()
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-dt", "-p", "1000-1006:1000-1006", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:1000-1006"))
 	})
 })

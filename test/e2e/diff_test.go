@@ -1,10 +1,10 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"sort"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +13,7 @@ var _ = Describe("Podman diff", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,20 +21,27 @@ var _ = Describe("Podman diff", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
 
 	})
 
 	It("podman diff of image", func() {
 		session := podmanTest.Podman([]string{"diff", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
+	})
+
+	It("podman container diff of image", func() {
+		session := podmanTest.Podman([]string{"container", "diff", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 0))
@@ -54,6 +61,7 @@ var _ = Describe("Podman diff", func() {
 	})
 
 	It("podman diff container and committed image", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"run", "--name=diff-test", ALPINE, "touch", "/tmp/diff-test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

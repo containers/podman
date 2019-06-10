@@ -1,9 +1,12 @@
+// +build !remoteclient
+
 package integration
 
 import (
+	"fmt"
 	"os"
 
-	"fmt"
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,34 +15,34 @@ var _ = Describe("Podman UserNS support", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
-		tempdir, err = CreateTempDirInTempDir()
-		if err != nil {
-			os.Exit(1)
-		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
-	})
-
-	AfterEach(func() {
-		podmanTest.Cleanup()
-		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
-	})
-
-	It("podman uidmapping and gidmapping", func() {
 		if os.Getenv("SKIP_USERNS") != "" {
 			Skip("Skip userns tests.")
 		}
 		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
 			Skip("User namespaces not supported.")
 		}
+		tempdir, err = CreateTempDirInTempDir()
+		if err != nil {
+			os.Exit(1)
+		}
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
+	})
 
-		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:70000", "--gidmap=0:20000:70000", "busybox", "echo", "hello"})
+	AfterEach(func() {
+		podmanTest.Cleanup()
+		f := CurrentGinkgoTestDescription()
+		processTestResult(f)
+
+	})
+
+	It("podman uidmapping and gidmapping", func() {
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:100:5000", "--gidmap=0:200:5000", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ok, _ := session.GrepString("hello")
@@ -51,14 +54,15 @@ var _ = Describe("Podman UserNS support", func() {
 	//     https://github.com/containers/libpod/pull/1066#issuecomment-403562116
 	// To avoid a potential future regression, use this as a test.
 	It("podman uidmapping and gidmapping with short-opts", func() {
-		if os.Getenv("SKIP_USERNS") != "" {
-			Skip("Skip userns tests.")
-		}
-		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
-			Skip("User namespaces not supported.")
-		}
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "-it", "alpine", "echo", "hello"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString("hello")
+		Expect(ok).To(BeTrue())
+	})
 
-		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:70000", "--gidmap=0:20000:70000", "-it", "busybox", "echo", "hello"})
+	It("podman uidmapping and gidmapping with a volume", func() {
+		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ok, _ := session.GrepString("hello")
@@ -66,17 +70,19 @@ var _ = Describe("Podman UserNS support", func() {
 	})
 
 	It("podman uidmapping and gidmapping --net=host", func() {
-		if os.Getenv("SKIP_USERNS") != "" {
-			Skip("Skip userns tests.")
-		}
-		if _, err := os.Stat("/proc/self/uid_map"); err != nil {
-			Skip("User namespaces not supported.")
-		}
-		session := podmanTest.Podman([]string{"run", "--net=host", "--uidmap=0:1:70000", "--gidmap=0:20000:70000", "busybox", "echo", "hello"})
+		session := podmanTest.Podman([]string{"run", "--net=host", "--uidmap=0:1:5000", "--gidmap=0:200:5000", "alpine", "echo", "hello"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		ok, _ := session.GrepString("hello")
 		Expect(ok).To(BeTrue())
 	})
 
+	It("podman --userns=keep-id", func() {
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "alpine", "id", "-u"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		uid := fmt.Sprintf("%d", os.Geteuid())
+		ok, _ := session.GrepString(uid)
+		Expect(ok).To(BeTrue())
+	})
 })

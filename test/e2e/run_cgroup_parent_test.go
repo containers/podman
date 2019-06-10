@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,27 +14,29 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreArtifact(fedoraMinimal)
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	Specify("valid --cgroup-parent using cgroupfs", func() {
-		if !containerized() {
+		if !Containerized() {
 			Skip("Must be containerized to run this test.")
 		}
 		cgroup := "/zzz"
@@ -45,7 +49,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 
 	Specify("no --cgroup-parent", func() {
 		cgroup := "/libpod_parent"
-		if !containerized() {
+		if !Containerized() && podmanTest.CgroupManager != "cgroupfs" {
 			cgroup = "/machine.slice"
 		}
 		run := podmanTest.Podman([]string{"run", fedoraMinimal, "cat", "/proc/self/cgroup"})
@@ -56,7 +60,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 	})
 
 	Specify("valid --cgroup-parent using slice", func() {
-		if containerized() {
+		if Containerized() || podmanTest.CgroupManager == "cgroupfs" {
 			Skip("Requires Systemd cgroup manager support")
 		}
 		cgroup := "aaaa.slice"

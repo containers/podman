@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman run entrypoint", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +22,16 @@ var _ = Describe("Podman run entrypoint", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreArtifact(ALPINE)
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run no command, entrypoint, or cmd", func() {
@@ -50,7 +53,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(3))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
 	})
 
 	It("podman run entrypoint with cmd", func() {
@@ -62,7 +65,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(5))
+		Expect(len(session.OutputToStringArray())).To(Equal(4))
 	})
 
 	It("podman run entrypoint with user cmd overrides image cmd", func() {
@@ -74,7 +77,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(6))
+		Expect(len(session.OutputToStringArray())).To(Equal(5))
 	})
 
 	It("podman run entrypoint with user cmd no image cmd", func() {
@@ -85,7 +88,7 @@ ENTRYPOINT ["grep", "Alpine", "/etc/os-release"]
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest", "-i"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(6))
+		Expect(len(session.OutputToStringArray())).To(Equal(5))
 	})
 
 	It("podman run user entrypoint overrides image entrypoint and image cmd", func() {

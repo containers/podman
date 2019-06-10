@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman run exit", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,27 +22,30 @@ var _ = Describe("Podman run exit", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.RestoreArtifact(ALPINE)
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run -d mount cleanup test", func() {
-		mount := podmanTest.SystemExec("mount", nil)
-		mount.WaitWithDefaultTimeout()
+		mount := SystemExec("mount", nil)
+		Expect(mount.ExitCode()).To(Equal(0))
+
 		out1 := mount.OutputToString()
 		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
-		mount = podmanTest.SystemExec("mount", nil)
-		mount.WaitWithDefaultTimeout()
+		mount = SystemExec("mount", nil)
+		Expect(mount.ExitCode()).To(Equal(0))
+
 		out2 := mount.OutputToString()
 		Expect(out1).To(Equal(out2))
 	})

@@ -4,46 +4,52 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podKillFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Kill all containers in all pods",
+	podKillCommand     cliconfig.PodKillValues
+	podKillDescription = `Signals are sent to the main process of each container inside the specified pod.
+
+  The default signal is SIGKILL, or any signal specified with option --signal.`
+	_podKillCommand = &cobra.Command{
+		Use:   "kill [flags] POD [POD...]",
+		Short: "Send the specified signal or SIGKILL to containers in pod",
+		Long:  podKillDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podKillCommand.InputArgs = args
+			podKillCommand.GlobalFlags = MainGlobalOpts
+			podKillCommand.Remote = remoteclient
+			return podKillCmd(&podKillCommand)
 		},
-		cli.StringFlag{
-			Name:  "signal, s",
-			Usage: "Signal to send to the containers in the pod",
-			Value: "KILL",
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
 		},
-		LatestPodFlag,
-	}
-	podKillDescription = "The main process of each container inside the specified pod will be sent SIGKILL, or any signal specified with option --signal."
-	podKillCommand     = cli.Command{
-		Name:                   "kill",
-		Usage:                  "Send the specified signal or SIGKILL to containers in pod",
-		Description:            podKillDescription,
-		Flags:                  podKillFlags,
-		Action:                 podKillCmd,
-		ArgsUsage:              "[POD_NAME_OR_ID]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+		Example: `podman pod kill podID
+  podman pod kill --signal TERM mywebserver
+  podman pod kill --latest`,
 	}
 )
 
-// podKillCmd kills one or more pods with a signal
-func podKillCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
-	}
+func init() {
+	podKillCommand.Command = _podKillCommand
+	podKillCommand.SetHelpTemplate(HelpTemplate())
+	podKillCommand.SetUsageTemplate(UsageTemplate())
+	flags := podKillCommand.Flags()
+	flags.BoolVarP(&podKillCommand.All, "all", "a", false, "Kill all containers in all pods")
+	flags.BoolVarP(&podKillCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	flags.StringVarP(&podKillCommand.Signal, "signal", "s", "KILL", "Signal to send to the containers in the pod")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+// podKillCmd kills one or more pods with a signal
+func podKillCmd(c *cliconfig.PodKillValues) error {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -51,40 +57,30 @@ func podKillCmd(c *cli.Context) error {
 
 	var killSignal uint = uint(syscall.SIGTERM)
 
-	if c.String("signal") != "" {
+	if c.Signal != "" {
 		// Check if the signalString provided by the user is valid
 		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.String("signal"))
+		sysSignal, err := signal.ParseSignal(c.Signal)
 		if err != nil {
 			return err
 		}
 		killSignal = uint(sysSignal)
 	}
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	podKillIds, podKillErrors := runtime.KillPods(getContext(), c, killSignal)
+	for _, p := range podKillIds {
+		fmt.Println(p)
+	}
+	if len(podKillErrors) == 0 {
+		return nil
+	}
+	// Grab the last error
+	lastError := podKillErrors[len(podKillErrors)-1]
+	// Remove the last error from the error slice
+	podKillErrors = podKillErrors[:len(podKillErrors)-1]
 
-	for _, pod := range pods {
-		ctr_errs, err := pod.Kill(killSignal)
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to kill container %q in pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to kill pod %q", pod.ID())
-			continue
-		}
-		fmt.Println(pod.ID())
+	for _, err := range podKillErrors {
+		logrus.Errorf("%q", err)
 	}
 	return lastError
 }

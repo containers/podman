@@ -3,75 +3,68 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podStartFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "start all running pods",
+	podStartCommand     cliconfig.PodStartValues
+	podStartDescription = `The pod name or ID can be used.
+
+  All containers defined in the pod will be started.`
+	_podStartCommand = &cobra.Command{
+		Use:   "start [flags] POD [POD...]",
+		Short: "Start one or more pods",
+		Long:  podStartDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podStartCommand.InputArgs = args
+			podStartCommand.GlobalFlags = MainGlobalOpts
+			podStartCommand.Remote = remoteclient
+			return podStartCmd(&podStartCommand)
 		},
-		LatestPodFlag,
-	}
-	podStartDescription = `
-   podman pod start
-
-   Starts one or more pods.  The pod name or ID can be used.
-`
-
-	podStartCommand = cli.Command{
-		Name:                   "start",
-		Usage:                  "Start one or more pods",
-		Description:            podStartDescription,
-		Flags:                  podStartFlags,
-		Action:                 podStartCmd,
-		ArgsUsage:              "POD-NAME [POD-NAME ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman pod start podID
+  podman pod start --latest
+  podman pod start --all`,
 	}
 )
 
-func podStartCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
-	}
+func init() {
+	podStartCommand.Command = _podStartCommand
+	podStartCommand.SetHelpTemplate(HelpTemplate())
+	podStartCommand.SetUsageTemplate(UsageTemplate())
+	flags := podStartCommand.Flags()
+	flags.BoolVarP(&podStartCommand.All, "all", "a", false, "Start all pods")
+	flags.BoolVarP(&podStartCommand.Latest, "latest", "l", false, "Start the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+func podStartCmd(c *cliconfig.PodStartValues) error {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
-
-	ctx := getContext()
-	for _, pod := range pods {
-		ctr_errs, err := pod.Start(ctx)
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to start container %q on pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to start pod %q", pod.ID())
-			continue
-		}
-		fmt.Println(pod.ID())
+	podStartIDs, podStartErrors := runtime.StartPods(getContext(), c)
+	for _, p := range podStartIDs {
+		fmt.Println(p)
 	}
+	if len(podStartErrors) == 0 {
+		return nil
+	}
+	// Grab the last error
+	lastError := podStartErrors[len(podStartErrors)-1]
+	// Remove the last error from the error slice
+	podStartErrors = podStartErrors[:len(podStartErrors)-1]
 
+	for _, err := range podStartErrors {
+		logrus.Errorf("%q", err)
+	}
 	return lastError
 }

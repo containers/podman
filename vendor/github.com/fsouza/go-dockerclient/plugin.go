@@ -143,7 +143,7 @@ type PluginDetail struct {
 	ID       string         `json:"Id,omitempty" yaml:"Id,omitempty" toml:"Id,omitempty"`
 	Name     string         `json:"Name,omitempty" yaml:"Name,omitempty" toml:"Name,omitempty"`
 	Tag      string         `json:"Tag,omitempty" yaml:"Tag,omitempty" toml:"Tag,omitempty"`
-	Active   bool           `json:"Active,omitempty" yaml:"Active,omitempty" toml:"Active,omitempty"`
+	Active   bool           `json:"Enabled,omitempty" yaml:"Active,omitempty" toml:"Active,omitempty"`
 	Settings PluginSettings `json:"Settings,omitempty" yaml:"Settings,omitempty" toml:"Settings,omitempty"`
 	Config   PluginConfig   `json:"Config,omitempty" yaml:"Config,omitempty" toml:"Config,omitempty"`
 }

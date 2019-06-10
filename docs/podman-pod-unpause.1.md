@@ -11,13 +11,15 @@ Unpauses all the paused processes in the containers of one or more pods.  You ma
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Unpause all pods.
 
 **--latest, -l**
 
 Instead of providing the pod name or ID, unpause the last created pod.
+
+The latest option is not supported on the remote client.
 
 ## EXAMPLE
 

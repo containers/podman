@@ -37,7 +37,7 @@ func TestPostDeleteHooks(t *testing.T) {
 			},
 			StaticDir: dir, // not the bundle, but good enough for this test
 		},
-		state: &containerState{
+		state: &ContainerState{
 			ExtensionStageHooks: map[string][]rspec.Hook{
 				"poststop": {
 					rspec.Hook{

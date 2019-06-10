@@ -1,9 +1,13 @@
+// +build !remoteclient
+
 package integration
 
 import (
 	"fmt"
 	"os"
+	"time"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +16,7 @@ var _ = Describe("Podman top", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +24,16 @@ var _ = Describe("Podman top", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman pod top without pod name or id", func() {
@@ -88,7 +93,11 @@ var _ = Describe("Podman top", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"pod", "top", podid, "invalid"})
+		// We need to pass -eo to force executing ps in the Alpine container.
+		// Alpines stripped down ps(1) is accepting any kind of weird input in
+		// contrast to others, such that a `ps invalid` will silently ignore
+		// the wrong input and still print the -ef output instead.
+		result := podmanTest.Podman([]string{"pod", "top", podid, "-eo", "invalid"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))
 	})
@@ -109,7 +118,7 @@ var _ = Describe("Podman top", func() {
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(4))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
 	})
 
 	It("podman pod top on pod with containers in different namespace", func() {
@@ -124,9 +133,16 @@ var _ = Describe("Podman top", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		for i := 0; i < 10; i++ {
+			fmt.Println("Waiting for containers to be running .... ")
+			if podmanTest.NumberOfContainersRunning() == 2 {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
 		result := podmanTest.Podman([]string{"pod", "top", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(4))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
 	})
 })

@@ -3,11 +3,18 @@ approvers:
   - baude
   - mrunalp
   - rhatdan
-reviewers:
-  - mtrmac
-  - jwhonce
-  - runcom
-  - nalind
-  - wking
   - TomSweeneyRedHat
   - umohnani8
+  - giuseppe
+  - vrothberg
+  - jwhonce
+reviewers:
+  - mheon
+  - baude
+  - mrunalp
+  - rhatdan
+  - TomSweeneyRedHat
+  - umohnani8
+  - giuseppe
+  - vrothberg
+  - jwhonce

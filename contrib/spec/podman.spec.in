@@ -33,26 +33,26 @@
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
 
 # People want conmon packaged with the copr rpm
-%global import_path_conmon      github.com/kubernetes-sigs/cri-o
+%global import_path_conmon      github.com/containers/conmon
 %global git_conmon      https://%{import_path_conmon}
-%global commit_conmon   4cd5a7c60349be0678d9f1b0657683324c1a2726
+%global commit_conmon   59952292a3b07ac125575024ae21956efe0ecdfb
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
-Version: 0.9.3
+Version: 1.4.1
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
 URL: %{git_podman}
 Source0: %{git0}/archive/%{commit0}/%{repo}-%{shortcommit0}.tar.gz
-Source1: crio.tar.gz
+Source1: conmon.tar.gz
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
 ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
-# If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
-BuildRequires: %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
+# The COPR process will uncomment this
+#BuildRequires: golang-bin
+#
 BuildRequires: btrfs-progs-devel
-BuildRequires: device-mapper-devel
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
@@ -66,6 +66,7 @@ BuildRequires: libselinux-devel
 BuildRequires: ostree-devel
 BuildRequires: pkgconfig
 BuildRequires: make
+BuildRequires: systemd-devel
 Requires: runc
 Requires: skopeo-containers
 Requires: containernetworking-plugins >= 0.6.0-3
@@ -142,7 +143,7 @@ Provides: bundled(golang(github.com/ostreedev/ostree-go)) = master
 Provides: bundled(golang(github.com/pkg/errors)) = v0.8.0
 Provides: bundled(golang(github.com/pmezard/go-difflib)) = 792786c7400a136282c1664665ae0a8db921c6c2
 Provides: bundled(golang(github.com/pquerna/ffjson)) = d49c2bc1aa135aad0c6f4fc2056623ec78f5d5ac
-Provides: bundled(golang(github.com/projectatomic/buildah)) = a2c8358455f9b6a254c572455af2a0afcfcec544
+Provides: bundled(golang(github.com/containers/buildah)) = a2c8358455f9b6a254c572455af2a0afcfcec544
 Provides: bundled(golang(github.com/seccomp/containers-golang)) = master
 Provides: bundled(golang(github.com/seccomp/libseccomp-golang)) = v0.9.0
 Provides: bundled(golang(github.com/sirupsen/logrus)) = v1.0.0
@@ -151,7 +152,6 @@ Provides: bundled(golang(github.com/stretchr/testify)) = 4d4bfba8f1d1027c4fdbe37
 Provides: bundled(golang(github.com/syndtr/gocapability)) = e7cb7fa329f456b3855136a2642b197bad7366ba
 Provides: bundled(golang(github.com/tchap/go-patricia)) = v2.2.6
 Provides: bundled(golang(github.com/ulikunitz/xz)) = v0.5.4
-Provides: bundled(golang(github.com/ulule/deepcopier)) = master
 # "-" are not accepted in version strings, so comment out below line
 #Provides: bundled(golang(github.com/urfave/cli)) = fix-short-opts-parsing
 Provides: bundled(golang(github.com/varlink/go)) = master
@@ -185,36 +185,13 @@ Provides: bundled(golang(k8s.io/utils)) = 258e2a2fa64568210fbd6267cf1d8fd87c3cb8
 %{repo} provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
-%if %{with varlink}
-%package -n python3-%{name}
-BuildArch: noarch
-BuildRequires: python3-devel
-BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
-Requires: python3-setuptools
-Requires: python3-varlink
-Requires: python3-dateutil
-Requires: python3-humanize
-Provides: python3-%{name} = %{version}-%{release}
-Summary: Python 3 bindings for %{name}
+%package remote
+Summary:       Remote Podman client
 
-%description -n python3-%{name}
-This package contains Python 3 bindings for %{name}.
-
-%package -n python3-py%{name}
-BuildArch: noarch
-BuildRequires: python3-devel
-BuildRequires: python3-setuptools
-BuildRequires: python3-varlink
-Requires: python3-setuptools
-Requires: python3-varlink
-Requires: python3-dateutil
-Requires: python3-psutil
-Summary: Python 3 tool for %{name}
-
-%description -n python3-py%{name}
-This package contains Python 3 tool for %{name}.
-%endif # varlink
+%description -n podman-remote
+%{summary}
+This package provides the Podman remote client which
+can be used to access Podman running on a server.
 
 %if 0%{?with_devel}
 %package devel
@@ -235,7 +212,7 @@ BuildRequires: golang(github.com/containers/image/docker/tarfile)
 BuildRequires: golang(github.com/containers/image/image)
 BuildRequires: golang(github.com/containers/image/oci/archive)
 BuildRequires: golang(github.com/containers/image/pkg/strslice)
-BuildRequires: golang(github.com/containers/image/pkg/sysregistries)
+BuildRequires: golang(github.com/containers/image/pkg/sysregistriesv2)
 BuildRequires: golang(github.com/containers/image/signature)
 BuildRequires: golang(github.com/containers/image/storage)
 BuildRequires: golang(github.com/containers/image/tarball)
@@ -268,7 +245,6 @@ BuildRequires: golang(github.com/opencontainers/selinux/go-selinux)
 BuildRequires: golang(github.com/opencontainers/selinux/go-selinux/label)
 BuildRequires: golang(github.com/pkg/errors)
 BuildRequires: golang(github.com/sirupsen/logrus)
-BuildRequires: golang(github.com/ulule/deepcopier)
 BuildRequires: golang(golang.org/x/crypto/ssh/terminal)
 BuildRequires: golang(golang.org/x/sys/unix)
 BuildRequires: golang(k8s.io/apimachinery/pkg/util/wait)
@@ -288,7 +264,7 @@ Requires:      golang(github.com/containers/image/docker/tarfile)
 Requires:      golang(github.com/containers/image/image)
 Requires:      golang(github.com/containers/image/oci/archive)
 Requires:      golang(github.com/containers/image/pkg/strslice)
-Requires:      golang(github.com/containers/image/pkg/sysregistries)
+Requires:      golang(github.com/containers/image/pkg/sysregistriesv2)
 Requires:      golang(github.com/containers/image/signature)
 Requires:      golang(github.com/containers/image/storage)
 Requires:      golang(github.com/containers/image/tarball)
@@ -321,7 +297,6 @@ Requires:      golang(github.com/opencontainers/selinux/go-selinux)
 Requires:      golang(github.com/opencontainers/selinux/go-selinux/label)
 Requires:      golang(github.com/pkg/errors)
 Requires:      golang(github.com/sirupsen/logrus)
-Requires:      golang(github.com/ulule/deepcopier)
 Requires:      golang(golang.org/x/crypto/ssh/terminal)
 Requires:      golang(golang.org/x/sys/unix)
 Requires:      golang(k8s.io/apimachinery/pkg/util/wait)
@@ -378,10 +353,6 @@ providing packages with %{import_path} prefix.
 
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
-sed -i '/\/bin\/env/d' completions/bash/%{name}
-sed -i 's/0.0.0/%{version}/' contrib/python/%{name}/setup.py
-sed -i 's/0.0.0/%{version}/' contrib/python/py%{name}/setup.py
-mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 # untar cri-o
 tar zxf %{SOURCE1}
@@ -400,32 +371,29 @@ GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 BUILDTAGS=$BUILDTAGS make binaries docs
 
 # build conmon
-pushd crio
+pushd conmon
 
 mkdir _output
 pushd _output
-mkdir -p src/%{provider}.%{provider_tld}/{kubernetes-sigs,opencontainers}
+mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 
-ln -s vendor src
-export GOPATH=$(pwd)/_output:$(pwd):%{gopath}
 export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) containers_image_ostree_stub"
-BUILDTAGS=$BUILDTAGS make -C conmon
+BUILDTAGS=$BUILDTAGS make
 popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
-%{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
+        install.remote \
         install.man \
         install.cni \
         install.systemd \
         install.completions
 
-%if %{with varlink}
-%{__make} DESTDIR=%{buildroot} install.python
-%endif # varlink
+mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
 # install libpod.conf
 install -dp %{buildroot}%{_datadir}/containers
@@ -433,7 +401,7 @@ install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
 
 # install conmon
 install -dp %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 crio/bin/conmon %{buildroot}%{_libexecdir}/%{name}
+install -p -m 755 conmon/bin/conmon %{buildroot}%{_libexecdir}/%{name}
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -509,29 +477,13 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
+%{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
 %config(noreplace) %{_sysconfdir}/cni/net.d/87-%{name}-bridge.conflist
 %{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.podman.service
 %{_unitdir}/io.podman.socket
 %{_usr}/lib/tmpfiles.d/%{name}.conf
-
-%if %{with varlink}
-%files -n python3-%{name}
-%license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
-%dir %{python3_sitelib}/%{name}
-%{python3_sitelib}/%{name}/*
-%{python3_sitelib}/%{name}*.egg-info
-
-%files -n python3-py%{name}
-%license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
-%dir %{python3_sitelib}/py%{name}
-%{python3_sitelib}/py%{name}/*
-%{python3_sitelib}/py%{name}*.egg-info
-%{_bindir}/py%{name}
-%endif # varlink
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
@@ -545,6 +497,11 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %endif
+
+%files -n podman-remote
+%license LICENSE
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%{_bindir}/%{name}-remote
 
 %changelog
 * Sat Aug 4 2018 Dan Walsh <dwalsh@redhat.com> - 0.8.1-1.git6b4ab2a

@@ -1,7 +1,7 @@
 % podman-history(1)
 
 ## NAME
-podman\-history - Shows the history of an image
+podman\-history - Show the history of an image
 
 ## SYNOPSIS
 **podman history** [*options*] *image*[:*tag*|@*digest*]
@@ -90,7 +90,7 @@ $ podman history --format json debian
 ```
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

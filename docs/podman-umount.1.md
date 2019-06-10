@@ -29,6 +29,14 @@ processes have mounted it.
 Note: This could cause other processes that are using the file system to fail,
 as the mount point could be removed without their knowledge.
 
+**--latest, -l**
+
+Instead of providing the container name or ID, use the last created container.
+If you use methods other than Podman to run containers such as CRI-O, the last
+started container could be from either of those methods.
+
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 podman umount containerID

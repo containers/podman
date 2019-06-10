@@ -4,12 +4,15 @@ package libpod
 
 import (
 	"context"
+	"strings"
 
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -18,7 +21,7 @@ const (
 	IDTruncLength = 12
 )
 
-func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string) (*Container, error) {
+func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string, config *v1.ImageConfig) (*Container, error) {
 
 	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
@@ -28,8 +31,44 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	isRootless := rootless.IsRootless()
 
+	entryCmd := []string{r.config.InfraCommand}
+	// I've seen circumstances where config is being passed as nil.
+	// Let's err on the side of safety and make sure it's safe to use.
+	if config != nil {
+		setEntrypoint := false
+		// default to entrypoint in image if there is one
+		if len(config.Entrypoint) > 0 {
+			entryCmd = config.Entrypoint
+			setEntrypoint = true
+		}
+		if len(config.Cmd) > 0 {
+			// We can't use the default pause command, since we're
+			// sourcing from the image. If we didn't already set an
+			// entrypoint, set one now.
+			if !setEntrypoint {
+				// Use the Docker default "/bin/sh -c"
+				// entrypoint, as we're overriding command.
+				// If an image doesn't want this, it can
+				// override entrypoint too.
+				entryCmd = []string{"/bin/sh", "-c"}
+			}
+			entryCmd = append(entryCmd, config.Cmd...)
+		}
+		if len(config.Env) > 0 {
+			for _, nameValPair := range config.Env {
+				nameValSlice := strings.Split(nameValPair, "=")
+				if len(nameValSlice) < 2 {
+					return nil, errors.Errorf("Invalid environment variable structure in pause image")
+				}
+				g.AddProcessEnv(nameValSlice[0], nameValSlice[1])
+			}
+		}
+	}
+
 	g.SetRootReadonly(true)
-	g.SetProcessArgs([]string{r.config.InfraCommand})
+	g.SetProcessArgs(entryCmd)
+
+	logrus.Debugf("Using %q as infra container entrypoint", entryCmd)
 
 	if isRootless {
 		g.RemoveMount("/dev/pts")
@@ -50,9 +89,12 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	options = append(options, withIsInfra())
 
 	// Since user namespace sharing is not implemented, we only need to check if it's rootless
-	portMappings := make([]ocicni.PortMapping, 0)
 	networks := make([]string, 0)
-	options = append(options, WithNetNS(portMappings, isRootless, networks))
+	netmode := "bridge"
+	if isRootless {
+		netmode = "slirp4netns"
+	}
+	options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, isRootless, netmode, networks))
 
 	return r.newContainer(ctx, g.Config, options...)
 }
@@ -65,7 +107,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, false)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -77,5 +119,5 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makeInfraContainer(ctx, p, imageName, imageID)
+	return r.makeInfraContainer(ctx, p, imageName, imageID, data.Config)
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/storage/drivers"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/system"
@@ -15,8 +14,8 @@ import (
 )
 
 var (
-	// CopyWithTar defines the copy method to use.
-	CopyWithTar = chrootarchive.NewArchiver(nil).CopyWithTar
+	// CopyDir defines the copy method to use.
+	CopyDir = dirCopy
 )
 
 func init() {
@@ -100,6 +99,14 @@ func (d *Driver) Cleanup() error {
 	return nil
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	if readWrite {
+		return d.CreateReadWrite(id, template, opts)
+	}
+	return d.Create(id, template, opts)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
@@ -116,8 +123,13 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		return fmt.Errorf("--storage-opt is not supported for vfs")
 	}
 
+	idMappings := d.idMappings
+	if opts != nil && opts.IDMappings != nil {
+		idMappings = opts.IDMappings
+	}
+
 	dir := d.dir(id)
-	rootIDs := d.idMappings.RootPair()
+	rootIDs := idMappings.RootPair()
 	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0700, rootIDs); err != nil {
 		return err
 	}
@@ -137,11 +149,11 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		label.SetFileLabel(dir, mountLabel)
 	}
 	if parent != "" {
-		parentDir, err := d.Get(parent, "", nil, nil)
+		parentDir, err := d.Get(parent, graphdriver.MountOpts{})
 		if err != nil {
 			return fmt.Errorf("%s: %s", parent, err)
 		}
-		if err := CopyWithTar(parentDir, dir); err != nil {
+		if err := dirCopy(parentDir, dir); err != nil {
 			return err
 		}
 	}
@@ -179,8 +191,11 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the directory for the given id.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
 	dir := d.dir(id)
+	if len(options.Options) > 0 {
+		return "", fmt.Errorf("vfs driver does not support mount options")
+	}
 	if st, err := os.Stat(dir); err != nil {
 		return "", err
 	} else if !st.IsDir() {

@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
+	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 )
@@ -22,22 +23,15 @@ const (
 	DefaultTransport = "docker://"
 )
 
-// WriteFile writes a provided string to a provided path
-func WriteFile(content string, path string) error {
+// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
+func OpenExclusiveFile(path string) (*os.File, error) {
 	baseDir := filepath.Dir(path)
 	if baseDir != "" {
 		if _, err := os.Stat(baseDir); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	f.WriteString(content)
-	f.Sync()
-	return nil
+	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 }
 
 // FuncTimer helps measure the execution time of a function
@@ -95,31 +89,45 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 }
 
 // WaitForFile waits until a file has been created or the given timeout has occurred
-func WaitForFile(path string, timeout time.Duration) error {
-	done := make(chan struct{})
-	chControl := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			default:
-				_, err := os.Stat(path)
-				if err == nil {
-					close(done)
-					return
-				}
-				time.Sleep(25 * time.Millisecond)
-			}
+func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
+	var inotifyEvents chan fsnotify.Event
+	watcher, err := fsnotify.NewWatcher()
+	if err == nil {
+		if err := watcher.Add(filepath.Dir(path)); err == nil {
+			inotifyEvents = watcher.Events
 		}
-	}()
+		defer watcher.Close()
+	}
 
-	select {
-	case <-done:
-		return nil
-	case <-time.After(timeout):
-		close(chControl)
-		return errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+	timeoutChan := time.After(timeout)
+
+	for {
+		select {
+		case e := <-chWait:
+			return true, e
+		case <-inotifyEvents:
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
+			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-time.After(25 * time.Millisecond):
+			// Check periodically for the file existence.  It is needed
+			// if the inotify watcher could not have been created.  It is
+			// also useful when using inotify as if for any reasons we missed
+			// a notification, we won't hang the process.
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
+			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-timeoutChan:
+			return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+		}
 	}
 }
 
@@ -159,4 +167,14 @@ func validPodNSOption(p *Pod, ctrPod string) error {
 		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
+}
+
+// JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the
+// given structures. From and To should be identically typed structs.
+func JSONDeepCopy(from, to interface{}) error {
+	tmp, err := json.Marshal(from)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(tmp, to)
 }

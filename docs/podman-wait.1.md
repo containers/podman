@@ -1,7 +1,7 @@
 % podman-wait "1"
 
 ## NAME
-podman\-wait - Waits on one or more containers to stop and prints exit code
+podman\-wait - Wait on one or more containers to stop and print their exit codes
 
 ## SYNOPSIS
 **podman wait** [*options*] *container*
@@ -17,13 +17,15 @@ After the container stops, the container's return code is printed.
 
   Print usage statement
 
-**--interval, i**"
+**--interval, -i**"
   Microseconds to wait before polling for completion
 
 **--latest, -l**
 
-  Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
+Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+The latest option is not supported on the remote client.
 
 ## EXAMPLES
 
@@ -38,7 +40,7 @@ $ podman wait mywebserver myftpserver
 ```
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 September 2017, Originally compiled by Brent Baude<bbaude@redhat.com>

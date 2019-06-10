@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/events"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +25,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		return nil, ErrRuntimeStopped
 	}
 
-	pod, err := newPod(r.lockDir, r)
+	pod, err := newPod(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating pod")
 	}
@@ -47,6 +49,14 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		}
 		pod.config.Name = name
 	}
+
+	// Allocate a lock for the pod
+	lock, err := r.lockManager.AllocateLock()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error allocating lock for new pod")
+	}
+	pod.lock = lock
+	pod.config.LockID = pod.lock.ID()
 
 	pod.valid = true
 
@@ -87,8 +97,11 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	if pod.config.UsePodCgroup {
 		logrus.Debugf("Got pod cgroup as %s", pod.state.CgroupPath)
 	}
-	if pod.HasInfraContainer() != pod.SharesNamespaces() {
+	if !pod.HasInfraContainer() && pod.SharesNamespaces() {
 		return nil, errors.Errorf("Pods must have an infra container to share namespaces")
+	}
+	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
+		logrus.Warnf("Pod has an infra container, but shares no namespaces")
 	}
 
 	if err := r.state.AddPod(pod); err != nil {
@@ -109,17 +122,8 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		if err := pod.save(); err != nil {
 			return nil, err
 		}
-
-		// Once the pod infra container has been created, we start it
-		if err := ctr.Start(ctx); err != nil {
-			// If the infra container does not start, we need to tear the pod down.
-			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
-				logrus.Errorf("Error removing pod after infra container failed to start: %v", err2)
-			}
-			return nil, errors.Wrapf(err, "error starting Infra Container")
-		}
 	}
-
+	pod.newPodEvent(events.Create)
 	return pod, nil
 }
 
@@ -145,109 +149,86 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		return errors.Wrapf(ErrCtrExists, "pod %s contains containers and cannot be removed", p.ID())
 	}
 
-	// Go through and lock all containers so we can operate on them all at once
-	dependencies := make(map[string][]string)
+	// Go through and lock all containers so we can operate on them all at
+	// once.
+	// First loop also checks that we are ready to go ahead and remove.
 	for _, ctr := range ctrs {
-		ctr.lock.Lock()
-		defer ctr.lock.Unlock()
+		ctrLock := ctr.lock
+		ctrLock.Lock()
+		defer ctrLock.Unlock()
+
+		// If we're force-removing, no need to check status.
+		if force {
+			continue
+		}
 
 		// Sync all containers
 		if err := ctr.syncContainer(); err != nil {
 			return err
 		}
 
-		// Check if the container is in a good state to be removed
-		if ctr.state.State == ContainerStatePaused {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains paused container %s, cannot remove", p.ID(), ctr.ID())
-		}
-
-		if ctr.state.State == ContainerStateUnknown {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s with invalid state", p.ID(), ctr.ID())
-		}
-
-		// If the container is running and force is not set we can't do anything
-		if ctr.state.State == ContainerStateRunning && !force {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which is running", p.ID(), ctr.ID())
-		}
-
-		// If the container has active exec sessions and force is not set we can't do anything
-		if len(ctr.state.ExecSessions) != 0 && !force {
-			return errors.Wrapf(ErrCtrStateInvalid, "pod %s contains container %s which has active exec sessions", p.ID(), ctr.ID())
-		}
-
-		deps, err := r.state.ContainerInUse(ctr)
-		if err != nil {
-			return err
-		}
-		dependencies[ctr.ID()] = deps
-	}
-
-	// Check if containers have dependencies
-	// If they do, and the dependencies are not in the pod, error
-	for ctr, deps := range dependencies {
-		for _, dep := range deps {
-			if _, ok := dependencies[dep]; !ok {
-				return errors.Wrapf(ErrCtrExists, "container %s depends on container %s not in pod %s", ctr, dep, p.ID())
-			}
+		// Ensure state appropriate for removal
+		if err := ctr.checkReadyForRemoval(); err != nil {
+			return errors.Wrapf(err, "pod %s has containers that are not ready to be removed", p.ID())
 		}
 	}
 
-	// First loop through all containers and stop them
-	// Do not remove in this loop to ensure that we don't remove unless all
-	// containers are in a good state
-	if force {
-		for _, ctr := range ctrs {
-			// If force is set and the container is running, stop it now
-			if ctr.state.State == ContainerStateRunning {
-				if err := r.ociRuntime.stopContainer(ctr, ctr.StopTimeout()); err != nil {
-					return errors.Wrapf(err, "error stopping container %s to remove pod %s", ctr.ID(), p.ID())
-				}
+	var removalErr error
 
-				// Sync again to pick up stopped state
-				if err := ctr.syncContainer(); err != nil {
-					return err
-				}
+	// We're going to be removing containers.
+	// If we are CGroupfs cgroup driver, to avoid races, we need to hit
+	// the pod and conmon CGroups with a PID limit to prevent them from
+	// spawning any further processes (particularly cleanup processes) which
+	// would prevent removing the CGroups.
+	if p.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+		// Get the conmon CGroup
+		v1CGroups := GetV1CGroups(getExcludedCGroups())
+		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
+		conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+		if err != nil && err != cgroups.ErrCgroupDeleted {
+			if removalErr == nil {
+				removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
+			} else {
+				logrus.Errorf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 			}
-			// If the container has active exec sessions, stop them now
-			if len(ctr.state.ExecSessions) != 0 {
-				if err := r.ociRuntime.execStopContainer(ctr, ctr.StopTimeout()); err != nil {
-					return err
+		}
+
+		// New resource limits
+		resLimits := new(spec.LinuxResources)
+		resLimits.Pids = new(spec.LinuxPids)
+		resLimits.Pids.Limit = 1 // Inhibit forks with very low pids limit
+
+		// Don't try if we failed to retrieve the cgroup
+		if err == nil {
+			if err := conmonCgroup.Update(resLimits); err != nil {
+				if removalErr == nil {
+					removalErr = errors.Wrapf(err, "error updating pod %s conmon group", p.ID())
+				} else {
+					logrus.Errorf("Error updating pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 				}
 			}
 		}
 	}
 
-	// Start removing containers
-	// We can remove containers even if they have dependencies now
-	// As we have guaranteed their dependencies are in the pod
+	// Second loop - all containers are good, so we should be clear to
+	// remove.
 	for _, ctr := range ctrs {
-		// Clean up network namespace, cgroups, mounts
-		if err := ctr.cleanup(); err != nil {
-			return err
-		}
-
-		// Stop container's storage
-		if err := ctr.teardownStorage(); err != nil {
-			return err
-		}
-
-		// Delete the container from runtime (only if we are not
-		// ContainerStateConfigured)
-		if ctr.state.State != ContainerStateConfigured {
-			if err := ctr.delete(ctx); err != nil {
-				return err
+		// Remove the container
+		if err := r.removeContainer(ctx, ctr, force, true, true); err != nil {
+			if removalErr != nil {
+				removalErr = err
+			} else {
+				logrus.Errorf("Error removing container %s from pod %s: %v", ctr.ID(), p.ID(), err)
 			}
 		}
 	}
 
-	// Remove containers from the state
+	// Remove all containers in the pod from the state.
 	if err := r.state.RemovePodContainers(p); err != nil {
+		// If this fails, there isn't much more we can do.
+		// The containers in the pod are unusable, but they still exist,
+		// so pod removal will fail.
 		return err
-	}
-
-	// Mark containers invalid
-	for _, ctr := range ctrs {
-		ctr.valid = false
 	}
 
 	// Remove pod cgroup, if present
@@ -257,36 +238,85 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		switch p.runtime.config.CgroupManager {
 		case SystemdCgroupsManager:
 			if err := deleteSystemdCgroup(p.state.CgroupPath); err != nil {
-				// The pod is already almost gone.
-				// No point in hard-failing if we fail
-				// this bit of cleanup.
-				logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
-			}
-		case CgroupfsCgroupsManager:
-			// Delete the cgroupfs cgroup
-			cgroup, err := cgroups.Load(cgroups.V1, cgroups.StaticPath(p.state.CgroupPath))
-			if err != nil && err != cgroups.ErrCgroupDeleted {
-				return err
-			} else if err == nil {
-				if err := cgroup.Delete(); err != nil {
-					// The pod is already almost gone.
-					// No point in hard-failing if we fail
-					// this bit of cleanup.
+				if removalErr == nil {
+					removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+				} else {
 					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
+		case CgroupfsCgroupsManager:
+			// Delete the cgroupfs cgroup
+			// Make sure the conmon cgroup is deleted first
+			// Since the pod is almost gone, don't bother failing
+			// hard - instead, just log errors.
+			v1CGroups := GetV1CGroups(getExcludedCGroups())
+			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
+			conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+			if err != nil && err != cgroups.ErrCgroupDeleted {
+				if removalErr == nil {
+					removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup", p.ID())
+				} else {
+					logrus.Debugf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+				}
+			}
+			if err == nil {
+				if err := conmonCgroup.Delete(); err != nil {
+					if removalErr == nil {
+						removalErr = errors.Wrapf(err, "error removing pod %s conmon cgroup", p.ID())
+					} else {
+						logrus.Errorf("Error deleting pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
+					}
+				}
+			}
+			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
+			if err != nil && err != cgroups.ErrCgroupDeleted {
+				if removalErr == nil {
+					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
+				} else {
+					logrus.Errorf("Error retrieving pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+				}
+			}
+			if err == nil {
+				if err := cgroup.Delete(); err != nil {
+					if removalErr == nil {
+						removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
+					} else {
+						logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
+					}
+				}
+			}
 		default:
-			return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+			// This should be caught much earlier, but let's still
+			// keep going so we make sure to evict the pod before
+			// ending up with an inconsistent state.
+			if removalErr == nil {
+				removalErr = errors.Wrapf(ErrInternal, "unrecognized cgroup manager %s when removing pod %s cgroups", p.runtime.config.CgroupManager, p.ID())
+			} else {
+				logrus.Errorf("Unknown cgroups manager %s specified - cannot remove pod %s cgroup", p.runtime.config.CgroupManager, p.ID())
+			}
 		}
 	}
 
 	// Remove pod from state
 	if err := r.state.RemovePod(p); err != nil {
+		if removalErr != nil {
+			logrus.Errorf("%v", removalErr)
+		}
 		return err
 	}
 
 	// Mark pod invalid
 	p.valid = false
+	p.newPodEvent(events.Remove)
 
-	return nil
+	// Deallocate the pod lock
+	if err := p.lock.Free(); err != nil {
+		if removalErr == nil {
+			removalErr = errors.Wrapf(err, "error freeing pod %s lock", p.ID())
+		} else {
+			logrus.Errorf("Error freeing pod %s lock: %v", p.ID(), err)
+		}
+	}
+
+	return removalErr
 }

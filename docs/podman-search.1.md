@@ -27,7 +27,10 @@ Note, searching without a search term will only work for registries that impleme
 
 **--authfile**
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
+Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--filter, -f**
 
@@ -69,9 +72,9 @@ Do not truncate the output
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then tls verification will be used. If set to false then tls verification will not be used if needed. If not specified
-default registries will be searched through (in /etc/containers/registries.conf), and tls will be skipped if a default
-registry is listed in the insecure registries.
+then TLS verification will be used. If set to false, then TLS verification will not be used if needed. If not specified,
+default registries will be searched through (in /etc/containers/registries.conf), and TLS will be skipped if a default
+registry is listed in the insecure registries. (Not available for remote commands)
 
 **--help**, **-h**
 
@@ -146,7 +149,7 @@ Note: This works only with registries that implement the v2 API. If tried with a
 	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), containers-registries.conf(5), crio(8)
+podman(1), containers-registries.conf(5)
 
 ## HISTORY
 January 2018, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

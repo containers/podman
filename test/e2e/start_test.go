@@ -1,9 +1,9 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ var _ = Describe("Podman start", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +20,16 @@ var _ = Describe("Podman start", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman start bogus container", func() {
@@ -43,6 +44,16 @@ var _ = Describe("Podman start", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
 		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman container start single container by id", func() {
+		session := podmanTest.Podman([]string{"container", "create", "-d", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"container", "start", cid})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -85,6 +96,42 @@ var _ = Describe("Podman start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"start", "-a", "foobar1", "foobar2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman failed to start with --rm should delete the container", func() {
+		session := podmanTest.Podman([]string{"create", "-it", "--rm", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		start := podmanTest.Podman([]string{"start", "-l"})
+		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(BeZero())
+	})
+
+	It("podman failed to start without --rm should NOT delete the container", func() {
+		session := podmanTest.Podman([]string{"create", "-it", ALPINE, "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		start := podmanTest.Podman([]string{"start", "-l"})
+		start.WaitWithDefaultTimeout()
+		Expect(start.ExitCode()).To(Not(Equal(0)))
+
+		numContainers := podmanTest.NumberOfContainers()
+		Expect(numContainers).To(Equal(1))
+	})
+
+	It("podman start --sig-proxy should not work without --attach", func() {
+		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"start", "-l", "--sig-proxy"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})

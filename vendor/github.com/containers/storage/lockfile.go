@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"fmt"
 	"path/filepath"
 	"sync"
 	"time"
@@ -13,7 +12,18 @@ import (
 // identifier of the last party that made changes to whatever's being protected
 // by the lock.
 type Locker interface {
-	sync.Locker
+	// Acquire a writer lock.
+	Lock()
+
+	// Acquire a writer lock recursively, allowing for recursive acquisitions
+	// within the same process space.
+	RecursiveLock()
+
+	// Unlock the lock.
+	Unlock()
+
+	// Acquire a reader lock.
+	RLock()
 
 	// Touch records, for others sharing the lock, that the caller was the
 	// last writer.  It should only be called with the lock held.
@@ -29,7 +39,7 @@ type Locker interface {
 	// IsReadWrite() checks if the lock file is read-write
 	IsReadWrite() bool
 
-	// Locked() checks if lock is locked
+	// Locked() checks if lock is locked for writing by a thread in this process
 	Locked() bool
 }
 
@@ -39,44 +49,50 @@ var (
 )
 
 // GetLockfile opens a read-write lock file, creating it if necessary.  The
-// Locker object it returns will be returned unlocked.
+// Locker object may already be locked if the path has already been requested
+// by the current process.
 func GetLockfile(path string) (Locker, error) {
-	lockfilesLock.Lock()
-	defer lockfilesLock.Unlock()
-	if lockfiles == nil {
-		lockfiles = make(map[string]Locker)
-	}
-	cleanPath := filepath.Clean(path)
-	if locker, ok := lockfiles[cleanPath]; ok {
-		if !locker.IsReadWrite() {
-			return nil, errors.Wrapf(ErrLockReadOnly, "lock %q is a read-only lock", cleanPath)
-		}
-		return locker, nil
-	}
-	locker, err := getLockFile(path, false) // platform dependent locker
-	if err != nil {
-		return nil, err
-	}
-	lockfiles[filepath.Clean(path)] = locker
-	return locker, nil
+	return getLockfile(path, false)
 }
 
-// GetROLockfile opens a read-only lock file.  The Locker object it returns
-// will be returned unlocked.
+// GetROLockfile opens a read-only lock file, creating it if necessary.  The
+// Locker object may already be locked if the path has already been requested
+// by the current process.
 func GetROLockfile(path string) (Locker, error) {
+	return getLockfile(path, true)
+}
+
+// getLockfile returns a Locker object, possibly (depending on the platform)
+// working inter-process, and associated with the specified path.
+//
+// If ro, the lock is a read-write lock and the returned Locker should correspond to the
+// “lock for reading” (shared) operation; otherwise, the lock is either an exclusive lock,
+// or a read-write lock and Locker should correspond to the “lock for writing” (exclusive) operation.
+//
+// WARNING:
+// - The lock may or MAY NOT be inter-process.
+// - There may or MAY NOT be an actual object on the filesystem created for the specified path.
+// - Even if ro, the lock MAY be exclusive.
+func getLockfile(path string, ro bool) (Locker, error) {
 	lockfilesLock.Lock()
 	defer lockfilesLock.Unlock()
 	if lockfiles == nil {
 		lockfiles = make(map[string]Locker)
 	}
-	cleanPath := filepath.Clean(path)
+	cleanPath, err := filepath.Abs(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error ensuring that path %q is an absolute path", path)
+	}
 	if locker, ok := lockfiles[cleanPath]; ok {
-		if locker.IsReadWrite() {
-			return nil, fmt.Errorf("lock %q is a read-write lock", cleanPath)
+		if ro && locker.IsReadWrite() {
+			return nil, errors.Errorf("lock %q is not a read-only lock", cleanPath)
+		}
+		if !ro && !locker.IsReadWrite() {
+			return nil, errors.Errorf("lock %q is not a read-write lock", cleanPath)
 		}
 		return locker, nil
 	}
-	locker, err := getLockFile(path, true) // platform dependent locker
+	locker, err := createLockerForPath(path, ro) // platform-dependent locker
 	if err != nil {
 		return nil, err
 	}

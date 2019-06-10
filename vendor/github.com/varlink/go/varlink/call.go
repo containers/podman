@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"strings"
 )
 
@@ -11,31 +13,40 @@ import (
 // client can be terminated by returning an error from the call instead
 // of sending a reply or error reply.
 type Call struct {
-	writer    *bufio.Writer
-	in        *serviceCall
+	*bufio.Reader
+	*bufio.Writer
+	Conn      *net.Conn
+	Request   *[]byte
+	In        *serviceCall
 	Continues bool
+	Upgrade   bool
 }
 
 // WantsMore indicates if the calling client accepts more than one reply to this method call.
 func (c *Call) WantsMore() bool {
-	return c.in.More
+	return c.In.More
+}
+
+// WantsUpgrade indicates that the calling client wants the connection to be upgraded.
+func (c *Call) WantsUpgrade() bool {
+	return c.In.Upgrade
 }
 
 // IsOneway indicate that the calling client does not expect a reply.
 func (c *Call) IsOneway() bool {
-	return c.in.Oneway
+	return c.In.Oneway
 }
 
 // GetParameters retrieves the method call parameters.
 func (c *Call) GetParameters(p interface{}) error {
-	if c.in.Parameters == nil {
+	if c.In.Parameters == nil {
 		return fmt.Errorf("empty parameters")
 	}
-	return json.Unmarshal(*c.in.Parameters, p)
+	return json.Unmarshal(*c.In.Parameters, p)
 }
 
 func (c *Call) sendMessage(r *serviceReply) error {
-	if c.in.Oneway {
+	if c.In.Oneway {
 		return nil
 	}
 
@@ -45,11 +56,18 @@ func (c *Call) sendMessage(r *serviceReply) error {
 	}
 
 	b = append(b, 0)
-	_, e = c.writer.Write(b)
+	_, e = c.Writer.Write(b)
 	if e != nil {
+		if e == io.EOF {
+			return io.ErrUnexpectedEOF
+		}
 		return e
 	}
-	return c.writer.Flush()
+	e = c.Writer.Flush()
+	if e == io.EOF {
+		return io.ErrUnexpectedEOF
+	}
+	return e
 }
 
 // Reply sends a reply to this method call.
@@ -60,7 +78,7 @@ func (c *Call) Reply(parameters interface{}) error {
 		})
 	}
 
-	if !c.in.More {
+	if !c.In.More {
 		return fmt.Errorf("call did not set more, it does not expect continues")
 	}
 

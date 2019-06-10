@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +13,7 @@ var _ = Describe("Podman pod rm", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +21,16 @@ var _ = Describe("Podman pod rm", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman pod rm empty pod", func() {
@@ -92,28 +94,41 @@ var _ = Describe("Podman pod rm", func() {
 	})
 
 	It("podman pod rm -a doesn't remove a running container", func() {
+		fmt.Printf("To start, there are %d pods\n", podmanTest.NumberOfPods())
 		_, ec, podid1 := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
 		_, ec, _ = podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
+		fmt.Printf("Started %d pods\n", podmanTest.NumberOfPods())
 
 		session := podmanTest.RunTopContainerInPod("", podid1)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		podmanTest.WaitForContainer()
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		fmt.Printf("Started container running in one pod")
 
+		num_pods := podmanTest.NumberOfPods()
+		Expect(num_pods).To(Equal(2))
+		ps := podmanTest.Podman([]string{"pod", "ps"})
+		ps.WaitWithDefaultTimeout()
+		fmt.Printf("Current %d pod(s):\n%s\n", num_pods, ps.OutputToString())
+
+		fmt.Printf("Removing all empty pods\n")
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Not(Equal(0)))
+		foundExpectedError, _ := result.ErrorGrepString("contains containers and cannot be removed")
+		Expect(foundExpectedError).To(Equal(true))
 
-		result = podmanTest.Podman([]string{"ps", "-q"})
-		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
-
-		// one pod should have been deleted
-		result = podmanTest.Podman([]string{"pod", "ps", "-q"})
-		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		num_pods = podmanTest.NumberOfPods()
+		ps = podmanTest.Podman([]string{"pod", "ps"})
+		ps.WaitWithDefaultTimeout()
+		fmt.Printf("Final %d pod(s):\n%s\n", num_pods, ps.OutputToString())
+		Expect(num_pods).To(Equal(1))
+		// Confirm top container still running inside remaining pod
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
 
 	It("podman pod rm -fa removes everything", func() {

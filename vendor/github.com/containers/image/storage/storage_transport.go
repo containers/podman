@@ -107,7 +107,7 @@ func (s *storageTransport) DefaultGIDMap() []idtools.IDMap {
 // relative to the given store, and returns it in a reference object.
 func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (*storageReference, error) {
 	if ref == "" {
-		return nil, errors.Wrapf(ErrInvalidReference, "%q is an empty reference")
+		return nil, errors.Wrapf(ErrInvalidReference, "%q is an empty reference", ref)
 	}
 	if ref[0] == '[' {
 		// Ignore the store specifier.
@@ -180,7 +180,10 @@ func (s *storageTransport) GetStore() (storage.Store, error) {
 	// Return the transport's previously-set store.  If we don't have one
 	// of those, initialize one now.
 	if s.store == nil {
-		options := storage.DefaultStoreOptions
+		options, err := storage.DefaultStoreOptionsAutoDetectUID()
+		if err != nil {
+			return nil, err
+		}
 		options.UIDMap = s.defaultUIDMap
 		options.GIDMap = s.defaultGIDMap
 		store, err := storage.GetStore(options)
@@ -284,11 +287,6 @@ func (s storageTransport) GetStoreImage(store storage.Store, ref types.ImageRefe
 		}
 	}
 	if sref, ok := ref.(*storageReference); ok {
-		if sref.id != "" {
-			if img, err := store.Image(sref.id); err == nil {
-				return img, nil
-			}
-		}
 		tmpRef := *sref
 		if img, err := tmpRef.resolveImage(); err == nil {
 			return img, nil

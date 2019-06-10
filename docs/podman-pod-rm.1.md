@@ -11,7 +11,7 @@ podman\-pod\-rm - Remove one or more pods
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Remove all pods.  Can be used in conjunction with \-f as well.
 
@@ -19,7 +19,9 @@ Remove all pods.  Can be used in conjunction with \-f as well.
 
 Instead of providing the pod name or ID, remove the last created pod.
 
-**--force, f**
+The latest option is not supported on the remote client.
+
+**--force, -f**
 
 Stop running containers and delete all stopped containers before removal of pod.
 

@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman run exit", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +22,16 @@ var _ = Describe("Podman run exit", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run exit 125", func() {
@@ -56,8 +59,7 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run exit 50", func() {
-		podmanTest.RestoreArtifact(fedoraMinimal)
-		result := podmanTest.Podman([]string{"run", "registry.fedoraproject.org/fedora-minimal", "bash", "-c", "exit 50"})
+		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(50))
 	})

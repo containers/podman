@@ -2,13 +2,12 @@ package libpod
 
 import (
 	"bytes"
-	"encoding/json"
-	"path/filepath"
 	"runtime"
 	"strings"
 
-	"github.com/boltdb/bolt"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
+	bolt "github.com/etcd-io/bbolt"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -21,15 +20,26 @@ const (
 	allCtrsName       = "all-ctrs"
 	podName           = "pod"
 	allPodsName       = "allPods"
+	volName           = "vol"
+	allVolsName       = "allVolumes"
 	runtimeConfigName = "runtime-config"
 
-	configName       = "config"
-	stateName        = "state"
-	dependenciesName = "dependencies"
-	netNSName        = "netns"
-	containersName   = "containers"
-	podIDName        = "pod-id"
-	namespaceName    = "namespace"
+	configName         = "config"
+	stateName          = "state"
+	dependenciesName   = "dependencies"
+	volCtrDependencies = "vol-dependencies"
+	netNSName          = "netns"
+	containersName     = "containers"
+	podIDName          = "pod-id"
+	namespaceName      = "namespace"
+
+	staticDirName   = "static-dir"
+	tmpDirName      = "tmp-dir"
+	runRootName     = "run-root"
+	graphRootName   = "graph-root"
+	graphDriverName = "graph-driver-name"
+	osName          = "os"
+	volPathName     = "volume-path"
 )
 
 var (
@@ -40,30 +50,32 @@ var (
 	allCtrsBkt       = []byte(allCtrsName)
 	podBkt           = []byte(podName)
 	allPodsBkt       = []byte(allPodsName)
+	volBkt           = []byte(volName)
+	allVolsBkt       = []byte(allVolsName)
 	runtimeConfigBkt = []byte(runtimeConfigName)
 
-	configKey       = []byte(configName)
-	stateKey        = []byte(stateName)
-	dependenciesBkt = []byte(dependenciesName)
-	netNSKey        = []byte(netNSName)
-	containersBkt   = []byte(containersName)
-	podIDKey        = []byte(podIDName)
-	namespaceKey    = []byte(namespaceName)
+	configKey          = []byte(configName)
+	stateKey           = []byte(stateName)
+	dependenciesBkt    = []byte(dependenciesName)
+	volDependenciesBkt = []byte(volCtrDependencies)
+	netNSKey           = []byte(netNSName)
+	containersBkt      = []byte(containersName)
+	podIDKey           = []byte(podIDName)
+	namespaceKey       = []byte(namespaceName)
+
+	staticDirKey   = []byte(staticDirName)
+	tmpDirKey      = []byte(tmpDirName)
+	runRootKey     = []byte(runRootName)
+	graphRootKey   = []byte(graphRootName)
+	graphDriverKey = []byte(graphDriverName)
+	osKey          = []byte(osName)
+	volPathKey     = []byte(volPathName)
 )
 
 // Check if the configuration of the database is compatible with the
 // configuration of the runtime opening it
 // If there is no runtime configuration loaded, load our own
 func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
-	var (
-		staticDir       = []byte("static-dir")
-		tmpDir          = []byte("tmp-dir")
-		runRoot         = []byte("run-root")
-		graphRoot       = []byte("graph-root")
-		graphDriverName = []byte("graph-driver-name")
-		osKey           = []byte("os")
-	)
-
 	err := db.Update(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
@@ -74,32 +86,41 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "static dir",
-			rt.config.StaticDir, staticDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod root directory (staticdir)",
+			rt.config.StaticDir, staticDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "tmp dir",
-			rt.config.TmpDir, tmpDir, ""); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory (tmpdir)",
+			rt.config.TmpDir, tmpDirKey, ""); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "run root",
-			rt.config.StorageConfig.RunRoot, runRoot,
-			storage.DefaultStoreOptions.RunRoot); err != nil {
+		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+		if err != nil {
+			return err
+		}
+		if err := validateDBAgainstConfig(configBkt, "storage temporary directory (runroot)",
+			rt.config.StorageConfig.RunRoot, runRootKey,
+			storeOpts.RunRoot); err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "graph root",
-			rt.config.StorageConfig.GraphRoot, graphRoot,
-			storage.DefaultStoreOptions.GraphRoot); err != nil {
+		if err := validateDBAgainstConfig(configBkt, "storage graph root directory (graphroot)",
+			rt.config.StorageConfig.GraphRoot, graphRootKey,
+			storeOpts.GraphRoot); err != nil {
 			return err
 		}
 
-		return validateDBAgainstConfig(configBkt, "graph driver name",
+		if err := validateDBAgainstConfig(configBkt, "storage graph driver",
 			rt.config.StorageConfig.GraphDriverName,
-			graphDriverName,
-			storage.DefaultStoreOptions.GraphDriverName)
+			graphDriverKey,
+			storeOpts.GraphDriverName); err != nil {
+			return err
+		}
+
+		return validateDBAgainstConfig(configBkt, "volume path",
+			rt.config.VolumePath, volPathKey, "")
 	})
 
 	return err
@@ -229,6 +250,22 @@ func getAllPodsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
+func getVolBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(volBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "volumes bucket not found in DB")
+	}
+	return bkt, nil
+}
+
+func getAllVolsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
+	bkt := tx.Bucket(allVolsBkt)
+	if bkt == nil {
+		return nil, errors.Wrapf(ErrDBBadConfig, "all volumes bucket not found in DB")
+	}
+	return bkt, nil
+}
+
 func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(runtimeConfigBkt)
 	if bkt == nil {
@@ -261,10 +298,9 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(ctr.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for container %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for container %s", string(id))
 	}
 	ctr.lock = lock
 
@@ -297,15 +333,35 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 	}
 
 	// Get the lock
-	lockPath := filepath.Join(s.lockDir, string(id))
-	lock, err := storage.GetLockfile(lockPath)
+	lock, err := s.runtime.lockManager.RetrieveLock(pod.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lockfile for pod %s", string(id))
+		return errors.Wrapf(err, "error retrieving lock for pod %s", string(id))
 	}
 	pod.lock = lock
 
 	pod.runtime = s.runtime
 	pod.valid = true
+
+	return nil
+}
+
+func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bucket) error {
+	volDB := volBkt.Bucket(name)
+	if volDB == nil {
+		return errors.Wrapf(ErrNoSuchVolume, "volume with name %s not found", string(name))
+	}
+
+	volConfigBytes := volDB.Get(configKey)
+	if volConfigBytes == nil {
+		return errors.Wrapf(ErrInternal, "volume %s is missing configuration key in DB", string(name))
+	}
+
+	if err := json.Unmarshal(volConfigBytes, volume.config); err != nil {
+		return errors.Wrapf(err, "error unmarshalling volume %s config from DB", string(name))
+	}
+
+	volume.runtime = s.runtime
+	volume.valid = true
 
 	return nil
 }
@@ -367,6 +423,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		allCtrsBucket, err := getAllCtrsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBkt, err := getVolBucket(tx)
 		if err != nil {
 			return err
 		}
@@ -503,6 +564,21 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			}
 		}
 
+		// Add container to named volume dependencies buckets
+		for _, vol := range ctr.config.NamedVolumes {
+			volDB := volBkt.Bucket([]byte(vol.Name))
+			if volDB == nil {
+				return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database when adding container %s", vol.Name, ctr.ID())
+			}
+
+			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+			if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
+				if err := ctrDepsBkt.Put(ctrID, ctrID); err != nil {
+					return errors.Wrapf(err, "error adding container %s to volume %s dependencies", ctr.ID(), vol.Name)
+				}
+			}
+		}
+
 		return nil
 	})
 	return err
@@ -536,6 +612,11 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	}
 
 	allCtrsBucket, err := getAllCtrsBucket(tx)
+	if err != nil {
+		return err
+	}
+
+	volBkt, err := getVolBucket(tx)
 	if err != nil {
 		return err
 	}
@@ -655,6 +736,23 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 
 		if err := depCtrDependsBkt.Delete(ctrID); err != nil {
 			return errors.Wrapf(err, "error removing container %s as a dependency of container %s", ctr.ID(), depCtr)
+		}
+	}
+
+	// Remove container from named volume dependencies buckets
+	for _, vol := range ctr.config.NamedVolumes {
+		volDB := volBkt.Bucket([]byte(vol.Name))
+		if volDB == nil {
+			// Let's assume the volume was already deleted and
+			// continue to remove the container
+			continue
+		}
+
+		ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
+		if depExists := ctrDepsBkt.Get(ctrID); depExists == nil {
+			if err := ctrDepsBkt.Delete(ctrID); err != nil {
+				return errors.Wrapf(err, "error deleting container %s dependency on volume %s", ctr.ID(), vol.Name)
+			}
 		}
 	}
 

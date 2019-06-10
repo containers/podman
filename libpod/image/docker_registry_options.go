@@ -19,8 +19,9 @@ type DockerRegistryOptions struct {
 	// except for ".cert" and ".key" suffixes).
 	DockerCertPath string
 	// DockerInsecureSkipTLSVerify turns off verification of TLS
-	// certificates and allows connecting to registries without encryption.
-	DockerInsecureSkipTLSVerify bool
+	// certificates and allows connecting to registries without encryption
+	// - or forces it on even if registries.conf has the registry configured as insecure.
+	DockerInsecureSkipTLSVerify types.OptionalBool
 }
 
 // GetSystemContext constructs a new system context from a parent context. the values in the DockerRegistryOptions, and other parameters.

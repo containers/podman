@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 type diffJSONOutput struct {
@@ -33,30 +33,37 @@ func (so stdoutStruct) Out() error {
 }
 
 var (
-	diffFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:   "archive",
-			Usage:  "Save the diff as a tar archive",
-			Hidden: true,
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format.",
-		},
-	}
-	diffDescription = fmt.Sprint(`Displays changes on a container or image's filesystem.  The
-	container or image will be compared to its parent layer`)
+	diffCommand     cliconfig.DiffValues
+	diffDescription = fmt.Sprint(`Displays changes on a container or image's filesystem.  The container or image will be compared to its parent layer.`)
 
-	diffCommand = cli.Command{
-		Name:         "diff",
-		Usage:        "Inspect changes on container's file systems",
-		Description:  diffDescription,
-		Flags:        diffFlags,
-		Action:       diffCmd,
-		ArgsUsage:    "ID-NAME",
-		OnUsageError: usageErrorHandler,
+	_diffCommand = &cobra.Command{
+		Use:   "diff [flags] CONTAINER | IMAGE",
+		Short: "Inspect changes on container's file systems",
+		Long:  diffDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			diffCommand.InputArgs = args
+			diffCommand.GlobalFlags = MainGlobalOpts
+			diffCommand.Remote = remoteclient
+			return diffCmd(&diffCommand)
+		},
+		Example: `podman diff imageID
+  podman diff ctrID
+  podman diff --format json redis:alpine`,
 	}
 )
+
+func init() {
+	diffCommand.Command = _diffCommand
+	diffCommand.SetHelpTemplate(HelpTemplate())
+	diffCommand.SetUsageTemplate(UsageTemplate())
+	flags := diffCommand.Flags()
+
+	flags.BoolVar(&diffCommand.Archive, "archive", true, "Save the diff as a tar archive")
+	flags.StringVar(&diffCommand.Format, "format", "", "Change the output format")
+
+	flags.MarkHidden("archive")
+
+}
 
 func formatJSON(output []diffOutputParams) (diffJSONOutput, error) {
 	jsonStruct := diffJSONOutput{}
@@ -75,29 +82,24 @@ func formatJSON(output []diffOutputParams) (diffJSONOutput, error) {
 	return jsonStruct, nil
 }
 
-func diffCmd(c *cli.Context) error {
-	if err := validateFlags(c, diffFlags); err != nil {
-		return err
-	}
-
-	if len(c.Args()) != 1 {
+func diffCmd(c *cliconfig.DiffValues) error {
+	if len(c.InputArgs) != 1 {
 		return errors.Errorf("container, image, or layer name must be specified: podman diff [options [...]] ID-NAME")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	to := c.Args().Get(0)
-	changes, err := runtime.GetDiff("", to)
+	to := c.InputArgs[0]
+	changes, err := runtime.Diff(c, to)
 	if err != nil {
 		return errors.Wrapf(err, "could not get changes for %q", to)
 	}
-
 	diffOutput := []diffOutputParams{}
-	outputFormat := c.String("format")
+	outputFormat := c.Format
 
 	for _, change := range changes {
 

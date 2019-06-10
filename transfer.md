@@ -37,13 +37,14 @@ There are other equivalents for these tools
 
 | Existing Step | `Podman` (and friends) |
 | :--- | :--- |
-| `docker attach`  | [`podman exec`](./docs/podman-attach.1.md)      |
+| `docker attach`  | [`podman attach`](./docs/podman-attach.1.md)    |
+| `docker cp`      | [`podman cp`](./docs/podman-cp.1.md)            |
 | `docker build`   | [`podman build`](./docs/podman-build.1.md)      |
 | `docker commit`  | [`podman commit`](./docs/podman-commit.1.md)    |
-| `docker container`|[`podman container`](./docs/podman-container.1.md)        |
-| `docker cp`      | [`podman mount`](./docs/podman-cp.1.md) ****    |
+| `docker container`|[`podman container`](./docs/podman-container.1.md) |
 | `docker create`  | [`podman create`](./docs/podman-create.1.md)    |
 | `docker diff`    | [`podman diff`](./docs/podman-diff.1.md)        |
+| `docker events`  | [`podman events`](./docs/podman-events.1.md)    |
 | `docker export`  | [`podman export`](./docs/podman-export.1.md)    |
 | `docker history` | [`podman history`](./docs/podman-history.1.md)  |
 | `docker image`   | [`podman image`](./docs/podman-image.1.md)        |
@@ -70,7 +71,17 @@ There are other equivalents for these tools
 | `docker top`     | [`podman top`](./docs/podman-top.1.md)          |
 | `docker unpause` | [`podman unpause`](./docs/podman-unpause.1.md)  |
 | `docker version` | [`podman version`](./docs/podman-version.1.md)  |
-| `docker wait`    | [`podman wait`](./docs/podman-wait.1.md)        |
+| `docker volume`  | [`podman volume`](./docs/podman-volume.1.md)			|
+| `docker volume create` | [`podman volume create`](./docs/podman-volume-create.1.md)  |
+| `docker volume inspect`| [`podman volume inspect`](./docs/podman-volume-inspect.1.md)|
+| `docker volume ls`     | [`podman volume ls`](./docs/podman-volume-ls.1.md)          |
+| `docker volume prune`  | [`podman volume prune`](./docs/podman-volume-prune.1.md)    |
+| `docker volume rm`     | [`podman volume rm`](./docs/podman-volume-rm.1.md)          |
+| `docker system`        | [`podman system`](./docs/podman-system.1.md)                |
+| `docker system df`     | [`podman system df`](./docs/podman-system-df.1.md)          |
+| `docker system prune`  | [`podman system prune`](./docs/podman-system-prune.1.md)    |
+| `docker system info`   | [`podman system info`](./docs/podman-system-info.1.md)      |
+| `docker wait`          | [`podman wait`](./docs/podman-wait.1.md)		       |
 
 **** Use mount to take advantage of the entire linux tool chain rather then just cp.  Read [`here`](./docs/podman-cp.1.md) for more information.
 
@@ -80,21 +91,48 @@ Those Docker commands currently do not have equivalents in `podman`:
 
 | Missing command | Description|
 | :--- | :--- |
-| `docker events`   ||
+| `docker container update`  | podman does not support altering running containers. We recommend recreating containers with the correct arguments.|
+| `docker container rename`   | podman does not support `container rename` - or the `rename` shorthand. We recommend using `podman rm` and  `podman create` to create a container with a specific name.|
 | `docker network`  ||
 | `docker node`     ||
-| `docker plugin`   |podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
-| `docker rename`   | podman does not support rename, you need to use `podman rm` and  `podman create` to rename a container.|
+| `docker plugin`   | podman does not support plugins.  We recommend you use alternative OCI Runtimes or OCI Runtime Hooks to alter behavior of podman.|
 | `docker secret`   ||
 | `docker service`  ||
 | `docker stack`    ||
-| `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/kubernetes-sigs/cri-o).|
-| `docker system`   ||
-| `docker volume`   | podman does not support volumes.  Volumes should be built on the host operating system and then volume mounted into the containers.|
+| `docker swarm`    | podman does not support swarm.  We support Kubernetes for orchestration using [CRI-O](https://github.com/cri-o/cri-o).|
+| `docker volume`   | podman currently supports file volumes.  Future enhancement planned to support Docker Volumes Plugins
 
 ## Missing commands in Docker
 
 The following podman commands do not have a Docker equivalent:
 
+* [`podman generate`](./docs/podman-generate.1.md)
+* [`podman generate kube`](./docs/podman-generate-kube.1.md)
+* [`podman container checkpoint`](/docs/podman-container-checkpoint.1.md)
+* [`podman container cleanup`](/docs/podman-container-cleanup.1.md)
+* [`podman container exists`](/docs/podman-container-exists.1.md)
+* [`podman container refresh`](/docs/podman-container-refresh.1.md)
+* [`podman container runlabel`](/docs/podman-container-runlabel.1.md)
+* [`podman container restore`](/docs/podman-container-restore.1.md)
+* [`podman healthcheck run`](/docs/podman-healthcheck-run.1.md)
+* [`podman image exists`](./docs/podman-image-exists.1.md)
+* [`podman image sign`](./docs/podman-image-sign.1.md)
+* [`podman image trust`](./docs/podman-image-trust.1.md)
 * [`podman mount`](./docs/podman-mount.1.md)
+* [`podman play`](./docs/podman-play.1.md)
+* [`podman play kube`](./docs/podman-play-kube.1.md)
+* [`podman pod`](./docs/podman-pod.1.md)
+* [`podman pod create`](./docs/podman-pod-create.1.md)
+* [`podman pod exists`](./docs/podman-pod-exists.1.md)
+* [`podman pod inspect`](./docs/podman-pod-inspect.1.md)
+* [`podman pod kill`](./docs/podman-pod-kill.1.md)
+* [`podman pod pause`](./docs/podman-pod-pause.1.md)
+* [`podman pod ps`](./docs/podman-pod-ps.1.md)
+* [`podman pod restart`](./docs/podman-pod-restart.1.md)
+* [`podman pod rm`](./docs/podman-pod-rm.1.md)
+* [`podman pod start`](./docs/podman-pod-start.1.md)
+* [`podman pod stop`](./docs/podman-pod-stop.1.md)
+* [`podman pod top`](./docs/podman-pod-top.1.md)
+* [`podman pod unpause`](./docs/podman-pod-unpause.1.md)
+* [`podman varlink`](./docs/podman-varlink.1.md)
 * [`podman umount`](./docs/podman-umount.1.md)

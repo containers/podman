@@ -3,70 +3,76 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podRestartFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "restart all pods",
-		},
-		LatestPodFlag,
-	}
-	podRestartDescription = `Restarts one or more pods. The pod ID or name can be used.`
+	podRestartCommand     cliconfig.PodRestartValues
+	podRestartDescription = `The pod ID or name can be used.
 
-	podRestartCommand = cli.Command{
-		Name:                   "restart",
-		Usage:                  "Restart one or more pods",
-		Description:            podRestartDescription,
-		Flags:                  podRestartFlags,
-		Action:                 podRestartCmd,
-		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+  All of the containers within each of the specified pods will be restarted. If a container in a pod is not currently running it will be started.`
+	_podRestartCommand = &cobra.Command{
+		Use:   "restart [flags] POD [POD...]",
+		Short: "Restart one or more pods",
+		Long:  podRestartDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podRestartCommand.InputArgs = args
+			podRestartCommand.GlobalFlags = MainGlobalOpts
+			podRestartCommand.Remote = remoteclient
+			return podRestartCmd(&podRestartCommand)
+		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman pod restart podID1 podID2
+  podman pod restart --latest
+  podman pod restart --all`,
 	}
 )
 
-func podRestartCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
-	}
+func init() {
+	podRestartCommand.Command = _podRestartCommand
+	podRestartCommand.SetHelpTemplate(HelpTemplate())
+	podRestartCommand.SetUsageTemplate(UsageTemplate())
+	flags := podRestartCommand.Flags()
+	flags.BoolVarP(&podRestartCommand.All, "all", "a", false, "Restart all running pods")
+	flags.BoolVarP(&podRestartCommand.Latest, "latest", "l", false, "Restart the latest pod podman is aware of")
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func podRestartCmd(c *cliconfig.PodRestartValues) error {
+	var lastError error
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	restartIDs, conErrors, restartErrors := runtime.RestartPods(getContext(), c)
 
-	ctx := getContext()
-	for _, pod := range pods {
-		ctr_errs, err := pod.Restart(ctx)
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to restart container %q on pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
+	for _, p := range restartIDs {
+		fmt.Println(p)
+	}
+	if conErrors != nil && len(conErrors) > 0 {
+		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)
 			}
-			lastError = errors.Wrapf(err, "unable to restart pod %q", pod.ID())
-			continue
+			lastError = errors.Wrapf(err, "unable to pause container %s", ctr)
 		}
-		fmt.Println(pod.ID())
+	}
+	if len(restartErrors) > 0 {
+		lastError = restartErrors[len(restartErrors)-1]
+		// Remove the last error from the error slice
+		restartErrors = restartErrors[:len(restartErrors)-1]
+	}
+	for _, err := range restartErrors {
+		logrus.Errorf("%q", err)
 	}
 	return lastError
 }

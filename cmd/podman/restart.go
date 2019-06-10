@@ -1,97 +1,75 @@
 package main
 
 import (
-	"context"
-	"fmt"
-	"os"
-
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	restartFlags = []cli.Flag{
-		cli.UintFlag{
-			Name:  "timeout, time, t",
-			Usage: "Seconds to wait for stop before killing the container",
-			Value: libpod.CtrRemoveTimeout,
-		},
-		LatestFlag,
-	}
-	restartDescription = `Restarts one or more running containers. The container ID or name can be used. A timeout before forcibly stopping can be set, but defaults to 10 seconds`
+	restartCommand     cliconfig.RestartValues
+	restartDescription = `Restarts one or more running containers. The container ID or name can be used.
 
-	restartCommand = cli.Command{
-		Name:                   "restart",
-		Usage:                  "Restart one or more containers",
-		Description:            restartDescription,
-		Flags:                  restartFlags,
-		Action:                 restartCmd,
-		ArgsUsage:              "CONTAINER [CONTAINER ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+  A timeout before forcibly stopping can be set, but defaults to 10 seconds.`
+	_restartCommand = &cobra.Command{
+		Use:   "restart [flags] CONTAINER [CONTAINER...]",
+		Short: "Restart one or more containers",
+		Long:  restartDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			restartCommand.InputArgs = args
+			restartCommand.GlobalFlags = MainGlobalOpts
+			return restartCmd(&restartCommand)
+		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman restart ctrID
+  podman restart --latest
+  podman restart ctrID1 ctrID2`,
 	}
 )
 
-func restartCmd(c *cli.Context) error {
-	args := c.Args()
-	if len(args) < 1 && !c.Bool("latest") {
+func init() {
+	restartCommand.Command = _restartCommand
+	restartCommand.SetHelpTemplate(HelpTemplate())
+	restartCommand.SetUsageTemplate(UsageTemplate())
+	flags := restartCommand.Flags()
+	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
+	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&restartCommand.Running, "running", false, "Restart only running containers when --all is used")
+	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&restartCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func restartCmd(c *cliconfig.RestartValues) error {
+	all := c.All
+	if len(c.InputArgs) < 1 && !c.Latest && !all {
 		return errors.Wrapf(libpod.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
 
-	if err := validateFlags(c, restartFlags); err != nil {
-		return err
-	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var lastError error
-
-	timeout := c.Uint("timeout")
-	useTimeout := c.IsSet("timeout")
-
-	// Handle --latest
-	if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			lastError = errors.Wrapf(err, "unable to get latest container")
-		} else {
-			ctrTimeout := lastCtr.StopTimeout()
-			if useTimeout {
-				ctrTimeout = timeout
+	ok, failures, err := runtime.Restart(getContext(), c)
+	if err != nil {
+		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+			if len(c.InputArgs) > 1 {
+				exitCode = 125
+			} else {
+				exitCode = 1
 			}
-
-			lastError = lastCtr.RestartWithTimeout(context.TODO(), ctrTimeout)
 		}
+		return err
 	}
-
-	for _, id := range args {
-		ctr, err := runtime.LookupContainer(id)
-		if err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to find container %s", id)
-			continue
-		}
-
-		ctrTimeout := ctr.StopTimeout()
-		if useTimeout {
-			ctrTimeout = timeout
-		}
-
-		if err := ctr.RestartWithTimeout(context.TODO(), ctrTimeout); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "error restarting container %s", ctr.ID())
-		}
+	if len(failures) > 0 {
+		exitCode = 125
 	}
-
-	return lastError
+	return printCmdResults(ok, failures)
 }

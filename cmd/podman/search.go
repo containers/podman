@@ -1,19 +1,15 @@
 package main
 
 import (
-	"context"
 	"reflect"
-	"strconv"
 	"strings"
 
-	"github.com/containers/image/docker"
-	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/libpod/common"
-	sysreg "github.com/containers/libpod/pkg/registries"
-	"github.com/docker/distribution/reference"
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/image/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 const (
@@ -22,71 +18,44 @@ const (
 )
 
 var (
-	searchFlags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "authfile",
-			Usage: "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json",
+	searchCommand     cliconfig.SearchValues
+	searchDescription = `Search registries for a given image. Can search all the default registries or a specific registry.
+
+  Users can limit the number of results, and filter the output based on certain conditions.`
+	_searchCommand = &cobra.Command{
+		Use:   "search [flags] TERM",
+		Short: "Search registry for image",
+		Long:  searchDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			searchCommand.InputArgs = args
+			searchCommand.GlobalFlags = MainGlobalOpts
+			searchCommand.Remote = remoteclient
+			return searchCmd(&searchCommand)
 		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "filter output based on conditions provided (default [])",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "change the output format to a Go template",
-		},
-		cli.IntFlag{
-			Name:  "limit",
-			Usage: "limit the number of results",
-		},
-		cli.BoolFlag{
-			Name:  "no-trunc",
-			Usage: "do not truncate the output",
-		},
-		cli.BoolTFlag{
-			Name:  "tls-verify",
-			Usage: "require HTTPS and verify certificates when contacting registries (default: true)",
-		},
-	}
-	searchDescription = `
-	Search registries for a given image. Can search all the default registries or a specific registry.
-	Can limit the number of results, and filter the output based on certain conditions.`
-	searchCommand = cli.Command{
-		Name:         "search",
-		Usage:        "Search registry for image",
-		Description:  searchDescription,
-		Flags:        searchFlags,
-		Action:       searchCmd,
-		ArgsUsage:    "TERM",
-		OnUsageError: usageErrorHandler,
+		Example: `podman search --filter=is-official --limit 3 alpine
+  podman search registry.fedoraproject.org/  # only works with v2 registries
+  podman search --format "table {{.Index}} {{.Name}}" registry.fedoraproject.org/fedora`,
 	}
 )
 
-type searchParams struct {
-	Index       string
-	Name        string
-	Description string
-	Stars       int
-	Official    string
-	Automated   string
+func init() {
+	searchCommand.Command = _searchCommand
+	searchCommand.SetHelpTemplate(HelpTemplate())
+	searchCommand.SetUsageTemplate(UsageTemplate())
+	flags := searchCommand.Flags()
+	flags.StringSliceVarP(&searchCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
+	flags.StringVar(&searchCommand.Format, "format", "", "Change the output format to a Go template")
+	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
+	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&searchCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
-type searchOpts struct {
-	filter   []string
-	limit    int
-	noTrunc  bool
-	format   string
-	authfile string
-}
-
-type searchFilterParams struct {
-	stars       int
-	isAutomated *bool
-	isOfficial  *bool
-}
-
-func searchCmd(c *cli.Context) error {
-	args := c.Args()
+func searchCmd(c *cliconfig.SearchValues) error {
+	args := c.InputArgs
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments. Requires exactly 1")
 	}
@@ -95,57 +64,37 @@ func searchCmd(c *cli.Context) error {
 	}
 	term := args[0]
 
-	// Check if search term has a registry in it
-	registry, err := getRegistry(term)
-	if err != nil {
-		return errors.Wrapf(err, "error getting registry from %q", term)
-	}
-	if registry != "" {
-		term = term[len(registry)+1:]
-	}
-
-	if err := validateFlags(c, searchFlags); err != nil {
-		return err
-	}
-
-	format := genSearchFormat(c.String("format"))
-	opts := searchOpts{
-		format:   format,
-		noTrunc:  c.Bool("no-trunc"),
-		limit:    c.Int("limit"),
-		filter:   c.StringSlice("filter"),
-		authfile: c.String("authfile"),
-	}
-	regAndSkipTLS, err := getRegistriesAndSkipTLS(c, registry)
+	filter, err := image.ParseSearchFilter(c.Filter)
 	if err != nil {
 		return err
 	}
 
-	filter, err := parseSearchFilter(&opts)
+	searchOptions := image.SearchOptions{
+		NoTrunc:  c.NoTrunc,
+		Limit:    c.Limit,
+		Filter:   *filter,
+		Authfile: c.Authfile,
+	}
+	if c.Flag("tls-verify").Changed {
+		searchOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
+	}
+
+	results, err := image.SearchImages(term, searchOptions)
 	if err != nil {
 		return err
 	}
-
-	return generateSearchOutput(term, regAndSkipTLS, opts, *filter)
-}
-
-func genSearchFormat(format string) string {
-	if format != "" {
-		// "\t" from the command line is not being recognized as a tab
-		// replacing the string "\t" to a tab character if the user passes in "\t"
-		return strings.Replace(format, `\t`, "\t", -1)
+	format := genSearchFormat(c.Format)
+	if len(results) == 0 {
+		return nil
 	}
-	return "table {{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\t"
+	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: searchHeaderMap()}
+	formats.Writer(out).Out()
+	return nil
 }
 
-func searchToGeneric(params []searchParams) (genericParams []interface{}) {
-	for _, v := range params {
-		genericParams = append(genericParams, interface{}(v))
-	}
-	return genericParams
-}
-
-func (s *searchParams) headerMap() map[string]string {
+// searchHeaderMap returns the headers of a SearchResult.
+func searchHeaderMap() map[string]string {
+	s := new(image.SearchResult)
 	v := reflect.Indirect(reflect.ValueOf(s))
 	values := make(map[string]string, v.NumField())
 
@@ -157,202 +106,18 @@ func (s *searchParams) headerMap() map[string]string {
 	return values
 }
 
-// A function for finding which registries can skip TLS
-func getRegistriesAndSkipTLS(c *cli.Context, registry string) (map[string]bool, error) {
-	// Variables for setting up Registry and TLSVerify
-	tlsVerify := c.BoolT("tls-verify")
-	forceSecure := false
-
-	if c.IsSet("tls-verify") {
-		forceSecure = c.BoolT("tls-verify")
+func genSearchFormat(format string) string {
+	if format != "" {
+		// "\t" from the command line is not being recognized as a tab
+		// replacing the string "\t" to a tab character if the user passes in "\t"
+		return strings.Replace(format, `\t`, "\t", -1)
 	}
-
-	var registries []string
-	if registry != "" {
-		registries = append(registries, registry)
-	} else {
-		var err error
-		registries, err = sysreg.GetRegistries()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting registries to search")
-		}
-	}
-	regAndSkipTLS := make(map[string]bool)
-	// If tls-verify is set to false, allow insecure always.
-	if !tlsVerify {
-		for _, reg := range registries {
-			regAndSkipTLS[reg] = true
-		}
-	} else {
-		// initially set all registries to verify with TLS
-		for _, reg := range registries {
-			regAndSkipTLS[reg] = false
-		}
-		// if the user didn't allow nor disallow insecure registries, check to see if the registry is insecure
-		if !forceSecure {
-			insecureRegistries, err := sysreg.GetInsecureRegistries()
-			if err != nil {
-				return nil, errors.Wrapf(err, "error getting insecure registries to search")
-			}
-			for _, reg := range insecureRegistries {
-				// if there are any insecure registries in registries, allow for HTTP
-				if _, ok := regAndSkipTLS[reg]; ok {
-					regAndSkipTLS[reg] = true
-				}
-			}
-		}
-	}
-	return regAndSkipTLS, nil
+	return "table {{.Index}}\t{{.Name}}\t{{.Description}}\t{{.Stars}}\t{{.Official}}\t{{.Automated}}\t"
 }
 
-func getSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts, filter searchFilterParams) ([]searchParams, error) {
-	// Max number of queries by default is 25
-	limit := maxQueries
-	if opts.limit != 0 {
-		limit = opts.limit
+func searchToGeneric(params []image.SearchResult) (genericParams []interface{}) {
+	for _, v := range params {
+		genericParams = append(genericParams, interface{}(v))
 	}
-
-	sc := common.GetSystemContext("", opts.authfile, false)
-	var paramsArr []searchParams
-	for reg, skipTLS := range regAndSkipTLS {
-		// set the SkipTLSVerify bool depending on the registry being searched through
-		sc.DockerInsecureSkipTLSVerify = skipTLS
-		results, err := docker.SearchRegistry(context.TODO(), sc, reg, term, limit)
-		if err != nil {
-			logrus.Errorf("error searching registry %q: %v", reg, err)
-			continue
-		}
-		index := reg
-		arr := strings.Split(reg, ".")
-		if len(arr) > 2 {
-			index = strings.Join(arr[len(arr)-2:], ".")
-		}
-
-		// limit is the number of results to output
-		// if the total number of results is less than the limit, output all
-		// if the limit has been set by the user, output those number of queries
-		limit := maxQueries
-		if len(results) < limit {
-			limit = len(results)
-		}
-		if opts.limit != 0 && opts.limit < len(results) {
-			limit = opts.limit
-		}
-
-		for i := 0; i < limit; i++ {
-			if len(opts.filter) > 0 {
-				// Check whether query matches filters
-				if !(matchesAutomatedFilter(filter, results[i]) && matchesOfficialFilter(filter, results[i]) && matchesStarFilter(filter, results[i])) {
-					continue
-				}
-			}
-			official := ""
-			if results[i].IsOfficial {
-				official = "[OK]"
-			}
-			automated := ""
-			if results[i].IsAutomated {
-				automated = "[OK]"
-			}
-			description := strings.Replace(results[i].Description, "\n", " ", -1)
-			if len(description) > 44 && !opts.noTrunc {
-				description = description[:descriptionTruncLength] + "..."
-			}
-			name := reg + "/" + results[i].Name
-			if index == "docker.io" && !strings.Contains(results[i].Name, "/") {
-				name = index + "/library/" + results[i].Name
-			}
-			params := searchParams{
-				Index:       index,
-				Name:        name,
-				Description: description,
-				Official:    official,
-				Automated:   automated,
-				Stars:       results[i].StarCount,
-			}
-			paramsArr = append(paramsArr, params)
-		}
-	}
-	return paramsArr, nil
-}
-
-func generateSearchOutput(term string, regAndSkipTLS map[string]bool, opts searchOpts, filter searchFilterParams) error {
-	searchOutput, err := getSearchOutput(term, regAndSkipTLS, opts, filter)
-	if err != nil {
-		return err
-	}
-	if len(searchOutput) == 0 {
-		return nil
-	}
-	out := formats.StdoutTemplateArray{Output: searchToGeneric(searchOutput), Template: opts.format, Fields: searchOutput[0].headerMap()}
-	return formats.Writer(out).Out()
-}
-
-func parseSearchFilter(opts *searchOpts) (*searchFilterParams, error) {
-	filterParams := &searchFilterParams{}
-	ptrTrue := true
-	ptrFalse := false
-	for _, filter := range opts.filter {
-		arr := strings.Split(filter, "=")
-		switch arr[0] {
-		case "stars":
-			if len(arr) < 2 {
-				return nil, errors.Errorf("invalid `stars` filter %q, should be stars=<value>", filter)
-			}
-			stars, err := strconv.Atoi(arr[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
-			}
-			filterParams.stars = stars
-			break
-		case "is-automated":
-			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isAutomated = &ptrFalse
-			} else {
-				filterParams.isAutomated = &ptrTrue
-			}
-			break
-		case "is-official":
-			if len(arr) == 2 && arr[1] == "false" {
-				filterParams.isOfficial = &ptrFalse
-			} else {
-				filterParams.isOfficial = &ptrTrue
-			}
-			break
-		default:
-			return nil, errors.Errorf("invalid filter type %q", filter)
-		}
-	}
-	return filterParams, nil
-}
-
-func matchesStarFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	return result.StarCount >= filter.stars
-}
-
-func matchesAutomatedFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	if filter.isAutomated != nil {
-		return result.IsAutomated == *filter.isAutomated
-	}
-	return true
-}
-
-func matchesOfficialFilter(filter searchFilterParams, result docker.SearchResult) bool {
-	if filter.isOfficial != nil {
-		return result.IsOfficial == *filter.isOfficial
-	}
-	return true
-}
-
-func getRegistry(image string) (string, error) {
-	// It is possible to only have the registry name in the format "myregistry/"
-	// if so, just trim the "/" from the end and return the registry name
-	if strings.HasSuffix(image, "/") {
-		return strings.TrimSuffix(image, "/"), nil
-	}
-	imgRef, err := reference.Parse(image)
-	if err != nil {
-		return "", err
-	}
-	return reference.Domain(imgRef.(reference.Named)), nil
+	return genericParams
 }

@@ -2,14 +2,16 @@ package createconfig
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/docker/docker/daemon/caps"
-	"github.com/docker/docker/pkg/mount"
+	"github.com/containers/libpod/pkg/util"
+	pmount "github.com/containers/storage/pkg/mount"
+	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
@@ -18,13 +20,27 @@ import (
 
 const cpuPeriod = 100000
 
+func getAvailableGids() (int64, error) {
+	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
+	if err != nil {
+		return 0, err
+	}
+	count := int64(0)
+	for _, r := range idMap {
+		count += r.Count
+	}
+	return count, nil
+}
+
 // CreateConfigToOCISpec parses information needed to create a container into an OCI runtime spec
-func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
+func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userMounts []spec.Mount) (*spec.Spec, error) {
 	cgroupPerm := "ro"
 	g, err := generate.New("linux")
 	if err != nil {
 		return nil, err
 	}
+	// Remove the default /dev/shm mount to ensure we overwrite it
+	g.RemoveMount("/dev/shm")
 	g.HostSpecific = true
 	addCgroup := true
 	canMountSys := true
@@ -55,27 +71,37 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		}
 		sysMnt := spec.Mount{
 			Destination: "/sys",
-			Type:        "bind",
+			Type:        TypeBind,
 			Source:      "/sys",
 			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
 		}
 		g.AddMount(sysMnt)
+		if !config.Privileged && isRootless {
+			g.AddLinuxMaskedPaths("/sys/kernel")
+		}
 	}
 	if isRootless {
-		g.RemoveMount("/dev/pts")
-		devPts := spec.Mount{
-			Destination: "/dev/pts",
-			Type:        "devpts",
-			Source:      "devpts",
-			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		nGids, err := getAvailableGids()
+		if err != nil {
+			return nil, err
 		}
-		g.AddMount(devPts)
+		if nGids < 5 {
+			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
+			g.RemoveMount("/dev/pts")
+			devPts := spec.Mount{
+				Destination: "/dev/pts",
+				Type:        "devpts",
+				Source:      "devpts",
+				Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+			}
+			g.AddMount(devPts)
+		}
 	}
 	if inUserNS && config.IpcMode.IsHost() {
 		g.RemoveMount("/dev/mqueue")
 		devMqueue := spec.Mount{
 			Destination: "/dev/mqueue",
-			Type:        "bind",
+			Type:        TypeBind,
 			Source:      "/dev/mqueue",
 			Options:     []string{"bind", "nosuid", "noexec", "nodev"},
 		}
@@ -85,7 +111,7 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 		g.RemoveMount("/proc")
 		procMount := spec.Mount{
 			Destination: "/proc",
-			Type:        "bind",
+			Type:        TypeBind,
 			Source:      "/proc",
 			Options:     []string{"rbind", "nosuid", "noexec", "nodev"},
 		}
@@ -110,6 +136,24 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.SetRootReadonly(config.ReadOnlyRootfs)
 
+	if config.HTTPProxy {
+		for _, envSpec := range []string{
+			"http_proxy",
+			"HTTP_PROXY",
+			"https_proxy",
+			"HTTPS_PROXY",
+			"ftp_proxy",
+			"FTP_PROXY",
+			"no_proxy",
+			"NO_PROXY",
+		} {
+			envVal := os.Getenv(envSpec)
+			if envVal != "" {
+				g.AddProcessEnv(envSpec, envVal)
+			}
+		}
+	}
+
 	hostname := config.Hostname
 	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
 		hostname, err = os.Hostname()
@@ -131,73 +175,86 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	g.AddProcessEnv("container", "podman")
 
-	canAddResources := !rootless.IsRootless()
+	addedResources := false
 
-	if canAddResources {
-		// RESOURCES - MEMORY
-		if config.Resources.Memory != 0 {
-			g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
-			// If a swap limit is not explicitly set, also set a swap limit
-			// Default to double the memory limit
-			if config.Resources.MemorySwap == 0 {
-				g.SetLinuxResourcesMemorySwap(2 * config.Resources.Memory)
-			}
+	// RESOURCES - MEMORY
+	if config.Resources.Memory != 0 {
+		g.SetLinuxResourcesMemoryLimit(config.Resources.Memory)
+		// If a swap limit is not explicitly set, also set a swap limit
+		// Default to double the memory limit
+		if config.Resources.MemorySwap == 0 {
+			g.SetLinuxResourcesMemorySwap(2 * config.Resources.Memory)
 		}
-		if config.Resources.MemoryReservation != 0 {
-			g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
-		}
-		if config.Resources.MemorySwap != 0 {
-			g.SetLinuxResourcesMemorySwap(config.Resources.MemorySwap)
-		}
-		if config.Resources.KernelMemory != 0 {
-			g.SetLinuxResourcesMemoryKernel(config.Resources.KernelMemory)
-		}
-		if config.Resources.MemorySwappiness != -1 {
-			g.SetLinuxResourcesMemorySwappiness(uint64(config.Resources.MemorySwappiness))
-		}
-		g.SetLinuxResourcesMemoryDisableOOMKiller(config.Resources.DisableOomKiller)
-		g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
+		addedResources = true
+	}
+	if config.Resources.MemoryReservation != 0 {
+		g.SetLinuxResourcesMemoryReservation(config.Resources.MemoryReservation)
+		addedResources = true
+	}
+	if config.Resources.MemorySwap != 0 {
+		g.SetLinuxResourcesMemorySwap(config.Resources.MemorySwap)
+		addedResources = true
+	}
+	if config.Resources.KernelMemory != 0 {
+		g.SetLinuxResourcesMemoryKernel(config.Resources.KernelMemory)
+		addedResources = true
+	}
+	if config.Resources.MemorySwappiness != -1 {
+		g.SetLinuxResourcesMemorySwappiness(uint64(config.Resources.MemorySwappiness))
+		addedResources = true
+	}
+	g.SetLinuxResourcesMemoryDisableOOMKiller(config.Resources.DisableOomKiller)
+	g.SetProcessOOMScoreAdj(config.Resources.OomScoreAdj)
 
-		// RESOURCES - CPU
-		if config.Resources.CPUShares != 0 {
-			g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
-		}
-		if config.Resources.CPUQuota != 0 {
-			g.SetLinuxResourcesCPUQuota(config.Resources.CPUQuota)
-		}
-		if config.Resources.CPUPeriod != 0 {
-			g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
-		}
-		if config.Resources.CPUs != 0 {
-			g.SetLinuxResourcesCPUPeriod(cpuPeriod)
-			g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
-		}
-		if config.Resources.CPURtRuntime != 0 {
-			g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
-		}
-		if config.Resources.CPURtPeriod != 0 {
-			g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
-		}
-		if config.Resources.CPUsetCPUs != "" {
-			g.SetLinuxResourcesCPUCpus(config.Resources.CPUsetCPUs)
-		}
-		if config.Resources.CPUsetMems != "" {
-			g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
-		}
+	// RESOURCES - CPU
+	if config.Resources.CPUShares != 0 {
+		g.SetLinuxResourcesCPUShares(config.Resources.CPUShares)
+		addedResources = true
+	}
+	if config.Resources.CPUQuota != 0 {
+		g.SetLinuxResourcesCPUQuota(config.Resources.CPUQuota)
+		addedResources = true
+	}
+	if config.Resources.CPUPeriod != 0 {
+		g.SetLinuxResourcesCPUPeriod(config.Resources.CPUPeriod)
+		addedResources = true
+	}
+	if config.Resources.CPUs != 0 {
+		g.SetLinuxResourcesCPUPeriod(cpuPeriod)
+		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
+		addedResources = true
+	}
+	if config.Resources.CPURtRuntime != 0 {
+		g.SetLinuxResourcesCPURealtimeRuntime(config.Resources.CPURtRuntime)
+		addedResources = true
+	}
+	if config.Resources.CPURtPeriod != 0 {
+		g.SetLinuxResourcesCPURealtimePeriod(config.Resources.CPURtPeriod)
+		addedResources = true
+	}
+	if config.Resources.CPUsetCPUs != "" {
+		g.SetLinuxResourcesCPUCpus(config.Resources.CPUsetCPUs)
+		addedResources = true
+	}
+	if config.Resources.CPUsetMems != "" {
+		g.SetLinuxResourcesCPUMems(config.Resources.CPUsetMems)
+		addedResources = true
+	}
 
-		// Devices
-		if config.Privileged {
-			// If privileged, we need to add all the host devices to the
-			// spec.  We do not add the user provided ones because we are
-			// already adding them all.
+	// Devices
+	if config.Privileged {
+		// If privileged, we need to add all the host devices to the
+		// spec.  We do not add the user provided ones because we are
+		// already adding them all.
+		if !rootless.IsRootless() {
 			if err := config.AddPrivilegedDevices(&g); err != nil {
 				return nil, err
 			}
-		} else {
-			for _, device := range config.Devices {
-				if err := addDevice(&g, device); err != nil {
-					return nil, err
-				}
+		}
+	} else {
+		for _, devicePath := range config.Devices {
+			if err := devicesFromPath(&g, devicePath); err != nil {
+				return nil, err
 			}
 		}
 	}
@@ -210,42 +267,17 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 	// SECURITY OPTS
 	g.SetProcessNoNewPrivileges(config.NoNewPrivs)
-	g.SetProcessApparmorProfile(config.ApparmorProfile)
-	g.SetProcessSelinuxLabel(config.ProcessLabel)
-	g.SetLinuxMountLabel(config.MountLabel)
 
-	if canAddResources {
-		blockAccessToKernelFilesystems(config, &g)
-
-		// RESOURCES - PIDS
-		if config.Resources.PidsLimit != 0 {
-			g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
-		}
+	if !config.Privileged {
+		g.SetProcessApparmorProfile(config.ApparmorProfile)
 	}
 
-	if config.Systemd && (strings.HasSuffix(config.Command[0], "init") ||
-		strings.HasSuffix(config.Command[0], "systemd")) {
-		if err := setupSystemd(config, &g); err != nil {
-			return nil, errors.Wrap(err, "failed to setup systemd")
-		}
-	}
-	for _, i := range config.Tmpfs {
-		// Default options if nothing passed
-		options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev", "size=65536k"}
-		spliti := strings.SplitN(i, ":", 2)
-		if len(spliti) > 1 {
-			if _, _, err := mount.ParseTmpfsOptions(spliti[1]); err != nil {
-				return nil, err
-			}
-			options = strings.Split(spliti[1], ",")
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: spliti[0],
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
+	blockAccessToKernelFilesystems(config, &g)
+
+	// RESOURCES - PIDS
+	if config.Resources.PidsLimit != 0 {
+		g.SetLinuxResourcesPidsLimit(config.Resources.PidsLimit)
+		addedResources = true
 	}
 
 	for name, val := range config.Env {
@@ -303,56 +335,91 @@ func CreateConfigToOCISpec(config *CreateConfig) (*spec.Spec, error) { //nolint
 	}
 
 	// BIND MOUNTS
-	if err := config.GetVolumesFrom(); err != nil {
-		return nil, errors.Wrap(err, "error getting volume mounts from --volumes-from flag")
-	}
+	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
+	// Process mounts to ensure correct options
+	configSpec.Mounts = initFSMounts(configSpec.Mounts)
 
-	mounts, err := config.GetVolumeMounts(configSpec.Mounts)
+	// BLOCK IO
+	blkio, err := config.CreateBlockIO()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting volume mounts")
+		return nil, errors.Wrapf(err, "error creating block io")
 	}
-	if len(mounts) > 0 {
-		// If we have overlappings mounts, remove them from the spec in favor of
-		// the user-added volume mounts
-		destinations := make(map[string]bool)
-		for _, mount := range mounts {
-			destinations[path.Clean(mount.Destination)] = true
+	if blkio != nil {
+		configSpec.Linux.Resources.BlockIO = blkio
+		addedResources = true
+	}
+
+	if rootless.IsRootless() {
+		cgroup2, err := util.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
 		}
+		if addedResources && !cgroup2 {
+			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
+		}
+		if !cgroup2 {
+			// Force the resources block to be empty instead of having default values.
+			configSpec.Linux.Resources = &spec.LinuxResources{}
+		}
+	}
 
-		// Copy all mounts from spec to defaultMounts, except for
-		//  - mounts overridden by a user supplied mount;
-		//  - all mounts under /dev if a user supplied /dev is present;
-		mountDev := destinations["/dev"]
-		for _, mount := range configSpec.Mounts {
-			if _, ok := destinations[path.Clean(mount.Destination)]; !ok {
-				if mountDev && strings.HasPrefix(mount.Destination, "/dev/") {
-					// filter out everything under /dev if /dev is user-mounted
-					continue
-				}
-
-				logrus.Debugf("Adding mount %s", mount.Destination)
-				mounts = append(mounts, mount)
+	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
+	mounts, err := pmount.GetMounts()
+	if err != nil {
+		return nil, err
+	}
+	for i := range configSpec.Mounts {
+		m := &configSpec.Mounts[i]
+		isBind := false
+		for _, o := range m.Options {
+			if o == "bind" || o == "rbind" {
+				isBind = true
+				break
 			}
 		}
-		configSpec.Mounts = mounts
-	}
-
-	if canAddResources {
-		// BLOCK IO
-		blkio, err := config.CreateBlockIO()
+		if !isBind {
+			continue
+		}
+		mount, err := findMount(m.Source, mounts)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error creating block io")
+			return nil, err
 		}
-		if blkio != nil {
-			configSpec.Linux.Resources.BlockIO = blkio
+		if mount == nil {
+			continue
+		}
+	next_option:
+		for _, o := range strings.Split(mount.Opts, ",") {
+			if o == "nosuid" || o == "noexec" || o == "nodev" {
+				for _, e := range m.Options {
+					if e == o {
+						continue next_option
+					}
+				}
+				m.Options = append(m.Options, o)
+			}
 		}
 	}
 
-	// If we cannot add resources be sure everything is cleared out
-	if !canAddResources {
-		configSpec.Linux.Resources = &spec.LinuxResources{}
-	}
 	return configSpec, nil
+}
+
+func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
+	var err error
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot resolve %s", target)
+	}
+	var bestSoFar *pmount.Info
+	for _, i := range mounts {
+		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
+			// Won't be better than what we have already found
+			continue
+		}
+		if strings.HasPrefix(target, i.Mountpoint) {
+			bestSoFar = i
+		}
+	}
+	return bestSoFar, nil
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
@@ -367,8 +434,13 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			"/proc/sched_debug",
 			"/proc/scsi",
 			"/sys/firmware",
+			"/sys/fs/selinux",
 		} {
 			g.AddLinuxMaskedPaths(mp)
+		}
+
+		if config.PidMode.IsHost() && rootless.IsRootless() {
+			return
 		}
 
 		for _, rp := range []string{
@@ -382,42 +454,6 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			g.AddLinuxReadonlyPaths(rp)
 		}
 	}
-}
-
-// systemd expects to have /run, /run/lock and /tmp on tmpfs
-// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-
-func setupSystemd(config *CreateConfig, g *generate.Generator) error {
-	mounts, err := config.GetVolumeMounts([]spec.Mount{})
-	if err != nil {
-		return err
-	}
-	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run", "/run/lock", "/sys/fs/cgroup/systemd"} {
-		if libpod.MountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup", "size=65536k"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-	for _, dest := range []string{"/tmp", "/var/log/journal"} {
-		if libpod.MountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := spec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-	return nil
 }
 
 func addPidNS(config *CreateConfig, g *generate.Generator) error {
@@ -471,6 +507,9 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 		return g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, NS(string(netMode)))
 	} else if IsPod(string(netMode)) {
 		logrus.Debug("Using pod netmode, unless pod is not sharing")
+		return nil
+	} else if netMode.IsSlirp4netns() {
+		logrus.Debug("Using slirp4netns netmode")
 		return nil
 	} else if netMode.IsUserDefined() {
 		logrus.Debug("Using user defined netmode")
@@ -555,7 +594,7 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 	if useNotRoot(config.User) {
 		configSpec.Process.Capabilities.Bounding = caplist
 	}
-	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop)
+	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, config.CapAdd, config.CapDrop, nil, false)
 	if err != nil {
 		return err
 	}
@@ -566,7 +605,7 @@ func setupCapabilities(config *CreateConfig, configSpec *spec.Spec) error {
 	configSpec.Process.Capabilities.Effective = caplist
 	configSpec.Process.Capabilities.Ambient = caplist
 	if useNotRoot(config.User) {
-		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop)
+		caplist, err = caps.TweakCapabilities(bounding, config.CapAdd, config.CapDrop, nil, false)
 		if err != nil {
 			return err
 		}

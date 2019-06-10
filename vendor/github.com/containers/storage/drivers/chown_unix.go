@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/system"
 )
 
 func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.IDMappings) error {
@@ -45,10 +46,31 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 			uid, gid = mappedPair.UID, mappedPair.GID
 		}
 		if uid != int(st.Uid) || gid != int(st.Gid) {
+			stat, err := os.Lstat(path)
+			if err != nil {
+				return fmt.Errorf("%s: lstat(%q): %v", os.Args[0], path, err)
+			}
+			cap, err := system.Lgetxattr(path, "security.capability")
+			if err != nil && err != system.ErrNotSupportedPlatform {
+				return fmt.Errorf("%s: Lgetxattr(%q): %v", os.Args[0], path, err)
+			}
+
 			// Make the change.
 			if err := syscall.Lchown(path, uid, gid); err != nil {
 				return fmt.Errorf("%s: chown(%q): %v", os.Args[0], path, err)
 			}
+			// Restore the SUID and SGID bits if they were originally set.
+			if (stat.Mode()&os.ModeSymlink == 0) && stat.Mode()&(os.ModeSetuid|os.ModeSetgid) != 0 {
+				if err := os.Chmod(path, stat.Mode()); err != nil {
+					return fmt.Errorf("%s: chmod(%q): %v", os.Args[0], path, err)
+				}
+			}
+			if cap != nil {
+				if err := system.Lsetxattr(path, "security.capability", cap, 0); err != nil {
+					return fmt.Errorf("%s: Lsetxattr(%q): %v", os.Args[0], path, err)
+				}
+			}
+
 		}
 	}
 	return nil

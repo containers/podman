@@ -5,97 +5,12 @@ Podman is a utility provided as part of the libpod library.  It can be used to c
 containers. The following tutorial will teach you how to set up Podman and perform some basic
 commands with Podman.
 
-## Install Podman on Fedora from RPM Repositories
-Fedora 27 and later provide Podman via the package manager.
-```console
-$ sudo dnf install -y podman
-```
+**NOTE**: the code samples are intended to be run as a non-root user, and use `sudo` where
+root escalation is required.
 
-## Install Podman on Fedora from Source
-Many of the basic components to run Podman are readily available from the Fedora RPM repositories.
-In this section, we will help you install all the runtime and build dependencies for Podman,
-acquire the source, and build it.
+## Installing Podman
 
-### Installing build and runtime dependencies
-```console
-$ sudo dnf install -y git runc libassuan-devel golang golang-github-cpuguy83-go-md2man glibc-static \
-                                    gpgme-devel glib2-devel device-mapper-devel libseccomp-devel \
-                                    atomic-registries iptables skopeo-containers containernetworking-cni \
-                                    conmon
-```
-### Building and installing podman
-
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
-and make libpod.
-
-```console
-$ export GOPATH=~/go
-$ mkdir -p $GOPATH
-$ git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
-$ cd $GOPATH/src/github.com/containers/libpod
-$ make
-$ sudo make install PREFIX=/usr
-```
-
-You now have a working podman environment.  Jump to [Familiarizing yourself with Podman](#familiarizing-yourself-with-podman)
-to begin using Podman.
-
-## Install podman on Ubuntu
-
-The default Ubuntu cloud image size will not allow for the following exercise to be done without increasing its
-capacity.  Be sure to add at least 5GB to the image. Instructions to do this are outside the scope of this
-tutorial. For this tutorial, the Ubuntu **artful-server-cloudimg** image was used.
-
-### Installing build and runtime dependencies
-
-#### Installing base packages
-```console
-$ sudo apt-get update
-$ sudo apt-get install libdevmapper-dev libglib2.0-dev libgpgme11-dev golang libseccomp-dev \
-                        go-md2man libprotobuf-dev libprotobuf-c0-dev libseccomp-dev python3-setuptools
-```
-#### Building and installing conmon
-First, configure a `GOPATH` (if you are using go1.8 or later, this defaults to `~/go`), then clone
-and make libpod.
-
-```console
-$ export GOPATH=~/go
-$ mkdir -p $GOPATH
-$ git clone https://github.com/kubernetes-sigs/cri-o $GOPATH/src/github.com/kubernetes-sigs/cri-o
-$ cd $GOPATH/src/github.com/kubernetes-sigs/cri-o
-$ mkdir bin
-$ make bin/conmon
-$ sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
-```
-#### Adding required configuration files
-```console
-$ sudo mkdir -p /etc/containers
-$ sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
-$ sudo curl https://raw.githubusercontent.com/containers/skopeo/master/default-policy.json -o /etc/containers/policy.json
-```
-#### Installing CNI plugins
-```console
-$ git clone https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
-$ cd $GOPATH/src/github.com/containernetworking/plugins
-$ ./build.sh
-$ sudo mkdir -p /usr/libexec/cni
-$ sudo cp bin/* /usr/libexec/cni
-```
-#### Installing runc
-```console
-$ git clone https://github.com/opencontainers/runc.git $GOPATH/src/github.com/opencontainers/runc
-$ cd $GOPATH/src/github.com/opencontainers/runc
-$ make static BUILDTAGS="seccomp selinux"
-$ sudo cp runc /usr/bin/runc
-```
-
-### Building and installing Podman
-```console
-$ git clone https://github.com/containers/libpod/ $GOPATH/src/github.com/containers/libpod
-$ cd $GOPATH/src/github.com/containers/libpod
-$ make
-$ sudo make install PREFIX=/usr
-```
+For installing or building Podman, please see the [installation instructions](https://github.com/containers/libpod/blob/master/install.md).
 
 ## Familiarizing yourself with Podman
 
@@ -103,30 +18,32 @@ $ sudo make install PREFIX=/usr
 This sample container will run a very basic httpd server that serves only its index
 page.
 ```console
-$ sudo podman run -dt -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
-                    -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
-                    -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
-                    registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
+podman run -dt -p 8080:8080/tcp -e HTTPD_VAR_RUN=/var/run/httpd -e HTTPD_MAIN_CONF_D_PATH=/etc/httpd/conf.d \
+                  -e HTTPD_MAIN_CONF_PATH=/etc/httpd/conf \
+                  -e HTTPD_CONTAINER_SCRIPTS_PATH=/usr/share/container-scripts/httpd/ \
+                  registry.fedoraproject.org/f27/httpd /usr/bin/run-httpd
 ```
-Because the container is being run in detached mode, represented by the *-d* in the podman run command, podman
-will print the container ID after it has run.
+Because the container is being run in detached mode, represented by the *-d* in the `podman run` command, Podman
+will print the container ID after it has run. Note that we use port forwarding to be able to
+access the HTTP server. For successful running at least slirp4netns v0.3.0 is needed.
 
 ### Listing running containers
 The Podman *ps* command is used to list creating and running containers.
 ```console
-$ sudo podman ps
+podman ps
 ```
 
 Note: If you add *-a* to the *ps* command, Podman will show all containers.
 ### Inspecting a running container
 You can "inspect" a running container for metadata and details about itself.  We can even use
-the inspect subcommand to see what IP address was assigned to the container.
+the inspect subcommand to see what IP address was assigned to the container. As the container is running in rootless mode, an IP address is not assigned and the value will be listed as "none" in the output from inspect.
 ```console
-$ sudo podman inspect -l | grep IPAddress\":
-        "IPAddress": "10.88.6.140",
+$ podman inspect -l | grep IPAddress\":
+            "SecondaryIPAddresses": null,
+            "IPAddress": "",
 ```
 
-Note: The -l is convenience arguement for **latest container**.  You can also use the container's ID instead
+Note: The -l is a convenience argument for **latest container**.  You can also use the container's ID instead
 of -l.
 
 ### Testing the httpd server
@@ -134,7 +51,7 @@ Now that we have the IP address of the container, we can test the network commun
 operating system and the container using curl. The following command should display the index page of our
 containerized httpd server.
 ```console
-# curl http://<IP_address>:8080
+curl http://<IP_address>:8080
 ```
 
 ### Viewing the container's logs
@@ -157,21 +74,65 @@ $ sudo podman top <container_id>
   101 31889 31873  0 09:21 ?        00:00:00 nginx: worker process
 ```
 
+### Checkpointing the container
+Checkpointing a container stops the container while writing the state of all processes in the container to disk.
+With this a container can later be restored and continue running at exactly the same point in time as the
+checkpoint. This capability requires CRIU 3.11 or later installed on the system.
+To checkpoint the container use:
+```console
+sudo podman container checkpoint <container_id>
+```
+
+### Restoring the container
+Restoring a container is only possible for a previously checkpointed container. The restored container will
+continue to run at exactly the same point in time it was checkpointed.
+To restore the container use:
+```console
+sudo podman container restore <container_id>
+```
+
+After being restored, the container will answer requests again as it did before checkpointing.
+```console
+curl http://<IP_address>:8080
+```
+
+### Migrate the container
+To live migrate a container from one host to another the container is checkpointed on the source
+system of the migration, transferred to the destination system and then restored on the destination
+system. When transferring the checkpoint, it is possible to specify an output-file.
+
+On the source system:
+```console
+sudo podman container checkpoint <container_id> -e /tmp/checkpoint.tar.gz
+scp /tmp/checkpoint.tar.gz <destination_system>:/tmp
+```
+
+On the destination system:
+```console
+sudo podman container restore -i /tmp/checkpoint.tar.gz
+```
+
+After being restored, the container will answer requests again as it did before checkpointing. This
+time the container will continue to run on the destination system.
+```console
+curl http://<IP_address>:8080
+```
+
 ### Stopping the container
 To stop the httpd container:
 ```console
-$ sudo podman stop --latest
+sudo podman stop --latest
 ```
 You can also check the status of one or more containers using the *ps* subcommand. In this case, we should
 use the *-a* argument to list all containers.
 ```console
-$ sudo podman ps -a
+sudo podman ps -a
 ```
 
 ### Removing the container
 To remove the httpd container:
 ```console
-$ sudo podman rm --latest
+sudo podman rm --latest
 ```
 You can verify the deletion of the container by running *podman ps -a*.
 

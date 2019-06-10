@@ -45,15 +45,24 @@ Image stored in local container/storage
 
 ## OPTIONS
 
+**--all-tags, a**
+
+All tagged images in the repository will be pulled.
+
+Note: When using the all-tags flag, Podman will not iterate over the search registries in the containers-registries.conf(5) but will always use docker.io for unqualified image names.
+
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--creds**
 
@@ -65,17 +74,11 @@ value can be entered.  The password is entered without echo.
 
 Suppress output information when pulling images
 
-**--signature-policy="PATHNAME"**
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred
-
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
-then tls verification will be used, If set to false then tls verification will not be used. If not specified
-tls verification will be used unless the target registry is listed as an insecure registry in registries.conf.
+then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf. (Not available for remote commands)
 
 **--help**, **-h**
 
@@ -84,7 +87,7 @@ Print usage statement
 ## EXAMPLES
 
 ```
-$ podman pull --signature-policy /etc/containers/policy.json alpine:latest
+$ podman pull alpine:latest
 Trying to pull registry.access.redhat.com/alpine:latest... Failed
 Trying to pull registry.fedoraproject.org/alpine:latest... Failed
 Trying to pull docker.io/library/alpine:latest...Getting image source signatures
@@ -139,7 +142,7 @@ Storing signatures
 	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
 ## SEE ALSO
-podman(1), podman-push(1), podman-login(1), containers-registries.conf(5), crio(8)
+podman(1), podman-push(1), podman-login(1), containers-registries.conf(5)
 
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

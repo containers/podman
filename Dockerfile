@@ -1,6 +1,4 @@
-FROM golang:1.10
-
-RUN echo 'deb http://httpredir.debian.org/debian jessie-backports main' > /etc/apt/sources.list.d/backports.list
+FROM golang:1.12
 
 RUN apt-get update && apt-get install -y \
     apparmor \
@@ -18,14 +16,17 @@ RUN apt-get update && apt-get install -y \
     libaio-dev \
     libcap-dev \
     libfuse-dev \
+    libnet-dev \
+    libnl-3-dev \
     libostree-dev \
     libprotobuf-dev \
     libprotobuf-c0-dev \
+    libseccomp2 \
+    libseccomp-dev \
     libtool \
     libudev-dev \
     protobuf-c-compiler \
     protobuf-compiler \
-    python-minimal \
     libglib2.0-dev \
     libapparmor-dev \
     btrfs-tools \
@@ -35,22 +36,15 @@ RUN apt-get update && apt-get install -y \
     liblzma-dev \
     netcat \
     socat \
-    python3-pip \
-    python3-dateutil \
-    python3-setuptools \
-    python3-psutil \
-    python3-pytoml \
     lsof \
     xz-utils \
+    unzip \
+    python3-yaml \
     --no-install-recommends \
     && apt-get clean
 
-ADD . /go/src/github.com/containers/libpod
-
-RUN set -x && cd /go/src/github.com/containers/libpod && make install.libseccomp.sudo
-
 # Install runc
-ENV RUNC_COMMIT ad0f5255060d36872be04de22f8731f38ef2d7b1
+ENV RUNC_COMMIT 029124da7af7360afa781a0234d1b083550f797c
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
@@ -62,13 +56,13 @@ RUN set -x \
 	&& rm -rf "$GOPATH"
 
 # Install conmon
-ENV CRIO_COMMIT 662dbb31b5d4f5ed54511a47cde7190c61c28677
+ENV CONMON_COMMIT 59952292a3b07ac125575024ae21956efe0ecdfb
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
-	&& cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
+	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
+	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CRIO_COMMIT" \
+	&& git checkout -q "$CONMON_COMMIT" \
 	&& make \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
@@ -88,8 +82,8 @@ RUN set -x \
 # Install buildah
 RUN set -x \
        && export GOPATH=/go \
-       && git clone https://github.com/projectatomic/buildah "$GOPATH/src/github.com/projectatomic/buildah" \
-       && cd "$GOPATH/src/github.com/projectatomic/buildah" \
+       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
+       && cd "$GOPATH/src/github.com/containers/buildah" \
        && make \
        && make install
 
@@ -110,6 +104,15 @@ RUN set -x \
       && go get -u github.com/mailru/easyjson/... \
       && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
+# Install latest stable criu version
+RUN set -x \
+      && cd /tmp \
+      && git clone https://github.com/checkpoint-restore/criu.git \
+      && cd criu \
+      && make \
+      && install -D -m 755  criu/criu /usr/sbin/ \
+      && rm -rf /tmp/criu
+
 # Install cni config
 #RUN make install.cni
 RUN mkdir -p /etc/cni/net.d/
@@ -118,14 +121,11 @@ COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
 # Make sure we have some policy for pulling images
 RUN mkdir -p /etc/containers && curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora -o /etc/containers/registries.conf
 
-# Install python3 varlink module from pypi
-RUN pip3 install varlink
-
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
-WORKDIR /go/src/github.com/containers/libpod
+ADD . /go/src/github.com/containers/libpod
 
-# Wrap all commands in the "docker-in-docker" script to allow nested containers,
-# and allow testing of apparmor.
-ENTRYPOINT ["./hack/dind"]
+RUN set -x && cd /go/src/github.com/containers/libpod
+
+WORKDIR /go/src/github.com/containers/libpod

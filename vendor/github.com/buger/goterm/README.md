@@ -93,13 +93,13 @@ Chart example:
     chart := tm.NewLineChart(100, 20)
     
     data := new(tm.DataTable)
-    data.addColumn("Time")
-    data.addColumn("Sin(x)")
-	data.addColumn("Cos(x+1)")
+    data.AddColumn("Time")
+    data.AddColumn("Sin(x)")
+    data.AddColumn("Cos(x+1)")
 
     for i := 0.1; i < 10; i += 0.1 {
-		data.addRow(i, math.Sin(i), math.Cos(i+1))
-	}
+	data.AddRow(i, math.Sin(i), math.Cos(i+1))
+    }
     
     tm.Println(chart.Draw(data))
 ```

@@ -27,11 +27,6 @@ var (
 	obRgex = regexp.MustCompile(`(?i)^\s*ONBUILD\s*`)
 )
 
-// dispatch with no layer / parsing. This is effectively not a command.
-func nullDispatch(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string) error {
-	return nil
-}
-
 // ENV foo bar
 //
 // Sets the environment variable foo to bar, also makes interpolation
@@ -133,9 +128,20 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	if len(args) < 2 {
 		return errAtLeastOneArgument("ADD")
 	}
+	var chown string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
-	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true})
+	if len(flagArgs) > 0 {
+		for _, arg := range flagArgs {
+			switch {
+			case strings.HasPrefix(arg, "--chown="):
+				chown = strings.TrimPrefix(arg, "--chown=")
+			default:
+				return fmt.Errorf("ADD only supports the --chown=<uid:gid> flag")
+			}
+		}
+	}
+	b.PendingCopies = append(b.PendingCopies, Copy{Src: args[0:last], Dest: dest, Download: true, Chown: chown})
 	return nil
 }
 
@@ -181,6 +187,17 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 	}
 
 	name := args[0]
+
+	// Support ARG before from
+	argStrs := []string{}
+	for n, v := range b.Args {
+		argStrs = append(argStrs, n+"="+v)
+	}
+	var err error
+	if name, err = ProcessWord(name, argStrs); err != nil {
+		return err
+	}
+
 	// Windows cannot support a container with no base image.
 	if name == NoBaseImageSpecifier {
 		if runtime.GOOS == "windows" {
@@ -438,6 +455,7 @@ func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs
 		healthcheck := docker.HealthConfig{}
 
 		flags := flag.NewFlagSet("", flag.ContinueOnError)
+		flags.String("start-period", "", "")
 		flags.String("interval", "", "")
 		flags.String("timeout", "", "")
 		flRetries := flags.String("retries", "", "")
@@ -461,6 +479,12 @@ func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs
 		default:
 			return fmt.Errorf("Unknown type %#v in HEALTHCHECK (try CMD)", typ)
 		}
+
+		period, err := parseOptInterval(flags.Lookup("start-period"))
+		if err != nil {
+			return err
+		}
+		healthcheck.StartPeriod = period
 
 		interval, err := parseOptInterval(flags.Lookup("interval"))
 		if err != nil {

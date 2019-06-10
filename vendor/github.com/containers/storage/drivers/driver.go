@@ -40,6 +40,17 @@ var (
 type CreateOpts struct {
 	MountLabel string
 	StorageOpt map[string]string
+	*idtools.IDMappings
+}
+
+// MountOpts contains optional arguments for LayerStope.Mount() methods.
+type MountOpts struct {
+	// Mount label is the MAC Labels to assign to mount point (SELINUX)
+	MountLabel string
+	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
+	UidMaps []idtools.IDMap
+	GidMaps []idtools.IDMap
+	Options []string
 }
 
 // InitFunc initializes the storage driver.
@@ -62,13 +73,16 @@ type ProtoDriver interface {
 	// specified id and parent and options passed in opts. Parent
 	// may be "" and opts may be nil.
 	Create(id, parent string, opts *CreateOpts) error
+	// CreateFromTemplate creates a new filesystem layer with the specified id
+	// and parent, with contents identical to the specified template layer.
+	CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *CreateOpts, readWrite bool) error
 	// Remove attempts to remove the filesystem layer with this id.
 	Remove(id string) error
 	// Get returns the mountpoint for the layered filesystem referred
 	// to by this id. You can optionally specify a mountLabel or "".
 	// Optionally it gets the mappings used to create the layer.
 	// Returns the absolute path to the mounted layered filesystem.
-	Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (dir string, err error)
+	Get(id string, options MountOpts) (dir string, err error)
 	// Put releases the system resources for the specified id,
 	// e.g, unmounting layered filesystem.
 	Put(id string) error

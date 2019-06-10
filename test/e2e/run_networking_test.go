@@ -1,18 +1,20 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Podman rmi", func() {
+var _ = Describe("Podman run networking", func() {
 	var (
 		tempdir     string
 		err         error
-		podmanTest  PodmanTest
+		podmanTest  *PodmanTestIntegration
 		hostname, _ = os.Hostname()
 	)
 
@@ -21,62 +23,61 @@ var _ = Describe("Podman rmi", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run network connection with default bridge", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", ALPINE, "wget", "www.projectatomic.io"})
+		session := podmanTest.Podman([]string{"run", "-dt", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run network connection with host", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.projectatomic.io"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run network connection with loopback", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.projectatomic.io"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--network", "host", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run network expose port 222", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.SystemExec("iptables", []string{"-t", "nat", "-L"})
-		results.Wait(30)
+		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("222"))
 		Expect(results.OutputToString()).To(ContainSubstring("223"))
 	})
 
 	It("podman run network expose host port 80 to container port 8000", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-dt", "-p", "80:8000", ALPINE, "/bin/sh"})
 		session.Wait(30)
 		Expect(session.ExitCode()).To(Equal(0))
-		results := podmanTest.SystemExec("iptables", []string{"-t", "nat", "-L"})
-		results.Wait(30)
+		results := SystemExec("iptables", []string{"-t", "nat", "-L"})
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
 
-		ncBusy := podmanTest.SystemExec("nc", []string{"-l", "-p", "80"})
-		ncBusy.Wait(10)
+		ncBusy := SystemExec("nc", []string{"-l", "-p", "80"})
 		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
 	})
 
 	It("podman run network expose ports in image metadata", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -143,5 +144,86 @@ var _ = Describe("Podman rmi", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString("foobar")
 		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run --net container: copies hosts and resolv", func() {
+		SkipIfRootless()
+		ctrName := "ctr1"
+		ctr1 := podmanTest.RunTopContainer(ctrName)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1.ExitCode()).To(Equal(0))
+
+		// Exec in and modify /etc/resolv.conf and /etc/hosts
+		exec1 := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "echo nameserver 192.0.2.1 > /etc/resolv.conf"})
+		exec1.WaitWithDefaultTimeout()
+		Expect(exec1.ExitCode()).To(Equal(0))
+
+		exec2 := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "echo 192.0.2.2 test1 > /etc/hosts"})
+		exec2.WaitWithDefaultTimeout()
+		Expect(exec2.ExitCode()).To(Equal(0))
+
+		ctrName2 := "ctr2"
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--net=container:" + ctrName, "--name", ctrName2, ALPINE, "top"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+
+		exec3 := podmanTest.Podman([]string{"exec", "-i", ctrName2, "cat", "/etc/resolv.conf"})
+		exec3.WaitWithDefaultTimeout()
+		Expect(exec3.ExitCode()).To(Equal(0))
+		Expect(exec3.OutputToString()).To(ContainSubstring("nameserver 192.0.2.1"))
+
+		exec4 := podmanTest.Podman([]string{"exec", "-i", ctrName2, "cat", "/etc/hosts"})
+		exec4.WaitWithDefaultTimeout()
+		Expect(exec4.ExitCode()).To(Equal(0))
+		Expect(exec4.OutputToString()).To(ContainSubstring("192.0.2.2 test1"))
+	})
+
+	It("podman run network in user created network namespace", func() {
+		SkipIfRootless()
+		if Containerized() {
+			Skip("Can not be run within a container.")
+		}
+		addXXX := SystemExec("ip", []string{"netns", "add", "xxx"})
+		Expect(addXXX.ExitCode()).To(Equal(0))
+		defer func() {
+			delXXX := SystemExec("ip", []string{"netns", "delete", "xxx"})
+			Expect(delXXX.ExitCode()).To(Equal(0))
+		}()
+
+		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxx", ALPINE, "wget", "www.podman.io"})
+		session.Wait(90)
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run n user created network namespace with resolv.conf", func() {
+		SkipIfRootless()
+		if Containerized() {
+			Skip("Can not be run within a container.")
+		}
+		addXXX2 := SystemExec("ip", []string{"netns", "add", "xxx2"})
+		Expect(addXXX2.ExitCode()).To(Equal(0))
+		defer func() {
+			delXXX2 := SystemExec("ip", []string{"netns", "delete", "xxx2"})
+			Expect(delXXX2.ExitCode()).To(Equal(0))
+		}()
+
+		mdXXX2 := SystemExec("mkdir", []string{"-p", "/etc/netns/xxx2"})
+		Expect(mdXXX2.ExitCode()).To(Equal(0))
+		defer os.RemoveAll("/etc/netns/xxx2")
+
+		nsXXX2 := SystemExec("bash", []string{"-c", "echo nameserver 11.11.11.11 > /etc/netns/xxx2/resolv.conf"})
+		Expect(nsXXX2.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"run", "--net", "ns:/run/netns/xxx2", ALPINE, "cat", "/etc/resolv.conf"})
+		session.Wait(90)
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("11.11.11.11"))
+	})
+
+	It("podman run network in bogus user created network namespace", func() {
+		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.podman.io"})
+		session.Wait(90)
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
 	})
 })

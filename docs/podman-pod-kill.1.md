@@ -19,7 +19,9 @@ Sends signal to all containers associated with a pod.
 Instead of providing the pod name or ID, use the last created pod. If you use methods other than Podman
 to run pods such as CRI-O, the last started pod could be from either of those methods.
 
-**--signal, s**
+The latest option is not supported on the remote client.
+
+**--signal, -s**
 
 Signal to send to the containers in the pod. For more information on Linux signals, refer to *man signal(7)*.
 

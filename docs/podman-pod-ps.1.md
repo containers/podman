@@ -42,6 +42,8 @@ Includes the container statuses in the container info field
 
 Show the latest pod created (all states)
 
+The latest option is not supported on the remote client.
+
 **--no-trunc**
 
 Display the extended information

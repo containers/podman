@@ -16,6 +16,7 @@ package invoke
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,17 +29,13 @@ type RawExec struct {
 	Stderr io.Writer
 }
 
-func (e *RawExec) ExecPlugin(pluginPath string, stdinData []byte, environ []string) ([]byte, error) {
+func (e *RawExec) ExecPlugin(ctx context.Context, pluginPath string, stdinData []byte, environ []string) ([]byte, error) {
 	stdout := &bytes.Buffer{}
-
-	c := exec.Cmd{
-		Env:    environ,
-		Path:   pluginPath,
-		Args:   []string{pluginPath},
-		Stdin:  bytes.NewBuffer(stdinData),
-		Stdout: stdout,
-		Stderr: e.Stderr,
-	}
+	c := exec.CommandContext(ctx, pluginPath)
+	c.Env = environ
+	c.Stdin = bytes.NewBuffer(stdinData)
+	c.Stdout = stdout
+	c.Stderr = e.Stderr
 	if err := c.Run(); err != nil {
 		return nil, pluginErr(err, stdout.Bytes())
 	}

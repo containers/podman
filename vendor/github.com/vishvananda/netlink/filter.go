@@ -2,8 +2,6 @@ package netlink
 
 import (
 	"fmt"
-
-	"github.com/vishvananda/netlink/nl"
 )
 
 type Filter interface {
@@ -19,7 +17,7 @@ type FilterAttrs struct {
 	Handle    uint32
 	Parent    uint32
 	Priority  uint16 // lower is higher priority
-	Protocol  uint16 // syscall.ETH_P_*
+	Protocol  uint16 // unix.ETH_P_*
 }
 
 func (q FilterAttrs) String() string {
@@ -184,14 +182,6 @@ func NewMirredAction(redirIndex int) *MirredAction {
 	}
 }
 
-// Constants used in TcU32Sel.Flags.
-const (
-	TC_U32_TERMINAL  = nl.TC_U32_TERMINAL
-	TC_U32_OFFSET    = nl.TC_U32_OFFSET
-	TC_U32_VAROFFSET = nl.TC_U32_VAROFFSET
-	TC_U32_EAT       = nl.TC_U32_EAT
-)
-
 // Sel of the U32 filters that contains multiple TcU32Key. This is the copy
 // and the frontend representation of nl.TcU32Sel. It is serialized into canonical
 // nl.TcU32Sel with the appropriate endianness.
@@ -233,6 +223,21 @@ func (filter *U32) Attrs() *FilterAttrs {
 
 func (filter *U32) Type() string {
 	return "u32"
+}
+
+// MatchAll filters match all packets
+type MatchAll struct {
+	FilterAttrs
+	ClassId uint32
+	Actions []Action
+}
+
+func (filter *MatchAll) Attrs() *FilterAttrs {
+	return &filter.FilterAttrs
+}
+
+func (filter *MatchAll) Type() string {
+	return "matchall"
 }
 
 type FilterFwAttrs struct {

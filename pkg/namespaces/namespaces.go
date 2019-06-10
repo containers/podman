@@ -12,6 +12,11 @@ func (n UsernsMode) IsHost() bool {
 	return n == "host"
 }
 
+// IsKeepID indicates whether container uses a mapping where the (uid, gid) on the host is lept inside of the namespace.
+func (n UsernsMode) IsKeepID() bool {
+	return n == "keep-id"
+}
+
 // IsPrivate indicates whether the container uses the a private userns.
 func (n UsernsMode) IsPrivate() bool {
 	return !(n.IsHost())
@@ -21,11 +26,21 @@ func (n UsernsMode) IsPrivate() bool {
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", "host":
+	case "", "host", "keep-id":
 	default:
 		return false
 	}
 	return true
+}
+
+// IsContainer indicates whether container uses a container userns.
+func (n UsernsMode) IsContainer() bool {
+	return false
+}
+
+// Container is the id of the container which network this container is connected to.
+func (n UsernsMode) Container() string {
+	return ""
 }
 
 // UTSMode represents the UTS namespace of the container.
@@ -74,7 +89,7 @@ func (n UTSMode) Valid() bool {
 // IpcMode represents the container ipc stack.
 type IpcMode string
 
-// IsPrivate indicates whether the container uses its own private ipc namespace which can not be shared.
+// IsPrivate indicates whether the container uses its own private ipc namespace which cannot be shared.
 func (n IpcMode) IsPrivate() bool {
 	return n == "private"
 }
@@ -191,8 +206,8 @@ func (n NetworkMode) IsContainer() bool {
 	return len(parts) > 1 && parts[0] == "container"
 }
 
-// ConnectedContainer is the id of the container which network this container is connected to.
-func (n NetworkMode) ConnectedContainer() string {
+// Container is the id of the container which network this container is connected to.
+func (n NetworkMode) Container() string {
 	parts := strings.SplitN(string(n), ":", 2)
 	if len(parts) > 1 {
 		return parts[1]
@@ -213,7 +228,31 @@ func (n NetworkMode) IsBridge() bool {
 	return n == "bridge"
 }
 
+// IsSlirp4netns indicates if we are running a rootless network stack
+func (n NetworkMode) IsSlirp4netns() bool {
+	return n == "slirp4netns"
+}
+
+// IsNS indicates a network namespace passed in by path (ns:<path>)
+func (n NetworkMode) IsNS() bool {
+	return strings.HasPrefix(string(n), "ns:")
+}
+
+// NS gets the path associated with a ns:<path> network ns
+func (n NetworkMode) NS() string {
+	parts := strings.SplitN(string(n), ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
+// IsPod returns whether the network refers to pod networking
+func (n NetworkMode) IsPod() bool {
+	return n == "pod"
+}
+
 // IsUserDefined indicates user-created network
 func (n NetworkMode) IsUserDefined() bool {
-	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer()
+	return !n.IsDefault() && !n.IsBridge() && !n.IsHost() && !n.IsNone() && !n.IsContainer() && !n.IsSlirp4netns() && !n.IsNS()
 }

@@ -1,4 +1,0 @@
-humanize
-podman
-pytoml
-setuptools>=39

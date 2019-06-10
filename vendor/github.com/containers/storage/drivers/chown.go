@@ -55,6 +55,9 @@ func chownByMapsMain() {
 		if err != nil {
 			return fmt.Errorf("error walking to %q: %v", path, err)
 		}
+		if path == "." {
+			return nil
+		}
 		return platformLChown(path, info, toHost, toContainer)
 	}
 	if err := filepath.Walk(".", chown); err != nil {
@@ -114,7 +117,10 @@ func NewNaiveLayerIDMapUpdater(driver ProtoDriver) LayerIDMapUpdater {
 // same "container" IDs.
 func (n *naiveLayerIDMapUpdater) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
 	driver := n.ProtoDriver
-	layerFs, err := driver.Get(id, mountLabel, nil, nil)
+	options := MountOpts{
+		MountLabel: mountLabel,
+	}
+	layerFs, err := driver.Get(id, options)
 	if err != nil {
 		return err
 	}

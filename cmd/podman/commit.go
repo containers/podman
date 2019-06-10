@@ -2,130 +2,80 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
-	"github.com/containers/image/manifest"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	commitFlags = []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "change, c",
-			Usage: fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")),
+	commitCommand     cliconfig.CommitValues
+	commitDescription = `Create an image from a container's changes. Optionally tag the image created, set the author with the --author flag, set the commit message with the --message flag, and make changes to the instructions with the --change flag.`
+
+	_commitCommand = &cobra.Command{
+		Use:   "commit [flags] CONTAINER IMAGE",
+		Short: "Create new image based on the changed container",
+		Long:  commitDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			commitCommand.InputArgs = args
+			commitCommand.GlobalFlags = MainGlobalOpts
+			commitCommand.Remote = remoteclient
+			return commitCmd(&commitCommand)
 		},
-		cli.StringFlag{
-			Name:  "format, f",
-			Usage: "`format` of the image manifest and metadata",
-			Value: "oci",
-		},
-		cli.StringFlag{
-			Name:  "message, m",
-			Usage: "Set commit message for imported image",
-		},
-		cli.StringFlag{
-			Name:  "author, a",
-			Usage: "Set the author for the image committed",
-		},
-		cli.BoolTFlag{
-			Name:  "pause, p",
-			Usage: "Pause container during commit",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress output",
-		},
-	}
-	commitDescription = `Create an image from a container's changes.
-	 Optionally tag the image created, set the author with the --author flag,
-	 set the commit message with the --message flag,
-	 and make changes to the instructions with the --change flag.`
-	commitCommand = cli.Command{
-		Name:         "commit",
-		Usage:        "Create new image based on the changed container",
-		Description:  commitDescription,
-		Flags:        commitFlags,
-		Action:       commitCmd,
-		ArgsUsage:    "CONTAINER [REPOSITORY[:TAG]]",
-		OnUsageError: usageErrorHandler,
+		Example: `podman commit -q --message "committing container to image" reverent_golick image-commited
+  podman commit -q --author "firstName lastName" reverent_golick image-commited
+  podman commit -q --pause=false containerID image-commited`,
 	}
 )
 
-func commitCmd(c *cli.Context) error {
-	if err := validateFlags(c, commitFlags); err != nil {
-		return err
-	}
-	runtime, err := libpodruntime.GetRuntime(c)
+func init() {
+	commitCommand.Command = _commitCommand
+	commitCommand.SetHelpTemplate(HelpTemplate())
+	commitCommand.SetUsageTemplate(UsageTemplate())
+	flags := commitCommand.Flags()
+	flags.StringArrayVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")))
+	flags.StringVarP(&commitCommand.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
+	flags.StringVarP(&commitCommand.Message, "message", "m", "", "Set commit message for imported image")
+	flags.StringVarP(&commitCommand.Author, "author", "a", "", "Set the author for the image committed")
+	flags.BoolVarP(&commitCommand.Pause, "pause", "p", false, "Pause container during commit")
+	flags.BoolVarP(&commitCommand.Quiet, "quiet", "q", false, "Suppress output")
+	flags.BoolVar(&commitCommand.IncludeVolumes, "include-volumes", false, "Include container volumes as image volumes")
+}
+
+func commitCmd(c *cliconfig.CommitValues) error {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var (
-		writer   io.Writer
-		mimeType string
-	)
-	args := c.Args()
+	args := c.InputArgs
 	if len(args) != 2 {
 		return errors.Errorf("you must provide a container name or ID and a target image name")
 	}
 
-	switch c.String("format") {
-	case "oci":
-		mimeType = buildah.OCIv1ImageManifest
-		if c.IsSet("message") || c.IsSet("m") {
-			return errors.Errorf("messages are only compatible with the docker image format (-f docker)")
-		}
-	case "docker":
-		mimeType = manifest.DockerV2Schema2MediaType
-	default:
-		return errors.Errorf("unrecognized image format %q", c.String("format"))
-	}
 	container := args[0]
 	reference := args[1]
-	if c.IsSet("change") || c.IsSet("c") {
-		for _, change := range c.StringSlice("change") {
+	if c.Flag("change").Changed {
+		for _, change := range c.Change {
 			splitChange := strings.Split(strings.ToUpper(change), "=")
+			if len(splitChange) == 1 {
+				splitChange = strings.Split(strings.ToUpper(change), " ")
+			}
 			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
-				return errors.Errorf("invalid syntax for --change ", change)
+				return errors.Errorf("invalid syntax for --change: %s", change)
 			}
 		}
 	}
 
-	if !c.Bool("quiet") {
-		writer = os.Stderr
-	}
-	ctr, err := runtime.LookupContainer(container)
-	if err != nil {
-		return errors.Wrapf(err, "error looking up container %q", container)
-	}
-
-	sc := image.GetSystemContext(runtime.GetConfig().SignaturePolicyPath, "", false)
-	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   runtime.GetConfig().SignaturePolicyPath,
-		ReportWriter:          writer,
-		SystemContext:         sc,
-		PreferredManifestType: mimeType,
-	}
-	options := libpod.ContainerCommitOptions{
-		CommitOptions: coptions,
-		Pause:         c.Bool("pause"),
-		Message:       c.String("message"),
-		Changes:       c.StringSlice("change"),
-		Author:        c.String("author"),
-	}
-	newImage, err := ctr.Commit(getContext(), reference, options)
+	iid, err := runtime.Commit(getContext(), c, container, reference)
 	if err != nil {
 		return err
 	}
-	fmt.Println(newImage.ID())
+	fmt.Println(iid)
 	return nil
 }

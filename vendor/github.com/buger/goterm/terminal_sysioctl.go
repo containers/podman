@@ -3,34 +3,16 @@
 package goterm
 
 import (
-	"fmt"
 	"os"
-	"runtime"
-	"syscall"
-	"unsafe"
+	"golang.org/x/sys/unix"
 )
 
-func getWinsize() (*winsize, error) {
-	ws := new(winsize)
+func getWinsize() (*unix.Winsize, error) {
 
-	var _TIOCGWINSZ int64
-
-	switch runtime.GOOS {
-	case "linux":
-		_TIOCGWINSZ = 0x5413
-	case "darwin":
-		_TIOCGWINSZ = 1074295912
+	ws, err := unix.IoctlGetWinsize(int(os.Stdout.Fd()), unix.TIOCGWINSZ)
+	if err != nil {
+		return nil, os.NewSyscallError("GetWinsize", err)
 	}
 
-	r1, _, errno := syscall.Syscall(syscall.SYS_IOCTL,
-		uintptr(syscall.Stdin),
-		uintptr(_TIOCGWINSZ),
-		uintptr(unsafe.Pointer(ws)),
-	)
-
-	if int(r1) == -1 {
-		fmt.Println("Error:", os.NewSyscallError("GetWinsize", errno))
-		return nil, os.NewSyscallError("GetWinsize", errno)
-	}
 	return ws, nil
 }

@@ -5,8 +5,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/docker/docker/builder/dockerfile/command"
-	"github.com/docker/docker/builder/dockerfile/parser"
+	"github.com/openshift/imagebuilder/dockerfile/command"
+	"github.com/openshift/imagebuilder/dockerfile/parser"
 )
 
 // ParseDockerfile parses the provided stream as a canonical Dockerfile
@@ -122,8 +122,7 @@ func (b *Step) Resolve(ast *parser.Node) error {
 	envs := b.Env
 	for ast.Next != nil {
 		ast = ast.Next
-		var str string
-		str = ast.Value
+		str := ast.Value
 		if replaceEnvAllowed[cmd] {
 			var err error
 			var words []string

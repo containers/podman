@@ -185,6 +185,11 @@ func (d *Driver) Exists(id string) bool {
 	return result
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	return graphdriver.NaiveCreateFromTemplate(d, id, template, templateIDMappings, parent, parentIDMappings, opts, readWrite)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
@@ -362,11 +367,14 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get returns the rootfs path for the id. This will mount the dir at its given path.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	panicIfUsedByLcow()
-	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, mountLabel)
+	logrus.Debugf("WindowsGraphDriver Get() id %s mountLabel %s", id, options.MountLabel)
 	var dir string
 
+	if len(options.Options) > 0 {
+		return "", fmt.Errorf("windows driver does not support mount options")
+	}
 	rID, err := d.resolveID(id)
 	if err != nil {
 		return "", err
@@ -620,7 +628,7 @@ func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 		return
 	}
 
-	layerFs, err := d.Get(id, "", nil, nil)
+	layerFs, err := d.Get(id, graphdriver.MountOpts{})
 	if err != nil {
 		return
 	}

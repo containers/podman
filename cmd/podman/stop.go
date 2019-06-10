@@ -1,118 +1,70 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	stopFlags = []cli.Flag{
-		cli.UintFlag{
-			Name:  "timeout, time, t",
-			Usage: "Seconds to wait for stop before killing the container",
-			Value: libpod.CtrRemoveTimeout,
+	stopCommand     cliconfig.StopValues
+	stopDescription = `Stops one or more running containers.  The container name or ID can be used.
+
+  A timeout to forcibly stop the container can also be set but defaults to 10 seconds otherwise.`
+	_stopCommand = &cobra.Command{
+		Use:   "stop [flags] CONTAINER [CONTAINER...]",
+		Short: "Stop one or more containers",
+		Long:  stopDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			stopCommand.InputArgs = args
+			stopCommand.GlobalFlags = MainGlobalOpts
+			stopCommand.Remote = remoteclient
+			return stopCmd(&stopCommand)
 		},
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "stop all running containers",
-		}, LatestFlag,
-	}
-	stopDescription = `
-   podman stop
-
-   Stops one or more running containers.  The container name or ID can be used.
-   A timeout to forcibly stop the container can also be set but defaults to 10
-   seconds otherwise.
-`
-
-	stopCommand = cli.Command{
-		Name:         "stop",
-		Usage:        "Stop one or more containers",
-		Description:  stopDescription,
-		Flags:        stopFlags,
-		Action:       stopCmd,
-		ArgsUsage:    "CONTAINER-NAME [CONTAINER-NAME ...]",
-		OnUsageError: usageErrorHandler,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman stop ctrID
+  podman stop --latest
+  podman stop --timeout 2 mywebserver 6e534f14da9d`,
 	}
 )
 
-func stopCmd(c *cli.Context) error {
-	args := c.Args()
-	if (c.Bool("all") || c.Bool("latest")) && len(args) > 0 {
-		return errors.Errorf("no arguments are needed with --all or --latest")
-	}
-	if c.Bool("all") && c.Bool("latest") {
-		return errors.Errorf("--all and --latest cannot be used together")
-	}
-	if len(args) < 1 && !c.Bool("all") && !c.Bool("latest") {
-		return errors.Errorf("you must provide at least one container name or id")
-	}
-	if err := validateFlags(c, stopFlags); err != nil {
-		return err
+func init() {
+	stopCommand.Command = _stopCommand
+	stopCommand.SetHelpTemplate(HelpTemplate())
+	stopCommand.SetUsageTemplate(UsageTemplate())
+	flags := stopCommand.Flags()
+	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")
+	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.UintVar(&stopCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+// stopCmd stops a container or containers
+func stopCmd(c *cliconfig.StopValues) error {
+	if c.Flag("timeout").Changed && c.Flag("time").Changed {
+		return errors.New("the --timeout and --time flags are mutually exclusive")
 	}
 
-	rootless.SetSkipStorageSetup(true)
-	runtime, err := libpodruntime.GetRuntime(c)
+	if c.Bool("trace") {
+		span, _ := opentracing.StartSpanFromContext(Ctx, "stopCmd")
+		defer span.Finish()
+	}
+
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var filterFuncs []libpod.ContainerFilter
-	var containers []*libpod.Container
-	var lastError error
-
-	if c.Bool("all") {
-		// only get running containers
-		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-			state, _ := c.State()
-			return state == libpod.ContainerStateRunning
-		})
-		containers, err = runtime.GetContainers(filterFuncs...)
-		if err != nil {
-			return errors.Wrapf(err, "unable to get running containers")
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get last created container")
-		}
-		containers = append(containers, lastCtr)
-	} else {
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				if lastError != nil {
-					fmt.Fprintln(os.Stderr, lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-				continue
-			}
-			containers = append(containers, container)
-		}
+	ok, failures, err := runtime.StopContainers(getContext(), c)
+	if err != nil {
+		return err
 	}
-
-	for _, ctr := range containers {
-		var stopTimeout uint
-		if c.IsSet("timeout") {
-			stopTimeout = c.Uint("timeout")
-		} else {
-			stopTimeout = ctr.StopTimeout()
-		}
-		if err := ctr.StopWithTimeout(stopTimeout); err != nil && err != libpod.ErrCtrStopped {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
-			}
-			lastError = errors.Wrapf(err, "failed to stop container %v", ctr.ID())
-		} else {
-			fmt.Println(ctr.ID())
-		}
-	}
-	return lastError
+	return printCmdResults(ok, failures)
 }

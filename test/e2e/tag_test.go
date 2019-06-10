@@ -1,9 +1,9 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ var _ = Describe("Podman tag", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,23 +20,24 @@ var _ = Describe("Podman tag", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
 		podmanTest.RestoreAllArtifacts()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman tag shortname:latest", func() {
-		session := podmanTest.Podman([]string{"tag", ALPINE, "foobar:latest"})
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foobar:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.Podman([]string{"inspect", "foobar:latest"})
+		results := podmanTest.PodmanNoCache([]string{"inspect", "foobar:latest"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
@@ -45,11 +46,11 @@ var _ = Describe("Podman tag", func() {
 	})
 
 	It("podman tag shortname", func() {
-		session := podmanTest.Podman([]string{"tag", ALPINE, "foobar"})
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.Podman([]string{"inspect", "foobar:latest"})
+		results := podmanTest.PodmanNoCache([]string{"inspect", "foobar:latest"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
@@ -58,11 +59,11 @@ var _ = Describe("Podman tag", func() {
 	})
 
 	It("podman tag shortname:tag", func() {
-		session := podmanTest.Podman([]string{"tag", ALPINE, "foobar:new"})
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foobar:new"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.Podman([]string{"inspect", "foobar:new"})
+		results := podmanTest.PodmanNoCache([]string{"inspect", "foobar:new"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		inspectData := results.InspectImageJSON()
@@ -71,15 +72,15 @@ var _ = Describe("Podman tag", func() {
 	})
 
 	It("podman tag shortname image no tag", func() {
-		session := podmanTest.Podman([]string{"tag", ALPINE, "foobar"})
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		results := podmanTest.Podman([]string{"tag", "foobar", "barfoo"})
+		results := podmanTest.PodmanNoCache([]string{"tag", "foobar", "barfoo"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 
-		verify := podmanTest.Podman([]string{"inspect", "barfoo"})
+		verify := podmanTest.PodmanNoCache([]string{"inspect", "barfoo"})
 		verify.WaitWithDefaultTimeout()
 		Expect(verify.ExitCode()).To(Equal(0))
 	})

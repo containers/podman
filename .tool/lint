@@ -25,7 +25,6 @@ ${LINTER} \
 	--deadline=600s --disable-all\
 	--enable=deadcode\
 	--enable=errcheck\
-	--enable=goconst\
 	--enable=gofmt\
 	--enable=golint\
 	--enable=ineffassign\
@@ -40,6 +39,7 @@ ${LINTER} \
 	--exclude='.*_test\.go:.*error return value not checked.*\(errcheck\)$'\
 	--exclude='duplicate of.*_test.go.*\(dupl\)$'\
 	--exclude='cmd\/client\/.*\.go.*\(dupl\)$'\
+	--exclude='libpod\/.*_easyjson.go:.*'\
 	--exclude='vendor\/.*'\
 	--exclude='podman\/.*'\
 	--exclude='server\/seccomp\/.*\.go.*$'\

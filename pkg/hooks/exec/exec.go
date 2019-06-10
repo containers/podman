@@ -10,6 +10,7 @@ import (
 	"time"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 )
 
 // DefaultPostKillTimeout is the recommended default post-kill timeout.
@@ -42,7 +43,11 @@ func Run(ctx context.Context, hook *rspec.Hook, state []byte, stdout io.Writer, 
 	}
 	exit := make(chan error, 1)
 	go func() {
-		exit <- cmd.Wait()
+		err := cmd.Wait()
+		if err != nil {
+			err = errors.Wrapf(err, "executing %v", cmd.Args)
+		}
+		exit <- err
 	}()
 
 	select {

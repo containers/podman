@@ -39,23 +39,43 @@ type ExportOptions struct {
 // New creates a configuration Generator with the default
 // configuration for the target operating system.
 func New(os string) (generator Generator, err error) {
-	if os != "linux" && os != "solaris" {
+	if os != "linux" && os != "solaris" && os != "windows" {
 		return generator, fmt.Errorf("no defaults configured for %s", os)
 	}
 
 	config := rspec.Spec{
-		Version: rspec.Version,
-		Root: &rspec.Root{
+		Version:  rspec.Version,
+		Hostname: "mrsdalloway",
+	}
+
+	if os == "windows" {
+		config.Process = &rspec.Process{
+			Args: []string{
+				"cmd",
+			},
+			Cwd: `C:\`,
+			ConsoleSize: &rspec.Box{
+				Width:  80,
+				Height: 20,
+			},
+		}
+		config.Windows = &rspec.Windows{
+			IgnoreFlushesDuringBoot: true,
+			Network: &rspec.WindowsNetwork{
+				AllowUnqualifiedDNSQuery: true,
+			},
+		}
+	} else {
+		config.Root = &rspec.Root{
 			Path:     "rootfs",
 			Readonly: false,
-		},
-		Process: &rspec.Process{
+		}
+		config.Process = &rspec.Process{
 			Terminal: false,
 			Args: []string{
 				"sh",
 			},
-		},
-		Hostname: "mrsdalloway",
+		}
 	}
 
 	if os == "linux" || os == "solaris" {
@@ -162,7 +182,7 @@ func New(os string) (generator Generator, err error) {
 				Destination: "/proc",
 				Type:        "proc",
 				Source:      "proc",
-				Options:     nil,
+				Options:     []string{"nosuid", "noexec", "nodev"},
 			},
 			{
 				Destination: "/dev",

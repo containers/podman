@@ -25,22 +25,35 @@ flag. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
 
 Password for registry
 
+**--password-stdin**
+
+Take the password from stdin
+
 **--username, -u**
 
 Username for registry
 
 **--authfile**
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
+Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
+
+**--get-login**
+
+Return the logged-in user for the registry.  Return error if no login is found.
 
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--tls-verify**
 
-Require HTTPS and verify certificates when contacting registries (default: true)
+Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
+then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf. (Not available for remote commands)
 
 **--help**, **-h**
 
@@ -77,8 +90,18 @@ $ podman login --cert-dir /etc/containers/certs.d/ -u foo -p bar localhost:5000
 Login Succeeded!
 ```
 
+```
+$ podman login -u testuser  --password-stdin < testpassword.txt docker.io
+Login Succeeded!
+```
+
+```
+$ echo $testpassword | podman login -u testuser --password-stdin docker.io
+Login Succeeded!
+```
+
 ## SEE ALSO
-podman(1), podman-logout(1), crio(8)
+podman(1), podman-logout(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

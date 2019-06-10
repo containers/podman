@@ -7,7 +7,9 @@ import (
 	"strings"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -66,4 +68,47 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	final := fmt.Sprintf("%s/%s-%s%s", baseSlice, noSlice, newSlice, sliceSuffix)
 
 	return final, nil
+}
+
+// GetV1CGroups gets the V1 cgroup subsystems and then "filters"
+// out any subsystems that are provided by the caller.  Passing nil
+// for excludes will return the subsystems unfiltered.
+//func GetV1CGroups(excludes []string) ([]cgroups.Subsystem, error) {
+func GetV1CGroups(excludes []string) cgroups.Hierarchy {
+	return func() ([]cgroups.Subsystem, error) {
+		var filtered []cgroups.Subsystem
+
+		subSystem, err := cgroups.V1()
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range subSystem {
+			// If the name of the subsystem is not in the list of excludes, then
+			// add it as a keeper.
+			if !util.StringInSlice(string(s.Name()), excludes) {
+				filtered = append(filtered, s)
+			}
+		}
+		return filtered, nil
+	}
+}
+
+// LabelVolumePath takes a mount path for a volume and gives it an
+// selinux label of either shared or not
+func LabelVolumePath(path string, shared bool) error {
+	_, mountLabel, err := label.InitLabels([]string{})
+	if err != nil {
+		return errors.Wrapf(err, "error getting default mountlabels")
+	}
+	if err := label.ReleaseLabel(mountLabel); err != nil {
+		return errors.Wrapf(err, "error releasing label %q", mountLabel)
+	}
+	if err := label.Relabel(path, mountLabel, shared); err != nil {
+		permString := "private"
+		if shared {
+			permString = "shared"
+		}
+		return errors.Wrapf(err, "error setting selinux label for %s to %q as %s", path, mountLabel, permString)
+	}
+	return nil
 }

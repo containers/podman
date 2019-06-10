@@ -22,7 +22,10 @@ All the cached credentials can be removed by setting the **all** flag.
 
 **--authfile**
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json
+Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--all, -a**
 
@@ -50,7 +53,7 @@ Remove login credentials for all registries
 ```
 
 ## SEE ALSO
-podman(1), podman-login(1), crio(8)
+podman(1), podman-login(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

@@ -4,48 +4,25 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"net/http"
+	"net/url"
+	"os"
 
-	"github.com/containers/libpod/libpod/common"
+	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
-	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah/imagebuildah"
+	"github.com/sirupsen/logrus"
+
+	"github.com/containers/image/directory"
+	dockerarchive "github.com/containers/image/docker/archive"
+	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
-
-// CopyOptions contains the options given when pushing or pulling images
-type CopyOptions struct {
-	// Compression specifies the type of compression which is applied to
-	// layer blobs.  The default is to not use compression, but
-	// archive.Gzip is recommended.
-	Compression archive.Compression
-	// DockerRegistryOptions encapsulates settings that affect how we
-	// connect or authenticate to a remote registry to which we want to
-	// push the image.
-	common.DockerRegistryOptions
-	// SigningOptions encapsulates settings that control whether or not we
-	// strip or add signatures to the image when pushing (uploading) the
-	// image to a registry.
-	common.SigningOptions
-
-	// SigningPolicyPath this points to a alternative signature policy file, used mainly for testing
-	SignaturePolicyPath string
-	// AuthFile is the path of the cached credentials file defined by the user
-	AuthFile string
-	// Writer is the reportWriter for the output
-	Writer io.Writer
-	// Reference is the name for the image created when a tar archive is imported
-	Reference string
-	// ImageConfig is the Image spec for the image created when a tar archive is imported
-	ImageConfig ociv1.Image
-	// ManifestMIMEType is the manifest type of the image when saving to a directory
-	ManifestMIMEType string
-	// ForceCompress compresses the image layers when saving to a directory using the dir transport if true
-	ForceCompress bool
-}
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
@@ -71,7 +48,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 	if len(imageCtrs) > 0 && len(img.Names()) <= 1 {
 		if force {
 			for _, ctr := range imageCtrs {
-				if err := r.removeContainer(ctx, ctr, true); err != nil {
+				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
 					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
 				}
 			}
@@ -80,7 +57,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		}
 	}
 
-	hasChildren, err := img.IsParent()
+	hasChildren, err := img.IsParent(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -105,12 +82,12 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// reponames and no force is applied, we error out.
 		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
 	}
-	err = img.Remove(force)
+	err = img.Remove(ctx, force)
 	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
 		if errStorage := r.rmStorageContainers(force, img); errStorage == nil {
 			// Containers associated with the image should be deleted now,
 			// let's try removing the image again.
-			err = img.Remove(force)
+			err = img.Remove(ctx, force)
 		} else {
 			err = errStorage
 		}
@@ -164,5 +141,144 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
-	return imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	return err
+}
+
+// Import is called as an intermediary to the image library Import
+func (r *Runtime) Import(ctx context.Context, source string, reference string, changes []string, history string, quiet bool) (string, error) {
+	var (
+		writer io.Writer
+		err    error
+	)
+
+	ic := v1.ImageConfig{}
+	if len(changes) > 0 {
+		ic, err = util.GetImageConfig(changes)
+		if err != nil {
+			return "", errors.Wrapf(err, "error adding config changes to image %q", source)
+		}
+	}
+
+	hist := []v1.History{
+		{Comment: history},
+	}
+
+	config := v1.Image{
+		Config:  ic,
+		History: hist,
+	}
+
+	writer = nil
+	if !quiet {
+		writer = os.Stderr
+	}
+
+	// if source is a url, download it and save to a temp file
+	u, err := url.ParseRequestURI(source)
+	if err == nil && u.Scheme != "" {
+		file, err := downloadFromURL(source)
+		if err != nil {
+			return "", err
+		}
+		defer os.Remove(file)
+		source = file
+	}
+	// if it's stdin, buffer it, too
+	if source == "-" {
+		file, err := downloadFromFile(os.Stdin)
+		if err != nil {
+			return "", err
+		}
+		defer os.Remove(file)
+		source = file
+	}
+
+	newImage, err := r.imageRuntime.Import(ctx, source, reference, writer, image.SigningOptions{}, config)
+	if err != nil {
+		return "", err
+	}
+	return newImage.ID(), nil
+}
+
+// donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
+// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
+func downloadFromURL(source string) (string, error) {
+	fmt.Printf("Downloading from %q\n", source)
+
+	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	if err != nil {
+		return "", errors.Wrap(err, "error creating file")
+	}
+	defer outFile.Close()
+
+	response, err := http.Get(source)
+	if err != nil {
+		return "", errors.Wrapf(err, "error downloading %q", source)
+	}
+	defer response.Body.Close()
+
+	_, err = io.Copy(outFile, response.Body)
+	if err != nil {
+		return "", errors.Wrapf(err, "error saving %s to %s", source, outFile.Name())
+	}
+
+	return outFile.Name(), nil
+}
+
+// donwloadFromFile reads all of the content from the reader and temporarily
+// saves in it /var/tmp/importxyz, which is deleted after the image is imported
+func downloadFromFile(reader *os.File) (string, error) {
+	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	if err != nil {
+		return "", errors.Wrap(err, "error creating file")
+	}
+	defer outFile.Close()
+
+	logrus.Debugf("saving %s to %s", reader.Name(), outFile.Name())
+
+	_, err = io.Copy(outFile, reader)
+	if err != nil {
+		return "", errors.Wrapf(err, "error saving %s to %s", reader.Name(), outFile.Name())
+	}
+
+	return outFile.Name(), nil
+}
+
+// LoadImage loads a container image into local storage
+func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
+	var newImages []*image.Image
+	src, err := dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
+	if err == nil {
+		newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+	}
+	if err != nil {
+		// generate full src name with specified image:tag
+		src, err := ociarchive.NewReference(inputFile, name) // imageName may be ""
+		if err == nil {
+			newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+		}
+		if err != nil {
+			src, err := directory.NewReference(inputFile)
+			if err == nil {
+				newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
+			}
+			if err != nil {
+				return "", errors.Wrapf(err, "error pulling %q", name)
+			}
+		}
+	}
+	return getImageNames(newImages), nil
+}
+
+func getImageNames(images []*image.Image) string {
+	var names string
+	for i := range images {
+		if i == 0 {
+			names = images[i].InputName
+		} else {
+			names += ", " + images[i].InputName
+		}
+	}
+	return names
 }

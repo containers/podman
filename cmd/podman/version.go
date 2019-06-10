@@ -2,36 +2,100 @@ package main
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"text/tabwriter"
 	"time"
 
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
+var (
+	versionCommand  cliconfig.VersionValues
+	_versionCommand = &cobra.Command{
+		Use:   "version",
+		Args:  noSubArgs,
+		Short: "Display the Podman Version Information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			versionCommand.InputArgs = args
+			versionCommand.GlobalFlags = MainGlobalOpts
+			versionCommand.Remote = remoteclient
+			return versionCmd(&versionCommand)
+		},
+	}
+)
+
+func init() {
+	versionCommand.Command = _versionCommand
+	versionCommand.SetUsageTemplate(UsageTemplate())
+	flags := versionCommand.Flags()
+	flags.StringVarP(&versionCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
+}
+
 // versionCmd gets and prints version info for version command
-func versionCmd(c *cli.Context) error {
-	output, err := libpod.GetVersion()
+func versionCmd(c *cliconfig.VersionValues) error {
+	clientVersion, err := libpod.GetVersion()
 	if err != nil {
 		errors.Wrapf(err, "unable to determine version")
 	}
-	fmt.Println("Version:      ", output.Version)
-	fmt.Println("Go Version:   ", output.GoVersion)
-	if output.GitCommit != "" {
-		fmt.Println("Git Commit:   ", output.GitCommit)
-	}
-	// Prints out the build time in readable format
-	if libpod.BuildInfo != "" {
-		fmt.Println("Built:        ", time.Unix(output.Built, 0).Format(time.ANSIC))
-	}
 
-	fmt.Println("OS/Arch:      ", output.OsArch)
+	versionOutputFormat := c.Format
+	if versionOutputFormat != "" {
+		if strings.Join(strings.Fields(versionOutputFormat), "") == "{{json.}}" {
+			versionOutputFormat = formats.JSONString
+		}
+		var out formats.Writer
+		switch versionOutputFormat {
+		case formats.JSONString:
+			out = formats.JSONStruct{Output: clientVersion}
+		default:
+			out = formats.StdoutTemplate{Output: clientVersion, Template: versionOutputFormat}
+		}
+		return formats.Writer(out).Out()
+	}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+	defer w.Flush()
+
+	if remote {
+		fmt.Fprintf(w, "Client:\n")
+	}
+	formatVersion(w, clientVersion)
+
+	if remote {
+		fmt.Fprintf(w, "\nService:\n")
+
+		runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+		if err != nil {
+			return errors.Wrapf(err, "could not get runtime")
+		}
+		defer runtime.Shutdown(false)
+
+		serviceVersion, err := runtime.GetVersion()
+		if err != nil {
+			return err
+		}
+		formatVersion(w, serviceVersion)
+	}
 	return nil
 }
 
-// Cli command to print out the full version of podman
-var versionCommand = cli.Command{
-	Name:   "version",
-	Usage:  "Display the PODMAN Version Information",
-	Action: versionCmd,
+func formatVersion(writer io.Writer, version libpod.Version) {
+	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
+	fmt.Fprintf(writer, "RemoteAPI Version:\t%d\n", version.RemoteAPIVersion)
+	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)
+	if version.GitCommit != "" {
+		fmt.Fprintf(writer, "Git Commit:\t%s\n", version.GitCommit)
+	}
+	// Prints out the build time in readable format
+	if version.Built != 0 {
+		fmt.Fprintf(writer, "Built:\t%s\n", time.Unix(version.Built, 0).Format(time.ANSIC))
+	}
+
+	fmt.Fprintf(writer, "OS/Arch:\t%s\n", version.OsArch)
 }

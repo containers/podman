@@ -27,3 +27,15 @@ func (c *Container) cleanupNetwork() error {
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	return nil, ErrNotImplemented
 }
+
+func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointOptions) error {
+	return ErrNotImplemented
+}
+
+func (c *Container) restore(ctx context.Context, options ContainerCheckpointOptions) error {
+	return ErrNotImplemented
+}
+
+func (c *Container) copyOwnerAndPerms(source, dest string) error {
+	return nil
+}

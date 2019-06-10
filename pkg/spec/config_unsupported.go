@@ -26,3 +26,7 @@ func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrottleDevice, error) {
 	return nil, errors.New("function not implemented")
 }
+
+func devicesFromPath(g *generate.Generator, devicePath string) error {
+	return errors.New("function not implemented")
+}

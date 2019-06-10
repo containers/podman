@@ -253,6 +253,14 @@ func (a *Driver) AdditionalImageStores() []string {
 	return nil
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (a *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	if opts == nil {
+		opts = &graphdriver.CreateOpts{}
+	}
+	return graphdriver.NaiveCreateFromTemplate(a, id, template, templateIDMappings, parent, parentIDMappings, opts, readWrite)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (a *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
@@ -405,7 +413,7 @@ func atomicRemove(source string) error {
 	case os.IsExist(err):
 		// Got error saying the target dir already exists, maybe the source doesn't exist due to a previous (failed) remove
 		if _, e := os.Stat(source); !os.IsNotExist(e) {
-			return errors.Wrapf(err, "target rename dir '%s' exists but should not, this needs to be manually cleaned up")
+			return errors.Wrapf(err, "target rename dir '%s' exists but should not, this needs to be manually cleaned up", target)
 		}
 	default:
 		return errors.Wrapf(err, "error preparing atomic delete")
@@ -416,7 +424,7 @@ func atomicRemove(source string) error {
 
 // Get returns the rootfs path for the id.
 // This will mount the dir at its given path
-func (a *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (a *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	a.locker.Lock(id)
 	defer a.locker.Unlock(id)
 	parents, err := a.getParentLayerPaths(id)
@@ -441,7 +449,7 @@ func (a *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (s
 	// If a dir does not have a parent ( no layers )do not try to mount
 	// just return the diff path to the data
 	if len(parents) > 0 {
-		if err := a.mount(id, m, mountLabel, parents); err != nil {
+		if err := a.mount(id, m, parents, options); err != nil {
 			return "", err
 		}
 	}
@@ -585,7 +593,7 @@ func (a *Driver) getParentLayerPaths(id string) ([]string, error) {
 	return layers, nil
 }
 
-func (a *Driver) mount(id string, target string, mountLabel string, layers []string) error {
+func (a *Driver) mount(id string, target string, layers []string, options graphdriver.MountOpts) error {
 	a.Lock()
 	defer a.Unlock()
 
@@ -596,7 +604,7 @@ func (a *Driver) mount(id string, target string, mountLabel string, layers []str
 
 	rw := a.getDiffPath(id)
 
-	if err := a.aufsMount(layers, rw, target, mountLabel); err != nil {
+	if err := a.aufsMount(layers, rw, target, options); err != nil {
 		return fmt.Errorf("error creating aufs mount to %s: %v", target, err)
 	}
 	return nil
@@ -643,7 +651,7 @@ func (a *Driver) Cleanup() error {
 	return mountpk.Unmount(a.root)
 }
 
-func (a *Driver) aufsMount(ro []string, rw, target, mountLabel string) (err error) {
+func (a *Driver) aufsMount(ro []string, rw, target string, options graphdriver.MountOpts) (err error) {
 	defer func() {
 		if err != nil {
 			Unmount(target)
@@ -657,7 +665,7 @@ func (a *Driver) aufsMount(ro []string, rw, target, mountLabel string) (err erro
 	if useDirperm() {
 		offset += len(",dirperm1")
 	}
-	b := make([]byte, unix.Getpagesize()-len(mountLabel)-offset) // room for xino & mountLabel
+	b := make([]byte, unix.Getpagesize()-len(options.MountLabel)-offset) // room for xino & mountLabel
 	bp := copy(b, fmt.Sprintf("br:%s=rw", rw))
 
 	index := 0
@@ -670,21 +678,25 @@ func (a *Driver) aufsMount(ro []string, rw, target, mountLabel string) (err erro
 	}
 
 	opts := "dio,xino=/dev/shm/aufs.xino"
-	if a.mountOptions != "" {
-		opts += fmt.Sprintf(",%s", a.mountOptions)
+	mountOptions := a.mountOptions
+	if len(options.Options) > 0 {
+		mountOptions = strings.Join(options.Options, ",")
+	}
+	if mountOptions != "" {
+		opts += fmt.Sprintf(",%s", mountOptions)
 	}
 
 	if useDirperm() {
 		opts += ",dirperm1"
 	}
-	data := label.FormatMountLabel(fmt.Sprintf("%s,%s", string(b[:bp]), opts), mountLabel)
+	data := label.FormatMountLabel(fmt.Sprintf("%s,%s", string(b[:bp]), opts), options.MountLabel)
 	if err = mount("none", target, "aufs", 0, data); err != nil {
 		return
 	}
 
 	for ; index < len(ro); index++ {
 		layer := fmt.Sprintf(":%s=ro+wh", ro[index])
-		data := label.FormatMountLabel(fmt.Sprintf("append%s", layer), mountLabel)
+		data := label.FormatMountLabel(fmt.Sprintf("append%s", layer), options.MountLabel)
 		if err = mount("none", target, "aufs", unix.MS_REMOUNT, data); err != nil {
 			return
 		}

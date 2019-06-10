@@ -8,3 +8,6 @@ import (
 
 func copyPassHeader(hdr *tar.Header) {
 }
+
+func maybeTruncateHeaderModTime(hdr *tar.Header) {
+}

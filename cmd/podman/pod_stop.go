@@ -3,73 +3,70 @@ package main
 import (
 	"fmt"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podStopFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "stop all running pods",
+	podStopCommand     cliconfig.PodStopValues
+	podStopDescription = `The pod name or ID can be used.
+
+  This command will stop all running containers in each of the specified pods.`
+
+	_podStopCommand = &cobra.Command{
+		Use:   "stop [flags] POD [POD...]",
+		Short: "Stop one or more pods",
+		Long:  podStopDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podStopCommand.InputArgs = args
+			podStopCommand.GlobalFlags = MainGlobalOpts
+			podStopCommand.Remote = remoteclient
+			return podStopCmd(&podStopCommand)
 		},
-		LatestPodFlag,
-	}
-	podStopDescription = `
-   podman pod stop
-
-   Stops one or more running pods.  The pod name or ID can be used.
-`
-
-	podStopCommand = cli.Command{
-		Name:         "stop",
-		Usage:        "Stop one or more pods",
-		Description:  podStopDescription,
-		Flags:        podStopFlags,
-		Action:       podStopCmd,
-		ArgsUsage:    "POD-NAME [POD-NAME ...]",
-		OnUsageError: usageErrorHandler,
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman pod stop mywebserverpod
+  podman pod stop --latest
+  podman pod stop --timeout 0 490eb 3557fb`,
 	}
 )
 
-func podStopCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
-	}
+func init() {
+	podStopCommand.Command = _podStopCommand
+	podStopCommand.SetHelpTemplate(HelpTemplate())
+	podStopCommand.SetUsageTemplate(UsageTemplate())
+	flags := podStopCommand.Flags()
+	flags.BoolVarP(&podStopCommand.All, "all", "a", false, "Stop all running pods")
+	flags.BoolVarP(&podStopCommand.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
+	flags.UintVarP(&podStopCommand.Timeout, "timeout", "t", 0, "Seconds to wait for pod stop before killing the container")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+func podStopCmd(c *cliconfig.PodStopValues) error {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	podStopIds, podStopErrors := runtime.StopPods(getContext(), c)
+	for _, p := range podStopIds {
+		fmt.Println(p)
+	}
+	if len(podStopErrors) == 0 {
+		return nil
+	}
+	// Grab the last error
+	lastError := podStopErrors[len(podStopErrors)-1]
+	// Remove the last error from the error slice
+	podStopErrors = podStopErrors[:len(podStopErrors)-1]
 
-	for _, pod := range pods {
-		// set cleanup to true to clean mounts and namespaces
-		ctr_errs, err := pod.Stop(true)
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to stop container %q on pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
-			if lastError != nil {
-				logrus.Errorf("%q", lastError)
-			}
-			lastError = errors.Wrapf(err, "unable to stop pod %q", pod.ID())
-			continue
-		}
-		fmt.Println(pod.ID())
+	for _, err := range podStopErrors {
+		logrus.Errorf("%q", err)
 	}
 	return lastError
 }

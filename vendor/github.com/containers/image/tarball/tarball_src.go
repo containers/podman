@@ -2,7 +2,6 @@ package tarball
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -14,7 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/image/types"
-
+	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	imgspecs "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -77,7 +76,7 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 
 		// Set up to digest the file after we maybe decompress it.
 		diffIDdigester := digest.Canonical.Digester()
-		uncompressed, err := gzip.NewReader(reader)
+		uncompressed, err := pgzip.NewReader(reader)
 		if err == nil {
 			// It is compressed, so the diffID is the digest of the uncompressed version
 			reader = io.TeeReader(uncompressed, diffIDdigester.Hash())
@@ -207,7 +206,15 @@ func (is *tarballImageSource) Close() error {
 	return nil
 }
 
-func (is *tarballImageSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo) (io.ReadCloser, int64, error) {
+// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
+func (is *tarballImageSource) HasThreadSafeGetBlob() bool {
+	return false
+}
+
+// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
+// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
+// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+func (is *tarballImageSource) GetBlob(ctx context.Context, blobinfo types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	// We should only be asked about things in the manifest.  Maybe the configuration blob.
 	if blobinfo.Digest == is.configID {
 		return ioutil.NopCloser(bytes.NewBuffer(is.config)), is.configSize, nil

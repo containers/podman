@@ -12,7 +12,6 @@ import (
 	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/text/language"
 )
 
 // path is the path to an example hook executable.
@@ -43,12 +42,7 @@ func TestGoodNew(t *testing.T) {
 		}
 	}
 
-	lang, err := language.Parse("und-u-va-posix")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	manager, err := New(ctx, []string{dir}, []string{}, lang)
+	manager, err := New(ctx, []string{dir}, []string{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -110,12 +104,7 @@ func TestBadNew(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lang, err := language.Parse("und-u-va-posix")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	_, err = New(ctx, []string{dir}, []string{}, lang)
+	_, err = New(ctx, []string{dir}, []string{})
 	if err == nil {
 		t.Fatal("unexpected success")
 	}

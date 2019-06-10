@@ -1,45 +1,57 @@
 package main
 
 import (
-	"runtime"
+	"fmt"
+	rt "runtime"
 
-	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
-	infoDescription = "Display podman system information"
-	infoCommand     = cli.Command{
-		Name:         "info",
-		Usage:        infoDescription,
-		Description:  `Information display here pertain to the host, current storage stats, and build of podman. Useful for the user and when reporting issues.`,
-		Flags:        infoFlags,
-		Action:       infoCmd,
-		ArgsUsage:    "",
-		OnUsageError: usageErrorHandler,
-	}
-	infoFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "debug, D",
-			Usage: "display additional debug information",
+	infoCommand cliconfig.InfoValues
+
+	infoDescription = `Display information pertaining to the host, current storage stats, and build of podman.
+
+  Useful for the user and when reporting issues.
+`
+	_infoCommand = &cobra.Command{
+		Use:   "info",
+		Args:  noSubArgs,
+		Long:  infoDescription,
+		Short: "Display podman system information",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			infoCommand.InputArgs = args
+			infoCommand.GlobalFlags = MainGlobalOpts
+			infoCommand.Remote = remoteclient
+			return infoCmd(&infoCommand)
 		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Change the output format to JSON or a Go template",
-		},
+		Example: `podman info`,
 	}
 )
 
-func infoCmd(c *cli.Context) error {
-	if err := validateFlags(c, infoFlags); err != nil {
-		return err
-	}
-	info := map[string]interface{}{}
+func init() {
+	infoCommand.Command = _infoCommand
+	infoCommand.SetHelpTemplate(HelpTemplate())
+	infoCommand.SetUsageTemplate(UsageTemplate())
+	flags := infoCommand.Flags()
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	flags.BoolVarP(&infoCommand.Debug, "debug", "D", false, "Display additional debug information")
+	flags.StringVarP(&infoCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
+
+}
+
+func infoCmd(c *cliconfig.InfoValues) error {
+	info := map[string]interface{}{}
+	remoteClientInfo := map[string]interface{}{}
+
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -50,7 +62,22 @@ func infoCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "error getting info")
 	}
 
-	if c.Bool("debug") {
+	if runtime.Remote {
+		endpoint, err := runtime.RemoteEndpoint()
+		if err != nil {
+			logrus.Errorf("Failed to obtain server connection: %s", err.Error())
+		} else {
+			remoteClientInfo["Connection"] = endpoint.Connection
+			remoteClientInfo["Connection Type"] = endpoint.Type.String()
+		}
+
+		remoteClientInfo["RemoteAPI Version"] = version.RemoteAPIVersion
+		remoteClientInfo["Podman Version"] = version.Version
+		remoteClientInfo["OS Arch"] = fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH)
+		infoArr = append(infoArr, libpod.InfoData{Type: "client", Data: remoteClientInfo})
+	}
+
+	if !runtime.Remote && c.Debug {
 		debugInfo := debugInfo(c)
 		infoArr = append(infoArr, libpod.InfoData{Type: "debug", Data: debugInfo})
 	}
@@ -60,7 +87,7 @@ func infoCmd(c *cli.Context) error {
 	}
 
 	var out formats.Writer
-	infoOutputFormat := c.String("format")
+	infoOutputFormat := c.Format
 	switch infoOutputFormat {
 	case formats.JSONString:
 		out = formats.JSONStruct{Output: info}
@@ -76,11 +103,12 @@ func infoCmd(c *cli.Context) error {
 }
 
 // top-level "debug" info
-func debugInfo(c *cli.Context) map[string]interface{} {
+func debugInfo(c *cliconfig.InfoValues) map[string]interface{} {
 	info := map[string]interface{}{}
-	info["compiler"] = runtime.Compiler
-	info["go version"] = runtime.Version()
-	info["podman version"] = c.App.Version
-	info["git commit"] = libpod.GitCommit
+	info["compiler"] = rt.Compiler
+	info["go version"] = rt.Version()
+	info["podman version"] = version.Version
+	version, _ := libpod.GetVersion()
+	info["git commit"] = version.GitCommit
 	return info
 }

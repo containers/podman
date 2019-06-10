@@ -6,6 +6,18 @@ import (
 	"github.com/pkg/errors"
 )
 
+var containerMounts = map[string]bool{
+	"/dev":               true,
+	"/etc/hostname":      true,
+	"/etc/hosts":         true,
+	"/etc/resolv.conf":   true,
+	"/proc":              true,
+	"/run":               true,
+	"/run/.containerenv": true,
+	"/run/secrets":       true,
+	"/sys":               true,
+}
+
 // GetDiff returns the differences between the two images, layers, or containers
 func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 	toLayer, err := r.getLayerID(to)
@@ -19,7 +31,17 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 			return nil, err
 		}
 	}
-	return r.store.Changes(fromLayer, toLayer)
+	var rchanges []archive.Change
+	changes, err := r.store.Changes(fromLayer, toLayer)
+	if err == nil {
+		for _, c := range changes {
+			if containerMounts[c.Path] {
+				continue
+			}
+			rchanges = append(rchanges, c)
+		}
+	}
+	return rchanges, err
 }
 
 // GetLayerID gets a full layer id given a full or partial id

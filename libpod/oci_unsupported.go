@@ -15,7 +15,7 @@ func newPipe() (parent *os.File, child *os.File, err error) {
 	return nil, nil, ErrNotImplemented
 }
 
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
 	return ErrNotImplemented
 }
 
@@ -25,4 +25,16 @@ func (r *OCIRuntime) pathPackage() string {
 
 func (r *OCIRuntime) conmonPackage() string {
 	return ""
+}
+
+func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
+	return ErrOSNotSupported
+}
+
+func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
+	return ErrOSNotSupported
+}
+
+func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
+	return ErrOSNotSupported
 }

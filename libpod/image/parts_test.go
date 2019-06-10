@@ -4,64 +4,120 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDecompose(t *testing.T) {
 	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
 	for _, c := range []struct {
-		input                          string
-		transport, registry, name, tag string
-		isTagged, hasRegistry          bool
-		assembled                      string
-		assembledWithTransport         string
+		input                                       string
+		registry, name, suspiciousTagValueForSearch string
+		hasRegistry                                 bool
 	}{
-		{"#", "", "", "", "", false, false, "", ""}, // Entirely invalid input
+		{"#", "", "", "", false}, // Entirely invalid input
 		{ // Fully qualified docker.io, name-only input
-			"docker.io/library/busybox", "docker://", "docker.io", "library/busybox", "latest", false, true,
-			"docker.io/library/busybox:latest", "docker://docker.io/library/busybox:latest",
+			"docker.io/library/busybox", "docker.io", "library/busybox", "latest", true,
 		},
 		{ // Fully qualified example.com, name-only input
-			"example.com/ns/busybox", "docker://", "example.com", "ns/busybox", "latest", false, true,
-			"example.com/ns/busybox:latest", "docker://example.com/ns/busybox:latest",
+			"example.com/ns/busybox", "example.com", "ns/busybox", "latest", true,
 		},
 		{ // Unqualified single-name input
-			"busybox", "docker://", "", "busybox", "latest", false, false,
-			"busybox:latest", "docker://busybox:latest",
+			"busybox", "", "busybox", "latest", false,
 		},
 		{ // Unqualified namespaced input
-			"ns/busybox", "docker://", "", "ns/busybox", "latest", false, false,
-			"ns/busybox:latest", "docker://ns/busybox:latest",
+			"ns/busybox", "", "ns/busybox", "latest", false,
 		},
 		{ // name:tag
-			"example.com/ns/busybox:notlatest", "docker://", "example.com", "ns/busybox", "notlatest", true, true,
-			"example.com/ns/busybox:notlatest", "docker://example.com/ns/busybox:notlatest",
+			"example.com/ns/busybox:notlatest", "example.com", "ns/busybox", "notlatest", true,
 		},
 		{ // name@digest
-			// FIXME? .tag == "none"
-			"example.com/ns/busybox" + digestSuffix, "docker://", "example.com", "ns/busybox", "none", false, true,
-			// FIXME: this drops the digest and replaces it with an incorrect tag.
-			"example.com/ns/busybox:none", "docker://example.com/ns/busybox:none",
+			// FIXME? .suspiciousTagValueForSearch == "none"
+			"example.com/ns/busybox" + digestSuffix, "example.com", "ns/busybox", "none", true,
 		},
 		{ // name:tag@digest
-			"example.com/ns/busybox:notlatest" + digestSuffix, "docker://", "example.com", "ns/busybox", "notlatest", true, true,
-			// FIXME: This drops the digest
-			"example.com/ns/busybox:notlatest", "docker://example.com/ns/busybox:notlatest",
+			"example.com/ns/busybox:notlatest" + digestSuffix, "example.com", "ns/busybox", "notlatest", true,
 		},
 	} {
 		parts, err := decompose(c.input)
-		if c.transport == "" {
+		if c.name == "" {
 			assert.Error(t, err, c.input)
 		} else {
 			assert.NoError(t, err, c.input)
-			assert.Equal(t, c.transport, parts.transport, c.input)
-			assert.Equal(t, c.registry, parts.registry, c.input)
-			assert.Equal(t, c.name, parts.name, c.input)
-			assert.Equal(t, c.tag, parts.tag, c.input)
-			assert.Equal(t, c.isTagged, parts.isTagged, c.input)
+			registry, name, suspiciousTagValueForSearch := parts.suspiciousRefNameTagValuesForSearch()
+			assert.Equal(t, c.registry, registry, c.input)
+			assert.Equal(t, c.name, name, c.input)
+			assert.Equal(t, c.suspiciousTagValueForSearch, suspiciousTagValueForSearch, c.input)
 			assert.Equal(t, c.hasRegistry, parts.hasRegistry, c.input)
-			assert.Equal(t, c.assembled, parts.assemble(), c.input)
-			assert.Equal(t, c.assembledWithTransport, parts.assembleWithTransport(), c.input)
+		}
+	}
+}
+
+func TestImagePartsReferenceWithRegistry(t *testing.T) {
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct {
+		input                     string
+		withDocker, withNonDocker string
+	}{
+		{"example.com/ns/busybox", "", ""},                                                                            // Fully-qualified input is invalid.
+		{"busybox", "docker.io/library/busybox", "example.com/busybox"},                                               // Single-name input
+		{"ns/busybox", "docker.io/ns/busybox", "example.com/ns/busybox"},                                              // Namespaced input
+		{"ns/busybox:notlatest", "docker.io/ns/busybox:notlatest", "example.com/ns/busybox:notlatest"},                // name:tag
+		{"ns/busybox" + digestSuffix, "docker.io/ns/busybox" + digestSuffix, "example.com/ns/busybox" + digestSuffix}, // name@digest
+		{ // name:tag@digest
+			"ns/busybox:notlatest" + digestSuffix,
+			"docker.io/ns/busybox:notlatest" + digestSuffix, "example.com/ns/busybox:notlatest" + digestSuffix,
+		},
+	} {
+		parts, err := decompose(c.input)
+		require.NoError(t, err)
+		if c.withDocker == "" {
+			_, err := parts.referenceWithRegistry("docker.io")
+			assert.Error(t, err, c.input)
+			_, err = parts.referenceWithRegistry("example.com")
+			assert.Error(t, err, c.input)
+		} else {
+			ref, err := parts.referenceWithRegistry("docker.io")
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.withDocker, ref.String())
+			ref, err = parts.referenceWithRegistry("example.com")
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.withNonDocker, ref.String())
+		}
+	}
+
+	// Invalid registry value
+	parts, err := decompose("busybox")
+	require.NoError(t, err)
+	_, err = parts.referenceWithRegistry("invalid@domain")
+	assert.Error(t, err)
+}
+
+func TestImagePartsNormalizedReference(t *testing.T) {
+	const digestSuffix = "@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+
+	for _, c := range []struct{ input, expected string }{
+		{"busybox", ""}, // Unqualified input is invalid
+		{"docker.io/busybox", "docker.io/library/busybox"},                                 // docker.io single-name
+		{"example.com/busybox", "example.com/busybox"},                                     // example.com single-name
+		{"docker.io/ns/busybox", "docker.io/ns/busybox"},                                   // docker.io namespaced
+		{"example.com/ns/busybox", "example.com/ns/busybox"},                               // example.com namespaced
+		{"example.com/ns/busybox:notlatest", "example.com/ns/busybox:notlatest"},           // name:tag
+		{"example.com/ns/busybox" + digestSuffix, "example.com/ns/busybox" + digestSuffix}, // name@digest
+		{ // name:tag@digest
+			"example.com/ns/busybox:notlatest" + digestSuffix, "example.com/ns/busybox:notlatest" + digestSuffix,
+		},
+	} {
+		parts, err := decompose(c.input)
+		require.NoError(t, err)
+		if c.expected == "" {
+			_, err := parts.normalizedReference()
+			assert.Error(t, err, c.input)
+		} else {
+			ref, err := parts.normalizedReference()
+			require.NoError(t, err, c.input)
+			assert.Equal(t, c.expected, ref.String())
 		}
 	}
 }

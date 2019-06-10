@@ -1,13 +1,18 @@
+// +build varlink
+
 package varlinkapi
 
 import (
 	"context"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/containers/buildah"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/storage/pkg/archive"
 )
 
 // getContext returns a non-nil, empty context
@@ -15,7 +20,7 @@ func getContext() context.Context {
 	return context.TODO()
 }
 
-func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.ListContainerData {
+func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct) iopodman.Container {
 	var (
 		mounts []iopodman.ContainerMount
 		ports  []iopodman.ContainerPortMappings
@@ -56,12 +61,12 @@ func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct
 		Ipc:    ns.IPC,
 	}
 
-	lc := iopodman.ListContainerData{
+	lc := iopodman.Container{
 		Id:               containerID,
 		Image:            batchInfo.ConConfig.RootfsImageName,
 		Imageid:          batchInfo.ConConfig.RootfsImageID,
 		Command:          batchInfo.ConConfig.Spec.Process.Args,
-		Createdat:        batchInfo.ConConfig.CreatedTime.String(),
+		Createdat:        batchInfo.ConConfig.CreatedTime.Format(time.RFC3339),
 		Runningfor:       time.Since(batchInfo.ConConfig.CreatedTime).String(),
 		Status:           batchInfo.ConState.String(),
 		Ports:            ports,
@@ -107,7 +112,7 @@ func makeListPod(pod *libpod.Pod, batchInfo shared.PsOptions) (iopodman.ListPodD
 		listPodsContainers = append(listPodsContainers, makeListPodContainers(ctr.ID(), batchInfo))
 	}
 	listPod := iopodman.ListPodData{
-		Createdat:          pod.CreatedTime().String(),
+		Createdat:          pod.CreatedTime().Format(time.RFC3339),
 		Id:                 pod.ID(),
 		Name:               pod.Name(),
 		Status:             status,
@@ -132,4 +137,61 @@ func handlePodCall(call iopodman.VarlinkCall, pod *libpod.Pod, ctrErrs map[strin
 	}
 
 	return nil
+}
+
+func stringCompressionToArchiveType(s string) archive.Compression {
+	switch strings.ToUpper(s) {
+	case "BZIP2":
+		return archive.Bzip2
+	case "GZIP":
+		return archive.Gzip
+	case "XZ":
+		return archive.Xz
+	}
+	return archive.Uncompressed
+}
+
+func stringPullPolicyToType(s string) buildah.PullPolicy {
+	switch strings.ToUpper(s) {
+	case "PULLIFMISSING":
+		return buildah.PullIfMissing
+	case "PULLALWAYS":
+		return buildah.PullAlways
+	case "PULLNEVER":
+		return buildah.PullNever
+	}
+	return buildah.PullIfMissing
+}
+
+func derefBool(inBool *bool) bool {
+	if inBool == nil {
+		return false
+	}
+	return *inBool
+}
+
+func derefString(in *string) string {
+	if in == nil {
+		return ""
+	}
+	return *in
+}
+
+func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
+	last := 0
+	if inOpts.Last != nil {
+		lastT := *inOpts.Last
+		last = int(lastT)
+	}
+	return shared.PsOptions{
+		All:       inOpts.All,
+		Last:      last,
+		Latest:    derefBool(inOpts.Latest),
+		NoTrunc:   derefBool(inOpts.NoTrunc),
+		Pod:       derefBool(inOpts.Pod),
+		Size:      true,
+		Sort:      derefString(inOpts.Sort),
+		Namespace: true,
+		Sync:      derefBool(inOpts.Sync),
+	}
 }

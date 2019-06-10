@@ -1,6 +1,6 @@
 // +build !windows
 
-package idtools
+package idtools // import "github.com/docker/docker/pkg/idtools"
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 
 	"github.com/docker/docker/pkg/system"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -20,20 +21,29 @@ var (
 	getentCmd string
 )
 
-func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chownExisting bool) error {
+func mkdirAs(path string, mode os.FileMode, owner Identity, mkAll, chownExisting bool) error {
 	// make an array containing the original path asked for, plus (for mkAll == true)
 	// all path components leading up to the complete path that don't exist before we MkdirAll
 	// so that we can chown all of them properly at the end.  If chownExisting is false, we won't
 	// chown the full directory path if it exists
+
 	var paths []string
-	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
-		paths = []string{path}
-	} else if err == nil && chownExisting {
+
+	stat, err := system.Stat(path)
+	if err == nil {
+		if !stat.IsDir() {
+			return &os.PathError{Op: "mkdir", Path: path, Err: syscall.ENOTDIR}
+		}
+		if !chownExisting {
+			return nil
+		}
+
 		// short-circuit--we were called with an existing directory and chown was requested
-		return os.Chown(path, ownerUID, ownerGID)
-	} else if err == nil {
-		// nothing to do; directory path fully exists already and chown was NOT requested
-		return nil
+		return lazyChown(path, owner.UID, owner.GID, stat)
+	}
+
+	if os.IsNotExist(err) {
+		paths = []string{path}
 	}
 
 	if mkAll {
@@ -49,7 +59,7 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 				paths = append(paths, dirPath)
 			}
 		}
-		if err := system.MkdirAll(path, mode, ""); err != nil && !os.IsExist(err) {
+		if err := system.MkdirAll(path, mode, ""); err != nil {
 			return err
 		}
 	} else {
@@ -60,7 +70,7 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 	// even if it existed, we will chown the requested path + any subpaths that
 	// didn't exist when we called MkdirAll
 	for _, pathComponent := range paths {
-		if err := os.Chown(pathComponent, ownerUID, ownerGID); err != nil {
+		if err := lazyChown(pathComponent, owner.UID, owner.GID, nil); err != nil {
 			return err
 		}
 	}
@@ -69,7 +79,7 @@ func mkdirAs(path string, mode os.FileMode, ownerUID, ownerGID int, mkAll, chown
 
 // CanAccess takes a valid (existing) directory and a uid, gid pair and determines
 // if that uid, gid pair has access (execute bit) to the directory
-func CanAccess(path string, pair IDPair) bool {
+func CanAccess(path string, pair Identity) bool {
 	statInfo, err := system.Stat(path)
 	if err != nil {
 		return false
@@ -201,4 +211,21 @@ func callGetent(args string) (io.Reader, error) {
 
 	}
 	return bytes.NewReader(out), nil
+}
+
+// lazyChown performs a chown only if the uid/gid don't match what's requested
+// Normally a Chown is a no-op if uid/gid match, but in some cases this can still cause an error, e.g. if the
+// dir is on an NFS share, so don't call chown unless we absolutely must.
+func lazyChown(p string, uid, gid int, stat *system.StatT) error {
+	if stat == nil {
+		var err error
+		stat, err = system.Stat(p)
+		if err != nil {
+			return err
+		}
+	}
+	if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
+		return nil
+	}
+	return os.Chown(p, uid, gid)
 }

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 
-	systemdDbus "github.com/coreos/go-systemd/dbus"
-	"github.com/godbus/dbus"
+	"github.com/containers/storage/pkg/archive"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along
@@ -29,11 +31,14 @@ func ExecCmd(name string, args ...string) (string, error) {
 }
 
 // ExecCmdWithStdStreams execute a command with the specified standard streams.
-func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, name string, args ...string) error {
+func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []string, name string, args ...string) error {
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = stdin
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
+	if env != nil {
+		cmd.Env = env
+	}
 
 	err := cmd.Run()
 	if err != nil {
@@ -48,48 +53,14 @@ func StatusToExitCode(status int) int {
 	return ((status) & 0xff00) >> 8
 }
 
-// RunUnderSystemdScope adds the specified pid to a systemd scope
-func RunUnderSystemdScope(pid int, slice string, unitName string) error {
-	var properties []systemdDbus.Property
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return err
-	}
-	properties = append(properties, systemdDbus.PropSlice(slice))
-	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
-	properties = append(properties, newProp("Delegate", true))
-	properties = append(properties, newProp("DefaultDependencies", false))
-	ch := make(chan string)
-	_, err = conn.StartTransientUnit(unitName, "replace", properties, ch)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
-	// Block until job is started
-	<-ch
-
-	return nil
-}
-
-func newProp(name string, units interface{}) systemdDbus.Property {
-	return systemdDbus.Property{
-		Name:  name,
-		Value: dbus.MakeVariant(units),
-	}
-}
-
-// DetachError is special error which returned in case of container detach.
-type DetachError struct{}
-
-func (DetachError) Error() string {
-	return "detached from container"
-}
+// ErrDetach is an error indicating that the user manually detached from the
+// container.
+var ErrDetach = errors.New("detached from container")
 
 // CopyDetachable is similar to io.Copy but support a detach key sequence to break out.
 func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, err error) {
 	if len(keys) == 0 {
-		// Default keys : ctrl-p ctrl-q
+		// Default keys : ctrl-p,ctrl-q
 		keys = []byte{16, 17}
 	}
 
@@ -105,7 +76,7 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 				}
 				if i == len(keys)-1 {
 					// src.Close()
-					return 0, DetachError{}
+					return 0, ErrDetach
 				}
 				nr, er = src.Read(buf)
 			}
@@ -137,4 +108,31 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (written int64, e
 		}
 	}
 	return written, err
+}
+
+// UntarToFileSystem untars an os.file of a tarball to a destination in the filesystem
+func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOptions) error {
+	logrus.Debugf("untarring %s", tarball.Name())
+	return archive.Untar(tarball, dest, options)
+}
+
+// TarToFilesystem creates a tarball from source and writes to an os.file
+// provided
+func TarToFilesystem(source string, tarball *os.File) error {
+	tb, err := Tar(source)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(tarball, tb)
+	if err != nil {
+		return err
+	}
+	logrus.Debugf("wrote tarball file %s", tarball.Name())
+	return nil
+}
+
+// Tar creates a tarball from source and returns a readcloser of it
+func Tar(source string) (io.ReadCloser, error) {
+	logrus.Debugf("creating tarball of %s", source)
+	return archive.Tar(source, archive.Uncompressed)
 }

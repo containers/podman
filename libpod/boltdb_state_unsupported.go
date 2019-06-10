@@ -3,7 +3,7 @@
 package libpod
 
 // replaceNetNS is exclusive to the Linux platform and is a no-op elsewhere
-func replaceNetNS(netNSPath string, ctr *Container, newState *containerState) error {
+func replaceNetNS(netNSPath string, ctr *Container, newState *ContainerState) error {
 	return nil
 }
 

@@ -1,7 +1,7 @@
 % podman-build(1)
 
 ## NAME
-podman\-build - Build a container image using a Dockerfile.
+podman\-build - Build a container image using a Dockerfile
 
 ## SYNOPSIS
 **podman build** [*options*] *context*
@@ -36,7 +36,10 @@ Note: this information is not present in Docker image formats, so it is discarde
 **--authfile** *path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--build-arg** *arg=value*
 
@@ -72,7 +75,7 @@ given.
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--cgroup-parent**=""
 
@@ -168,8 +171,20 @@ value can be entered.  The password is entered without echo.
 **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
-registry and is not supported by Buildah.  This flag is a NOOP and provided
+registry and is not supported by Podman.  This flag is a NOOP and provided
 soley for scripting compatibility.
+
+**--dns**=[]
+
+Set custom DNS servers
+
+**--dns-option**=[]
+
+Set custom DNS options
+
+**--dns-search**=[]
+
+Set custom DNS search domains
 
 **--file, -f** *Dockerfile*
 
@@ -206,7 +221,7 @@ Write the image ID to the file.
 Sets the configuration for IPC namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new IPC namespace should be created, or it can be "host" to indicate
-that the IPC namespace in which `buildah` itself is being run should be reused,
+that the IPC namespace in which `podman` itself is being run should be reused,
 or it can be the path to an IPC namespace which is already in use by
 another process.
 
@@ -266,7 +281,7 @@ unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 Sets the configuration for network namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new network namespace should be created, or it can be "host" to indicate
-that the network namespace in which `buildah` itself is being run should be
+that the network namespace in which `podman` itself is being run should be
 reused, or it can be the path to a network namespace which is already in use by
 another process.
 
@@ -279,19 +294,27 @@ Do not use existing cached images for the container build. Build from the start 
 Sets the configuration for PID namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new PID namespace should be created, or it can be "host" to indicate
-that the PID namespace in which `buildah` itself is being run should be reused,
+that the PID namespace in which `podman` itself is being run should be reused,
 or it can be the path to a PID namespace which is already in use by another
 process.
 
 **--pull**
 
-Pull the image if it is not present.  If this flag is disabled (with
-*--pull=false*) and the image is not present, the image will not be pulled.
+When the flag is enabled, attempt to pull the latest image from the registries
+listed in registries.conf if a local image does not exist or the image is newer
+than the one in storage. Raise an error if the image is not in any listed
+registry and is not present locally.
+
+If the flag is disabled (with *--pull=false*), do not pull the image from the
+registry, use only the local version. Raise an error if the image is not
+present locally.
+
 Defaults to *true*.
 
 **--pull-always**
 
-Pull the image even if a version of the image is already present.
+Pull the image from the first registry it is found in as listed in registries.conf.
+Raise an error if not found in the registries, even if the image is present locally.
 
 **--quiet, -q**
 
@@ -343,12 +366,6 @@ Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater tha
 Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
 
-**--signature-policy** *signaturepolicy*
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred.
-
 **--squash**
 
 Squash all of the new image's layers (including those inherited from a base image) into a single new layer.
@@ -359,9 +376,15 @@ Specifies the name which will be assigned to the resulting image if the build
 process completes successfully.
 If _imageName_ does not include a registry name, the registry name *localhost* will be prepended to the image name.
 
+**--target** *stageName*
+
+Set the target build stage to build.  When building a Dockerfile with multiple build stages, --target
+can be used to specify an intermediate build stage by name as the final stage for the resulting image.
+Commands after the target stage will be skipped.
+
 **--tls-verify** *bool-value*
 
-Require HTTPS and verify certificates when talking to container registries (defaults to true).
+Require HTTPS and verify certificates when talking to container registries (defaults to true). (Not available for remote commands)
 
 **--ulimit**=*type*=*soft-limit*[:*hard-limit*]
 
@@ -389,7 +412,7 @@ include:
 Sets the configuration for user namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new user namespace should be created, it can be "host" to indicate that
-the user namespace in which `buildah` itself is being run should be reused, or
+the user namespace in which `podman` itself is being run should be reused, or
 it can be the path to an user namespace which is already in use by another
 process.
 
@@ -443,7 +466,7 @@ in the `/etc/subuid` file which correspond to the specified user.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 If --userns-gid-map-group is specified, but --userns-uid-map-user is not
-specified, `buildah` will assume that the specified group name is also a
+specified, `podman` will assume that the specified group name is also a
 suitable user name to use as the default setting for this option.
 
 **--userns-gid-map-group** *group*
@@ -454,7 +477,7 @@ in the `/etc/subgid` file which correspond to the specified group.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 If --userns-uid-map-user is specified, but --userns-gid-map-group is not
-specified, `buildah` will assume that the specified user name is also a
+specified, `podman` will assume that the specified user name is also a
 suitable group name to use as the default setting for this option.
 
 **--uts** *how*
@@ -462,7 +485,7 @@ suitable group name to use as the default setting for this option.
 Sets the configuration for UTS namespaces when the handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
 that a new UTS namespace should be created, or it can be "host" to indicate
-that the UTS namespace in which `buildah` itself is being run should be reused,
+that the UTS namespace in which `podman` itself is being run should be reused,
 or it can be the path to a UTS namespace which is already in use by another
 process.
 
@@ -489,6 +512,8 @@ You can add the `:ro` or `:rw` suffix to a volume to mount it read-only or
 read-write mode, respectively. By default, the volumes are mounted read-write.
 See examples.
 
+  `Labeling Volume Mounts`
+
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
@@ -501,6 +526,21 @@ share the volume content. As a result, podman labels the content with a shared
 content label. Shared volume labels allow all containers to read/write content.
 The `Z` option tells podman to label the content with a private unshared label.
 Only the current container can use a private volume.
+
+  `Overlay Volume Mounts`
+
+   The `:O` flag tells Buildah to mount the directory from the host as a temporary storage using the Overlay file system. The `RUN` command containers are allowed to modify contents within the mountpoint and are stored in the container storage in a separate directory.  In Overlay FS terms the source directory will be the lower, and the container storage directory will be the upper. Modifications to the mount point are destroyed when the `RUN` command finishes executing, similar to a tmpfs mount point.
+
+  Any subsequent execution of `RUN` commands sees the original source directory content, any changes from previous RUN commands no longer exists.
+
+  One use case of the `overlay` mount is sharing the package cache from the host into the container to allow speeding up builds.
+
+  Note:
+
+     - Overlay mounts are not currently supported in rootless mode.
+     - The `O` flag is not allowed to be specified with the `Z` or `z` flags. Content mounted into the container is labeled with the private label.
+       On SELinux systems, labels in the source directory needs to be readable by the container label. If not, SELinux container separation must be disabled for the container to work.
+     - Modification of the directory volume mounted into the container with an overlay mount can cause unexpected failures.  It is recommended that you do not modify the directory until the container finishes running.
 
 By default bind mounted volumes are `private`. That means any mounts done
 inside container will not be visible on the host and vice versa. This behavior can
@@ -566,6 +606,8 @@ $ podman build --security-opt label=level:s0:c100,c200 --cgroup-parent /path/to/
 
 $ podman build --volume /home/test:/myvol:ro,Z -t imageName .
 
+$ podman build -v /var/lib/yum:/var/lib/yum:O -t imageName .
+
 $ podman build --layers -t imageName .
 
 $ podman build --no-cache -t imageName .
@@ -611,8 +653,16 @@ $ podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz
 
 registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
+## Troubleshooting
+
+If you are using a useradd command within a Dockerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+
+### Solution
+
+If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
+
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5)
+podman(1), buildah(1), containers-registries.conf(5), useradd(8)
 
 ## HISTORY
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>

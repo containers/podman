@@ -20,6 +20,8 @@ Starts all pods
 
 Instead of providing the pod name or ID, start the last created pod.
 
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 podman pod start mywebserverpod

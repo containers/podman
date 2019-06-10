@@ -1,3 +1,5 @@
+// +build !remoteclient
+
 package integration
 
 import (
@@ -5,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +16,7 @@ var _ = Describe("Podman port", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,15 +24,16 @@ var _ = Describe("Podman port", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman port all and latest", func() {
@@ -45,7 +49,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port  -l nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -57,8 +60,19 @@ var _ = Describe("Podman port", func() {
 		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
 	})
 
+	It("podman container port  -l nginx", func() {
+		session := podmanTest.Podman([]string{"container", "run", "-dt", "-P", nginx})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"container", "port", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		port := strings.Split(result.OutputToStringArray()[0], ":")[1]
+		Expect(result.LineInOuputStartsWith(fmt.Sprintf("80/tcp -> 0.0.0.0:%s", port))).To(BeTrue())
+	})
+
 	It("podman port -l port nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -71,7 +85,6 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -a nginx", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

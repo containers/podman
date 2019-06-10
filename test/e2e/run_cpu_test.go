@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman run cpu", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,18 +22,20 @@ var _ = Describe("Podman run cpu", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run cpu-period", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -39,6 +43,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpu-quota", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_quota_us"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -46,6 +51,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpus", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpus=0.5", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.cfs_period_us"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -58,6 +64,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpu-shares", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-shares=2", ALPINE, "cat", "/sys/fs/cgroup/cpu/cpu.shares"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -65,6 +72,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpuset-cpus", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpuset-cpus=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.cpus"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -72,6 +80,7 @@ var _ = Describe("Podman run cpu", func() {
 	})
 
 	It("podman run cpuset-mems", func() {
+		SkipIfRootless()
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpuset-mems=0", ALPINE, "cat", "/sys/fs/cgroup/cpuset/cpuset.mems"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))

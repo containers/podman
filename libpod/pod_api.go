@@ -3,9 +3,9 @@ package libpod
 import (
 	"context"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 // Start starts all containers within a pod
@@ -58,11 +58,17 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
 	}
-
+	defer p.newPodEvent(events.Start)
 	return nil, nil
 }
 
-// Stop stops all containers within a pod that are not already stopped
+// Stop stops all containers within a pod without a timeout.  It assumes -1 for
+// a timeout.
+func (p *Pod) Stop(ctx context.Context, cleanup bool) (map[string]error, error) {
+	return p.StopWithTimeout(ctx, cleanup, -1)
+}
+
+// StopWithTimeout stops all containers within a pod that are not already stopped
 // Each container will use its own stop timeout
 // Only running containers will be stopped. Paused, stopped, or created
 // containers will be ignored.
@@ -77,7 +83,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 // containers. The container ID is mapped to the error encountered. The error is
 // set to ErrCtrExists
 // If both error and the map are nil, all containers were stopped without error
-func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
+func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (map[string]error, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -110,15 +116,18 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 			ctr.lock.Unlock()
 			continue
 		}
-
-		if err := ctr.stop(ctr.config.StopTimeout); err != nil {
+		stopTimeout := ctr.config.StopTimeout
+		if timeout > -1 {
+			stopTimeout = uint(timeout)
+		}
+		if err := ctr.stop(stopTimeout); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
 
 		if cleanup {
-			if err := ctr.cleanup(); err != nil {
+			if err := ctr.cleanup(ctx); err != nil {
 				ctrErrors[ctr.ID()] = err
 			}
 		}
@@ -129,7 +138,7 @@ func (p *Pod) Stop(cleanup bool) (map[string]error, error) {
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
 	}
-
+	defer p.newPodEvent(events.Stop)
 	return nil, nil
 }
 
@@ -188,7 +197,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error pausing some containers")
 	}
-
+	defer p.newPodEvent(events.Pause)
 	return nil, nil
 }
 
@@ -248,6 +257,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error unpausing some containers")
 	}
 
+	defer p.newPodEvent(events.Unpause)
 	return nil, nil
 }
 
@@ -300,7 +310,8 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
 	}
-
+	p.newPodEvent(events.Stop)
+	p.newPodEvent(events.Start)
 	return nil, nil
 }
 
@@ -353,12 +364,19 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		}
 
 		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
+
+		ctr.state.StoppedByUser = true
+		if err := ctr.save(); err != nil {
+			ctrErrors[ctr.ID()] = err
+		}
+
+		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
 		return ctrErrors, errors.Wrapf(ErrCtrExists, "error killing some containers")
 	}
-
+	defer p.newPodEvent(events.Kill)
 	return nil, nil
 }
 
@@ -429,7 +447,9 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	infraContainerID := p.state.InfraContainerID
 
 	config := new(PodConfig)
-	deepcopier.Copy(p.config).To(config)
+	if err := JSONDeepCopy(p.config, config); err != nil {
+		return nil, err
+	}
 	inspectData := PodInspect{
 		Config: config,
 		State: &PodInspectState{

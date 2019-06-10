@@ -27,11 +27,12 @@ package gojsonreference
 
 import (
 	"errors"
-	"github.com/xeipuuv/gojsonpointer"
 	"net/url"
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/xeipuuv/gojsonpointer"
 )
 
 const (
@@ -124,16 +125,21 @@ func (r *JsonReference) parse(jsonReferenceString string) (err error) {
 // Creates a new reference from a parent and a child
 // If the child cannot inherit from the parent, an error is returned
 func (r *JsonReference) Inherits(child JsonReference) (*JsonReference, error) {
-	childUrl := child.GetUrl()
-	parentUrl := r.GetUrl()
-	if childUrl == nil {
+	if child.GetUrl() == nil {
 		return nil, errors.New("childUrl is nil!")
 	}
-	if parentUrl == nil {
+
+	if r.GetUrl() == nil {
 		return nil, errors.New("parentUrl is nil!")
 	}
 
-	ref, err := NewJsonReference(parentUrl.ResolveReference(childUrl).String())
+	// Get a copy of the parent url to make sure we do not modify the original.
+	// URL reference resolving fails if the fragment of the child is empty, but the parent's is not.
+	// The fragment of the child must be used, so the fragment of the parent is manually removed.
+	parentUrl := *r.GetUrl()
+	parentUrl.Fragment = ""
+
+	ref, err := NewJsonReference(parentUrl.ResolveReference(child.GetUrl()).String())
 	if err != nil {
 		return nil, err
 	}

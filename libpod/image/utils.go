@@ -1,7 +1,10 @@
 package image
 
 import (
+	"fmt"
 	"io"
+	"net/url"
+	"regexp"
 	"strings"
 
 	cp "github.com/containers/image/copy"
@@ -15,6 +18,7 @@ import (
 // findImageInRepotags takes an imageParts struct and searches images' repotags for
 // a match on name:tag
 func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, error) {
+	_, searchName, searchSuspiciousTagValueForSearch := search.suspiciousRefNameTagValuesForSearch()
 	var results []*storage.Image
 	for _, image := range images {
 		for _, name := range image.Names() {
@@ -23,21 +27,22 @@ func findImageInRepotags(search imageParts, images []*Image) (*storage.Image, er
 			if err != nil {
 				continue
 			}
-			if d.name == search.name && d.tag == search.tag {
+			_, dName, dSuspiciousTagValueForSearch := d.suspiciousRefNameTagValuesForSearch()
+			if dName == searchName && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
 				results = append(results, image.image)
 				continue
 			}
 			// account for registry:/somedir/image
-			if strings.HasSuffix(d.name, search.name) && d.tag == search.tag {
+			if strings.HasSuffix(dName, searchName) && dSuspiciousTagValueForSearch == searchSuspiciousTagValueForSearch {
 				results = append(results, image.image)
 				continue
 			}
 		}
 	}
 	if len(results) == 0 {
-		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", search.name)
+		return &storage.Image{}, errors.Errorf("unable to find a name and tag match for %s in repotags", searchName)
 	} else if len(results) > 1 {
-		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", search.name)
+		return &storage.Image{}, errors.Errorf("found multiple name and tag matches for %s in repotags", searchName)
 	}
 	return results[0], nil
 }
@@ -83,22 +88,29 @@ func hasTransport(image string) bool {
 
 // ReposToMap parses the specified repotags and returns a map with repositories
 // as keys and the corresponding arrays of tags as values.
-func ReposToMap(repotags []string) map[string][]string {
+func ReposToMap(repotags []string) (map[string][]string, error) {
 	// map format is repo -> tag
 	repos := make(map[string][]string)
 	for _, repo := range repotags {
 		var repository, tag string
 		if len(repo) > 0 {
-			li := strings.LastIndex(repo, ":")
-			repository = repo[0:li]
-			tag = repo[li+1:]
+			named, err := reference.ParseNormalizedNamed(repo)
+			repository = named.Name()
+			if err != nil {
+				return nil, err
+			}
+			if ref, ok := named.(reference.NamedTagged); ok {
+				tag = ref.Tag()
+			} else if ref, ok := named.(reference.Canonical); ok {
+				tag = ref.Digest().String()
+			}
 		}
 		repos[repository] = append(repos[repository], tag)
 	}
 	if len(repos) == 0 {
 		repos["<none>"] = []string{"<none>"}
 	}
-	return repos
+	return repos, nil
 }
 
 // GetAdditionalTags returns a list of reference.NamedTagged for the
@@ -116,4 +128,49 @@ func GetAdditionalTags(images []string) ([]reference.NamedTagged, error) {
 		}
 	}
 	return allTags, nil
+}
+
+// IsValidImageURI checks if image name has valid format
+func IsValidImageURI(imguri string) (bool, error) {
+	uri := "http://" + imguri
+	u, err := url.Parse(uri)
+	if err != nil {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	reg := regexp.MustCompile(`^[a-zA-Z0-9-_\.]+\/?:?[0-9]*[a-z0-9-\/:]*$`)
+	ret := reg.FindAllString(u.Host, -1)
+	if len(ret) == 0 {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	reg = regexp.MustCompile(`^[a-z0-9-:\./]*$`)
+	ret = reg.FindAllString(u.Fragment, -1)
+	if len(ret) == 0 {
+		return false, errors.Wrapf(err, "invalid image uri: %s", imguri)
+	}
+	return true, nil
+}
+
+// imageNameForSaveDestination returns a Docker-like reference appropriate for saving img,
+// which the user referred to as imgUserInput; or an empty string, if there is no appropriate
+// reference.
+func imageNameForSaveDestination(img *Image, imgUserInput string) string {
+	if strings.Contains(img.ID(), imgUserInput) {
+		return ""
+	}
+
+	prepend := ""
+	localRegistryPrefix := fmt.Sprintf("%s/", DefaultLocalRegistry)
+	if !strings.HasPrefix(imgUserInput, localRegistryPrefix) {
+		// we need to check if localhost was added to the image name in NewFromLocal
+		for _, name := range img.Names() {
+			// If the user is saving an image in the localhost registry,  getLocalImage need
+			// a name that matches the format localhost/<tag1>:<tag2> or localhost/<tag>:latest to correctly
+			// set up the manifest and save.
+			if strings.HasPrefix(name, localRegistryPrefix) && (strings.HasSuffix(name, imgUserInput) || strings.HasSuffix(name, fmt.Sprintf("%s:latest", imgUserInput))) {
+				prepend = localRegistryPrefix
+				break
+			}
+		}
+	}
+	return fmt.Sprintf("%s%s", prepend, imgUserInput)
 }

@@ -24,7 +24,7 @@ all the containers information.  By default it lists:
 
 Show all the containers, default is only running containers
 
-**--pod**
+**--pod, -p**
 
 Display the pods the containers are associated with
 
@@ -75,6 +75,8 @@ Print the n last created containers (all states)
 
 Show the latest container created (all states)
 
+The latest option is not supported on the remote client.
+
 **--namespace, --ns**
 
 Display namespace information
@@ -87,21 +89,33 @@ If multiple filters are given, only containers which match all of the given filt
 
 Valid filters are listed below:
 
-| **Filter**      | **Description**                                                     |
-| --------------- | ------------------------------------------------------------------- |
-| id              | [ID] Container's ID                                                 |
-| name            | [Name] Container's name                                             |
-| label           | [Key] or [Key=Value] Label assigned to a container                  |
-| exited          | [Int] Container's exit code                                         |
-| status          | [Status] Container's status, e.g *running*, *stopped*               |
-| ancestor        | [ImageName] Image or descendant used to create container            |
-| before          | [ID] or [Name] Containers created before this container             |
-| since           | [ID] or [Name] Containers created since this container              |
-| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container |
+| **Filter**      | **Description**                                                                  |
+| --------------- | -------------------------------------------------------------------------------- |
+| id              | [ID] Container's ID                                                              |
+| name            | [Name] Container's name                                                          |
+| label           | [Key] or [Key=Value] Label assigned to a container                               |
+| exited          | [Int] Container's exit code                                                      |
+| status          | [Status] Container's status: *created*, *exited*, *paused*, *running*, *unknown* |
+| ancestor        | [ImageName] Image or descendant used to create container                         |
+| before          | [ID] or [Name] Containers created before this container                          |
+| since           | [ID] or [Name] Containers created since this container                           |
+| volume          | [VolumeName] or [MountpointDestination] Volume mounted in container              |
+| health          | [Status] healthy or unhealthy                                                    |
 
 **--help**, **-h**
 
 Print usage statement
+
+**--sync**
+
+Force a sync of container state with the OCI runtime.
+In some cases, a container's state in the runtime can become out of sync with Podman's state.
+This will update Podman's state based on what the OCI runtime reports.
+Forcibly syncing is much slower, but can resolve inconsistent state issues.
+
+**--watch, -w**
+
+Refresh the output with current containers on an interval in seconds.
 
 ## EXAMPLES
 
@@ -139,11 +153,20 @@ CONTAINER ID   IMAGE         COMMAND         CREATED       STATUS               
 69ed779d8ef9f  redis:alpine  "redis-server"  25 hours ago  Created                   6379/tcp  k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1
 02f65160e14ca  redis:alpine  "redis-server"  19 hours ago  Exited (-1) 19 hours ago  6379/tcp  k8s_podsandbox1-redis_podsandbox1_redhat.test.crio_redhat-test-crio_0
 ```
+
+```
+$ podman ps
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS            PORTS                                                   NAMES
+4089df24d4f3  docker.io/library/centos:latest  /bin/bash  2 minutes ago  Up 2 minutes ago  0.0.0.0:80->8080/tcp, 0.0.0.0:2000-2006->2000-2006/tcp  manyports
+92f58933c28c  docker.io/library/centos:latest  /bin/bash  3 minutes ago  Up 3 minutes ago  192.168.99.100:1000-1006->1000-1006/tcp                 zen_sanderson
+
+```
+
 ## ps
 Print a list of containers
 
 ## SEE ALSO
-podman(1), crio(8)
+podman(1)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

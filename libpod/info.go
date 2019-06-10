@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
@@ -10,7 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/utils"
+	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 )
@@ -28,6 +32,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
+	info["rootless"] = rootless.IsRootless()
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
@@ -39,6 +44,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["SwapFree"] = mi.SwapFree
 	conmonVersion, _ := r.GetConmonVersion()
 	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
+	hostDistributionInfo := r.GetHostDistributionInfo()
 	info["Conmon"] = map[string]interface{}{
 		"path":    r.conmonPath,
 		"package": r.ociRuntime.conmonPackage(),
@@ -49,7 +55,12 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		"package": r.ociRuntime.pathPackage(),
 		"version": ociruntimeVersion,
 	}
+	info["Distribution"] = map[string]interface{}{
+		"distribution": hostDistributionInfo["Distribution"],
+		"version":      hostDistributionInfo["Version"],
+	}
 
+	info["BuildahVersion"] = buildah.Version
 	kv, err := readKernelVersion()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading kernel version")
@@ -109,6 +120,13 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
 	info["GraphOptions"] = r.store.GraphOptions()
+	info["VolumePath"] = r.config.VolumePath
+
+	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return nil, err
+	}
+	info["ConfigFile"] = configFile
 	statusPairs, err := r.store.Status()
 	if err != nil {
 		return nil, err
@@ -170,11 +188,43 @@ func (r *Runtime) GetConmonVersion() (string, error) {
 	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
 }
 
+// GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.ociRuntimePath.Paths[0]
+}
+
 // GetOCIRuntimeVersion returns a string representation of the oci runtimes version
 func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.ociRuntimePath, "--version")
+	output, err := utils.ExecCmd(r.ociRuntimePath.Paths[0], "--version")
 	if err != nil {
 		return "", err
 	}
 	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// GetHostDistributionInfo returns a map containing the host's distribution and version
+func (r *Runtime) GetHostDistributionInfo() map[string]string {
+	dist := make(map[string]string)
+
+	// Populate values in case we cannot find the values
+	// or the file
+	dist["Distribution"] = "unknown"
+	dist["Version"] = "unknown"
+
+	f, err := os.Open("/etc/os-release")
+	if err != nil {
+		return dist
+	}
+	defer f.Close()
+
+	l := bufio.NewScanner(f)
+	for l.Scan() {
+		if strings.HasPrefix(l.Text(), "ID=") {
+			dist["Distribution"] = strings.TrimPrefix(l.Text(), "ID=")
+		}
+		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
+			dist["Version"] = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		}
+	}
+	return dist
 }

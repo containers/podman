@@ -1,41 +1,79 @@
 package main
 
 import (
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/pkg/errors"
-	"github.com/projectatomic/buildah"
-	"github.com/projectatomic/buildah/imagebuildah"
-	buildahcli "github.com/projectatomic/buildah/pkg/cli"
-	"github.com/projectatomic/buildah/pkg/parse"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/containers/buildah"
+	"github.com/containers/buildah/imagebuildah"
+	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/docker/go-units"
+	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var (
-	layerFlags = []cli.Flag{
-		cli.BoolTFlag{
-			Name:  "layers",
-			Usage: "cache intermediate layers during build. Use BUILDAH_LAYERS environment variable to override. ",
+	buildCommand     cliconfig.BuildValues
+	buildDescription = "Builds an OCI or Docker image using instructions from one or more Dockerfiles and a specified build context directory."
+	layerValues      buildahcli.LayerResults
+	budFlagsValues   buildahcli.BudResults
+	fromAndBudValues buildahcli.FromAndBudResults
+	userNSValues     buildahcli.UserNSResults
+	namespaceValues  buildahcli.NameSpaceResults
+
+	_buildCommand = &cobra.Command{
+		Use:   "build [flags] CONTEXT",
+		Short: "Build an image using instructions from Dockerfiles",
+		Long:  buildDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			buildCommand.InputArgs = args
+			buildCommand.GlobalFlags = MainGlobalOpts
+			buildCommand.BudResults = &budFlagsValues
+			buildCommand.UserNSResults = &userNSValues
+			buildCommand.FromAndBudResults = &fromAndBudValues
+			buildCommand.LayerResults = &layerValues
+			buildCommand.NameSpaceResults = &namespaceValues
+			buildCommand.Remote = remoteclient
+			return buildCmd(&buildCommand)
 		},
-	}
-	buildDescription = "Builds an OCI or Docker image using instructions from one\n" +
-		"or more Dockerfiles and a specified build context directory."
-	buildCommand = cli.Command{
-		Name:           "build",
-		Usage:          "Build an image using instructions from Dockerfiles",
-		Description:    buildDescription,
-		Flags:          append(append(buildahcli.BudFlags, layerFlags...), buildahcli.FromAndBudFlags...),
-		Action:         buildCmd,
-		ArgsUsage:      "CONTEXT-DIRECTORY | URL",
-		SkipArgReorder: true,
-		OnUsageError:   usageErrorHandler,
+		Example: `podman build .
+  podman build --creds=username:password -t imageName -f Dockerfile.simple .
+  podman build --layers --force-rm --tag imageName .`,
 	}
 )
+
+func init() {
+	buildCommand.Command = _buildCommand
+	buildCommand.SetHelpTemplate(HelpTemplate())
+	buildCommand.SetUsageTemplate(UsageTemplate())
+	flags := buildCommand.Flags()
+	flags.SetInterspersed(true)
+
+	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
+	flag := budFlags.Lookup("pull")
+	flag.Value.Set("true")
+	flag.DefValue = "true"
+	layerFlags := buildahcli.GetLayerFlags(&layerValues)
+	flag = layerFlags.Lookup("layers")
+	flag.Value.Set(useLayers())
+	flag.DefValue = (useLayers())
+	flag = layerFlags.Lookup("force-rm")
+	flag.Value.Set("true")
+	flag.DefValue = "true"
+
+	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+
+	flags.AddFlagSet(&budFlags)
+	flags.AddFlagSet(&layerFlags)
+	flags.AddFlagSet(&fromAndBugFlags)
+	flags.MarkHidden("signature-policy")
+}
 
 func getDockerfiles(files []string) []string {
 	var dockerfiles []string
@@ -49,30 +87,50 @@ func getDockerfiles(files []string) []string {
 	return dockerfiles
 }
 
-func buildCmd(c *cli.Context) error {
-	// The following was taken directly from projectatomic/buildah/cmd/bud.go
-	// TODO Find a away to vendor more of this in rather than copy from bud
+func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
+	var ret []buildah.NamespaceOption
+	if c.Network != "" {
+		if c.Network == "host" {
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+				Host: true,
+			})
+		} else if c.Network[0] == '/' {
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+				Path: c.Network,
+			})
+		} else {
+			return nil, fmt.Errorf("unsupported configuration network=%s", c.Network)
+		}
+	}
+	return ret, nil
+}
 
+func buildCmd(c *cliconfig.BuildValues) error {
+	// The following was taken directly from containers/buildah/cmd/bud.go
+	// TODO Find a away to vendor more of this in rather than copy from bud
 	output := ""
 	tags := []string{}
-	if c.IsSet("tag") || c.IsSet("t") {
-		tags = c.StringSlice("tag")
+	if c.Flag("tag").Changed {
+		tags = c.Tag
 		if len(tags) > 0 {
 			output = tags[0]
 			tags = tags[1:]
 		}
 	}
+
 	pullPolicy := imagebuildah.PullNever
-	if c.BoolT("pull") {
+	if c.Pull {
 		pullPolicy = imagebuildah.PullIfMissing
 	}
-	if c.Bool("pull-always") {
+	if c.PullAlways {
 		pullPolicy = imagebuildah.PullAlways
 	}
 
 	args := make(map[string]string)
-	if c.IsSet("build-arg") {
-		for _, arg := range c.StringSlice("build-arg") {
+	if c.Flag("build-arg").Changed {
+		for _, arg := range c.BuildArg {
 			av := strings.SplitN(arg, "=", 2)
 			if len(av) > 1 {
 				args[av[0]] = av[1]
@@ -82,15 +140,15 @@ func buildCmd(c *cli.Context) error {
 		}
 	}
 
-	dockerfiles := getDockerfiles(c.StringSlice("file"))
-	format, err := getFormat(c)
+	dockerfiles := getDockerfiles(c.File)
+	format, err := getFormat(&c.PodmanCommand)
 	if err != nil {
 		return nil
 	}
 	contextDir := ""
-	cliArgs := c.Args()
+	cliArgs := c.InputArgs
 
-	layers := c.BoolT("layers") // layers for podman defaults to true
+	layers := c.Layers // layers for podman defaults to true
 	// Check to see if the BUILDAH_LAYERS environment variable is set and override command-line
 	if _, ok := os.LookupEnv("BUILDAH_LAYERS"); ok {
 		layers = buildahcli.UseLayers()
@@ -119,7 +177,7 @@ func buildCmd(c *cli.Context) error {
 			}
 			contextDir = absDir
 		}
-		cliArgs = cliArgs.Tail()
+		cliArgs = Tail(cliArgs)
 	} else {
 		// No context directory or URL was specified.  Try to use the
 		// home of the first locally-available Dockerfile.
@@ -148,30 +206,28 @@ func buildCmd(c *cli.Context) error {
 	if len(dockerfiles) == 0 {
 		dockerfiles = append(dockerfiles, filepath.Join(contextDir, "Dockerfile"))
 	}
-	if err := parse.ValidateFlags(c, buildahcli.BudFlags); err != nil {
-		return err
+
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
 	}
 
 	runtimeFlags := []string{}
-	for _, arg := range c.StringSlice("runtime-flag") {
+	for _, arg := range c.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 	// end from buildah
 
-	runtime, err := libpodruntime.GetRuntime(c)
-	if err != nil {
-		return errors.Wrapf(err, "could not get runtime")
-	}
 	defer runtime.Shutdown(false)
 
 	var stdout, stderr, reporter *os.File
 	stdout = os.Stdout
 	stderr = os.Stderr
 	reporter = os.Stderr
-	if c.IsSet("logfile") {
-		f, err := os.OpenFile(c.String("logfile"), os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
+	if c.Flag("logfile").Changed {
+		f, err := os.OpenFile(c.Logfile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 		if err != nil {
-			return errors.Errorf("error opening logfile %q: %v", c.String("logfile"), err)
+			return errors.Errorf("error opening logfile %q: %v", c.Logfile, err)
 		}
 		defer f.Close()
 		logrus.SetOutput(f)
@@ -180,66 +236,89 @@ func buildCmd(c *cli.Context) error {
 		reporter = f
 	}
 
-	systemContext, err := parse.SystemContextFromOptions(c)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
+	var memoryLimit, memorySwap int64
+	if c.Flags().Changed("memory") {
+		memoryLimit, err = units.RAMInBytes(c.Memory)
+		if err != nil {
+			return err
+		}
 	}
 
-	commonOpts, err := parse.CommonBuildOptions(c)
+	if c.Flags().Changed("memory-swap") {
+		memorySwap, err = units.RAMInBytes(c.MemorySwap)
+		if err != nil {
+			return err
+		}
+	}
+
+	nsValues, err := getNsValues(c)
 	if err != nil {
 		return err
 	}
 
-	namespaceOptions, networkPolicy, err := parse.NamespaceOptions(c)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing namespace-related options")
+	buildOpts := buildah.CommonBuildOptions{
+		AddHost:      c.AddHost,
+		CgroupParent: c.CgroupParent,
+		CPUPeriod:    c.CPUPeriod,
+		CPUQuota:     c.CPUQuota,
+		CPUShares:    c.CPUShares,
+		CPUSetCPUs:   c.CPUSetCPUs,
+		CPUSetMems:   c.CPUSetMems,
+		Memory:       memoryLimit,
+		MemorySwap:   memorySwap,
+		ShmSize:      c.ShmSize,
+		Ulimit:       c.Ulimit,
+		Volumes:      c.Volumes,
 	}
-	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c)
-	if err != nil {
-		return errors.Wrapf(err, "error parsing ID mapping options")
-	}
-	namespaceOptions.AddOrReplace(usernsOption...)
 
 	options := imagebuildah.BuildOptions{
-		ContextDirectory:        contextDir,
-		PullPolicy:              pullPolicy,
-		Compression:             imagebuildah.Gzip,
-		Quiet:                   c.Bool("quiet"),
-		SignaturePolicyPath:     c.String("signature-policy"),
-		Args:                    args,
-		Output:                  output,
+		CommonBuildOpts:         &buildOpts,
 		AdditionalTags:          tags,
-		Out:                     stdout,
+		Annotations:             c.Annotation,
+		Args:                    args,
+		CNIConfigDir:            c.CNIConfigDir,
+		CNIPluginPath:           c.CNIPlugInPath,
+		Compression:             imagebuildah.Gzip,
+		ContextDirectory:        contextDir,
+		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
 		Err:                     stderr,
-		ReportWriter:            reporter,
-		Runtime:                 c.String("runtime"),
-		RuntimeArgs:             runtimeFlags,
-		OutputFormat:            format,
-		SystemContext:           systemContext,
-		NamespaceOptions:        namespaceOptions,
-		ConfigureNetwork:        networkPolicy,
-		CNIPluginPath:           c.String("cni-plugin-path"),
-		CNIConfigDir:            c.String("cni-config-dir"),
-		IDMappingOptions:        idmappingOptions,
-		CommonBuildOpts:         commonOpts,
-		DefaultMountsFilePath:   c.GlobalString("default-mounts-file"),
-		IIDFile:                 c.String("iidfile"),
-		Squash:                  c.Bool("squash"),
-		Labels:                  c.StringSlice("label"),
-		Annotations:             c.StringSlice("annotation"),
+		ForceRmIntermediateCtrs: c.ForceRm,
+		IIDFile:                 c.Iidfile,
+		Labels:                  c.Label,
 		Layers:                  layers,
-		NoCache:                 c.Bool("no-cache"),
-		RemoveIntermediateCtrs:  c.BoolT("rm"),
-		ForceRmIntermediateCtrs: c.Bool("force-rm"),
+		NamespaceOptions:        nsValues,
+		NoCache:                 c.NoCache,
+		Out:                     stdout,
+		Output:                  output,
+		OutputFormat:            format,
+		PullPolicy:              pullPolicy,
+		Quiet:                   c.Quiet,
+		RemoveIntermediateCtrs:  c.Rm,
+		ReportWriter:            reporter,
+		RuntimeArgs:             runtimeFlags,
+		SignaturePolicyPath:     c.SignaturePolicy,
+		Squash:                  c.Squash,
+		Target:                  c.Target,
 	}
+	return runtime.Build(getContext(), c, options, dockerfiles)
+}
 
-	if c.Bool("quiet") {
-		options.ReportWriter = ioutil.Discard
+// Tail returns a string slice after the first element unless there are
+// not enough elements, then it returns an empty slice.  This is to replace
+// the urfavecli Tail method for args
+func Tail(a []string) []string {
+	if len(a) >= 2 {
+		return []string(a)[1:]
 	}
+	return []string{}
+}
 
-	if rootless.IsRootless() {
-		options.Isolation = buildah.IsolationOCIRootless
+// useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"
+// otherwise it returns true
+func useLayers() string {
+	layers := os.Getenv("BUILDAH_LAYERS")
+	if strings.ToLower(layers) == "false" || layers == "0" {
+		return "false"
 	}
-
-	return runtime.Build(getContext(), options, dockerfiles...)
+	return "true"
 }

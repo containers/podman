@@ -4,37 +4,41 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	refreshFlags = []cli.Flag{}
+	refreshCommand     cliconfig.RefreshValues
+	refreshDescription = `Resets the state of all containers to handle database changes after a Podman upgrade.
 
-	refreshDescription = "The refresh command resets the state of all containers to handle database changes after a Podman upgrade. All running containers will be restarted."
-
-	refreshCommand = cli.Command{
-		Name:                   "refresh",
-		Usage:                  "Refresh container state",
-		Description:            refreshDescription,
-		Flags:                  refreshFlags,
-		Action:                 refreshCmd,
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+  All running containers will be restarted.
+`
+	_refreshCommand = &cobra.Command{
+		Use:   "refresh",
+		Args:  noSubArgs,
+		Short: "Refresh container state",
+		Long:  refreshDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			refreshCommand.InputArgs = args
+			refreshCommand.GlobalFlags = MainGlobalOpts
+			refreshCommand.Remote = remoteclient
+			return refreshCmd(&refreshCommand)
+		},
 	}
 )
 
-func refreshCmd(c *cli.Context) error {
-	if len(c.Args()) > 0 {
-		return errors.Errorf("refresh does not accept any arguments")
-	}
+func init() {
+	_refreshCommand.Hidden = true
+	refreshCommand.Command = _refreshCommand
+	refreshCommand.SetHelpTemplate(HelpTemplate())
+	refreshCommand.SetUsageTemplate(UsageTemplate())
+}
 
-	if err := validateFlags(c, refreshFlags); err != nil {
-		return err
-	}
-
-	runtime, err := libpodruntime.GetRuntime(c)
+func refreshCmd(c *cliconfig.RefreshValues) error {
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

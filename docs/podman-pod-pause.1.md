@@ -11,13 +11,15 @@ Pauses all the running processes in the containers of one or more pods.  You may
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 Pause all pods.
 
 **--latest, -l**
 
 Instead of providing the pod name or ID, pause the last created pod.
+
+The latest option is not supported on the remote client.
 
 ## EXAMPLE
 

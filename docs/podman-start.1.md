@@ -8,7 +8,7 @@ podman\-start - Start one or more containers
 
 ## DESCRIPTION
 Start one or more containers.  You may use container IDs or names as input.  The *attach* and *interactive*
-options cannot be used to override the *--tty** and *--interactive* options from when the container
+options cannot be used to override the *--tty* and *--interactive* options from when the container
 was created. If you attempt to start a running container with the *--attach* option, podman will simply
 attach to the container.
 
@@ -21,8 +21,7 @@ starting multiple containers.
 
 **--detach-keys**
 
-Override the key sequence for detaching a container. Format is a single character [a-Z] or
-ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _.
+Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
 **--interactive, -i**
 
@@ -33,17 +32,19 @@ Attach container's STDIN. The default is false.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 **--sig-proxy**=*true*|*false*
 
-Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is false.
+Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
 
 ## EXAMPLE
 
 podman start mywebserver
 
-podman start 860a4b23 5421ab4
+podman start 860a4b231279 5421ab43b45
 
-podman start -i -a 860a4b23
+podman start --interactive --attach 860a4b231279
 
 podman start -i -l
 

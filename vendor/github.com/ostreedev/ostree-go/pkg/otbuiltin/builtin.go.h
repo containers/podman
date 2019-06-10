@@ -33,22 +33,10 @@ _ostree_repo_file(GFile *file)
   return OSTREE_REPO_FILE (file);
 }
 
-static guint
-_gpointer_to_uint (gpointer ptr)
-{
-  return GPOINTER_TO_UINT (ptr);
-}
-
 static gpointer
 _guint_to_pointer (guint u)
 {
   return GUINT_TO_POINTER (u);
-}
-
-static void
-_g_clear_object (volatile GObject **object_ptr)
-{
-  g_clear_object(object_ptr);
 }
 
 static const GVariantType*

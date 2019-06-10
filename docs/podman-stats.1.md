@@ -20,6 +20,8 @@ Show all containers.  Only running containers are shown by default
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 **--no-reset**
 
 Do not clear the terminal/screen in between reporting intervals
@@ -36,16 +38,17 @@ Valid placeholders for the Go template are listed below:
 
 | **Placeholder** | **Description**   |
 | --------------- | ---------------   |
-| .ID             | Container ID      |
+| .Pod            | Pod ID      |
+| .CID            | Container ID      |
 | .Name           | Container Name    |
-| .CPUPerc        | CPU percentage    |
+| .CPU            | CPU percentage    |
 | .MemUsage       | Memory usage      |
-| .MemPerc        | Memory percentage |
+| .Mem            | Memory percentage |
 | .NetIO          | Network IO        |
 | .BlockIO        | Block IO          |
 | .PIDS           | Number of PIDs    |
 
-
+When using a GO template, you may preceed the format with `table` to print headers.
 ## EXAMPLE
 
 ```

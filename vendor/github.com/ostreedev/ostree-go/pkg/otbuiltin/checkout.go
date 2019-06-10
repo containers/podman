@@ -1,7 +1,7 @@
 package otbuiltin
 
 import (
-	"strings"
+	"errors"
 	"unsafe"
 
 	glib "github.com/ostreedev/ostree-go/pkg/glibobject"
@@ -14,34 +14,42 @@ import (
 // #include "builtin.go.h"
 import "C"
 
-// Global variable for options
-var checkoutOpts checkoutOptions
-
-// Contains all of the options for checking commits out of
-// an ostree repo
+// checkoutOptions defines all of the options for checking commits
+// out of an ostree repo
+//
+// Note: while this is private, fields are public and part of the API.
 type checkoutOptions struct {
-	UserMode         bool   // Do not change file ownership or initialize extended attributes
-	Union            bool   // Keep existing directories and unchanged files, overwriting existing filesystem
-	AllowNoent       bool   // Do nothing if the specified filepath does not exist
-	DisableCache     bool   // Do not update or use the internal repository uncompressed object caceh
-	Whiteouts        bool   // Process 'whiteout' (docker style) entries
-	RequireHardlinks bool   // Do not fall back to full copies if hard linking fails
-	Subpath          string // Checkout sub-directory path
-	FromFile         string // Process many checkouts from the given file
+	// UserMode defines whether to checkout a repo in `bare-user` mode
+	UserMode bool
+	// Union specifies whether to overwrite existing filesystem entries
+	Union bool
+	// AllowNoEnt defines whether to skip filepaths that do not exist
+	AllowNoent bool
+	// DisableCache defines whether to disable internal repository uncompressed object cache
+	DisableCache bool
+	// Whiteouts defines whether to Process 'whiteout' (docker style) entries
+	Whiteouts bool
+	// RequireHardlinks defines whether to fall back to full copies if hard linking fails
+	RequireHardlinks bool
+	// SubPath specifies a sub-directory to use for checkout
+	Subpath string
+	// FromFile specifies an optional file containing many checkouts to process
+	FromFile string
 }
 
-// Instantiates and returns a checkoutOptions struct with default values set
+// NewCheckoutOptions instantiates and returns a checkoutOptions struct with default values set
 func NewCheckoutOptions() checkoutOptions {
 	return checkoutOptions{}
 }
 
-// Checks out a commit with the given ref from a repository at the location of repo path to to the destination.  Returns an error if the checkout could not be processed
-func Checkout(repoPath, destination, commit string, opts checkoutOptions) error {
-	checkoutOpts = opts
-
+// Checkout checks out commit `commitRef` from a repository at `repoPath`,
+// writing it to `destination`.  Returns an error if the checkout could not be processed.
+func Checkout(repoPath, destination, commitRef string, opts checkoutOptions) error {
 	var cancellable *glib.GCancellable
-	ccommit := C.CString(commit)
+
+	ccommit := C.CString(commitRef)
 	defer C.free(unsafe.Pointer(ccommit))
+
 	var gerr = glib.NewGError()
 	cerr := (*C.GError)(gerr.Ptr())
 	defer C.free(unsafe.Pointer(cerr))
@@ -53,50 +61,48 @@ func Checkout(repoPath, destination, commit string, opts checkoutOptions) error 
 		return generateError(cerr)
 	}
 
-	if strings.Compare(checkoutOpts.FromFile, "") != 0 {
-		err := processManyCheckouts(crepo, destination, cancellable)
-		if err != nil {
-			return err
-		}
-	} else {
-		var resolvedCommit *C.char
-		defer C.free(unsafe.Pointer(resolvedCommit))
-		if !glib.GoBool(glib.GBoolean(C.ostree_repo_resolve_rev(crepo, ccommit, C.FALSE, &resolvedCommit, &cerr))) {
-			return generateError(cerr)
-		}
-		err := processOneCheckout(crepo, resolvedCommit, checkoutOpts.Subpath, destination, cancellable)
-		if err != nil {
-			return err
-		}
+	// Multiple checkouts to process
+	if opts.FromFile != "" {
+		return processManyCheckouts(crepo, destination, cancellable)
 	}
-	return nil
+
+	// Simple single checkout
+	var resolvedCommit *C.char
+	defer C.free(unsafe.Pointer(resolvedCommit))
+	if !glib.GoBool(glib.GBoolean(C.ostree_repo_resolve_rev(crepo, ccommit, C.FALSE, &resolvedCommit, &cerr))) {
+		return generateError(cerr)
+	}
+
+	return processOneCheckout(crepo, resolvedCommit, destination, opts, cancellable)
 }
 
-// Processes one checkout from the repo
-func processOneCheckout(crepo *C.OstreeRepo, resolvedCommit *C.char, subpath, destination string, cancellable *glib.GCancellable) error {
+// processOneCheckout processes one checkout from the repo
+func processOneCheckout(crepo *C.OstreeRepo, resolvedCommit *C.char, destination string, opts checkoutOptions, cancellable *glib.GCancellable) error {
 	cdest := C.CString(destination)
 	defer C.free(unsafe.Pointer(cdest))
+
 	var gerr = glib.NewGError()
 	cerr := (*C.GError)(gerr.Ptr())
 	defer C.free(unsafe.Pointer(cerr))
-	var repoCheckoutAtOptions C.OstreeRepoCheckoutAtOptions
 
-	if checkoutOpts.UserMode {
+	// Process options into bitflags
+	var repoCheckoutAtOptions C.OstreeRepoCheckoutAtOptions
+	if opts.UserMode {
 		repoCheckoutAtOptions.mode = C.OSTREE_REPO_CHECKOUT_MODE_USER
 	}
-	if checkoutOpts.Union {
+	if opts.Union {
 		repoCheckoutAtOptions.overwrite_mode = C.OSTREE_REPO_CHECKOUT_OVERWRITE_UNION_FILES
 	}
 
-	checkedOut := glib.GoBool(glib.GBoolean(C.ostree_repo_checkout_at(crepo, &repoCheckoutAtOptions, C._at_fdcwd(), cdest, resolvedCommit, nil, &cerr)))
-	if !checkedOut {
+	// Checkout commit to destination
+	if !glib.GoBool(glib.GBoolean(C.ostree_repo_checkout_at(crepo, &repoCheckoutAtOptions, C._at_fdcwd(), cdest, resolvedCommit, nil, &cerr))) {
 		return generateError(cerr)
 	}
 
 	return nil
 }
 
-// process many checkouts
+// processManyCheckouts processes many checkouts in a single batch
 func processManyCheckouts(crepo *C.OstreeRepo, target string, cancellable *glib.GCancellable) error {
-	return nil
+	return errors.New("batch checkouts processing: not implemented")
 }

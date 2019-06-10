@@ -1,8 +1,11 @@
+// +build varlink
+
 package varlinkapi
 
 import (
 	goruntime "runtime"
 	"strings"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
@@ -15,25 +18,22 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 		return err
 	}
 
-	return call.ReplyGetVersion(iopodman.Version{
-		Version:    versionInfo.Version,
-		Go_version: versionInfo.GoVersion,
-		Git_commit: versionInfo.GitCommit,
-		Built:      versionInfo.Built,
-		Os_arch:    versionInfo.OsArch,
-	})
-}
-
-// Ping returns a simple string "OK" response for clients to make sure
-// the service is working.
-func (i *LibpodAPI) Ping(call iopodman.VarlinkCall) error {
-	return call.ReplyPing(iopodman.StringResponse{
-		Message: "OK",
-	})
+	return call.ReplyGetVersion(
+		versionInfo.Version,
+		versionInfo.GoVersion,
+		versionInfo.GitCommit,
+		time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
+		versionInfo.OsArch,
+		versionInfo.RemoteAPIVersion,
+	)
 }
 
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
+	versionInfo, err := libpod.GetVersion()
+	if err != nil {
+		return err
+	}
 	var (
 		registries, insecureRegistries []string
 	)
@@ -42,26 +42,33 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+
 	host := info[0].Data
+	distribution := iopodman.InfoDistribution{
+		Distribution: host["Distribution"].(map[string]interface{})["distribution"].(string),
+		Version:      host["Distribution"].(map[string]interface{})["version"].(string),
+	}
 	infoHost := iopodman.InfoHost{
-		Mem_free:  host["MemFree"].(int64),
-		Mem_total: host["MemTotal"].(int64),
-		Swap_free: host["SwapFree"].(int64),
-		Arch:      host["arch"].(string),
-		Cpus:      int64(host["cpus"].(int)),
-		Hostname:  host["hostname"].(string),
-		Kernel:    host["kernel"].(string),
-		Os:        host["os"].(string),
-		Uptime:    host["uptime"].(string),
+		Buildah_version: host["BuildahVersion"].(string),
+		Distribution:    distribution,
+		Mem_free:        host["MemFree"].(int64),
+		Mem_total:       host["MemTotal"].(int64),
+		Swap_free:       host["SwapFree"].(int64),
+		Swap_total:      host["SwapTotal"].(int64),
+		Arch:            host["arch"].(string),
+		Cpus:            int64(host["cpus"].(int)),
+		Hostname:        host["hostname"].(string),
+		Kernel:          host["kernel"].(string),
+		Os:              host["os"].(string),
+		Uptime:          host["uptime"].(string),
 	}
 	podmanInfo.Host = infoHost
 	store := info[1].Data
 	pmaninfo := iopodman.InfoPodmanBinary{
-		Compiler:   goruntime.Compiler,
-		Go_version: goruntime.Version(),
-		// TODO : How are we going to get this here?
-		//Podman_version:
-		Git_commit: libpod.GitCommit,
+		Compiler:       goruntime.Compiler,
+		Go_version:     goruntime.Version(),
+		Podman_version: versionInfo.Version,
+		Git_commit:     versionInfo.GitCommit,
 	}
 
 	graphStatus := iopodman.InfoGraphStatus{
@@ -79,19 +86,21 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Graph_status:         graphStatus,
 	}
 
-	registriesInterface := info[2].Data["registries"]
-	insecureRegistriesInterface := info[3].Data["registries"]
-	if registriesInterface != nil {
-		registries = registriesInterface.([]string)
+	if len(info) > 2 {
+		registriesInterface := info[2].Data["registries"]
+		if registriesInterface != nil {
+			registries = registriesInterface.([]string)
+		}
 	}
-	if insecureRegistriesInterface != nil {
-		insecureRegistries = insecureRegistriesInterface.([]string)
+	if len(info) > 3 {
+		insecureRegistriesInterface := info[3].Data["registries"]
+		if insecureRegistriesInterface != nil {
+			insecureRegistries = insecureRegistriesInterface.([]string)
+		}
 	}
-
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo
 	podmanInfo.Registries = registries
 	podmanInfo.Insecure_registries = insecureRegistries
-
 	return call.ReplyGetInfo(podmanInfo)
 }

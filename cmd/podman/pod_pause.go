@@ -2,73 +2,75 @@ package main
 
 import (
 	"fmt"
-
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podPauseFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "pause all running pods",
-		},
-		LatestPodFlag,
-	}
-	podPauseDescription = `
-   Pauses one or more pods.  The pod name or ID can be used.
-`
+	podPauseCommand     cliconfig.PodPauseValues
+	podPauseDescription = `The pod name or ID can be used.
 
-	podPauseCommand = cli.Command{
-		Name:                   "pause",
-		Usage:                  "Pause one or more pods",
-		Description:            podPauseDescription,
-		Flags:                  podPauseFlags,
-		Action:                 podPauseCmd,
-		ArgsUsage:              "POD-NAME|POD-ID [POD-NAME|POD-ID ...]",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+  All running containers within each specified pod will then be paused.`
+	_podPauseCommand = &cobra.Command{
+		Use:   "pause [flags] POD [POD...]",
+		Short: "Pause one or more pods",
+		Long:  podPauseDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podPauseCommand.InputArgs = args
+			podPauseCommand.GlobalFlags = MainGlobalOpts
+			podPauseCommand.Remote = remoteclient
+			return podPauseCmd(&podPauseCommand)
+		},
+		Args: func(cmd *cobra.Command, args []string) error {
+			return checkAllAndLatest(cmd, args, false)
+		},
+		Example: `podman pod pause podID1 podID2
+  podman pod pause --latest
+  podman pod pause --all`,
 	}
 )
 
-func podPauseCmd(c *cli.Context) error {
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
-	}
+func init() {
+	podPauseCommand.Command = _podPauseCommand
+	podPauseCommand.SetHelpTemplate(HelpTemplate())
+	podPauseCommand.SetUsageTemplate(UsageTemplate())
+	flags := podPauseCommand.Flags()
+	flags.BoolVarP(&podPauseCommand.All, "all", "a", false, "Pause all running pods")
+	flags.BoolVarP(&podPauseCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+func podPauseCmd(c *cliconfig.PodPauseValues) error {
+	var lastError error
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	// getPodsFromContext returns an error when a requested pod
-	// isn't found. The only fatal error scenerio is when there are no pods
-	// in which case the following loop will be skipped.
-	pods, lastError := getPodsFromContext(c, runtime)
+	pauseIDs, conErrors, pauseErrors := runtime.PausePods(c)
 
-	for _, pod := range pods {
-		ctr_errs, err := pod.Pause()
-		if ctr_errs != nil {
-			for ctr, err := range ctr_errs {
-				if lastError != nil {
-					logrus.Errorf("%q", lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to pause container %q on pod %q", ctr, pod.ID())
-			}
-			continue
-		}
-		if err != nil {
+	for _, p := range pauseIDs {
+		fmt.Println(p)
+	}
+	if conErrors != nil && len(conErrors) > 0 {
+		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)
 			}
-			lastError = errors.Wrapf(err, "unable to pause pod %q", pod.ID())
-			continue
+			lastError = errors.Wrapf(err, "unable to pause container %s", ctr)
 		}
-		fmt.Println(pod.ID())
 	}
-
+	if len(pauseErrors) > 0 {
+		lastError = pauseErrors[len(pauseErrors)-1]
+		// Remove the last error from the error slice
+		pauseErrors = pauseErrors[:len(pauseErrors)-1]
+	}
+	for _, err := range pauseErrors {
+		logrus.Errorf("%q", err)
+	}
 	return lastError
 }

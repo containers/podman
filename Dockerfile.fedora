@@ -1,0 +1,95 @@
+FROM registry.fedoraproject.org/fedora:29
+
+RUN dnf -y install btrfs-progs-devel \
+              atomic-registries \
+              bzip2 \
+              conmon \
+              device-mapper-devel \
+              findutils \
+              git \
+              glib2-devel \
+              glibc-static \
+              gnupg \
+              golang \
+              golang-github-cpuguy83-go-md2man \
+              gpgme-devel \
+              libassuan-devel \
+              libseccomp-devel \
+              libselinux-devel \
+              containers-common \
+              runc \
+              make \
+              ostree-devel \
+              lsof \
+              which\
+              golang-github-cpuguy83-go-md2man \
+              procps-ng \
+              nmap-ncat \
+              xz \
+              slirp4netns \
+              container-selinux \
+              iptables && dnf clean all
+
+# Install CNI plugins
+ENV CNI_COMMIT 412b6d31280682bb4fab4446f113c22ff1886554
+RUN set -x \
+       && export GOPATH="$(mktemp -d)" \
+       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
+       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
+       && git checkout -q "$CNI_COMMIT" \
+       && ./build.sh \
+       && mkdir -p /usr/libexec/cni \
+       && cp bin/* /usr/libexec/cni \
+       && rm -rf "$GOPATH"
+
+# Install buildah
+RUN set -x \
+       && export GOPATH=/go \
+       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
+       && cd "$GOPATH/src/github.com/containers/buildah" \
+       && make \
+       && make install
+
+# Install ginkgo
+RUN set -x \
+       && export GOPATH=/go \
+       && go get -u github.com/onsi/ginkgo/ginkgo \
+       && install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
+
+# Install gomega
+RUN set -x \
+       && export GOPATH=/go \
+       && go get github.com/onsi/gomega/...
+
+# Install easyjson
+RUN set -x \
+      && export GOPATH=/go \
+      && go get -u github.com/mailru/easyjson/... \
+      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
+
+# Install conmon
+ENV CONMON_COMMIT 59952292a3b07ac125575024ae21956efe0ecdfb
+RUN set -x \
+	&& export GOPATH="$(mktemp -d)" \
+	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
+	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
+	&& git fetch origin --tags \
+	&& git checkout -q "$CONMON_COMMIT" \
+	&& make \
+	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
+	&& rm -rf "$GOPATH"
+
+# Install cni config
+#RUN make install.cni
+RUN mkdir -p /etc/cni/net.d/
+COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
+
+# Make sure we have some policy for pulling images
+RUN mkdir -p /etc/containers
+COPY test/policy.json /etc/containers/policy.json
+COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
+
+# Install varlink stuff
+RUN pip3 install varlink
+
+WORKDIR /go/src/github.com/containers/libpod

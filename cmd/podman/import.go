@@ -2,56 +2,50 @@ package main
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
-	"net/url"
-	"os"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/util"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	importFlags = []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "change, c",
-			Usage: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR",
-		},
-		cli.StringFlag{
-			Name:  "message, m",
-			Usage: "Set commit message for imported image",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Suppress output",
-		},
-	}
+	importCommand cliconfig.ImportValues
+
 	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
-	 Note remote tar balls can be specified, via web address.
-	 Optionally tag the image. You can specify the instructions using the --change option.
-	`
-	importCommand = cli.Command{
-		Name:         "import",
-		Usage:        "Import a tarball to create a filesystem image",
-		Description:  importDescription,
-		Flags:        importFlags,
-		Action:       importCmd,
-		ArgsUsage:    "TARBALL [REFERENCE]",
-		OnUsageError: usageErrorHandler,
+
+  Note remote tar balls can be specified, via web address.
+  Optionally tag the image. You can specify the instructions using the --change option.`
+	_importCommand = &cobra.Command{
+		Use:   "import [flags] PATH [REFERENCE]",
+		Short: "Import a tarball to create a filesystem image",
+		Long:  importDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			importCommand.InputArgs = args
+			importCommand.GlobalFlags = MainGlobalOpts
+			importCommand.Remote = remoteclient
+			return importCmd(&importCommand)
+		},
+		Example: `podman import http://example.com/ctr.tar url-image
+  cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
+  cat ctr.tar | podman import -`,
 	}
 )
 
-func importCmd(c *cli.Context) error {
-	if err := validateFlags(c, importFlags); err != nil {
-		return err
-	}
+func init() {
+	importCommand.Command = _importCommand
+	importCommand.SetHelpTemplate(HelpTemplate())
+	importCommand.SetUsageTemplate(UsageTemplate())
+	flags := importCommand.Flags()
+	flags.StringSliceVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
+	flags.StringVarP(&importCommand.Message, "message", "m", "", "Set commit message for imported image")
+	flags.BoolVarP(&importCommand.Quiet, "quiet", "q", false, "Suppress output")
 
-	runtime, err := libpodruntime.GetRuntime(c)
+}
+
+func importCmd(c *cliconfig.ImportValues) error {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -60,10 +54,9 @@ func importCmd(c *cli.Context) error {
 	var (
 		source    string
 		reference string
-		writer    io.Writer
 	)
 
-	args := c.Args()
+	args := c.InputArgs
 	switch len(args) {
 	case 0:
 		return errors.Errorf("need to give the path to the tarball, or must specify a tarball of '-' for stdin")
@@ -76,71 +69,17 @@ func importCmd(c *cli.Context) error {
 		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
 	}
 
-	if err := validateFileName(source); err != nil {
+	if err := parse.ValidateFileName(source); err != nil {
 		return err
 	}
 
-	changes := v1.ImageConfig{}
-	if c.IsSet("change") || c.IsSet("c") {
-		changes, err = util.GetImageConfig(c.StringSlice("change"))
-		if err != nil {
-			return errors.Wrapf(err, "error adding config changes to image %q", source)
-		}
+	quiet := c.Quiet
+	if runtime.Remote {
+		quiet = false
 	}
-
-	history := []v1.History{
-		{Comment: c.String("message")},
-	}
-
-	config := v1.Image{
-		Config:  changes,
-		History: history,
-	}
-
-	writer = nil
-	if !c.Bool("quiet") {
-		writer = os.Stderr
-	}
-
-	// if source is a url, download it and save to a temp file
-	u, err := url.ParseRequestURI(source)
-	if err == nil && u.Scheme != "" {
-		file, err := downloadFromURL(source)
-		if err != nil {
-			return err
-		}
-		defer os.Remove(file)
-		source = file
-	}
-
-	newImage, err := runtime.ImageRuntime().Import(getContext(), source, reference, writer, image.SigningOptions{}, config)
+	iid, err := runtime.Import(getContext(), source, reference, c.StringSlice("change"), c.String("message"), quiet)
 	if err == nil {
-		fmt.Println(newImage.ID())
+		fmt.Println(iid)
 	}
 	return err
-}
-
-// donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
-func downloadFromURL(source string) (string, error) {
-	fmt.Printf("Downloading from %q\n", source)
-
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
-	if err != nil {
-		return "", errors.Wrap(err, "error creating file")
-	}
-	defer outFile.Close()
-
-	response, err := http.Get(source)
-	if err != nil {
-		return "", errors.Wrapf(err, "error downloading %q", source)
-	}
-	defer response.Body.Close()
-
-	_, err = io.Copy(outFile, response.Body)
-	if err != nil {
-		return "", errors.Wrapf(err, "error saving %q to %q", source, outFile)
-	}
-
-	return outFile.Name(), nil
 }

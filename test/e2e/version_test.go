@@ -1,9 +1,9 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ var _ = Describe("Podman version", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,20 +20,45 @@ var _ = Describe("Podman version", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
+		podmanTest = PodmanTestCreate(tempdir)
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+		podmanTest.SeedImages()
+
 	})
 
 	It("podman version", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 3))
+		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
+	})
+
+	It("podman version --format json", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"version", "--format", "json"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman version --format json", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"version", "--format", "{{ json .}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
+	It("podman version --format GO template", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"version", "--format", "{{ .Version }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 })

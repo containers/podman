@@ -10,12 +10,12 @@ podman\-pod\-create - Create a new pod
 
 Creates an empty pod, or unit of multiple containers, and prepares it to have
 containers added to it. The pod id is printed to STDOUT. You can then use
-**podman create --pod <pod_id|pod_name> ...** to add containers to the pod, and
-**podman pod start <pod_id|pod_name>** to start the pod.
+**podman create --pod \<pod_id|pod_name\> ...** to add containers to the pod, and
+**podman pod start \<pod_id|pod_name\>** to start the pod.
 
 ## OPTIONS
 
-**--cgroup-parent**=*true*|*false*
+**--cgroup-parent**=""
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
@@ -51,6 +51,17 @@ Assign a name to the pod
 
 Write the pod ID to the file
 
+**-p**, **--publish**=[]
+
+Publish a port or range of ports from the pod to the host
+
+Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
+Both hostPort and containerPort can be specified as a range of ports.
+When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
+Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
+
+NOTE: This cannot be modified once the pod is created.
+
 **--share**=""
 
 A comma deliminated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
@@ -72,6 +83,8 @@ $ podman pod create --name test
 $ podman pod create --infra=false
 
 $ podman pod create --infra-command /top
+
+$ podman pod create --publish 8443:443
 ```
 
 ## SEE ALSO

@@ -11,7 +11,7 @@ List port mappings for the *container* or lookup the public-facing port that is 
 
 ## OPTIONS
 
-**--all, a**
+**--all, -a**
 
 List all known port mappings for running containers.  When using this option, you cannot pass any container names
 or private ports/protocols as filters.
@@ -21,11 +21,13 @@ or private ports/protocols as filters.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 List all port mappings
 ```
-#podman port -a
+# podman port -a
 b4d2f05432e482e017b1a4b2eae15fa7b4f6fb7e9f65c1bde46294fdef285906
 80/udp -> 0.0.0.0:44327
 80/tcp -> 0.0.0.0:44327
@@ -34,21 +36,21 @@ b4d2f05432e482e017b1a4b2eae15fa7b4f6fb7e9f65c1bde46294fdef285906
 
 List port mappings for a specific container
 ```
-#podman port b4d2f054
+# podman port b4d2f054
 80/udp -> 0.0.0.0:44327
 80/tcp -> 0.0.0.0:44327
 #
 ```
 List the port mappings for the latest container and port 80
 ```
-#podman port b4d2f054 80
+# podman port b4d2f054 80
  0.0.0.0:44327
 #
 ```
 
 List the port mappings for a specific container for port 80 and the tcp protocol.
 ```
-#podman port b4d2f054 80/tcp
+# podman port b4d2f054 80/tcp
 0.0.0.0:44327
 #
 ```

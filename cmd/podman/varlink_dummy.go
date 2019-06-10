@@ -2,8 +2,10 @@
 
 package main
 
-import (
-	"github.com/urfave/cli"
-)
+import "github.com/spf13/cobra"
 
-var varlinkCommand *cli.Command
+var (
+	_varlinkCommand = &cobra.Command{
+		Use: "",
+	}
+)

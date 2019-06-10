@@ -2,82 +2,79 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
-	"strings"
+	"strconv"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	execFlags = []cli.Flag{
-		cli.StringSliceFlag{
-			Name:  "env, e",
-			Usage: "Set environment variables",
-		},
-		cli.BoolFlag{
-			Name:  "privileged",
-			Usage: "Give the process extended Linux capabilities inside the container.  The default is false",
-		},
-		cli.BoolFlag{
-			Name:  "interactive, i",
-			Usage: "Not supported.  All exec commands are interactive by default.",
-		},
-		cli.BoolFlag{
-			Name:  "tty, t",
-			Usage: "Allocate a pseudo-TTY. The default is false",
-		},
-		cli.StringFlag{
-			Name:  "user, u",
-			Usage: "Sets the username or UID used and optionally the groupname or GID for the specified command",
-		},
-		LatestFlag,
-	}
-	execDescription = `
-	podman exec
+	execCommand cliconfig.ExecValues
 
-	Run a command in a running container
+	execDescription = `Execute the specified command inside a running container.
 `
-
-	execCommand = cli.Command{
-		Name:                   "exec",
-		Usage:                  "Run a process in a running container",
-		Description:            execDescription,
-		Flags:                  execFlags,
-		Action:                 execCmd,
-		ArgsUsage:              "CONTAINER-NAME",
-		SkipArgReorder:         true,
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_execCommand = &cobra.Command{
+		Use:   "exec [flags] CONTAINER [COMMAND [ARG...]]",
+		Short: "Run a process in a running container",
+		Long:  execDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			execCommand.InputArgs = args
+			execCommand.GlobalFlags = MainGlobalOpts
+			execCommand.Remote = remoteclient
+			return execCmd(&execCommand)
+		},
+		Example: `podman exec -it ctrID ls
+  podman exec -it -w /tmp myCtr pwd
+  podman exec --user root ctrID ls`,
 	}
 )
 
-func execCmd(c *cli.Context) error {
-	args := c.Args()
+func init() {
+	execCommand.Command = _execCommand
+	execCommand.SetHelpTemplate(HelpTemplate())
+	execCommand.SetUsageTemplate(UsageTemplate())
+	flags := execCommand.Flags()
+	flags.SetInterspersed(false)
+	flags.StringArrayVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
+	flags.BoolVarP(&execCommand.Interfactive, "interactive", "i", false, "Not supported.  All exec commands are interactive by default")
+	flags.BoolVarP(&execCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&execCommand.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
+	flags.BoolVarP(&execCommand.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
+	flags.StringVarP(&execCommand.User, "user", "u", "", "Sets the username or UID used and optionally the groupname or GID for the specified command")
+
+	flags.IntVar(&execCommand.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
+	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func execCmd(c *cliconfig.ExecValues) error {
+	args := c.InputArgs
 	var ctr *libpod.Container
 	var err error
 	argStart := 1
-	if len(args) < 1 && !c.Bool("latest") {
+	if len(args) < 1 && !c.Latest {
 		return errors.Errorf("you must provide one container name or id")
 	}
-	if len(args) < 2 && !c.Bool("latest") {
+	if len(args) < 2 && !c.Latest {
 		return errors.Errorf("you must provide a command to exec")
 	}
-	if c.Bool("latest") {
+	if c.Latest {
 		argStart = 0
 	}
-	rootless.SetSkipStorageSetup(true)
 	cmd := args[argStart:]
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if c.Bool("latest") {
+	if c.Latest {
 		ctr, err = runtime.GetLatestContainer()
 	} else {
 		ctr, err = runtime.LookupContainer(args[0])
@@ -86,30 +83,33 @@ func execCmd(c *cli.Context) error {
 		return errors.Wrapf(err, "unable to exec into %s", args[0])
 	}
 
-	pid, err := ctr.PID()
-	if err != nil {
-		return err
-	}
-	became, ret, err := rootless.JoinNS(uint(pid))
-	if err != nil {
-		return err
-	}
-	if became {
-		os.Exit(ret)
+	if c.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+				}
+			}
+			m[i] = true
+		}
+		for i := 3; i < 3+c.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+
 	}
 
 	// ENVIRONMENT VARIABLES
-	env := defaultEnvVariables
-	for _, e := range c.StringSlice("env") {
-		split := strings.SplitN(e, "=", 2)
-		if len(split) > 1 {
-			env[split[0]] = split[1]
-		} else {
-			env[split[0]] = ""
-		}
-	}
+	env := map[string]string{}
 
-	if err := readKVStrings(env, []string{}, c.StringSlice("env")); err != nil {
+	if err := parse.ReadKVStrings(env, []string{}, c.Env); err != nil {
 		return errors.Wrapf(err, "unable to process environment variables")
 	}
 	envs := []string{}
@@ -117,5 +117,13 @@ func execCmd(c *cli.Context) error {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"))
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	streams.InputStream = os.Stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
 }

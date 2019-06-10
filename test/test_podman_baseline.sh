@@ -19,6 +19,7 @@
 #######
 # See if we want to stop on errors and/or install and then remove Docker.
 #######
+HOST_PORT="${HOST_PORT:-8080}"
 showerror=0
 installdocker=0
 usedocker=1
@@ -60,7 +61,7 @@ podman ps --all
 ########
 # Run ls in redis container, this should work
 ########
-ctrid=$(podman pull registry.access.redhat.com/rhscl/redis-32-rhel7)
+ctrid=$(podman pull docker.io/library/redis:4-alpine3.8)
 podman run $ctrid ls /
 
 ########
@@ -72,13 +73,105 @@ podman rmi --all
 ########
 # Create Fedora based image
 ########
-image=$(podman pull fedora)
+image=$(podman pull registry.fedoraproject.org/fedora:latest)
 echo $image
 
 ########
 # Run container and display contents in /etc
 ########
-podman run $image ls -alF /etc
+podman run --rm $image ls -alF /etc
+
+########
+# Test networking, bind mounting a file, stdin/stdout redirect
+########
+echo "Testing networking: ..."
+port_test_failed=0
+txt1="Hello, Podman"
+echo "$txt1" > /tmp/hello.txt
+podman run -d --name myweb -p "$HOST_PORT:80" -w /var/www -v /tmp/hello.txt:/var/www/index.txt busybox httpd -f -p 80
+echo "$txt1" | podman exec -i myweb sh -c "cat > /var/www/index2.txt"
+txt2=$( podman exec myweb cat /var/www/index2.txt )
+[ "x$txt1" == "x$txt2" ] && echo "PASS1" || { echo "FAIL1"; port_test_failed=1; }
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:$HOST_PORT/index.txt )
+[ "x$txt1" == "x$txt2" ] && echo "PASS2" || { echo "FAIL2"; port_test_failed=1; }
+txt2=$( podman run --rm --net host busybox wget -qO - http://localhost:$HOST_PORT/index2.txt )
+[ "x$txt1" == "x$txt2" ] && echo "PASS3" || { echo "FAIL3"; port_test_failed=1; }
+# podman run --rm --net container:myweb --add-host myweb:127.0.0.1 busybox wget -qO - http://myweb/index.txt
+rm /tmp/hello.txt
+podman stop myweb
+podman rm myweb
+[ "0$port_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "networking test failed";
+  exit -1;
+}
+
+
+########
+# pull and run many containers in parallel, test locks ..etc.
+########
+prun_test_failed=0
+podman rmi docker.io/library/busybox:latest > /dev/null || :
+for i in `seq 10`
+do ( podman run -d --name b$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+done
+echo -e "\nwaiting for creation...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 10 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x10" ] && echo "PASS" || { echo "FAIL, expecting 10 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 10 running containers";
+  exit -1;
+}
+
+prun_test_failed=0
+for i in `seq 10`; do ( podman stop -t=1 b$i; podman rm b$i )& done
+echo -e "\nwaiting for deletion...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 0 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x0" ] && echo "PASS" || { echo "FAIL, expecting 0 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 0 running containers";
+  exit -1;
+}
+
+
+
+########
+# run many containers in parallel for an existing image, test locks ..etc.
+########
+prun_test_failed=0
+podman pull docker.io/library/busybox:latest > /dev/null || :
+for i in `seq 10`
+do ( podman run -d --name c$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+done
+echo -e "\nwaiting for creation...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 10 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x10" ] && echo "PASS" || { echo "FAIL, expecting 10 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 10 running containers";
+  exit -1;
+}
+
+
+for i in `seq 10`; do ( podman stop -t=1 c$i; podman rm c$i )& done
+echo -e "\nwaiting for deletion...\n"
+wait
+echo -e "\ndone\n"
+# assert we have 0 running containers
+count=$( podman ps -q  | wc -l )
+[ "x$count" == "x0" ] && echo "PASS" || { echo "FAIL, expecting 0 found $count"; prun_test_failed=1; }
+[ "0$prun_test_failed" -eq 1 ] && [ "0$showerror" -eq 1 ] && {
+  echo "was expecting 0 running containers";
+  exit -1;
+}
+
 
 ########
 # Run Java in the container - should ERROR but never stop
@@ -113,7 +206,7 @@ podman images
 ########
 # Create Fedora based container
 ########
-image=$(podman pull fedora)
+image=$(podman pull registry.fedoraproject.org/fedora:latest)
 echo $image
 podman run $image ls /
 
@@ -195,7 +288,7 @@ podman rmi --all
 ########
 
 # 1.004608 MB is 1,004,608 bytes. The container overhead is 4608 bytes (or 9 512 byte pages), so this allocates 1 MB of usable storage
-PODMANBASE="-s overlay --storage-opt overlay.size=1.004608M --root /tmp/podman_test/crio"
+PODMANBASE="--storage-driver overlay --storage-opt overlay.size=1.004608M --root /tmp/podman_test/crio"
 TMPDIR=/tmp/podman_test
 mkdir  $TMPDIR
 dd if=/dev/zero of=$TMPDIR/virtfs bs=1024 count=30720
@@ -207,7 +300,7 @@ mount -t xfs -o prjquota $device $TMPDIR
 ########
 # Expected to succeed
 ########
-podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048576 bs=1'
+podman $PODMANBASE run --security-opt label=disable docker.io/library/alpine:latest sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048576 bs=1'
 rc=$?
 if [ $rc == 0 ];
 then
@@ -221,7 +314,7 @@ fi
 ########
 
 if [ "$showerror" -ne 1 ]; then
-    podman $PODMANBASE run --security-opt label=disable alpine sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
+    podman $PODMANBASE run --security-opt label=disable docker.io/library/alpine:latest sh -c 'touch file.txt && dd if=/dev/zero of=file.txt count=1048577 bs=1'
     rc=$?
     if [ $rc != 0 ];
     then
@@ -283,7 +376,7 @@ chmod +x $FILE
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM debian
+FROM docker.io/library/debian:latest
 ADD ./runtest.sh /runtest.sh
 EOM
 chmod +x $FILE
@@ -327,7 +420,7 @@ rm -f ./Dockerfile
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM alpine
+FROM docker.io/library/alpine:latest
 RUN touch /foo
 ONBUILD RUN touch /bar
 EOM
@@ -363,7 +456,7 @@ rm ./Dockerfile*
 ########
 if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
     # Expected to succeed
-    sudo -u "#1000" podman run alpine echo hello
+    sudo -u "#1000" podman run docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with no AppArmor profile "
     if [ $rc == 0 ]; then
@@ -373,7 +466,7 @@ if aa-enabled >/dev/null && getent passwd 1000 >/dev/null; then
     fi
 
     # Expected to succeed
-    sudo -u "#1000" podman run --security-opt apparmor=unconfined alpine echo hello
+    sudo -u "#1000" podman run --security-opt apparmor=unconfined docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with unconfined AppArmor profile "
     if [ $rc == 0 ]; then
@@ -402,7 +495,7 @@ EOF
     apparmor_parser -Kr $aaFile
 
     #Expected to pass (as root)
-    podman run --security-opt apparmor=$aaProfile alpine echo hello
+    podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "root with specified AppArmor profile: "
     if [ $rc == 0 ]; then
@@ -411,8 +504,18 @@ EOF
         echo "failed"
     fi
 
+    #Expected to pass (as root with --privileged).
+    #Note that the profile should not be loaded letting the mount succeed.
+    podman run --privileged docker.io/library/alpine:latest sh -c "mkdir tmp2; mount --bind tmp tmp2"
+    rc=$?
+    echo -n "root with specified AppArmor profile but --privileged: "
+    if [ $rc == 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
     #Expected to fail (as rootless)
-    sudo -u "#1000" podman run --security-opt apparmor=$aaProfile alpine echo hello
+    sudo -u "#1000" podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
     echo -n "rootless with specified AppArmor profile: "
     if [ $rc != 0 ]; then
@@ -437,7 +540,7 @@ fi
 ########
 FILE=./Dockerfile
 /bin/cat <<EOM >$FILE
-FROM docker/whalesay:latest
+FROM pharshal/whalesay:latest
 RUN apt-get -y update && apt-get install -y fortunes
 CMD /usr/games/fortune -a | cowsay
 EOM

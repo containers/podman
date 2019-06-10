@@ -1,9 +1,9 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +12,7 @@ var _ = Describe("Podman pod create", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +20,16 @@ var _ = Describe("Podman pod create", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman create pod", func() {
@@ -77,6 +78,43 @@ var _ = Describe("Podman pod create", func() {
 
 		check := podmanTest.Podman([]string{"pod", "ps", "-q"})
 		check.WaitWithDefaultTimeout()
-		Expect(len(check.OutputToStringArray())).To(Equal(1))
+		Expect(len(check.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("podman create pod without network portbindings", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		pod := session.OutputToString()
+
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver.WaitWithDefaultTimeout()
+		Expect(webserver.ExitCode()).To(Equal(0))
+
+		check := SystemExec("nc", []string{"-z", "localhost", "80"})
+		Expect(check.ExitCode()).To(Equal(1))
+	})
+
+	It("podman create pod with network portbindings", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--name", name, "-p", "8080:80"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		pod := session.OutputToString()
+
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver.WaitWithDefaultTimeout()
+		Expect(webserver.ExitCode()).To(Equal(0))
+
+		check := SystemExec("nc", []string{"-z", "localhost", "8080"})
+		Expect(check.ExitCode()).To(Equal(0))
+	})
+
+	It("podman create pod with no infra but portbindings should fail", func() {
+		name := "test"
+		session := podmanTest.Podman([]string{"pod", "create", "--infra=false", "--name", name, "-p", "80:80"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
 	})
 })

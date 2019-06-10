@@ -2,50 +2,59 @@ package main
 
 import (
 	"fmt"
+	"github.com/containers/libpod/pkg/adapter"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podTopFlags = []cli.Flag{
-		LatestFlag,
-		cli.BoolFlag{
-			Name:   "list-descriptors",
-			Hidden: true,
-		},
-	}
-	podTopDescription = fmt.Sprintf(`Display the running processes containers in a pod.  Specify format descriptors
-to alter the output.  You may run "podman pod top -l pid pcpu seccomp" to print
-the process ID, the CPU percentage and the seccomp mode of each process of
-the latest pod.
-%s
-`, getDescriptorString())
+	podTopCommand cliconfig.PodTopValues
 
-	podTopCommand = cli.Command{
-		Name:           "top",
-		Usage:          "Display the running processes of containers in a pod",
-		Description:    podTopDescription,
-		Flags:          podTopFlags,
-		Action:         podTopCmd,
-		ArgsUsage:      "POD-NAME [format descriptors]",
-		SkipArgReorder: true,
-		OnUsageError:   usageErrorHandler,
+	podTopDescription = fmt.Sprintf(`Specify format descriptors to alter the output.
+
+  You may run "podman pod top -l pid pcpu seccomp" to print the process ID, the CPU percentage and the seccomp mode of each process of the latest pod.
+%s`, getDescriptorString())
+
+	_podTopCommand = &cobra.Command{
+		Use:   "top [flags] CONTAINER [FORMAT-DESCRIPTORS]",
+		Short: "Display the running processes of containers in a pod",
+		Long:  podTopDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podTopCommand.InputArgs = args
+			podTopCommand.GlobalFlags = MainGlobalOpts
+			podTopCommand.Remote = remoteclient
+			return podTopCmd(&podTopCommand)
+		},
+		Example: `podman top ctrID
+  podman top --latest
+  podman top --latest pid seccomp args %C`,
 	}
 )
 
-func podTopCmd(c *cli.Context) error {
-	var pod *libpod.Pod
-	var err error
-	args := c.Args()
+func init() {
+	podTopCommand.Command = _podTopCommand
+	podTopCommand.SetHelpTemplate(HelpTemplate())
+	podTopCommand.SetUsageTemplate(UsageTemplate())
+	flags := podTopCommand.Flags()
+	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")
+	flags.BoolVar(&podTopCommand.ListDescriptors, "list-descriptors", false, "")
+	flags.MarkHidden("list-descriptors")
 
-	if c.Bool("list-descriptors") {
+}
+
+func podTopCmd(c *cliconfig.PodTopValues) error {
+	var (
+		descriptors []string
+	)
+	args := c.InputArgs
+
+	if c.ListDescriptors {
 		descriptors, err := libpod.GetContainerPidInformationDescriptors()
 		if err != nil {
 			return err
@@ -54,46 +63,27 @@ func podTopCmd(c *cli.Context) error {
 		return nil
 	}
 
-	if len(args) < 1 && !c.Bool("latest") {
+	if len(args) < 1 && !c.Latest {
 		return errors.Errorf("you must provide the name or id of a running pod")
 	}
-	if err := validateFlags(c, podTopFlags); err != nil {
-		return err
-	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	var descriptors []string
-	if c.Bool("latest") {
+	if c.Latest {
 		descriptors = args
-		pod, err = runtime.GetLatestPod()
 	} else {
 		descriptors = args[1:]
-		pod, err = runtime.LookupPod(args[0])
-	}
-
-	if err != nil {
-		return errors.Wrapf(err, "unable to lookup requested container")
-	}
-
-	podStatus, err := shared.GetPodStatus(pod)
-	if err != nil {
-		return err
-	}
-	if podStatus != "Running" {
-		return errors.Errorf("pod top can only be used on pods with at least one running container")
-	}
-
-	psOutput, err := pod.GetPodPidInformation(descriptors)
-	if err != nil {
-		return err
 	}
 
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
+	psOutput, err := runtime.PodTop(c, descriptors)
+	if err != nil {
+		return err
+	}
 	for _, proc := range psOutput {
 		fmt.Fprintln(w, proc)
 	}

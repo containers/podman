@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman run device", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +22,16 @@ var _ = Describe("Podman run device", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run bad device test", func() {
@@ -38,6 +41,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/kmsg", ALPINE, "ls", "--color=never", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -45,6 +49,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device rename test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/kmsg:/dev/kmsg1", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -52,6 +57,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device permission test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/kmsg:r", ALPINE, "ls", "--color=never", "/dev/kmsg"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -59,6 +65,7 @@ var _ = Describe("Podman run device", func() {
 	})
 
 	It("podman run device rename and permission test", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/kmsg:/dev/kmsg1:r", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -68,5 +75,14 @@ var _ = Describe("Podman run device", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/kmsg:/dev/kmsg1:rd", ALPINE, "ls", "--color=never", "/dev/kmsg1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman run device host device and container device parameter are directories", func() {
+		SkipIfRootless()
+		SystemExec("mkdir", []string{"/dev/foodevdir"})
+		SystemExec("mknod", []string{"/dev/foodevdir/null", "c", "1", "3"})
+		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/foodevdir:/dev/bar", ALPINE, "ls", "/dev/bar/null"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 })

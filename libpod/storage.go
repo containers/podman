@@ -2,13 +2,13 @@ package libpod
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	opentracing "github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -27,10 +27,13 @@ func getStorageService(store storage.Store) (*storageService, error) {
 // of its nonvolatile and volatile per-container directories, along with a copy
 // of the configuration blob from the image that was used to create the
 // container, if the image had a configuration.
+// It also returns the ProcessLabel and MountLabel selected for the container
 type ContainerInfo struct {
-	Dir    string
-	RunDir string
-	Config *v1.Image
+	Dir          string
+	RunDir       string
+	Config       *v1.Image
+	ProcessLabel string
+	MountLabel   string
 }
 
 // RuntimeContainerMetadata is the structure that we encode as JSON and store
@@ -59,7 +62,11 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // CreateContainerStorage creates the storage end of things.  We already have the container spec created
 // TO-DO We should be passing in an Image object in the future.
-func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID, mountLabel string, options *storage.ContainerOptions) (cinfo ContainerInfo, err error) {
+func (r *storageService) CreateContainerStorage(ctx context.Context, systemContext *types.SystemContext, imageName, imageID, containerName, containerID string, options storage.ContainerOptions) (cinfo ContainerInfo, err error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "createContainerStorage")
+	span.SetTag("type", "storageService")
+	defer span.Finish()
+
 	var imageConfig *v1.Image
 	if imageName != "" {
 		var ref types.ImageReference
@@ -101,7 +108,6 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 		ImageID:       imageID,
 		ContainerName: containerName,
 		CreatedAt:     time.Now().Unix(),
-		MountLabel:    mountLabel,
 	}
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
@@ -111,15 +117,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	// Build the container.
 	names := []string{containerName}
 
-	if options == nil {
-		options = &storage.ContainerOptions{
-			IDMappingOptions: storage.IDMappingOptions{
-				HostUIDMapping: true,
-				HostGIDMapping: true,
-			},
-		}
-	}
-	container, err := r.store.CreateContainer(containerID, names, imageID, "", string(mdata), options)
+	container, err := r.store.CreateContainer(containerID, names, imageID, "", string(mdata), &options)
 	if err != nil {
 		logrus.Debugf("failed to create container %s(%s): %v", metadata.ContainerName, containerID, err)
 
@@ -167,9 +165,11 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	logrus.Debugf("container %q has run directory %q", container.ID, containerRunDir)
 
 	return ContainerInfo{
-		Dir:    containerDir,
-		RunDir: containerRunDir,
-		Config: imageConfig,
+		Dir:          containerDir,
+		RunDir:       containerRunDir,
+		Config:       imageConfig,
+		ProcessLabel: container.ProcessLabel(),
+		MountLabel:   container.MountLabel(),
 	}, nil
 }
 

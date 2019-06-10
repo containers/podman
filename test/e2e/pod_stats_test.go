@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,23 +14,25 @@ var _ = Describe("Podman pod stats", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
+		SkipIfRootless()
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.CleanupPod()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 	It("podman stats should run with no pods", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "--no-stream"})
@@ -143,6 +147,29 @@ var _ = Describe("Podman pod stats", func() {
 		stats.WaitWithDefaultTimeout()
 		Expect(stats.ExitCode()).To(Equal(0))
 		Expect(stats.IsJSONOutputValid()).To(BeTrue())
+	})
+	It("podman stats with GO template", func() {
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.CID}} {{.Pod}} {{.Mem}} {{.MemUsage}} {{.CPU}} {{.NetIO}} {{.BlockIO}} {{.PIDS}} {{.Pod}}\""})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).To(Equal(0))
+	})
+
+	It("podman stats with invalid GO template", func() {
+		_, ec, podid := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("", podid)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} \""})
+		stats.WaitWithDefaultTimeout()
+		Expect(stats.ExitCode()).ToNot(Equal(0))
 	})
 
 })

@@ -1,34 +1,42 @@
 package main
 
 import (
-	"github.com/urfave/cli"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podDescription = `Manage container pods.
-
-Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.
-`
-	podSubCommands = []cli.Command{
-		podCreateCommand,
-		podInspectCommand,
-		podKillCommand,
-		podPauseCommand,
-		podPsCommand,
-		podRestartCommand,
-		podRmCommand,
-		podStartCommand,
-		podStatsCommand,
-		podStopCommand,
-		podTopCommand,
-		podUnpauseCommand,
-	}
-	podCommand = cli.Command{
-		Name:                   "pod",
-		Usage:                  "Manage pods",
-		Description:            podDescription,
-		UseShortOptionHandling: true,
-		Subcommands:            podSubCommands,
-		OnUsageError:           usageErrorHandler,
-	}
+	podDescription = `Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.`
 )
+var podCommand = cliconfig.PodmanCommand{
+	Command: &cobra.Command{
+		Use:   "pod",
+		Short: "Manage pods",
+		Long:  podDescription,
+		RunE:  commandRunE(),
+	},
+}
+
+//podSubCommands are implemented both in local and remote clients
+var podSubCommands = []*cobra.Command{
+	_podCreateCommand,
+	_podExistsCommand,
+	_podInspectCommand,
+	_podKillCommand,
+	_podPauseCommand,
+	_prunePodsCommand,
+	_podPsCommand,
+	_podRestartCommand,
+	_podRmCommand,
+	_podStartCommand,
+	_podStatsCommand,
+	_podStopCommand,
+	_podTopCommand,
+	_podUnpauseCommand,
+}
+
+func init() {
+	podCommand.AddCommand(podSubCommands...)
+	podCommand.SetHelpTemplate(HelpTemplate())
+	podCommand.SetUsageTemplate(UsageTemplate())
+}

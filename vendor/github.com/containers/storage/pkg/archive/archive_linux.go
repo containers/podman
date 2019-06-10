@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	"golang.org/x/sys/unix"
 )
@@ -130,7 +131,7 @@ func (overlayWhiteoutConverter) ConvertRead(hdr *tar.Header, path string) (bool,
 		if err := unix.Mknod(originalPath, unix.S_IFCHR, 0); err != nil {
 			return false, err
 		}
-		if err := os.Chown(originalPath, hdr.Uid, hdr.Gid); err != nil {
+		if err := idtools.SafeChown(originalPath, hdr.Uid, hdr.Gid); err != nil {
 			return false, err
 		}
 

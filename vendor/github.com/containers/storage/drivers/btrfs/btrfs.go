@@ -490,6 +490,11 @@ func (d *Driver) quotasDirID(id string) string {
 	return path.Join(d.quotasDir(), id)
 }
 
+// CreateFromTemplate creates a layer with the same contents and parent as another layer.
+func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	return d.Create(id, template, opts)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
@@ -634,11 +639,14 @@ func (d *Driver) Remove(id string) error {
 }
 
 // Get the requested filesystem id.
-func (d *Driver) Get(id, mountLabel string, uidMaps, gidMaps []idtools.IDMap) (string, error) {
+func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	dir := d.subvolumesDirID(id)
 	st, err := os.Stat(dir)
 	if err != nil {
 		return "", err
+	}
+	if len(options.Options) > 0 {
+		return "", fmt.Errorf("btrfs driver does not support mount options")
 	}
 
 	if !st.IsDir() {

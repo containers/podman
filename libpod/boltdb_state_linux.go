@@ -8,7 +8,7 @@ import (
 
 // replaceNetNS handle network namespace transitions after updating a
 // container's state.
-func replaceNetNS(netNSPath string, ctr *Container, newState *containerState) error {
+func replaceNetNS(netNSPath string, ctr *Container, newState *ContainerState) error {
 	if netNSPath != "" {
 		// Check if the container's old state has a good netns
 		if ctr.state.NetNS != nil && netNSPath == ctr.state.NetNS.Path() {
@@ -25,7 +25,7 @@ func replaceNetNS(netNSPath string, ctr *Container, newState *containerState) er
 			if err == nil {
 				newState.NetNS = ns
 			} else {
-				logrus.Errorf("error joining network namespace for container %s", ctr.ID())
+				logrus.Errorf("error joining network namespace for container %s: %v", ctr.ID(), err)
 				ctr.valid = false
 			}
 		}

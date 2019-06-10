@@ -1,10 +1,12 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +15,7 @@ var _ = Describe("Podman run ns", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,15 +23,16 @@ var _ = Describe("Podman run ns", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreArtifact(fedoraMinimal)
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman run pidns test", func() {
@@ -49,8 +52,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns test", func() {
-		setup := podmanTest.SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
-		setup.WaitWithDefaultTimeout()
+		setup := SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
 		Expect(setup.ExitCode()).To(Equal(0))
 		hostShm := setup.OutputToString()
 
@@ -61,8 +63,7 @@ var _ = Describe("Podman run ns", func() {
 	})
 
 	It("podman run ipcns ipcmk host test", func() {
-		setup := podmanTest.SystemExec("ipcmk", []string{"-M", "1024"})
-		setup.WaitWithDefaultTimeout()
+		setup := SystemExec("ipcmk", []string{"-M", "1024"})
 		Expect(setup.ExitCode()).To(Equal(0))
 		output := strings.Split(setup.OutputToString(), " ")
 		ipc := output[len(output)-1]
@@ -70,8 +71,7 @@ var _ = Describe("Podman run ns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		setup = podmanTest.SystemExec("ipcrm", []string{"-m", ipc})
-		setup.WaitWithDefaultTimeout()
+		setup = SystemExec("ipcrm", []string{"-m", ipc})
 		Expect(setup.ExitCode()).To(Equal(0))
 	})
 

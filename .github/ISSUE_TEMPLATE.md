@@ -13,18 +13,16 @@ update your version of Podman to the latest possible and retry your command befo
 an issue.
 
 If you are filing a bug against `podman build`, please instead file a bug
-against Buildah (https://github.com/projectatomic/buildah/issues). Podman build
+against Buildah (https://github.com/containers/buildah/issues). Podman build
 executes Buildah to perform container builds, and as such the Buildah
 maintainers are best equipped to handle these bugs.
 -->
 
-**Is this a BUG REPORT or FEATURE REQUEST?**:
+**Is this a BUG REPORT or FEATURE REQUEST? (leave only one on its own line)**
 
-[//]: # Uncomment only one, leave it on its own line:
+/kind bug
 
-[//]: # **kind bug**
-
-[//]: # **kind feature**
+/kind feature
 
 **Description**
 
@@ -54,7 +52,7 @@ Briefly describe the problem you are having in a few paragraphs.
 (paste your output here)
 ```
 
-**Output of `podman info`:**
+**Output of `podman info --debug`:**
 
 ```
 (paste your output here)

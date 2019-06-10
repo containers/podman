@@ -1,10 +1,10 @@
 package integration
 
 import (
-	"fmt"
 	"os"
 	"strings"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -13,7 +13,7 @@ var _ = Describe("Podman inspect", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -21,15 +21,16 @@ var _ = Describe("Podman inspect", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman inspect alpine image", func() {
@@ -42,6 +43,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect bogus container", func() {
+		SkipIfRemote()
 		session := podmanTest.Podman([]string{"inspect", "foobar4321"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
@@ -55,7 +57,7 @@ var _ = Describe("Podman inspect", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "--no-trunc", ALPINE})
 		result.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(strings.Trim(result.OutputToString(), "sha256:")).To(Equal(session.OutputToString()))
+		Expect(strings.Contains(result.OutputToString(), session.OutputToString()))
 	})
 
 	It("podman inspect specified type", func() {
@@ -64,7 +66,18 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman inspect container with GO format for ConmonPidFile", func() {
+		SkipIfRemote()
+		session, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ConmonPidFile}}", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman inspect container with size", func() {
+		SkipIfRemote()
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
@@ -76,6 +89,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect container and image", func() {
+		SkipIfRemote()
 		ls, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 		cid := ls.OutputToString()
@@ -87,6 +101,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman inspect -l with additional input should fail", func() {
+		SkipIfRemote()
 		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(125))

@@ -19,6 +19,9 @@ Cleanup all containers.
 **--latest, -l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+The latest option is not supported on the remote client.
+
 ## EXAMPLE
 
 `podman container cleanup mywebserver`
@@ -27,7 +30,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 `podman container cleanup 860a4b23`
 
-`podman container-cleanup -a`
+`podman container cleanup -a`
 
 `podman container cleanup --latest`
 

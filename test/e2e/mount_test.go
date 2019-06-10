@@ -1,9 +1,11 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +14,7 @@ var _ = Describe("Podman mount", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +22,16 @@ var _ = Describe("Podman mount", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
+
 	})
 
 	It("podman mount", func() {
@@ -42,6 +45,21 @@ var _ = Describe("Podman mount", func() {
 		Expect(mount.ExitCode()).To(Equal(0))
 
 		umount := podmanTest.Podman([]string{"umount", cid})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
+
+	It("podman container mount", func() {
+		setup := podmanTest.Podman([]string{"container", "create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid := setup.OutputToString()
+
+		mount := podmanTest.Podman([]string{"container", "mount", cid})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		umount := podmanTest.Podman([]string{"container", "umount", cid})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	})

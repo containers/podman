@@ -145,7 +145,7 @@ func deleteCommit(repo *Repo, commitToDelete string, cancellable *glib.GCancella
 		}
 	}
 
-	if err := enableTombstoneCommits(repo); err != nil {
+	if err := repo.enableTombstoneCommits(); err != nil {
 		return err
 	}
 
@@ -169,7 +169,7 @@ func pruneCommitsKeepYoungerThanDate(repo *Repo, date time.Time, cancellable *gl
 	var cerr = (*C.GError)(gerr.Ptr())
 	defer C.free(unsafe.Pointer(cerr))
 
-	if err := enableTombstoneCommits(repo); err != nil {
+	if err := repo.enableTombstoneCommits(); err != nil {
 		return err
 	}
 

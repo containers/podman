@@ -14,6 +14,7 @@ import (
 func init() {
 	reexec.Register("storage-applyLayer", applyLayer)
 	reexec.Register("storage-untar", untar)
+	reexec.Register("storage-tar", tar)
 }
 
 func fatal(err error) {

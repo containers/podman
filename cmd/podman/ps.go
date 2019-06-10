@@ -2,26 +2,47 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"os"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/formats"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	tm "github.com/buger/goterm"
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/fields"
 )
 
-const mountTruncLength = 12
+const (
+	mountTruncLength = 12
+	hid              = "CONTAINER ID"
+	himage           = "IMAGE"
+	hcommand         = "COMMAND"
+	hcreated         = "CREATED"
+	hstatus          = "STATUS"
+	hports           = "PORTS"
+	hnames           = "NAMES"
+	hsize            = "SIZE"
+	hinfra           = "IS INFRA"
+	hpod             = "POD"
+	nspid            = "PID"
+	nscgroup         = "CGROUPNS"
+	nsipc            = "IPC"
+	nsmnt            = "MNT"
+	nsnet            = "NET"
+	nspidns          = "PIDNS"
+	nsuserns         = "USERNS"
+	nsuts            = "UTS"
+)
 
 type psTemplateParams struct {
 	ID            string
@@ -76,7 +97,7 @@ type psJSONParams struct {
 }
 
 // Type declaration and functions for sorting the PS output
-type psSorted []psJSONParams
+type psSorted []shared.PsContainerOutput
 
 func (a psSorted) Len() int      { return len(a) }
 func (a psSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
@@ -84,7 +105,7 @@ func (a psSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type psSortedCommand struct{ psSorted }
 
 func (a psSortedCommand) Less(i, j int) bool {
-	return strings.Join(a.psSorted[i].Command, " ") < strings.Join(a.psSorted[j].Command, " ")
+	return a.psSorted[i].Command < a.psSorted[j].Command
 }
 
 type psSortedCreated struct{ psSorted }
@@ -129,336 +150,120 @@ func (a psSortedSize) Less(i, j int) bool {
 }
 
 var (
-	psFlags = []cli.Flag{
-		cli.BoolFlag{
-			Name:  "all, a",
-			Usage: "Show all the containers, default is only running containers",
-		},
-		cli.StringSliceFlag{
-			Name:  "filter, f",
-			Usage: "Filter output based on conditions given",
-		},
-		cli.StringFlag{
-			Name:  "format",
-			Usage: "Pretty-print containers to JSON or using a Go template",
-		},
-		cli.IntFlag{
-			Name:  "last, n",
-			Usage: "Print the n last created containers (all states)",
-			Value: -1,
-		},
-		cli.BoolFlag{
-			Name:  "latest, l",
-			Usage: "Show the latest container created (all states)",
-		},
-		cli.BoolFlag{
-			Name:  "namespace, ns",
-			Usage: "Display namespace information",
-		},
-		cli.BoolFlag{
-			Name:  "no-trunc",
-			Usage: "Display the extended information",
-		},
-		cli.BoolFlag{
-			Name:  "pod",
-			Usage: "Print the ID and name of the pod the containers are associated with",
-		},
-		cli.BoolFlag{
-			Name:  "quiet, q",
-			Usage: "Print the numeric IDs of the containers only",
-		},
-		cli.BoolFlag{
-			Name:  "size, s",
-			Usage: "Display the total file sizes",
-		},
-		cli.StringFlag{
-			Name:  "sort",
-			Usage: "Sort output by command, created, id, image, names, runningfor, size, or status",
-			Value: "created",
-		},
-	}
+	psCommand     cliconfig.PsValues
 	psDescription = "Prints out information about the containers"
-	psCommand     = cli.Command{
-		Name:                   "ps",
-		Usage:                  "List containers",
-		Description:            psDescription,
-		Flags:                  psFlags,
-		Action:                 psCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
-	}
-	lsCommand = cli.Command{
-		Name:                   "ls",
-		Usage:                  "List containers",
-		Description:            psDescription,
-		Flags:                  psFlags,
-		Action:                 psCmd,
-		ArgsUsage:              "",
-		UseShortOptionHandling: true,
-		OnUsageError:           usageErrorHandler,
+	_psCommand    = cobra.Command{
+		Use:   "ps",
+		Args:  noSubArgs,
+		Short: "List containers",
+		Long:  psDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			psCommand.InputArgs = args
+			psCommand.GlobalFlags = MainGlobalOpts
+			psCommand.Remote = remoteclient
+			return psCmd(&psCommand)
+		},
+		Example: `podman ps -a
+  podman ps -a --format "{{.ID}}  {{.Image}}  {{.Labels}}  {{.Mounts}}"
+  podman ps --size --sort names`,
 	}
 )
 
-func psCmd(c *cli.Context) error {
-	if err := validateFlags(c, psFlags); err != nil {
-		return err
+func psInit(command *cliconfig.PsValues) {
+	command.SetHelpTemplate(HelpTemplate())
+	command.SetUsageTemplate(UsageTemplate())
+	flags := command.Flags()
+	flags.BoolVarP(&command.All, "all", "a", false, "Show all the containers, default is only running containers")
+	flags.StringSliceVarP(&command.Filter, "filter", "f", []string{}, "Filter output based on conditions given")
+	flags.StringVar(&command.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
+	flags.IntVarP(&command.Last, "last", "n", -1, "Print the n last created containers (all states)")
+	flags.BoolVarP(&command.Latest, "latest", "l", false, "Show the latest container created (all states)")
+	flags.BoolVar(&command.Namespace, "namespace", false, "Display namespace information")
+	flags.BoolVar(&command.Namespace, "ns", false, "Display namespace information")
+	flags.BoolVar(&command.NoTrunct, "no-trunc", false, "Display the extended information")
+	flags.BoolVarP(&command.Pod, "pod", "p", false, "Print the ID and name of the pod the containers are associated with")
+	flags.BoolVarP(&command.Quiet, "quiet", "q", false, "Print the numeric IDs of the containers only")
+	flags.BoolVarP(&command.Size, "size", "s", false, "Display the total file sizes")
+	flags.StringVar(&command.Sort, "sort", "created", "Sort output by command, created, id, image, names, runningfor, size, or status")
+	flags.BoolVar(&command.Sync, "sync", false, "Sync container state with OCI runtime")
+	flags.UintVarP(&command.Watch, "watch", "w", 0, "Watch the ps output on an interval in seconds")
+
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func init() {
+	psCommand.Command = &_psCommand
+	psInit(&psCommand)
+}
+
+func psCmd(c *cliconfig.PsValues) error {
+	var watch bool
+
+	if c.Watch > 0 {
+		watch = true
+	}
+
+	if c.Watch > 0 && c.Latest {
+		return errors.New("the watch and latest flags cannot be used together")
 	}
 
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(c)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 
 	defer runtime.Shutdown(false)
 
-	if len(c.Args()) > 0 {
-		return errors.Errorf("too many arguments, ps takes no arguments")
-	}
-
-	format := genPsFormat(c.String("format"), c.Bool("quiet"), c.Bool("size"), c.Bool("namespace"), c.Bool("pod"), c.Bool("all"))
-
-	opts := shared.PsOptions{
-		All:       c.Bool("all"),
-		Format:    format,
-		Last:      c.Int("last"),
-		Latest:    c.Bool("latest"),
-		NoTrunc:   c.Bool("no-trunc"),
-		Pod:       c.Bool("pod"),
-		Quiet:     c.Bool("quiet"),
-		Size:      c.Bool("size"),
-		Namespace: c.Bool("namespace"),
-		Sort:      c.String("sort"),
-	}
-
-	var filterFuncs []libpod.ContainerFilter
-	// When we are dealing with latest or last=n, we need to
-	// get all containers.
-	if !opts.All && !opts.Latest && opts.Last < 1 {
-		// only get running containers
-		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-			state, _ := c.State()
-			// Don't return infra containers
-			return state == libpod.ContainerStateRunning && !c.IsInfra()
-		})
-	}
-
-	filters := c.StringSlice("filter")
-	if len(filters) > 0 {
-		for _, f := range filters {
-			filterSplit := strings.SplitN(f, "=", 2)
-			if len(filterSplit) < 2 {
-				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-			}
-			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], runtime)
-			if err != nil {
-				return errors.Wrapf(err, "invalid filter")
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
-		}
-	}
-
-	var outputContainers []*libpod.Container
-
-	if !opts.Latest {
-		// Get all containers
-		containers, err := runtime.GetContainers(filterFuncs...)
-		if err != nil {
+	if !watch {
+		if err := psDisplay(c, runtime); err != nil {
 			return err
-		}
-
-		// We only want the last few containers
-		if opts.Last > 0 && opts.Last <= len(containers) {
-			return errors.Errorf("--last not yet supported")
-		} else {
-			outputContainers = containers
 		}
 	} else {
-		// Get just the latest container
-		// Ignore filters
-		latestCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return err
+		for {
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
+			if err := psDisplay(c, runtime); err != nil {
+				return err
+			}
+			time.Sleep(time.Duration(c.Watch) * time.Second)
+			tm.Clear()
+			tm.MoveCursor(1, 1)
+			tm.Flush()
 		}
-
-		outputContainers = []*libpod.Container{latestCtr}
-	}
-
-	return generatePsOutput(outputContainers, opts)
-}
-
-// checkFlagsPassed checks if mutually exclusive flags are passed together
-func checkFlagsPassed(c *cli.Context) error {
-	// latest, and last are mutually exclusive.
-	if c.Int("last") >= 0 && c.Bool("latest") {
-		return errors.Errorf("last and latest are mutually exclusive")
-	}
-	// Quiet conflicts with size, namespace, and format with a Go template
-	if c.Bool("quiet") {
-		if c.Bool("size") || c.Bool("namespace") || (c.IsSet("format") &&
-			c.String("format") != formats.JSONString) {
-			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
-		}
-	}
-	// Size and namespace conflict with each other
-	if c.Bool("size") && c.Bool("namespace") {
-		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
 }
 
-func generateContainerFilterFuncs(filter, filterValue string, runtime *libpod.Runtime) (func(container *libpod.Container) bool, error) {
-	switch filter {
-	case "id":
-		return func(c *libpod.Container) bool {
-			return strings.Contains(c.ID(), filterValue)
-		}, nil
-	case "label":
-		var filterArray []string = strings.SplitN(filterValue, "=", 2)
-		var filterKey string = filterArray[0]
-		if len(filterArray) > 1 {
-			filterValue = filterArray[1]
-		} else {
-			filterValue = ""
-		}
-		return func(c *libpod.Container) bool {
-			for labelKey, labelValue := range c.Labels() {
-				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
-					return true
-				}
-			}
-			return false
-		}, nil
-	case "name":
-		return func(c *libpod.Container) bool {
-			return strings.Contains(c.Name(), filterValue)
-		}, nil
-	case "exited":
-		exitCode, err := strconv.ParseInt(filterValue, 10, 32)
-		if err != nil {
-			return nil, errors.Wrapf(err, "exited code out of range %q", filterValue)
-		}
-		return func(c *libpod.Container) bool {
-			ec, exited, err := c.ExitCode()
-			if ec == int32(exitCode) && err == nil && exited == true {
-				return true
-			}
-			return false
-		}, nil
-	case "status":
-		if !util.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
-			return nil, errors.Errorf("%s is not a valid status", filterValue)
-		}
-		return func(c *libpod.Container) bool {
-			status, err := c.State()
-			if err != nil {
-				return false
-			}
-			state := status.String()
-			if status == libpod.ContainerStateConfigured {
-				state = "created"
-			}
-			return state == filterValue
-		}, nil
-	case "ancestor":
-		// This needs to refine to match docker
-		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
-		return func(c *libpod.Container) bool {
-			containerConfig := c.Config()
-			if strings.Contains(containerConfig.RootfsImageID, filterValue) || strings.Contains(containerConfig.RootfsImageName, filterValue) {
-				return true
-			}
-			return false
-		}, nil
-	case "before":
-		ctr, err := runtime.LookupContainer(filterValue)
-		if err != nil {
-			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
-		}
-		containerConfig := ctr.Config()
-		createTime := containerConfig.CreatedTime
-		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.After(cc.CreatedTime)
-		}, nil
-	case "since":
-		ctr, err := runtime.LookupContainer(filterValue)
-		if err != nil {
-			return nil, errors.Errorf("unable to find container by name or id of %s", filterValue)
-		}
-		containerConfig := ctr.Config()
-		createTime := containerConfig.CreatedTime
-		return func(c *libpod.Container) bool {
-			cc := c.Config()
-			return createTime.Before(cc.CreatedTime)
-		}, nil
-	case "volume":
-		//- volume=(<volume-name>|<mount-point-destination>)
-		return func(c *libpod.Container) bool {
-			containerConfig := c.Config()
-			var dest string
-			arr := strings.Split(filterValue, ":")
-			source := arr[0]
-			if len(arr) == 2 {
-				dest = arr[1]
-			}
-			for _, mount := range containerConfig.Spec.Mounts {
-				if dest != "" && (mount.Source == source && mount.Destination == dest) {
-					return true
-				}
-				if dest == "" && mount.Source == source {
-					return true
-				}
-			}
-			return false
-		}, nil
+func printQuiet(containers []shared.PsContainerOutput) error {
+	for _, c := range containers {
+		fmt.Println(c.ID)
 	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
+	return nil
 }
 
-// generate the template based on conditions given
-func genPsFormat(format string, quiet, size, namespace, pod, infra bool) string {
-	if format != "" {
-		// "\t" from the command line is not being recognized as a tab
-		// replacing the string "\t" to a tab character if the user passes in "\t"
-		return strings.Replace(format, `\t`, "\t", -1)
+// checkFlagsPassed checks if mutually exclusive flags are passed together
+func checkFlagsPassed(c *cliconfig.PsValues) error {
+	// latest, and last are mutually exclusive.
+	if c.Last >= 0 && c.Latest {
+		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	if quiet {
-		return formats.IDString
-	}
-	podappend := ""
-	if pod {
-		podappend = "{{.Pod}}\t"
-	}
-	if namespace {
-		return fmt.Sprintf("table {{.ID}}\t{{.Names}}\t%s{{.PID}}\t{{.CGROUPNS}}\t{{.IPC}}\t{{.MNT}}\t{{.NET}}\t{{.PIDNS}}\t{{.USERNS}}\t{{.UTS}}", podappend)
-	}
-	format = "table {{.ID}}\t{{.Image}}\t{{.Command}}\t{{.Created}}\t{{.Status}}\t{{.Ports}}\t{{.Names}}\t"
-	format += podappend
-	if size {
-		format += "{{.Size}}\t"
-	}
-	if infra {
-		format += "{{.IsInfra}}\t"
-	}
-	return format
-}
-
-func psToGeneric(templParams []psTemplateParams, JSONParams []psJSONParams) (genericParams []interface{}) {
-	if len(templParams) > 0 {
-		for _, v := range templParams {
-			genericParams = append(genericParams, interface{}(v))
+	// Quiet conflicts with size, namespace, and format with a Go template
+	if c.Quiet {
+		if c.Size || c.Namespace || (c.Flag("format").Changed &&
+			c.Format != formats.JSONString) {
+			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
 		}
-		return
 	}
-	for _, v := range JSONParams {
-		genericParams = append(genericParams, interface{}(v))
+	// Size and namespace conflict with each other
+	if c.Size && c.Namespace {
+		return errors.Errorf("size and namespace options conflict")
 	}
-	return
+	return nil
 }
 
 // generate the accurate header based on template given
@@ -501,174 +306,6 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
 	return psOutput, nil
-}
-
-// getTemplateOutput returns the modified container information
-func getTemplateOutput(psParams []psJSONParams, opts shared.PsOptions) ([]psTemplateParams, error) {
-	var (
-		psOutput          []psTemplateParams
-		pod, status, size string
-		ns                *shared.Namespace
-	)
-	// If the user is trying to filter based on size, or opted to sort on size
-	// the size bool must be set.
-	if strings.Contains(opts.Format, ".Size") || opts.Sort == "size" {
-		opts.Size = true
-	}
-	if strings.Contains(opts.Format, ".Pod") || opts.Sort == "pod" {
-		opts.Pod = true
-	}
-
-	for _, psParam := range psParams {
-		// do we need this?
-		imageName := psParam.Image
-		ctrID := psParam.ID
-
-		if opts.Namespace {
-			ns = psParam.Namespaces
-		}
-		if opts.Size {
-			if psParam.Size == nil {
-				size = units.HumanSizeWithPrecision(0, 0)
-			} else {
-				size = units.HumanSizeWithPrecision(float64(psParam.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(psParam.Size.RootFsSize), 3) + ")"
-			}
-		}
-		if opts.Pod {
-			pod = psParam.Pod
-		}
-
-		command := strings.Join(psParam.Command, " ")
-		if !opts.NoTrunc {
-			if len(command) > 20 {
-				command = command[:19] + "..."
-			}
-		}
-		ports := portsToString(psParam.Ports)
-		labels := formatLabels(psParam.Labels)
-
-		switch psParam.Status {
-		case libpod.ContainerStateStopped.String():
-			exitedSince := units.HumanDuration(time.Since(psParam.ExitedAt))
-			status = fmt.Sprintf("Exited (%d) %s ago", psParam.ExitCode, exitedSince)
-		case libpod.ContainerStateRunning.String():
-			status = "Up " + units.HumanDuration(time.Since(psParam.StartedAt)) + " ago"
-		case libpod.ContainerStatePaused.String():
-			status = "Paused"
-		case libpod.ContainerStateCreated.String(), libpod.ContainerStateConfigured.String():
-			status = "Created"
-		default:
-			status = "Error"
-		}
-
-		if !opts.NoTrunc {
-			ctrID = shortID(psParam.ID)
-			pod = shortID(psParam.Pod)
-		}
-		params := psTemplateParams{
-			ID:            ctrID,
-			Image:         imageName,
-			Command:       command,
-			CreatedAtTime: psParam.CreatedAt,
-			Created:       units.HumanDuration(time.Since(psParam.CreatedAt)) + " ago",
-			Status:        status,
-			Ports:         ports,
-			Size:          size,
-			Names:         psParam.Names,
-			Labels:        labels,
-			Mounts:        getMounts(psParam.Mounts, opts.NoTrunc),
-			PID:           psParam.PID,
-			Pod:           pod,
-			IsInfra:       psParam.IsInfra,
-		}
-
-		if opts.Namespace {
-			params.CGROUPNS = ns.Cgroup
-			params.IPC = ns.IPC
-			params.MNT = ns.MNT
-			params.NET = ns.NET
-			params.PIDNS = ns.PIDNS
-			params.USERNS = ns.User
-			params.UTS = ns.UTS
-		}
-		psOutput = append(psOutput, params)
-	}
-
-	return psOutput, nil
-}
-
-// getAndSortJSONOutput returns the container info in its raw, sorted form
-func getAndSortJSONParams(containers []*libpod.Container, opts shared.PsOptions) ([]psJSONParams, error) {
-	var (
-		psOutput psSorted
-		ns       *shared.Namespace
-	)
-	for _, ctr := range containers {
-		batchInfo, err := shared.BatchContainerOp(ctr, opts)
-		if err != nil {
-			if errors.Cause(err) == libpod.ErrNoSuchCtr {
-				logrus.Warn(err)
-				continue
-			}
-			return nil, err
-		}
-
-		if opts.Namespace {
-			ns = shared.GetNamespaces(batchInfo.Pid)
-		}
-		params := psJSONParams{
-			ID:               ctr.ID(),
-			Image:            batchInfo.ConConfig.RootfsImageName,
-			ImageID:          batchInfo.ConConfig.RootfsImageID,
-			Command:          batchInfo.ConConfig.Spec.Process.Args,
-			ExitCode:         batchInfo.ExitCode,
-			Exited:           batchInfo.Exited,
-			CreatedAt:        batchInfo.ConConfig.CreatedTime,
-			StartedAt:        batchInfo.StartedTime,
-			ExitedAt:         batchInfo.ExitedTime,
-			Status:           batchInfo.ConState.String(),
-			PID:              batchInfo.Pid,
-			Ports:            batchInfo.ConConfig.PortMappings,
-			Size:             batchInfo.Size,
-			Names:            batchInfo.ConConfig.Name,
-			Labels:           batchInfo.ConConfig.Labels,
-			Mounts:           batchInfo.ConConfig.UserVolumes,
-			ContainerRunning: batchInfo.ConState == libpod.ContainerStateRunning,
-			Namespaces:       ns,
-			Pod:              ctr.PodID(),
-			IsInfra:          ctr.IsInfra(),
-		}
-
-		psOutput = append(psOutput, params)
-	}
-	return sortPsOutput(opts.Sort, psOutput)
-}
-
-func generatePsOutput(containers []*libpod.Container, opts shared.PsOptions) error {
-	if len(containers) == 0 && opts.Format != formats.JSONString {
-		return nil
-	}
-	psOutput, err := getAndSortJSONParams(containers, opts)
-	if err != nil {
-		return err
-	}
-	var out formats.Writer
-
-	switch opts.Format {
-	case formats.JSONString:
-		if err != nil {
-			return errors.Wrapf(err, "unable to create JSON for output")
-		}
-		out = formats.JSONStructArray{Output: psToGeneric([]psTemplateParams{}, psOutput)}
-	default:
-		psOutput, err := getTemplateOutput(psOutput, opts)
-		if err != nil {
-			return errors.Wrapf(err, "unable to create output")
-		}
-		out = formats.StdoutTemplateArray{Output: psToGeneric(psOutput, []psJSONParams{}), Template: opts.Format, Fields: psOutput[0].headerMap()}
-	}
-
-	return formats.Writer(out).Out()
 }
 
 // getLabels converts the labels to a string of the form "key=value, key2=value2"
@@ -720,4 +357,151 @@ func portsToString(ports []ocicni.PortMapping) string {
 		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
 	}
 	return strings.Join(portDisplay, ", ")
+}
+
+func printFormat(format string, containers []shared.PsContainerOutput) error {
+	// return immediately if no containers are present
+	if len(containers) == 0 {
+		return nil
+	}
+
+	// Use a tabwriter to align column format
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+
+	// Make a map of the field names for the headers
+	headerNames := make(map[string]string)
+	v := reflect.ValueOf(containers[0])
+	t := v.Type()
+	for i := 0; i < t.NumField(); i++ {
+		headerNames[t.Field(i).Name] = t.Field(i).Name
+	}
+
+	// Spit out the header if "table" is present in the format
+	if strings.HasPrefix(format, "table") {
+		hformat := strings.Replace(strings.TrimSpace(format[5:]), " ", "\t", -1)
+		format = hformat
+		headerTmpl, err := template.New("header").Parse(hformat)
+		if err != nil {
+			return err
+		}
+		if err := headerTmpl.Execute(w, headerNames); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "")
+	}
+
+	// Spit out the data rows now
+	dataTmpl, err := template.New("data").Parse(format)
+	if err != nil {
+		return err
+	}
+
+	for _, container := range containers {
+		if err := dataTmpl.Execute(w, container); err != nil {
+			return err
+		}
+		fmt.Fprintln(w, "")
+	}
+	// Flush the writer
+	return w.Flush()
+}
+
+func dumpJSON(containers []shared.PsContainerOutput) error {
+	b, err := json.MarshalIndent(containers, "", "     ")
+	if err != nil {
+		return err
+	}
+	os.Stdout.Write(b)
+	return nil
+}
+
+func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
+	var (
+		err error
+	)
+	opts := shared.PsOptions{
+		All:       c.All,
+		Format:    c.Format,
+		Last:      c.Last,
+		Latest:    c.Latest,
+		NoTrunc:   c.NoTrunct,
+		Pod:       c.Pod,
+		Quiet:     c.Quiet,
+		Size:      c.Size,
+		Namespace: c.Namespace,
+		Sort:      c.Sort,
+		Sync:      c.Sync,
+	}
+
+	pss, err := runtime.Ps(c, opts)
+	// Here and down
+	if opts.Sort != "" {
+		pss, err = sortPsOutput(opts.Sort, pss)
+		if err != nil {
+			return err
+		}
+	}
+
+	// If quiet, print only cids and return
+	if opts.Quiet {
+		return printQuiet(pss)
+	}
+
+	// If the user wants their own GO template format
+	if opts.Format != "" {
+		if opts.Format == "json" {
+			return dumpJSON(pss)
+		}
+		return printFormat(opts.Format, pss)
+	}
+
+	// Define a tab writer with stdout as the output
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
+
+	// Output standard PS headers
+	if !opts.Namespace {
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
+		// User wants pod info
+		if opts.Pod {
+			fmt.Fprintf(w, "\t%s", hpod)
+		}
+		//User wants size info
+		if opts.Size {
+			fmt.Fprintf(w, "\t%s", hsize)
+		}
+	} else {
+		// Output Namespace headers
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, hnames, nspid, nscgroup, nsipc, nsmnt, nsnet, nspidns, nsuserns, nsuts)
+	}
+
+	// Now iterate each container and output its information
+	for _, container := range pss {
+
+		// Standard PS output
+		if !opts.Namespace {
+			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
+			// User wants pod info
+			if opts.Pod {
+				fmt.Fprintf(w, "\t%s", container.Pod)
+			}
+			//User wants size info
+			if opts.Size {
+				var size string
+				if container.Size == nil {
+					size = units.HumanSizeWithPrecision(0, 0)
+				} else {
+					size = units.HumanSizeWithPrecision(float64(container.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(container.Size.RootFsSize), 3) + ")"
+					fmt.Fprintf(w, "\t%s", size)
+				}
+			}
+
+		} else {
+			// Print namespace information
+			ns := runtime.GetNamespaces(container)
+			fmt.Fprintf(w, "\n%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Names, container.Pid, ns.Cgroup, ns.IPC, ns.MNT, ns.NET, ns.PIDNS, ns.User, ns.UTS)
+		}
+
+	}
+	fmt.Fprint(w, "\n")
+	return w.Flush()
 }

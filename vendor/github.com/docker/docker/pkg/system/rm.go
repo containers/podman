@@ -1,4 +1,4 @@
-package system
+package system // import "github.com/docker/docker/pkg/system"
 
 import (
 	"os"
@@ -26,7 +26,7 @@ func EnsureRemoveAll(dir string) error {
 
 	// track retries
 	exitOnErr := make(map[string]int)
-	maxRetry := 5
+	maxRetry := 50
 
 	// Attempt to unmount anything beneath this dir first
 	mount.RecursiveUnmount(dir)
@@ -34,7 +34,7 @@ func EnsureRemoveAll(dir string) error {
 	for {
 		err := os.RemoveAll(dir)
 		if err == nil {
-			return err
+			return nil
 		}
 
 		pe, ok := err.(*os.PathError)

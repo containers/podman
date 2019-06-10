@@ -4,7 +4,7 @@
 podman\-push - Push an image from local storage to elsewhere
 
 ## SYNOPSIS
-**podman push** [*options*] **image** [**destination**]
+**podman push** [*options*] *image* [*destination*]
 
 ## DESCRIPTION
 Pushes an image from local storage to a specified destination.
@@ -47,7 +47,10 @@ Image stored in local container/storage
 **--authfile**
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
-If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
+
+Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
+environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--creds="CREDENTIALS"**
 
@@ -58,7 +61,7 @@ value can be entered.  The password is entered without echo.
 **--cert-dir** *path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands) (Not available for remote commands)
 
 **--compress**
 
@@ -78,19 +81,15 @@ When writing the output image, suppress progress output
 
 Discard any pre-existing signatures in the image
 
-**--signature-policy="PATHNAME"**
-
-Pathname of a signature policy file to use.  It is not recommended that this
-option be used, as the default behavior of using the system-wide default policy
-(frequently */etc/containers/policy.json*) is most often preferred
-
 **--sign-by="KEY"**
 
 Add a signature at the destination using the specified key
 
 **--tls-verify**
 
-Require HTTPS and verify certificates when contacting registries (default: true)
+Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
+then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,
+TLS verification will be used unless the target registry is listed as an insecure registry in registries.conf. (Not available for remote commands)
 
 ## EXAMPLE
 
@@ -139,4 +138,4 @@ Storing signatures
 ```
 
 ## SEE ALSO
-podman(1), podman-pull(1), podman-login(1), crio(8)
+podman(1), podman-pull(1), podman-login(1)

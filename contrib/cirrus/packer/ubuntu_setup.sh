@@ -1,0 +1,114 @@
+#!/bin/bash
+
+# This script is called by packer on the subject Ubuntu VM, to setup the podman
+# build/test environment.  It's not intended to be used outside of this context.
+
+set -e
+
+# Load in library (copied by packer, before this script was run)
+source /tmp/libpod/$SCRIPT_BASE/lib.sh
+
+req_env_var SCRIPT_BASE CNI_COMMIT CONMON_COMMIT CRIU_COMMIT
+
+install_ooe
+
+export GOPATH="$(mktemp -d)"
+trap "sudo rm -rf $GOPATH" EXIT
+
+# Avoid getting stuck waiting for user input
+export DEBIAN_FRONTEND=noninteractive
+
+# Try twice as workaround for minor networking problems
+echo "Updating system and installing package dependencies"
+ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
+ooe.sh sudo -E apt-get -qq upgrade || sudo -E apt-get -qq upgrade
+ooe.sh sudo -E apt-get -qq install software-properties-common
+
+# Required to have Go 1.11 on Ubuntu 18.0.4
+ooe.sh sudo -E add-apt-repository --yes ppa:longsleep/golang-backports
+ooe.sh sudo -E add-apt-repository --yes ppa:projectatomic/ppa
+ooe.sh sudo -E add-apt-repository --yes ppa:criu/ppa
+ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
+
+ooe.sh sudo -E apt-get -qq install \
+    apparmor \
+    autoconf \
+    automake \
+    bats \
+    bison \
+    btrfs-tools \
+    build-essential \
+    cri-o-runc \
+    criu \
+    curl \
+    e2fslibs-dev \
+    emacs-nox \
+    gawk \
+    gettext \
+    go-md2man \
+    golang \
+    iproute2 \
+    iptables \
+    jq \
+    libaio-dev \
+    libapparmor-dev \
+    libcap-dev \
+    libdevmapper-dev \
+    libdevmapper1.02.1 \
+    libfuse-dev \
+    libglib2.0-dev \
+    libgpgme11-dev \
+    liblzma-dev \
+    libnet1 \
+    libnet1-dev \
+    libnl-3-dev \
+    libostree-dev \
+    libprotobuf-c0-dev \
+    libprotobuf-dev \
+    libseccomp-dev \
+    libseccomp2 \
+    libsystemd-dev \
+    libtool \
+    libudev-dev \
+    lsof \
+    netcat \
+    pkg-config \
+    protobuf-c-compiler \
+    protobuf-compiler \
+    python-future \
+    python-minimal \
+    python-protobuf \
+    python3-dateutil \
+    python3-pip \
+    python3-psutil \
+    python3-pytoml \
+    python3-setuptools \
+    socat \
+    unzip \
+    vim \
+    xz-utils \
+    zip
+
+echo "Fixing Ubuntu kernel not enabling swap accounting by default"
+SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
+ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
+ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
+ooe.sh sudo update-grub
+
+install_conmon
+
+install_cni_plugins
+
+install_buildah
+
+sudo /tmp/libpod/hack/install_catatonit.sh
+
+install_varlink
+
+sudo mkdir -p /etc/containers
+sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora\
+          -o /etc/containers/registries.conf
+
+ubuntu_finalize
+
+echo "SUCCESS!"

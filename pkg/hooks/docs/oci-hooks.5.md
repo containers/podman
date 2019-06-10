@@ -23,10 +23,9 @@ If multiple directories are configured, a JSON filename in a preferred directory
 
 Tools consuming this format may also opt to monitor the hook directries for changes, in which case they will notice additions, changes, and removals to JSON files without needing to be restarted or otherwise signaled.  When the tool monitors multiple hooks directories, the precedence discussed in the previous paragraph still applies.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then writing a new hook definition to `/etc/containers/oci/hooks.d/01-my-hook.json` will mask the hook previously loaded from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.  Subsequent changes to `/usr/share/containers/oci/hooks.d/01-my-hook.json` will have no effect on the consuming tool as long as `/etc/containers/oci/hooks.d/01-my-hook.json` exists.  Removing `/etc/containers/oci/hooks.d/01-my-hook.json` will reload the hook from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
 
-Hooks are injected in the JSON filename case- and width-insensitive collation order.
-Collation order depends on your locale, as set by `LC_ALL`, `LC_COLLATE`, or `LANG` (in order of decreasing precedence).
-For more information, see `locale(7)`.
-For example, in the POSIX locale, a matching hook defined in `01-my-hook.json` would be injected before matching hooks defined in `02-another-hook.json` and `01-UPPERCASE.json`.
+Hooks are injected in the order obtained by sorting the JSON file names, after converting them to lower case, based on their Unicode code points.
+For example, a matching hook defined in `01-my-hook.json` would be injected before matching hooks defined in `02-another-hook.json` and `01-UPPERCASE.json`.
+It is strongly recommended to make the sort oder unambiguous depending on an ASCII-only prefix (like the `01`/`02` above).
 
 Each JSON file should contain an object with one of the following schemas.
 

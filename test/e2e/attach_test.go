@@ -1,9 +1,13 @@
+// +build !remoteclient
+
 package integration
 
 import (
-	"fmt"
 	"os"
+	"syscall"
+	"time"
 
+	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -12,7 +16,7 @@ var _ = Describe("Podman attach", func() {
 	var (
 		tempdir    string
 		err        error
-		podmanTest PodmanTest
+		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
@@ -20,15 +24,15 @@ var _ = Describe("Podman attach", func() {
 		if err != nil {
 			os.Exit(1)
 		}
-		podmanTest = PodmanCreate(tempdir)
-		podmanTest.RestoreAllArtifacts()
+		podmanTest = PodmanTestCreate(tempdir)
+		podmanTest.Setup()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
 		podmanTest.Cleanup()
 		f := CurrentGinkgoTestDescription()
-		timedResult := fmt.Sprintf("Test: %s completed in %f seconds", f.TestText, f.Duration.Seconds())
-		GinkgoWriter.Write([]byte(timedResult))
+		processTestResult(f)
 
 	})
 
@@ -48,6 +52,16 @@ var _ = Describe("Podman attach", func() {
 		Expect(results.ExitCode()).To(Equal(125))
 	})
 
+	It("podman container attach to non-running container", func() {
+		session := podmanTest.Podman([]string{"container", "create", "--name", "test1", "-d", "-i", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"container", "attach", "test1"})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(125))
+	})
+
 	It("podman attach to multiple containers", func() {
 		session := podmanTest.RunTopContainer("test1")
 		session.WaitWithDefaultTimeout()
@@ -60,5 +74,45 @@ var _ = Describe("Podman attach", func() {
 		results := podmanTest.Podman([]string{"attach", "test1", "test2"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(125))
+	})
+
+	It("podman attach to a running container", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test", ALPINE, "/bin/sh", "-c", "while true; do echo test; sleep 1; done"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"attach", "test"})
+		time.Sleep(2 * time.Second)
+		results.Signal(syscall.SIGTSTP)
+		Expect(results.OutputToString()).To(ContainSubstring("test"))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+	})
+	It("podman attach to the latest container", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", ALPINE, "/bin/sh", "-c", "while true; do echo test1; sleep 1; done"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--name", "test2", ALPINE, "/bin/sh", "-c", "while true; do echo test2; sleep 1; done"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"attach", "-l"})
+		time.Sleep(2 * time.Second)
+		results.Signal(syscall.SIGTSTP)
+		Expect(results.OutputToString()).To(ContainSubstring("test2"))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+	})
+
+	It("podman attach to a container with --sig-proxy set to false", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test", ALPINE, "/bin/sh", "-c", "while true; do echo test; sleep 1; done"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"attach", "--sig-proxy=false", "test"})
+		time.Sleep(2 * time.Second)
+		results.Signal(syscall.SIGTERM)
+		results.WaitWithDefaultTimeout()
+		Expect(results.OutputToString()).To(ContainSubstring("test"))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 	})
 })

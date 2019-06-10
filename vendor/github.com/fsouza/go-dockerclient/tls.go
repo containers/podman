@@ -109,10 +109,10 @@ func copyTLSConfig(cfg *tls.Config) *tls.Config {
 		NameToCertificate:        cfg.NameToCertificate,
 		NextProtos:               cfg.NextProtos,
 		PreferServerCipherSuites: cfg.PreferServerCipherSuites,
-		Rand:                   cfg.Rand,
-		RootCAs:                cfg.RootCAs,
-		ServerName:             cfg.ServerName,
-		SessionTicketKey:       cfg.SessionTicketKey,
-		SessionTicketsDisabled: cfg.SessionTicketsDisabled,
+		Rand:                     cfg.Rand,
+		RootCAs:                  cfg.RootCAs,
+		ServerName:               cfg.ServerName,
+		SessionTicketKey:         cfg.SessionTicketKey,
+		SessionTicketsDisabled:   cfg.SessionTicketsDisabled,
 	}
 }

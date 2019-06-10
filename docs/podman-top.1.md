@@ -7,7 +7,7 @@ podman\-top - Display the running processes of a container
 **podman top** [*options*] *container* [*format-descriptors*]
 
 ## DESCRIPTION
-Display the running process of the container. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process.
+Display the running processes of the container. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated argument. Note that you can also specify options and or flags of ps(1); in this case, Podman will fallback to executing ps with the specified arguments and flags in the container.
 
 ## OPTIONS
 
@@ -19,6 +19,8 @@ Display the running process of the container. The *format-descriptors* are ps (1
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
+
+The latest option is not supported on the remote client.
 
 ## FORMAT DESCRIPTORS
 
@@ -81,10 +83,18 @@ root   8     1      0.000   11.386886562s   pts/0   0s     vi
 The output can be controlled by specifying format descriptors as arguments after the container:
 
 ```
-$ sudo ./bin/podman top -l pid seccomp args %C
+$ podman top -l pid seccomp args %C
 PID   SECCOMP   COMMAND     %CPU
 1     filter    sh          0.000
 8     filter    vi /etc/    0.000
+```
+
+Podman will fallback to executing ps(1) in the container if an unknown descriptor is specified.
+
+```
+$ podman top -l -- aux
+USER   PID   PPID   %CPU    ELAPSED             TTY   TIME   COMMAND
+root   1     0      0.000   1h2m12.497061672s   ?     0s     sleep 100000
 ```
 
 ## SEE ALSO

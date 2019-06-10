@@ -3,13 +3,17 @@ package sysregistriesv2
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+
+	"github.com/containers/image/docker/reference"
 )
 
 // systemRegistriesConfPath is the path to the system-wide registry
@@ -22,51 +26,68 @@ var systemRegistriesConfPath = builtinRegistriesConfPath
 // DO NOT change this, instead see systemRegistriesConfPath above.
 const builtinRegistriesConfPath = "/etc/containers/registries.conf"
 
-// Mirror represents a mirror. Mirrors can be used as pull-through caches for
-// registries.
-type Mirror struct {
-	// The mirror's URL.
-	URL string `toml:"url"`
+// Endpoint describes a remote location of a registry.
+type Endpoint struct {
+	// The endpoint's remote location.
+	Location string `toml:"location"`
 	// If true, certs verification will be skipped and HTTP (non-TLS)
 	// connections will be allowed.
 	Insecure bool `toml:"insecure"`
+}
+
+// RewriteReference will substitute the provided reference `prefix` to the
+// endpoints `location` from the `ref` and creates a new named reference from it.
+// The function errors if the newly created reference is not parsable.
+func (e *Endpoint) RewriteReference(ref reference.Named, prefix string) (reference.Named, error) {
+	refString := ref.String()
+	if !refMatchesPrefix(refString, prefix) {
+		return nil, fmt.Errorf("invalid prefix '%v' for reference '%v'", prefix, refString)
+	}
+
+	newNamedRef := strings.Replace(refString, prefix, e.Location, 1)
+	newParsedRef, err := reference.ParseNamed(newNamedRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error rewriting reference")
+	}
+	logrus.Debugf("reference rewritten from '%v' to '%v'", refString, newParsedRef.String())
+	return newParsedRef, nil
 }
 
 // Registry represents a registry.
 type Registry struct {
-	// Serializable registry URL.
-	URL string `toml:"url"`
+	// A registry is an Endpoint too
+	Endpoint
 	// The registry's mirrors.
-	Mirrors []Mirror `toml:"mirror"`
+	Mirrors []Endpoint `toml:"mirror"`
 	// If true, pulling from the registry will be blocked.
 	Blocked bool `toml:"blocked"`
-	// If true, certs verification will be skipped and HTTP (non-TLS)
-	// connections will be allowed.
-	Insecure bool `toml:"insecure"`
 	// If true, the registry can be used when pulling an unqualified image.
 	Search bool `toml:"unqualified-search"`
 	// Prefix is used for matching images, and to translate one namespace to
-	// another.  If `Prefix="example.com/bar"`, `URL="example.com/foo/bar"`
+	// another.  If `Prefix="example.com/bar"`, `location="example.com/foo/bar"`
 	// and we pull from "example.com/bar/myimage:latest", the image will
 	// effectively be pulled from "example.com/foo/bar/myimage:latest".
-	// If no Prefix is specified, it defaults to the specified URL.
+	// If no Prefix is specified, it defaults to the specified location.
 	Prefix string `toml:"prefix"`
 }
 
-// backwards compatability to sysregistries v1
-type v1TOMLregistries struct {
+// V1TOMLregistries is for backwards compatibility to sysregistries v1
+type V1TOMLregistries struct {
 	Registries []string `toml:"registries"`
+}
+
+// V1TOMLConfig is for backwards compatibility to sysregistries v1
+type V1TOMLConfig struct {
+	Search   V1TOMLregistries `toml:"search"`
+	Insecure V1TOMLregistries `toml:"insecure"`
+	Block    V1TOMLregistries `toml:"block"`
 }
 
 // tomlConfig is the data type used to unmarshal the toml config.
 type tomlConfig struct {
 	Registries []Registry `toml:"registry"`
 	// backwards compatability to sysregistries v1
-	V1Registries struct {
-		Search   v1TOMLregistries `toml:"search"`
-		Insecure v1TOMLregistries `toml:"insecure"`
-		Block    v1TOMLregistries `toml:"block"`
-	} `toml:"registries"`
+	V1TOMLConfig `toml:"registries"`
 }
 
 // InvalidRegistries represents an invalid registry configurations.  An example
@@ -81,56 +102,18 @@ func (e *InvalidRegistries) Error() string {
 	return e.s
 }
 
-// parseURL parses the input string, performs some sanity checks and returns
-// the sanitized input string.  An error is returned in case parsing fails or
-// or if URI scheme or user is set.
-func parseURL(input string) (string, error) {
+// parseLocation parses the input string, performs some sanity checks and returns
+// the sanitized input string.  An error is returned if the input string is
+// empty or if contains an "http{s,}://" prefix.
+func parseLocation(input string) (string, error) {
 	trimmed := strings.TrimRight(input, "/")
 
 	if trimmed == "" {
-		return "", &InvalidRegistries{s: "invalid URL: cannot be empty"}
+		return "", &InvalidRegistries{s: "invalid location: cannot be empty"}
 	}
 
-	// Ultimately, we expect input of the form example.com[/namespace/…], a prefix
-	// of a fully-expended reference (containers/image/docker/Reference.String()).
-	// c/image/docker/Reference does not currently provide such a parser.
-	// So, we use url.Parse("http://"+trimmed) below to ~verify the format, possibly
-	// letting some invalid input in, trading that off for a simpler parser.
-	//
-	// url.Parse("http://"+trimmed) is, sadly, too permissive, notably for
-	// trimmed == "http://example.com/…", url.Parse("http://http://example.com/…")
-	// is accepted and parsed as
-	// {Scheme: "http", Host: "http:", Path: "//example.com/…"}.
-	//
-	// So, first we do an explicit check for an unwanted scheme prefix:
-
-	// This will parse trimmed=="http://example.com/…" with Scheme: "http".  Perhaps surprisingly,
-	// it also succeeds for the input we want to accept, in different ways:
-	// "example.com" -> {Scheme:"", Opaque:"", Path:"example.com"}
-	// "example.com/repo" -> {Scheme:"", Opaque:"", Path:"example.com/repo"}
-	// "example.com:5000" -> {Scheme:"example.com", Opaque:"5000"}
-	// "example.com:5000/repo" -> {Scheme:"example.com", Opaque:"5000/repo"}
-	uri, err := url.Parse(trimmed)
-	if err != nil {
-		return "", &InvalidRegistries{s: fmt.Sprintf("invalid URL '%s': %v", input, err)}
-	}
-
-	// Check if a URI Scheme is set.
-	// Note that URLs that do not start with a slash after the scheme are
-	// interpreted as `scheme:opaque[?query][#fragment]`; see above for examples.
-	if uri.Scheme != "" && uri.Opaque == "" {
-		msg := fmt.Sprintf("invalid URL '%s': URI schemes are not supported", input)
-		return "", &InvalidRegistries{s: msg}
-	}
-
-	uri, err = url.Parse("http://" + trimmed)
-	if err != nil {
-		msg := fmt.Sprintf("invalid URL '%s': sanitized URL did not parse: %v", input, err)
-		return "", &InvalidRegistries{s: msg}
-	}
-
-	if uri.User != nil {
-		msg := fmt.Sprintf("invalid URL '%s': user/password are not supported", trimmed)
+	if strings.HasPrefix(trimmed, "http://") || strings.HasPrefix(trimmed, "https://") {
+		msg := fmt.Sprintf("invalid location '%s': URI schemes are not supported", input)
 		return "", &InvalidRegistries{s: msg}
 	}
 
@@ -141,40 +124,47 @@ func parseURL(input string) (string, error) {
 // registries of type Registry.
 func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	regMap := make(map[string]*Registry)
+	// We must preserve the order of config.V1Registries.Search.Registries at least.  The order of the
+	// other registries is not really important, but make it deterministic (the same for the same config file)
+	// to minimize behavior inconsistency and not contribute to difficult-to-reproduce situations.
+	registryOrder := []string{}
 
-	getRegistry := func(url string) (*Registry, error) { // Note: _pointer_ to a long-lived object
+	getRegistry := func(location string) (*Registry, error) { // Note: _pointer_ to a long-lived object
 		var err error
-		url, err = parseURL(url)
+		location, err = parseLocation(location)
 		if err != nil {
 			return nil, err
 		}
-		reg, exists := regMap[url]
+		reg, exists := regMap[location]
 		if !exists {
 			reg = &Registry{
-				URL:     url,
-				Mirrors: []Mirror{},
-				Prefix:  url,
+				Endpoint: Endpoint{Location: location},
+				Mirrors:  []Endpoint{},
+				Prefix:   location,
 			}
-			regMap[url] = reg
+			regMap[location] = reg
+			registryOrder = append(registryOrder, location)
 		}
 		return reg, nil
 	}
 
-	for _, search := range config.V1Registries.Search.Registries {
+	// Note: config.V1Registries.Search needs to be processed first to ensure registryOrder is populated in the right order
+	// if one of the search registries is also in one of the other lists.
+	for _, search := range config.V1TOMLConfig.Search.Registries {
 		reg, err := getRegistry(search)
 		if err != nil {
 			return nil, err
 		}
 		reg.Search = true
 	}
-	for _, blocked := range config.V1Registries.Block.Registries {
+	for _, blocked := range config.V1TOMLConfig.Block.Registries {
 		reg, err := getRegistry(blocked)
 		if err != nil {
 			return nil, err
 		}
 		reg.Blocked = true
 	}
-	for _, insecure := range config.V1Registries.Insecure.Registries {
+	for _, insecure := range config.V1TOMLConfig.Insecure.Registries {
 		reg, err := getRegistry(insecure)
 		if err != nil {
 			return nil, err
@@ -183,14 +173,15 @@ func getV1Registries(config *tomlConfig) ([]Registry, error) {
 	}
 
 	registries := []Registry{}
-	for _, reg := range regMap {
+	for _, location := range registryOrder {
+		reg := regMap[location]
 		registries = append(registries, *reg)
 	}
 	return registries, nil
 }
 
 // postProcessRegistries checks the consistency of all registries (e.g., set
-// the Prefix to URL if not set) and applies conflict checks.  It returns an
+// the Prefix to Location if not set) and applies conflict checks.  It returns an
 // array of cleaned registries and error in case of conflicts.
 func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	var registries []Registry
@@ -199,16 +190,16 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	for _, reg := range regs {
 		var err error
 
-		// make sure URL and Prefix are valid
-		reg.URL, err = parseURL(reg.URL)
+		// make sure Location and Prefix are valid
+		reg.Location, err = parseLocation(reg.Location)
 		if err != nil {
 			return nil, err
 		}
 
 		if reg.Prefix == "" {
-			reg.Prefix = reg.URL
+			reg.Prefix = reg.Location
 		} else {
-			reg.Prefix, err = parseURL(reg.Prefix)
+			reg.Prefix, err = parseLocation(reg.Prefix)
 			if err != nil {
 				return nil, err
 			}
@@ -216,13 +207,13 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 
 		// make sure mirrors are valid
 		for _, mir := range reg.Mirrors {
-			mir.URL, err = parseURL(mir.URL)
+			mir.Location, err = parseLocation(mir.Location)
 			if err != nil {
 				return nil, err
 			}
 		}
 		registries = append(registries, reg)
-		regMap[reg.URL] = append(regMap[reg.URL], reg)
+		regMap[reg.Location] = append(regMap[reg.Location], reg)
 	}
 
 	// Given a registry can be mentioned multiple times (e.g., to have
@@ -232,15 +223,15 @@ func postProcessRegistries(regs []Registry) ([]Registry, error) {
 	// Note: we need to iterate over the registries array to ensure a
 	// deterministic behavior which is not guaranteed by maps.
 	for _, reg := range registries {
-		others, _ := regMap[reg.URL]
+		others, _ := regMap[reg.Location]
 		for _, other := range others {
 			if reg.Insecure != other.Insecure {
-				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.URL)
+				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'insecure' setting", reg.Location)
 
 				return nil, &InvalidRegistries{s: msg}
 			}
 			if reg.Blocked != other.Blocked {
-				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'blocked' setting", reg.URL)
+				msg := fmt.Sprintf("registry '%s' is defined multiple times with conflicting 'blocked' setting", reg.Location)
 				return nil, &InvalidRegistries{s: msg}
 			}
 		}
@@ -271,7 +262,18 @@ var configMutex = sync.Mutex{}
 // are synchronized via configMutex.
 var configCache = make(map[string][]Registry)
 
+// InvalidateCache invalidates the registry cache.  This function is meant to be
+// used for long-running processes that need to reload potential changes made to
+// the cached registry config files.
+func InvalidateCache() {
+	configMutex.Lock()
+	defer configMutex.Unlock()
+	configCache = make(map[string][]Registry)
+}
+
 // GetRegistries loads and returns the registries specified in the config.
+// Note the parsed content of registry config files is cached.  For reloading,
+// use `InvalidateCache` and re-call `GetRegistries`.
 func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 	configPath := getConfigPath(ctx)
 
@@ -285,6 +287,13 @@ func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 	// load the config
 	config, err := loadRegistryConf(configPath)
 	if err != nil {
+		// Return an empty []Registry if we use the default config,
+		// which implies that the config path of the SystemContext
+		// isn't set.  Note: if ctx.SystemRegistriesConfPath points to
+		// the default config, we will still return an error.
+		if os.IsNotExist(err) && (ctx == nil || ctx.SystemRegistriesConfPath == "") {
+			return []Registry{}, nil
+		}
 		return nil, err
 	}
 
@@ -315,23 +324,62 @@ func GetRegistries(ctx *types.SystemContext) ([]Registry, error) {
 
 // FindUnqualifiedSearchRegistries returns all registries that are configured
 // for unqualified image search (i.e., with Registry.Search == true).
-func FindUnqualifiedSearchRegistries(registries []Registry) []Registry {
+func FindUnqualifiedSearchRegistries(ctx *types.SystemContext) ([]Registry, error) {
+	registries, err := GetRegistries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	unqualified := []Registry{}
 	for _, reg := range registries {
 		if reg.Search {
 			unqualified = append(unqualified, reg)
 		}
 	}
-	return unqualified
+	return unqualified, nil
 }
 
-// FindRegistry returns the Registry with the longest prefix for ref.  If no
-// Registry prefixes the image, nil is returned.
-func FindRegistry(ref string, registries []Registry) *Registry {
+// refMatchesPrefix returns true iff ref,
+// which is a registry, repository namespace, repository or image reference (as formatted by
+// reference.Domain(), reference.Named.Name() or reference.Reference.String()
+// — note that this requires the name to start with an explicit hostname!),
+// matches a Registry.Prefix value.
+// (This is split from the caller primarily to make testing easier.)
+func refMatchesPrefix(ref, prefix string) bool {
+	switch {
+	case len(ref) < len(prefix):
+		return false
+	case len(ref) == len(prefix):
+		return ref == prefix
+	case len(ref) > len(prefix):
+		if !strings.HasPrefix(ref, prefix) {
+			return false
+		}
+		c := ref[len(prefix)]
+		// This allows "example.com:5000" to match "example.com",
+		// which is unintended; that will get fixed eventually, DON'T RELY
+		// ON THE CURRENT BEHAVIOR.
+		return c == ':' || c == '/' || c == '@'
+	default:
+		panic("Internal error: impossible comparison outcome")
+	}
+}
+
+// FindRegistry returns the Registry with the longest prefix for ref,
+// which is a registry, repository namespace repository or image reference (as formatted by
+// reference.Domain(), reference.Named.Name() or reference.Reference.String()
+// — note that this requires the name to start with an explicit hostname!).
+// If no Registry prefixes the image, nil is returned.
+func FindRegistry(ctx *types.SystemContext, ref string) (*Registry, error) {
+	registries, err := GetRegistries(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	reg := Registry{}
 	prefixLen := 0
 	for _, r := range registries {
-		if strings.HasPrefix(ref, r.Prefix) {
+		if refMatchesPrefix(ref, r.Prefix) {
 			length := len(r.Prefix)
 			if length > prefixLen {
 				reg = r
@@ -340,9 +388,9 @@ func FindRegistry(ref string, registries []Registry) *Registry {
 		}
 	}
 	if prefixLen != 0 {
-		return &reg
+		return &reg, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // Reads the global registry file from the filesystem. Returns a byte array.

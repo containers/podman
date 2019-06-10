@@ -71,7 +71,7 @@ type Container struct {
 type ContainerStore interface {
 	FileBasedStore
 	MetadataStore
-	BigDataStore
+	ContainerBigDataStore
 	FlaggableStore
 
 	// Create creates a container that has a specified ID (or generates a
@@ -131,6 +131,27 @@ func copyContainer(c *Container) *Container {
 		GIDMap:         copyIDMap(c.GIDMap),
 		Flags:          copyStringInterfaceMap(c.Flags),
 	}
+}
+
+func (c *Container) MountLabel() string {
+	if label, ok := c.Flags["MountLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
+func (c *Container) ProcessLabel() string {
+	if label, ok := c.Flags["ProcessLabel"].(string); ok {
+		return label
+	}
+	return ""
+}
+
+func (c *Container) MountOpts() []string {
+	if mountOpts, ok := c.Flags["MountOpts"].([]string); ok {
+		return mountOpts
+	}
+	return nil
 }
 
 func (r *containerStore) Containers() ([]Container, error) {
@@ -279,6 +300,9 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 	if _, idInUse := r.byid[id]; idInUse {
 		return nil, ErrDuplicateID
 	}
+	if options.MountOpts != nil {
+		options.Flags["MountOpts"] = append([]string{}, options.MountOpts...)
+	}
 	names = dedupeNames(names)
 	for _, name := range names {
 		if _, nameInUse := r.byname[name]; nameInUse {
@@ -297,7 +321,7 @@ func (r *containerStore) Create(id string, names []string, image, layer, metadat
 			BigDataSizes:   make(map[string]int64),
 			BigDataDigests: make(map[string]digest.Digest),
 			Created:        time.Now().UTC(),
-			Flags:          make(map[string]interface{}),
+			Flags:          copyStringInterfaceMap(options.Flags),
 			UIDMap:         copyIDMap(options.UIDMap),
 			GIDMap:         copyIDMap(options.GIDMap),
 		}
@@ -432,7 +456,7 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 		return size, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
+		if err = r.SetBigData(id, key, data); err == nil {
 			c, ok := r.lookup(id)
 			if !ok {
 				return -1, ErrContainerUnknown
@@ -440,6 +464,8 @@ func (r *containerStore) BigDataSize(id, key string) (int64, error) {
 			if size, ok := c.BigDataSizes[key]; ok {
 				return size, nil
 			}
+		} else {
+			return -1, err
 		}
 	}
 	return -1, ErrSizeUnknown
@@ -460,7 +486,7 @@ func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 		return d, nil
 	}
 	if data, err := r.BigData(id, key); err == nil && data != nil {
-		if r.SetBigData(id, key, data) == nil {
+		if err = r.SetBigData(id, key, data); err == nil {
 			c, ok := r.lookup(id)
 			if !ok {
 				return "", ErrContainerUnknown
@@ -468,6 +494,8 @@ func (r *containerStore) BigDataDigest(id, key string) (digest.Digest, error) {
 			if d, ok := c.BigDataDigests[key]; ok {
 				return d, nil
 			}
+		} else {
+			return "", err
 		}
 	}
 	return "", ErrDigestUnknown
@@ -544,6 +572,13 @@ func (r *containerStore) Lock() {
 	r.lockfile.Lock()
 }
 
+func (r *containerStore) RecursiveLock() {
+	r.lockfile.RecursiveLock()
+}
+
+func (r *containerStore) RLock() {
+	r.lockfile.RLock()
+}
 func (r *containerStore) Unlock() {
 	r.lockfile.Unlock()
 }

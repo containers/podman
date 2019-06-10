@@ -15,6 +15,7 @@
 package version
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/containernetworking/cni/pkg/types"
@@ -58,4 +59,25 @@ func NewResult(version string, resultBytes []byte) (types.Result, error) {
 	}
 
 	return nil, fmt.Errorf("unsupported CNI result version %q", version)
+}
+
+// ParsePrevResult parses a prevResult in a NetConf structure and sets
+// the NetConf's PrevResult member to the parsed Result object.
+func ParsePrevResult(conf *types.NetConf) error {
+	if conf.RawPrevResult == nil {
+		return nil
+	}
+
+	resultBytes, err := json.Marshal(conf.RawPrevResult)
+	if err != nil {
+		return fmt.Errorf("could not serialize prevResult: %v", err)
+	}
+
+	conf.RawPrevResult = nil
+	conf.PrevResult, err = NewResult(conf.CNIVersion, resultBytes)
+	if err != nil {
+		return fmt.Errorf("could not parse prevResult: %v", err)
+	}
+
+	return nil
 }

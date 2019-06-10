@@ -4,10 +4,10 @@
 podman\-pod\-top - Display the running processes of containers in a pod
 
 ## SYNOPSIS
-**podman top** [*options*] *pod* [*format-descriptors*]
+**podman pod top** [*options*] *pod* [*format-descriptors*]
 
 ## DESCRIPTION
-Display the running process of containers in a pod. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process.
+Display the running processes of containers in a pod. The *format-descriptors* are ps (1) compatible AIX format descriptors but extended to print additional information, such as the seccomp mode or the effective capabilities of a given process. The descriptors can either be passed as separated arguments or as a single comma-separated argument. Note that you can also specify options and or flags of ps(1); in this case, Podman will fallback to executing ps with the specified arguments and flags in the container.
 
 ## OPTIONS
 
@@ -18,6 +18,8 @@ Display the running process of containers in a pod. The *format-descriptors* are
 **--latest, -l**
 
 Instead of providing the pod name or ID, use the last created pod.
+
+The latest option is not supported on the remote client.
 
 ## FORMAT DESCRIPTORS
 

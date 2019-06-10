@@ -1,47 +1,61 @@
 package main
 
 import (
-	"encoding/json"
-
 	"fmt"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
+	"github.com/spf13/cobra"
 )
 
 var (
-	podInspectFlags = []cli.Flag{
-		LatestPodFlag,
-	}
-	podInspectDescription = "display the configuration for a pod by name or id"
-	podInspectCommand     = cli.Command{
-		Name:                   "inspect",
-		Usage:                  "displays a pod configuration",
-		Description:            podInspectDescription,
-		Flags:                  podInspectFlags,
-		Action:                 podInspectCmd,
-		UseShortOptionHandling: true,
-		ArgsUsage:              "[POD_NAME_OR_ID]",
-		OnUsageError:           usageErrorHandler,
+	podInspectCommand     cliconfig.PodInspectValues
+	podInspectDescription = `Display the configuration for a pod by name or id
+
+  By default, this will render all results in a JSON array.`
+
+	_podInspectCommand = &cobra.Command{
+		Use:   "inspect [flags] POD",
+		Short: "Displays a pod configuration",
+		Long:  podInspectDescription,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			podInspectCommand.InputArgs = args
+			podInspectCommand.GlobalFlags = MainGlobalOpts
+			podInspectCommand.Remote = remoteclient
+			return podInspectCmd(&podInspectCommand)
+		},
+		Example: `podman pod inspect podID`,
 	}
 )
 
-func podInspectCmd(c *cli.Context) error {
+func init() {
+	podInspectCommand.Command = _podInspectCommand
+	podInspectCommand.SetHelpTemplate(HelpTemplate())
+	podInspectCommand.SetUsageTemplate(UsageTemplate())
+	flags := podInspectCommand.Flags()
+	flags.BoolVarP(&podInspectCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
+
+	markFlagHiddenForRemoteClient("latest", flags)
+}
+
+func podInspectCmd(c *cliconfig.PodInspectValues) error {
 	var (
-		pod *libpod.Pod
+		pod *adapter.Pod
 	)
-	if err := checkMutuallyExclusiveFlags(c); err != nil {
-		return err
+	args := c.InputArgs
+
+	if len(args) < 1 && !c.Latest {
+		return errors.Errorf("you must provide the name or id of a pod")
 	}
-	args := c.Args()
-	runtime, err := libpodruntime.GetRuntime(c)
+
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
 
-	if c.Bool("latest") {
+	if c.Latest {
 		pod, err = runtime.GetLatestPod()
 		if err != nil {
 			return errors.Wrapf(err, "unable to get latest pod")

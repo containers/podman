@@ -1,128 +1,119 @@
 package libpodruntime
 
 import (
-	"fmt"
-	"os"
-	"path/filepath"
+	"context"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 )
 
-// GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	storageOpts, err := GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
+// GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
+func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, true)
 }
 
-// GetContainerRuntime generates a new libpod runtime configured by command line options for containers
-func GetContainerRuntime(c *cli.Context) (*libpod.Runtime, error) {
-	mappings, err := util.ParseIDMapping(c.StringSlice("uidmap"), c.StringSlice("gidmap"), c.String("subuidmap"), c.String("subgidmap"))
-	if err != nil {
-		return nil, err
-	}
-	storageOpts, err := GetDefaultStoreOptions()
-	if err != nil {
-		return nil, err
-	}
-	storageOpts.UIDMap = mappings.UIDMap
-	storageOpts.GIDMap = mappings.GIDMap
-	return GetRuntimeWithStorageOpts(c, &storageOpts)
-}
-
-func GetRootlessStorageOpts() (storage.StoreOptions, error) {
-	var opts storage.StoreOptions
-
-	rootlessRuntime, err := libpod.GetRootlessRuntimeDir()
-	if err != nil {
-		return opts, err
-	}
-	opts.RunRoot = filepath.Join(rootlessRuntime, "run")
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return opts, fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return opts, errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
-	opts.GraphDriverName = "vfs"
-	return opts, nil
-}
-
-func GetDefaultStoreOptions() (storage.StoreOptions, error) {
-	storageOpts := storage.DefaultStoreOptions
-	if rootless.IsRootless() {
-		var err error
-		storageOpts, err = GetRootlessStorageOpts()
-		if err != nil {
-			return storageOpts, err
-		}
-
-		storageConf := filepath.Join(os.Getenv("HOME"), ".config/containers/storage.conf")
-		if _, err := os.Stat(storageConf); err == nil {
-			storage.ReloadConfigurationFile(storageConf, &storageOpts)
-		}
-	}
-	return storageOpts, nil
+// GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
+func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, true, false)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions) (*libpod.Runtime, error) {
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, false)
+}
+
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
+	storageOpts := storage.StoreOptions{}
+	storageSet := false
 
-	if c.GlobalIsSet("root") {
-		storageOpts.GraphRoot = c.GlobalString("root")
-	}
-	if c.GlobalIsSet("runroot") {
-		storageOpts.RunRoot = c.GlobalString("runroot")
-	}
-	if c.GlobalIsSet("storage-driver") {
-		storageOpts.GraphDriverName = c.GlobalString("storage-driver")
-	}
-	if c.GlobalIsSet("storage-opt") {
-		storageOpts.GraphDriverOptions = c.GlobalStringSlice("storage-opt")
+	uidmapFlag := c.Flags().Lookup("uidmap")
+	gidmapFlag := c.Flags().Lookup("gidmap")
+	subuidname := c.Flags().Lookup("subuidname")
+	subgidname := c.Flags().Lookup("subgidname")
+	if (uidmapFlag != nil && gidmapFlag != nil && subuidname != nil && subgidname != nil) &&
+		(uidmapFlag.Changed || gidmapFlag.Changed || subuidname.Changed || subgidname.Changed) {
+		userns, _ := c.Flags().GetString("userns")
+		uidmapVal, _ := c.Flags().GetStringSlice("uidmap")
+		gidmapVal, _ := c.Flags().GetStringSlice("gidmap")
+		subuidVal, _ := c.Flags().GetString("subuidname")
+		subgidVal, _ := c.Flags().GetString("subgidname")
+		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(userns), uidmapVal, gidmapVal, subuidVal, subgidVal)
+		if err != nil {
+			return nil, err
+		}
+		storageOpts.UIDMap = mappings.UIDMap
+		storageOpts.GIDMap = mappings.GIDMap
+
+		storageSet = true
 	}
 
-	options = append(options, libpod.WithStorageConfig(*storageOpts))
+	if c.Flags().Changed("root") {
+		storageSet = true
+		storageOpts.GraphRoot = c.GlobalFlags.Root
+	}
+	if c.Flags().Changed("runroot") {
+		storageSet = true
+		storageOpts.RunRoot = c.GlobalFlags.Runroot
+	}
+	if len(storageOpts.RunRoot) > 50 {
+		return nil, errors.New("the specified runroot is longer than 50 characters")
+	}
+	if c.Flags().Changed("storage-driver") {
+		storageSet = true
+		storageOpts.GraphDriverName = c.GlobalFlags.StorageDriver
+	}
+	if len(c.GlobalFlags.StorageOpts) > 0 {
+		storageSet = true
+		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
+	}
+	if migrate {
+		options = append(options, libpod.WithMigrate())
+	}
+
+	if renumber {
+		options = append(options, libpod.WithRenumber())
+	}
+
+	// Only set this if the user changes storage config on the command line
+	if storageSet {
+		options = append(options, libpod.WithStorageConfig(storageOpts))
+	}
 
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
-	if c.GlobalIsSet("namespace") {
-		options = append(options, libpod.WithNamespace(c.GlobalString("namespace")))
+	if len(c.GlobalFlags.Namespace) > 0 {
+		options = append(options, libpod.WithNamespace(c.GlobalFlags.Namespace))
 	}
 
-	if c.GlobalIsSet("runtime") {
-		options = append(options, libpod.WithOCIRuntime(c.GlobalString("runtime")))
+	if c.Flags().Changed("runtime") {
+		options = append(options, libpod.WithOCIRuntime(c.GlobalFlags.Runtime))
 	}
 
-	if c.GlobalIsSet("conmon") {
-		options = append(options, libpod.WithConmonPath(c.GlobalString("conmon")))
+	if c.Flags().Changed("conmon") {
+		options = append(options, libpod.WithConmonPath(c.GlobalFlags.ConmonPath))
 	}
-	if c.GlobalIsSet("tmpdir") {
-		options = append(options, libpod.WithTmpDir(c.GlobalString("tmpdir")))
+	if c.Flags().Changed("tmpdir") {
+		options = append(options, libpod.WithTmpDir(c.GlobalFlags.TmpDir))
+	}
+	if c.Flags().Changed("network-cmd-path") {
+		options = append(options, libpod.WithNetworkCmdPath(c.GlobalFlags.NetworkCmdPath))
 	}
 
-	if c.GlobalIsSet("cgroup-manager") {
-		options = append(options, libpod.WithCgroupManager(c.GlobalString("cgroup-manager")))
+	if c.Flags().Changed("cgroup-manager") {
+		options = append(options, libpod.WithCgroupManager(c.GlobalFlags.CGroupManager))
 	} else {
-		if rootless.IsRootless() {
+		unified, err := util.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
+		}
+		if rootless.IsRootless() && !unified {
 			options = append(options, libpod.WithCgroupManager("cgroupfs"))
 		}
 	}
@@ -130,28 +121,36 @@ func GetRuntimeWithStorageOpts(c *cli.Context, storageOpts *storage.StoreOptions
 	// TODO flag to set libpod static dir?
 	// TODO flag to set libpod tmp dir?
 
-	if c.GlobalIsSet("cni-config-dir") {
-		options = append(options, libpod.WithCNIConfigDir(c.GlobalString("cni-config-dir")))
+	if c.Flags().Changed("cni-config-dir") {
+		options = append(options, libpod.WithCNIConfigDir(c.GlobalFlags.CniConfigDir))
 	}
-	if c.GlobalIsSet("default-mounts-file") {
-		options = append(options, libpod.WithDefaultMountsFile(c.GlobalString("default-mounts-file")))
+	if c.Flags().Changed("default-mounts-file") {
+		options = append(options, libpod.WithDefaultMountsFile(c.GlobalFlags.DefaultMountsFile))
 	}
-	if c.GlobalIsSet("hooks-dir-path") {
-		options = append(options, libpod.WithHooksDir(c.GlobalString("hooks-dir-path")))
+	if c.Flags().Changed("hooks-dir") {
+		options = append(options, libpod.WithHooksDir(c.GlobalFlags.HooksDir...))
 	}
 
 	// TODO flag to set CNI plugins dir?
 
+	// TODO I dont think these belong here?
+	// Will follow up with a different PR to address
+	//
 	// Pod create options
-	if c.IsSet("infra-image") {
-		options = append(options, libpod.WithDefaultInfraImage(c.String("infra-image")))
+
+	infraImageFlag := c.Flags().Lookup("infra-image")
+	if infraImageFlag != nil && infraImageFlag.Changed {
+		infraImage, _ := c.Flags().GetString("infra-image")
+		options = append(options, libpod.WithDefaultInfraImage(infraImage))
 	}
 
-	if c.IsSet("infra-command") {
-		options = append(options, libpod.WithDefaultInfraCommand(c.String("infra-command")))
+	infraCommandFlag := c.Flags().Lookup("infra-command")
+	if infraCommandFlag != nil && infraImageFlag.Changed {
+		infraCommand, _ := c.Flags().GetString("infra-command")
+		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}
-	if c.IsSet("config") {
-		return libpod.NewRuntimeFromConfig(c.String("config"), options...)
+	if c.Flags().Changed("config") {
+		return libpod.NewRuntimeFromConfig(ctx, c.GlobalFlags.Config, options...)
 	}
-	return libpod.NewRuntime(options...)
+	return libpod.NewRuntime(ctx, options...)
 }
