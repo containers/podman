@@ -11,7 +11,7 @@ Pauses all the processes in one or more containers.  You may use container IDs o
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Pause all running containers.
 

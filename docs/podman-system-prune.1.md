@@ -1,14 +1,10 @@
-% podman-system-prune(1) podman
+% podman-system-prune(1)
 
 ## NAME
 podman\-system\-prune - Remove all unused container, image and volume data
 
 ## SYNOPSIS
-**podman system prune**
-[**-all**|**--a**]
-[**-force**|**--f**]
-[**-help**|**--h**]
-[**-volumes**|**--v**]
+**podman system prune** [*options*]
 
 ## DESCRIPTION
 **podman system prune** removes all unused containers (both dangling and unreferenced), pods and optionally, volumes from local storage.
@@ -18,13 +14,17 @@ With the `all` option, you can delete all unused images.  Unused images are dang
 By default, volumes are not removed to prevent important data from being deleted if there is currently no container using the volume. Use the --volumes flag when running the command to prune volumes as well.
 
 ## OPTIONS
-**--all, -a**
+**--all**, **-a**
 
 Remove all unused images not just dangling ones.
 
-**--force, -f**
+**--force**, **-f**
 
 Do not prompt for confirmation
+
+**--help**, **-h**
+
+Print usage statement
 
 **--volumes**
 
@@ -33,5 +33,5 @@ Prune volumes not used by at least one container
 ## SEE ALSO
 podman(1), podman-image-prune(1), podman-container-prune(1), podman-pod-prune(1), podman-volume-prune(1)
 
-# HISTORY
+## HISTORY
 February 2019, Originally compiled by Dan Walsh (dwalsh at redhat dot com)

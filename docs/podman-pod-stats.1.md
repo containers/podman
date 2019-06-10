@@ -1,4 +1,4 @@
-% podman-pod-stats "1"
+% podman-pod-stats(1)
 
 ## NAME
 podman\-pod\-stats - Display a live stream of resource usage statistics for the containers in one or more pods
@@ -11,11 +11,11 @@ Display a live stream of containers in one or more pods resource usage statistic
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Show all containers.  Only running containers are shown by default
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the pod name or ID, use the last created pod.
 
@@ -29,7 +29,7 @@ Do not clear the terminal/screen in between reporting intervals
 
 Disable streaming pod stats and only pull the first result, default setting is false
 
-**--format="TEMPLATE"**
+**--format**=*template*
 
 Pretty-print container statistics to JSON or using a Go template
 
@@ -80,7 +80,7 @@ a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   --
 ```
 
 ```
-# podman pod-stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" 6eae
+# podman pod stats --no-stream --format "table {{.ID}} {{.Name}} {{.MemUsage}}" 6eae
 ID             NAME           MEM USAGE / LIMIT
 6eae9e25a564   clever_bassi   3.031MB / 16.7GB
 ```

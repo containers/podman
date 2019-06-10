@@ -4,7 +4,7 @@
 podman\-volume\-inspect - Inspect one or more volumes
 
 ## SYNOPSIS
-**podman volume inspect** [*options*] *volume*...
+**podman volume inspect** [*options*] *volume* [...]
 
 ## DESCRIPTION
 
@@ -19,7 +19,7 @@ existing volumes, use the **--all** flag.
 
 Inspect all volumes.
 
-**--format**=""
+**--format**=*format*
 
 Format volume output using Go template
 

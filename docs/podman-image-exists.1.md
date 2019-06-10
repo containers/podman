@@ -1,19 +1,24 @@
-% PODMAN(1) Podman Man Pages
-% Brent Baude
-% November 2018
-# NAME
+% podman-image-exists(1)
+
+## NAME
 podman-image-exists - Check if an image exists in local storage
 
-# SYNOPSIS
-**podman image exists** [*-h*|*--help*] *image*
+## SYNOPSIS
+**podman image exists** [*options*] *image*
 
-# DESCRIPTION
+## DESCRIPTION
 **podman image exists** checks if an image exists in local storage. The **ID** or **Name**
 of the image may be used as input.  Podman will return an exit code
 of `0` when the image is found.  A `1` will be returned otherwise. An exit code of `125` indicates there
 was an issue accessing the local storage.
 
-## Examples ##
+## OPTIONS
+
+**--help**, **-h**
+
+Print usage statement
+
+## Examples
 
 Check if an image called `webclient` exists in local storage (the image does actually exist).
 ```
@@ -34,5 +39,5 @@ $
 ## SEE ALSO
 podman(1)
 
-# HISTORY
+## HISTORY
 November 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

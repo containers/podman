@@ -1,4 +1,4 @@
-% podman-stop "1"
+% podman-stop(1)
 
 ## NAME
 podman\-stop - Stop one or more containers
@@ -15,18 +15,18 @@ container and also via command line when creating the container.
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Stop all running containers.  This does not include paused containers.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client.
 
-**--timeout, --time, t**
+**--timeout**, **--time**, **t**=*time*
 
 Timeout to wait before forcibly stopping the container
 

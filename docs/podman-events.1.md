@@ -71,7 +71,7 @@ Print usage statement.
 Format the output using the given Go template.  An output value of *json* is not supported.
 
 
-**--filter**=[]
+**--filter**=*filter*
 
 Filter events that are displayed.  They must be in the format of "filter=value".  The following
 filters are supported:
@@ -84,12 +84,12 @@ filters are supported:
 
 In the case where an ID is used, the ID may be in its full or shortened form.
 
-**--since**=[]
+**--since**=*timestamp*
 
 Show all events created since the given timestamp
 
 
-**--until**=[]
+**--until**=*timestamp*
 
 Show all events created until the given timestamp
 

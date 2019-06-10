@@ -14,27 +14,27 @@ attach to the container.
 
 ## OPTIONS
 
-**--attach, -a**
+**--attach**, **-a**
 
 Attach container's STDOUT and STDERR.  The default is false. This option cannot be used when
 starting multiple containers.
 
-**--detach-keys**
+**--detach-keys**=*char*
 
 Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
-**--interactive, -i**
+**--interactive**, **-i**
 
 Attach container's STDIN. The default is false.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client.
 
-**--sig-proxy**=*true*|*false*
+**--sig-proxy**=*true|false*
 
 Proxy received signals to the process (non-TTY mode only). SIGCHLD, SIGSTOP, and SIGKILL are not proxied. The default is *true* when attaching, *false* otherwise.
 

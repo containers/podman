@@ -21,19 +21,19 @@ created by the other.
 
 ## GLOBAL OPTIONS
 
-**--help, -h**
+**--help**, **-h**
 
 Print usage statement
 
-**--cgroup-manager**
+**--cgroup-manager**=*manager*
 
 CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd (default). Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
 
-**--cpu-profile**
+**--cpu-profile**=*path*
 
 Path to where the cpu performance results should be written
 
-**--hooks-dir**=**path**
+**--hooks-dir**=*path*
 
 Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.
 
@@ -49,40 +49,40 @@ Podman and libpod currently support an additional `precreate` state which is cal
 
 **WARNING**: the `precreate` hook lets you do powerful things, such as adding additional mounts to the runtime configuration.  That power also makes it easy to break things.  Before reporting libpod errors, try running your container with `precreate` hooks disabled to see if the problem is due to one of your hooks.
 
-**--log-level**
+**--log-level**=*level*
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
 
-**--namespace**
+**--namespace**=*namespace*
 
 Set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
 When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
 
-**--root**=**value**
+**--root=***value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
 Default root dir is configured in /etc/containers/storage.conf.
 
-**--runroot**=**value**
+**--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/var/run/containers/storage" for UID 0, "/var/run/user/$UID/run" for other users).
 Default state dir is configured in /etc/containers/storage.conf.
 
-**--runtime**=**value**
+**--runtime**=*value*
 
 Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
 
-**--network-cmd-path**=**path**
+**--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
-**--storage-driver**=**value**
+**--storage-driver**=*value*
 
 Storage driver.  The default storage driver for UID 0 is configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode), and is *vfs* for non-root users when *fuse-overlayfs* is not available.  The `STORAGE_DRIVER` environment variable overrides the default.  The --storage-driver specified driver overrides all.
 
 Overriding this option will cause the *storage-opt* settings in /etc/containers/storage.conf to be ignored.  The user must
 specify additional options via the `--storage-opt` flag.
 
-**--storage-opt**=**value**
+**--storage-opt**=*value*
 
 Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
 
@@ -90,7 +90,7 @@ Storage driver option, Default storage driver options are configured in /etc/con
 
 output logging information to syslog as well as the console
 
-**--version, -v**
+**--version**, **-v**
 
 Print the version
 

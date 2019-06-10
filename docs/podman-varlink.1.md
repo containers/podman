@@ -1,4 +1,4 @@
-% podman-varlink "1"
+% podman-varlink(1)
 
 ## NAME
 podman\-varlink - Runs the varlink backend interface
@@ -12,13 +12,14 @@ URI will be used depending on the user calling the varlink service.  The default
 users will have a default *uri* of `$XDG_RUNTIME_DIR/podman/io.podman`.  For example, `unix:/run/user/1000/podman/io.podman`
 The varlink service should generally be done with systemd.  See _Configuration_ below.
 
-## GLOBAL OPTIONS
-
-**--help, -h**
-  Print usage statement
 
 ## OPTIONS
-**--timeout, -t**
+
+**--help**, **-h**
+
+  Print usage statement
+
+**--timeout**, **-t**
 
 The time until the varlink session expires in _milliseconds_. The default is 1
 second. A value of `0` means no timeout and the session will not expire.

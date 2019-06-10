@@ -1,4 +1,4 @@
-% podman-version "1"
+% podman-version(1)
 
 ## NAME
 podman\-version - Display the PODMAN Version Information
@@ -16,7 +16,7 @@ OS, and Architecture.
 
 Print usage statement
 
-**--format**, **-f**
+**--format**, **-f**=*format*
 
 Change output format to "json" or a Go template.
 

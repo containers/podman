@@ -4,14 +4,14 @@
 podman\-images - List images in local storage
 
 ## SYNOPSIS
-**podman** **images** [*options*]
+**podman images** [*options*]
 
 ## DESCRIPTION
 Displays locally stored images, their names, and their IDs.
 
 ## OPTIONS
 
-**--all, -a**
+**-a**, **--all**
 
 Show all images (by default filter out the intermediate image layers). The default is false.
 
@@ -19,28 +19,28 @@ Show all images (by default filter out the intermediate image layers). The defau
 
 Show image digests
 
-**--filter, -f=[]**
+**-f**, **--filter**=*filter*
 
-Filter output based on conditions provided (default [])
+Filter output based on conditions provided
 
-**--format**
+**--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
 
-**--noheading, -n**
+**--noheading**, **-n**
 
 Omit the table headings from the listing of images.
 
-**--no-trunc, --notruncate**
+**--no-trunc**, **--notruncate**
 
 Do not truncate output.
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Lists only the image IDs.
 
-**--sort**
+**--sort**=*sort*
 
 Sort by created, id, repository, size or tag (default: created)
 

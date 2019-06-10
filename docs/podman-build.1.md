@@ -21,19 +21,19 @@ When a Git repository is set as the URL, the repository is cloned locally and th
 
 ## OPTIONS
 
-**--add-host**=[]
+**--add-host**=*host*
 
 Add a custom host-to-IP mapping (host:ip)
 
 Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** option can be set multiple times.
 
-**--annotation** *annotation*
+**--annotation**=*annotation*
 
 Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can be used multiple times.
 
 Note: this information is not present in Docker image formats, so it is discarded when writing images in Docker formats.
 
-**--authfile** *path*
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
@@ -41,7 +41,7 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--build-arg** *arg=value*
+**--build-arg**=*arg=value*
 
 Specifies a build argument and its value, which will be interpolated in
 instructions read from the Dockerfiles in the same way that environment
@@ -72,12 +72,12 @@ If a capability is specified to both the **--cap-add** and **--cap-drop**
 options, it will be dropped, regardless of the order in which the options were
 given.
 
-**--cert-dir** *path*
+**--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
-**--cgroup-parent**=""
+**--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
@@ -99,13 +99,13 @@ network namespaces, and networking is not disabled.
 List of directories in which the CNI plugins which will be used for configuring
 network namespaces can be found.
 
-**--cpu-period**=*0*
+**--cpu-period**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) period
 
 Limit the container's CPU usage. This flag tell the kernel to restrict the container's CPU usage to the period you specify.
 
-**--cpu-quota**=*0*
+**--cpu-quota**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) quota
 
@@ -113,7 +113,7 @@ Limit the container's CPU usage. By default, containers run with the full
 CPU resource. This flag tell the kernel to restrict the container's CPU usage
 to the quota you specify.
 
-**--cpu-shares, -c**=*0*
+**--cpu-shares**, **-c**=*shares*
 
 CPU shares (relative weight)
 
@@ -150,11 +150,11 @@ division of CPU shares:
     101    {C1}		1	100% of CPU1
     102    {C1}		2	100% of CPU2
 
-**--cpuset-cpus**=""
+**--cpuset-cpus**=*num*
 
   CPUs in which to allow execution (0-3, 0,1)
 
-**--cpuset-mems**=""
+**--cpuset-mems**=*nodes*
 
 Memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
 
@@ -162,7 +162,7 @@ If you have four memory nodes on your system (0-3), use `--cpuset-mems=0,1`
 then processes in your container will only use memory from the first
 two memory nodes.
 
-**--creds** *creds*
+**--creds**=*creds*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
@@ -174,19 +174,19 @@ This is a Docker specific option to disable image verification to a Docker
 registry and is not supported by Podman.  This flag is a NOOP and provided
 soley for scripting compatibility.
 
-**--dns**=[]
+**--dns**=*dns*
 
 Set custom DNS servers
 
-**--dns-option**=[]
+**--dns-option**=*option*
 
 Set custom DNS options
 
-**--dns-search**=[]
+**--dns-search**=*domain*
 
 Set custom DNS search domains
 
-**--file, -f** *Dockerfile*
+**--file**, **-f**=*Dockerfile*
 
 Specifies a Dockerfile which contains instructions for building the image,
 either a local file or an **http** or **https** URL.  If more than one
@@ -199,7 +199,7 @@ context.
 
 If you specify `-f -`, the Dockerfile contents will be read from stdin.
 
-**--force-rm** *bool-value*
+**--force-rm**=*true|false*
 
 Always remove intermediate containers after a build, even if the build is unsuccessful.
 
@@ -212,11 +212,15 @@ Recognized formats include *oci* (OCI image-spec v1.0, the default) and
 Note: You can also override the default format by setting the BUILDAH\_FORMAT
 environment variable.  `export BUILDAH_FORMAT=docker`
 
-**--iidfile** *ImageIDfile*
+**-h**, **--help**
+
+Print usage statement
+
+**--iidfile**=*ImageIDfile*
 
 Write the image ID to the file.
 
-**--ipc** *how*
+**--ipc**=*how*
 
 Sets the configuration for IPC namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
@@ -225,7 +229,7 @@ that the IPC namespace in which `podman` itself is being run should be reused,
 or it can be the path to an IPC namespace which is already in use by
 another process.
 
-**--isolation** *type*
+**--isolation**=*type*
 
 Controls what type of isolation is used for running processes as part of `RUN`
 instructions.  Recognized types include *oci* (OCI-compatible runtime, the
@@ -239,7 +243,7 @@ chroot(1) than container technology).
 Note: You can also override the default isolation type by setting the
 BUILDAH\_ISOLATION environment variable.  `export BUILDAH_ISOLATION=oci`
 
-**--label** *label*
+**--label**=*label*
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used multiple times.
 
@@ -250,12 +254,12 @@ Cache intermediate images during the build process (Default is `true`).
 Note: You can also override the default value of layers by setting the BUILDAH\_LAYERS
 environment variable. `export BUILDAH_LAYERS=true`
 
-**--logfile** *filename*
+**--logfile**=*filename*
 
 Log output which would be sent to standard output and standard error to the
 specified file instead of to standard output and standard error.
 
-**--memory, -m**=""
+**--memory**, **-m**=*LIMIT*
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
 
 Allows you to constrain the memory available to a container. If the host
@@ -264,7 +268,7 @@ RAM. If a limit of 0 is specified (not using **-m**), the container's memory is
 not limited. The actual limit may be rounded up to a multiple of the operating
 system's page size (the value would be very large, that's millions of trillions).
 
-**--memory-swap**="LIMIT"
+**--memory-swap**=*LIMIT*
 
 A limit value equal to memory plus swap. Must be used with the  **-m**
 (**--memory**) flag. The swap `LIMIT` should always be larger than **-m**
@@ -275,8 +279,7 @@ The format of `LIMIT` is `<number>[<unit>]`. Unit can be `b` (bytes),
 `k` (kilobytes), `m` (megabytes), or `g` (gigabytes). If you don't specify a
 unit, `b` is used. Set LIMIT to `-1` to enable unlimited swap.
 
-**--net** *how*
-**--network** *how*
+**--net**, **--network**=*string*
 
 Sets the configuration for network namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
@@ -289,7 +292,7 @@ another process.
 
 Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
 
-**--pid** *how*
+**--pid**=*pid*
 
 Sets the configuration for PID namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
@@ -316,17 +319,17 @@ Defaults to *true*.
 Pull the image from the first registry it is found in as listed in registries.conf.
 Raise an error if not found in the registries, even if the image is present locally.
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress output messages which indicate which instruction is being processed,
 and of progress when pulling images from a registry, and when writing the
 output image.
 
-**--rm** *bool-value*
+**--rm**=*true|false*
 
 Remove intermediate containers after a successful build (default true).
 
-**--runtime** *path*
+**--runtime**=*path*
 
 The *path* to an alternate OCI-compatible runtime, which will be used to run
 commands specified by the **RUN** instruction.
@@ -334,7 +337,7 @@ commands specified by the **RUN** instruction.
 Note: You can also override the default runtime by setting the BUILDAH\_RUNTIME
 environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 
-**--runtime-flag** *flag*
+**--runtime-flag**=*flag*
 
 Adds global flags for the container rutime. To list the supported flags, please
 consult the manpages of the selected container runtime (`runc` is the default
@@ -343,7 +346,7 @@ runtime, the manpage to consult is `runc(8)`).
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given would be `--runtime-flag log-format=json`.
 
-**--security-opt**=[]
+**--security-opt**=*option*
 
 Security Options
 
@@ -360,7 +363,7 @@ Security Options
   "apparmor=unconfined" : Turn off apparmor confinement for the container
   "apparmor=your-profile" : Set the apparmor confinement profile for the container
 
-**--shm-size**=""
+**--shm-size**=*size*
 
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
 Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
@@ -370,19 +373,19 @@ If you omit the unit, the system uses bytes. If you omit the size entirely, the 
 
 Squash all of the new image's layers (including those inherited from a base image) into a single new layer.
 
-**--tag, -t** *imageName*
+**--tag**, **-t**=*imageName*
 
 Specifies the name which will be assigned to the resulting image if the build
 process completes successfully.
 If _imageName_ does not include a registry name, the registry name *localhost* will be prepended to the image name.
 
-**--target** *stageName*
+**--target**=*stageName*
 
 Set the target build stage to build.  When building a Dockerfile with multiple build stages, --target
 can be used to specify an intermediate build stage by name as the final stage for the resulting image.
 Commands after the target stage will be skipped.
 
-**--tls-verify** *bool-value*
+**--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when talking to container registries (defaults to true). (Not available for remote commands)
 
@@ -407,7 +410,7 @@ include:
   "sigpending": maximum number of pending signals (ulimit -i)
   "stack": maximum stack size (ulimit -s)
 
-**--userns** *how*
+**--userns**=*how*
 
 Sets the configuration for user namespaces when handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
@@ -416,7 +419,7 @@ the user namespace in which `podman` itself is being run should be reused, or
 it can be the path to an user namespace which is already in use by another
 process.
 
-**--userns-uid-map** *mapping*
+**--userns-uid-map**=*mapping*
 
 Directly specifies a UID mapping which should be used to set ownership, at the
 filesytem level, on the working container's contents.
@@ -437,7 +440,7 @@ If none of --userns-uid-map-user, --userns-gid-map-group, or --userns-uid-map
 are specified, but --userns-gid-map is specified, the UID map will be set to
 use the same numeric values as the GID map.
 
-**--userns-gid-map** *mapping*
+**--userns-gid-map**=*mapping*
 
 Directly specifies a GID mapping which should be used to set ownership, at the
 filesytem level, on the working container's contents.
@@ -458,7 +461,7 @@ If none of --userns-uid-map-user, --userns-gid-map-group, or --userns-gid-map
 are specified, but --userns-uid-map is specified, the GID map will be set to
 use the same numeric values as the UID map.
 
-**--userns-uid-map-user** *user*
+**--userns-uid-map-user**=*user*
 
 Specifies that a UID mapping which should be used to set ownership, at the
 filesytem level, on the working container's contents, can be found in entries
@@ -469,7 +472,7 @@ If --userns-gid-map-group is specified, but --userns-uid-map-user is not
 specified, `podman` will assume that the specified group name is also a
 suitable user name to use as the default setting for this option.
 
-**--userns-gid-map-group** *group*
+**--userns-gid-map-group**=*group*
 
 Specifies that a GID mapping which should be used to set ownership, at the
 filesytem level, on the working container's contents, can be found in entries
@@ -480,7 +483,7 @@ If --userns-uid-map-user is specified, but --userns-gid-map-group is not
 specified, `podman` will assume that the specified user name is also a
 suitable group name to use as the default setting for this option.
 
-**--uts** *how*
+**--uts**=*how*
 
 Sets the configuration for UTS namespaces when the handling `RUN` instructions.
 The configured value can be "" (the empty string) or "container" to indicate
@@ -489,7 +492,7 @@ that the UTS namespace in which `podman` itself is being run should be reused,
 or it can be the path to a UTS namespace which is already in use by another
 process.
 
-**--volume, -v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
+**--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
    Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
    bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman

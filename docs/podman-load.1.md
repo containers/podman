@@ -4,7 +4,7 @@
 podman\-load - Load an image from a container image archive into container storage
 
 ## SYNOPSIS
-**podman load** [*name*[:*tag*]]
+**podman load** [*options*] [*name*[:*tag*]]
 
 ## DESCRIPTION
 **podman load** loads an image from either an **oci-archive** or **docker-archive** stored on the local machine into container storage. **podman load** reads from stdin by default or a file if the **input** option is set.
@@ -22,13 +22,13 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-**--input, -i**
+**--input**, **-i**=*input*
 
 Read from archive file, default is STDIN.
 
 The remote client requires the use of this option.
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress the progress output
 

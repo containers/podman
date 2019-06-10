@@ -44,7 +44,7 @@ Image stored in local container/storage
 
 ## OPTIONS
 
-**--authfile**
+**--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
@@ -52,13 +52,13 @@ If the authorization state is not found there, $HOME/.docker/config.json is chec
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`
 
-**--creds="CREDENTIALS"**
+**--creds**=*[username[:password]]*
 
 The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
-**--cert-dir** *path*
+**--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
 Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands) (Not available for remote commands)
@@ -68,12 +68,12 @@ Default certificates directory is _/etc/containers/certs.d_. (Not available for 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
 
-**--format, -f**
+**--format**, **-f**=*format*
 
 Manifest Type (oci, v2s1, or v2s2) to use when pushing an image to a directory using the 'dir:' transport (default is manifest type of source)
 Note: This flag can only be set when using the **dir** transport
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 When writing the output image, suppress progress output
 
@@ -81,11 +81,11 @@ When writing the output image, suppress progress output
 
 Discard any pre-existing signatures in the image
 
-**--sign-by="KEY"**
+**--sign-by**=*key*
 
 Add a signature at the destination using the specified key
 
-**--tls-verify**
+**--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
 then TLS verification will be used. If set to false, then TLS verification will not be used. If not specified,

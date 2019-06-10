@@ -1,17 +1,15 @@
-% % podman-pod-prune (1)
-% Peter Hunt
-% April 2019
-# NAME
+% podman-pod-prune(1)
+
+## NAME
 podman-pod-prune - Remove all stopped pods
 
-# SYNOPSIS
-**podman pod prune** [*-h*|*--help*]
+## SYNOPSIS
+**podman pod prune**
 
-# DESCRIPTION
+## DESCRIPTION
 **podman pod prune** removes all stopped pods from local storage.
 
-## Examples ##
-
+## EXAMPLES
 Remove all stopped pods from local storage
 ```
 $ sudo podman pod prune
@@ -25,5 +23,5 @@ $ sudo podman pod prune
 ## SEE ALSO
 podman-pod(1), podman-pod-ps(1), podman-pod-rm(1)
 
-# HISTORY
+## HISTORY
 April 2019, Originally compiled by Peter Hunt (pehunt at redhat dot com)

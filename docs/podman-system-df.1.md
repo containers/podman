@@ -1,4 +1,4 @@
-% podman-system-df(1) podman
+% podman-system-df(1)
 
 ## NAME
 podman\-system\-df - Show podman disk usage
@@ -10,11 +10,11 @@ podman\-system\-df - Show podman disk usage
 Show podman disk usage
 
 ## OPTIONS
-**--format**=""
+**--format=***format*
 
 Pretty-print images using a Go template
 
-**-v, --verbose**[=false]
+**-v**, **--verbose**[=*true|false*]
 Show detailed information on space usage
 
 ## EXAMPLE
@@ -53,5 +53,5 @@ Local Volumes   1
 ## SEE ALSO
 podman-system(1)
 
-# HISTORY
+## HISTORY
 March 2019, Originally compiled by Qi Wang (qiwan at redhat dot com)

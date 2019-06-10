@@ -15,7 +15,7 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 ## OPTIONS
 
-**--cgroup-parent**=""
+**--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
@@ -27,31 +27,31 @@ Print usage statement
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true
 
-**--infra-command**=""
+**--infra-command**=*command*
 
 The command that will be run to start the infra container. Default: "/pause"
 
-**--infra-image**=""
+**--infra-image**=*image*
 
 The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1"
 
-**-l**, **--label**=[]
+**-l**, **--label**=*label*
 
 Add metadata to a pod (e.g., --label com.example.key=value)
 
-**--label-file**=[]
+**--label-file**=*label*
 
 Read in a line delimited file of labels
 
-**-n**, **--name**=""
+**-n**, **--name**=*name*
 
 Assign a name to the pod
 
-**--podidfile**=""
+**--podidfile**=*podid*
 
 Write the pod ID to the file
 
-**-p**, **--publish**=[]
+**-p**, **--publish**=*port*
 
 Publish a port or range of ports from the pod to the host
 
@@ -62,7 +62,7 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 
 NOTE: This cannot be modified once the pod is created.
 
-**--share**=""
+**--share**=*namespace*
 
 A comma deliminated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
 

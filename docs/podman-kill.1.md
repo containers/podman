@@ -10,18 +10,18 @@ podman\-kill - Kills one or more containers with a signal
 The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal.
 
 ## OPTIONS
-**--all, -a**
+**--all**, **-a**
 
 Signal all running containers.  This does not include paused containers.
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
 The latest option is not supported on the remote client.
 
-**--signal, s**
+**--signal**, **s**
 
 Signal to send to the container. For more information on Linux signals, refer to *man signal(7)*.
 

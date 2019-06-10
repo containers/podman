@@ -12,11 +12,11 @@ to be started.
 
 ## OPTIONS
 
-**--all, -a**
+**--all**, **-a**
 
 Starts all pods
 
-**--latest, -l**
+**--latest**, **-l**
 
 Instead of providing the pod name or ID, start the last created pod.
 

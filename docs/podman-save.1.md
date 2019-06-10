@@ -25,20 +25,20 @@ Note: `:` is a restricted character and cannot be part of the file name.
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport i.e --format=oci-dir or --format-docker-dir
 
-**--output, -o**
+**--output**, **-o**=*file*
 
 Write to a file, default is STDOUT
 
-**--format**
+**--format**=*format*
 
-Save image to **oci-archive**, **oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type)
+Save image to **oci-archive, oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type)
 ```
 --format oci-archive
 --format oci-dir
 --format docker-dir
 ```
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Suppress the output
 

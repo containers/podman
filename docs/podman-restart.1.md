@@ -12,10 +12,10 @@ Containers will be stopped if they are running and then restarted. Stopped
 containers will not be stopped and will only be started.
 
 ## OPTIONS
-**--all, -a**
+**--all**, **-a**
 Restart all containers regardless of their current state.
 
-**--latest, -l**
+**--latest**, **-l**
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
@@ -24,7 +24,7 @@ The latest option is not supported on the remote client.
 **--running**
 Restart all containers that are already in the *running* state.
 
-**--timeout**
+**--timeout**=*time*
 Timeout to wait before forcibly stopping the container.
 
 

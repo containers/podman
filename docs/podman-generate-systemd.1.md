@@ -1,34 +1,32 @@
-% podman-generate Podman Man Pages
-% Brent Baude
-% April 2019
-# NAME
+% podman-generate-systemd(1)
+
+## NAME
 podman-generate-systemd- Generate Systemd Unit file
 
-# SYNOPSIS
-**podman generate systemd** [*-n*|*--name*] [*-t*|*--timeout*] [*--restart-policy*] *container*
+## SYNOPSIS
+**podman generate systemd** [*options*] *container*
 
-# DESCRIPTION
+## DESCRIPTION
 **podman generate systemd** will create a Systemd unit file that can be used to control a container.  The
 command will dynamically create the unit file and output it to stdout where it can be piped by the user
 to a file.  The options can be used to influence the results of the output as well.
 
 
-# OPTIONS:
+## OPTIONS:
 
-**--name** **-n**
+**--name**, **-n**
 
 Use the name of the container for the start, stop, and description in the unit file
 
-**--timeout** **-t**
+**--timeout**, **-t**=*value*
 
 Override the default stop timeout for the container with the given value.
 
-**--restart-policy**
+**--restart-policy**=*policy*
 Set the SystemD restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
 
-## Examples ##
-
+## Examples
 Create a systemd unit file for a container running nginx:
 
 ```
@@ -65,5 +63,5 @@ WantedBy=multi-user.target
 ## SEE ALSO
 podman(1), podman-container(1)
 
-# HISTORY
+## HISTORY
 April 2019, Originally compiled by Brent Baude (bbaude at redhat dot com)

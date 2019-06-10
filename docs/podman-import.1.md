@@ -16,17 +16,17 @@ Note: `:` is a restricted character and cannot be part of the file name.
 
 ## OPTIONS
 
-**--change, -c**
+**-c**, **--change**=*instruction*
 
 Apply the following possible instructions to the created image:
 **CMD** | **ENTRYPOINT** | **ENV** | **EXPOSE** | **LABEL** | **STOPSIGNAL** | **USER** | **VOLUME** | **WORKDIR**
 Can be set multiple times
 
-**--message, -m**
+**--message**, **-m**=*message*
 
 Set commit message for imported image
 
-**--quiet, -q**
+**--quiet**, **-q**
 
 Shows progress on the import
 
