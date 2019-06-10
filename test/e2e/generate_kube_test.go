@@ -3,7 +3,9 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/libpod/test/utils"
 	"github.com/ghodss/yaml"
@@ -103,5 +105,47 @@ var _ = Describe("Podman generate kube", func() {
 
 		_, err := yaml.Marshal(kube.OutputToString())
 		Expect(err).To(BeNil())
+	})
+
+	It("podman generate and reimport kube on pod", func() {
+		podName := "toppod"
+		_, rc, _ := podmanTest.CreatePod(podName)
+		Expect(rc).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test2", ALPINE, "top"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		err := ioutil.WriteFile(outputFile, []byte(kube.OutputToString()), 0644)
+		Expect(err).To(BeNil())
+
+		session3 := podmanTest.Podman([]string{"pod", "rm", "-af"})
+		session3.WaitWithDefaultTimeout()
+		Expect(session3.ExitCode()).To(Equal(0))
+
+		session4 := podmanTest.Podman([]string{"play", "kube", outputFile})
+		session4.WaitWithDefaultTimeout()
+		Expect(session4.ExitCode()).To(Equal(0))
+
+		session5 := podmanTest.Podman([]string{"pod", "ps"})
+		session5.WaitWithDefaultTimeout()
+		Expect(session5.ExitCode()).To(Equal(0))
+		Expect(session5.OutputToString()).To(ContainSubstring(podName))
+
+		session6 := podmanTest.Podman([]string{"ps", "-a"})
+		session6.WaitWithDefaultTimeout()
+		Expect(session6.ExitCode()).To(Equal(0))
+		psOut := session6.OutputToString()
+		Expect(psOut).To(ContainSubstring("test1"))
+		Expect(psOut).To(ContainSubstring("test2"))
 	})
 })
