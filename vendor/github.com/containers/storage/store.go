@@ -3398,12 +3398,18 @@ func init() {
 	ReloadConfigurationFile(defaultConfigFile, &defaultStoreOptions)
 }
 
+// GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
+	return GetMountOptions(defaultStoreOptions.GraphDriverName, defaultStoreOptions.GraphDriverOptions)
+}
+
+// GetMountOptions returns the mountoptions for the specified driver and graphDriverOptions
+func GetMountOptions(driver string, graphDriverOptions []string) ([]string, error) {
 	mountOpts := []string{
 		".mountopt",
-		fmt.Sprintf("%s.mountopt", defaultStoreOptions.GraphDriverName),
+		fmt.Sprintf("%s.mountopt", driver),
 	}
-	for _, option := range defaultStoreOptions.GraphDriverOptions {
+	for _, option := range graphDriverOptions {
 		key, val, err := parsers.ParseKeyValueOpt(option)
 		if err != nil {
 			return nil, err
