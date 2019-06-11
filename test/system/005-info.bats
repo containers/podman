@@ -14,7 +14,7 @@ Distribution:
 OCIRuntime:\\\s\\\+package:
 os:
 rootless:
-insecure registries:
+registries:
 store:
 GraphDriverName:
 GraphRoot:
@@ -37,9 +37,7 @@ RunRoot:
 
     tests="
 host.BuildahVersion       | [0-9.]
-host.Conmon.package       | $expr_nvr
 host.Conmon.path          | $expr_path
-host.OCIRuntime.package   | $expr_nvr
 host.OCIRuntime.path      | $expr_path
 store.ConfigFile          | $expr_path
 store.GraphDriverName     | [a-z0-9]\\\+\\\$

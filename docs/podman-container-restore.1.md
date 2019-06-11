@@ -45,8 +45,8 @@ connections.
 **--import, -i**
 
 Import a checkpoint tar.gz file, which was exported by Podman. This can be used
-to import a checkpointed container from another host. It is not necessary to specify
-a container when restoring from an exported checkpoint.
+to import a checkpointed container from another host. Do not specify a *container*
+argument when using this option.
 
 **--name, -n**
 
