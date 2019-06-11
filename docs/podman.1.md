@@ -106,13 +106,13 @@ the exit codes follow the `chroot` standard, see below:
     Error: unknown flag: --foo
       125
 
-**_126_** if executing a **_contained command_** and the the **_command_** cannot be invoked
+**_126_** if executing a **_contained command_** and the **_command_** cannot be invoked
 
     $ podman run busybox /etc; echo $?
     Error: container_linux.go:346: starting container process caused "exec: \"/etc\": permission denied": OCI runtime error
       126
 
-**_127_** if executing a **_contained command_** and the the **_command_** cannot be found
+**_127_** if executing a **_contained command_** and the **_command_** cannot be found
     $ podman run busybox foo; echo $?
     Error: container_linux.go:346: starting container process caused "exec: \"foo\": executable file not found in $PATH": OCI runtime error
       127
