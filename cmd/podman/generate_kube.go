@@ -2,6 +2,9 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	podmanVersion "github.com/containers/libpod/version"
@@ -37,6 +40,7 @@ func init() {
 	containerKubeCommand.SetUsageTemplate(UsageTemplate())
 	flags := containerKubeCommand.Flags()
 	flags.BoolVarP(&containerKubeCommand.Service, "service", "s", false, "Generate YAML for kubernetes service object")
+	flags.StringVarP(&containerKubeCommand.Filename, "filename", "f", "", "Filename to output to")
 }
 
 func generateKubeYAMLCmd(c *cliconfig.GenerateKubeValues) error {
@@ -88,8 +92,19 @@ func generateKubeYAMLCmd(c *cliconfig.GenerateKubeValues) error {
 		output = append(output, []byte("---\n")...)
 		output = append(output, marshalledService...)
 	}
-	// Output the v1.Pod with the v1.Container
-	fmt.Println(string(output))
+
+	if c.Filename != "" {
+		if _, err := os.Stat(c.Filename); err == nil {
+			return errors.Errorf("cannot write to %q - file exists", c.Filename)
+		}
+
+		if err := ioutil.WriteFile(c.Filename, output, 0644); err != nil {
+			return err
+		}
+	} else {
+		// Output the v1.Pod with the v1.Container
+		fmt.Println(string(output))
+	}
 
 	return nil
 }

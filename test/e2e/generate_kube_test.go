@@ -3,7 +3,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -120,13 +119,10 @@ var _ = Describe("Podman generate kube", func() {
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 
-		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"generate", "kube", "-f", outputFile, podName})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
-
-		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		err := ioutil.WriteFile(outputFile, []byte(kube.OutputToString()), 0644)
-		Expect(err).To(BeNil())
 
 		session3 := podmanTest.Podman([]string{"pod", "rm", "-af"})
 		session3.WaitWithDefaultTimeout()

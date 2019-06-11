@@ -145,7 +145,8 @@ type ExportValues struct {
 }
 type GenerateKubeValues struct {
 	PodmanCommand
-	Service bool
+	Service  bool
+	Filename string
 }
 
 type GenerateSystemdValues struct {
