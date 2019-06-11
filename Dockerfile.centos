@@ -38,14 +38,6 @@ RUN set -x \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
 
-# Install buildah
-RUN set -x \
-       && export GOPATH=/go \
-       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
-       && cd "$GOPATH/src/github.com/containers/buildah" \
-       && make \
-       && make install
-
 # Install ginkgo
 RUN set -x \
        && export GOPATH=/go \

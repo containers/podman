@@ -76,8 +76,6 @@ install_conmon
 CNI_COMMIT=$FEDORA_CNI_COMMIT
 install_cni_plugins
 
-install_buildah
-
 sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize # N/B: Halts system!
