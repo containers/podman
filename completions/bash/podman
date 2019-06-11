@@ -2467,7 +2467,9 @@ _podman_healthcheck_run() {
 }
 
 _podman_generate_kube() {
-    local options_with_args=""
+     local options_with_args="
+     --filename -f
+     "
 
     local boolean_options="
     -h
