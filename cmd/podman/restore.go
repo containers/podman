@@ -76,11 +76,16 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 		return errors.Errorf("--tcp-established cannot be used with --name")
 	}
 
-	if (c.Import != "") && (c.All || c.Latest) {
-		return errors.Errorf("Cannot use --import and --all or --latest at the same time")
+	argLen := len(c.InputArgs)
+	if c.Import != "" {
+		if c.All || c.Latest {
+			return errors.Errorf("Cannot use --import with --all or --latest")
+		}
+		if argLen > 0 {
+			return errors.Errorf("Cannot use --import with positional arguments")
+		}
 	}
 
-	argLen := len(c.InputArgs)
 	if (c.All || c.Latest) && argLen > 0 {
 		return errors.Errorf("no arguments are needed with --all or --latest")
 	}
