@@ -98,24 +98,21 @@ the exit codes follow the `chroot` standard, see below:
 **_125_** if the error is with podman **_itself_**
 
     $ podman run --foo busybox; echo $?
-    # flag provided but not defined: --foo
-      See 'podman run --help'.
+    Error: unknown flag: --foo
       125
 
 **_126_** if executing a **_container command_** and the the **_command_** cannot be invoked
 
     $ podman run busybox /etc; echo $?
-    # exec: "/etc": permission denied
-      podman: Error response from daemon: Contained command could not be invoked
+    Error: container_linux.go:346: starting container process caused "exec: \"/etc\": permission denied": OCI runtime error
       126
 
 **_127_** if executing a **_container command_** and the the **_command_** cannot be found
     $ podman run busybox foo; echo $?
-    # exec: "foo": executable file not found in $PATH
-      podman: Error response from daemon: Contained command not found or does not exist
+    Error: container_linux.go:346: starting container process caused "exec: \"foo\": executable file not found in $PATH": OCI runtime error
       127
 
-**_Exit code_** of **_container command_** otherwise
+**_Exit code_** of **_contained command_** otherwise
 
     $ podman run busybox /bin/sh -c 'exit 3'
     # 3
