@@ -29,6 +29,7 @@ type InspectContainerData struct {
 	HostnamePath    string                  `json:"HostnamePath"`
 	HostsPath       string                  `json:"HostsPath"`
 	StaticDir       string                  `json:"StaticDir"`
+	OCIConfigPath   string                  `json:"OCIConfigPath,omitempty"`
 	LogPath         string                  `json:"LogPath"`
 	ConmonPidFile   string                  `json:"ConmonPidFile"`
 	Name            string                  `json:"Name"`
@@ -240,6 +241,10 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 			MacAddress:             "", // TODO
 		},
 		IsInfra: c.IsInfra(),
+	}
+
+	if c.state.ConfigPath != "" {
+		data.OCIConfigPath = c.state.ConfigPath
 	}
 
 	if c.config.HealthCheckConfig != nil {
