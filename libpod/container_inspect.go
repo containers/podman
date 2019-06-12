@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/cri-o/ocicni/pkg/ocicni"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -44,12 +44,37 @@ type InspectContainerData struct {
 	GraphDriver     *driver.Data            `json:"GraphDriver"`
 	SizeRw          int64                   `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                   `json:"SizeRootFs,omitempty"`
-	Mounts          []specs.Mount           `json:"Mounts"`
+	Mounts          []*InspectMount         `json:"Mounts"`
 	Dependencies    []string                `json:"Dependencies"`
 	NetworkSettings *InspectNetworkSettings `json:"NetworkSettings"` //TODO
 	ExitCommand     []string                `json:"ExitCommand"`
 	Namespace       string                  `json:"Namespace"`
 	IsInfra         bool                    `json:"IsInfra"`
+}
+
+// InspectMount provides a record of a single mount in a container. It contains
+// fields for both named and normal volumes. Only user-specified volumes will be
+// included, and tmpfs volumes are not included even if the user specified them.
+type InspectMount struct {
+	// Whether the mount is a volume or bind mount. Allowed values are
+	// "volume" and "bind".
+	Type string `json:"Type"`
+	// The name of the volume. Empty for bind mounts.
+	Name string `json:"Name,omptempty"`
+	// The source directory for the volume.
+	Src string `json:"Source"`
+	// The destination directory for the volume. Specified as a path within
+	// the container, as it would be passed into the OCI runtime.
+	Dst string `json:"Destination"`
+	// The driver used for the named volume. Empty for bind mounts.
+	Driver string `json:"Driver"`
+	// Mount options for the driver, excluding RO/RW and mount propagation.
+	Mode string `json:"Mode"`
+	// Whether the volume is read-write
+	RW bool `json:"RW"`
+	// Mount propagation for the mount. Can be empty if not specified, but
+	// is always printed - no omitempty.
+	Propagation string `json:"Propagation"`
 }
 
 // InspectContainerState provides a detailed record of a container's current
@@ -149,34 +174,24 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		execIDs = append(execIDs, id)
 	}
 
-	if c.state.BindMounts == nil {
-		c.state.BindMounts = make(map[string]string)
-	}
-
 	resolvPath := ""
-	if getPath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-		resolvPath = getPath
-	}
-
 	hostsPath := ""
-	if getPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
-		hostsPath = getPath
-	}
-
 	hostnamePath := ""
-	if getPath, ok := c.state.BindMounts["/etc/hostname"]; ok {
-		hostnamePath = getPath
+	if c.state.BindMounts != nil {
+		if getPath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+			resolvPath = getPath
+		}
+		if getPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
+			hostsPath = getPath
+		}
+		if getPath, ok := c.state.BindMounts["/etc/hostname"]; ok {
+			hostnamePath = getPath
+		}
 	}
 
-	var mounts []specs.Mount
-	for i, mnt := range spec.Mounts {
-		mounts = append(mounts, mnt)
-		// We only want to show the name of the named volume in the inspect
-		// output, so split the path and get the name out of it.
-		if strings.Contains(mnt.Source, c.runtime.config.VolumePath) {
-			split := strings.Split(mnt.Source[len(c.runtime.config.VolumePath)+1:], "/")
-			mounts[i].Source = split[0]
-		}
+	mounts, err := c.getInspectMounts()
+	if err != nil {
+		return nil, err
 	}
 
 	data := &InspectContainerData{
@@ -248,7 +263,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		//	This container has a healthcheck defined in it; we need to add it's state
+		// This container has a healthcheck defined in it; we need to add it's state
 		healthCheckState, err := c.GetHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed
@@ -279,4 +294,103 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		data.SizeRw = rwSize
 	}
 	return data, nil
+}
+
+// Get inspect-formatted mounts list.
+// Only includes user-specified mounts. Only includes bind mounts and named
+// volumes, not tmpfs volumes.
+func (c *Container) getInspectMounts() ([]*InspectMount, error) {
+	inspectMounts := []*InspectMount{}
+
+	// No mounts, return early
+	if len(c.config.UserVolumes) == 0 {
+		return inspectMounts, nil
+	}
+
+	// We need to parse all named volumes and mounts into maps, so we don't
+	// end up with repeated lookups for each user volume.
+	// Map destination to struct, as destination is what is stored in
+	// UserVolumes.
+	namedVolumes := make(map[string]*ContainerNamedVolume)
+	mounts := make(map[string]spec.Mount)
+	for _, namedVol := range c.config.NamedVolumes {
+		namedVolumes[namedVol.Dest] = namedVol
+	}
+	for _, mount := range c.config.Spec.Mounts {
+		mounts[mount.Destination] = mount
+	}
+
+	for _, vol := range c.config.UserVolumes {
+		// We need to look up the volumes.
+		// First: is it a named volume?
+		if volume, ok := namedVolumes[vol]; ok {
+			mountStruct := new(InspectMount)
+			mountStruct.Type = "volume"
+			mountStruct.Dst = volume.Dest
+			mountStruct.Name = volume.Name
+
+			// For src and driver, we need to look up the named
+			// volume.
+			volFromDB, err := c.runtime.state.Volume(volume.Name)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
+			}
+			mountStruct.Driver = volFromDB.Driver()
+			mountStruct.Src = volFromDB.MountPoint()
+
+			parseMountOptionsForInspect(volume.Options, mountStruct)
+
+			inspectMounts = append(inspectMounts, mountStruct)
+		} else if mount, ok := mounts[vol]; ok {
+			// It's a mount.
+			// Is it a tmpfs? If so, discard.
+			if mount.Type == "tmpfs" {
+				continue
+			}
+
+			mountStruct := new(InspectMount)
+			mountStruct.Type = "bind"
+			mountStruct.Src = mount.Source
+			mountStruct.Dst = mount.Destination
+
+			parseMountOptionsForInspect(mount.Options, mountStruct)
+
+			inspectMounts = append(inspectMounts, mountStruct)
+		}
+		// We couldn't find a mount. Log a warning.
+		logrus.Warnf("Could not find mount at destination %q when building inspect output for container %s", vol, c.ID())
+	}
+
+	return inspectMounts, nil
+}
+
+// Parse mount options so we can populate them in the mount structure.
+// The mount passed in will be modified.
+func parseMountOptionsForInspect(options []string, mount *InspectMount) {
+	isRW := true
+	mountProp := ""
+	otherOpts := []string{}
+
+	// Some of these may be overwritten if the user passes us garbage opts
+	// (for example, [ro,rw])
+	// We catch these on the Podman side, so not a problem there, but other
+	// users of libpod who do not properly validate mount options may see
+	// this.
+	// Not really worth dealing with on our end - garbage in, garbage out.
+	for _, opt := range options {
+		switch opt {
+		case "ro":
+			isRW = false
+		case "rw":
+			// Do nothing, silently discard
+		case "shared", "slave", "private", "rshared", "rslave", "rprivate":
+			mountProp = opt
+		default:
+			otherOpts = append(otherOpts, opt)
+		}
+	}
+
+	mount.RW = isRW
+	mount.Propagation = mountProp
+	mount.Mode = strings.Join(otherOpts, ",")
 }
