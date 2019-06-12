@@ -1000,7 +1000,7 @@ func (c *Container) generateResolvConf() (string, error) {
 	nameservers := resolvconf.GetNameservers(resolv.Content)
 	// slirp4netns has a built in DNS server.
 	if c.config.NetMode.IsSlirp4netns() {
-		nameservers = append(nameservers, "10.0.2.3")
+		nameservers = append([]string{"10.0.2.3"}, nameservers...)
 	}
 	if len(c.config.DNSServer) > 0 {
 		// We store DNS servers as net.IP, so need to convert to string
