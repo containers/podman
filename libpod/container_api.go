@@ -285,7 +285,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	// TODO can probably relax this once we track exec sessions
 	if conState != ContainerStateRunning {
-		return errors.Errorf("cannot exec into container that is not running")
+		return errors.Wrapf(ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
