@@ -125,5 +125,10 @@ func execCmd(c *cliconfig.ExecValues) error {
 	streams.AttachError = true
 	streams.AttachInput = true
 
-	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
+	err = ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
+	if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+		exitCode = 126
+	}
+
+	return err
 }
