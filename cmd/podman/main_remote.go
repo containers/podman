@@ -3,15 +3,21 @@
 package main
 
 import (
+	"os/user"
+
 	"github.com/spf13/cobra"
 )
 
 const remote = true
 
 func init() {
+	var username string
+	if curruser, err := user.Current(); err == nil {
+		username = curruser.Username
+	}
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.ConnectionName, "connection", "", "remote connection name")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteConfigFilePath, "remote-config-path", "", "alternate path for configuration file")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", "", "username on the remote host")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", username, "username on the remote host")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
 	// TODO maybe we allow the altering of this for bridge connections?
 	//rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
