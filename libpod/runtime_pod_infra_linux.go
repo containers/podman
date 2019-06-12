@@ -99,7 +99,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	if isRootless {
 		netmode = "slirp4netns"
 	}
-	options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, isRootless, netmode, networks))
+	// PostConfigureNetNS should not be set since user namespace sharing is not implemented
+	// and rootless networking no longer supports post configuration setup
+	options = append(options, WithNetNS(p.config.InfraContainer.PortBindings, false, netmode, networks))
 
 	return r.newContainer(ctx, g.Config, options...)
 }
