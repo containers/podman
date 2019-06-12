@@ -66,6 +66,14 @@ type syncInfo struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ociError is used to parse the OCI runtime JSON log.  It is not part of the
+// OCI runtime specifications, it follows what runc does
+type ociError struct {
+	Level string `json:"level,omitempty"`
+	Time  string `json:"time,omitempty"`
+	Msg   string `json:"msg,omitempty"`
+}
+
 // Make a new OCI runtime with provided options
 func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
