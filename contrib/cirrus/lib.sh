@@ -211,6 +211,8 @@ setup_rootless() {
         # Works with older versions of bash
         printf "${_env_var_name}=%q\n" "$(printenv $_env_var_name)" >> "/home/$ROOTLESS_USER/.bashrc"
     done
+    echo "Ensure the systems ssh process is up and running"
+    systemctl --wait restart sshd  # a regular 'start' could hang forever
 }
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
