@@ -98,6 +98,9 @@ libpod to manage containers.
 **events_logger**=""
   Default method to use when logging events. Valid values are "journald" and "file".
 
+**detach_keys**=""
+  Keys sequence used for detaching a container
+
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path
 
