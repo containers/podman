@@ -384,7 +384,7 @@ func (config *CreateConfig) getMounts() (map[string]spec.Mount, map[string]*libp
 			}
 			finalNamedVolumes[volume.Dest] = volume
 		default:
-			return nil, nil, errors.Errorf("invalid fylesystem type %q", kv[1])
+			return nil, nil, errors.Errorf("invalid filesystem type %q", kv[1])
 		}
 	}
 
