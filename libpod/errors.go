@@ -96,4 +96,7 @@ var (
 	// ErrOSNotSupported indicates the function is not available on the particular
 	// OS.
 	ErrOSNotSupported = errors.New("No support for this OS yet")
+
+	// ErrOCIRuntime indicates an error from the OCI runtime
+	ErrOCIRuntime = errors.New("OCI runtime error")
 )

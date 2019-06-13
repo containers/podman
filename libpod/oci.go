@@ -58,6 +58,7 @@ type OCIRuntime struct {
 	logSizeMax    int64
 	noPivot       bool
 	reservePorts  bool
+	supportsJSON  bool
 }
 
 // syncInfo is used to return data from monitor process to daemon
@@ -66,8 +67,16 @@ type syncInfo struct {
 	Message string `json:"message,omitempty"`
 }
 
+// ociError is used to parse the OCI runtime JSON log.  It is not part of the
+// OCI runtime specifications, it follows what runc does
+type ociError struct {
+	Level string `json:"level,omitempty"`
+	Time  string `json:"time,omitempty"`
+	Msg   string `json:"msg,omitempty"`
+}
+
 // Make a new OCI runtime with provided options
-func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool) (*OCIRuntime, error) {
+func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool, supportsJSON bool) (*OCIRuntime, error) {
 	runtime := new(OCIRuntime)
 	runtime.name = oruntime.Name
 	runtime.path = oruntime.Paths[0]
@@ -78,6 +87,7 @@ func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []strin
 	runtime.logSizeMax = logSizeMax
 	runtime.noPivot = noPivotRoot
 	runtime.reservePorts = reservePorts
+	runtime.supportsJSON = supportsJSON
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
