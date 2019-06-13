@@ -403,6 +403,8 @@ func getBindMount(args []string) (spec.Mount, error) {
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
+		case "bind-nonrecursive":
+			newMount.Options = append(newMount.Options, "bind")
 		case "ro", "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
@@ -574,7 +576,7 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) error {
-	var foundRootPropagation, foundRWRO, foundLabelChange int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
 	for _, opt := range options {
 		switch opt {
 		case "rw", "ro":
@@ -591,6 +593,11 @@ func ValidateVolumeOpts(options []string) error {
 			foundRootPropagation++
 			if foundRootPropagation > 1 {
 				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
+			}
+		case "bind", "rbind":
+			bindType++
+			if bindType > 1 {
+				return errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
 			}
 		default:
 			return errors.Errorf("invalid option type %q", opt)

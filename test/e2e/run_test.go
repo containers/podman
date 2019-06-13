@@ -659,6 +659,14 @@ USER mail`
 		Expect(isSharedOnly).Should(BeTrue())
 	})
 
+	It("podman run --mount type=bind,bind-nonrecursive", func() {
+		SkipIfRootless()
+		session := podmanTest.Podman([]string{"run", "--mount", "type=bind,bind-nonrecursive,slave,src=/,target=/host", fedoraMinimal, "findmnt", "-nR", "/host"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(1))
+	})
+
 	It("podman run --pod automatically", func() {
 		session := podmanTest.Podman([]string{"run", "--pod", "new:foobar", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()

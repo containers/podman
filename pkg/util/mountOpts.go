@@ -17,10 +17,19 @@ var (
 // sensible and follow convention.
 func ProcessOptions(options []string) []string {
 	var (
-		foundrw, foundro bool
-		rootProp         string
+		foundbind, foundrw, foundro bool
+		rootProp                    string
 	)
-	options = append(options, "rbind")
+	for _, opt := range options {
+		switch opt {
+		case "bind", "rbind":
+			foundbind = true
+			break
+		}
+	}
+	if !foundbind {
+		options = append(options, "rbind")
+	}
 	for _, opt := range options {
 		switch opt {
 		case "rw":
