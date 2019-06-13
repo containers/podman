@@ -350,6 +350,9 @@ and
 [PRs](https://github.com/containers/libpod/pulls)
 tracking system.
 
+There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
+You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
+
 [owners]: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md#owners
 
 
