@@ -223,7 +223,7 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	args = append(args, "-b", ctr.bundlePath())
 	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
 	args = append(args, "--exit-dir", r.exitsDir)
-	if logLevel != logrus.DebugLevel {
+	if logLevel != logrus.DebugLevel && r.supportsJSON {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLog))
 	}
 	if ctr.config.ConmonPidFile != "" {
@@ -423,11 +423,13 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		}
 		logrus.Debugf("Received container pid: %d", ss.si.Pid)
 		if ss.si.Pid == -1 {
-			data, err := ioutil.ReadFile(ociLog)
-			if err == nil {
-				var ociErr ociError
-				if err := json.Unmarshal(data, &ociErr); err == nil {
-					return errors.Wrapf(ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
+			if r.supportsJSON {
+				data, err := ioutil.ReadFile(ociLog)
+				if err == nil {
+					var ociErr ociError
+					if err := json.Unmarshal(data, &ociErr); err == nil {
+						return errors.Wrapf(ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
+					}
 				}
 			}
 			// If we failed to parse the JSON errors, then print the output as it is

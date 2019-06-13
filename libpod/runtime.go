@@ -151,6 +151,8 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -830,12 +832,21 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
+	supportsJSON := false
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		if r == runtime.config.OCIRuntime {
+			supportsJSON = true
+			break
+		}
+	}
+
 	// Make an OCI runtime to perform container operations
 	ociRuntime, err := newOCIRuntime(runtime.ociRuntimePath,
 		runtime.conmonPath, runtime.config.ConmonEnvVars,
 		runtime.config.CgroupManager, runtime.config.TmpDir,
 		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
-		runtime.config.EnablePortReservation)
+		runtime.config.EnablePortReservation,
+		supportsJSON)
 	if err != nil {
 		return err
 	}
