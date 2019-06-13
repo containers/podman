@@ -48,10 +48,14 @@ var _ = Describe("Podman port", func() {
 		Expect(result.ExitCode()).ToNot(Equal(0))
 	})
 
-	It("podman port  -l nginx", func() {
+	It("podman port -l nginx", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(session.OutputToString()); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"port", "-l"})
 		result.WaitWithDefaultTimeout()
@@ -65,6 +69,10 @@ var _ = Describe("Podman port", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		if err := podmanTest.RunHealthCheck(session.OutputToString()); err != nil {
+			Fail(err.Error())
+		}
+
 		result := podmanTest.Podman([]string{"container", "port", "-l"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -77,6 +85,10 @@ var _ = Describe("Podman port", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		if err := podmanTest.RunHealthCheck(session.OutputToString()); err != nil {
+			Fail(err.Error())
+		}
+
 		result := podmanTest.Podman([]string{"port", "-l", "80"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
@@ -88,6 +100,10 @@ var _ = Describe("Podman port", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(session.OutputToString()); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"port", "-a"})
 		result.WaitWithDefaultTimeout()
