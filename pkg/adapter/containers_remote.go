@@ -7,16 +7,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
+	buildahutils "github.com/containers/buildah/util"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/containers/libpod/utils"
+	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -1023,4 +1032,264 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		}
 	}
 	return iid, nil
+}
+
+// Mount mounts a container's filesystem on the host
+// The path where the container has been mounted is returned
+func (c *Container) Mount() (string, error) {
+	reply, err := iopodman.MountContainer().Call(c.Runtime.Conn, c.ID())
+	if err != nil {
+		return "", err
+	}
+	return string(reply), nil
+}
+
+// Unmount unmounts a container's filesystem on the host
+func (c *Container) Unmount(force bool) error {
+	err := iopodman.UnmountContainer().Call(c.Runtime.Conn, c.ID(), force)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// User returns the user who the container is run as
+func (c *Container) User() string {
+	return c.config.User
+}
+
+// IDMappings returns the UID/GID mapping used for the container
+func (c *Container) IDMappings() (storage.IDMappingOptions, error) {
+	return c.config.IDMappings, nil
+}
+
+// WorkingDir returns the containers working dir
+func (c *Container) WorkingDir() string {
+	return c.config.Spec.Process.Cwd
+}
+
+func (r *LocalRuntime) parsePath(path string) (*Container, string) {
+	pathArr := strings.SplitN(path, ":", 2)
+	if len(pathArr) == 2 {
+		ctr, err := r.LookupContainer(pathArr[0])
+		if err == nil {
+			return ctr, pathArr[1]
+		}
+	}
+	return nil, path
+}
+
+func (r *LocalRuntime) CopyBetweenHostAndContainer(src string, dest string, extract, pause bool) error {
+
+	srcCtr, srcPath := r.parsePath(src)
+	destCtr, destPath := r.parsePath(dest)
+
+	if (srcCtr == nil && destCtr == nil) || (srcCtr != nil && destCtr != nil) {
+		return errors.Errorf("invalid arguments %s, %s you must use just one container", src, dest)
+	}
+
+	if len(srcPath) == 0 || len(destPath) == 0 {
+		return errors.Errorf("invalid arguments %s, %s you must specify paths", src, dest)
+	}
+	ctr := srcCtr
+	isFromHostToCtr := (ctr == nil)
+	if isFromHostToCtr {
+		ctr = destCtr
+	}
+
+	mountPoint, err := ctr.Mount()
+	if err != nil {
+		return err
+	}
+	defer ctr.Unmount(false)
+
+	user, err := util.GetUser(mountPoint, ctr.User())
+	if err != nil {
+		return err
+	}
+	idMappingOpts, err := ctr.IDMappings()
+	if err != nil {
+		return errors.Wrapf(err, "error getting IDMappingOptions")
+	}
+	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	hostUID, hostGID, err := buildahutils.GetHostIDs(util.ConvertIDMap(idMappingOpts.UIDMap), util.ConvertIDMap(idMappingOpts.GIDMap), user.UID, user.GID)
+	if err != nil {
+		return err
+	}
+
+	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
+
+	var glob []string
+	if isFromHostToCtr {
+		if filepath.IsAbs(destPath) {
+			destPath = filepath.Join(mountPoint, destPath)
+
+		} else {
+			if err = idtools.MkdirAllAndChownNew(filepath.Join(mountPoint, ctr.WorkingDir()), 0755, hostOwner); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", destPath)
+			}
+			destPath = filepath.Join(mountPoint, ctr.WorkingDir(), destPath)
+		}
+	} else {
+		if filepath.IsAbs(srcPath) {
+			srcPath = filepath.Join(mountPoint, srcPath)
+		} else {
+			srcPath = filepath.Join(mountPoint, ctr.WorkingDir(), srcPath)
+		}
+	}
+
+	glob, err = filepath.Glob(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "invalid glob %q", srcPath)
+	}
+	if len(glob) == 0 {
+		glob = append(glob, srcPath)
+	}
+	if !filepath.IsAbs(destPath) {
+		dir, err := os.Getwd()
+		if err != nil {
+			return errors.Wrapf(err, "err getting current working directory")
+		}
+		destPath = filepath.Join(dir, destPath)
+	}
+
+	var lastErr error
+	for _, src := range glob {
+		if src == "-" {
+			src = os.Stdin.Name()
+			extract = true
+		}
+		err := r.Copy(src, destPath, dest, idMappingOpts, &containerOwner, extract, isFromHostToCtr)
+		if lastErr != nil {
+			logrus.Error(lastErr)
+		}
+		lastErr = err
+	}
+	return lastErr
+}
+
+func (r *LocalRuntime) Copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
+	if isFromHostToCtr {
+		srcPath, err := filepath.EvalSymlinks(src)
+		if err != nil {
+			return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
+		}
+		srcPath, srcfi, err := util.GetPathInfo(srcPath)
+		if err != nil {
+			return err
+		}
+
+		var tempFile string
+		if srcfi.IsDir() {
+			outputFile, err := ioutil.TempFile("", "varlink_tar_send")
+			if err != nil {
+				return err
+			}
+			if err := utils.TarToFilesystem(srcPath, outputFile); err != nil {
+				return err
+			}
+			tempFile, err = r.SendFileOverVarlink(outputFile.Name())
+			if err != nil {
+				return err
+			}
+		} else {
+			tempFile, err = r.SendFileOverVarlink(srcPath)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = r.CopyFile(src, dest, destPath, tempFile, srcPath, extract, srcfi.IsDir())
+		if err != nil {
+			return errors.Wrapf(err, "error copying file %s from remote", src)
+		}
+		return nil
+	}
+
+	srcPath, tempFile, srcIsDir, err := r.GetRemoteFileInfo(src)
+	if err != nil {
+		return errors.Wrapf(err, "error checking file %s from remote", src)
+	}
+
+	filename := filepath.Base(destPath)
+	if filename == "-" {
+		receiveFile, err := ioutil.TempFile("", "varlink_tar_receive")
+		if err != nil {
+			return err
+		}
+		err = r.GetFileFromRemoteHost(tempFile, receiveFile.Name(), false)
+		if err != nil {
+			return errors.Wrapf(err, "error receiving file %s from remote", tempFile)
+		}
+		reveiveFileInfo, err := receiveFile.Stat()
+		if err != nil {
+			return errors.Wrapf(err, "error getting remote stream source file info")
+		}
+		err = util.StreamFileToStdout(receiveFile.Name(), reveiveFileInfo)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming source file %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	destdir := destPath
+	if !srcIsDir && !strings.HasSuffix(dest, string(os.PathSeparator)) {
+		destdir = filepath.Dir(destPath)
+	}
+	_, err = os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	destDirIsExist := (err == nil)
+	if err = os.MkdirAll(destdir, 0755); err != nil {
+		return errors.Wrapf(err, "error creating directory %q", destdir)
+	}
+
+	if !srcIsDir && !extract {
+		destfi, err := os.Stat(destPath)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
+			}
+		}
+		if destfi != nil && destfi.IsDir() {
+			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+		}
+		err = r.GetFileFromRemoteHost(srcPath, destPath, false)
+		if err != nil {
+			return errors.Wrapf(err, "error receiving file %s from remote", srcPath)
+		}
+		return nil
+	}
+
+	receiveFile, err := ioutil.TempFile("", "varlink_tar_receive")
+	if err != nil {
+		return err
+	}
+	err = r.GetFileFromRemoteHost(tempFile, receiveFile.Name(), false)
+	if err != nil {
+		return errors.Wrapf(err, "error receiving file %s from remote", tempFile)
+	}
+
+	if srcIsDir {
+		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+			if err = os.MkdirAll(destPath, 0755); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", destPath)
+			}
+		}
+
+		if err := utils.UntarToFileSystem(destPath, receiveFile, &archive.TarOptions{NoLchown: true}); err != nil {
+			return errors.Wrapf(err, "error untarring %q to %q", receiveFile.Name(), destPath)
+		}
+		return nil
+	}
+
+	if extract {
+		if err = utils.UntarToFileSystem(destPath, receiveFile, &archive.TarOptions{NoLchown: true}); err != nil {
+			return errors.Wrapf(err, "error untarring %q to %q", receiveFile.Name(), destPath)
+		}
+		return nil
+	}
+	return nil
 }

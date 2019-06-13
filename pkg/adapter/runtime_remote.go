@@ -14,8 +14,6 @@ import (
 	"text/template"
 	"time"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
@@ -31,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"
+	v1 "k8s.io/api/core/v1"
 )
 
 // ImageRuntime is wrapper for image runtime
@@ -929,4 +928,28 @@ func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
 		Built:            buildTime,
 		OsArch:           osArch,
 	}, nil
+}
+
+func (r *LocalRuntime) CopyFile(src string, dest string, destPath string, tempFile string, srcPath string, extract bool, srcIsDir bool) (string, error) {
+	reply, err := iopodman.CopyFile().Send(r.Conn, varlink.Upgrade, src, dest, destPath, tempFile, srcPath, extract, srcIsDir)
+	if err != nil {
+		return "", err
+	}
+	path, _, err := reply()
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (r *LocalRuntime) GetRemoteFileInfo(src string) (string, string, bool, error) {
+	reply, err := iopodman.GetRemoteFileInfo().Send(r.Conn, varlink.Upgrade, src)
+	if err != nil {
+		return "", "", false, err
+	}
+	srcPath, tempFile, srcIsDir, _, err := reply()
+	if err != nil {
+		return "", "", false, err
+	}
+	return srcPath, tempFile, srcIsDir, nil
 }

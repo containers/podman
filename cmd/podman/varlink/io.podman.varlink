@@ -1112,6 +1112,10 @@ method ContainerRunlabel(runlabel: Runlabel) -> ()
 # ~~~
 method ListContainerMounts() -> (mounts: [string]string)
 
+method CopyFile(src: string, dest: string, destPath: string, tempFile: string, srcPath: string, extract: bool, srcIsDir: bool) -> (path: string)
+
+method GetRemoteFileInfo(src: string) -> (path: string, tempFile: string, srcIsDir: bool)
+
 # MountContainer mounts a container by name or full/partial ID.  Upon a successful mount, the destination
 # mount is returned as a string.
 # #### Example

@@ -29,6 +29,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ContainerStateData(name: string) string](#ContainerStateData)
 
+[func CopyFile(src: string, dest: string, destPath: string, tempFile: string, srcPath: string, extract: bool, srcIsDir: bool) string](#CopyFile)
+
 [func CreateContainer(create: Create) string](#CreateContainer)
 
 [func CreateFromCC(in: []string) string](#CreateFromCC)
@@ -80,6 +82,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func GetPodsByContext(all: bool, latest: bool, args: []string) []string](#GetPodsByContext)
 
 [func GetPodsByStatus(statuses: []string) []string](#GetPodsByStatus)
+
+[func GetRemoteFileInfo(src: string) string, string, bool](#GetRemoteFileInfo)
 
 [func GetVersion() string, string, string, string, string, int](#GetVersion)
 
@@ -371,6 +375,11 @@ ContainerRunlabel runs executes a command as described by a given container imag
 method ContainerStateData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 ContainerStateData returns a container's state config in string form.  This call is for
 development of Podman only and generally should not be used.
+### <a name="CopyFile"></a>func CopyFile
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method CopyFile(src: [string](https://godoc.org/builtin#string), dest: [string](https://godoc.org/builtin#string), destPath: [string](https://godoc.org/builtin#string), tempFile: [string](https://godoc.org/builtin#string), srcPath: [string](https://godoc.org/builtin#string), extract: [bool](https://godoc.org/builtin#bool), srcIsDir: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -660,6 +669,11 @@ user environment, results might differ from what you expect.
 
 method GetPodsByStatus(statuses: [[]string](#[]string)) [[]string](#[]string)</div>
 GetPodsByStatus searches for pods whose status is included in statuses
+### <a name="GetRemoteFileInfo"></a>func GetRemoteFileInfo
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method GetRemoteFileInfo(src: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string), [string](https://godoc.org/builtin#string), [bool](https://godoc.org/builtin#bool)</div>
+
 ### <a name="GetVersion"></a>func GetVersion
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

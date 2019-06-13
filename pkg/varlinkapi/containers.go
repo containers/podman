@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -18,7 +20,10 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/pkg/errors"
 )
 
@@ -773,4 +778,75 @@ func (i *LibpodAPI) Top(call iopodman.VarlinkCall, nameOrID string, descriptors 
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyTop(topInfo)
+}
+
+func (i *LibpodAPI) CopyFile(call iopodman.VarlinkCall, src string, dest string, destPath string, tempFile string, srcPath string, extract bool, srcIsDir bool) error {
+	destdir := destPath
+	if !srcIsDir && !strings.HasSuffix(dest, string(os.PathSeparator)) {
+		destdir = filepath.Dir(destPath)
+	}
+	_, err := os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	destDirIsExist := (err == nil)
+	if err = os.MkdirAll(destdir, 0755); err != nil {
+		return errors.Wrapf(err, "error creating directory %q", destdir)
+	}
+
+	archiver := chrootarchive.NewArchiver(nil)
+	if srcIsDir {
+		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+		}
+		if err := archiver.UntarPath(tempFile, destPath); err != nil {
+			return errors.Wrapf(err, "error untarring %q to %q", tempFile, destPath)
+		}
+		return call.ReplyCopyFile(destPath)
+	}
+	if archive.IsArchivePath(tempFile) && extract {
+		if err := archiver.UntarPath(tempFile, destPath); err != nil {
+			return errors.Wrapf(err, "error copying %q to %q", srcPath, destPath)
+		}
+		return call.ReplyCopyFile(destPath)
+	}
+	destfi, err := os.Stat(destPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
+		}
+	}
+
+	if destfi != nil && destfi.IsDir() {
+		destPath = filepath.Join(destPath, filepath.Base(srcPath))
+	}
+
+	err = archiver.CopyFileWithTar(tempFile, destPath)
+	if err != nil {
+		return errors.Wrapf(err, "error copying to %s", destPath)
+	}
+	return call.ReplyCopyFile(destPath)
+}
+
+func (i *LibpodAPI) GetRemoteFileInfo(call iopodman.VarlinkCall, src string) error {
+	srcPath, err := filepath.EvalSymlinks(src)
+	if err != nil {
+		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
+	}
+	srcPath, srcfi, err := util.GetPathInfo(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "error getting remote path info")
+	}
+	tempFile := srcPath
+	if srcfi.IsDir() {
+		outputFile, err := ioutil.TempFile("", "varlink_tar_send")
+		if err != nil {
+			return err
+		}
+		if err := utils.TarToFilesystem(srcPath, outputFile); err != nil {
+			return err
+		}
+		tempFile = outputFile.Name()
+	}
+	return call.ReplyGetRemoteFileInfo(srcPath, tempFile, srcfi.IsDir())
 }

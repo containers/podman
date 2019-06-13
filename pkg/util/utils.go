@@ -1,7 +1,9 @@
 package util
 
 import (
+	"archive/tar"
 	"fmt"
+	"io"
 	"os"
 	ouser "os/user"
 	"path/filepath"
@@ -10,13 +12,16 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
@@ -333,4 +338,114 @@ func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
 		}
 	})
 	return strings.Join(optsCommand, " ")
+}
+
+// GetPathInfo evaluates the symlink of path and returns the info
+func GetPathInfo(path string) (string, os.FileInfo, error) {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "error evaluating symlinks %q", path)
+	}
+	srcfi, err := os.Stat(path)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "error reading path %q", path)
+	}
+	return path, srcfi, nil
+}
+
+// ConvertIDMap converts the idtools.IDMap to specs.LinuxIDMapping
+func ConvertIDMap(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxIDMapping) {
+	for _, idmap := range idMaps {
+		tempIDMap := specs.LinuxIDMapping{
+			ContainerID: uint32(idmap.ContainerID),
+			HostID:      uint32(idmap.HostID),
+			Size:        uint32(idmap.Size),
+		}
+		convertedIDMap = append(convertedIDMap, tempIDMap)
+	}
+	return convertedIDMap
+}
+
+// GetUser gets the user of the userspec from the mountPoint
+func GetUser(mountPoint string, userspec string) (specs.User, error) {
+	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
+	u := specs.User{
+		UID:      uid,
+		GID:      gid,
+		Username: userspec,
+	}
+	if !strings.Contains(userspec, ":") {
+		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
+		if err2 != nil {
+			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+				err = err2
+			}
+		} else {
+			u.AdditionalGids = groups
+		}
+
+	}
+	return u, err
+}
+
+// StreamFileToStdout streams a tar archive from srcPath to STDOUT
+func StreamFileToStdout(srcPath string, srcfi os.FileInfo) error {
+	if srcfi.IsDir() {
+		tw := tar.NewWriter(os.Stdout)
+		defer tw.Close()
+		err := filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil || !info.Mode().IsRegular() || path == srcPath {
+				return err
+			}
+			hdr, err := tar.FileInfoHeader(info, "")
+			if err != nil {
+				return err
+			}
+
+			if err = tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			fh, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+
+			_, err = io.Copy(tw, fh)
+			return err
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error streaming directory %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	file, err := os.Open(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "error opening file %s", srcPath)
+	}
+	defer file.Close()
+	if !archive.IsArchivePath(srcPath) {
+		tw := tar.NewWriter(os.Stdout)
+		defer tw.Close()
+		hdr, err := tar.FileInfoHeader(srcfi, "")
+		if err != nil {
+			return err
+		}
+		err = tw.WriteHeader(hdr)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming archive %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	_, err = io.Copy(os.Stdout, file)
+	if err != nil {
+		return errors.Wrapf(err, "error streaming file to Stdout")
+	}
+	return nil
 }
