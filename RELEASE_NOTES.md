@@ -22,6 +22,7 @@
 - Fixed a bug where `podman exec` would fail on older kernels ([#2968](https://github.com/containers/libpod/issues/2968))
 
 ### Misc
+- The `podman inspect` command on containers now uses the `Id` key (instead of `ID`) for the container's ID, for better compatability with the output of `docker inspect`
 - The `podman commit` command is now usable with the Podman remote client
 - The `--signature-policy` flag (used with several image-related commands) has been deprecated
 - The `podman unshare` command now defines two environment variables in the spawned shell: `CONTAINERS_RUNROOT` and `CONTAINERS_GRAPHROOT`, pointing to temporary and permanent storage for rootless containers
