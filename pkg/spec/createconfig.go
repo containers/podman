@@ -162,6 +162,10 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	if config.StorageConfig.GraphDriverName != "" {
 		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
 	}
+	for _, opt := range config.StorageConfig.GraphDriverOptions {
+		command = append(command, []string{"--storage-opt", opt}...)
+	}
+
 	if c.Syslog {
 		command = append(command, "--syslog", "true")
 	}
