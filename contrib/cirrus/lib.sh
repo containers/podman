@@ -208,8 +208,25 @@ setup_rootless() {
         # Works with older versions of bash
         printf "${_env_var_name}=%q\n" "$(printenv $_env_var_name)" >> "/home/$ROOTLESS_USER/.bashrc"
     done
-    echo "Ensure the systems ssh process is up and running"
-    systemctl --wait restart sshd  # a regular 'start' could hang forever
+
+    echo "Ensure the systems ssh process is up and running within 5 minutes"
+    systemctl start sshd
+    NOW=$(date +%s)
+    TIMEOUT=$(date --date '+5 minutes' +%s)
+    while [[ "$(date +%s)" -lt "$TIMEOUT" ]]
+    do
+        if timeout --foreground -k 1s 1s \
+            ssh $ROOTLESS_USER@localhost \
+            -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \
+            true
+        then
+            break
+        else
+            sleep 2s
+        fi
+    done
+    [[ "$(date +%s)" -lt "$TIMEOUT" ]] || \
+        die 11 "Timeout exceeded waiting for localhost ssh capability"
 }
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
