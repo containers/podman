@@ -135,7 +135,6 @@ const (
 // assume that their callers handled this requirement. Generally speaking, if a
 // function takes the container lock and accesses any part of state, it should
 // syncContainer() immediately after locking.
-// ffjson: skip
 type Container struct {
 	config *ContainerConfig
 
@@ -161,7 +160,6 @@ type Container struct {
 
 // ContainerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
-// easyjson:json
 type ContainerState struct {
 	// The current state of the running container
 	State ContainerStatus `json:"state"`
@@ -222,7 +220,6 @@ type ContainerState struct {
 }
 
 // ExecSession contains information on an active exec session
-// easyjson:json
 type ExecSession struct {
 	ID      string   `json:"id"`
 	Command []string `json:"command"`
@@ -232,7 +229,6 @@ type ExecSession struct {
 // ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
-// easyjson:json
 type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`

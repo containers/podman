@@ -18,7 +18,6 @@ import (
 // assume their callers handled this requirement. Generally speaking, if a
 // function takes the pod lock and accesses any part of state, it should
 // updatePod() immediately after locking.
-// ffjson: skip
 // Pod represents a group of containers that may share namespaces
 type Pod struct {
 	config *PodConfig
@@ -30,7 +29,6 @@ type Pod struct {
 }
 
 // PodConfig represents a pod's static configuration
-// easyjson:json
 type PodConfig struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -66,7 +64,6 @@ type PodConfig struct {
 }
 
 // podState represents a pod's state
-// easyjson:json
 type podState struct {
 	// CgroupPath is the path to the pod's CGroup
 	CgroupPath string `json:"cgroupPath"`
@@ -77,7 +74,6 @@ type podState struct {
 
 // PodInspect represents the data we want to display for
 // podman pod inspect
-// easyjson:json
 type PodInspect struct {
 	Config     *PodConfig
 	State      *PodInspectState
@@ -85,14 +81,12 @@ type PodInspect struct {
 }
 
 // PodInspectState contains inspect data on the pod's state
-// easyjson:json
 type PodInspectState struct {
 	CgroupPath       string `json:"cgroupPath"`
 	InfraContainerID string `json:"infraContainerID"`
 }
 
 // PodContainerInfo keeps information on a container in a pod
-// easyjson:json
 type PodContainerInfo struct {
 	ID    string `json:"id"`
 	State string `json:"state"`
