@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -22,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"github.com/pkg/errors"
 )
 
 var (
@@ -367,6 +369,18 @@ func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionInteg
 	return session, session.ExitCode(), session.OutputToString()
 }
 
+// RunNginxWithHealthCheck runs the alpine nginx container with an optional name and adds a healthcheck into it
+func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSessionIntegration, string) {
+	var podmanArgs = []string{"run"}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	podmanArgs = append(podmanArgs, "-dt", "-P", "--healthcheck-command", "CMD-SHELL curl http://localhost/", nginx)
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session, session.OutputToString()
+}
+
 func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {
 	var podmanArgs = []string{"run", "--pod", pod}
 	if name != "" {
@@ -507,4 +521,17 @@ func (p *PodmanTestIntegration) ImageExistsInMainStore(idOrName string) bool {
 	results := p.PodmanNoCache([]string{"image", "exists", idOrName})
 	results.WaitWithDefaultTimeout()
 	return Expect(results.ExitCode()).To(Equal(0))
+}
+
+func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
+	for i := 0; i < 10; i++ {
+		hc := p.Podman([]string{"healthcheck", "run", cid})
+		hc.WaitWithDefaultTimeout()
+		if hc.ExitCode() == 0 {
+			return nil
+		}
+		fmt.Printf("Waiting for %s to pass healthcheck\n", cid)
+		time.Sleep(1 * time.Second)
+	}
+	return errors.Errorf("unable to detect %s as running", cid)
 }

@@ -48,10 +48,13 @@ var _ = Describe("Podman port", func() {
 		Expect(result.ExitCode()).ToNot(Equal(0))
 	})
 
-	It("podman port  -l nginx", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
-		session.WaitWithDefaultTimeout()
+	It("podman port -l nginx", func() {
+		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(cid); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"port", "-l"})
 		result.WaitWithDefaultTimeout()
@@ -61,9 +64,12 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman container port  -l nginx", func() {
-		session := podmanTest.Podman([]string{"container", "run", "-dt", "-P", nginx})
-		session.WaitWithDefaultTimeout()
+		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(cid); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"container", "port", "-l"})
 		result.WaitWithDefaultTimeout()
@@ -73,9 +79,12 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -l port nginx", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
-		session.WaitWithDefaultTimeout()
+		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(cid); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"port", "-l", "80"})
 		result.WaitWithDefaultTimeout()
@@ -85,9 +94,12 @@ var _ = Describe("Podman port", func() {
 	})
 
 	It("podman port -a nginx", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "-P", nginx})
-		session.WaitWithDefaultTimeout()
+		session, cid := podmanTest.RunNginxWithHealthCheck("")
 		Expect(session.ExitCode()).To(Equal(0))
+
+		if err := podmanTest.RunHealthCheck(cid); err != nil {
+			Fail(err.Error())
+		}
 
 		result := podmanTest.Podman([]string{"port", "-a"})
 		result.WaitWithDefaultTimeout()
