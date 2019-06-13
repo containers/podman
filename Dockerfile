@@ -90,12 +90,6 @@ RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
 
-# Install easyjson
-RUN set -x \
-      && export GOPATH=/go \
-      && go get -u github.com/mailru/easyjson/... \
-      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
-
 # Install latest stable criu version
 RUN set -x \
       && cd /tmp \

@@ -10,7 +10,6 @@ type Volume struct {
 }
 
 // VolumeConfig holds the volume's config information
-//easyjson:json
 type VolumeConfig struct {
 	// Name of the volume
 	Name string `json:"name"`
