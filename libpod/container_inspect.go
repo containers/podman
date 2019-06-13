@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod/driver"
@@ -68,8 +67,12 @@ type InspectMount struct {
 	Dst string `json:"Destination"`
 	// The driver used for the named volume. Empty for bind mounts.
 	Driver string `json:"Driver"`
-	// Mount options for the driver, excluding RO/RW and mount propagation.
+	// Contains SELinux :z/:Z mount options. Unclear what, if anything, else
+	// goes in here.
 	Mode string `json:"Mode"`
+	// All remaining mount options. Additional data, not present in the
+	// original output.
+	Options []string `json:"Options"`
 	// Whether the volume is read-write
 	RW bool `json:"RW"`
 	// Mount propagation for the mount. Can be empty if not specified, but
@@ -369,6 +372,7 @@ func (c *Container) getInspectMounts() ([]*InspectMount, error) {
 func parseMountOptionsForInspect(options []string, mount *InspectMount) {
 	isRW := true
 	mountProp := ""
+	zZ := ""
 	otherOpts := []string{}
 
 	// Some of these may be overwritten if the user passes us garbage opts
@@ -385,6 +389,8 @@ func parseMountOptionsForInspect(options []string, mount *InspectMount) {
 			// Do nothing, silently discard
 		case "shared", "slave", "private", "rshared", "rslave", "rprivate":
 			mountProp = opt
+		case "z", "Z":
+			zZ = opt
 		default:
 			otherOpts = append(otherOpts, opt)
 		}
@@ -392,5 +398,6 @@ func parseMountOptionsForInspect(options []string, mount *InspectMount) {
 
 	mount.RW = isRW
 	mount.Propagation = mountProp
-	mount.Mode = strings.Join(otherOpts, ",")
+	mount.Mode = zZ
+	mount.Options = otherOpts
 }
