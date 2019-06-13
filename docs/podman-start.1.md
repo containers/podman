@@ -19,9 +19,11 @@ attach to the container.
 Attach container's STDOUT and STDERR.  The default is false. This option cannot be used when
 starting multiple containers.
 
-**--detach-keys**=*char*
+**--detach-keys**=*sequence*
 
-Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
+Override the key sequence for detaching a container. Format is a single character `[a-Z]` or
+a comma separated sequence of `ctrl-<value>`, where `<value>` is one of:
+`a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
 **--interactive**, **-i**
 
