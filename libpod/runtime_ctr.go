@@ -9,9 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -613,17 +611,4 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		}
 	}
 	return ctrs[lastCreatedIndex], nil
-}
-
-// RemoveContainersFromStorage attempt to remove containers from storage that do not exist in libpod database
-func (r *Runtime) RemoveContainersFromStorage(ctrs []string) {
-	for _, i := range ctrs {
-		// if the container does not exist in database, attempt to remove it from storage
-		if _, err := r.LookupContainer(i); err != nil && errors.Cause(err) == image.ErrNoSuchCtr {
-			r.storageService.UnmountContainerImage(i, true)
-			if err := r.storageService.DeleteContainer(i); err != nil && errors.Cause(err) != storage.ErrContainerUnknown {
-				logrus.Errorf("Failed to remove container %q from storage: %s", i, err)
-			}
-		}
-	}
 }
