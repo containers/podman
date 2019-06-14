@@ -99,7 +99,10 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			var st struct{}
 			exposedPorts[pair[1]] = st
 		case "ENV":
-			env = append(env, pair[1])
+			if len(pair) < 3 {
+				return v1.ImageConfig{}, errors.Errorf("no value given for environment variable %q", pair[1])
+			}
+			env = append(env, strings.Join(pair[1:], "="))
 		case "ENTRYPOINT":
 			entrypoint = append(entrypoint, pair[1])
 		case "CMD":
