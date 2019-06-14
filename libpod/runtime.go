@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"sync"
 	"syscall"
@@ -379,6 +380,68 @@ func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	return newRuntimeFromConfig(ctx, userConfigPath, options...)
 }
 
+func homeDir() (string, error) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.Current()
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to resolve HOME directory")
+		}
+		home = usr.HomeDir
+	}
+	return home, nil
+}
+
+func getRootlessConfigPath() (string, error) {
+	home, err := homeDir()
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(home, ".config/containers/libpod.conf"), nil
+}
+
+func getConfigPath() string {
+	if rootless.IsRootless() {
+		rootlessConfigPath, err := getRootlessConfigPath()
+		if err != nil {
+			if _, err := os.Stat(rootlessConfigPath); err == nil {
+				return rootlessConfigPath
+			}
+		}
+	}
+	if _, err := os.Stat(OverrideConfigPath); err == nil {
+		// Use the override configuration path
+		return OverrideConfigPath
+	}
+	if _, err := os.Stat(ConfigPath); err == nil {
+		return ConfigPath
+	}
+	return ""
+}
+
+// DefaultRuntimeConfig reads default config path and returns the RuntimeConfig
+func DefaultRuntimeConfig() (*RuntimeConfig, error) {
+	configPath := getConfigPath()
+
+	contents, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
+	}
+
+	// This is ugly, but we need to decode twice.
+	// Once to check if libpod static and tmp dirs were explicitly
+	// set (not enough to check if they're not the default value,
+	// might have been explicitly configured to the default).
+	// A second time to actually get a usable config.
+	tmpConfig := new(RuntimeConfig)
+	if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
+		return nil, errors.Wrapf(err, "error decoding configuration file %s",
+			configPath)
+	}
+	return tmpConfig, nil
+}
+
 func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
 	runtime.config = new(RuntimeConfig)
@@ -407,11 +470,13 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
 	runtime.config.VolumePath = filepath.Join(storageConf.GraphRoot, "volumes")
 
-	configPath := ConfigPath
-	foundConfig := true
+	configPath := getConfigPath()
 	rootlessConfigPath := ""
 	if rootless.IsRootless() {
-		home := os.Getenv("HOME")
+		home, err := homeDir()
+		if err != nil {
+			return nil, err
+		}
 		if runtime.config.SignaturePolicyPath == "" {
 			newPath := filepath.Join(home, ".config/containers/policy.json")
 			if _, err := os.Stat(newPath); err == nil {
@@ -419,7 +484,10 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 		}
 
-		rootlessConfigPath = filepath.Join(home, ".config/containers/libpod.conf")
+		rootlessConfigPath, err = getRootlessConfigPath()
+		if err != nil {
+			return nil, err
+		}
 
 		runtimeDir, err := util.GetRootlessRuntimeDir()
 		if err != nil {
@@ -441,21 +509,10 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			// when it doesn't exist
 			return nil, errors.Wrapf(err, "cannot stat %s", configPath)
 		}
-	} else if rootless.IsRootless() {
-		configPath = rootlessConfigPath
-		if _, err := os.Stat(configPath); err != nil {
-			foundConfig = false
-		}
-	} else if _, err := os.Stat(OverrideConfigPath); err == nil {
-		// Use the override configuration path
-		configPath = OverrideConfigPath
-	} else if _, err := os.Stat(ConfigPath); err != nil {
-		// Both stat checks failed, no config found
-		foundConfig = false
 	}
 
 	// If we have a valid configuration file, load it in
-	if foundConfig {
+	if configPath != "" {
 		contents, err := ioutil.ReadFile(configPath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
@@ -564,7 +621,7 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 		}
 
-		if !foundConfig {
+		if configPath != "" {
 			os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
 			file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil && !os.IsExist(err) {

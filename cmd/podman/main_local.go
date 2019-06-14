@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/pkg/util"
@@ -25,8 +26,17 @@ import (
 const remote = false
 
 func init() {
-
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CGroupManager, "cgroup-manager", "", "Cgroup manager to use (cgroupfs or systemd, default systemd)")
+	cgroupManager := libpod.SystemdCgroupsManager
+	if runtimeConfig, err := libpod.DefaultRuntimeConfig(); err == nil {
+		cgroupManager = runtimeConfig.CgroupManager
+	}
+	cgroupHelp := "Cgroup manager to use (cgroupfs or systemd)"
+	cgroupv2, _ := util.IsCgroup2UnifiedMode()
+	if rootless.IsRootless() && !cgroupv2 {
+		cgroupManager = ""
+		cgroupHelp = "Cgroup manager is not supported in rootless mode"
+	}
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CGroupManager, "cgroup-manager", cgroupManager, cgroupHelp)
 	// -c is deprecated due to conflict with -c on subcommands
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CpuProfile, "cpu-profile", "", "Path for the cpu profiling results")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Config, "config", "", "Path of a libpod config file detailing container server configuration options")
