@@ -439,6 +439,7 @@ type RmValues struct {
 	All     bool
 	Force   bool
 	Latest  bool
+	Storage bool
 	Volumes bool
 }
 

@@ -42,7 +42,9 @@ func init() {
 	flags.BoolVarP(&rmCommand.All, "all", "a", false, "Remove all containers")
 	flags.BoolVarP(&rmCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
 	flags.BoolVarP(&rmCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVar(&rmCommand.Storage, "storage", false, "Remove container from storage library")
 	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove the volumes associated with the container")
+	markFlagHiddenForRemoteClient("storage", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
@@ -53,6 +55,13 @@ func rmCmd(c *cliconfig.RmValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.Shutdown(false)
+
+	// Storage conflicts with --all/--latest/--volumes
+	if c.Storage {
+		if c.All || c.Latest || c.Volumes {
+			return errors.Errorf("--storage conflicts with --volumes, --all, and --latest")
+		}
+	}
 
 	ok, failures, err := runtime.RemoveContainers(getContext(), c)
 	if err != nil {

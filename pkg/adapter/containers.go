@@ -190,12 +190,18 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 	}
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
+	if cli.Storage {
+		for _, ctr := range cli.InputArgs {
+			if err := r.RemoveStorageContainer(ctr, cli.Force); err != nil {
+				failures[ctr] = err
+			}
+			ok = append(ok, ctr)
+		}
+		return ok, failures, nil
+	}
+
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
-		// Force may be used to remove containers no longer found in the database
-		if cli.Force && len(cli.InputArgs) > 0 && errors.Cause(err) == libpod.ErrNoSuchCtr {
-			r.RemoveContainersFromStorage(cli.InputArgs)
-		}
 		return ok, failures, err
 	}
 
