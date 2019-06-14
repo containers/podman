@@ -1,5 +1,25 @@
 # Release Notes
 
+## 1.4.1
+### Features
+- The `podman exec` command now sets its error code differently based on whether the container does not exist, and the command in the container does not exist
+- The `podman inspect` command on containers now outputs Mounts JSON that matches that of `docker inspect`, only including user-specified volumes and differentiating bind mounts and named volumes
+- The `podman inspect` command now reports the path to a container's OCI spec with the `OCIConfigPath` key (only included when the container is initialized or running)
+- The `podman run --mount` command now supports the `bind-nonrecursive` option for bind mounts ([#3314](https://github.com/containers/libpod/issues/3314))
+
+### Bugfixes
+- Fixed a bug where `podman play kube` would fail to create containers due to an unspecified log driver
+- Fixed a bug where Podman would fail to build with [musl libc](https://www.musl-libc.org/) ([#3284](https://github.com/containers/libpod/issues/3284))
+- Fixed a bug where rootless Podman using `slirp4netns` networking in an environment with no nameservers on the host other than localhost would result in nonfunctional networking ([#3277](https://github.com/containers/libpod/issues/3277))
+- Fixed a bug where `podman import` would not properly set environment variables, discarding their values and retaining only keys
+- Fixed a bug where Podman would fail to run when built with Apparmor support but run on systems without the Apparmor kernel module loaded ([#3331](https://github.com/containers/libpod/issues/3331))
+
+### Misc
+- Remote Podman will now default the username it uses to log in to remote systems to the username of the current user
+- Podman now uses JSON logging with OCI runtimes that support it, allowing for better error reporting
+- Updated vendored Buildah to v1.8.4
+- Updated vendored containers/image to v2.0
+
 ## 1.4.0
 ### Features
 - The `podman checkpoint` and `podman restore` commands can now be used to migrate containers between Podman installations on different systems ([#1618](https://github.com/containers/libpod/issues/1618))
