@@ -1,3 +1,53 @@
+- Changelog for v1.4.1 (2019-06-14)
+  * Completely disable global options test
+  * Update release notes for 1.4.1
+  * Skip runlabel global options test for podman-in-podman
+  * pkg/apparmor: fix when AA is disabled
+  * Fix ENV parsing on `podman import`
+  * Fix storage-opts type in Cobra
+  * Use the logical registry location instead of the physical one in (podman info)
+  * Update containers/image to v2.0.0, and buildah to v1.8.4
+  * Document exit codes for podman exec
+  * Add --storage flag to 'podman rm' (local only)
+  * When creating exit command, pass storage options on
+  * Bump cirrus images
+  * Mention the new Podman mailing list in contributing.md
+  * Update 1.4.0 release notes with ID -> Id in inspect
+  * Bump conmon to 0.3.0
+  * Cirrus: Guarantee ssh is running for rootless
+  * Purge all use of easyjson and ffjson in libpod
+  * Split mount options in inspect further
+  * storage: support --mount type=bind,bind-nonrecursive
+  * oci: allow to specify what runtimes support JSON
+  * storage: fix typo
+  * oci: use json formatted errors from the runtime
+  * Make Inspect's mounts struct accurate to Docker
+  * Provide OCI spec path in `podman inspect` output
+  * If container is not in correct state podman exec should exit with 126
+  * rootless: use the slirp4netns builtin DNS first
+  * Add --filename option to generate kube
+  * Fix podman-remote to user default username
+  * Prohibit use of positional args with --import
+  * BATS tests - get working again
+  * Add a test for 'podman play kube' to prevent regression
+  * Cirrus: New images w/o buildah
+  * Remove source-built buildah from CI
+  * standardize documentation formatting
+  * Touchup upstream Dockerfile
+  * only set log driver if it isn't empty
+  * Fix cgo includes for musl
+  * When you change the storage driver we ignore the storage-options
+  * Update vendor on containers/storage to v1.12.10
+  * Bump gitvalidation epoch
+  * Bump to v1.4.1-dev
+  * Default 'pause' to false for 'podman cp'
+  * Update c/storage to 9b10041d7b2ef767ce9c42b5862b6c51eeb82214
+  * Fix spelling
+  * fix tutorial link to install.md
+  * Cirrus: Minor cleanup of dependencies and docs
+  * Begin to break up pkg/inspect
+  * docs: Add CI section and links
+
 - Changelog for v1.4.0 (2019-06-07)
   * Update release notes for v1.4.0
   * Update release notes for v1.4.0
