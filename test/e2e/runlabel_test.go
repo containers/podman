@@ -85,6 +85,7 @@ var _ = Describe("podman container runlabel", func() {
 	})
 
 	It("podman container runlabel global options", func() {
+		Skip("Test nonfunctional for podman-in-podman testing")
 		image := "podman-global-test:ls"
 		podmanTest.BuildImage(GlobalDockerfile, image, "false")
 		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})
