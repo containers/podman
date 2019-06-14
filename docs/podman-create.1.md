@@ -458,6 +458,7 @@ Current supported mount TYPES are bind, and tmpfs.
        Options specific to bind:
 
               · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+              . bind-nonrecursive: do not setup a recursive bind mount.  By default it is recursive.
 
        Options specific to tmpfs:
 
