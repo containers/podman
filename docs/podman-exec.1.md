@@ -52,6 +52,34 @@ The default working directory for running binaries within a container is the roo
 The image developer can set a different default with the WORKDIR instruction, which can be overridden
 when creating the container.
 
+## Exit Status
+
+The exit code from `podman exec` gives information about why the command within the container failed to run or why it exited.  When `podman exec` exits with a
+non-zero code, the exit codes follow the `chroot` standard, see below:
+
+**_125_** if the error is with podman **_itself_**
+
+    $ podman exec --foo ctrID /bin/sh; echo $?
+    Error: unknown flag: --foo
+    125
+
+**_126_** if the **_contained command_** cannot be invoked
+
+    $ podman exec ctrID /etc; echo $?
+    Error: container_linux.go:346: starting container process caused "exec: \"/etc\": permission denied": OCI runtime error
+    126
+
+**_127_** if the **_contained command_** cannot be found
+
+    $ podman exec ctrID foo; echo $?
+    Error: container_linux.go:346: starting container process caused "exec: \"foo\": executable file not found in $PATH": OCI runtime error
+    127
+
+**_Exit code_** of **_contained command_** otherwise
+
+    $ podman exec ctrID /bin/sh -c 'exit 3'
+    # 3
+
 ## EXAMPLES
 
 $ podman exec -it ctrID ls
