@@ -104,9 +104,7 @@ func before(cmd *cobra.Command, args []string) error {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
-	if err := setSyslog(); err != nil {
-		return err
-	}
+
 	if err := setupRootless(cmd, args); err != nil {
 		return err
 	}
@@ -121,6 +119,9 @@ func before(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	logrus.SetLevel(level)
+	if err := setSyslog(); err != nil {
+		return err
+	}
 
 	if err := setRLimits(); err != nil {
 		return err

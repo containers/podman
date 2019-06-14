@@ -90,6 +90,8 @@ Storage driver option, Default storage driver options are configured in /etc/con
 
 output logging information to syslog as well as the console
 
+On remote clients, logging is directed to the file ~/.config/containers/podman.log
+
 **--version**, **-v**
 
 Print the version
