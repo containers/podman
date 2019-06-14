@@ -44,17 +44,7 @@ func getRegistries() ([]sysregistriesv2.Registry, error) {
 
 // GetRegistries obtains the list of search registries defined in the global registries file.
 func GetRegistries() ([]string, error) {
-	var searchRegistries []string
-	registries, err := getRegistries()
-	if err != nil {
-		return nil, err
-	}
-	for _, reg := range registries {
-		if reg.Search {
-			searchRegistries = append(searchRegistries, reg.Location)
-		}
-	}
-	return searchRegistries, nil
+	return sysregistriesv2.UnqualifiedSearchRegistries(&types.SystemContext{SystemRegistriesConfPath: SystemRegistriesConfPath()})
 }
 
 // GetBlockedRegistries obtains the list of blocked registries defined in the global registries file.
@@ -66,7 +56,7 @@ func GetBlockedRegistries() ([]string, error) {
 	}
 	for _, reg := range registries {
 		if reg.Blocked {
-			blockedRegistries = append(blockedRegistries, reg.Location)
+			blockedRegistries = append(blockedRegistries, reg.Prefix)
 		}
 	}
 	return blockedRegistries, nil
@@ -81,7 +71,7 @@ func GetInsecureRegistries() ([]string, error) {
 	}
 	for _, reg := range registries {
 		if reg.Insecure {
-			insecureRegistries = append(insecureRegistries, reg.Location)
+			insecureRegistries = append(insecureRegistries, reg.Prefix)
 		}
 	}
 	return insecureRegistries, nil

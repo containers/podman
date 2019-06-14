@@ -106,13 +106,19 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 
 	// Figure out the list of registries.
 	var registries []string
-	searchRegistries, err := sysregistriesv2.FindUnqualifiedSearchRegistries(sc)
+	searchRegistries, err := sysregistriesv2.UnqualifiedSearchRegistries(sc)
 	if err != nil {
 		logrus.Debugf("unable to read configured registries to complete %q: %v", name, err)
+		searchRegistries = nil
 	}
 	for _, registry := range searchRegistries {
-		if !registry.Blocked {
-			registries = append(registries, registry.Location)
+		reg, err := sysregistriesv2.FindRegistry(sc, registry)
+		if err != nil {
+			logrus.Debugf("unable to read registry configuraitno for %#v: %v", registry, err)
+			continue
+		}
+		if reg == nil || !reg.Blocked {
+			registries = append(registries, registry)
 		}
 	}
 	searchRegistriesAreEmpty := len(registries) == 0
@@ -257,6 +263,36 @@ func StringInSlice(s string, slice []string) bool {
 	return false
 }
 
+// GetContainerIDs uses ID mappings to compute the container-level IDs that will
+// correspond to a UID/GID pair on the host.
+func GetContainerIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32, uint32, error) {
+	uidMapped := true
+	for _, m := range uidmap {
+		uidMapped = false
+		if uid >= m.HostID && uid < m.HostID+m.Size {
+			uid = (uid - m.HostID) + m.ContainerID
+			uidMapped = true
+			break
+		}
+	}
+	if !uidMapped {
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map UID %d", uidmap, uid)
+	}
+	gidMapped := true
+	for _, m := range gidmap {
+		gidMapped = false
+		if gid >= m.HostID && gid < m.HostID+m.Size {
+			gid = (gid - m.HostID) + m.ContainerID
+			gidMapped = true
+			break
+		}
+	}
+	if !gidMapped {
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map GID %d", gidmap, gid)
+	}
+	return uid, gid, nil
+}
+
 // GetHostIDs uses ID mappings to compute the host-level IDs that will
 // correspond to a UID/GID pair in the container.
 func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32, uint32, error) {
@@ -270,7 +306,7 @@ func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32,
 		}
 	}
 	if !uidMapped {
-		return 0, 0, errors.Errorf("container uses ID mappings, but doesn't map UID %d", uid)
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map UID %d", uidmap, uid)
 	}
 	gidMapped := true
 	for _, m := range gidmap {
@@ -282,7 +318,7 @@ func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32,
 		}
 	}
 	if !gidMapped {
-		return 0, 0, errors.Errorf("container uses ID mappings, but doesn't map GID %d", gid)
+		return 0, 0, errors.Errorf("container uses ID mappings (%#v), but doesn't map GID %d", gidmap, gid)
 	}
 	return uid, gid, nil
 }

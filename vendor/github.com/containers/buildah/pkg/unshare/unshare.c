@@ -3,7 +3,7 @@
 #include <sys/ioctl.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
-#include <linux/memfd.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <grp.h>
 #include <sched.h>
@@ -13,6 +13,17 @@
 #include <termios.h>
 #include <errno.h>
 #include <unistd.h>
+
+/* Open Source projects like conda-forge, want to package podman and are based
+   off of centos:6, Conda-force has minimal libc requirements and is lacking
+   the memfd.h file, so we use mmam.h
+*/
+#ifndef MFD_ALLOW_SEALING
+#define MFD_ALLOW_SEALING 2U
+#endif
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC 1U
+#endif
 
 #ifndef F_LINUX_SPECIFIC_BASE
 #define F_LINUX_SPECIFIC_BASE 1024

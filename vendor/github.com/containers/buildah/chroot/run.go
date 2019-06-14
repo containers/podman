@@ -220,7 +220,6 @@ func runUsingChrootMain() {
 	var stdout io.Writer
 	var stderr io.Writer
 	fdDesc := make(map[int]string)
-	deferred := func() {}
 	if options.Spec.Process.Terminal {
 		// Create a pseudo-terminal -- open a copy of the master side.
 		ptyMasterFd, err := unix.Open("/dev/ptmx", os.O_RDWR, 0600)
@@ -370,12 +369,16 @@ func runUsingChrootMain() {
 			return
 		}
 	}
+	if err := unix.SetNonblock(relays[unix.Stdin], true); err != nil {
+		logrus.Errorf("error setting %d to nonblocking: %v", relays[unix.Stdin], err)
+	}
 	go func() {
 		buffers := make(map[int]*bytes.Buffer)
 		for _, writeFd := range relays {
 			buffers[writeFd] = new(bytes.Buffer)
 		}
 		pollTimeout := -1
+		stdinClose := false
 		for len(relays) > 0 {
 			fds := make([]unix.PollFd, 0, len(relays))
 			for fd := range relays {
@@ -395,6 +398,9 @@ func runUsingChrootMain() {
 					removeFds[int(rfd.Fd)] = struct{}{}
 				}
 				if rfd.Revents&unix.POLLIN == 0 {
+					if stdinClose && stdinCopy == nil {
+						continue
+					}
 					continue
 				}
 				b := make([]byte, 8192)
@@ -449,8 +455,19 @@ func runUsingChrootMain() {
 				if buffer.Len() > 0 {
 					pollTimeout = 100
 				}
+				if wfd == relays[unix.Stdin] && stdinClose && buffer.Len() == 0 {
+					stdinCopy.Close()
+					delete(relays, unix.Stdin)
+				}
 			}
 			for rfd := range removeFds {
+				if rfd == unix.Stdin {
+					buffer, found := buffers[relays[unix.Stdin]]
+					if found && buffer.Len() > 0 {
+						stdinClose = true
+						continue
+					}
+				}
 				if !options.Spec.Process.Terminal && rfd == unix.Stdin {
 					stdinCopy.Close()
 				}
@@ -461,7 +478,6 @@ func runUsingChrootMain() {
 
 	// Set up mounts and namespaces, and run the parent subprocess.
 	status, err := runUsingChroot(options.Spec, options.BundlePath, ctty, stdin, stdout, stderr, closeOnceRunning)
-	deferred()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running subprocess: %v\n", err)
 		os.Exit(1)
