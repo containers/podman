@@ -225,8 +225,13 @@ func CheckProfileAndLoadDefault(name string) (string, error) {
 		}
 	}
 
-	if name != "" && !runcaa.IsEnabled() {
-		return "", fmt.Errorf("profile %q specified but AppArmor is disabled on the host", name)
+	// Check if AppArmor is disabled and error out if a profile is to be set.
+	if !runcaa.IsEnabled() {
+		if name == "" {
+			return "", nil
+		} else {
+			return "", fmt.Errorf("profile %q specified but AppArmor is disabled on the host", name)
+		}
 	}
 
 	// If the specified name is not empty or is not a default libpod one,
