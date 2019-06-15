@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -42,4 +43,23 @@ func outputError(err error) {
 		}
 		fmt.Fprintln(os.Stderr, "Error:", ne.Error())
 	}
+}
+
+func setExitCode(err error) int {
+	cause := errors.Cause(err)
+	switch e := cause.(type) {
+	// For some reason golang wont let me list them with commas so listing them all.
+	case *iopodman.ContainerNotFound:
+		return 1
+	case *iopodman.InvalidState:
+		return 2
+	default:
+		switch e {
+		case define.ErrNoSuchCtr:
+			return 1
+		case define.ErrCtrStateInvalid:
+			return 2
+		}
+	}
+	return exitCode
 }

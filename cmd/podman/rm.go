@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -65,18 +64,16 @@ func rmCmd(c *cliconfig.RmValues) error {
 
 	ok, failures, err := runtime.RemoveContainers(getContext(), c)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
-			if len(c.InputArgs) > 1 {
-				exitCode = 125
-			} else {
-				exitCode = 1
-			}
+		if len(c.InputArgs) < 2 {
+			exitCode = setExitCode(err)
 		}
 		return err
 	}
 
 	if len(failures) > 0 {
-		exitCode = 125
+		for _, err := range failures {
+			exitCode = setExitCode(err)
+		}
 	}
 
 	return printCmdResults(ok, failures)
