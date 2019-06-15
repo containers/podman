@@ -184,4 +184,25 @@ var _ = Describe("Podman cp", func() {
 		_, err = os.Stat("/tmp/cp_test.txt")
 		Expect(err).To(Not(BeNil()))
 	})
+	It("podman cp volume", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "data"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"create", "-v", "data:/data", "--name", "container1", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		err = ioutil.WriteFile("cp_vol", []byte("copy to the volume"), 0644)
+		if err != nil {
+			os.Exit(1)
+		}
+		session = podmanTest.Podman([]string{"cp", "cp_vol", "container1" + ":/data/cp_vol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "container1" + ":/data/cp_vol1", "cp_vol2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
