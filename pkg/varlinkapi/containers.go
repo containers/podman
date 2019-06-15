@@ -488,6 +488,12 @@ func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, forc
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := i.Runtime.RemoveContainer(ctx, ctr, force, removeVolumes); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			return call.ReplyContainerExists(1)
+		}
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyRemoveContainer(ctr.ID())

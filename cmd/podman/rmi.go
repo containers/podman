@@ -74,6 +74,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
 			}
 			if !adapter.IsImageNotFound(err) {
+				exitCode = 2
 				failureCnt++
 			}
 			if lastError != nil {

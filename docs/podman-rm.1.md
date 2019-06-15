@@ -69,7 +69,8 @@ podman rm -f --latest
 ## Exit Status
 **_0_** if all specified containers removed
 **_1_** if one of the specified containers did not exist, and no other failures
-**_125_** if command fails for a reason other then an container did not exist
+**_2_** if one of the specified containers is paused or running
+**_125_** if the command fails for a reason other than container did not exist or is paused/running
 
 ## SEE ALSO
 podman(1), podman-image-rm(1)
