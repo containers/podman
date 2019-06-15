@@ -42,11 +42,20 @@ const (
 	SQLiteStateStore RuntimeStateStore = iota
 	// BoltDBStateStore is a state backed by a BoltDB database
 	BoltDBStateStore RuntimeStateStore = iota
+)
+
+var (
+	// InstallPrefix is the prefix where podman will be installed.
+	// It can be overridden at build time.
+	installPrefix = "/usr/local"
+	// EtcDir is the sysconfdir where podman should look for system config files.
+	// It can be overridden at build time.
+	etcDir = "/etc"
 
 	// SeccompDefaultPath defines the default seccomp path
-	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
+	SeccompDefaultPath = installPrefix + "/share/containers/seccomp.json"
 	// SeccompOverridePath if this exists it overrides the default seccomp path
-	SeccompOverridePath = "/etc/crio/seccomp.json"
+	SeccompOverridePath = etcDir + "/crio/seccomp.json"
 
 	// ConfigPath is the path to the libpod configuration file
 	// This file is loaded to replace the builtin default config before
@@ -54,11 +63,11 @@ const (
 	// If it is not present, the builtin default config is used instead
 	// This path can be overridden when the runtime is created by using
 	// NewRuntimeFromConfig() instead of NewRuntime()
-	ConfigPath = "/usr/share/containers/libpod.conf"
+	ConfigPath = installPrefix + "/share/containers/libpod.conf"
 	// OverrideConfigPath is the path to an override for the default libpod
 	// configuration file. If OverrideConfigPath exists, it will be used in
 	// place of the configuration file pointed to by ConfigPath.
-	OverrideConfigPath = "/etc/containers/libpod.conf"
+	OverrideConfigPath = etcDir + "/containers/libpod.conf"
 
 	// DefaultInfraImage to use for infra container
 	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
@@ -300,7 +309,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
-		CNIConfigDir:          "/etc/cni/net.d/",
+		CNIConfigDir:          etcDir + "/cni/net.d/",
 		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/usr/local/lib/cni", "/opt/cni/bin"},
 		InfraCommand:          DefaultInfraCommand,
 		InfraImage:            DefaultInfraImage,
