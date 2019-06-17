@@ -424,7 +424,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
 func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) error {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run"} {
+	for _, dest := range []string{"/run", "/run/lock"} {
 		if MountExists(mounts, dest) {
 			continue
 		}
