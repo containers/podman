@@ -278,6 +278,7 @@ testing_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
@@ -311,6 +312,7 @@ special_testing_rootless_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'

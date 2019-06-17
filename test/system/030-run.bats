@@ -9,8 +9,8 @@ true              |   0 |
 false             |   1 |
 sh -c 'exit 32'   |  32 |
 echo $rand        |   0 | $rand
-/no/such/command  | 127 | Error: container create failed:.*exec:.* no such file or dir
-/etc              | 126 | Error: container create failed:.*exec:.* permission denied
+/no/such/command  | 127 | Error: .*: starting container process caused .*exec:.*stat /no/such/command: no such file or directory
+/etc              | 126 | Error: .*: starting container process caused .*exec:.* permission denied
 "
 
     while read cmd expected_rc expected_output; do
