@@ -218,4 +218,21 @@ var _ = Describe("Podman logs", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		Expect(len(results.OutputToStringArray())).To(Equal(3))
 	})
+
+	It("podman logs -f two lines", func() {
+		containerName := "logs-f-rm"
+
+		logc := podmanTest.Podman([]string{"run", "--rm", "--name", containerName, "-dt", ALPINE, "sh", "-c", "echo podman; sleep 1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+
+		results := podmanTest.Podman([]string{"logs", "-f", containerName})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+
+		// Verify that the cleanup process worked correctly and we can recreate a container with the same name
+		logc = podmanTest.Podman([]string{"run", "--rm", "--name", containerName, "-dt", ALPINE, "true"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+	})
 })
