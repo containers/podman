@@ -203,7 +203,7 @@ func (c *Container) Kill(signal uint) error {
 	}
 
 	if c.state.State != ContainerStateRunning {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
+		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers. %s in state %s", c.ID(), c.state.State.String())
 	}
 
 	defer c.newContainerEvent(events.Kill)
