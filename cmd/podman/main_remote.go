@@ -3,8 +3,13 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"os/user"
+	"path/filepath"
 
+	"github.com/docker/docker/pkg/homedir"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -20,11 +25,41 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", username, "username on the remote host")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
 	// TODO maybe we allow the altering of this for bridge connections?
-	//rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic")
+	// rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic. Logged to ~/.config/containers/podman.log")
+	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Syslog, "syslog", false, "Output logging information to syslog as well as the console")
 }
 
 func setSyslog() error {
+	// Log to file if not using syslog
+	homeDir := homedir.Get()
+	path := filepath.Join(homeDir, ".config", "containers")
+
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(path, 0750); err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
+			return err
+		}
+	}
+
+	// Update path to include file name
+	path = filepath.Join(path, "podman.log")
+
+	// Create the log file if doesn't exist. And append to it if it already exists.
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0640)
+	if err != nil {
+		// Cannot open log file. Logging to stderr
+		fmt.Fprintf(os.Stderr, "%v", err)
+		return err
+	} else {
+		formatter := new(logrus.TextFormatter)
+		formatter.FullTimestamp = true
+		logrus.SetFormatter(formatter)
+		logrus.SetOutput(file)
+	}
+
+	// Note this message is only logged if --log-level >= Info!
+	logrus.Infof("Logging level set to %s", logrus.GetLevel().String())
 	return nil
 }
 
