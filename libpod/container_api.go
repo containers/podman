@@ -180,7 +180,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 	if c.state.State == ContainerStateConfigured ||
 		c.state.State == ContainerStateUnknown ||
 		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s in state %s", c.ID(), c.state.State.String())
+		return errors.Wrapf(ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
 	if c.state.State == ContainerStateStopped ||
@@ -203,7 +203,7 @@ func (c *Container) Kill(signal uint) error {
 	}
 
 	if c.state.State != ContainerStateRunning {
-		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers")
+		return errors.Wrapf(ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
 	defer c.newContainerEvent(events.Kill)
