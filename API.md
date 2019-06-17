@@ -286,7 +286,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method Attach(name: [string](https://godoc.org/builtin#string), detachKeys: [string](https://godoc.org/builtin#string), start: [bool](https://godoc.org/builtin#bool)) </div>
-Attach takes the name or ID of a container and sets up a the ability to remotely attach to its console. The start
+Attach takes the name or ID of a container and sets up the ability to remotely attach to its console. The start
 bool is whether you wish to start the container in question first.
 ### <a name="AttachControl"></a>func AttachControl
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
@@ -459,7 +459,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ExportContainer '{"name":
 
 method ExportImage(name: [string](https://godoc.org/builtin#string), destination: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), tags: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
 ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+a boolean option to force compression.  It also takes in a string array of tags to be able to save multiple
 tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 error will be returned. See also [ImportImage](ImportImage).
@@ -729,14 +729,14 @@ error will be returned if the container cannot be found. See also [InspectImage]
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method InspectImage(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
-InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
+InspectImage takes the name or ID of an image and returns a string representation of data associated with the
 mage.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
 be returned if the image cannot be found.
 ### <a name="InspectPod"></a>func InspectPod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method InspectPod(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
-InspectPod takes the name or ID of an image and returns a string respresentation of data associated with the
+InspectPod takes the name or ID of an image and returns a string representation of data associated with the
 pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
 be returned if the pod cannot be found.
 ### <a name="KillContainer"></a>func KillContainer
@@ -1650,7 +1650,7 @@ name [string](https://godoc.org/builtin#string)
 star_count [int](https://godoc.org/builtin#int)
 ### <a name="InfoDistribution"></a>type InfoDistribution
 
-InfoDistribution describes the the host's distribution
+InfoDistribution describes the host's distribution
 
 distribution [string](https://godoc.org/builtin#string)
 

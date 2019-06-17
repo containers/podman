@@ -207,7 +207,7 @@ type ContainerNameSpace (
     ipc: string
 )
 
-# InfoDistribution describes the the host's distribution
+# InfoDistribution describes the host's distribution
 type InfoDistribution (
     distribution: string,
     version: string
@@ -671,7 +671,7 @@ method PauseContainer(name: string) -> (container: string)
 # See also [PauseContainer](#PauseContainer).
 method UnpauseContainer(name: string) -> (container: string)
 
-# Attach takes the name or ID of a container and sets up a the ability to remotely attach to its console. The start
+# Attach takes the name or ID of a container and sets up the ability to remotely attach to its console. The start
 # bool is whether you wish to start the container in question first.
 method Attach(name: string, detachKeys: string, start: bool) -> ()
 
@@ -744,7 +744,7 @@ method BuildImage(build: BuildInfo) -> (image: MoreResponse)
 # This function is not implemented yet.
 # method CreateImage() -> (notimplemented: NotImplemented)
 
-# InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
+# InspectImage takes the name or ID of an image and returns a string representation of data associated with the
 #image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
 # be returned if the image cannot be found.
 method InspectImage(name: string) -> (image: string)
@@ -810,7 +810,7 @@ method Commit(name: string, image_name: string, changes: []string, author: strin
 method ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) -> (image: string)
 
 # ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-# a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+# a boolean option to force compression.  It also takes in a string array of tags to be able to save multiple
 # tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 # of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 # error will be returned. See also [ImportImage](ImportImage).
@@ -915,7 +915,7 @@ method ListPods() -> (pods: []ListPodData)
 # ~~~
 method GetPod(name: string) -> (pod: ListPodData)
 
-# InspectPod takes the name or ID of an image and returns a string respresentation of data associated with the
+# InspectPod takes the name or ID of an image and returns a string representation of data associated with the
 # pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
 # be returned if the pod cannot be found.
 method InspectPod(name: string) -> (pod: string)
