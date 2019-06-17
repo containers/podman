@@ -1,8 +1,10 @@
 package libpod
 
 import (
+	"strings"
 	"time"
 
+	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -49,6 +51,53 @@ type InspectContainerData struct {
 	ExitCommand     []string                `json:"ExitCommand"`
 	Namespace       string                  `json:"Namespace"`
 	IsInfra         bool                    `json:"IsInfra"`
+	Config          *InspectContainerConfig `json:"Config"`
+}
+
+// InspectContainerConfig holds further data about how a container was initially
+// configured.
+type InspectContainerConfig struct {
+	// Container hostname
+	Hostname string `json:"Hostname"`
+	// Container domain name - unused at present
+	DomainName string `json:"Domainname"`
+	// User the container was launched with
+	User string `json:"User"`
+	// Unused, at present
+	AttachStdin bool `json:"AttachStdin"`
+	// Unused, at present
+	AttachStdout bool `json:"AttachStdout"`
+	// Unused, at present
+	AttachStderr bool `json:"AttachStderr"`
+	// Whether the container creates a TTY
+	Tty bool `json:"Tty"`
+	// Whether the container leaves STDIN open
+	OpenStdin bool `json:"OpenStdin"`
+	// Whether STDIN is only left open once.
+	// Presently not supported by Podman, unused.
+	StdinOnce bool `json:"StdinOnce"`
+	// Container environment variables
+	Env []string `json:"Env"`
+	// Container command
+	Cmd []string `json:"Cmd"`
+	// Container image
+	Image string `json:"Image"`
+	// Unused, at present. I've never seen this field populated.
+	Volumes map[string]struct{} `json:"Volumes"`
+	// Container working directory
+	WorkingDir string `json:"WorkingDir"`
+	// Container entrypoint
+	Entrypoint string `json:"Entrypoint"`
+	// On-build arguments - presently unused. More of Buildah's domain.
+	OnBuild *string `json:"OnBuild"`
+	// Container labels
+	Labels map[string]string `json:"Labels"`
+	// Container annotations
+	Annotations map[string]string `json:"Annotations"`
+	// Container stop signal
+	StopSignal uint `json:"StopSignal"`
+	// Configured healthcheck for the container
+	Healthcheck *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 }
 
 // InspectMount provides a record of a single mount in a container. It contains
@@ -284,6 +333,12 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	// Get information on the container's network namespace (if present)
 	data = c.getContainerNetworkInfo(data)
 
+	inspectConfig, err := c.generateInspectContainerConfig(spec)
+	if err != nil {
+		return nil, err
+	}
+	data.Config = inspectConfig
+
 	if size {
 		rootFsSize, err := c.rootFsSize()
 		if err != nil {
@@ -400,4 +455,57 @@ func parseMountOptionsForInspect(options []string, mount *InspectMount) {
 	mount.Propagation = mountProp
 	mount.Mode = zZ
 	mount.Options = otherOpts
+}
+
+// Generate the InspectContainerConfig struct for the Config field of Inspect.
+func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*InspectContainerConfig, error) {
+	ctrConfig := new(InspectContainerConfig)
+
+	ctrConfig.Hostname = c.Hostname()
+	ctrConfig.User = c.config.User
+	if spec.Process != nil {
+		ctrConfig.Tty = spec.Process.Terminal
+		ctrConfig.Env = []string{}
+		for _, val := range spec.Process.Env {
+			ctrConfig.Env = append(ctrConfig.Env, val)
+		}
+		ctrConfig.WorkingDir = spec.Process.Cwd
+	}
+
+	ctrConfig.OpenStdin = c.config.Stdin
+	ctrConfig.Image = c.config.RootfsImageName
+
+	// Leave empty is not explicitly overwritten by user
+	if len(c.config.Command) != 0 {
+		ctrConfig.Cmd = []string{}
+		for _, val := range c.config.Command {
+			ctrConfig.Cmd = append(ctrConfig.Cmd, val)
+		}
+	}
+
+	// Leave empty if not explicitly overwritten by user
+	if len(c.config.Entrypoint) != 0 {
+		ctrConfig.Entrypoint = strings.Join(c.config.Entrypoint, " ")
+	}
+
+	if len(c.config.Labels) != 0 {
+		ctrConfig.Labels = make(map[string]string)
+		for k, v := range c.config.Labels {
+			ctrConfig.Labels[k] = v
+		}
+	}
+
+	if len(spec.Annotations) != 0 {
+		ctrConfig.Annotations = make(map[string]string)
+		for k, v := range spec.Annotations {
+			ctrConfig.Annotations[k] = v
+		}
+	}
+
+	ctrConfig.StopSignal = c.config.StopSignal
+	// TODO: should JSON deep copy this to ensure internal pointers don't
+	// leak.
+	ctrConfig.Healthcheck = c.config.HealthCheckConfig
+
+	return ctrConfig, nil
 }

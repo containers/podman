@@ -1,9 +1,6 @@
 package shared
 
 import (
-	"strings"
-
-	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/go-connections/nat"
@@ -17,7 +14,6 @@ import (
 type InspectContainer struct {
 	*libpod.InspectContainerData
 	HostConfig *InspectContainerHostConfig `json:"HostConfig"`
-	Config     *InspectContainerConfig     `json:"Config"`
 }
 
 // InspectContainerHostConfig holds Container configuration that is not specific
@@ -80,31 +76,6 @@ type InspectContainerHostConfig struct {
 	IOMaximumIOps        int                         `json:"IOMaximumIOps"`      //check type, TODO
 	IOMaximumBandwidth   int                         `json:"IOMaximumBandwidth"` //check type, TODO
 	Tmpfs                []string                    `json:"Tmpfs"`
-}
-
-// InspectContainerConfig holds further data about a container, again mostly
-// not directly stored in Libpod. This struct is matched to the output of
-// `docker inspect`.
-type InspectContainerConfig struct {
-	Hostname     string                        `json:"Hostname"`
-	DomainName   string                        `json:"Domainname"` //TODO
-	User         specs.User                    `json:"User"`
-	AttachStdin  bool                          `json:"AttachStdin"`  //TODO
-	AttachStdout bool                          `json:"AttachStdout"` //TODO
-	AttachStderr bool                          `json:"AttachStderr"` //TODO
-	Tty          bool                          `json:"Tty"`
-	OpenStdin    bool                          `json:"OpenStdin"`
-	StdinOnce    bool                          `json:"StdinOnce"` //TODO
-	Env          []string                      `json:"Env"`
-	Cmd          []string                      `json:"Cmd"`
-	Image        string                        `json:"Image"`
-	Volumes      map[string]struct{}           `json:"Volumes"`
-	WorkingDir   string                        `json:"WorkingDir"`
-	Entrypoint   string                        `json:"Entrypoint"`
-	Labels       map[string]string             `json:"Labels"`
-	Annotations  map[string]string             `json:"Annotations"`
-	StopSignal   uint                          `json:"StopSignal"`
-	Healthcheck  *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 }
 
 // InspectLogConfig holds information about a container's configured log driver
@@ -180,21 +151,6 @@ func GetCtrInspectInfo(config *libpod.ContainerConfig, ctrInspectData *libpod.In
 			Ulimits:              createArtifact.Resources.Ulimit,
 			SecurityOpt:          createArtifact.SecurityOpts,
 			Tmpfs:                createArtifact.Tmpfs,
-		},
-		&InspectContainerConfig{
-			Hostname:    spec.Hostname,
-			User:        spec.Process.User,
-			Env:         spec.Process.Env,
-			Image:       config.RootfsImageName,
-			WorkingDir:  spec.Process.Cwd,
-			Labels:      config.Labels,
-			Annotations: spec.Annotations,
-			Tty:         spec.Process.Terminal,
-			OpenStdin:   config.Stdin,
-			StopSignal:  config.StopSignal,
-			Cmd:         config.Spec.Process.Args,
-			Entrypoint:  strings.Join(createArtifact.Entrypoint, " "),
-			Healthcheck: config.HealthCheckConfig,
 		},
 	}
 	return data, nil
