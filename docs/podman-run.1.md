@@ -669,7 +669,7 @@ Signal to stop a container. Default is SIGTERM.
 
 Timeout (in seconds) to stop a container. Default is 10.
 
-**--subuidname**=*name*
+**--subgidname**=*name*
 
 Run the container in a new user namespace using the map with 'name' in the `/etc/subgid` file.
 If calling podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subgid(5)`.
