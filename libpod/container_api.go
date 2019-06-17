@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
@@ -120,20 +119,24 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	attachChan := make(chan error)
 
 	// We need to ensure that we don't return until start() fired in attach.
-	// Use a WaitGroup to sync this.
-	wg := new(sync.WaitGroup)
-	wg.Add(1)
+	// Use a channel to sync
+	startedChan := make(chan bool)
 
 	// Attach to the container before starting it
 	go func() {
-		if err := c.attach(streams, keys, resize, true, wg); err != nil {
+		if err := c.attach(streams, keys, resize, true, startedChan); err != nil {
 			attachChan <- err
 		}
 		close(attachChan)
 	}()
 
-	wg.Wait()
-	c.newContainerEvent(events.Attach)
+	select {
+	case err := <-attachChan:
+		return nil, err
+	case <-startedChan:
+		c.newContainerEvent(events.Attach)
+	}
+
 	return attachChan, nil
 }
 
