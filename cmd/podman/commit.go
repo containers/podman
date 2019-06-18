@@ -26,9 +26,9 @@ var (
 			commitCommand.Remote = remoteclient
 			return commitCmd(&commitCommand)
 		},
-		Example: `podman commit -q --message "committing container to image" reverent_golick image-commited
-  podman commit -q --author "firstName lastName" reverent_golick image-commited
-  podman commit -q --pause=false containerID image-commited`,
+		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
+  podman commit -q --author "firstName lastName" reverent_golick image-committed
+  podman commit -q --pause=false containerID image-committed`,
 	}
 )
 

@@ -108,7 +108,7 @@ type InspectContainerConfig struct {
 }
 
 // InspectLogConfig holds information about a container's configured log driver
-// and is presently unused. It is retained for Docker compatability.
+// and is presently unused. It is retained for Docker compatibility.
 type InspectLogConfig struct {
 	Type   string            `json:"Type"`
 	Config map[string]string `json:"Config"` //idk type, TODO

@@ -63,7 +63,7 @@ func (p *PodmanTest) MakeOptions(args []string) []string {
 	return p.PodmanMakeOptions(args)
 }
 
-// PodmanAsUserBase exec podman as user. uid and gid is set for credentials useage. env is used
+// PodmanAsUserBase exec podman as user. uid and gid is set for credentials usage. env is used
 // to record the env for debugging
 func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, nocache bool) *PodmanSession {
 	var command *exec.Cmd

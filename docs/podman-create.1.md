@@ -55,11 +55,11 @@ Block IO weight (relative weight) accepts a weight value between 10 and 1000.
 
 Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`).
 
-**--cap-add**=*capabilitiy*
+**--cap-add**=*capability*
 
 Add Linux capabilities
 
-**--cap-drop**=*capabilitiy*
+**--cap-drop**=*capability*
 
 Drop Linux capabilities
 
@@ -382,7 +382,7 @@ Not implemented
 
 **--log-driver**="*k8s-file*"
 
-Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
+Logging driver for the container.  Currently not supported.  This flag is a NOOP provided solely for scripting compatibility.
 
 **--log-opt**=*path*
 

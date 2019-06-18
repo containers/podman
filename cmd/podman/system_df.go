@@ -586,7 +586,7 @@ func volumesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 	}
 	volumesVerboseDiskUsage, err := getVolumeVerboseDiskUsage(metaData.volumes, metaData.volumeUsedByContainerMap)
 	if err != nil {
-		return errors.Wrapf(err, "error getting verbose ouput of volumes")
+		return errors.Wrapf(err, "error getting verbose output of volumes")
 	}
 	os.Stderr.WriteString("\nLocal Volumes space usage:\n\n")
 	out := formats.StdoutTemplateArray{Output: systemDfVolumeVerboseDiskUsageToGeneric(volumesVerboseDiskUsage), Template: volumeVerboseFormat, Fields: volumeVerboseHeader}
