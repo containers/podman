@@ -811,7 +811,7 @@ func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig
 		return nil, errors.Wrapf(err, "invalid healthcheck-start-period %s", inStartPeriod)
 	}
 	if startPeriodDuration < time.Duration(0) {
-		return nil, errors.New("healthcheck-start-period must be a 0 seconds or greater")
+		return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
 	}
 	hc.StartPeriod = startPeriodDuration
 
