@@ -9,8 +9,8 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -82,7 +82,7 @@ func saveCmd(c *cliconfig.SaveValues) error {
 
 	if len(c.Output) == 0 {
 		fi := os.Stdout
-		if logrus.IsTerminal(fi) {
+		if terminal.IsTerminal(int(fi.Fd())) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
 		c.Output = "/dev/stdout"
