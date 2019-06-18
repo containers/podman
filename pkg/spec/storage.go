@@ -582,22 +582,7 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 func ValidateVolumeOpts(options []string) ([]string, error) {
 	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
 	finalOpts := make([]string, 0, len(options))
-	discardOpts := []string{"cached", "delegated"}
 	for _, opt := range options {
-		// The discarded ops are OS X specific volume options introduced
-		// in a recent Docker version.
-		// They have no meaning on Linux, so here we silently drop them.
-		// This matches Docker's behavior (the options are intended to
-		// be always safe to use, even not on OS X).
-		bad := false
-		for _, discard := range discardOpts {
-			if opt == discard {
-				bad = true
-			}
-		}
-		if bad {
-			continue
-		}
 		switch opt {
 		case "rw", "ro":
 			foundRWRO++
@@ -619,6 +604,14 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			if bindType > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
 			}
+		case "cached", "delegated":
+			// The discarded ops are OS X specific volume options
+			// introduced in a recent Docker version.
+			// They have no meaning on Linux, so here we silently
+			// drop them. This matches Docker's behavior (the options
+			// are intended to be always safe to use, even not on OS
+			// X).
+			continue
 		default:
 			return nil, errors.Errorf("invalid mount option %q", opt)
 		}
