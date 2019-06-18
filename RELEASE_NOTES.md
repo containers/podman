@@ -1,5 +1,14 @@
 # Release Notes
 
+## 1.4.2
+### Bugfixes
+- Fixed a bug where Podman could not run containers using an older version of Systemd as init ([#3295](https://github.com/containers/libpod/issues/3295))
+
+### Misc
+- Updated vendored Buildah to v1.9.0 to resolve a critical bug with Dockerfile `RUN` instructions
+- The error message for running `podman kill` on containers that are not running has been improved
+- The Podman remote client can now log to a file if syslog is not available
+
 ## 1.4.1
 ### Features
 - The `podman exec` command now sets its error code differently based on whether the container does not exist, and the command in the container does not exist
