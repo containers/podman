@@ -25,6 +25,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/channelwriter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
@@ -495,9 +496,19 @@ func (i *LibpodAPI) DeleteUnusedImages(call iopodman.VarlinkCall) error {
 
 // Commit ...
 func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, changes []string, author, message string, pause bool, manifestType string) error {
-	var newImage *image.Image
+	var (
+		newImage *image.Image
+		log      []string
+		mimeType string
+	)
+	output := channelwriter.NewChannelWriter()
+	channelClose := func() {
+		if err := output.Close(); err != nil {
+			logrus.Errorf("failed to close channel writer: %q", err)
+		}
+	}
+	defer channelClose()
 
-	output := bytes.NewBuffer([]byte{})
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
@@ -507,7 +518,6 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
-	var mimeType string
 	switch manifestType {
 	case "oci", "": //nolint
 		mimeType = buildah.OCIv1ImageManifest
@@ -535,6 +545,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	}
 
 	c := make(chan error)
+	defer close(c)
 
 	go func() {
 		newImage, err = ctr.Commit(getContext(), imageName, options)
@@ -542,48 +553,22 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 			c <- err
 		}
 		c <- nil
-		close(c)
 	}()
 
-	var log []string
-	done := false
-	for {
-		line, err := output.ReadString('\n')
-		if err == nil {
-			log = append(log, line)
-			continue
-		} else if err == io.EOF {
-			select {
-			case err := <-c:
-				if err != nil {
-					logrus.Errorf("reading of output during commit failed for %s", name)
-					return call.ReplyErrorOccurred(err.Error())
-				}
-				done = true
-			default:
-				if !call.WantsMore() {
-					break
-				}
-				br := iopodman.MoreResponse{
-					Logs: log,
-				}
-				call.ReplyCommit(br)
-				log = []string{}
-			}
-		} else {
-			return call.ReplyErrorOccurred(err.Error())
-		}
-		if done {
-			break
-		}
+	// reply is the func being sent to the output forwarder.  in this case it is replying
+	// with a more response struct
+	reply := func(br iopodman.MoreResponse) error {
+		return call.ReplyCommit(br)
+	}
+	log, err = forwardOutput(log, c, call.WantsMore(), output, reply)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	call.Continues = false
-
 	br := iopodman.MoreResponse{
 		Logs: log,
 		Id:   newImage.ID(),
 	}
-
 	return call.ReplyCommit(br)
 }
 
@@ -636,6 +621,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 	var (
 		imageID string
+		err     error
 	)
 	dockerRegistryOptions := image.DockerRegistryOptions{}
 	so := image.SigningOptions{}
@@ -643,8 +629,16 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 	if call.WantsMore() {
 		call.Continues = true
 	}
-	output := bytes.NewBuffer([]byte{})
+	output := channelwriter.NewChannelWriter()
+	channelClose := func() {
+		if err := output.Close(); err != nil {
+			logrus.Errorf("failed to close channel writer: %q", err)
+		}
+	}
+	defer channelClose()
 	c := make(chan error)
+	defer close(c)
+
 	go func() {
 		if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
 			srcRef, err := alltransports.ParseImageName(name)
@@ -666,43 +660,17 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 			}
 		}
 		c <- nil
-		close(c)
 	}()
 
 	var log []string
-	done := false
-	for {
-		line, err := output.ReadString('\n')
-		if err == nil {
-			log = append(log, line)
-			continue
-		} else if err == io.EOF {
-			select {
-			case err := <-c:
-				if err != nil {
-					logrus.Errorf("reading of output during pull failed for %s", name)
-					return call.ReplyErrorOccurred(err.Error())
-				}
-				done = true
-			default:
-				if !call.WantsMore() {
-					break
-				}
-				br := iopodman.MoreResponse{
-					Logs: log,
-				}
-				call.ReplyPullImage(br)
-				log = []string{}
-			}
-		} else {
-			return call.ReplyErrorOccurred(err.Error())
-		}
-		if done {
-			break
-		}
+	reply := func(br iopodman.MoreResponse) error {
+		return call.ReplyPullImage(br)
+	}
+	log, err = forwardOutput(log, c, call.WantsMore(), output, reply)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
 	}
 	call.Continues = false
-
 	br := iopodman.MoreResponse{
 		Logs: log,
 		Id:   imageID,
