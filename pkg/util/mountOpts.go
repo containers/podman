@@ -20,25 +20,21 @@ func ProcessOptions(options []string) []string {
 		foundbind, foundrw, foundro bool
 		rootProp                    string
 	)
+
 	for _, opt := range options {
 		switch opt {
 		case "bind", "rbind":
 			foundbind = true
-			break
+		case "ro":
+			foundro = true
+		case "rw":
+			foundrw = true
+		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
+			rootProp = opt
 		}
 	}
 	if !foundbind {
 		options = append(options, "rbind")
-	}
-	for _, opt := range options {
-		switch opt {
-		case "rw":
-			foundrw = true
-		case "ro":
-			foundro = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
 	}
 	if !foundrw && !foundro {
 		options = append(options, "rw")
