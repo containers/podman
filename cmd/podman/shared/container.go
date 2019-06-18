@@ -710,7 +710,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 }
 
 // GetRunlabel is a helper function for runlabel; it gets the image if needed and begins the
-// contruction of the runlabel output and environment variables
+// construction of the runlabel output and environment variables
 func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtime *libpod.Runtime, pull bool, inputCreds string, dockerRegistryOptions image.DockerRegistryOptions, authfile string, signaturePolicyPath string, output io.Writer) (string, string, error) {
 	var (
 		newImage  *image.Image

@@ -395,7 +395,7 @@ Not implemented
 
 **--log-driver**="*k8s-file*"
 
-Logging driver for the container.  Currently not supported.  This flag is a NOOP provided soley for scripting compatibility.
+Logging driver for the container.  Currently not supported.  This flag is a NOOP provided solely for scripting compatibility.
 
 **--log-opt**=*path*
 
