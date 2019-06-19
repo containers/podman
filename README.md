@@ -29,6 +29,7 @@ This project tests all builds against each supported version of Fedora, the late
 1. Integrate libpod into CRI-O to replace its existing container management backend
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
+1. Support for CGroups V2 (and resource isolation for rootless containers)
 
 ## Rootless
 Podman can be easily run as a normal user, without requiring a setuid binary.
