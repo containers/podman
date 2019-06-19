@@ -826,7 +826,12 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, supportsJSON)
 		if err != nil {
-			return err
+			// Don't fatally error.
+			// This will allow us to ship configs including optional
+			// runtimes that might not be installed (crun, kata).
+			// Only a warnf so default configs don't spec errors.
+			logrus.Warnf("Error initializing configured OCI runtime %s: %v", name, err)
+			continue
 		}
 
 		runtime.ociRuntimes[name] = ociRuntime
