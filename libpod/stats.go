@@ -7,8 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/pkg/errors"
 )
 
@@ -34,14 +34,13 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	if err != nil {
 		return nil, err
 	}
-	v1CGroups := GetV1CGroups(getExcludedCGroups())
-	cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(cgroupPath))
+	cgroup, err := cgroups.Load(cgroupPath)
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
 	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
-	cgroupStats, err := cgroup.Stat(cgroups.IgnoreNotExist)
+	cgroupStats, err := cgroup.Stat()
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}

@@ -50,7 +50,7 @@ func (c *pidHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 		return fmt.Errorf("function not implemented yet")
 	}
 
-	PIDRoot := ctr.getCgroupv1Path(Pids)
+	PIDRoot = ctr.getCgroupv1Path(Pids)
 
 	current, err := readFileAsUint64(filepath.Join(PIDRoot, "pids.current"))
 	if err != nil {

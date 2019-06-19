@@ -59,8 +59,6 @@ func (c *blkioHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	}
 	defer f.Close()
 
-	var ioServiceBytesRecursive []BlkIOEntry
-
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -94,6 +92,9 @@ func (c *blkioHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 			Value: value,
 		}
 		ioServiceBytesRecursive = append(ioServiceBytesRecursive, entry)
+	}
+	if err := scanner.Err(); err != nil {
+		return err
 	}
 	m.Blkio = BlkioMetrics{IoServiceBytesRecursive: ioServiceBytesRecursive}
 	return nil

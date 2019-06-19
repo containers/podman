@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/util"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -42,7 +40,7 @@ func makeSystemdCgroup(path string) error {
 		return err
 	}
 
-	return controller.Create(path, &spec.LinuxResources{})
+	return controller.CreateSystemdUnit(path)
 }
 
 // deleteSystemdCgroup deletes the systemd cgroup at the given location
@@ -52,7 +50,7 @@ func deleteSystemdCgroup(path string) error {
 		return err
 	}
 
-	return controller.Delete(path)
+	return controller.DeleteByPath(path)
 }
 
 // assembleSystemdCgroupName creates a systemd cgroup path given a base and
@@ -69,29 +67,6 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	final := fmt.Sprintf("%s/%s-%s%s", baseSlice, noSlice, newSlice, sliceSuffix)
 
 	return final, nil
-}
-
-// GetV1CGroups gets the V1 cgroup subsystems and then "filters"
-// out any subsystems that are provided by the caller.  Passing nil
-// for excludes will return the subsystems unfiltered.
-//func GetV1CGroups(excludes []string) ([]cgroups.Subsystem, error) {
-func GetV1CGroups(excludes []string) cgroups.Hierarchy {
-	return func() ([]cgroups.Subsystem, error) {
-		var filtered []cgroups.Subsystem
-
-		subSystem, err := cgroups.V1()
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range subSystem {
-			// If the name of the subsystem is not in the list of excludes, then
-			// add it as a keeper.
-			if !util.StringInSlice(string(s.Name()), excludes) {
-				filtered = append(filtered, s)
-			}
-		}
-		return filtered, nil
-	}
 }
 
 // LabelVolumePath takes a mount path for a volume and gives it an
