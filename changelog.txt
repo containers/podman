@@ -1,3 +1,32 @@
+- Changelog for v1.4.2 (2019-06-18)
+  * Update release notes for Podman 1.4.2
+  * updating podman logo files
+  * fix port -l timing with healthchecks
+  * Bump Buildah to v1.9.0
+  * Swap to using the on-disk spec for inspect mounts
+  * Replace podman.svg; closes #3350
+  * cmd, docs, test: fix some typos
+  * run BATS tests in Cirrus
+  * Move the Config portion of Inspect into libpod
+  * Add remote client logging to a file
+  * Fix subgidname option in docs for podman run
+  * stop/kill: inproper state errors: s/in state/is in state/
+  * test: add test for logs -f
+  * kill: print ID and state for non-running containers
+  * API.md: fix few typos
+  * docs/podamn.1.md: fix typo: remove double the
+  * CONTRIBUTING.md: fix typo
+  * Remove unnecessary var type to fix lint warning
+  * Move installPrefix and etcDir into runtime.go
+  * Improve DESTDIR/PREFIX/ETCDIR handling
+  * Bump gitvalidation epoch
+  * Bump to v1.4.2-dev
+  * Change container command to contained
+  * Cirrus: Simplify log collection commands
+  * Accidently removed /run/lock from systemd mounts
+  * Add warning while untagging an image podman-load
+  * podman copy files to the volume with a container
+
 - Changelog for v1.4.1 (2019-06-14)
   * Completely disable global options test
   * Update release notes for 1.4.1
