@@ -20,13 +20,13 @@ func (c *memHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 	if res.Memory == nil {
 		return nil
 	}
-	return fmt.Errorf("function not implemented yet")
+	return fmt.Errorf("memory apply not implemented yet")
 }
 
 // Create the cgroup
 func (c *memHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("function not implemented yet")
+		return false, fmt.Errorf("memory create not implemented for cgroup v2")
 	}
 	return ctr.createCgroupDirectory(Memory)
 }
@@ -38,19 +38,26 @@ func (c *memHandler) Destroy(ctr *CgroupControl) error {
 
 // Stat fills a metrics structure with usage stats for the controller
 func (c *memHandler) Stat(ctr *CgroupControl, m *Metrics) error {
-	if ctr.cgroup2 {
-		return fmt.Errorf("function not implemented yet")
-	}
+	var err error
 	usage := MemoryUsage{}
 
-	memoryRoot := ctr.getCgroupv1Path(Memory)
+	var memoryRoot string
+	filenames := map[string]string{}
 
-	var err error
-	usage.Usage, err = readFileAsUint64(filepath.Join(memoryRoot, "memory.usage_in_bytes"))
+	if ctr.cgroup2 {
+		memoryRoot = filepath.Join(cgroupRoot, ctr.path)
+		filenames["usage"] = "memory.current"
+		filenames["limit"] = "memory.max"
+	} else {
+		memoryRoot = ctr.getCgroupv1Path(Memory)
+		filenames["usage"] = "memory.usage_in_bytes"
+		filenames["limit"] = "memory.limit_in_bytes"
+	}
+	usage.Usage, err = readFileAsUint64(filepath.Join(memoryRoot, filenames["usage"]))
 	if err != nil {
 		return err
 	}
-	usage.Limit, err = readFileAsUint64(filepath.Join(memoryRoot, "memory.limit_in_bytes"))
+	usage.Limit, err = readFileAsUint64(filepath.Join(memoryRoot, filenames["limit"]))
 	if err != nil {
 		return err
 	}

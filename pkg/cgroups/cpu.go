@@ -55,13 +55,13 @@ func (c *cpuHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 	if res.CPU == nil {
 		return nil
 	}
-	return fmt.Errorf("function not implemented yet")
+	return fmt.Errorf("cpu apply not implemented yet")
 }
 
 // Create the cgroup
 func (c *cpuHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("function not implemented yet")
+		return false, fmt.Errorf("cpu create not implemented for cgroup v2")
 	}
 	return ctr.createCgroupDirectory(CPU)
 }
@@ -73,24 +73,39 @@ func (c *cpuHandler) Destroy(ctr *CgroupControl) error {
 
 // Stat fills a metrics structure with usage stats for the controller
 func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
-	if ctr.cgroup2 {
-		return fmt.Errorf("function not implemented yet")
-	}
-
 	var err error
 	usage := CPUUsage{}
-
-	usage.Total, err = readAcct(ctr, "cpuacct.usage")
-	if err != nil {
-		return err
-	}
-	usage.Kernel, err = readAcct(ctr, "cpuacct.usage_sys")
-	if err != nil {
-		return err
-	}
-	usage.PerCPU, err = readAcctList(ctr, "cpuacct.usage_percpu")
-	if err != nil {
-		return err
+	if ctr.cgroup2 {
+		values, err := readCgroup2MapFile(ctr, "cpu.stat")
+		if err != nil {
+			return err
+		}
+		if val, found := values["usage_usec"]; found {
+			usage.Kernel, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			if err != nil {
+				return err
+			}
+		}
+		if val, found := values["system_usec"]; found {
+			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
+			if err != nil {
+				return err
+			}
+		}
+		// FIXME: How to read usage.PerCPU?
+	} else {
+		usage.Total, err = readAcct(ctr, "cpuacct.usage")
+		if err != nil {
+			return err
+		}
+		usage.Kernel, err = readAcct(ctr, "cpuacct.usage_sys")
+		if err != nil {
+			return err
+		}
+		usage.PerCPU, err = readAcctList(ctr, "cpuacct.usage_percpu")
+		if err != nil {
+			return err
+		}
 	}
 	m.CPU = CPUMetrics{Usage: usage}
 	return nil

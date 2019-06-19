@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
 )
 
 type cpusetHandler struct {
@@ -20,7 +21,7 @@ func cpusetCopyFileFromParent(dir, file string) ([]byte, error) {
 	path := filepath.Join(dir, file)
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "open %s", path)
 	}
 	if len(strings.Trim(string(data), "\n")) != 0 {
 		return data, nil
@@ -30,7 +31,7 @@ func cpusetCopyFileFromParent(dir, file string) ([]byte, error) {
 		return nil, err
 	}
 	if err := ioutil.WriteFile(path, data, 0644); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "write %s", path)
 	}
 	return data, nil
 }
@@ -53,13 +54,13 @@ func (c *cpusetHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) erro
 	if res.CPU == nil {
 		return nil
 	}
-	return fmt.Errorf("function not implemented yet")
+	return fmt.Errorf("cpuset apply not implemented yet")
 }
 
 // Create the cgroup
 func (c *cpusetHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("function not implemented yet")
+		return false, fmt.Errorf("cpuset create not implemented for cgroup v2")
 	}
 
 	created, err := ctr.createCgroupDirectory(CPUset)

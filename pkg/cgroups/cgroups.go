@@ -1,11 +1,14 @@
 package cgroups
 
 import (
+	"bufio"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -119,12 +122,12 @@ func init() {
 // getAvailableControllers get the available controllers
 func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool) ([]controller, error) {
 	if cgroup2 {
-		return nil, fmt.Errorf("function not implemented yet")
+		return nil, fmt.Errorf("getAvailableControllers not implemented yet for cgroup v2")
 	}
 
 	infos, err := ioutil.ReadDir(cgroupRoot)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "read directory %s", cgroupRoot)
 	}
 	var controllers []controller
 	for _, i := range infos {
@@ -204,9 +207,17 @@ func (c *CgroupControl) createCgroupDirectory(controller string) (bool, error) {
 func readFileAsUint64(path string) (uint64, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrapf(err, "open %s", path)
 	}
-	return strconv.ParseUint(cleanString(string(data)), 10, 0)
+	v := cleanString(string(data))
+	if v == "max" {
+		return math.MaxUint64, nil
+	}
+	ret, err := strconv.ParseUint(v, 10, 0)
+	if err != nil {
+		return ret, errors.Wrapf(err, "parse %s from %s", v, path)
+	}
+	return ret, nil
 }
 
 func (c *CgroupControl) writePidToTasks(pid int, name string) error {
@@ -307,8 +318,9 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 	}
 
 	for _, ctr := range c.additionalControllers {
-		if err := os.Remove(c.getCgroupv1Path(ctr.name)); err != nil {
-			lastError = err
+		p := c.getCgroupv1Path(ctr.name)
+		if err := os.Remove(p); err != nil {
+			lastError = errors.Wrapf(err, "remove %s", p)
 		}
 	}
 	return lastError
@@ -326,10 +338,15 @@ func (c *CgroupControl) Update(resources *spec.LinuxResources) error {
 
 // AddPid moves the specified pid to the cgroup
 func (c *CgroupControl) AddPid(pid int) error {
-	if c.cgroup2 {
-		return fmt.Errorf("function not implemented yet")
-	}
 	pidString := []byte(fmt.Sprintf("%d\n", pid))
+
+	if c.cgroup2 {
+		p := filepath.Join(cgroupRoot, c.path, "tasks")
+		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
+			return errors.Wrapf(err, "write %s", p)
+		}
+		return nil
+	}
 
 	var names []string
 	for n := range handlers {
@@ -345,7 +362,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 	for _, n := range names {
 		p := filepath.Join(c.getCgroupv1Path(n), "tasks")
 		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
-			return err
+			return errors.Wrapf(err, "write %s", p)
 		}
 	}
 	return nil
@@ -353,9 +370,6 @@ func (c *CgroupControl) AddPid(pid int) error {
 
 // Stat returns usage statistics for the cgroup
 func (c *CgroupControl) Stat() (*Metrics, error) {
-	if c.cgroup2 {
-		return nil, fmt.Errorf("function not implemented yet")
-	}
 	m := Metrics{}
 	for _, h := range handlers {
 		if err := h.Stat(c, &m); err != nil {
@@ -363,4 +377,30 @@ func (c *CgroupControl) Stat() (*Metrics, error) {
 		}
 	}
 	return &m, nil
+}
+
+func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, error) {
+	ret := map[string][]string{}
+	p := filepath.Join(cgroupRoot, ctr.path, name)
+	f, err := os.Open(p)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ret, nil
+		}
+		return nil, errors.Wrapf(err, "open file %s", p)
+	}
+	defer f.Close()
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := scanner.Text()
+		parts := strings.Fields(line)
+		if len(parts) < 2 {
+			continue
+		}
+		ret[parts[0]] = parts[1:]
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, errors.Wrapf(err, "parsing file %s", p)
+	}
+	return ret, nil
 }
