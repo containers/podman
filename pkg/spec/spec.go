@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
@@ -350,7 +350,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	if rootless.IsRootless() {
-		cgroup2, err := util.IsCgroup2UnifiedMode()
+		cgroup2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return nil, err
 		}

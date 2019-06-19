@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/pkg/util"
@@ -31,7 +32,7 @@ func init() {
 		cgroupManager = runtimeConfig.CgroupManager
 	}
 	cgroupHelp := "Cgroup manager to use (cgroupfs or systemd)"
-	cgroupv2, _ := util.IsCgroup2UnifiedMode()
+	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
 	if rootless.IsRootless() && !cgroupv2 {
 		cgroupManager = ""
 		cgroupHelp = "Cgroup manager is not supported in rootless mode"
