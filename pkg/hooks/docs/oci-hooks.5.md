@@ -90,7 +90,7 @@ $ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
     "path": "/usr/libexec/oci/hooks.d/oci-systemd-hook"
   }
   "when": {
-    "args": [".*/init$" , ".*/systemd$"],
+    "commands": [".*/init$" , ".*/systemd$"],
   },
   "stages": ["prestart", "poststop"]
 }
