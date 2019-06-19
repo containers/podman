@@ -52,11 +52,11 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	}
 
 	if c.state.State == ContainerStateRunning && options.Pause {
-		if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+		if err := c.ociRuntime.pauseContainer(c); err != nil {
 			return nil, errors.Wrapf(err, "error pausing container %q", c.ID())
 		}
 		defer func() {
-			if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+			if err := c.ociRuntime.unpauseContainer(c); err != nil {
 				logrus.Errorf("error unpausing container %q: %v", c.ID(), err)
 			}
 		}()

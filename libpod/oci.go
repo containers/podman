@@ -75,25 +75,53 @@ type ociError struct {
 	Msg   string `json:"msg,omitempty"`
 }
 
-// Make a new OCI runtime with provided options
-func newOCIRuntime(oruntime OCIRuntimePath, conmonPath string, conmonEnv []string, cgroupManager string, tmpDir string, logSizeMax int64, noPivotRoot bool, reservePorts bool, supportsJSON bool) (*OCIRuntime, error) {
+// Make a new OCI runtime with provided options.
+// The first path that points to a valid executable will be used.
+func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON bool) (*OCIRuntime, error) {
+	if name == "" {
+		return nil, errors.Wrapf(ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
+	}
+
 	runtime := new(OCIRuntime)
-	runtime.name = oruntime.Name
-	runtime.path = oruntime.Paths[0]
+	runtime.name = name
 	runtime.conmonPath = conmonPath
-	runtime.conmonEnv = conmonEnv
-	runtime.cgroupManager = cgroupManager
-	runtime.tmpDir = tmpDir
-	runtime.logSizeMax = logSizeMax
-	runtime.noPivot = noPivotRoot
-	runtime.reservePorts = reservePorts
+
+	runtime.conmonEnv = runtimeCfg.ConmonEnvVars
+	runtime.cgroupManager = runtimeCfg.CgroupManager
+	runtime.tmpDir = runtimeCfg.TmpDir
+	runtime.logSizeMax = runtimeCfg.MaxLogSize
+	runtime.noPivot = runtimeCfg.NoPivotRoot
+	runtime.reservePorts = runtimeCfg.EnablePortReservation
+
+	// TODO: probe OCI runtime for feature and enable automatically if
+	// available.
 	runtime.supportsJSON = supportsJSON
+
+	foundPath := false
+	for _, path := range paths {
+		stat, err := os.Stat(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, errors.Wrapf(err, "cannot stat %s", path)
+		}
+		if !stat.Mode().IsRegular() {
+			continue
+		}
+		foundPath = true
+		runtime.path = path
+		break
+	}
+	if !foundPath {
+		return nil, errors.Wrapf(ErrInvalidArg, "no valid executable found for OCI runtime %s", name)
+	}
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
 
-	if cgroupManager != CgroupfsCgroupsManager && cgroupManager != SystemdCgroupsManager {
-		return nil, errors.Wrapf(ErrInvalidArg, "invalid cgroup manager specified: %s", cgroupManager)
+	if runtime.cgroupManager != CgroupfsCgroupsManager && runtime.cgroupManager != SystemdCgroupsManager {
+		return nil, errors.Wrapf(ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
 	}
 
 	// Create the exit files and attach sockets directories

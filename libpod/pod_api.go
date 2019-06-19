@@ -357,7 +357,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 			continue
 		}
 
-		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
+		if err := ctr.ociRuntime.killContainer(ctr, signal); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
