@@ -246,7 +246,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 	}
 
 	logDriver := KubernetesLogging
-	if ctr.LogDriver() != "" {
+	if ctr.LogDriver() == JSONLogging {
+		logrus.Errorf("json-file logging specified but not supported. Choosing k8s-file logging instead")
+	} else if ctr.LogDriver() != "" {
 		logDriver = ctr.LogDriver()
 	}
 	args = append(args, "-l", fmt.Sprintf("%s:%s", logDriver, ctr.LogPath()))
