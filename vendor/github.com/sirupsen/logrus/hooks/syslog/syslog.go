@@ -1,12 +1,13 @@
 // +build !windows,!nacl,!plan9
 
-package logrus_syslog
+package syslog
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"log/syslog"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 // SyslogHook to send logs via syslog.
@@ -42,7 +43,7 @@ func (hook *SyslogHook) Fire(entry *logrus.Entry) error {
 		return hook.Writer.Warning(line)
 	case logrus.InfoLevel:
 		return hook.Writer.Info(line)
-	case logrus.DebugLevel:
+	case logrus.DebugLevel, logrus.TraceLevel:
 		return hook.Writer.Debug(line)
 	default:
 		return nil

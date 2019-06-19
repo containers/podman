@@ -7,8 +7,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (
@@ -62,7 +62,7 @@ func exportCmd(c *cliconfig.ExportValues) error {
 
 	if len(output) == 0 {
 		file := os.Stdout
-		if logrus.IsTerminal(file) {
+		if terminal.IsTerminal(int(file.Fd())) {
 			return errors.Errorf("refusing to export to terminal. Use -o flag or redirect")
 		}
 		output = "/dev/stdout"
