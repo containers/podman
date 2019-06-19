@@ -21,18 +21,22 @@ func (c *pidHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 	if res.Pids == nil {
 		return nil
 	}
+	var PIDRoot string
+
 	if ctr.cgroup2 {
-		return fmt.Errorf("function not implemented yet")
+		PIDRoot = filepath.Join(cgroupRoot, ctr.path)
+	} else {
+		PIDRoot = ctr.getCgroupv1Path(Pids)
 	}
 
-	p := filepath.Join(ctr.getCgroupv1Path(Pids), "pids.max")
+	p := filepath.Join(PIDRoot, "pids.max")
 	return ioutil.WriteFile(p, []byte(fmt.Sprintf("%d\n", res.Pids.Limit)), 0644)
 }
 
 // Create the cgroup
 func (c *pidHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("function not implemented yet")
+		return false, fmt.Errorf("pid create not implemented for cgroup v2")
 	}
 	return ctr.createCgroupDirectory(Pids)
 }
@@ -47,10 +51,10 @@ func (c *pidHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	var PIDRoot string
 
 	if ctr.cgroup2 {
-		return fmt.Errorf("function not implemented yet")
+		PIDRoot = filepath.Join(cgroupRoot, ctr.path)
+	} else {
+		PIDRoot = ctr.getCgroupv1Path(Pids)
 	}
-
-	PIDRoot = ctr.getCgroupv1Path(Pids)
 
 	current, err := readFileAsUint64(filepath.Join(PIDRoot, "pids.current"))
 	if err != nil {
