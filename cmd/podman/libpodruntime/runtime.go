@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -112,7 +113,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 	if c.Flags().Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(c.GlobalFlags.CGroupManager))
 	} else {
-		unified, err := util.IsCgroup2UnifiedMode()
+		unified, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return nil, err
 		}

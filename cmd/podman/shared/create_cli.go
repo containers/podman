@@ -5,9 +5,9 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/shared/parse"
+	"github.com/containers/libpod/pkg/cgroups"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/sysinfo"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -78,7 +78,7 @@ func addWarning(warnings []string, msg string) []string {
 func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, error) {
 	warnings := []string{}
 
-	cgroup2, err := util.IsCgroup2UnifiedMode()
+	cgroup2, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil || cgroup2 {
 		return warnings, err
 	}
