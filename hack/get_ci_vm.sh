@@ -168,7 +168,7 @@ parse_args(){
     if echo "$IMAGE_NAME" | grep -q "image-builder-image"
     then
         echo -e "Creating an image-builder VM, I hope you know what you're doing.\n"
-        IBI_ARGS="--scopes=compute-rw,storage-rw,userinfo-email \"--min-cpu-platform=Intel Haswell\""
+        IBI_ARGS="--scopes=compute-rw,storage-rw,userinfo-email"
         SSHUSER="centos"
     else
         unset IBI_ARGS

@@ -78,7 +78,7 @@ builders:
       ssh_username: 'root'
 
     - <<: *nested_virt
-      name: 'prior-fedora'
+      name: 'prior_fedora'
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
@@ -121,7 +121,7 @@ provisioners:
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'prior-fedora']
+        only: ['fedora', 'prior_fedora']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -136,7 +136,7 @@ post-processors:
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
         image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
       - <<: *gcp_import
-        only: ['prior-fedora']
+        only: ['prior_fedora']
         image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
         image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'

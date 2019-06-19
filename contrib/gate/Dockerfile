@@ -1,18 +1,15 @@
-FROM fedora:29
+FROM fedora:30
 RUN dnf -y install \
       atomic-registries \
       btrfs-progs-devel \
       bzip2 \
-      conmon \
       container-selinux \
       containernetworking-cni \
-      containernetworking-cni-devel \
       device-mapper-devel \
       findutils \
       git \
       glib2-devel \
       glibc-static \
-      gnupg \
       golang \
       gpgme-devel \
       iptables \

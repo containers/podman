@@ -29,9 +29,9 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-4844850202017792"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-4844850202017792"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-4844850202017792"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-30-libpod-5156500369047552"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5156500369047552"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5156500369047552"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -209,8 +209,9 @@ build_each_commit_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_each_commit_script:
+        - 'source $SCRIPT_BASE/lib.sh'
         - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
-        - 'env GOPATH=/var/tmp/go/ make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
+        - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
@@ -265,7 +266,7 @@ testing_task:
         matrix:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
@@ -373,6 +374,12 @@ test_build_cache_images_task:
 
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
+    df_script: '${DFCMD}'
+    journalctl_b_script: 'journalctl -b'
+
+    on_failure:
+        failed_df_script: '${DFCMD}'
+        failed_journalctl_b_script: 'journalctl -b || echo "Uh oh, journalctl -b failed"'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
@@ -391,8 +398,8 @@ verify_test_built_images_task:
     gce_instance:
         matrix:
             # Images are generated separately, from build_images_task (below)
-            #image_name: "fedora-28${BUILT_IMAGE_SUFFIX}"
             image_name: "fedora-29${BUILT_IMAGE_SUFFIX}"
+            image_name: "fedora-30${BUILT_IMAGE_SUFFIX}"
             image_name: "ubuntu-18${BUILT_IMAGE_SUFFIX}"
 
     env:
@@ -411,56 +418,6 @@ verify_test_built_images_task:
         <<: *standardlogs
 
 
-# Build new cache-images for future PR testing, but only after a PR merge.
-# The cache-images save install/setup time needed test every PR.  The 'active' images
-# are selected by the 'image_name' items tasks above.  Currently this requires
-# manually updating the names, but this could be automated (see comment below).
-build_cache_images_task:
-    # Only produce new cache-images after a PR merge, and if a magic string
-    # is present in the most recent ___commit-message___.
-    only_if: >-
-        $CIRRUS_BRANCH == 'master' &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
-
-    # Require tests to pass first.
-    depends_on:
-        - "gating"
-        - "testing"
-        - "rootless_testing"
-
-    # VMs created by packer are not cleaned up by cirrus
-    auto_cancellation: $CI != "true"
-
-    gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
-        cpu: 4
-        memory: "4Gb"
-        disk: 200
-        image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
-        # Additional permissions for building GCE images, within a GCE VM
-        scopes:
-            - compute
-            - devstorage.full_control
-
-    environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
-
-    # TODO,Continuous Delivery: Automatically open a libpod PR after using 'sed' to replace
-    #                           the image_names with the new (just build) images.  That will
-    #                           cause a new round of testing to happen (via the PR) using
-    #                           the new images.  When all is good, the PR may be manually
-    #                           merged so all PR testing uses the new images.  The script
-    #                           names (below) describe their purpose in this workflow.
-    # deploy_images_script:
-    #   - clone_podman_release_branch.sh
-    #   - modify_cirrus_yaml_image_names.sh
-    #   - commit_and_create_upstream_pr.sh
-
-    on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
-
-
 # Post message to IRC if everything passed
 success_task:
 
@@ -477,7 +434,6 @@ success_task:
         - "special_testing_in_podman"
         - "test_build_cache_images"
         - "verify_test_built_images"
-        - "build_cache_images"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"

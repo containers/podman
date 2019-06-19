@@ -96,10 +96,18 @@ images following the standard naming format; ***however, only runs a limited
 sub-set of automated tests***.  Validating newly built images fully, requires
 updating ``.cirrus.yml``.
 
-***Manual Steps:***  Assuming `verify_test_built_images` passes, then
+***N/B: Steps below are performed by automation***
+
+1. Using the just build VM images, launch VMs and wait for them to boot.
+
+2. Execute the `setup_environment.sh` as in the `testing` task.
+
+2. Execute the `integration_test.sh` as in the `testing` task.
+
+
+***Manual Steps:***  Assuming the automated steps pass, then
 you'll find the new image names displayed at the end of the
-`test_build_cache_images_task` in the `build_vm_images` output.
-For example:
+`test_build_cache_images`.  For example:
 
 
 ```
@@ -135,18 +143,6 @@ the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
 and test images again.
 
 
-### ``build_cache_images`` Task  *(Deprecated)*
-
-Exactly the same as ``test_build_cache_images_task`` task, but only runs on
-the master branch.  Requires a magic string to be in the `HEAD`
-commit message: ``***CIRRUS: BUILD IMAGES***``
-
-When successful, the manifest file along with all VM disks, are moved
-into a dedicated google storage bucket, separate from the one used by
-`test_build_cache_images_task`.  These may be used to create new cache-images for
-PR testing by manually importing them as described above.
-
-
 ### Base-images
 
 Base-images are VM disk-images specially prepared for executing as GCE VMs.
@@ -158,10 +154,9 @@ as the standard 'cloud-init' services.
    with services pre-installed, for many platforms. For example,
    RHEL, CentOS, and Ubuntu.
 
-*  Google does ***not*** provide any images for Fedora or Fedora Atomic
-   Host (as of 11/2018), nor do they provide a base-image prepared to
-   run packer for creating other images in the ``build_vm_images`` Task
-   (above).
+*  Google does ***not*** provide any images for Fedora (as of 5/2019), nor do
+   they provide a base-image prepared to run packer for creating other images
+   in the ``test_build_vm_images`` Task (above).
 
 *  Base images do not need to be produced often, but doing so completely
    manually would be time-consuming and error-prone.  Therefor a special
