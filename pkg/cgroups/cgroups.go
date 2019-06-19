@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"

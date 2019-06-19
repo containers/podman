@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -183,9 +183,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	// would prevent removing the CGroups.
 	if p.runtime.config.CgroupManager == CgroupfsCgroupsManager {
 		// Get the conmon CGroup
-		v1CGroups := GetV1CGroups(getExcludedCGroups())
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
-		conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted {
 			if removalErr == nil {
 				removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
@@ -250,9 +249,8 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			// Make sure the conmon cgroup is deleted first
 			// Since the pod is almost gone, don't bother failing
 			// hard - instead, just log errors.
-			v1CGroups := GetV1CGroups(getExcludedCGroups())
 			conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
-			conmonCgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(conmonCgroupPath))
+			conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup", p.ID())
@@ -269,7 +267,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 					}
 				}
 			}
-			cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(p.state.CgroupPath))
+			cgroup, err := cgroups.Load(p.state.CgroupPath)
 			if err != nil && err != cgroups.ErrCgroupDeleted {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error retrieving pod %s cgroup", p.ID())
