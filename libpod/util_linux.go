@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,9 +34,16 @@ func systemdSliceFromPath(parent, name string) (string, error) {
 	return cgroupPath, nil
 }
 
+func getDefaultSystemdCgroup() string {
+	if rootless.IsRootless() {
+		return SystemdDefaultRootlessCgroupParent
+	}
+	return SystemdDefaultCgroupParent
+}
+
 // makeSystemdCgroup creates a systemd CGroup at the given location.
 func makeSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(SystemdDefaultCgroupParent)
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
 		return err
 	}
@@ -45,7 +53,7 @@ func makeSystemdCgroup(path string) error {
 
 // deleteSystemdCgroup deletes the systemd cgroup at the given location
 func deleteSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(SystemdDefaultCgroupParent)
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
 		return err
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	crioAnnotations "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/criu"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
@@ -350,7 +351,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	if rootless.IsRootless() {
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, err
+	}
+	if rootless.IsRootless() && !unified {
 		g.SetLinuxCgroupsPath("")
 	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
