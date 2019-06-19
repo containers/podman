@@ -251,9 +251,11 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 				return nil, nil, errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z", splitVol[1])
 			}
 			options = strings.Split(splitVol[1], ",")
-			if err := ValidateVolumeOpts(options); err != nil {
+			opts, err := ValidateVolumeOpts(options)
+			if err != nil {
 				return nil, nil, err
 			}
+			options = opts
 		}
 		ctr, err := runtime.LookupContainer(splitVol[0])
 		if err != nil {
@@ -447,9 +449,11 @@ func getBindMount(args []string) (spec.Mount, error) {
 		newMount.Source = newMount.Destination
 	}
 
-	if err := ValidateVolumeOpts(newMount.Options); err != nil {
+	opts, err := ValidateVolumeOpts(newMount.Options)
+	if err != nil {
 		return newMount, err
 	}
+	newMount.Options = opts
 
 	return newMount, nil
 }
@@ -575,35 +579,45 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 }
 
 // ValidateVolumeOpts validates a volume's options
-func ValidateVolumeOpts(options []string) error {
+func ValidateVolumeOpts(options []string) ([]string, error) {
 	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
+	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		switch opt {
 		case "rw", "ro":
 			foundRWRO++
 			if foundRWRO > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
 			}
 		case "z", "Z":
 			foundLabelChange++
 			if foundLabelChange > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", strings.Join(options, ", "))
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", strings.Join(options, ", "))
 			}
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave":
 			foundRootPropagation++
 			if foundRootPropagation > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private' or '[r]slave' option", strings.Join(options, ", "))
 			}
 		case "bind", "rbind":
 			bindType++
 			if bindType > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
 			}
+		case "cached", "delegated":
+			// The discarded ops are OS X specific volume options
+			// introduced in a recent Docker version.
+			// They have no meaning on Linux, so here we silently
+			// drop them. This matches Docker's behavior (the options
+			// are intended to be always safe to use, even not on OS
+			// X).
+			continue
 		default:
-			return errors.Errorf("invalid option type %q", opt)
+			return nil, errors.Errorf("invalid mount option %q", opt)
 		}
+		finalOpts = append(finalOpts, opt)
 	}
-	return nil
+	return finalOpts, nil
 }
 
 // GetVolumeMounts takes user provided input for bind mounts and creates Mount structs
@@ -633,9 +647,11 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 		}
 		if len(splitVol) > 2 {
 			options = strings.Split(splitVol[2], ",")
-			if err := ValidateVolumeOpts(options); err != nil {
+			opts, err := ValidateVolumeOpts(options)
+			if err != nil {
 				return nil, nil, err
 			}
+			options = opts
 		}
 
 		if err := ValidateVolumeHostDir(src); err != nil {

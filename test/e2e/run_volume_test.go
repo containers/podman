@@ -63,6 +63,24 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(found).Should(BeTrue())
 		Expect(matches[0]).To(ContainSubstring("rw"))
 		Expect(matches[0]).To(ContainSubstring("shared"))
+
+		// Cached is ignored
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:cached", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, matches = session.GrepString("/run/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("rw"))
+		Expect(matches[0]).To(Not(ContainSubstring("cached")))
+
+		// Delegated is ignored
+		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/run/test:delegated", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		found, matches = session.GrepString("/run/test")
+		Expect(found).Should(BeTrue())
+		Expect(matches[0]).To(ContainSubstring("rw"))
+		Expect(matches[0]).To(Not(ContainSubstring("delegated")))
 	})
 
 	It("podman run with --mount flag", func() {
