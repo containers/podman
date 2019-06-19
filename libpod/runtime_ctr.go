@@ -139,6 +139,16 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 	ctr.state.State = ContainerStateConfigured
 	ctr.runtime = r
 
+	if ctr.config.OCIRuntime == "" {
+		ctr.ociRuntime = r.defaultOCIRuntime
+	} else {
+		ociRuntime, ok := r.ociRuntimes[ctr.config.OCIRuntime]
+		if !ok {
+			return nil, errors.Wrapf(ErrInvalidArg, "requested OCI runtime %s is not available", ctr.config.OCIRuntime)
+		}
+		ctr.ociRuntime = ociRuntime
+	}
+
 	var pod *Pod
 	if ctr.config.Pod != "" {
 		// Get the pod from state
@@ -362,7 +372,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	if c.state.State == ContainerStatePaused {
-		if err := c.runtime.ociRuntime.killContainer(c, 9); err != nil {
+		if err := c.ociRuntime.killContainer(c, 9); err != nil {
 			return err
 		}
 		if err := c.unpause(); err != nil {
@@ -376,7 +386,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == ContainerStateRunning {
-		if err := r.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
+		if err := c.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 
@@ -388,7 +398,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that all of our exec sessions have finished
 	if len(c.state.ExecSessions) != 0 {
-		if err := r.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
+		if err := c.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
 			return err
 		}
 	}

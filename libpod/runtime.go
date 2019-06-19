@@ -91,18 +91,18 @@ type RuntimeOption func(*Runtime) error
 type Runtime struct {
 	config *RuntimeConfig
 
-	state           State
-	store           storage.Store
-	storageService  *storageService
-	imageContext    *types.SystemContext
-	ociRuntime      *OCIRuntime
-	netPlugin       ocicni.CNIPlugin
-	ociRuntimePath  OCIRuntimePath
-	conmonPath      string
-	imageRuntime    *image.Runtime
-	firewallBackend firewall.FirewallBackend
-	lockManager     lock.Manager
-	configuredFrom  *runtimeConfiguredFrom
+	state             State
+	store             storage.Store
+	storageService    *storageService
+	imageContext      *types.SystemContext
+	defaultOCIRuntime *OCIRuntime
+	ociRuntimes       map[string]*OCIRuntime
+	netPlugin         ocicni.CNIPlugin
+	conmonPath        string
+	imageRuntime      *image.Runtime
+	firewallBackend   firewall.FirewallBackend
+	lockManager       lock.Manager
+	configuredFrom    *runtimeConfiguredFrom
 
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
@@ -121,14 +121,6 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
-}
-
-// OCIRuntimePath contains information about an OCI runtime.
-type OCIRuntimePath struct {
-	// Name of the runtime to refer to by the --runtime flag
-	Name string `toml:"name"`
-	// Paths to check for this executable
-	Paths []string `toml:"paths"`
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -588,63 +580,6 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
-	// Backward compatibility for `runtime_path`
-	if runtime.config.RuntimePath != nil {
-		// Don't print twice in rootless mode.
-		if os.Geteuid() == 0 {
-			logrus.Warningf("The configuration is using `runtime_path`, which is deprecated and will be removed in future.  Please use `runtimes` and `runtime`")
-			logrus.Warningf("If you are using both `runtime_path` and `runtime`, the configuration from `runtime_path` is used")
-		}
-
-		// Transform `runtime_path` into `runtimes` and `runtime`.
-		name := filepath.Base(runtime.config.RuntimePath[0])
-		runtime.config.OCIRuntime = name
-		runtime.config.OCIRuntimes = map[string][]string{name: runtime.config.RuntimePath}
-	}
-
-	// Find a working OCI runtime binary
-	foundRuntime := false
-	// If runtime is an absolute path, then use it as it is.
-	if runtime.config.OCIRuntime != "" && runtime.config.OCIRuntime[0] == '/' {
-		foundRuntime = true
-		runtime.ociRuntimePath = OCIRuntimePath{Name: filepath.Base(runtime.config.OCIRuntime), Paths: []string{runtime.config.OCIRuntime}}
-		stat, err := os.Stat(runtime.config.OCIRuntime)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return errors.Wrapf(err, "the specified OCI runtime %s does not exist", runtime.config.OCIRuntime)
-			}
-			return errors.Wrapf(err, "cannot stat the OCI runtime path %s", runtime.config.OCIRuntime)
-		}
-		if !stat.Mode().IsRegular() {
-			return fmt.Errorf("the specified OCI runtime %s is not a valid file", runtime.config.OCIRuntime)
-		}
-	} else {
-		// If not, look it up in the configuration.
-		paths := runtime.config.OCIRuntimes[runtime.config.OCIRuntime]
-		if paths != nil {
-			for _, path := range paths {
-				stat, err := os.Stat(path)
-				if err != nil {
-					if os.IsNotExist(err) {
-						continue
-					}
-					return errors.Wrapf(err, "cannot stat %s", path)
-				}
-				if !stat.Mode().IsRegular() {
-					continue
-				}
-				foundRuntime = true
-				runtime.ociRuntimePath = OCIRuntimePath{Name: runtime.config.OCIRuntime, Paths: []string{path}}
-				break
-			}
-		}
-	}
-	if !foundRuntime {
-		return errors.Wrapf(ErrInvalidArg,
-			"could not find a working binary (configured options: %v)",
-			runtime.config.OCIRuntimes)
-	}
-
 	// Find a working conmon binary
 	foundConmon := false
 	for _, path := range runtime.config.ConmonPath {
@@ -841,25 +776,80 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
-	supportsJSON := false
-	for _, r := range runtime.config.RuntimeSupportsJSON {
-		if r == runtime.config.OCIRuntime {
-			supportsJSON = true
-			break
+	// Get us at least one working OCI runtime.
+	runtime.ociRuntimes = make(map[string]*OCIRuntime)
+
+	// Is the old runtime_path defined?
+	if runtime.config.RuntimePath != nil {
+		// Don't print twice in rootless mode.
+		if os.Geteuid() == 0 {
+			logrus.Warningf("The configuration is using `runtime_path`, which is deprecated and will be removed in future.  Please use `runtimes` and `runtime`")
+			logrus.Warningf("If you are using both `runtime_path` and `runtime`, the configuration from `runtime_path` is used")
 		}
+
+		if len(runtime.config.RuntimePath) == 0 {
+			return errors.Wrapf(ErrInvalidArg, "empty runtime path array passed")
+		}
+
+		name := filepath.Base(runtime.config.RuntimePath[0])
+
+		supportsJSON := false
+		for _, r := range runtime.config.RuntimeSupportsJSON {
+			if r == name {
+				supportsJSON = true
+				break
+			}
+		}
+
+		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, supportsJSON)
+		if err != nil {
+			return err
+		}
+
+		runtime.ociRuntimes[name] = ociRuntime
+		runtime.defaultOCIRuntime = ociRuntime
 	}
 
-	// Make an OCI runtime to perform container operations
-	ociRuntime, err := newOCIRuntime(runtime.ociRuntimePath,
-		runtime.conmonPath, runtime.config.ConmonEnvVars,
-		runtime.config.CgroupManager, runtime.config.TmpDir,
-		runtime.config.MaxLogSize, runtime.config.NoPivotRoot,
-		runtime.config.EnablePortReservation,
-		supportsJSON)
-	if err != nil {
-		return err
+	// Initialize remaining OCI runtimes
+	for name, paths := range runtime.config.OCIRuntimes {
+		if len(paths) == 0 {
+			return errors.Wrapf(ErrInvalidArg, "must provide at least 1 path to OCI runtime %s", name)
+		}
+
+		supportsJSON := false
+		for _, r := range runtime.config.RuntimeSupportsJSON {
+			if r == name {
+				supportsJSON = true
+				break
+			}
+		}
+
+		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, supportsJSON)
+		if err != nil {
+			return err
+		}
+
+		runtime.ociRuntimes[name] = ociRuntime
 	}
-	runtime.ociRuntime = ociRuntime
+
+	// Set default runtime
+	if runtime.config.OCIRuntime != "" {
+		ociRuntime, ok := runtime.ociRuntimes[runtime.config.OCIRuntime]
+		if !ok {
+			return errors.Wrapf(ErrInvalidArg, "default OCI runtime %q not found", runtime.config.OCIRuntime)
+		}
+		runtime.defaultOCIRuntime = ociRuntime
+	}
+
+	// Do we have at least one valid OCI runtime?
+	if len(runtime.ociRuntimes) == 0 {
+		return errors.Wrapf(ErrInvalidArg, "no OCI runtime has been configured")
+	}
+
+	// Do we have a default runtime?
+	if runtime.defaultOCIRuntime == nil {
+		return errors.Wrapf(ErrInvalidArg, "no default OCI runtime was configured")
+	}
 
 	// Make the per-boot files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.TmpDir, 0755); err != nil {

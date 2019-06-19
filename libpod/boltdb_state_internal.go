@@ -304,6 +304,16 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 	ctr.lock = lock
 
+	if ctr.config.OCIRuntime == "" {
+		ctr.ociRuntime = s.runtime.defaultOCIRuntime
+	} else {
+		ociRuntime, ok := s.runtime.ociRuntimes[ctr.config.OCIRuntime]
+		if !ok {
+			return errors.Wrapf(ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
+		}
+		ctr.ociRuntime = ociRuntime
+	}
+
 	ctr.runtime = s.runtime
 	ctr.valid = valid
 

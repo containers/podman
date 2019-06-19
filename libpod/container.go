@@ -145,9 +145,10 @@ type Container struct {
 	// Functions called on a batched container will not lock or sync
 	batched bool
 
-	valid   bool
-	lock    lock.Locker
-	runtime *Runtime
+	valid      bool
+	lock       lock.Locker
+	runtime    *Runtime
+	ociRuntime *OCIRuntime
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
@@ -789,7 +790,7 @@ func (c *Container) LogDriver() string {
 
 // RuntimeName returns the name of the runtime
 func (c *Container) RuntimeName() string {
-	return c.runtime.ociRuntime.name
+	return c.config.OCIRuntime
 }
 
 // Runtime spec accessors

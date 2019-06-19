@@ -207,7 +207,7 @@ func (c *Container) Kill(signal uint) error {
 	}
 
 	defer c.newContainerEvent(events.Kill)
-	if err := c.runtime.ociRuntime.killContainer(c, signal); err != nil {
+	if err := c.ociRuntime.killContainer(c, signal); err != nil {
 		return err
 	}
 
@@ -280,7 +280,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 
-	execCmd, err := c.runtime.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID, streams, preserveFDs)
+	execCmd, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID, streams, preserveFDs)
 	if err != nil {
 		return errors.Wrapf(err, "error exec %s", c.ID())
 	}
@@ -658,7 +658,7 @@ func (c *Container) Sync() error {
 		(c.state.State != ContainerStateConfigured) &&
 		(c.state.State != ContainerStateExited) {
 		oldState := c.state.State
-		if err := c.runtime.ociRuntime.updateContainerStatus(c, true); err != nil {
+		if err := c.ociRuntime.updateContainerStatus(c, true); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed
@@ -715,7 +715,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 	if len(c.state.ExecSessions) > 0 {
 		logrus.Infof("Killing %d exec sessions in container %s. They will not be restored after refresh.",
 			len(c.state.ExecSessions), c.ID())
-		if err := c.runtime.ociRuntime.execStopContainer(c, c.config.StopTimeout); err != nil {
+		if err := c.ociRuntime.execStopContainer(c, c.config.StopTimeout); err != nil {
 			return err
 		}
 	}
