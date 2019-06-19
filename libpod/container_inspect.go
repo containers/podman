@@ -31,6 +31,7 @@ type InspectContainerData struct {
 	HostsPath       string                  `json:"HostsPath"`
 	StaticDir       string                  `json:"StaticDir"`
 	OCIConfigPath   string                  `json:"OCIConfigPath,omitempty"`
+	OCIRuntime      string                  `json:"OCIRuntime,omitempty"`
 	LogPath         string                  `json:"LogPath"`
 	ConmonPidFile   string                  `json:"ConmonPidFile"`
 	Name            string                  `json:"Name"`
@@ -274,6 +275,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		HostsPath:       hostsPath,
 		StaticDir:       config.StaticDir,
 		LogPath:         config.LogPath,
+		OCIRuntime:      config.OCIRuntime,
 		ConmonPidFile:   config.ConmonPidFile,
 		Name:            config.Name,
 		RestartCount:    int32(runtimeInfo.RestartCount),
