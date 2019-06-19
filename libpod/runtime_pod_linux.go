@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -78,7 +79,11 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 		}
 	case SystemdCgroupsManager:
 		if pod.config.CgroupParent == "" {
-			pod.config.CgroupParent = SystemdDefaultCgroupParent
+			if rootless.IsRootless() {
+				pod.config.CgroupParent = SystemdDefaultRootlessCgroupParent
+			} else {
+				pod.config.CgroupParent = SystemdDefaultCgroupParent
+			}
 		} else if len(pod.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
 			return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 		}

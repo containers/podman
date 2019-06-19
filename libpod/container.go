@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -51,6 +52,10 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
 // manager in libpod
 const SystemdDefaultCgroupParent = "machine.slice"
+
+// SystemdDefaultRootlessCgroupParent is the cgroup parent for the systemd cgroup
+// manager in libpod when running as rootless
+const SystemdDefaultRootlessCgroupParent = "user.slice"
 
 // JournaldLogging is the string conmon expects to specify journald logging
 const JournaldLogging = "journald"
@@ -1112,6 +1117,10 @@ func (c *Container) CGroupPath() (string, error) {
 	case CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
 	case SystemdCgroupsManager:
+		if rootless.IsRootless() {
+			uid := rootless.GetRootlessUID()
+			return filepath.Join(c.config.CgroupParent, fmt.Sprintf("user-%d.slice/user@%d.service/user.slice", uid, uid), createUnitName("libpod", c.ID())), nil
+		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
 		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
