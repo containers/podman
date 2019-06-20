@@ -471,7 +471,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
             close (fd);
 
           setenv ("_PODMAN_PAUSE", "1", 1);
-          execlp (argv[0], NULL);
+          execlp (argv[0], argv[0], NULL);
 
           /* If the execve fails, then do the pause here.  */
           do_pause ();
@@ -693,7 +693,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   pid = syscall_clone (CLONE_NEWUSER|CLONE_NEWNS|SIGCHLD, NULL);
   if (pid < 0)
     {
-      FILE *fp;
       fprintf (stderr, "cannot clone: %s\n", strerror (errno));
       check_proc_sys_userns_file (_max_user_namespaces);
       check_proc_sys_userns_file (_unprivileged_user_namespaces);
