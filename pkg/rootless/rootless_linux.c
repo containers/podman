@@ -416,9 +416,16 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
           sprintf (pid_str, "%d", pid);
 
-          asprintf (&tmp_file_path, "%s.XXXXXX", pause_pid_file_path);
+          if (asprintf (&tmp_file_path, "%s.XXXXXX", pause_pid_file_path) < 0)
+            {
+              fprintf (stderr, "unable to print to string\n");
+              kill (pid, SIGKILL);
+              _exit (EXIT_FAILURE);
+            }
+
           if (tmp_file_path == NULL)
             {
+              fprintf (stderr, "temporary file path is NULL\n");
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -426,6 +433,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           fd = mkstemp (tmp_file_path);
           if (fd < 0)
             {
+              fprintf (stderr, "error creating temporary file: %s\n", strerror (errno));
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
@@ -433,6 +441,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
           r = TEMP_FAILURE_RETRY (write (fd, pid_str, strlen (pid_str)));
           if (r < 0)
             {
+              fprintf (stderr, "cannot write to file descriptor: %s\n", strerror (errno));
               kill (pid, SIGKILL);
               _exit (EXIT_FAILURE);
             }
