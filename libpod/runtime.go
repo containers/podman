@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -894,13 +895,35 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		runtime.ociRuntimes[name] = ociRuntime
 	}
 
-	// Set default runtime
+	// Do we have a default OCI runtime?
 	if runtime.config.OCIRuntime != "" {
-		ociRuntime, ok := runtime.ociRuntimes[runtime.config.OCIRuntime]
-		if !ok {
-			return errors.Wrapf(ErrInvalidArg, "default OCI runtime %q not found", runtime.config.OCIRuntime)
+		// If the string starts with / it's a path to a runtime
+		// executable.
+		if strings.HasPrefix(runtime.config.OCIRuntime, "/") {
+			name := filepath.Base(runtime.config.OCIRuntime)
+
+			supportsJSON := false
+			for _, r := range runtime.config.RuntimeSupportsJSON {
+				if r == name {
+					supportsJSON = true
+					break
+				}
+			}
+
+			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, supportsJSON)
+			if err != nil {
+				return err
+			}
+
+			runtime.ociRuntimes[name] = ociRuntime
+			runtime.defaultOCIRuntime = ociRuntime
+		} else {
+			ociRuntime, ok := runtime.ociRuntimes[runtime.config.OCIRuntime]
+			if !ok {
+				return errors.Wrapf(ErrInvalidArg, "default OCI runtime %q not found", runtime.config.OCIRuntime)
+			}
+			runtime.defaultOCIRuntime = ociRuntime
 		}
-		runtime.defaultOCIRuntime = ociRuntime
 	}
 
 	// Do we have at least one valid OCI runtime?
