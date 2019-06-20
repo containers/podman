@@ -326,20 +326,6 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		}
 		return nil
 	}
-	if !archive.IsArchivePath(srcPath) {
-		// This srcPath is a file, and either it's not an
-		// archive, or we don't care whether or not it's an
-		// archive.
-		destfi, err := os.Stat(destPath)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
-			}
-		}
-		if destfi != nil && destfi.IsDir() {
-			destPath = filepath.Join(destPath, filepath.Base(srcPath))
-		}
-	}
 
 	if extract {
 		// We're extracting an archive into the destination directory.
@@ -350,9 +336,16 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 		return nil
 	}
 
-	if destDirIsExist || strings.HasSuffix(dest, string(os.PathSeparator)) {
+	destfi, err := os.Stat(destPath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
+		}
+	}
+	if destfi != nil && destfi.IsDir() {
 		destPath = filepath.Join(destPath, filepath.Base(srcPath))
 	}
+
 	// Copy the file, preserving attributes.
 	logrus.Debugf("copying %q to %q", srcPath, destPath)
 	if err = copyFileWithTar(srcPath, destPath); err != nil {
