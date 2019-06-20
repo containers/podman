@@ -94,7 +94,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	ctr.config.StopTimeout = CtrRemoveTimeout
 
-	ctr.config.OCIRuntime = r.config.OCIRuntime
+	ctr.config.OCIRuntime = r.defaultOCIRuntime.name
 
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
