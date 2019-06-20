@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -307,7 +308,14 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	if ctr.config.OCIRuntime == "" {
 		ctr.ociRuntime = s.runtime.defaultOCIRuntime
 	} else {
-		ociRuntime, ok := s.runtime.ociRuntimes[ctr.config.OCIRuntime]
+		// Handle legacy containers which might use a literal path for
+		// their OCI runtime name.
+		runtimeName := ctr.config.OCIRuntime
+		if strings.HasPrefix(runtimeName, "/") {
+			runtimeName = filepath.Base(runtimeName)
+		}
+
+		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
 			return errors.Wrapf(ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
 		}
