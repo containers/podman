@@ -72,98 +72,160 @@ var (
 	volPathKey     = []byte(volPathName)
 )
 
+// This represents a field in the runtime configuration that will be validated
+// against the DB to ensure no configuration mismatches occur.
+type dbConfigValidation struct {
+	name         string // Only used for error messages
+	runtimeValue string
+	key          []byte
+	defaultValue string
+}
+
 // Check if the configuration of the database is compatible with the
 // configuration of the runtime opening it
 // If there is no runtime configuration loaded, load our own
 func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
-	err := db.Update(func(tx *bolt.Tx) error {
+	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	if err != nil {
+		return err
+	}
+
+	// We need to validate the following things
+	checks := []dbConfigValidation{
+		{
+			"OS",
+			runtime.GOOS,
+			osKey,
+			runtime.GOOS,
+		},
+		{
+			"libpod root directory (staticdir)",
+			rt.config.StaticDir,
+			staticDirKey,
+			"",
+		},
+		{
+			"libpod temporary files directory (tmpdir)",
+			rt.config.TmpDir,
+			tmpDirKey,
+			"",
+		},
+		{
+			"storage temporary directory (runroot)",
+			rt.config.StorageConfig.RunRoot,
+			runRootKey,
+			storeOpts.RunRoot,
+		},
+		{
+			"storage graph root directory (graphroot)",
+			rt.config.StorageConfig.GraphRoot,
+			graphRootKey,
+			storeOpts.GraphRoot,
+		},
+		{
+			"storage graph driver",
+			rt.config.StorageConfig.GraphDriverName,
+			graphDriverKey,
+			storeOpts.GraphDriverName,
+		},
+		{
+			"volume path",
+			rt.config.VolumePath,
+			volPathKey,
+			"",
+		},
+	}
+
+	// These fields were missing and will have to be recreated.
+	missingFields := []dbConfigValidation{}
+
+	// Let's try and validate read-only first
+	err = db.View(func(tx *bolt.Tx) error {
 		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
 			return err
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "OS", runtime.GOOS, osKey, runtime.GOOS); err != nil {
-			return err
+		for _, check := range checks {
+			exists, err := readOnlyValidateConfig(configBkt, check)
+			if err != nil {
+				return err
+			}
+			if !exists {
+				missingFields = append(missingFields, check)
+			}
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "libpod root directory (staticdir)",
-			rt.config.StaticDir, staticDirKey, ""); err != nil {
-			return err
-		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
 
-		if err := validateDBAgainstConfig(configBkt, "libpod temporary files directory (tmpdir)",
-			rt.config.TmpDir, tmpDirKey, ""); err != nil {
-			return err
-		}
+	if len(missingFields) == 0 {
+		return nil
+	}
 
-		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+	// Populate missing fields
+	return db.Update(func(tx *bolt.Tx) error {
+		configBkt, err := getRuntimeConfigBucket(tx)
 		if err != nil {
 			return err
 		}
-		if err := validateDBAgainstConfig(configBkt, "storage temporary directory (runroot)",
-			rt.config.StorageConfig.RunRoot, runRootKey,
-			storeOpts.RunRoot); err != nil {
-			return err
+
+		for _, missing := range missingFields {
+			dbValue := []byte(missing.runtimeValue)
+			if missing.runtimeValue == "" && missing.defaultValue != "" {
+				dbValue = []byte(missing.defaultValue)
+			}
+
+			if err := configBkt.Put(missing.key, dbValue); err != nil {
+				return errors.Wrapf(err, "error updating %s in DB runtime config", missing.name)
+			}
 		}
 
-		if err := validateDBAgainstConfig(configBkt, "storage graph root directory (graphroot)",
-			rt.config.StorageConfig.GraphRoot, graphRootKey,
-			storeOpts.GraphRoot); err != nil {
-			return err
-		}
-
-		if err := validateDBAgainstConfig(configBkt, "storage graph driver",
-			rt.config.StorageConfig.GraphDriverName,
-			graphDriverKey,
-			storeOpts.GraphDriverName); err != nil {
-			return err
-		}
-
-		return validateDBAgainstConfig(configBkt, "volume path",
-			rt.config.VolumePath, volPathKey, "")
+		return nil
 	})
-
-	return err
 }
 
-// Validate a configuration entry in the DB against current runtime config
-// If the given configuration key does not exist it will be created
-// If the given runtimeValue or value retrieved from the database are the empty
-// string and defaultValue is not, defaultValue will be checked instead. This
-// ensures that we will not fail on configuration changes in configured c/storage.
-func validateDBAgainstConfig(bucket *bolt.Bucket, fieldName, runtimeValue string, keyName []byte, defaultValue string) error {
-	keyBytes := bucket.Get(keyName)
+// Attempt a read-only validation of a configuration entry in the DB against an
+// element of the current runtime configuration.
+// If the configuration key in question does not exist, (false, nil) will be
+// returned.
+// If the configuration key does exist, and matches the runtime configuration
+// successfully, (true, nil) is returned.
+// An error is only returned when validation fails.
+// if the given runtimeValue or value retrieved from the database are empty,
+// and defaultValue is not, defaultValue will be checked instead. This ensures
+// that we will not fail on configuration changes in c/storage (where we may
+// pass the empty string to use defaults).
+func readOnlyValidateConfig(bucket *bolt.Bucket, toCheck dbConfigValidation) (bool, error) {
+	keyBytes := bucket.Get(toCheck.key)
 	if keyBytes == nil {
-		dbValue := []byte(runtimeValue)
-		if runtimeValue == "" && defaultValue != "" {
-			dbValue = []byte(defaultValue)
-		}
-
-		if err := bucket.Put(keyName, dbValue); err != nil {
-			return errors.Wrapf(err, "error updating %s in DB runtime config", fieldName)
-		}
-	} else {
-		if runtimeValue != string(keyBytes) {
-			// If runtimeValue is the empty string, check against
-			// the default
-			if runtimeValue == "" && defaultValue != "" &&
-				string(keyBytes) == defaultValue {
-				return nil
-			}
-
-			// If DB value is the empty string, check that the
-			// runtime value is the default
-			if string(keyBytes) == "" && defaultValue != "" &&
-				runtimeValue == defaultValue {
-				return nil
-			}
-
-			return errors.Wrapf(ErrDBBadConfig, "database %s %s does not match our %s %s",
-				fieldName, string(keyBytes), fieldName, runtimeValue)
-		}
+		// False return indicates missing key
+		return false, nil
 	}
 
-	return nil
+	dbValue := string(keyBytes)
+
+	if toCheck.runtimeValue != dbValue {
+		// If the runtime value is the empty string and default is not,
+		// check against default.
+		if toCheck.runtimeValue == "" && toCheck.defaultValue != "" && dbValue == toCheck.defaultValue {
+			return true, nil
+		}
+
+		// If the DB value is the empty string, check that the runtime
+		// value is the default.
+		if dbValue == "" && toCheck.defaultValue != "" && toCheck.runtimeValue == toCheck.defaultValue {
+			return true, nil
+		}
+
+		return true, errors.Wrapf(ErrDBBadConfig, "database %s %q does not match our %s %q",
+			toCheck.name, dbValue, toCheck.name, toCheck.runtimeValue)
+	}
+
+	return true, nil
 }
 
 // Open a connection to the database.
