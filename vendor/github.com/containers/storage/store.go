@@ -722,6 +722,7 @@ func (s *store) getGraphDriver() (drivers.Driver, error) {
 	}
 	config := drivers.Options{
 		Root:          s.graphRoot,
+		RunRoot:       s.runRoot,
 		DriverOptions: s.graphOptions,
 		UIDMaps:       s.uidMap,
 		GIDMaps:       s.gidMap,

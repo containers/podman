@@ -49,7 +49,7 @@ type btrfsOptions struct {
 
 // Init returns a new BTRFS driver.
 // An error is returned if BTRFS is not supported.
-func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 
 	fsMagic, err := graphdriver.GetFSMagic(home)
 	if err != nil {
@@ -60,7 +60,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, errors.Wrapf(graphdriver.ErrPrerequisites, "%q is not on a btrfs filesystem", home)
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
+	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
 	if err != nil {
 		return nil, err
 	}
@@ -72,15 +72,15 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		return nil, err
 	}
 
-	opt, userDiskQuota, err := parseOptions(options)
+	opt, userDiskQuota, err := parseOptions(options.DriverOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	driver := &Driver{
 		home:    home,
-		uidMaps: uidMaps,
-		gidMaps: gidMaps,
+		uidMaps: options.UIDMaps,
+		gidMaps: options.GIDMaps,
 		options: opt,
 	}
 
