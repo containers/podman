@@ -71,42 +71,50 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 	// As such, just a db.Close() is fine here.
 	defer db.Close()
 
-	// Perform initial database setup
-	err = db.Update(func(tx *bolt.Tx) error {
-		if _, err := tx.CreateBucketIfNotExists(idRegistryBkt); err != nil {
-			return errors.Wrapf(err, "error creating id-registry bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(nameRegistryBkt); err != nil {
-			return errors.Wrapf(err, "error creating name-registry bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(nsRegistryBkt); err != nil {
-			return errors.Wrapf(err, "error creating ns-registry bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(ctrBkt); err != nil {
-			return errors.Wrapf(err, "error creating containers bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(allCtrsBkt); err != nil {
-			return errors.Wrapf(err, "error creating all containers bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(podBkt); err != nil {
-			return errors.Wrapf(err, "error creating pods bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(allPodsBkt); err != nil {
-			return errors.Wrapf(err, "error creating all pods bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(volBkt); err != nil {
-			return errors.Wrapf(err, "error creating volume bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(allVolsBkt); err != nil {
-			return errors.Wrapf(err, "error creating all volumes bucket")
-		}
-		if _, err := tx.CreateBucketIfNotExists(runtimeConfigBkt); err != nil {
-			return errors.Wrapf(err, "error creating runtime-config bucket")
+	createBuckets := [][]byte{
+		idRegistryBkt,
+		nameRegistryBkt,
+		nsRegistryBkt,
+		ctrBkt,
+		allCtrsBkt,
+		podBkt,
+		allPodsBkt,
+		volBkt,
+		allVolsBkt,
+		runtimeConfigBkt,
+	}
+
+	// Does the DB need an update?
+	needsUpdate := false
+	err = db.View(func(tx *bolt.Tx) error {
+		for _, bkt := range createBuckets {
+			if test := tx.Bucket(bkt); test == nil {
+				needsUpdate = true
+				break
+			}
 		}
 		return nil
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "error creating initial database layout")
+		return nil, errors.Wrapf(err, "error checking DB schema")
+	}
+
+	if !needsUpdate {
+		state.valid = true
+		return state, nil
+	}
+
+	// Ensure schema is properly created in DB
+	err = db.Update(func(tx *bolt.Tx) error {
+		for _, bkt := range createBuckets {
+			if _, err := tx.CreateBucketIfNotExists(bkt); err != nil {
+				return errors.Wrapf(err, "error creating bucket %s", string(bkt))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating buckets for DB")
 	}
 
 	state.valid = true
