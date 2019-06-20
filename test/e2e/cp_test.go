@@ -58,6 +58,10 @@ var _ = Describe("Podman cp", func() {
 		session = podmanTest.Podman([]string{"cp", name + ":foo", dstPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"start", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman cp file to dir", func() {
