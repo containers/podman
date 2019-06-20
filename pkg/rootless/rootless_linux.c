@@ -295,7 +295,7 @@ static void __attribute__((constructor)) init()
       uid = geteuid ();
       gid = getegid ();
 
-      sprintf (path, "/proc/%d/ns/user", pid);
+      sprintf (path, "/proc/%ld/ns/user", pid);
       fd = open (path, O_RDONLY);
       if (fd < 0 || setns (fd, 0) < 0)
         {
@@ -305,7 +305,7 @@ static void __attribute__((constructor)) init()
       close (fd);
 
       /* Errors here cannot be ignored as we already joined a ns.  */
-      sprintf (path, "/proc/%d/ns/mnt", pid);
+      sprintf (path, "/proc/%ld/ns/mnt", pid);
       fd = open (path, O_RDONLY);
       if (fd < 0)
         {
@@ -316,7 +316,7 @@ static void __attribute__((constructor)) init()
       r = setns (fd, 0);
       if (r < 0)
         {
-          fprintf (stderr, "cannot join mount namespace for %d: %s", pid, strerror (errno));
+          fprintf (stderr, "cannot join mount namespace for %ld: %s", pid, strerror (errno));
           exit (EXIT_FAILURE);
         }
       close (fd);
