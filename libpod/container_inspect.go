@@ -46,7 +46,7 @@ type InspectContainerData struct {
 	GraphDriver     *driver.Data            `json:"GraphDriver"`
 	SizeRw          int64                   `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                   `json:"SizeRootFs,omitempty"`
-	Mounts          []InspectMount         `json:"Mounts"`
+	Mounts          []InspectMount          `json:"Mounts"`
 	Dependencies    []string                `json:"Dependencies"`
 	NetworkSettings *InspectNetworkSettings `json:"NetworkSettings"` //TODO
 	ExitCommand     []string                `json:"ExitCommand"`
