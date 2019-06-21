@@ -15,8 +15,8 @@ At a high level, the scope of libpod and Podman is the following:
 * Support multiple image formats including the OCI and Docker image formats.
 * Support for multiple means to download images including trust & image verification.
 * Container image management (managing image layers, overlay filesystems, etc).
-* Full management of container lifecycle
-* Support for pods to manage groups of containers together
+* Full management of container lifecycle.
+* Support for pods to manage groups of containers together.
 * Resource isolation of containers and pods.
 * Support for a Docker-compatible CLI interface through Podman.
 * Integration with CRI-O to share containers and backend code.
