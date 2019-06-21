@@ -100,7 +100,7 @@ func initConfig() {
 }
 
 func before(cmd *cobra.Command, args []string) error {
-	if err := libpod.SetXdgRuntimeDir(""); err != nil {
+	if err := libpod.SetXdgRuntimeDir(); err != nil {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
