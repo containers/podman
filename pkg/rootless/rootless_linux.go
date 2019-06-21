@@ -9,14 +9,17 @@ import (
 	"os/exec"
 	gosignal "os/signal"
 	"os/user"
+	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/godbus/dbus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -198,24 +201,90 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	}
 }
 
-func enableLinger(pausePid string) {
-	if pausePid == "" {
-		return
+// EnableLinger configures the system to not kill the user processes once the session
+// terminates
+func EnableLinger() (string, error) {
+	uid := fmt.Sprintf("%d", GetRootlessUID())
+
+	conn, err := dbus.SystemBus()
+	if err == nil {
+		defer conn.Close()
 	}
-	// If we are trying to write a pause pid file, make sure we can leave processes
-	// running longer than the user session.
-	err := exec.Command("loginctl", "enable-linger", fmt.Sprintf("%d", GetRootlessUID())).Run()
+
+	lingerEnabled := false
+
+	// If we have a D-BUS connection, attempt to read the LINGER property from it.
+	if conn != nil {
+		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.Linger")
+		if err == nil && ret.Value().(bool) {
+			lingerEnabled = true
+		}
+	}
+
+	xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	lingerFile := ""
+	if xdgRuntimeDir != "" && !lingerEnabled {
+		lingerFile = filepath.Join(xdgRuntimeDir, "libpod/linger")
+		_, err := os.Stat(lingerFile)
+		if err == nil {
+			lingerEnabled = true
+		}
+	}
+
+	if !lingerEnabled {
+		// First attempt with D-BUS, if it fails, then attempt with "loginctl enable-linger"
+		if conn != nil {
+			o := conn.Object("org.freedesktop.login1", "/org/freedesktop/login1")
+			ret := o.Call("org.freedesktop.login1.Manager.SetUserLinger", 0, uint32(GetRootlessUID()), true, true)
+			if ret.Err == nil {
+				lingerEnabled = true
+			}
+		}
+		if !lingerEnabled {
+			err := exec.Command("loginctl", "enable-linger", uid).Run()
+			if err == nil {
+				lingerEnabled = true
+			} else {
+				logrus.Debugf("cannot run `loginctl enable-linger` for the current user: %v", err)
+			}
+		}
+		if lingerEnabled && lingerFile != "" {
+			f, err := os.Create(lingerFile)
+			if err == nil {
+				f.Close()
+			} else {
+				logrus.Debugf("could not create linger file: %v", err)
+			}
+		}
+	}
+
+	if !lingerEnabled {
+		return "", nil
+	}
+
+	// If we have a D-BUS connection, attempt to read the RUNTIME PATH from it.
+	if conn != nil {
+		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.RuntimePath")
+		if err == nil {
+			return strings.Trim(ret.String(), "\"\n"), nil
+		}
+	}
+
+	// If XDG_RUNTIME_DIR is not set and the D-BUS call didn't work, try to get the runtime path with "loginctl"
+	output, err := exec.Command("loginctl", "-pRuntimePath", "show-user", uid).Output()
 	if err != nil {
-		logrus.Warnf("cannot run `loginctl enable-linger` for the current user: %v", err)
+		logrus.Debugf("could not get RuntimePath using loginctl: %v", err)
+		return "", nil
 	}
+	return strings.Trim(strings.Replace(string(output), "RuntimePath=", "", -1), "\"\n"), nil
 }
 
 // joinUserAndMountNS re-exec podman in a new userNS and join the user and mount
 // namespace of the specified PID without looking up its parent.  Useful to join directly
 // the conmon process.
 func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
-	enableLinger(pausePid)
-
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, -1, nil
 	}
@@ -406,7 +475,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNS(pausePid string) (bool, int, error) {
-	enableLinger(pausePid)
 	return becomeRootInUserNS(pausePid, "", nil)
 }
 
