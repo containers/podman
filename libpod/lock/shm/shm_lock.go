@@ -1,6 +1,7 @@
 package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
+// #cgo CFLAGS: -Wall -Werror
 // #include <stdlib.h>
 // #include "shm_lock.h"
 // const uint32_t bitmap_size_c = BITMAP_SIZE;
