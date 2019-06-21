@@ -193,7 +193,7 @@ To build from source, use the following:
 git clone https://github.com/containers/conmon
 cd conmon
 make
-sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
+sudo make podman
 ```
 
 #### runc
