@@ -80,4 +80,18 @@ var _ = Describe("Podman diff", func() {
 		sort.Strings(imageDiff)
 		Expect(imageDiff).To(Equal(containerDiff))
 	})
+
+	It("podman diff latest container", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"run", "--name=diff-test", ALPINE, "touch", "/tmp/diff-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"diff", "-l"})
+		session.WaitWithDefaultTimeout()
+		containerDiff := session.OutputToStringArray()
+		sort.Strings(containerDiff)
+		Expect(session.LineInOutputContains("C /tmp")).To(BeTrue())
+		Expect(session.LineInOutputContains("A /tmp/diff-test")).To(BeTrue())
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })

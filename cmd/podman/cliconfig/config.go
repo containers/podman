@@ -113,6 +113,7 @@ type DiffValues struct {
 	PodmanCommand
 	Archive bool
 	Format  string
+	Latest  bool
 }
 
 type ExecValues struct {
