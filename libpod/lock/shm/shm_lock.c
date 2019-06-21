@@ -413,7 +413,7 @@ int32_t allocate_given_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 // Returns 0 on success, negative ERRNO values on failure
 int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_t test_map;
-  int bitmap_index, index_in_bitmap, ret_code, i;
+  int bitmap_index, index_in_bitmap, ret_code;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -500,7 +500,7 @@ int32_t deallocate_all_semaphores(shm_struct_t *shm) {
 // subsequently realize they have been removed).
 // Returns 0 on success, -1 on failure
 int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
-  int bitmap_index, index_in_bitmap, ret_code;
+  int bitmap_index, index_in_bitmap;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -522,7 +522,7 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 // subsequently realize they have been removed).
 // Returns 0 on success, -1 on failure
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
-  int bitmap_index, index_in_bitmap, ret_code;
+  int bitmap_index, index_in_bitmap;
 
   if (shm == NULL) {
     return -1 * EINVAL;
