@@ -170,7 +170,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer syncW.Close()
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	apiSocket := filepath.Join(r.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+	apiSocket := filepath.Join(ctr.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 
 	cmdArgs := []string{}
 	if havePortMapping {

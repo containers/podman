@@ -128,7 +128,7 @@ func (c *Container) CheckpointPath() string {
 
 // AttachSocketPath retrieves the path of the container's attach socket
 func (c *Container) AttachSocketPath() string {
-	return filepath.Join(c.runtime.ociRuntime.socketsDir, c.ID(), "attach")
+	return filepath.Join(c.ociRuntime.socketsDir, c.ID(), "attach")
 }
 
 // Get PID file path for a container's exec session
@@ -138,7 +138,7 @@ func (c *Container) execPidPath(sessionID string) string {
 
 // exitFilePath gets the path to the container's exit file
 func (c *Container) exitFilePath() string {
-	return filepath.Join(c.runtime.ociRuntime.exitsDir, c.ID())
+	return filepath.Join(c.ociRuntime.exitsDir, c.ID())
 }
 
 // Wait for the container's exit file to appear.
@@ -164,7 +164,7 @@ func (c *Container) waitForExitFileAndSync() error {
 		return err
 	}
 
-	if err := c.runtime.ociRuntime.updateContainerStatus(c, false); err != nil {
+	if err := c.ociRuntime.updateContainerStatus(c, false); err != nil {
 		return err
 	}
 
@@ -299,7 +299,7 @@ func (c *Container) syncContainer() error {
 		(c.state.State != ContainerStateExited) {
 		oldState := c.state.State
 		// TODO: optionally replace this with a stat for the exit file
-		if err := c.runtime.ociRuntime.updateContainerStatus(c, false); err != nil {
+		if err := c.ociRuntime.updateContainerStatus(c, false); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed
@@ -547,8 +547,8 @@ func (c *Container) removeConmonFiles() error {
 	// Instead of outright deleting the exit file, rename it (if it exists).
 	// We want to retain it so we can get the exit code of containers which
 	// are removed (at least until we have a workable events system)
-	exitFile := filepath.Join(c.runtime.ociRuntime.exitsDir, c.ID())
-	oldExitFile := filepath.Join(c.runtime.ociRuntime.exitsDir, fmt.Sprintf("%s-old", c.ID()))
+	exitFile := filepath.Join(c.ociRuntime.exitsDir, c.ID())
+	oldExitFile := filepath.Join(c.ociRuntime.exitsDir, fmt.Sprintf("%s-old", c.ID()))
 	if _, err := os.Stat(exitFile); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
@@ -866,7 +866,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// With the spec complete, do an OCI create
-	if err := c.runtime.ociRuntime.createContainer(c, c.config.CgroupParent, nil); err != nil {
+	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, nil); err != nil {
 		return err
 	}
 
@@ -1013,7 +1013,7 @@ func (c *Container) start() error {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
 
-	if err := c.runtime.ociRuntime.startContainer(c); err != nil {
+	if err := c.ociRuntime.startContainer(c); err != nil {
 		return err
 	}
 	logrus.Debugf("Started container %s", c.ID())
@@ -1038,7 +1038,7 @@ func (c *Container) start() error {
 func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
-	if err := c.runtime.ociRuntime.stopContainer(c, timeout); err != nil {
+	if err := c.ociRuntime.stopContainer(c, timeout); err != nil {
 		return err
 	}
 
@@ -1053,7 +1053,7 @@ func (c *Container) stop(timeout uint) error {
 
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
-	if err := c.runtime.ociRuntime.pauseContainer(c); err != nil {
+	if err := c.ociRuntime.pauseContainer(c); err != nil {
 		return err
 	}
 
@@ -1066,7 +1066,7 @@ func (c *Container) pause() error {
 
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
-	if err := c.runtime.ociRuntime.unpauseContainer(c); err != nil {
+	if err := c.ociRuntime.unpauseContainer(c); err != nil {
 		return err
 	}
 
@@ -1245,7 +1245,7 @@ func (c *Container) delete(ctx context.Context) (err error) {
 	span.SetTag("struct", "container")
 	defer span.Finish()
 
-	if err := c.runtime.ociRuntime.deleteContainer(c); err != nil {
+	if err := c.ociRuntime.deleteContainer(c); err != nil {
 		return errors.Wrapf(err, "error removing container %s from runtime", c.ID())
 	}
 

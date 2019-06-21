@@ -47,12 +47,12 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	hostDistributionInfo := r.GetHostDistributionInfo()
 	info["Conmon"] = map[string]interface{}{
 		"path":    r.conmonPath,
-		"package": r.ociRuntime.conmonPackage(),
+		"package": r.defaultOCIRuntime.conmonPackage(),
 		"version": conmonVersion,
 	}
 	info["OCIRuntime"] = map[string]interface{}{
-		"path":    r.ociRuntime.path,
-		"package": r.ociRuntime.pathPackage(),
+		"path":    r.defaultOCIRuntime.path,
+		"package": r.defaultOCIRuntime.pathPackage(),
 		"version": ociruntimeVersion,
 	}
 	info["Distribution"] = map[string]interface{}{
@@ -190,12 +190,12 @@ func (r *Runtime) GetConmonVersion() (string, error) {
 
 // GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
 func (r *Runtime) GetOCIRuntimePath() string {
-	return r.ociRuntimePath.Paths[0]
+	return r.defaultOCIRuntime.path
 }
 
 // GetOCIRuntimeVersion returns a string representation of the oci runtimes version
 func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.ociRuntimePath.Paths[0], "--version")
+	output, err := utils.ExecCmd(r.GetOCIRuntimePath(), "--version")
 	if err != nil {
 		return "", err
 	}
