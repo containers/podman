@@ -60,8 +60,10 @@ func init() {
 
 	flags.BoolVar(&diffCommand.Archive, "archive", true, "Save the diff as a tar archive")
 	flags.StringVar(&diffCommand.Format, "format", "", "Change the output format")
+	flags.BoolVarP(&diffCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 
 	flags.MarkHidden("archive")
+	markFlagHiddenForRemoteClient("latest", flags)
 
 }
 
@@ -83,7 +85,7 @@ func formatJSON(output []diffOutputParams) (diffJSONOutput, error) {
 }
 
 func diffCmd(c *cliconfig.DiffValues) error {
-	if len(c.InputArgs) != 1 {
+	if len(c.InputArgs) != 1 && !c.Latest {
 		return errors.Errorf("container, image, or layer name must be specified: podman diff [options [...]] ID-NAME")
 	}
 
@@ -93,7 +95,16 @@ func diffCmd(c *cliconfig.DiffValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	to := c.InputArgs[0]
+	var to string
+	if c.Latest {
+		ctr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest container")
+		}
+		to = ctr.ID()
+	} else {
+		to = c.InputArgs[0]
+	}
 	changes, err := runtime.Diff(c, to)
 	if err != nil {
 		return errors.Wrapf(err, "could not get changes for %q", to)
