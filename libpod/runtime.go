@@ -292,6 +292,8 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 			"/usr/local/libexec/crio/conmon",
 			"/usr/bin/conmon",
 			"/usr/sbin/conmon",
+			"/usr/local/bin/conmon",
+			"/usr/local/sbin/conmon",
 			"/usr/lib/crio/bin/conmon",
 		},
 		ConmonEnvVars: []string{
