@@ -16,9 +16,14 @@ If you have problems when running Podman in [rootless](README.md#rootless) mode 
 sudo yum -y install podman
 ```
 
-#### [Fedora-CoreOS](https://coreos.fedoraproject.org), [Fedora SilverBlue](https://silverblue.fedoraproject.org), [Endless OS](https://endlessos.com)
+#### [Fedora-CoreOS](https://coreos.fedoraproject.org), [Fedora SilverBlue](https://silverblue.fedoraproject.org)
 
 Built-in, no need to install
+
+#### [Endless OS](https://endlessos.com)
+
+Built-in, no need to install
+
 
 **Note:** You have to have Endless OS 3.6.0 or higher
 
