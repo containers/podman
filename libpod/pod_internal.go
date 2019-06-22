@@ -58,7 +58,7 @@ func (p *Pod) refresh() error {
 	// Retrieve the pod's lock
 	lock, err := p.runtime.lockManager.AllocateAndRetrieveLock(p.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lock for pod %s", p.ID())
+		return errors.Wrapf(err, "error retrieving lock %d for pod %s", p.config.LockID, p.ID())
 	}
 	p.lock = lock
 
