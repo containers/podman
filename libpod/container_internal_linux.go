@@ -1069,6 +1069,10 @@ func (c *Container) getHosts() string {
 			hosts += fmt.Sprintf("%s %s\n", fields[1], fields[0])
 		}
 	}
+	if c.config.NetMode.IsSlirp4netns() {
+		// When using slirp4netns, the interface gets a static IP
+		hosts += fmt.Sprintf("# used by slirp4netns\n%s\t%s\n", "10.0.2.100", c.Hostname())
+	}
 	if len(c.state.NetworkStatus) > 0 && len(c.state.NetworkStatus[0].IPs) > 0 {
 		ipAddress := strings.Split(c.state.NetworkStatus[0].IPs[0].Address.String(), "/")[0]
 		hosts += fmt.Sprintf("%s\t%s\n", ipAddress, c.Hostname())
