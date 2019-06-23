@@ -320,4 +320,16 @@ var _ = Describe("Podman ps", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(ContainSubstring("0.0.0.0:1000-1006"))
 	})
+
+	It("podman ps sync flag", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		fullCid := session.OutputToString()
+
+		result := podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "--sync"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToStringArray()[0]).To(Equal(fullCid))
+	})
 })
