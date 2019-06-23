@@ -627,6 +627,7 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	newCtr.config = c.config
 	newCtr.state = c.state
 	newCtr.runtime = c.runtime
+	newCtr.ociRuntime = c.ociRuntime
 	newCtr.lock = c.lock
 	newCtr.valid = true
 
