@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -30,6 +29,9 @@ var (
   podman commit -q --author "firstName lastName" reverent_golick image-committed
   podman commit -q --pause=false containerID image-committed`,
 	}
+
+	// ChangeCmds is the list of valid Changes commands to passed to the Commit call
+	ChangeCmds = []string{"CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"}
 )
 
 func init() {
@@ -37,7 +39,7 @@ func init() {
 	commitCommand.SetHelpTemplate(HelpTemplate())
 	commitCommand.SetUsageTemplate(UsageTemplate())
 	flags := commitCommand.Flags()
-	flags.StringArrayVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(libpod.ChangeCmds, " | ")))
+	flags.StringArrayVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(ChangeCmds, " | ")))
 	flags.StringVarP(&commitCommand.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
 	flags.StringVarP(&commitCommand.Message, "message", "m", "", "Set commit message for imported image")
 	flags.StringVarP(&commitCommand.Author, "author", "a", "", "Set the author for the image committed")
@@ -66,7 +68,7 @@ func commitCmd(c *cliconfig.CommitValues) error {
 			if len(splitChange) == 1 {
 				splitChange = strings.Split(strings.ToUpper(change), " ")
 			}
-			if !util.StringInSlice(splitChange[0], libpod.ChangeCmds) {
+			if !util.StringInSlice(splitChange[0], ChangeCmds) {
 				return errors.Errorf("invalid syntax for --change: %s", change)
 			}
 		}

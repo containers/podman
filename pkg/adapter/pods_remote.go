@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -509,7 +510,7 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*libpod.ContainerSta
 		newStats := varlinkapi.ContainerStatsToLibpodContainerStats(stats)
 		// If the container wasn't running, don't include it
 		// but also suppress the error
-		if err != nil && errors.Cause(err) != libpod.ErrCtrStateInvalid {
+		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
 			return nil, err
 		}
 		if err == nil {

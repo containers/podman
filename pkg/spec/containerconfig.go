@@ -2,6 +2,7 @@ package createconfig
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -11,9 +12,9 @@ import (
 // container with libpod from a completed CreateConfig struct.
 func (config *CreateConfig) MakeContainerConfig(runtime *libpod.Runtime, pod *libpod.Pod) (*spec.Spec, []libpod.CtrCreateOption, error) {
 	if config.Pod != "" && pod == nil {
-		return nil, nil, errors.Wrapf(libpod.ErrInvalidArg, "pod was specified but no pod passed")
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "pod was specified but no pod passed")
 	} else if config.Pod == "" && pod != nil {
-		return nil, nil, errors.Wrapf(libpod.ErrInvalidArg, "pod was given but no pod is specified")
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "pod was given but no pod is specified")
 	}
 
 	// Parse volumes flag into OCI spec mounts and libpod Named Volumes.

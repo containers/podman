@@ -11,6 +11,7 @@ import (
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containers/image/manifest"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
@@ -466,7 +467,7 @@ func StringToContainerStatus(status string) (ContainerStatus, error) {
 	case ContainerStateExited.String():
 		return ContainerStateExited, nil
 	default:
-		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
+		return ContainerStateUnknown, errors.Wrapf(define.ErrInvalidArg, "unknown container state: %s", status)
 	}
 }
 
@@ -965,7 +966,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	session, ok := c.state.ExecSessions[id]
 	if !ok {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
 	}
 
 	returnSession := new(ExecSession)
@@ -990,7 +991,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
+		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	ips := make([]net.IPNet, 0)
@@ -1018,7 +1019,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
+		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	routes := make([]types.Route, 0)
@@ -1095,11 +1096,11 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 	}
 
 	if c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused {
-		return "", errors.Wrapf(ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
+		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
 
 	if ns == InvalidNS {
-		return "", errors.Wrapf(ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
+		return "", errors.Wrapf(define.ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
 	}
 
 	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, ns.String()), nil
@@ -1113,7 +1114,7 @@ func (c *Container) CGroupPath() (string, error) {
 	case SystemdCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
-		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -331,9 +332,9 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.IPAddress != "" {
 		ip := net.ParseIP(c.IPAddress)
 		if ip == nil {
-			return nil, errors.Wrapf(libpod.ErrInvalidArg, "cannot parse %s as IP address", c.IPAddress)
+			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot parse %s as IP address", c.IPAddress)
 		} else if ip.To4() == nil {
-			return nil, errors.Wrapf(libpod.ErrInvalidArg, "%s is not an IPv4 address", c.IPAddress)
+			return nil, errors.Wrapf(define.ErrInvalidArg, "%s is not an IPv4 address", c.IPAddress)
 		}
 		options = append(options, libpod.WithStaticIP(ip))
 	}
@@ -371,7 +372,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 	if c.RestartPolicy != "" {
 		if c.RestartPolicy == "unless-stopped" {
-			return nil, errors.Wrapf(libpod.ErrInvalidArg, "the unless-stopped restart policy is not supported")
+			return nil, errors.Wrapf(define.ErrInvalidArg, "the unless-stopped restart policy is not supported")
 		}
 
 		split := strings.Split(c.RestartPolicy, ":")
@@ -381,7 +382,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 				return nil, errors.Wrapf(err, "%s is not a valid number of retries for restart policy", split[1])
 			}
 			if numTries < 0 {
-				return nil, errors.Wrapf(libpod.ErrInvalidArg, "restart policy requires a positive number of retries")
+				return nil, errors.Wrapf(define.ErrInvalidArg, "restart policy requires a positive number of retries")
 			}
 			options = append(options, libpod.WithRestartRetries(uint(numTries)))
 		}

@@ -13,14 +13,15 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	digest "github.com/opencontainers/go-digest"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/go-digest"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -114,7 +115,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			// TODO: We can potentially start the container while
 			// the copy is running, which still allows a race where
 			// malicious code could mess with the symlink.
-			if errors.Cause(err) != libpod.ErrCtrStateInvalid {
+			if errors.Cause(err) != define.ErrCtrStateInvalid {
 				return err
 			}
 		} else if err == nil {

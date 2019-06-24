@@ -1,14 +1,14 @@
 package main
 
 import (
-	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/spf13/cobra"
 	"os"
 
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -113,7 +113,7 @@ func containerExistsCmd(c *cliconfig.ContainerExistsValues) error {
 	}
 	defer runtime.Shutdown(false)
 	if _, err := runtime.LookupContainer(args[0]); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr || err.Error() == "io.podman.ContainerNotFound" {
+		if errors.Cause(err) == define.ErrNoSuchCtr || err.Error() == "io.podman.ContainerNotFound" {
 			os.Exit(1)
 		}
 		return err
@@ -133,7 +133,7 @@ func podExistsCmd(c *cliconfig.PodExistsValues) error {
 	defer runtime.Shutdown(false)
 
 	if _, err := runtime.LookupPod(args[0]); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchPod || err.Error() == "io.podman.PodNotFound" {
+		if errors.Cause(err) == define.ErrNoSuchPod || err.Error() == "io.podman.PodNotFound" {
 			os.Exit(1)
 		}
 		return err

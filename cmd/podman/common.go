@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
@@ -78,58 +78,6 @@ func commandRunE() func(*cobra.Command, []string) error {
 			return errors.Errorf("missing command '%s COMMAND'\nTry '%s --help' for more information.", cmd.CommandPath(), cmd.CommandPath())
 		}
 	}
-}
-
-// getAllOrLatestContainers tries to return the correct list of containers
-// depending if --all, --latest or <container-id> is used.
-// It requires the Context (c) and the Runtime (runtime). As different
-// commands are using different container state for the --all option
-// the desired state has to be specified in filterState. If no filter
-// is desired a -1 can be used to get all containers. For a better
-// error message, if the filter fails, a corresponding verb can be
-// specified which will then appear in the error message.
-func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, filterState libpod.ContainerStatus, verb string) ([]*libpod.Container, error) {
-	var containers []*libpod.Container
-	var lastError error
-	var err error
-	if c.Bool("all") {
-		if filterState != -1 {
-			var filterFuncs []libpod.ContainerFilter
-			filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-				state, _ := c.State()
-				return state == filterState
-			})
-			containers, err = runtime.GetContainers(filterFuncs...)
-		} else {
-			containers, err = runtime.GetContainers()
-		}
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get %s containers", verb)
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get latest container")
-		}
-		containers = append(containers, lastCtr)
-	} else {
-		args := c.InputArgs
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				if lastError != nil {
-					fmt.Fprintln(os.Stderr, lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-			}
-			if container != nil {
-				// This is here to make sure this does not return [<nil>] but only nil
-				containers = append(containers, container)
-			}
-		}
-	}
-
-	return containers, lastError
 }
 
 // getContext returns a non-nil, empty context
@@ -333,7 +281,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.String(
 		"init-path", "",
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary (default: %q)", libpod.DefaultInitPath),
+		fmt.Sprintf("Path to the container-init binary (default: %q)", define.DefaultInitPath),
 	)
 	createFlags.BoolP(
 		"interactive", "i", false,
@@ -472,7 +420,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Signal to stop a container. Default is SIGTERM",
 	)
 	createFlags.Uint(
-		"stop-timeout", libpod.CtrRemoveTimeout,
+		"stop-timeout", define.CtrRemoveTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)
 	createFlags.StringSlice(

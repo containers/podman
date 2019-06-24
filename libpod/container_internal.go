@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
@@ -23,7 +24,7 @@ import (
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -243,7 +244,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
 		return false, nil
 	} else if c.state.State == ContainerStateUnknown {
-		return false, errors.Wrapf(ErrInternal, "invalid container state encountered in restart attempt!")
+		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt!")
 	}
 
 	c.newContainerEvent(events.Restart)
@@ -319,7 +320,7 @@ func (c *Container) syncContainer() error {
 	}
 
 	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
 
 	return nil
@@ -332,16 +333,16 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	defer span.Finish()
 
 	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", c.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", c.ID())
 	}
 
 	if c.state.State != ContainerStateConfigured {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Configured state to have storage set up", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Configured state to have storage set up", c.ID())
 	}
 
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
 	if c.config.Rootfs == "" && (c.config.RootfsImageID == "" || c.config.RootfsImageName == "") {
-		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
+		return errors.Wrapf(define.ErrInvalidArg, "must provide image ID and image name to use an image")
 	}
 
 	options := storage.ContainerOptions{
@@ -428,7 +429,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
 	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
@@ -488,7 +489,7 @@ func (c *Container) refresh() error {
 	}
 
 	if !c.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid - may have been removed", c.ID())
 	}
 
 	// We need to get the container's temporary directory from c/storage
@@ -638,7 +639,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 		c.state.State == ContainerStateCreated ||
 		c.state.State == ContainerStateStopped ||
 		c.state.State == ContainerStateExited) {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
 	if !recursive {
@@ -686,7 +687,7 @@ func (c *Container) checkDependenciesAndHandleError(ctx context.Context) error {
 	}
 	if len(notRunning) > 0 {
 		depString := strings.Join(notRunning, ",")
-		return errors.Wrapf(ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
+		return errors.Wrapf(define.ErrCtrStateInvalid, "some dependencies of container %s are not started: %s", c.ID(), depString)
 	}
 
 	return nil
@@ -724,7 +725,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 		if len(graph.nodes) == 0 {
 			return nil
 		}
-		return errors.Wrapf(ErrNoSuchCtr, "All dependencies have dependencies of %s", c.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "All dependencies have dependencies of %s", c.ID())
 	}
 
 	ctrErrors := make(map[string]error)
@@ -740,7 +741,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 		for _, e := range ctrErrors {
 			logrus.Errorf("%q", e)
 		}
-		return errors.Wrapf(ErrInternal, "error starting some containers")
+		return errors.Wrapf(define.ErrInternal, "error starting some containers")
 	}
 	return nil
 }
@@ -826,7 +827,7 @@ func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container
 	for _, dep := range deps {
 		depCtr, ok := depCtrs[dep]
 		if !ok {
-			return nil, errors.Wrapf(ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
+			return nil, errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
 		}
 
 		if err := c.syncContainer(); err != nil {
@@ -974,7 +975,7 @@ func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 func (c *Container) initAndStart(ctx context.Context) (err error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == ContainerStateUnknown {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
 	}
 
 	// If we are running, do nothing
@@ -983,7 +984,7 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	}
 	// If we are paused, throw an error
 	if c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start paused container %s", c.ID())
 	}
 
 	defer func() {
@@ -1090,7 +1091,7 @@ func (c *Container) unpause() error {
 // Internal, non-locking function to restart a container
 func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err error) {
 	if c.state.State == ContainerStateUnknown || c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
+		return errors.Wrapf(define.ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
 
 	c.newContainerEvent(events.Restart)
@@ -1495,16 +1496,16 @@ func (c *Container) copyWithTarFromImage(src, dest string) error {
 // Returns nil if safe to remove, or an error describing why it's unsafe if not.
 func (c *Container) checkReadyForRemoval() error {
 	if c.state.State == ContainerStateUnknown {
-		return errors.Wrapf(ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
 	}
 
 	if c.state.State == ContainerStateRunning ||
 		c.state.State == ContainerStatePaused {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
 	}
 
 	if len(c.state.ExecSessions) != 0 {
-		return errors.Wrapf(ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
 	}
 
 	return nil
