@@ -9,17 +9,17 @@ github.com/DataDog/zstd
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
 github.com/Microsoft/go-winio/backuptar
-# github.com/Microsoft/hcsshim v0.8.3
+# github.com/Microsoft/hcsshim v0.8.6
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/internal/guid
 github.com/Microsoft/hcsshim/internal/hcs
 github.com/Microsoft/hcsshim/internal/hcserror
 github.com/Microsoft/hcsshim/internal/hns
-github.com/Microsoft/hcsshim/internal/interop
 github.com/Microsoft/hcsshim/internal/mergemaps
 github.com/Microsoft/hcsshim/internal/schema1
 github.com/Microsoft/hcsshim/internal/wclayer
 github.com/Microsoft/hcsshim/internal/guestrequest
+github.com/Microsoft/hcsshim/internal/interop
 github.com/Microsoft/hcsshim/internal/logfields
 github.com/Microsoft/hcsshim/internal/timeout
 github.com/Microsoft/hcsshim/internal/schema2
@@ -27,25 +27,27 @@ github.com/Microsoft/hcsshim/internal/longpath
 github.com/Microsoft/hcsshim/internal/safefile
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
-# github.com/blang/semver v3.5.0+incompatible
+# github.com/beorn7/perks v1.0.0
+github.com/beorn7/perks/quantile
+# github.com/blang/semver v3.5.1+incompatible
 github.com/blang/semver
 # github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 github.com/buger/goterm
-# github.com/checkpoint-restore/go-criu v0.0.0-20181120144056-17b0214f6c48
+# github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 github.com/checkpoint-restore/go-criu
 github.com/checkpoint-restore/go-criu/rpc
-# github.com/containerd/cgroups v0.0.0-20190328223300-4994991857f9
+# github.com/containerd/cgroups v0.0.0-20190620142518-db272301ab84
 github.com/containerd/cgroups
 # github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc
 github.com/containerd/continuity/pathdriver
-# github.com/containernetworking/cni v0.7.0-rc2
+# github.com/containernetworking/cni v0.7.1
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/current
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
-# github.com/containernetworking/plugins v0.7.4
+# github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.9.0
 github.com/containers/buildah
@@ -105,7 +107,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.11
+# github.com/containers/storage v1.12.12
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
@@ -144,22 +146,22 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.0
+# github.com/coreos/go-iptables v0.4.1
 github.com/coreos/go-iptables/iptables
-# github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7
+# github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/dbus
 github.com/coreos/go-systemd/sdjournal
 github.com/coreos/go-systemd/journal
-# github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea
+# github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/dlopen
 # github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
 github.com/cri-o/ocicni/pkg/ocicni
-# github.com/cyphar/filepath-securejoin v0.2.1
+# github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
-# github.com/docker/distribution v0.0.0-20170817175659-5f6282db7d65
+# github.com/docker/distribution v2.7.1+incompatible
 github.com/docker/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
@@ -170,6 +172,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
+github.com/docker/distribution/metrics
 # github.com/docker/docker v0.7.3-0.20190309235953-33c3200e0d16
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/signal
@@ -206,13 +209,15 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/strslice
-# github.com/docker/docker-credential-helpers v0.6.1
+# github.com/docker/docker-credential-helpers v0.6.2
 github.com/docker/docker-credential-helpers/credentials
 github.com/docker/docker-credential-helpers/client
 # github.com/docker/go-connections v0.4.0
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/tlsconfig
 github.com/docker/go-connections/sockets
+# github.com/docker/go-metrics v0.0.0-20181218153428-b84716841b82
+github.com/docker/go-metrics
 # github.com/docker/go-units v0.4.0
 github.com/docker/go-units
 # github.com/docker/libnetwork v0.8.0-dev.2.0.20180608203834-19279f049241
@@ -224,7 +229,7 @@ github.com/docker/libtrust
 # github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c
 github.com/docker/spdystream
 github.com/docker/spdystream/spdy
-# github.com/etcd-io/bbolt v1.3.2
+# github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
 # github.com/fatih/camelcase v1.0.0
 github.com/fatih/camelcase
@@ -237,18 +242,16 @@ github.com/fsouza/go-dockerclient/internal/jsonmessage
 github.com/fsouza/go-dockerclient/internal/term
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
-# github.com/godbus/dbus v4.1.0+incompatible
+# github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 github.com/godbus/dbus
 # github.com/gogo/protobuf v1.2.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
-# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
-github.com/golang/glog
 # github.com/golang/protobuf v1.3.1
 github.com/golang/protobuf/proto
-# github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf
+# github.com/google/gofuzz v1.0.0
 github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 github.com/google/shlex
@@ -266,26 +269,28 @@ github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
 # github.com/ijc/Gotty v0.0.0-20170406111628-a8b993ba6abd
 github.com/ijc/Gotty
-# github.com/imdario/mergo v0.3.6
+# github.com/imdario/mergo v0.3.7
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed
 github.com/ishidawataru/sctp
-# github.com/json-iterator/go v1.1.5
+# github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.4.1
+# github.com/klauspost/compress v1.7.1
 github.com/klauspost/compress/flate
-# github.com/klauspost/cpuid v1.2.0
+# github.com/klauspost/cpuid v1.2.1
 github.com/klauspost/cpuid
 # github.com/klauspost/pgzip v1.2.1
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/mattn/go-isatty v0.0.4
+# github.com/mattn/go-isatty v0.0.8
 github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.5
 github.com/mattn/go-shellwords
+# github.com/matttproud/golang_protobuf_extensions v1.0.1
+github.com/matttproud/golang_protobuf_extensions/pbutil
 # github.com/mistifyio/go-zfs v2.1.1+incompatible
 github.com/mistifyio/go-zfs
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -323,7 +328,7 @@ github.com/onsi/ginkgo/internal/containernode
 github.com/onsi/ginkgo/internal/leafnodes
 github.com/onsi/ginkgo/internal/spec
 github.com/onsi/ginkgo/internal/specrunner
-# github.com/onsi/gomega v1.4.3
+# github.com/onsi/gomega v1.5.0
 github.com/onsi/gomega
 github.com/onsi/gomega/gexec
 github.com/onsi/gomega/internal/assertion
@@ -352,14 +357,14 @@ github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/system
 # github.com/opencontainers/runtime-spec v0.0.0-20181111125026-1722abf79c2f
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.8.0
+# github.com/opencontainers/runtime-tools v0.9.0
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v0.0.0-20190118194635-b707dfcb00a1
+# github.com/opencontainers/selinux v1.2.2
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/go-selinux
 # github.com/openshift/imagebuilder v1.1.0
@@ -368,7 +373,7 @@ github.com/openshift/imagebuilder/dockerfile/parser
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/signal
 github.com/openshift/imagebuilder/strslice
-# github.com/opentracing/opentracing-go v0.0.0-20190218023034-25a84ff92183
+# github.com/opentracing/opentracing-go v1.1.0
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/log
 github.com/opentracing/opentracing-go/ext
@@ -377,21 +382,34 @@ github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
-# github.com/pkg/profile v1.2.1
+# github.com/pkg/profile v1.3.0
 github.com/pkg/profile
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7
 github.com/pquerna/ffjson/fflib/v1
 github.com/pquerna/ffjson/fflib/v1/internal
-# github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4
+# github.com/prometheus/client_golang v1.0.0
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/promhttp
+github.com/prometheus/client_golang/prometheus/internal
+# github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.6.0
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/model
+github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
+# github.com/prometheus/procfs v0.0.2
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/fs
+# github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 github.com/seccomp/containers-golang
-# github.com/seccomp/libseccomp-golang v0.9.0
+# github.com/seccomp/libseccomp-golang v0.9.1
 github.com/seccomp/libseccomp-golang
 # github.com/sirupsen/logrus v1.4.2
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
-# github.com/spf13/cobra v0.0.3
+# github.com/spf13/cobra v0.0.5
 github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.3
 github.com/spf13/pflag
@@ -400,9 +418,9 @@ github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
 # github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 github.com/syndtr/gocapability/capability
-# github.com/tchap/go-patricia v2.2.6+incompatible
+# github.com/tchap/go-patricia v2.3.0+incompatible
 github.com/tchap/go-patricia/patricia
-# github.com/uber/jaeger-client-go v0.0.0-20190214182810-64f57863bf63
+# github.com/uber/jaeger-client-go v2.16.0+incompatible
 github.com/uber/jaeger-client-go
 github.com/uber/jaeger-client-go/config
 github.com/uber/jaeger-client-go/internal/baggage
@@ -422,7 +440,7 @@ github.com/uber/jaeger-client-go/thrift-gen/agent
 github.com/uber/jaeger-client-go/thrift-gen/baggage
 # github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5
 github.com/uber/jaeger-lib/metrics
-# github.com/ulikunitz/xz v0.5.5
+# github.com/ulikunitz/xz v0.5.6
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
@@ -435,7 +453,7 @@ github.com/varlink/go/varlink/idl
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
 github.com/vbatts/tar-split/archive/tar
-# github.com/vbauerster/mpb v3.3.4+incompatible
+# github.com/vbauerster/mpb v3.4.0+incompatible
 github.com/vbauerster/mpb
 github.com/vbauerster/mpb/decor
 github.com/vbauerster/mpb/cwriter
@@ -471,9 +489,13 @@ golang.org/x/net/idna
 golang.org/x/net/html
 golang.org/x/net/internal/socks
 golang.org/x/net/html/atom
+golang.org/x/net/context/ctxhttp
+# golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+golang.org/x/oauth2
+golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190621203818-d432491b9138
+# golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
@@ -498,8 +520,16 @@ golang.org/x/text/runes
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
-# golang.org/x/time v0.0.0-20181108054448-85acf8d2951c
+# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
+# google.golang.org/appengine v1.6.1
+google.golang.org/appengine/urlfetch
+google.golang.org/appengine/internal
+google.golang.org/appengine/internal/urlfetch
+google.golang.org/appengine/internal/base
+google.golang.org/appengine/internal/datastore
+google.golang.org/appengine/internal/log
+google.golang.org/appengine/internal/remote_api
 # gopkg.in/fsnotify.v1 v1.4.7
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
@@ -508,9 +538,9 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0-20181219151656-a146d628c217
+# k8s.io/api v0.0.0-20190624085159-95846d7ef82a
 k8s.io/api/core/v1
-# k8s.io/apimachinery v0.0.0-20181212193828-688d82452747
+# k8s.io/apimachinery v0.0.0-20190624085041-961b39a1baa0
 k8s.io/apimachinery/pkg/fields
 k8s.io/apimachinery/pkg/api/resource
 k8s.io/apimachinery/pkg/apis/meta/v1
@@ -529,8 +559,9 @@ k8s.io/apimachinery/pkg/util/remotecommand
 k8s.io/apimachinery/pkg/conversion/queryparams
 k8s.io/apimachinery/pkg/util/errors
 k8s.io/apimachinery/pkg/util/json
-k8s.io/apimachinery/third_party/forked/golang/reflect
+k8s.io/apimachinery/pkg/util/naming
 k8s.io/apimachinery/pkg/util/sets
+k8s.io/apimachinery/third_party/forked/golang/reflect
 k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/util/net
 k8s.io/apimachinery/pkg/api/errors
@@ -547,7 +578,8 @@ k8s.io/apimachinery/pkg/runtime/serializer/recognizer
 k8s.io/apimachinery/pkg/runtime/serializer/versioning
 k8s.io/apimachinery/pkg/util/framer
 k8s.io/apimachinery/pkg/util/yaml
-# k8s.io/client-go v0.0.0-20181219152756-3dd551c0f083
+k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
+# k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 k8s.io/client-go/tools/remotecommand
 k8s.io/client-go/rest
 k8s.io/client-go/transport/spdy
@@ -563,4 +595,12 @@ k8s.io/client-go/util/cert
 k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/pkg/apis/clientauthentication
 k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
-k8s.io/client-go/util/integer
+k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
+k8s.io/client-go/util/connrotation
+k8s.io/client-go/util/keyutil
+# k8s.io/klog v0.3.3
+k8s.io/klog
+# k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
+k8s.io/utils/integer
+# sigs.k8s.io/yaml v1.1.0
+sigs.k8s.io/yaml

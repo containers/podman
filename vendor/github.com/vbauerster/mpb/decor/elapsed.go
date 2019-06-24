@@ -10,7 +10,7 @@ import (
 //	`style` one of [ET_STYLE_GO|ET_STYLE_HHMMSS|ET_STYLE_HHMM|ET_STYLE_MMSS]
 //
 //	`wcc` optional WC config
-func Elapsed(style int, wcc ...WC) Decorator {
+func Elapsed(style TimeStyle, wcc ...WC) Decorator {
 	var wc WC
 	for _, widthConf := range wcc {
 		wc = widthConf
@@ -26,7 +26,7 @@ func Elapsed(style int, wcc ...WC) Decorator {
 
 type elapsedDecorator struct {
 	WC
-	style       int
+	style       TimeStyle
 	startTime   time.Time
 	msg         string
 	completeMsg *string

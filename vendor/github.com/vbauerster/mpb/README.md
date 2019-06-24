@@ -31,8 +31,6 @@ _Note:_ it is preferable to go get from github.com, rather than gopkg.in. See is
     p := mpb.New(
         // override default (80) width
         mpb.WithWidth(64),
-        // override default "[=>-]" format
-        mpb.WithFormat("╢▌▌░╟"),
         // override default 120ms refresh rate
         mpb.WithRefreshRate(180*time.Millisecond),
     )
@@ -41,6 +39,8 @@ _Note:_ it is preferable to go get from github.com, rather than gopkg.in. See is
     name := "Single Bar:"
     // adding a single bar
     bar := p.AddBar(int64(total),
+        // override default "[=>-]" style
+        mpb.BarStyle("╢▌▌░╟"),
         mpb.PrependDecorators(
             // display our name with one space on the right
             decor.Name(name, decor.WC{W: len(name) + 1, C: decor.DidentRight}),

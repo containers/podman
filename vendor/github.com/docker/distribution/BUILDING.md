@@ -108,7 +108,7 @@ directory. This includes formatting, vetting, linting, building,
 testing and generating tagged binaries. We can verify this worked by running
 the registry binary generated in the "./bin" directory:
 
-    $ ./bin/registry -version
+    $ ./bin/registry --version
     ./bin/registry github.com/docker/distribution v2.0.0-alpha.2-80-g16d8b2c.m
 
 ### Optional build tags

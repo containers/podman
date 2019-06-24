@@ -137,7 +137,8 @@ func EwmaSpeed(unit int, unitFormat string, age float64, wcc ...WC) Decorator {
 	return MovingAverageSpeed(unit, unitFormat, ewma.NewMovingAverage(age), wcc...)
 }
 
-// MovingAverageSpeed decorator relies on MovingAverage implementation to calculate its average.
+// MovingAverageSpeed decorator relies on MovingAverage implementation
+// to calculate its average.
 //
 //	`unit` one of [0|UnitKiB|UnitKB] zero for no unit
 //

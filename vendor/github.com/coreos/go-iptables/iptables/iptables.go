@@ -31,6 +31,7 @@ type Error struct {
 	exec.ExitError
 	cmd        exec.Cmd
 	msg        string
+	proto      Protocol
 	exitStatus *int //for overriding
 }
 
@@ -48,8 +49,8 @@ func (e *Error) Error() string {
 // IsNotExist returns true if the error is due to the chain or rule not existing
 func (e *Error) IsNotExist() bool {
 	return e.ExitStatus() == 1 &&
-		(e.msg == "iptables: Bad rule (does a matching rule exist in that chain?).\n" ||
-			e.msg == "iptables: No chain/target/match by that name.\n")
+		(e.msg == fmt.Sprintf("%s: Bad rule (does a matching rule exist in that chain?).\n", getIptablesCommand(e.proto)) ||
+			e.msg == fmt.Sprintf("%s: No chain/target/match by that name.\n", getIptablesCommand(e.proto)))
 }
 
 // Protocol to differentiate between IPv4 and IPv6
@@ -282,7 +283,8 @@ func (ipt *IPTables) executeList(args []string) ([]string, error) {
 		v := 1
 		return nil, &Error{
 			cmd:        exec.Cmd{Args: args},
-			msg:        "iptables: No chain/target/match by that name.",
+			msg:        fmt.Sprintf("%s: No chain/target/match by that name.\n", getIptablesCommand(ipt.proto)),
+			proto:      ipt.proto,
 			exitStatus: &v,
 		}
 	}
@@ -385,7 +387,7 @@ func (ipt *IPTables) runWithOutput(args []string, stdout io.Writer) error {
 	if err := cmd.Run(); err != nil {
 		switch e := err.(type) {
 		case *exec.ExitError:
-			return &Error{*e, cmd, stderr.String(), nil}
+			return &Error{*e, cmd, stderr.String(), ipt.proto, nil}
 		default:
 			return err
 		}

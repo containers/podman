@@ -22,8 +22,8 @@ var (
 	clearCursorAndLine = cursorUp + clearLine
 )
 
-// Writer is a buffered the writer that updates the terminal.
-// The contents of writer will be flushed when Flush is called.
+// Writer is a buffered the writer that updates the terminal.  The
+// contents of writer will be flushed when Flush is called.
 type Writer struct {
 	out        io.Writer
 	buf        bytes.Buffer
@@ -64,11 +64,13 @@ func (w *Writer) WriteString(s string) (n int, err error) {
 	return w.buf.WriteString(s)
 }
 
-// ReadFrom reads from the provided io.Reader and writes to the underlying buffer.
+// ReadFrom reads from the provided io.Reader and writes to the
+// underlying buffer.
 func (w *Writer) ReadFrom(r io.Reader) (n int64, err error) {
 	return w.buf.ReadFrom(r)
 }
 
+// GetWidth returns width of underlying terminal.
 func (w *Writer) GetWidth() (int, error) {
 	if w.isTerminal {
 		tw, _, err := terminal.GetSize(w.fd)

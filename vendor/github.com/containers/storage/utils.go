@@ -195,15 +195,15 @@ func DefaultStoreOptions(rootless bool, rootlessUid int) (StoreOptions, error) {
 	if err != nil {
 		return storageOpts, err
 	}
-	if _, err = os.Stat(storageConf); err == nil {
+	_, err = os.Stat(storageConf)
+	if err != nil && !os.IsNotExist(err) {
+		return storageOpts, errors.Wrapf(err, "cannot stat %s", storageConf)
+	}
+	if err == nil {
 		defaultRootlessRunRoot = storageOpts.RunRoot
 		defaultRootlessGraphRoot = storageOpts.GraphRoot
 		storageOpts = StoreOptions{}
 		ReloadConfigurationFile(storageConf, &storageOpts)
-	}
-
-	if !os.IsNotExist(err) {
-		return storageOpts, errors.Wrapf(err, "cannot stat %s", storageConf)
 	}
 
 	if rootless && rootlessUid != 0 {

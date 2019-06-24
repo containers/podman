@@ -1,10 +1,23 @@
 Changes by Version
 ==================
 
-2.15.1 (unreleased)
+2.16.0 (2019-03-24)
 -------------------
 
-- nothing yet
+- Add baggage to B3 codec (#319) <Pavol Loffay>
+- Add support for 128bit trace ids to zipkin thrift spans. (#378) <Douglas Reid>
+- Update zipkin propagation logic to support 128bit traceIDs (#373) <Douglas Reid>
+- Accept "true" for the x-b3-sampled header (#356) <Adrian Bogatu>
+
+- Allow setting of PoolSpans from Config object (#322) <Matthew Pound>
+- Make propagators public to allow wrapping (#379) <Ivan Babrou>
+- Change default metric namespace to use relevant separator for the metric backend (#364) <Gary Brown>
+- Change metrics prefix to jaeger_tracer and add descriptions (#346) <Gary Brown>
+- Bump OpenTracing to ^1.1.x (#383) <Yuri Shkuro>
+- Upgrade jaeger-lib to v2.0.0 (#359) <Gary Brown>
+- Avoid defer when generating random number (#358) <Gary Brown>
+- Use a pool of rand.Source to reduce lock contention when creating span ids (#357) <Gary Brown>
+- Make JAEGER_ENDPOINT take priority over JAEGER_AGENT_XXX (#342) <Eundoo Song>
 
 
 2.15.0 (2018-10-10)

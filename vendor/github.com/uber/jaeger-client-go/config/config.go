@@ -231,6 +231,7 @@ func (c Configuration) NewTracer(options ...Option) (opentracing.Tracer, io.Clos
 		jaeger.TracerOptions.Logger(opts.logger),
 		jaeger.TracerOptions.CustomHeaderKeys(c.Headers),
 		jaeger.TracerOptions.Gen128Bit(opts.gen128Bit),
+		jaeger.TracerOptions.PoolSpans(opts.poolSpans),
 		jaeger.TracerOptions.ZipkinSharedRPCSpan(opts.zipkinSharedRPCSpan),
 		jaeger.TracerOptions.MaxTagValueLength(opts.maxTagValueLength),
 	}
