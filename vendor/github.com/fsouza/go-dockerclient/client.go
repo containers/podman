@@ -31,7 +31,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/homedir"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/fsouza/go-dockerclient/internal/jsonmessage"
@@ -70,7 +69,7 @@ type APIVersion []int
 // <minor> and <patch> are integer numbers.
 func NewAPIVersion(input string) (APIVersion, error) {
 	if !strings.Contains(input, ".") {
-		return nil, fmt.Errorf("Unable to parse version %q", input)
+		return nil, fmt.Errorf("unable to parse version %q", input)
 	}
 	raw := strings.Split(input, "-")
 	arr := strings.Split(raw[0], ".")
@@ -79,7 +78,7 @@ func NewAPIVersion(input string) (APIVersion, error) {
 	for i, val := range arr {
 		ret[i], err = strconv.Atoi(val)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to parse version %q: %q is not an integer", input, val)
+			return nil, fmt.Errorf("unable to parse version %q: %q is not an integer", input, val)
 		}
 	}
 	return ret, nil
@@ -329,7 +328,7 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 	} else {
 		caPool := x509.NewCertPool()
 		if !caPool.AppendCertsFromPEM(caPEMCert) {
-			return nil, errors.New("Could not add RootCA pem")
+			return nil, errors.New("could not add RootCA pem")
 		}
 		tlsConfig.RootCAs = caPool
 	}
@@ -387,7 +386,7 @@ func (c *Client) Endpoint() string {
 //
 // See https://goo.gl/wYfgY1 for more details.
 func (c *Client) Ping() error {
-	return c.PingWithContext(nil)
+	return c.PingWithContext(context.TODO())
 }
 
 // PingWithContext pings the docker server
@@ -414,7 +413,7 @@ func (c *Client) getServerAPIVersionString() (version string, err error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Received unexpected status %d while trying to retrieve the server version", resp.StatusCode)
+		return "", fmt.Errorf("received unexpected status %d while trying to retrieve the server version", resp.StatusCode)
 	}
 	var versionResponse map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&versionResponse); err != nil {
@@ -639,16 +638,18 @@ func handleStreamResponse(resp *http.Response, streamOptions *streamOptions) err
 		_, err = io.Copy(streamOptions.stdout, resp.Body)
 		return err
 	}
-	if st, ok := streamOptions.stdout.(interface {
-		io.Writer
-		FD() uintptr
-		IsTerminal() bool
-	}); ok {
+	if st, ok := streamOptions.stdout.(stream); ok {
 		err = jsonmessage.DisplayJSONMessagesToStream(resp.Body, st, nil)
 	} else {
 		err = jsonmessage.DisplayJSONMessagesStream(resp.Body, streamOptions.stdout, 0, false, nil)
 	}
 	return err
+}
+
+type stream interface {
+	io.Writer
+	FD() uintptr
+	IsTerminal() bool
 }
 
 type proxyReader struct {
@@ -760,6 +761,7 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) (Close
 	errs := make(chan error, 1)
 	quit := make(chan struct{})
 	go func() {
+		//lint:ignore SA1019 this is needed here
 		clientconn := httputil.NewClientConn(dial, nil)
 		defer clientconn.Close()
 		clientconn.Do(req)
@@ -870,13 +872,6 @@ func (c *Client) getFakeNativeURL(path string) string {
 		return fmt.Sprintf("%s/v%s%s", urlStr, c.requestedAPIVersion, path)
 	}
 	return fmt.Sprintf("%s%s", urlStr, path)
-}
-
-type jsonMessage struct {
-	Status   string `json:"status,omitempty"`
-	Progress string `json:"progress,omitempty"`
-	Error    string `json:"error,omitempty"`
-	Stream   string `json:"stream,omitempty"`
 }
 
 func queryString(opts interface{}) string {
@@ -1029,7 +1024,7 @@ func getDockerEnv() (*dockerEnv, error) {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	var err error
 	if dockerHost == "" {
-		dockerHost = opts.DefaultHost
+		dockerHost = defaultHost
 	}
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY") != ""
 	var dockerCertPath string

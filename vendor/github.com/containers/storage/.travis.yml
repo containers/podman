@@ -1,0 +1,71 @@
+---
+
+sudo: required
+
+# N/B: host go env. not actually used, see .run_ci_tests.sh
+language: go
+go:
+    - master
+
+services:
+    - docker
+
+env:
+    # Ubuntu
+    - GO_VERSION="stable"
+      DISTRO="ubuntu"
+
+    - GO_VERSION="1.11"
+      DISTRO="ubuntu"
+
+    - GO_VERSION="1.12"
+      DISTRO="ubuntu"
+
+    # Fedora
+    - GO_VERSION="stable"
+      DISTRO="fedora"
+
+    - GO_VERSION="1.11"
+      DISTRO="fedora"
+
+    - GO_VERSION="1.12"
+      DISTRO="fedora"
+
+    # CentOS
+    - GO_VERSION="stable"
+      DISTRO="centos"
+
+    - GO_VERSION="1.11"
+      DISTRO="centos"
+
+    - GO_VERSION="1.12"
+      DISTRO="centos"
+
+# GO_VERSION="stable" builds successfully, but tests fail on all platforms.
+# Run the tests, but ignore the result (for now)
+matrix:
+    allow_failures:
+        - env: GO_VERSION="stable" DISTRO="ubuntu"
+        - env: GO_VERSION="stable" DISTRO="fedora"
+        - env: GO_VERSION="stable" DISTRO="centos"
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get -qq install realpath
+
+script:
+    - echo "Travis/host environment:"
+    - export TRAVIS_ENV="-e TRAVIS=$TRAVIS
+                         -e CI=$CI
+                         -e TRAVIS_COMMIT=$TRAVIS_COMMIT
+                         -e TRAVIS_COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
+                         -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG
+                         -e TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
+                         -e TRAVIS_PULL_REQUEST_SHA=$TRAVIS_PULL_REQUEST_SHA
+                         -e TRAVIS_PULL_REQUEST_SLUG=$TRAVIS_PULL_REQUEST_SLUG
+                         -e TRAVIS_BRANCH=$TRAVIS_BRANCH
+                         -e TRAVIS_JOB_ID=$TRAVIS_JOB_ID
+                         -e TRAVIS_BUILD_DIR=$TRAVIS_BUILD_DIR"
+    - env
+    - echo "Running tests in SPC using ./hack/run_ci_tests.sh"
+    - ./hack/run_ci_tests.sh

@@ -42,7 +42,7 @@ func getInodeFromStat(stat interface{}) (inode uint64, err error) {
 	s, ok := stat.(*syscall.Stat_t)
 
 	if ok {
-		inode = uint64(s.Ino)
+		inode = s.Ino
 	}
 
 	return

@@ -14,11 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// DefaultResolvConf points to the default file used for dns configuration on a linux machine
-	DefaultResolvConf = "/etc/resolv.conf"
-)
-
 var (
 	// Note: the default IPv4 & IPv6 resolvers are set to Google's Public DNS
 	defaultIPv4Dns = []string{"nameserver 8.8.8.8", "nameserver 8.8.4.4"}
@@ -55,7 +50,15 @@ type File struct {
 
 // Get returns the contents of /etc/resolv.conf and its hash
 func Get() (*File, error) {
-	return GetSpecific(DefaultResolvConf)
+	resolv, err := ioutil.ReadFile("/etc/resolv.conf")
+	if err != nil {
+		return nil, err
+	}
+	hash, err := ioutils.HashData(bytes.NewReader(resolv))
+	if err != nil {
+		return nil, err
+	}
+	return &File{Content: resolv, Hash: hash}, nil
 }
 
 // GetSpecific returns the contents of the user specified resolv.conf file and its hash

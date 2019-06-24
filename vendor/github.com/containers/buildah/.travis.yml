@@ -1,0 +1,93 @@
+language: go
+dist: xenial
+sudo: required
+go:
+    - 1.11.x
+    - 1.12.x
+    - tip
+
+env:
+    global:
+        - TRAVIS_ENV="-e TRAVIS=$TRAVIS
+                      -e CI=$CI
+                      -e TRAVIS_COMMIT=$TRAVIS_COMMIT
+                      -e TRAVIS_COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
+                      -e TRAVIS_REPO_SLUG=$TRAVIS_REPO_SLUG
+                      -e TRAVIS_PULL_REQUEST=$TRAVIS_PULL_REQUEST
+                      -e TRAVIS_PULL_REQUEST_SHA=$TRAVIS_PULL_REQUEST_SHA
+                      -e TRAVIS_PULL_REQUEST_SLUG=$TRAVIS_PULL_REQUEST_SLUG
+                      -e TRAVIS_BRANCH=$TRAVIS_BRANCH
+                      -e TRAVIS_JOB_ID=$TRAVIS_JOB_ID
+                      -e TRAVIS_BUILD_DIR=$TRAVIS_BUILD_DIR"
+    matrix:
+        - BUILDAH_ISOLATION=oci
+          DISTRO="ubuntu"
+        - BUILDAH_ISOLATION=chroot
+          DISTRO="ubuntu"
+        - BUILDAH_ISOLATION=rootless
+          DISTRO="ubuntu"
+matrix:
+  # If the latest unstable development version of go fails, that's OK.
+  allow_failures:
+    - go: tip
+    - env: TEST_GROUP=conformance
+
+  # Don't hold on the tip tests to finish.  Mark tests green if the
+  # stable versions pass.
+  fast_finish: true
+
+services:
+    - docker
+before_install:
+    - make vendor
+    - ./hack/tree_status.sh
+    - sudo apt-get update
+    - sudo apt-get -qq install software-properties-common
+    - sudo add-apt-repository -y ppa:duggan/bats
+    - sudo apt-get update
+    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath
+    - sudo apt-get -qq update
+    - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+    - mkdir /home/travis/auth
+    - sudo mkdir -p /var/lib/containers/storage/overlay
+install:
+    #  Let's create a self signed certificate and get it in the right places
+    - hostname
+    - ip a
+    - ping -c 3 localhost
+    - cat /etc/hostname
+    - openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/travis/auth/domain.key -x509 -days 2 -out /home/travis/auth/domain.crt -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"
+    - cp /home/travis/auth/domain.crt /home/travis/auth/domain.cert
+    - sudo mkdir -p /etc/docker/certs.d/docker.io/
+    - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/docker.io/ca.crt
+    - sudo mkdir -p /etc/docker/certs.d/localhost:5000/
+    - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/ca.crt
+    - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/domain.crt
+    # Create the credentials file, then start up the Docker registry
+    - docker run --entrypoint htpasswd registry:2 -Bbn testuser testpassword > /home/travis/auth/htpasswd
+    - docker run -d -p 5000:5000 --name registry -v /home/travis/auth:/home/travis/auth:Z -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e REGISTRY_AUTH_HTPASSWD_PATH=/home/travis/auth/htpasswd -e REGISTRY_HTTP_TLS_CERTIFICATE=/home/travis/auth/domain.crt -e REGISTRY_HTTP_TLS_KEY=/home/travis/auth/domain.key registry:2
+script:
+    # Fail fast
+    - set -e
+    # Let's do some docker stuff just for verification purposes
+    - docker ps --all
+    - docker images
+    - ls -alF /home/travis/auth
+    - docker pull docker.io/alpine
+    - echo testpassword | docker login localhost:5000 --username testuser --password-stdin
+    - docker tag alpine localhost:5000/my-alpine
+    - docker push localhost:5000/my-alpine
+    - docker ps --all
+    - docker images
+    - docker rmi docker.io/alpine
+    - docker rmi localhost:5000/my-alpine
+    - docker pull localhost:5000/my-alpine
+    - docker ps --all
+    - docker images
+    - docker rmi localhost:5000/my-alpine
+    # Setting up  Docker Registry is complete, let's do Buildah testing! 
+    - make install.tools install.libseccomp.sudo all runc validate SECURITYTAGS="apparmor seccomp"
+    - go test -c -tags "apparmor seccomp `./btrfs_tag.sh` `./libdm_tag.sh` `./ostree_tag.sh` `./selinux_tag.sh`" ./cmd/buildah
+    - tmp=`mktemp -d`; mkdir $tmp/root $tmp/runroot; sudo PATH="$PATH" ./buildah.test -test.v --root $tmp/root --runroot $tmp/runroot --storage-driver vfs --signature-policy `pwd`/tests/policy.json --registries-conf `pwd`/tests/registries.conf
+    - cd tests; sudo PATH="$PATH" ./test_runner.sh
+    - cd ..

@@ -18,7 +18,7 @@ import (
 )
 
 // ErrCannotParseDockercfg is the error returned by NewAuthConfigurations when the dockercfg cannot be parsed.
-var ErrCannotParseDockercfg = errors.New("Failed to read authentication from dockercfg")
+var ErrCannotParseDockercfg = errors.New("failed to read authentication from dockercfg")
 
 // AuthConfiguration represents authentication options to use in the PushImage
 // method. It represents the authentication in the Docker index server.
@@ -37,15 +37,39 @@ type AuthConfiguration struct {
 	RegistryToken string `json:"registrytoken,omitempty"`
 }
 
+func (c AuthConfiguration) isEmpty() bool {
+	return c == AuthConfiguration{}
+}
+
+func (c AuthConfiguration) headerKey() string {
+	return "X-Registry-Auth"
+}
+
 // AuthConfigurations represents authentication options to use for the
 // PushImage method accommodating the new X-Registry-Config header
 type AuthConfigurations struct {
 	Configs map[string]AuthConfiguration `json:"configs"`
 }
 
+func (c AuthConfigurations) isEmpty() bool {
+	return len(c.Configs) == 0
+}
+
+func (c AuthConfigurations) headerKey() string {
+	return "X-Registry-Config"
+}
+
 // AuthConfigurations119 is used to serialize a set of AuthConfigurations
 // for Docker API >= 1.19.
 type AuthConfigurations119 map[string]AuthConfiguration
+
+func (c AuthConfigurations119) isEmpty() bool {
+	return len(c) == 0
+}
+
+func (c AuthConfigurations119) headerKey() string {
+	return "X-Registry-Config"
+}
 
 // dockerConfig represents a registry authentation configuration from the
 // .dockercfg file.
@@ -84,7 +108,7 @@ func cfgPaths(dockerConfigEnv string, homeEnv string) []string {
 // - $HOME/.docker/config.json
 // - $HOME/.dockercfg
 func NewAuthConfigurationsFromDockerCfg() (*AuthConfigurations, error) {
-	err := fmt.Errorf("No docker configuration found")
+	err := fmt.Errorf("no docker configuration found")
 	var auths *AuthConfigurations
 
 	pathsToTry := cfgPaths(os.Getenv("DOCKER_CONFIG"), os.Getenv("HOME"))

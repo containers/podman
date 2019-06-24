@@ -457,13 +457,13 @@ func FMeasure(text string, body interface{}, samples int) bool {
 	return true
 }
 
-//You can mark Maeasurements as pending using PMeasure
+//You can mark Measurements as pending using PMeasure
 func PMeasure(text string, _ ...interface{}) bool {
 	globalSuite.PushMeasureNode(text, func(b Benchmarker) {}, types.FlagTypePending, codelocation.New(1), 0)
 	return true
 }
 
-//You can mark Maeasurements as pending using XMeasure
+//You can mark Measurements as pending using XMeasure
 func XMeasure(text string, _ ...interface{}) bool {
 	globalSuite.PushMeasureNode(text, func(b Benchmarker) {}, types.FlagTypePending, codelocation.New(1), 0)
 	return true
