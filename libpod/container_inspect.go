@@ -46,7 +46,7 @@ type InspectContainerData struct {
 	GraphDriver     *driver.Data            `json:"GraphDriver"`
 	SizeRw          int64                   `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                   `json:"SizeRootFs,omitempty"`
-	Mounts          []*InspectMount         `json:"Mounts"`
+	Mounts          []InspectMount          `json:"Mounts"`
 	Dependencies    []string                `json:"Dependencies"`
 	NetworkSettings *InspectNetworkSettings `json:"NetworkSettings"` //TODO
 	ExitCommand     []string                `json:"ExitCommand"`
@@ -111,10 +111,10 @@ type InspectMount struct {
 	// The name of the volume. Empty for bind mounts.
 	Name string `json:"Name,omptempty"`
 	// The source directory for the volume.
-	Src string `json:"Source"`
+	Source string `json:"Source"`
 	// The destination directory for the volume. Specified as a path within
 	// the container, as it would be passed into the OCI runtime.
-	Dst string `json:"Destination"`
+	Destination string `json:"Destination"`
 	// The driver used for the named volume. Empty for bind mounts.
 	Driver string `json:"Driver"`
 	// Contains SELinux :z/:Z mount options. Unclear what, if anything, else
@@ -359,8 +359,8 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 // Get inspect-formatted mounts list.
 // Only includes user-specified mounts. Only includes bind mounts and named
 // volumes, not tmpfs volumes.
-func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]*InspectMount, error) {
-	inspectMounts := []*InspectMount{}
+func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]InspectMount, error) {
+	inspectMounts := []InspectMount{}
 
 	// No mounts, return early
 	if len(c.config.UserVolumes) == 0 {
@@ -384,9 +384,9 @@ func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]*InspectMount, error
 		// We need to look up the volumes.
 		// First: is it a named volume?
 		if volume, ok := namedVolumes[vol]; ok {
-			mountStruct := new(InspectMount)
+			mountStruct := InspectMount{}
 			mountStruct.Type = "volume"
-			mountStruct.Dst = volume.Dest
+			mountStruct.Destination = volume.Dest
 			mountStruct.Name = volume.Name
 
 			// For src and driver, we need to look up the named
@@ -396,9 +396,9 @@ func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]*InspectMount, error
 				return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
 			}
 			mountStruct.Driver = volFromDB.Driver()
-			mountStruct.Src = volFromDB.MountPoint()
+			mountStruct.Source = volFromDB.MountPoint()
 
-			parseMountOptionsForInspect(volume.Options, mountStruct)
+			parseMountOptionsForInspect(volume.Options, &mountStruct)
 
 			inspectMounts = append(inspectMounts, mountStruct)
 		} else if mount, ok := mounts[vol]; ok {
@@ -408,12 +408,12 @@ func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]*InspectMount, error
 				continue
 			}
 
-			mountStruct := new(InspectMount)
+			mountStruct := InspectMount{}
 			mountStruct.Type = "bind"
-			mountStruct.Src = mount.Source
-			mountStruct.Dst = mount.Destination
+			mountStruct.Source = mount.Source
+			mountStruct.Destination = mount.Destination
 
-			parseMountOptionsForInspect(mount.Options, mountStruct)
+			parseMountOptionsForInspect(mount.Options, &mountStruct)
 
 			inspectMounts = append(inspectMounts, mountStruct)
 		}

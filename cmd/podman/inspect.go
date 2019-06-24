@@ -98,6 +98,14 @@ func inspectCmd(c *cliconfig.InspectValues) error {
 	if strings.Contains(outputFormat, "{{.Id}}") {
 		outputFormat = strings.Replace(outputFormat, "{{.Id}}", formats.IDString, -1)
 	}
+	// These fields were renamed, so we need to provide backward compat for
+	// the old names.
+	if strings.Contains(outputFormat, ".Src") {
+		outputFormat = strings.Replace(outputFormat, ".Src", ".Source", -1)
+	}
+	if strings.Contains(outputFormat, ".Dst") {
+		outputFormat = strings.Replace(outputFormat, ".Dst", ".Destination", -1)
+	}
 	if latestContainer {
 		lc, err := runtime.GetLatestContainer()
 		if err != nil {
