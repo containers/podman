@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -39,8 +39,8 @@ func init() {
 	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartCommand.Running, "running", false, "Restart only running containers when --all is used")
-	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&restartCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&restartCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -48,7 +48,7 @@ func init() {
 func restartCmd(c *cliconfig.RestartValues) error {
 	all := c.All
 	if len(c.InputArgs) < 1 && !c.Latest && !all {
-		return errors.Wrapf(libpod.ErrInvalidArg, "you must provide at least one container name or ID")
+		return errors.Wrapf(define.ErrInvalidArg, "you must provide at least one container name or ID")
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
@@ -59,7 +59,7 @@ func restartCmd(c *cliconfig.RestartValues) error {
 
 	ok, failures, err := runtime.Restart(getContext(), c)
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
 			if len(c.InputArgs) > 1 {
 				exitCode = 125
 			} else {

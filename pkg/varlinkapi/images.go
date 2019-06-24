@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -760,7 +761,7 @@ func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
 func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageSaveOptions) error {
 	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(options.Name)
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchImage {
+		if errors.Cause(err) == define.ErrNoSuchImage {
 			return call.ReplyImageNotFound(options.Name, err.Error())
 		}
 		return call.ReplyErrorOccurred(err.Error())

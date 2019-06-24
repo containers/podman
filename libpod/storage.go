@@ -6,9 +6,10 @@ import (
 
 	istorage "github.com/containers/image/storage"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage"
 	"github.com/opencontainers/image-spec/specs-go/v1"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -71,7 +72,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	if imageName != "" {
 		var ref types.ImageReference
 		if containerName == "" {
-			return ContainerInfo{}, ErrEmptyID
+			return ContainerInfo{}, define.ErrEmptyID
 		}
 		// Check if we have the specified image.
 		ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
@@ -175,7 +176,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 
 func (r *storageService) DeleteContainer(idOrName string) error {
 	if idOrName == "" {
-		return ErrEmptyID
+		return define.ErrEmptyID
 	}
 	container, err := r.store.Container(idOrName)
 	if err != nil {
@@ -214,7 +215,7 @@ func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 	container, err := r.store.Container(idOrName)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return "", ErrNoSuchCtr
+			return "", define.ErrNoSuchCtr
 		}
 		return "", err
 	}
@@ -233,7 +234,7 @@ func (r *storageService) MountContainerImage(idOrName string) (string, error) {
 
 func (r *storageService) UnmountContainerImage(idOrName string, force bool) (bool, error) {
 	if idOrName == "" {
-		return false, ErrEmptyID
+		return false, define.ErrEmptyID
 	}
 	container, err := r.store.Container(idOrName)
 	if err != nil {
@@ -260,7 +261,7 @@ func (r *storageService) UnmountContainerImage(idOrName string, force bool) (boo
 
 func (r *storageService) MountedContainerImage(idOrName string) (int, error) {
 	if idOrName == "" {
-		return 0, ErrEmptyID
+		return 0, define.ErrEmptyID
 	}
 	container, err := r.store.Container(idOrName)
 	if err != nil {
@@ -277,7 +278,7 @@ func (r *storageService) GetMountpoint(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return "", ErrNoSuchCtr
+			return "", define.ErrNoSuchCtr
 		}
 		return "", err
 	}
@@ -293,7 +294,7 @@ func (r *storageService) GetWorkDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return "", ErrNoSuchCtr
+			return "", define.ErrNoSuchCtr
 		}
 		return "", err
 	}
@@ -304,7 +305,7 @@ func (r *storageService) GetRunDir(id string) (string, error) {
 	container, err := r.store.Container(id)
 	if err != nil {
 		if errors.Cause(err) == storage.ErrContainerUnknown {
-			return "", ErrNoSuchCtr
+			return "", define.ErrNoSuchCtr
 		}
 		return "", err
 	}

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -55,7 +55,7 @@ func pauseCmd(c *cliconfig.PauseValues) error {
 	}
 	ok, failures, err := runtime.PauseContainers(getContext(), c)
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
 			if len(c.InputArgs) > 1 {
 				exitCode = 125
 			} else {

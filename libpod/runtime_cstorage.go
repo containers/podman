@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,7 +57,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 	targetID, err := r.store.Lookup(idOrName)
 	if err != nil {
 		if err == storage.ErrLayerUnknown {
-			return errors.Wrapf(ErrNoSuchCtr, "no container with ID or name %q found", idOrName)
+			return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID or name %q found", idOrName)
 		}
 		return errors.Wrapf(err, "error looking up container %q", idOrName)
 	}
@@ -66,7 +67,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 	ctr, err := r.store.Container(targetID)
 	if err != nil {
 		if err == storage.ErrContainerUnknown {
-			return errors.Wrapf(ErrNoSuchCtr, "%q does not refer to a container", idOrName)
+			return errors.Wrapf(define.ErrNoSuchCtr, "%q does not refer to a container", idOrName)
 		}
 		return errors.Wrapf(err, "error retrieving container %q", idOrName)
 	}
@@ -77,7 +78,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 		return err
 	}
 	if exists {
-		return errors.Wrapf(ErrCtrExists, "refusing to remove %q as it exists in libpod as container %s", idOrName, ctr.ID)
+		return errors.Wrapf(define.ErrCtrExists, "refusing to remove %q as it exists in libpod as container %s", idOrName, ctr.ID)
 	}
 
 	if !force {
@@ -92,7 +93,7 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 			return errors.Wrapf(err, "error looking up container %q mounts", idOrName)
 		}
 		if timesMounted > 0 {
-			return errors.Wrapf(ErrCtrStateInvalid, "container %q is mounted and cannot be removed without using force", idOrName)
+			return errors.Wrapf(define.ErrCtrStateInvalid, "container %q is mounted and cannot be removed without using force", idOrName)
 		}
 	} else {
 		if _, err := r.store.Unmount(ctr.ID, true); err != nil {

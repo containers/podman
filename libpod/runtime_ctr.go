@@ -8,19 +8,16 @@ import (
 	"strings"
 	"time"
 
+	config2 "github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// CtrRemoveTimeout is the default number of seconds to wait after stopping a container
-// before sending the kill signal
-const CtrRemoveTimeout = 10
 
 // Contains the public Runtime API for containers
 
@@ -38,7 +35,7 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, config2.ErrRuntimeStopped
 	}
 	return r.newContainer(ctx, rSpec, options...)
 }
@@ -48,7 +45,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	r.lock.Lock()
 	defer r.lock.Unlock()
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, config2.ErrRuntimeStopped
 	}
 
 	ctr, err := r.initContainerVariables(rSpec, config)
@@ -60,7 +57,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 
 func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
 	if rSpec == nil {
-		return nil, errors.Wrapf(ErrInvalidArg, "must provide a valid runtime spec to create container")
+		return nil, errors.Wrapf(config2.ErrInvalidArg, "must provide a valid runtime spec to create container")
 	}
 	ctr := new(Container)
 	ctr.config = new(ContainerConfig)
@@ -92,7 +89,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	ctr.state.BindMounts = make(map[string]string)
 
-	ctr.config.StopTimeout = CtrRemoveTimeout
+	ctr.config.StopTimeout = config2.CtrRemoveTimeout
 
 	ctr.config.OCIRuntime = r.defaultOCIRuntime.name
 
@@ -144,7 +141,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 	} else {
 		ociRuntime, ok := r.ociRuntimes[ctr.config.OCIRuntime]
 		if !ok {
-			return nil, errors.Wrapf(ErrInvalidArg, "requested OCI runtime %s is not available", ctr.config.OCIRuntime)
+			return nil, errors.Wrapf(config2.ErrInvalidArg, "requested OCI runtime %s is not available", ctr.config.OCIRuntime)
 		}
 		ctr.ociRuntime = ociRuntime
 	}
@@ -177,14 +174,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 					return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 				}
 				if podCgroup == "" {
-					return nil, errors.Wrapf(ErrInternal, "pod %s cgroup is not set", pod.ID())
+					return nil, errors.Wrapf(config2.ErrInternal, "pod %s cgroup is not set", pod.ID())
 				}
 				ctr.config.CgroupParent = podCgroup
 			} else {
 				ctr.config.CgroupParent = CgroupfsDefaultCgroupParent
 			}
 		} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
+			return nil, errors.Wrapf(config2.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 		}
 	case SystemdCgroupsManager:
 		if ctr.config.CgroupParent == "" {
@@ -198,10 +195,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 				ctr.config.CgroupParent = SystemdDefaultCgroupParent
 			}
 		} else if len(ctr.config.CgroupParent) < 6 || !strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
-			return nil, errors.Wrapf(ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
+			return nil, errors.Wrapf(config2.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 		}
 	default:
-		return nil, errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+		return nil, errors.Wrapf(config2.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}
 
 	if restore {
@@ -241,7 +238,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 		if err == nil {
 			// The volume exists, we're good
 			continue
-		} else if errors.Cause(err) != ErrNoSuchVolume {
+		} else if errors.Cause(err) != config2.ErrNoSuchVolume {
 			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
 		}
 
@@ -355,7 +352,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return config2.ErrRuntimeStopped
 	}
 
 	// Update the container to get current state
@@ -413,7 +410,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 		if len(deps) != 0 {
 			depsStr := strings.Join(deps, ", ")
-			return errors.Wrapf(ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
+			return errors.Wrapf(config2.ErrCtrExists, "container %s has dependent containers which must be removed before it: %s", c.ID(), depsStr)
 		}
 	}
 
@@ -496,7 +493,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 			if !volume.IsCtrSpecific() {
 				continue
 			}
-			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != ErrNoSuchVolume && err != ErrVolumeBeingUsed {
+			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != config2.ErrNoSuchVolume && err != config2.ErrVolumeBeingUsed {
 				logrus.Errorf("cleanup volume (%s): %v", v, err)
 			}
 		}
@@ -511,7 +508,7 @@ func (r *Runtime) GetContainer(id string) (*Container, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, config2.ErrRuntimeStopped
 	}
 
 	return r.state.Container(id)
@@ -523,7 +520,7 @@ func (r *Runtime) HasContainer(id string) (bool, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return false, ErrRuntimeStopped
+		return false, config2.ErrRuntimeStopped
 	}
 
 	return r.state.HasContainer(id)
@@ -536,7 +533,7 @@ func (r *Runtime) LookupContainer(idOrName string) (*Container, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, config2.ErrRuntimeStopped
 	}
 	return r.state.LookupContainer(idOrName)
 }
@@ -550,7 +547,7 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, config2.ErrRuntimeStopped
 	}
 
 	ctrs, err := r.state.AllContainers()
@@ -611,7 +608,7 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 		return nil, errors.Wrapf(err, "unable to find latest container")
 	}
 	if len(ctrs) == 0 {
-		return nil, ErrNoSuchCtr
+		return nil, config2.ErrNoSuchCtr
 	}
 	for containerIndex, ctr := range ctrs {
 		createdTime := ctr.config.CreatedTime

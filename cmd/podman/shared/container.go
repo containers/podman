@@ -15,6 +15,7 @@ import (
 
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -824,7 +825,7 @@ func GenerateKube(name string, service bool, r *libpod.Runtime) (*v1.Pod, *v1.Se
 		podYAML, servicePorts, err = pod.GenerateForKube()
 	} else {
 		if len(container.Dependencies()) > 0 {
-			return nil, nil, errors.Wrapf(libpod.ErrNotImplemented, "containers with dependencies")
+			return nil, nil, errors.Wrapf(define.ErrNotImplemented, "containers with dependencies")
 		}
 		podYAML, err = container.GenerateForKube()
 	}

@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
@@ -239,11 +240,11 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	for _, id := range ids {
 		if _, err := iopodman.StopContainer().Call(r.Conn, id, int64(cli.Timeout)); err != nil {
 			transError := TranslateError(err)
-			if errors.Cause(transError) == libpod.ErrCtrStopped {
+			if errors.Cause(transError) == define.ErrCtrStopped {
 				ok = append(ok, id)
 				continue
 			}
-			if errors.Cause(transError) == libpod.ErrCtrStateInvalid && cli.All {
+			if errors.Cause(transError) == define.ErrCtrStateInvalid && cli.All {
 				ok = append(ok, id)
 				continue
 			}
@@ -476,7 +477,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 }
 
 func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
-	return 0, libpod.ErrNotImplemented
+	return 0, define.ErrNotImplemented
 }
 
 // Ps lists containers based on criteria from user
@@ -662,7 +663,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 }
 
 // Checkpoint one or more containers
-func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 	if c.Export != "" {
 		return errors.New("the remote client does not support exporting checkpoints")
 	}
@@ -689,7 +690,7 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.
 	}
 
 	for _, id := range ids {
-		if _, err := iopodman.ContainerCheckpoint().Call(r.Conn, id, options.Keep, options.KeepRunning, options.TCPEstablished); err != nil {
+		if _, err := iopodman.ContainerCheckpoint().Call(r.Conn, id, c.Keep, c.Keep, c.TcpEstablished); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}

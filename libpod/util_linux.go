@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -61,7 +62,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	const sliceSuffix = ".slice"
 
 	if !strings.HasSuffix(baseSlice, sliceSuffix) {
-		return "", errors.Wrapf(ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
+		return "", errors.Wrapf(define.ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
 	}
 
 	noSlice := strings.TrimSuffix(baseSlice, sliceSuffix)

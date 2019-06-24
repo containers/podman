@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/image/signature"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -126,7 +127,7 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 				return false, errors.Wrapf(err, "checking file %s", path)
 			}
 		case <-timeoutChan:
-			return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
+			return false, errors.Wrapf(define.ErrInternal, "timed out waiting for file %s", path)
 		}
 	}
 }
@@ -156,15 +157,15 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 func validPodNSOption(p *Pod, ctrPod string) error {
 	if p == nil {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 	}
 
 	if ctrPod == "" {
-		return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		return errors.Wrapf(define.ErrInvalidArg, "container is not a member of any pod")
 	}
 
 	if ctrPod != p.ID() {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
 }

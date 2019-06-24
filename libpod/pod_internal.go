@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,7 +53,7 @@ func (p *Pod) refresh() error {
 	}
 
 	if !p.valid {
-		return ErrPodRemoved
+		return define.ErrPodRemoved
 	}
 
 	// Retrieve the pod's lock
@@ -76,7 +77,7 @@ func (p *Pod) refresh() error {
 
 			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
 		default:
-			return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
 		}
 	}
 

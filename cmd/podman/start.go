@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -62,7 +62,7 @@ func startCmd(c *cliconfig.StartValues) error {
 	sigProxy := c.SigProxy || attach
 
 	if sigProxy && !attach {
-		return errors.Wrapf(libpod.ErrInvalidArg, "you cannot use sig-proxy without --attach")
+		return errors.Wrapf(define.ErrInvalidArg, "you cannot use sig-proxy without --attach")
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)

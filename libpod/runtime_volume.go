@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -26,7 +27,7 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return define.ErrRuntimeStopped
 	}
 
 	if !v.valid {
@@ -77,7 +78,7 @@ func (r *Runtime) GetVolume(name string) (*Volume, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	vol, err := r.state.Volume(name)
@@ -103,7 +104,7 @@ func (r *Runtime) HasVolume(name string) (bool, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return false, ErrRuntimeStopped
+		return false, define.ErrRuntimeStopped
 	}
 
 	return r.state.HasVolume(name)
@@ -118,7 +119,7 @@ func (r *Runtime) Volumes(filters ...VolumeFilter) ([]*Volume, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	vols, err := r.state.AllVolumes()
@@ -147,7 +148,7 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	return r.state.AllVolumes()
@@ -167,7 +168,7 @@ func (r *Runtime) PruneVolumes(ctx context.Context) ([]string, []error) {
 
 	for _, vol := range vols {
 		if err := r.RemoveVolume(ctx, vol, false); err != nil {
-			if errors.Cause(err) != ErrVolumeBeingUsed && errors.Cause(err) != ErrVolumeRemoved {
+			if errors.Cause(err) != define.ErrVolumeBeingUsed && errors.Cause(err) != define.ErrVolumeRemoved {
 				pruneErrors = append(pruneErrors, err)
 			}
 			continue

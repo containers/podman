@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -126,7 +127,7 @@ func execCmd(c *cliconfig.ExecValues) error {
 	streams.AttachInput = true
 
 	err = ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
-	if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+	if errors.Cause(err) == define.ErrCtrStateInvalid {
 		exitCode = 126
 	}
 

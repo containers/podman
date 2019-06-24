@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -127,7 +128,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
 			// when doing "all", dont worry about containers that are not running
-			if c.All && errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			if c.All && errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
 				continue
 			}
 			return err
@@ -148,7 +149,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			id := ctr.ID()
 			if _, ok := containerStats[ctr.ID()]; !ok {
 				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
-				if errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
 					// skip dealing with a container that is gone
 					continue
 				}
@@ -158,7 +159,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 				containerStats[id] = initialStats
 			}
 			stats, err := ctr.GetContainerStats(containerStats[id])
-			if err != nil && errors.Cause(err) != libpod.ErrNoSuchCtr {
+			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 				return err
 			}
 			// replace the previous measurement with the current one

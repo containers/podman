@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -209,7 +210,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 			return kubeContainer, err
 		}
 		kubeContainer.VolumeDevices = devices
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "linux devices")
+		return kubeContainer, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {

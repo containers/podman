@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -43,7 +44,7 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 			// Get the dep's node
 			depNode, ok := graph.nodes[dep]
 			if !ok {
-				return nil, errors.Wrapf(ErrNoSuchCtr, "container %s depends on container %s not found in input list", node.id, dep)
+				return nil, errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s not found in input list", node.id, dep)
 			}
 
 			// Add the dependent node to the node's dependencies
@@ -68,7 +69,7 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 	if err != nil {
 		return nil, err
 	} else if cycle {
-		return nil, errors.Wrapf(ErrInternal, "cycle found in container dependency graph")
+		return nil, errors.Wrapf(define.ErrInternal, "cycle found in container dependency graph")
 	}
 
 	return graph, nil
@@ -133,7 +134,7 @@ func detectCycles(graph *containerGraph) (bool, error) {
 		if info.lowLink == info.index {
 			l := len(stack)
 			if l == 0 {
-				return false, errors.Wrapf(ErrInternal, "empty stack in detectCycles")
+				return false, errors.Wrapf(define.ErrInternal, "empty stack in detectCycles")
 			}
 
 			// Pop off the stack
@@ -143,7 +144,7 @@ func detectCycles(graph *containerGraph) (bool, error) {
 			// Popped item is no longer on the stack, mark as such
 			topInfo, ok := nodes[topOfStack.id]
 			if !ok {
-				return false, errors.Wrapf(ErrInternal, "error finding node info for %s", topOfStack.id)
+				return false, errors.Wrapf(define.ErrInternal, "error finding node info for %s", topOfStack.id)
 			}
 			topInfo.onStack = false
 
@@ -186,7 +187,7 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	if setError {
 		// Mark us as visited, and set an error
 		ctrsVisited[node.id] = true
-		ctrErrors[node.id] = errors.Wrapf(ErrCtrStateInvalid, "a dependency of container %s failed to start", node.id)
+		ctrErrors[node.id] = errors.Wrapf(define.ErrCtrStateInvalid, "a dependency of container %s failed to start", node.id)
 
 		// Hit anyone who depends on us, and set errors on them too
 		for _, successor := range node.dependedOn {
@@ -226,7 +227,7 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	} else if len(depsStopped) > 0 {
 		// Our dependencies are not running
 		depsList := strings.Join(depsStopped, ",")
-		ctrErrors[node.id] = errors.Wrapf(ErrCtrStateInvalid, "the following dependencies of container %s are not running: %s", node.id, depsList)
+		ctrErrors[node.id] = errors.Wrapf(define.ErrCtrStateInvalid, "the following dependencies of container %s are not running: %s", node.id, depsList)
 		ctrErrored = true
 	}
 

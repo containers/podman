@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	bolt "github.com/etcd-io/bbolt"
@@ -222,7 +223,7 @@ func readOnlyValidateConfig(bucket *bolt.Bucket, toCheck dbConfigValidation) (bo
 			return true, nil
 		}
 
-		return true, errors.Wrapf(ErrDBBadConfig, "database %s %q does not match our %s %q",
+		return true, errors.Wrapf(define.ErrDBBadConfig, "database %s %q does not match our %s %q",
 			toCheck.name, dbValue, toCheck.name, toCheck.runtimeValue)
 	}
 
@@ -260,7 +261,7 @@ func (s *BoltState) closeDBCon(db *bolt.DB) error {
 func getIDBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(idRegistryBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "id registry bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "id registry bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -268,7 +269,7 @@ func getIDBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getNamesBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(nameRegistryBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "name registry bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "name registry bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -276,7 +277,7 @@ func getNamesBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getNSBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(nsRegistryBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "namespace registry bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "namespace registry bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -284,7 +285,7 @@ func getNSBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getCtrBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(ctrBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "containers bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "containers bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -292,7 +293,7 @@ func getCtrBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getAllCtrsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(allCtrsBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "all containers bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "all containers bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -300,7 +301,7 @@ func getAllCtrsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getPodBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(podBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "pods bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "pods bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -308,7 +309,7 @@ func getPodBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getAllPodsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(allPodsBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "all pods bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "all pods bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -316,7 +317,7 @@ func getAllPodsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getVolBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(volBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "volumes bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "volumes bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -324,7 +325,7 @@ func getVolBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getAllVolsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(allVolsBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "all volumes bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "all volumes bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -332,7 +333,7 @@ func getAllVolsBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	bkt := tx.Bucket(runtimeConfigBkt)
 	if bkt == nil {
-		return nil, errors.Wrapf(ErrDBBadConfig, "runtime configuration bucket not found in DB")
+		return nil, errors.Wrapf(define.ErrDBBadConfig, "runtime configuration bucket not found in DB")
 	}
 	return bkt, nil
 }
@@ -341,19 +342,19 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	valid := true
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
-		return errors.Wrapf(ErrNoSuchCtr, "container %s not found in DB", string(id))
+		return errors.Wrapf(define.ErrNoSuchCtr, "container %s not found in DB", string(id))
 	}
 
 	if s.namespaceBytes != nil {
 		ctrNamespaceBytes := ctrBkt.Get(namespaceKey)
 		if !bytes.Equal(s.namespaceBytes, ctrNamespaceBytes) {
-			return errors.Wrapf(ErrNSMismatch, "cannot retrieve container %s as it is part of namespace %q and we are in namespace %q", string(id), string(ctrNamespaceBytes), s.namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "cannot retrieve container %s as it is part of namespace %q and we are in namespace %q", string(id), string(ctrNamespaceBytes), s.namespace)
 		}
 	}
 
 	configBytes := ctrBkt.Get(configKey)
 	if configBytes == nil {
-		return errors.Wrapf(ErrInternal, "container %s missing config key in DB", string(id))
+		return errors.Wrapf(define.ErrInternal, "container %s missing config key in DB", string(id))
 	}
 
 	if err := json.Unmarshal(configBytes, ctr.config); err != nil {
@@ -379,7 +380,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
-			return errors.Wrapf(ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
+			return errors.Wrapf(define.ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
 		}
 		ctr.ociRuntime = ociRuntime
 	}
@@ -393,19 +394,19 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error {
 	podDB := podBkt.Bucket(id)
 	if podDB == nil {
-		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found", string(id))
+		return errors.Wrapf(define.ErrNoSuchPod, "pod with ID %s not found", string(id))
 	}
 
 	if s.namespaceBytes != nil {
 		podNamespaceBytes := podDB.Get(namespaceKey)
 		if !bytes.Equal(s.namespaceBytes, podNamespaceBytes) {
-			return errors.Wrapf(ErrNSMismatch, "cannot retrieve pod %s as it is part of namespace %q and we are in namespace %q", string(id), string(podNamespaceBytes), s.namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "cannot retrieve pod %s as it is part of namespace %q and we are in namespace %q", string(id), string(podNamespaceBytes), s.namespace)
 		}
 	}
 
 	podConfigBytes := podDB.Get(configKey)
 	if podConfigBytes == nil {
-		return errors.Wrapf(ErrInternal, "pod %s is missing configuration key in DB", string(id))
+		return errors.Wrapf(define.ErrInternal, "pod %s is missing configuration key in DB", string(id))
 	}
 
 	if err := json.Unmarshal(podConfigBytes, pod.config); err != nil {
@@ -428,12 +429,12 @@ func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error
 func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bucket) error {
 	volDB := volBkt.Bucket(name)
 	if volDB == nil {
-		return errors.Wrapf(ErrNoSuchVolume, "volume with name %s not found", string(name))
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %s not found", string(name))
 	}
 
 	volConfigBytes := volDB.Get(configKey)
 	if volConfigBytes == nil {
-		return errors.Wrapf(ErrInternal, "volume %s is missing configuration key in DB", string(name))
+		return errors.Wrapf(define.ErrInternal, "volume %s is missing configuration key in DB", string(name))
 	}
 
 	if err := json.Unmarshal(volConfigBytes, volume.config); err != nil {
@@ -450,7 +451,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 // If pod is not nil, the container is added to the pod as well
 func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if s.namespace != "" && s.namespace != ctr.config.Namespace {
-		return errors.Wrapf(ErrNSMismatch, "cannot add container %s as it is in namespace %q and we are in namespace %q",
+		return errors.Wrapf(define.ErrNSMismatch, "cannot add container %s as it is in namespace %q and we are in namespace %q",
 			ctr.ID(), s.namespace, ctr.config.Namespace)
 	}
 
@@ -526,16 +527,16 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 			podDB = podBucket.Bucket(podID)
 			if podDB == nil {
 				pod.valid = false
-				return errors.Wrapf(ErrNoSuchPod, "pod %s does not exist in database", pod.ID())
+				return errors.Wrapf(define.ErrNoSuchPod, "pod %s does not exist in database", pod.ID())
 			}
 			podCtrs = podDB.Bucket(containersBkt)
 			if podCtrs == nil {
-				return errors.Wrapf(ErrInternal, "pod %s does not have a containers bucket", pod.ID())
+				return errors.Wrapf(define.ErrInternal, "pod %s does not have a containers bucket", pod.ID())
 			}
 
 			podNS := podDB.Get(namespaceKey)
 			if !bytes.Equal(podNS, ctrNamespace) {
-				return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
+				return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
 					ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
 			}
 		}
@@ -543,11 +544,11 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		// Check if we already have a container with the given ID and name
 		idExist := idsBucket.Get(ctrID)
 		if idExist != nil {
-			return errors.Wrapf(ErrCtrExists, "ID %s is in use", ctr.ID())
+			return errors.Wrapf(define.ErrCtrExists, "ID %s is in use", ctr.ID())
 		}
 		nameExist := namesBucket.Get(ctrName)
 		if nameExist != nil {
-			return errors.Wrapf(ErrCtrExists, "name %s is in use", ctr.Name())
+			return errors.Wrapf(define.ErrCtrExists, "name %s is in use", ctr.Name())
 		}
 
 		// No overlapping containers
@@ -603,34 +604,34 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 
 			depCtrBkt := ctrBucket.Bucket(depCtrID)
 			if depCtrBkt == nil {
-				return errors.Wrapf(ErrNoSuchCtr, "container %s depends on container %s, but it does not exist in the DB", ctr.ID(), dependsCtr)
+				return errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s, but it does not exist in the DB", ctr.ID(), dependsCtr)
 			}
 
 			depCtrPod := depCtrBkt.Get(podIDKey)
 			if pod != nil {
 				// If we're part of a pod, make sure the dependency is part of the same pod
 				if depCtrPod == nil {
-					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s which is not in pod %s", ctr.ID(), dependsCtr, pod.ID())
+					return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is not in pod %s", ctr.ID(), dependsCtr, pod.ID())
 				}
 
 				if string(depCtrPod) != pod.ID() {
-					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s which is in a different pod (%s)", ctr.ID(), dependsCtr, string(depCtrPod))
+					return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is in a different pod (%s)", ctr.ID(), dependsCtr, string(depCtrPod))
 				}
 			} else {
 				// If we're not part of a pod, we cannot depend on containers in a pod
 				if depCtrPod != nil {
-					return errors.Wrapf(ErrInvalidArg, "container %s depends on container %s which is in a pod - containers not in pods cannot depend on containers in pods", ctr.ID(), dependsCtr)
+					return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is in a pod - containers not in pods cannot depend on containers in pods", ctr.ID(), dependsCtr)
 				}
 			}
 
 			depNamespace := depCtrBkt.Get(namespaceKey)
 			if !bytes.Equal(ctrNamespace, depNamespace) {
-				return errors.Wrapf(ErrNSMismatch, "container %s in namespace %q depends on container %s in namespace %q - namespaces must match", ctr.ID(), ctr.config.Namespace, dependsCtr, string(depNamespace))
+				return errors.Wrapf(define.ErrNSMismatch, "container %s in namespace %q depends on container %s in namespace %q - namespaces must match", ctr.ID(), ctr.config.Namespace, dependsCtr, string(depNamespace))
 			}
 
 			depCtrDependsBkt := depCtrBkt.Bucket(dependenciesBkt)
 			if depCtrDependsBkt == nil {
-				return errors.Wrapf(ErrInternal, "container %s does not have a dependencies bucket", dependsCtr)
+				return errors.Wrapf(define.ErrInternal, "container %s does not have a dependencies bucket", dependsCtr)
 			}
 			if err := depCtrDependsBkt.Put(ctrID, ctrName); err != nil {
 				return errors.Wrapf(err, "error adding ctr %s as dependency of container %s", ctr.ID(), dependsCtr)
@@ -648,7 +649,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		for _, vol := range ctr.config.NamedVolumes {
 			volDB := volBkt.Bucket([]byte(vol.Name))
 			if volDB == nil {
-				return errors.Wrapf(ErrNoSuchVolume, "no volume with name %s found in database when adding container %s", vol.Name, ctr.ID())
+				return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %s found in database when adding container %s", vol.Name, ctr.ID())
 			}
 
 			ctrDepsBkt := volDB.Bucket(volDependenciesBkt)
@@ -714,7 +715,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		podDB = podBucket.Bucket(podID)
 		if podDB == nil {
 			pod.valid = false
-			return errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in DB", pod.ID())
+			return errors.Wrapf(define.ErrNoSuchPod, "no pod with ID %s found in DB", pod.ID())
 		}
 	}
 
@@ -722,17 +723,17 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	ctrExists := ctrBucket.Bucket(ctrID)
 	if ctrExists == nil {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %s found in DB", ctr.ID())
 	}
 
 	// Compare namespace
 	// We can't remove containers not in our namespace
 	if s.namespace != "" {
 		if s.namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %q, does not match our namespace %q", ctr.ID(), ctr.config.Namespace, s.namespace)
 		}
 		if pod != nil && s.namespace != pod.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "pod %s is in namespace %q, does not match out namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "pod %s is in namespace %q, does not match out namespace %q", pod.ID(), pod.config.Namespace, s.namespace)
 		}
 	}
 
@@ -745,7 +746,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		} else {
 			ctrInPod := podCtrs.Get(ctrID)
 			if ctrInPod == nil {
-				return errors.Wrapf(ErrNoSuchCtr, "container %s is not in pod %s", ctr.ID(), pod.ID())
+				return errors.Wrapf(define.ErrNoSuchCtr, "container %s is not in pod %s", ctr.ID(), pod.ID())
 			}
 			if err := podCtrs.Delete(ctrID); err != nil {
 				return errors.Wrapf(err, "error removing container %s from pod %s", ctr.ID(), pod.ID())
@@ -756,7 +757,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	// Does the container have dependencies?
 	ctrDepsBkt := ctrExists.Bucket(dependenciesBkt)
 	if ctrDepsBkt == nil {
-		return errors.Wrapf(ErrInternal, "container %s does not have a dependencies bucket", ctr.ID())
+		return errors.Wrapf(define.ErrInternal, "container %s does not have a dependencies bucket", ctr.ID())
 	}
 	deps := []string{}
 	err = ctrDepsBkt.ForEach(func(id, value []byte) error {
@@ -768,11 +769,11 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		return err
 	}
 	if len(deps) != 0 {
-		return errors.Wrapf(ErrCtrExists, "container %s is a dependency of the following containers: %s", ctr.ID(), strings.Join(deps, ", "))
+		return errors.Wrapf(define.ErrCtrExists, "container %s is a dependency of the following containers: %s", ctr.ID(), strings.Join(deps, ", "))
 	}
 
 	if err := ctrBucket.DeleteBucket(ctrID); err != nil {
-		return errors.Wrapf(ErrInternal, "error deleting container %s from DB", ctr.ID())
+		return errors.Wrapf(define.ErrInternal, "error deleting container %s from DB", ctr.ID())
 	}
 
 	if err := idsBucket.Delete(ctrID); err != nil {
