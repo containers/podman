@@ -1,0 +1,33 @@
+dist: xenial
+language: go
+go:
+  - 1.11.x
+  - 1.12.x
+os:
+  - linux
+  - osx
+  - windows
+env:
+  matrix:
+    - GOARCH=amd64 DEP_TOOL=mod GO111MODULE=on
+    - GOARCH=386 DEP_TOOL=mod GO111MODULE=on
+    - GOARCH=amd64 DEP_TOOL=dep GO111MODULE=off
+    - GOARCH=386 DEP_TOOL=dep GO111MODULE=off
+  global:
+    - GOPROXY=https://proxy.golang.org
+install:
+  - travis-scripts/win-setup.bash
+  - make testdeps DEP_TOOL=${DEP_TOOL}
+script:
+  - travis_wait 25 travis-scripts/run-tests.bash
+services:
+  - docker
+matrix:
+  fast_finish: true
+  exclude:
+    - os: osx
+      env: GOARCH=386 DEP_TOOL=dep GO111MODULE=off
+    - os: osx
+      env: GOARCH=386 DEP_TOOL=mod GO111MODULE=on
+  allow_failures:
+    - os: windows

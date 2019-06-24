@@ -42,4 +42,5 @@ ${LINTER} \
 	--exclude='vendor\/.*'\
 	--exclude='podman\/.*'\
 	--exclude='server\/seccomp\/.*\.go.*$'\
+	--exclude='dependencies\/.*'\
 	${PKGS[@]}

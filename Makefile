@@ -339,9 +339,6 @@ define go-get
 		$(GO) get -u ${1}
 endef
 
-.install.vndr: .gopathok
-	$(call go-get,github.com/LK4D4/vndr)
-
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
 		$(GO) build -o ${GOPATH}/bin/ginkgo ./vendor/github.com/onsi/ginkgo/ginkgo ; \
@@ -400,12 +397,11 @@ build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
 	git rebase $(GIT_BASE_BRANCH) -x make
 
-vendor: .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/varlink/go"  \
-		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/onsi/gomega" \
-		-whitelist "gopkg.in/fsnotify.v1"
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
 
 .PHONY: \
 	.gopathok \

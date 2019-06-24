@@ -1,0 +1,96 @@
+---
+
+# Main collection of env. vars to set for all tasks and scripts.
+env:
+    ####
+    #### Global variables used for all tasks
+    ####
+    # Overrides default location (/tmp/cirrus) for repo clone
+    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/storage"
+    # Shell used to execute all script commands
+    CIRRUS_SHELL: "/bin/bash"
+    # Automation script path relative to $CIRRUS_WORKING_DIR)
+    SCRIPT_BASE: "./contrib/cirrus"
+    # No need to go crazy, but grab enough to cover most PRs
+    CIRRUS_CLONE_DEPTH: 50
+
+    ####
+    #### Cache-image names to test with
+    ####
+    # GCE project where images live
+    IMAGE_PROJECT: "libpod-218412"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-30-1-2-1556821664"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-29-1-2-1541789245"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-1904-disco-v20190514"
+
+    ####
+    #### Command variables to help avoid duplication
+    ####
+    # Command to prefix every output line with a timestamp
+    # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
+    _TIMESTAMP: 'awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk'
+    _DFCMD: 'df -lhTx tmpfs'
+    _RAUDITCMD: 'cat /var/log/audit/audit.log'
+    _UAUDITCMD: 'cat /var/log/kern.log'
+    _JOURNALCMD: 'journalctl -b'
+
+gcp_credentials: ENCRYPTED[c87717f04fb15499d19a3b3fa0ad2cdedecc047e82967785d101e9bc418e93219f755e662feac8390088a2df1a4d8464]
+
+# Default timeout for each task
+timeout_in: 120m
+
+# Default VM to use unless set or modified by task
+gce_instance:
+    image_project: "${IMAGE_PROJECT}"
+    zone: "us-central1-b"  # Required by Cirrus for the time being
+    cpu: 2
+    memory: "4Gb"
+    disk: 200
+    image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+
+testing_task:
+    gce_instance:  # Only need to specify differences from defaults (above)
+        matrix:  # Duplicate this task for each matrix product.
+            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+
+    # Separate scripts for separate outputs, makes debugging easier.
+    setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    build_and_test_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/build_and_test.sh |& ${_TIMESTAMP}'
+
+    # Log collection when job was successful
+    df_script: '${_DFCMD} || true'
+    rh_audit_log_script: '${_RAUDITCMD} || true'
+    ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+    journal_log_script: '${_JOURNALCMD} || true'
+
+    on_failure:  # Script names must be different from above
+        failure_df_script: '${_DFCMD} || true'
+        failure_rh_audit_log_script: '${_RAUDITCMD} || true'
+        failure_ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+        failure_journal_log_script: '${_JOURNALCMD} || true'
+
+
+# Update metadata on VM images referenced by this repository state
+meta_task:
+
+    container:
+        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
+        cpu: 1
+        memory: 1
+
+    env:
+        # Space-separated list of images used by this repository state
+        IMGNAMES: |-
+            ${FEDORA_CACHE_IMAGE_NAME}
+            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            ${UBUNTU_CACHE_IMAGE_NAME}
+        BUILDID: "${CIRRUS_BUILD_ID}"
+        REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
+        GCPJSON: ENCRYPTED[244a93fe8b386b48b96f748342bf741350e43805eee81dd04b45093bdf737e540b993fc735df41f131835fa0f9b65826]
+        GCPNAME: ENCRYPTED[91cf7aa421858b26b67835978d224b4a5c46afcf52a0f1ec1b69a99b248715dc8e92a1b56fde18e092acf256fa80ae9c]
+        GCPPROJECT: ENCRYPTED[79b0f7eb5958e25bc7095d5d368fa8d94447a43ffacb9c693de438186e2f767b7efe9563d6954297ae4730220e10aa9c]
+        CIRRUS_CLONE_DEPTH: 1  # source not used
+
+    script: '/usr/local/bin/entrypoint.sh |& ${_TIMESTAMP}'

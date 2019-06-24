@@ -17,7 +17,7 @@ import (
 //
 // See https://goo.gl/mU7yje for more details.
 func (c *Client) Version() (*Env, error) {
-	return c.VersionWithContext(nil)
+	return c.VersionWithContext(context.TODO())
 }
 
 // VersionWithContext returns version information about the docker server.
@@ -48,19 +48,6 @@ type DockerInfo struct {
 	DriverStatus       [][2]string
 	SystemStatus       [][2]string
 	Plugins            PluginsInfo
-	MemoryLimit        bool
-	SwapLimit          bool
-	KernelMemory       bool
-	CPUCfsPeriod       bool `json:"CpuCfsPeriod"`
-	CPUCfsQuota        bool `json:"CpuCfsQuota"`
-	CPUShares          bool
-	CPUSet             bool
-	IPv4Forwarding     bool
-	BridgeNfIptables   bool
-	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
-	Debug              bool
-	OomKillDisable     bool
-	ExperimentalBuild  bool
 	NFd                int
 	NGoroutines        int
 	SystemTime         string
@@ -85,12 +72,34 @@ type DockerInfo struct {
 	Labels             []string
 	ServerVersion      string
 	ClusterStore       string
+	Runtimes           map[string]Runtime
 	ClusterAdvertise   string
 	Isolation          string
 	InitBinary         string
 	DefaultRuntime     string
-	LiveRestoreEnabled bool
 	Swarm              swarm.Info
+	LiveRestoreEnabled bool
+	MemoryLimit        bool
+	SwapLimit          bool
+	KernelMemory       bool
+	CPUCfsPeriod       bool `json:"CpuCfsPeriod"`
+	CPUCfsQuota        bool `json:"CpuCfsQuota"`
+	CPUShares          bool
+	CPUSet             bool
+	IPv4Forwarding     bool
+	BridgeNfIptables   bool
+	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
+	Debug              bool
+	OomKillDisable     bool
+	ExperimentalBuild  bool
+}
+
+// Runtime describes an OCI runtime
+//
+// for more information, see: https://dockr.ly/2NKM8qq
+type Runtime struct {
+	Path string
+	Args []string `json:"runtimeArgs"`
 }
 
 // PluginsInfo is a struct with the plugins registered with the docker daemon

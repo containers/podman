@@ -146,7 +146,6 @@ vendor_task:
     timeout_in: 30m
 
     vendor_script:
-        - '/usr/local/bin/entrypoint.sh .install.vndr |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh vendor |& ${TIMESTAMP}'
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 

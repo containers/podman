@@ -1,0 +1,31 @@
+dist: xenial
+language: go
+
+go:
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+
+os:
+  - linux
+  - osx
+
+matrix:
+  include:
+    name: "Go 1.11.x CentOS 32bits"
+    language: go
+    go: 1.11.x
+    os: linux
+    services:
+      - docker
+    script:
+      # Please update Go version in travis_test_32 as needed
+      - "docker run -i -v \"${PWD}:/zstd\" toopher/centos-i386:centos6 /bin/bash -c \"linux32 --32bit i386 /zstd/travis_test_32.sh\""
+
+install:
+  - "wget https://github.com/DataDog/zstd/files/2246767/mr.zip"
+  - "unzip mr.zip"
+script:
+  - "go build"
+  - "PAYLOAD=`pwd`/mr go test -v"
+  - "PAYLOAD=`pwd`/mr go test -bench ."

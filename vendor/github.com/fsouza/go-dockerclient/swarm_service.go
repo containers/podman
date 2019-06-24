@@ -176,10 +176,10 @@ type LogsServiceOptions struct {
 	ErrorStream       io.Writer     `qs:"-"`
 	InactivityTimeout time.Duration `qs:"-"`
 	Tail              string
+	Since             int64
 
 	// Use raw terminal? Usually true when the container contains a TTY.
 	RawTerminal bool `qs:"-"`
-	Since       int64
 	Follow      bool
 	Stdout      bool
 	Stderr      bool
