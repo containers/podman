@@ -97,13 +97,13 @@ func NewTracer(
 	}
 
 	// register default injectors/extractors unless they are already provided via options
-	textPropagator := newTextMapPropagator(getDefaultHeadersConfig(), t.metrics)
+	textPropagator := NewTextMapPropagator(getDefaultHeadersConfig(), t.metrics)
 	t.addCodec(opentracing.TextMap, textPropagator, textPropagator)
 
-	httpHeaderPropagator := newHTTPHeaderPropagator(getDefaultHeadersConfig(), t.metrics)
+	httpHeaderPropagator := NewHTTPHeaderPropagator(getDefaultHeadersConfig(), t.metrics)
 	t.addCodec(opentracing.HTTPHeaders, httpHeaderPropagator, httpHeaderPropagator)
 
-	binaryPropagator := newBinaryPropagator(t)
+	binaryPropagator := NewBinaryPropagator(t)
 	t.addCodec(opentracing.Binary, binaryPropagator, binaryPropagator)
 
 	// TODO remove after TChannel supports OpenTracing
@@ -319,7 +319,11 @@ func (t *Tracer) Extract(
 	carrier interface{},
 ) (opentracing.SpanContext, error) {
 	if extractor, ok := t.extractors[format]; ok {
-		return extractor.Extract(carrier)
+		spanCtx, err := extractor.Extract(carrier)
+		if err != nil {
+			return nil, err // ensure returned spanCtx is nil
+		}
+		return spanCtx, nil
 	}
 	return nil, opentracing.ErrUnsupportedFormat
 }

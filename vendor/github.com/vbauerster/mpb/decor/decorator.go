@@ -31,8 +31,12 @@ const (
 	DSyncSpaceR = DSyncWidth | DextraSpace | DidentRight
 )
 
+// TimeStyle enum.
+type TimeStyle int
+
+// TimeStyle kinds.
 const (
-	ET_STYLE_GO = iota
+	ET_STYLE_GO TimeStyle = iota
 	ET_STYLE_HHMMSS
 	ET_STYLE_HHMM
 	ET_STYLE_MMSS
@@ -47,35 +51,37 @@ type Statistics struct {
 }
 
 // Decorator interface.
-// A decorator must implement this interface, in order to be used with mpb library.
+// A decorator must implement this interface, in order to be used with
+// mpb library.
 type Decorator interface {
 	Decor(*Statistics) string
 	Syncable
 }
 
 // Syncable interface.
-// All decorators implement this interface implicitly.
-// Its Syncable method exposes width sync channel, if sync is enabled.
+// All decorators implement this interface implicitly. Its Syncable
+// method exposes width sync channel, if sync is enabled.
 type Syncable interface {
 	Syncable() (bool, chan int)
 }
 
 // OnCompleteMessenger interface.
-// Decorators implementing this interface suppose to return provided string on complete event.
+// Decorators implementing this interface suppose to return provided
+// string on complete event.
 type OnCompleteMessenger interface {
 	OnCompleteMessage(string)
 }
 
 // AmountReceiver interface.
-// If decorator needs to receive increment amount,
-// so this is the right interface to implement.
+// If decorator needs to receive increment amount, so this is the right
+// interface to implement.
 type AmountReceiver interface {
 	NextAmount(int, ...time.Duration)
 }
 
 // ShutdownListener interface.
-// If decorator needs to be notified once upon bar shutdown event,
-// so this is the right interface to implement.
+// If decorator needs to be notified once upon bar shutdown event, so
+// this is the right interface to implement.
 type ShutdownListener interface {
 	Shutdown()
 }
@@ -90,6 +96,7 @@ var (
 
 // WC is a struct with two public fields W and C, both of int type.
 // W represents width and C represents bit set of width related config.
+// A decorator should embed WC, in order to become Syncable.
 type WC struct {
 	W      int
 	C      int
@@ -126,12 +133,13 @@ func (wc *WC) Init() {
 	}
 }
 
+// Syncable is implementation of Syncable interface.
 func (wc *WC) Syncable() (bool, chan int) {
 	return (wc.C & DSyncWidth) != 0, wc.wsync
 }
 
-// OnComplete returns decorator, which wraps provided decorator, with sole
-// purpose to display provided message on complete event.
+// OnComplete returns decorator, which wraps provided decorator, with
+// sole purpose to display provided message on complete event.
 //
 //	`decorator` Decorator to wrap
 //

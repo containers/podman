@@ -69,6 +69,7 @@ type CNI interface {
 	AddNetworkList(ctx context.Context, net *NetworkConfigList, rt *RuntimeConf) (types.Result, error)
 	CheckNetworkList(ctx context.Context, net *NetworkConfigList, rt *RuntimeConf) error
 	DelNetworkList(ctx context.Context, net *NetworkConfigList, rt *RuntimeConf) error
+	GetNetworkListCachedResult(net *NetworkConfigList, rt *RuntimeConf) (types.Result, error)
 
 	AddNetwork(ctx context.Context, net *NetworkConfig, rt *RuntimeConf) (types.Result, error)
 	CheckNetwork(ctx context.Context, net *NetworkConfig, rt *RuntimeConf) error

@@ -1,5 +1,5 @@
-hash: 3accf84f97bff4a91162736104c0e9b9790820712bd86db6fec5e665f7196a82
-updated: 2018-04-30T11:46:43.804556-04:00
+hash: 92cc8f956428fc65bee07d809a752f34376aece141c934eff02aefa08d450b72
+updated: 2019-03-23T18:26:09.960887-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
@@ -13,7 +13,7 @@ imports:
   - assert
   - require
 - name: github.com/davecgh/go-spew
-  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
   subpackages:
   - spew
 - name: github.com/golang/protobuf
@@ -25,12 +25,13 @@ imports:
   subpackages:
   - pbutil
 - name: github.com/opentracing/opentracing-go
-  version: 1949ddbfd147afd4d964a9f00b24eb291e0e7c38
+  version: 659c90643e714681897ec2521c60567dd21da733
   subpackages:
   - ext
+  - harness
   - log
 - name: github.com/pkg/errors
-  version: 645ef00459ed84a119197bfb8d8205042c6df63d
+  version: ba968bfe8b2f7e042a574c888954fccecfa385b4
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -56,7 +57,7 @@ imports:
   - nfs
   - xfs
 - name: github.com/stretchr/testify
-  version: 12b6f73e6084dad08a7c6e575284b177ecafbc71
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
   subpackages:
   - assert
   - require
@@ -68,11 +69,11 @@ imports:
   - metrics/metricstest
   - metrics/prometheus
 - name: go.uber.org/atomic
-  version: 8474b86a5a6f79c443ce4b2992817ff32cf208b8
+  version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
-  version: eeedf312bc6c57391d84767a4cd413f02a917974
+  version: ff33455a0e382e8a81d14dd7c922020b6b5e7982
   subpackages:
   - buffer
   - internal/bufferpool
@@ -80,7 +81,7 @@ imports:
   - internal/exit
   - zapcore
 - name: golang.org/x/net
-  version: 6078986fec03a1dcc236c34816c71b0e05018fda
+  version: 49bb7cea24b1df9410e1712aa6433dae904ff66a
   subpackages:
   - context
   - context/ctxhttp

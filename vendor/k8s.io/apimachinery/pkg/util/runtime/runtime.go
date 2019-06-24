@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/glog"
+	"k8s.io/klog"
 )
 
 var (
@@ -62,25 +62,16 @@ func HandleCrash(additionalHandlers ...func(interface{})) {
 
 // logPanic logs the caller tree when a panic occurs.
 func logPanic(r interface{}) {
-	callers := getCallers(r)
+	// Same as stdlib http server code. Manually allocate stack trace buffer size
+	// to prevent excessively large logs
+	const size = 64 << 10
+	stacktrace := make([]byte, size)
+	stacktrace = stacktrace[:runtime.Stack(stacktrace, false)]
 	if _, ok := r.(string); ok {
-		glog.Errorf("Observed a panic: %s\n%v", r, callers)
+		klog.Errorf("Observed a panic: %s\n%s", r, stacktrace)
 	} else {
-		glog.Errorf("Observed a panic: %#v (%v)\n%v", r, r, callers)
+		klog.Errorf("Observed a panic: %#v (%v)\n%s", r, r, stacktrace)
 	}
-}
-
-func getCallers(r interface{}) string {
-	callers := ""
-	for i := 0; true; i++ {
-		_, file, line, ok := runtime.Caller(i)
-		if !ok {
-			break
-		}
-		callers = callers + fmt.Sprintf("%v:%v\n", file, line)
-	}
-
-	return callers
 }
 
 // ErrorHandlers is a list of functions which will be invoked when an unreturnable
@@ -115,7 +106,7 @@ func HandleError(err error) {
 
 // logError prints an error with the call stack of the location it was reported
 func logError(err error) {
-	glog.ErrorDepth(2, err)
+	klog.ErrorDepth(2, err)
 }
 
 type rudimentaryErrorBackoff struct {
@@ -132,9 +123,8 @@ func (r *rudimentaryErrorBackoff) OnError(error) {
 	r.lastErrorTimeLock.Lock()
 	defer r.lastErrorTimeLock.Unlock()
 	d := time.Since(r.lastErrorTime)
-	if d < r.minPeriod && d >= 0 {
+	if d < r.minPeriod {
 		// If the time moves backwards for any reason, do nothing
-		// TODO: remove check "d >= 0" after go 1.8 is no longer supported
 		time.Sleep(r.minPeriod - d)
 	}
 	r.lastErrorTime = time.Now()
@@ -156,12 +146,23 @@ func GetCaller() string {
 // handlers to handle errors and panics the same way.
 func RecoverFromPanic(err *error) {
 	if r := recover(); r != nil {
-		callers := getCallers(r)
+		// Same as stdlib http server code. Manually allocate stack trace buffer size
+		// to prevent excessively large logs
+		const size = 64 << 10
+		stacktrace := make([]byte, size)
+		stacktrace = stacktrace[:runtime.Stack(stacktrace, false)]
 
 		*err = fmt.Errorf(
-			"recovered from panic %q. (err=%v) Call stack:\n%v",
+			"recovered from panic %q. (err=%v) Call stack:\n%s",
 			r,
 			*err,
-			callers)
+			stacktrace)
+	}
+}
+
+// Must panics on non-nil errors.  Useful to handling programmer level errors.
+func Must(err error) {
+	if err != nil {
+		panic(err)
 	}
 }

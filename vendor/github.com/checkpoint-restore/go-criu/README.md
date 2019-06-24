@@ -21,6 +21,14 @@ or to just check if at least a certain CRIU version is installed:
 	result, err := c.IsCriuAtLeast(31100)
 ```
 
+## Releases
+
+go-criu will carry the same version number as CRIU. This implies that each
+go-criu release will pull in the necessary changes from CRIU before making a
+release.
+
+The first go-criu release was 3.11 based on CRIU 3.11.
+
 ## How to contribute
 
 While bug fixes can first be identified via an "issue", that is not required.

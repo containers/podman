@@ -4,7 +4,7 @@
 
 [[constraint]]
   name = "github.com/opentracing/opentracing-go"
-  version = "^1"
+  version = "^1.1"
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
@@ -25,3 +25,7 @@
 [[constraint]]
   name = "go.uber.org/zap"
   version = "^1"
+
+[prune]
+  go-tests = true
+  unused-packages = true

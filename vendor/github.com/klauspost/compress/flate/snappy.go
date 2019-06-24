@@ -20,12 +20,12 @@ func emitCopy(dst *tokens, offset, length int) {
 	dst.n++
 }
 
-type snappyEnc interface {
+type fastEnc interface {
 	Encode(dst *tokens, src []byte)
 	Reset()
 }
 
-func newSnappy(level int) snappyEnc {
+func newFastEnc(level int) fastEnc {
 	switch level {
 	case 1:
 		return &snappyL1{}

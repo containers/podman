@@ -333,6 +333,11 @@ func writeCon(fpath string, val string) error {
 	if fpath == "" {
 		return ErrEmptyPath
 	}
+	if val == "" {
+		if !GetEnabled() {
+			return nil
+		}
+	}
 
 	out, err := os.OpenFile(fpath, os.O_WRONLY, 0)
 	if err != nil {
@@ -396,6 +401,24 @@ func SetSocketLabel(label string) error {
 // SocketLabel retrieves the current socket label setting
 func SocketLabel() (string, error) {
 	return readCon(fmt.Sprintf("/proc/self/task/%d/attr/sockcreate", syscall.Gettid()))
+}
+
+// SetKeyLabel takes a process label and tells the kernel to assign the
+// label to the next kernel keyring that gets created
+func SetKeyLabel(label string) error {
+	err := writeCon("/proc/self/attr/keycreate", label)
+	if os.IsNotExist(err) {
+		return nil
+	}
+	if label == "" && os.IsPermission(err) && !GetEnabled() {
+		return nil
+	}
+	return err
+}
+
+// KeyLabel retrieves the current kernel keyring label setting
+func KeyLabel() (string, error) {
+	return readCon("/proc/self/attr/keycreate")
 }
 
 // Get returns the Context as a string
