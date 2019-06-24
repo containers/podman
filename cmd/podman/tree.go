@@ -72,7 +72,11 @@ func printTree(imageInfo *image.InfoImage, layerInfoMap map[string]*image.LayerI
 	fmt.Printf("Image ID: %s\n", imageInfo.ID[:12])
 	fmt.Printf("Tags:\t %s\n", imageInfo.Tags)
 	fmt.Printf("Size:\t %v\n", units.HumanSizeWithPrecision(float64(*size), 4))
-	fmt.Printf(fmt.Sprintf("Image Layers\n"))
+	if img.TopLayer() != "" {
+		fmt.Printf("Image Layers\n")
+	} else {
+		fmt.Printf("No Image Layers\n")
+	}
 
 	if !whatRequires {
 		// fill imageInfo with layers associated with image.

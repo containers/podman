@@ -660,11 +660,7 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 
 // DriverData gets the driver data from the store on a layer
 func (i *Image) DriverData() (*driver.Data, error) {
-	topLayer, err := i.Layer()
-	if err != nil {
-		return nil, err
-	}
-	return driver.GetDriverData(i.imageruntime.store, topLayer.ID)
+	return driver.GetDriverData(i.imageruntime.store, i.TopLayer())
 }
 
 // Layer returns the image's top layer
@@ -693,13 +689,17 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		return nil, err
 	}
 
-	// Use our layers list to find images that use one of them as its
+	// Use our layers list to find images that use any of them (or no
+	// layer, since every base layer is derived from an empty layer) as its
 	// topmost layer.
 	interestingLayers := make(map[string]bool)
-	layer, err := i.imageruntime.store.Layer(i.TopLayer())
-	if err != nil {
-		return nil, err
+	var layer *storage.Layer
+	if i.TopLayer() != "" {
+		if layer, err = i.imageruntime.store.Layer(i.TopLayer()); err != nil {
+			return nil, err
+		}
 	}
+	interestingLayers[""] = true
 	for layer != nil {
 		interestingLayers[layer.ID] = true
 		if layer.Parent == "" {
@@ -793,27 +793,6 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		})
 	}
 	return allHistory, nil
-}
-
-// historyLayerIDs goes through the images in store and checks if the top layer of an image
-// is the same as the parent of topLayerID
-func (i *Image) historyLayerIDs(topLayerID string, images []*Image, IDs *[]string) error {
-	for _, image := range images {
-		// Get the layer info of topLayerID
-		layer, err := i.imageruntime.store.Layer(topLayerID)
-		if err != nil {
-			return errors.Wrapf(err, "error getting layer info %q", topLayerID)
-		}
-		// Check if the parent of layer is equal to the image's top layer
-		// If so add the image ID to the list of IDs and find the parent of
-		// the top layer of the image ID added to the list
-		// Since we are checking for parent, each top layer can only have one parent
-		if layer.Parent == image.TopLayer() {
-			*IDs = append(*IDs, image.ID())
-			return i.historyLayerIDs(image.TopLayer(), images, IDs)
-		}
-	}
-	return nil
 }
 
 // Dangling returns a bool if the image is "dangling"
@@ -1143,13 +1122,15 @@ func areParentAndChild(parent, child *imgspecv1.Image) bool {
 
 // GetParent returns the image ID of the parent. Return nil if a parent is not found.
 func (i *Image) GetParent(ctx context.Context) (*Image, error) {
+	var childLayer *storage.Layer
 	images, err := i.imageruntime.GetImages()
 	if err != nil {
 		return nil, err
 	}
-	childLayer, err := i.imageruntime.store.Layer(i.TopLayer())
-	if err != nil {
-		return nil, err
+	if i.TopLayer() != "" {
+		if childLayer, err = i.imageruntime.store.Layer(i.TopLayer()); err != nil {
+			return nil, err
+		}
 	}
 	// fetch the configuration for the child image
 	child, err := i.ociv1Image(ctx)
@@ -1161,11 +1142,23 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 			continue
 		}
 		candidateLayer := img.TopLayer()
-		// as a child, our top layer is either the candidate parent's
-		// layer, or one that's derived from it, so skip over any
-		// candidate image where we know that isn't the case
-		if candidateLayer != childLayer.Parent && candidateLayer != childLayer.ID {
-			continue
+		// as a child, our top layer, if we have one, is either the
+		// candidate parent's layer, or one that's derived from it, so
+		// skip over any candidate image where we know that isn't the
+		// case
+		if childLayer != nil {
+			// The child has at least one layer, so a parent would
+			// have a top layer that's either the same as the child's
+			// top layer or the top layer's recorded parent layer,
+			// which could be an empty value.
+			if candidateLayer != childLayer.Parent && candidateLayer != childLayer.ID {
+				continue
+			}
+		} else {
+			// The child has no layers, but the candidate does.
+			if candidateLayer != "" {
+				continue
+			}
 		}
 		// fetch the configuration for the candidate image
 		candidate, err := img.ociv1Image(ctx)
@@ -1204,14 +1197,22 @@ func (i *Image) getChildren(ctx context.Context, max int) ([]string, error) {
 		if img.ID() == i.ID() {
 			continue
 		}
-		candidateLayer, err := img.Layer()
-		if err != nil {
-			return nil, err
-		}
-		// if this image's top layer is not our top layer, and is not
-		// based on our top layer, we can skip it
-		if candidateLayer.Parent != parentLayer && candidateLayer.ID != parentLayer {
-			continue
+		if img.TopLayer() == "" {
+			if parentLayer != "" {
+				// this image has no layers, but we do, so
+				// it can't be derived from this one
+				continue
+			}
+		} else {
+			candidateLayer, err := img.Layer()
+			if err != nil {
+				return nil, err
+			}
+			// if this image's top layer is not our top layer, and is not
+			// based on our top layer, we can skip it
+			if candidateLayer.Parent != parentLayer && candidateLayer.ID != parentLayer {
+				continue
+			}
 		}
 		// fetch the configuration for the candidate image
 		candidate, err := img.ociv1Image(ctx)
@@ -1443,6 +1444,7 @@ func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, er
 	if err != nil {
 		return nil, err
 	}
+	layerInfoMap[""] = &LayerInfo{}
 	for _, img := range imgs {
 		e, ok := layerInfoMap[img.TopLayer]
 		if !ok {
