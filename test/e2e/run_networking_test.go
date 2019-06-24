@@ -178,6 +178,12 @@ var _ = Describe("Podman run networking", func() {
 		Expect(exec4.OutputToString()).To(ContainSubstring("192.0.2.2 test1"))
 	})
 
+	It("podman run /etc/hosts contains --hostname", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--hostname", "foohostname", ALPINE, "grep", "foohostname", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run network in user created network namespace", func() {
 		SkipIfRootless()
 		if Containerized() {
