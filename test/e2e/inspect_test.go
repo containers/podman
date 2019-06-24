@@ -107,4 +107,31 @@ var _ = Describe("Podman inspect", func() {
 		Expect(result.ExitCode()).To(Equal(125))
 	})
 
+	It("podman inspect with mount filters", func() {
+		SkipIfRemote()
+
+		ctrSession := podmanTest.Podman([]string{"create", "-v", "/tmp:/test1", ALPINE, "top"})
+		ctrSession.WaitWithDefaultTimeout()
+		Expect(ctrSession.ExitCode()).To(Equal(0))
+
+		inspectSource := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{(index .Mounts 0).Source}}"})
+		inspectSource.WaitWithDefaultTimeout()
+		Expect(inspectSource.ExitCode()).To(Equal(0))
+		Expect(inspectSource.OutputToString()).To(Equal("/tmp"))
+
+		inspectSrc := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{(index .Mounts 0).Src}}"})
+		inspectSrc.WaitWithDefaultTimeout()
+		Expect(inspectSrc.ExitCode()).To(Equal(0))
+		Expect(inspectSrc.OutputToString()).To(Equal("/tmp"))
+
+		inspectDestination := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{(index .Mounts 0).Destination}}"})
+		inspectDestination.WaitWithDefaultTimeout()
+		Expect(inspectDestination.ExitCode()).To(Equal(0))
+		Expect(inspectDestination.OutputToString()).To(Equal("/test1"))
+
+		inspectDst := podmanTest.Podman([]string{"inspect", "-l", "--format", "{{(index .Mounts 0).Dst}}"})
+		inspectDst.WaitWithDefaultTimeout()
+		Expect(inspectDst.ExitCode()).To(Equal(0))
+		Expect(inspectDst.OutputToString()).To(Equal("/test1"))
+	})
 })
