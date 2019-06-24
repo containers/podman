@@ -58,7 +58,8 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.OutputToString(), pod)
 		Expect(err).To(BeNil())
 	})
 
@@ -71,7 +72,8 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.OutputToString(), pod)
 		Expect(err).To(BeNil())
 	})
 
@@ -87,7 +89,8 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.OutputToString(), pod)
 		Expect(err).To(BeNil())
 	})
 
@@ -103,8 +106,10 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
-		Expect(err).To(BeNil())
+		// TODO: How do we test unmarshal with a service? We have two
+		// structs that need to be unmarshalled...
+		// _, err := yaml.Marshal(kube.OutputToString())
+		// Expect(err).To(BeNil())
 	})
 
 	It("podman generate kube on pod with ports", func() {
