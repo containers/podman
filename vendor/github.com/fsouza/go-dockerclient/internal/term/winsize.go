@@ -11,6 +11,6 @@ import "golang.org/x/sys/unix"
 // GetWinsize returns the window size based on the specified file descriptor.
 func GetWinsize(fd uintptr) (*Winsize, error) {
 	uws, err := unix.IoctlGetWinsize(int(fd), unix.TIOCGWINSZ)
-	ws := &Winsize{Height: uws.Row, Width: uws.Col, x: uws.Xpixel, y: uws.Ypixel}
+	ws := &Winsize{Height: uws.Row, Width: uws.Col}
 	return ws, err
 }

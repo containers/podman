@@ -119,6 +119,8 @@ func (t *TestRunner) BuildArgs(path string) []string {
 		"coverpkg",
 		"tags",
 		"gcflags",
+		"vet",
+		"mod",
 	}
 
 	for _, opt := range stringOpts {

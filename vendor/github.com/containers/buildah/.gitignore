@@ -1,0 +1,4 @@
+docs/buildah*.1
+/buildah
+/imgtype
+/build/

@@ -332,11 +332,12 @@ uninstall:
 	GIT_CHECK_EXCLUDE="./vendor" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
-
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo ## Install needed tools
 
-.install.vndr: .gopathok
-	$(GO) get -u github.com/LK4D4/vndr
+define go-get
+	env GO111MODULE=off \
+		$(GO) get -u ${1}
+endef
 
 .install.ginkgo: .gopathok
 	if [ ! -x "$(GOBIN)/ginkgo" ]; then \
@@ -345,12 +346,12 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		$(GO) get -u github.com/vbatts/git-validation; \
+		$(call go-get,github.com/vbatts/git-validation); \
 	fi
 
 .install.gometalinter: .gopathok
 	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
-		$(GO) get -u github.com/alecthomas/gometalinter; \
+		$(call go-get,github.com/alecthomas/gometalinter); \
 		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
 		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
 		$(GO) install github.com/alecthomas/gometalinter; \
@@ -359,7 +360,7 @@ install.tools: .install.gitvalidation .install.gometalinter .install.md2man .ins
 
 .install.md2man: .gopathok
 	if [ ! -x "$(GOBIN)/go-md2man" ]; then \
-		   $(GO) get -u github.com/cpuguy83/go-md2man; \
+		   $(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
 .install.ostree: .gopathok
@@ -396,12 +397,11 @@ build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
 	git rebase $(GIT_BASE_BRANCH) -x make
 
-vendor: .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/varlink/go"  \
-		-whitelist "github.com/onsi/ginkgo" \
-		-whitelist "github.com/onsi/gomega" \
-		-whitelist "gopkg.in/fsnotify.v1"
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
 
 .PHONY: \
 	.gopathok \

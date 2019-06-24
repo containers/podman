@@ -25,16 +25,16 @@ type Exec struct {
 //
 // See https://goo.gl/60TeBP for more details
 type CreateExecOptions struct {
-	AttachStdin  bool            `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty" toml:"AttachStdin,omitempty"`
-	AttachStdout bool            `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty" toml:"AttachStdout,omitempty"`
-	AttachStderr bool            `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty" toml:"AttachStderr,omitempty"`
-	Tty          bool            `json:"Tty,omitempty" yaml:"Tty,omitempty" toml:"Tty,omitempty"`
 	Env          []string        `json:"Env,omitempty" yaml:"Env,omitempty" toml:"Env,omitempty"`
 	Cmd          []string        `json:"Cmd,omitempty" yaml:"Cmd,omitempty" toml:"Cmd,omitempty"`
 	Container    string          `json:"Container,omitempty" yaml:"Container,omitempty" toml:"Container,omitempty"`
 	User         string          `json:"User,omitempty" yaml:"User,omitempty" toml:"User,omitempty"`
 	WorkingDir   string          `json:"WorkingDir,omitempty" yaml:"WorkingDir,omitempty" toml:"WorkingDir,omitempty"`
 	Context      context.Context `json:"-"`
+	AttachStdin  bool            `json:"AttachStdin,omitempty" yaml:"AttachStdin,omitempty" toml:"AttachStdin,omitempty"`
+	AttachStdout bool            `json:"AttachStdout,omitempty" yaml:"AttachStdout,omitempty" toml:"AttachStdout,omitempty"`
+	AttachStderr bool            `json:"AttachStderr,omitempty" yaml:"AttachStderr,omitempty" toml:"AttachStderr,omitempty"`
+	Tty          bool            `json:"Tty,omitempty" yaml:"Tty,omitempty" toml:"Tty,omitempty"`
 	Privileged   bool            `json:"Privileged,omitempty" yaml:"Privileged,omitempty" toml:"Privileged,omitempty"`
 }
 
@@ -177,13 +177,13 @@ type ExecProcessConfig struct {
 type ExecInspect struct {
 	ID            string            `json:"ID,omitempty" yaml:"ID,omitempty" toml:"ID,omitempty"`
 	ExitCode      int               `json:"ExitCode,omitempty" yaml:"ExitCode,omitempty" toml:"ExitCode,omitempty"`
+	ProcessConfig ExecProcessConfig `json:"ProcessConfig,omitempty" yaml:"ProcessConfig,omitempty" toml:"ProcessConfig,omitempty"`
+	ContainerID   string            `json:"ContainerID,omitempty" yaml:"ContainerID,omitempty" toml:"ContainerID,omitempty"`
+	DetachKeys    string            `json:"DetachKeys,omitempty" yaml:"DetachKeys,omitempty" toml:"DetachKeys,omitempty"`
 	Running       bool              `json:"Running,omitempty" yaml:"Running,omitempty" toml:"Running,omitempty"`
 	OpenStdin     bool              `json:"OpenStdin,omitempty" yaml:"OpenStdin,omitempty" toml:"OpenStdin,omitempty"`
 	OpenStderr    bool              `json:"OpenStderr,omitempty" yaml:"OpenStderr,omitempty" toml:"OpenStderr,omitempty"`
 	OpenStdout    bool              `json:"OpenStdout,omitempty" yaml:"OpenStdout,omitempty" toml:"OpenStdout,omitempty"`
-	ProcessConfig ExecProcessConfig `json:"ProcessConfig,omitempty" yaml:"ProcessConfig,omitempty" toml:"ProcessConfig,omitempty"`
-	ContainerID   string            `json:"ContainerID,omitempty" yaml:"ContainerID,omitempty" toml:"ContainerID,omitempty"`
-	DetachKeys    string            `json:"DetachKeys,omitempty" yaml:"DetachKeys,omitempty" toml:"DetachKeys,omitempty"`
 	CanRemove     bool              `json:"CanRemove,omitempty" yaml:"CanRemove,omitempty" toml:"CanRemove,omitempty"`
 }
 

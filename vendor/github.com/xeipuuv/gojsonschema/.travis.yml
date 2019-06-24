@@ -1,0 +1,12 @@
+language: go
+go:
+  - "1.5"
+  - "1.6"
+  - "1.7"
+  - "1.8"
+  - "1.9"
+  - "1.10"
+before_install:
+  - go get github.com/xeipuuv/gojsonreference
+  - go get github.com/xeipuuv/gojsonpointer
+  - go get github.com/stretchr/testify/assert

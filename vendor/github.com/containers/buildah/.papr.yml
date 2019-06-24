@@ -1,0 +1,87 @@
+branches:
+  - master
+  - auto
+  - try
+
+host:
+  distro: fedora/28/atomic
+
+required: true
+
+tests:
+  #  Let's create a self signed certificate and get it in the right places
+  - hostname
+  - ip a
+  - ping -c 3 localhost
+  - cat /etc/hostname
+  - mkdir -p /home/travis/auth
+  - openssl req -newkey rsa:4096 -nodes -sha256 -keyout /home/travis/auth/domain.key -x509 -days 2 -out /home/travis/auth/domain.crt -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost"
+  - cp /home/travis/auth/domain.crt /home/travis/auth/domain.cert
+  - sudo mkdir -p /etc/docker/certs.d/docker.io/
+  - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/docker.io/ca.crt
+  - sudo mkdir -p /etc/docker/certs.d/localhost:5000/
+  - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/ca.crt
+  - sudo cp /home/travis/auth/domain.crt /etc/docker/certs.d/localhost:5000/domain.crt
+  # Create the credentials file, then start up the Docker registry
+  - podman run --entrypoint htpasswd registry:2 -Bbn testuser testpassword > /home/travis/auth/htpasswd
+  - podman run -d -p 5000:5000 --name registry -v /home/travis/auth:/home/travis/auth:Z -e "REGISTRY_AUTH=htpasswd" -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" -e REGISTRY_AUTH_HTPASSWD_PATH=/home/travis/auth/htpasswd -e REGISTRY_HTTP_TLS_CERTIFICATE=/home/travis/auth/domain.crt -e REGISTRY_HTTP_TLS_KEY=/home/travis/auth/domain.key registry:2
+
+# Test Podman setup
+  - podman version
+  - podman info
+  - podman ps --all
+  - podman images
+  - ls -alF /home/travis/auth
+  - podman pull alpine
+  - podman login localhost:5000 --username testuser --password testpassword
+  - podman tag alpine localhost:5000/my-alpine
+  - podman push --creds=testuser:testpassword localhost:5000/my-alpine
+  - podman ps --all
+  - podman images
+  - podman rmi docker.io/alpine
+  - podman rmi localhost:5000/my-alpine
+  - podman pull --creds=testuser:testpassword localhost:5000/my-alpine
+  - podman ps --all
+  - podman images
+  - podman rmi localhost:5000/my-alpine
+
+  # mount yum repos to inherit injected mirrors from PAPR
+  - podman run --net=host --security-opt label=disable --cap-add all --security-opt seccomp=unconfined -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
+    -v $PWD:/go/src/github.com/containers/buildah
+    --workdir /go/src/github.com/containers/buildah
+    registry.fedoraproject.org/fedora:28 bash -c sh ./.papr.sh
+
+---
+
+container:
+    image: registry.fedoraproject.org/fedora:28
+
+packages:
+    - btrfs-progs-devel
+    - bzip2
+    - device-mapper-devel
+    - findutils
+    - git
+    - glib2-devel
+    - gnupg
+    - golang
+    - libassuan-devel
+    - make
+    - ostree-devel
+    - skopeo-containers
+
+required: false
+pulls: true
+
+env:
+    GOPATH: /go
+    GOSRC: /go/src/github.com/containers
+
+tests:
+    - mkdir -p $GOSRC && ln -s /var/tmp/checkout $GOSRC/buildah
+    - cd $GOSRC/buildah && make darwin
+
+artifacts:
+    - test-suite.log
+
+context: "darwin CI"
