@@ -22,7 +22,7 @@ func ReadRemoteConfig(reader io.Reader) (*RemoteConfig, error) {
 	// We need to validate each remote connection has fields filled out
 	for name, conn := range remoteConfig.Connections {
 		if len(conn.Destination) < 1 {
-			return nil, errors.Errorf("connection %s has no destination defined", name)
+			return nil, errors.Errorf("connection %q has no destination defined", name)
 		}
 	}
 	return &remoteConfig, err

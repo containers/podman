@@ -15,8 +15,10 @@ import (
 var remoteEndpoint *Endpoint
 
 func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
-	remoteConfigConnections, _ := remoteclientconfig.ReadRemoteConfig(r.config)
-
+	remoteConfigConnections, err := remoteclientconfig.ReadRemoteConfig(r.config)
+	if errors.Cause(err) != remoteclientconfig.ErrNoConfigationFile {
+		return nil, err
+	}
 	// If the user defines an env variable for podman_varlink_bridge
 	// we use that as passed.
 	if bridge := os.Getenv("PODMAN_VARLINK_BRIDGE"); bridge != "" {
@@ -46,6 +48,10 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		}
 		if err != nil {
 			return nil, err
+		}
+		if len(rc.Username) < 1 {
+			logrus.Debugf("Connection has no username, using current user %q", r.cmd.RemoteUserName)
+			rc.Username = r.cmd.RemoteUserName
 		}
 		remoteEndpoint, err = newBridgeConnection("", rc, r.cmd.LogLevel)
 		//	last resort is to make a socket connection with the default varlink address for root user
