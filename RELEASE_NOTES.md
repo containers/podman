@@ -1,5 +1,24 @@
 # Release Notes
 
+## 1.4.3
+### Features
+- Podman now has greatly improved support for containers using multiple OCI runtimes. Containers now remember if they were created with a different runtime using `--runtime` and will always use that runtime
+- The `cached` and `delegated` options for volume mounts are now allowed for Docker compatability ([#3340](https://github.com/containers/libpod/issues/3340))
+- The `podman diff` command now supports the `--latest` flag
+
+### Bugfixes
+- Fixed a bug where `podman cp` on a single file would create a directory at the target and place the file in it ([#3384](https://github.com/containers/libpod/issues/3384))
+- Fixed a bug where `podman inspect --format '{{.Mounts}}'` would print a hexadecimal address instead of a container's mounts
+- Fixed a bug where rootless Podman would not add an entry to container's `/etc/hosts` files for their own hostname ([#3405](https://github.com/containers/libpod/issues/3405))
+- Fixed a bug where `podman ps --sync` would segfault ([#3411](https://github.com/containers/libpod/issues/3411))
+- Fixed a bug where `podman generate kube` would produce an invalid ports configuration ([#3408](https://github.com/containers/libpod/issues/3408))
+
+### Misc
+- Podman now performs much better on systems with heavy I/O load
+- The `--cgroup-manager` flag to `podman` now shows the correct default setting in help if the default was overridden by `libpod.conf`
+- For backwards compatability, setting `--log-driver=json-file` in `podman run` is now supported as an alias for `--log-driver=k8s-file`. This is considered deprecated, and `json-file` will be moved to a new implementation in the future ([#3363](https://github.com/containers/libpod/issues/3363))
+- Podman's default `libpod.conf` file now allows the [crun](https://github.com/giuseppe/crun) OCI runtime to be used if it is installed
+
 ## 1.4.2
 ### Bugfixes
 - Fixed a bug where Podman could not run containers using an older version of Systemd as init ([#3295](https://github.com/containers/libpod/issues/3295))
