@@ -11,7 +11,7 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
@@ -282,7 +282,7 @@ func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) 
 			}
 			for _, ctr_status := range ctr_statuses {
 				state := ctr_status.String()
-				if ctr_status == libpod.ContainerStateConfigured {
+				if ctr_status == define.ContainerStateConfigured {
 					state = "created"
 				}
 				if state == filterValue {
@@ -504,15 +504,15 @@ func getAndSortPodJSONParams(pods []*adapter.Pod, opts podPsOptions) ([]podPsJSO
 			}
 			var status string
 			switch batchInfo.ConState {
-			case libpod.ContainerStateExited:
+			case define.ContainerStateExited:
 				fallthrough
-			case libpod.ContainerStateStopped:
+			case define.ContainerStateStopped:
 				status = EXITED
-			case libpod.ContainerStateRunning:
+			case define.ContainerStateRunning:
 				status = RUNNING
-			case libpod.ContainerStatePaused:
+			case define.ContainerStatePaused:
 				status = PAUSED
-			case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
+			case define.ContainerStateCreated, define.ContainerStateConfigured:
 				status = CREATED
 			default:
 				status = ERROR

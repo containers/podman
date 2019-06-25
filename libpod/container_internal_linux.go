@@ -573,7 +573,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
-	if c.state.State != ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
@@ -605,7 +605,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	logrus.Debugf("Checkpointed container %s", c.ID())
 
 	if !options.KeepRunning {
-		c.state.State = ContainerStateStopped
+		c.state.State = define.ContainerStateStopped
 
 		// Cleanup Storage and Network
 		if err := c.cleanup(ctx); err != nil {
@@ -664,7 +664,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
-	if (c.state.State != ContainerStateConfigured) && (c.state.State != ContainerStateExited) {
+	if (c.state.State != define.ContainerStateConfigured) && (c.state.State != define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 
@@ -781,7 +781,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	logrus.Debugf("Restored container %s", c.ID())
 
-	c.state.State = ContainerStateRunning
+	c.state.State = define.ContainerStateRunning
 
 	if !options.Keep {
 		// Delete all checkpoint related files. At this point, in theory, all files

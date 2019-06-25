@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -61,13 +60,6 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	}
 	defer runtime.Shutdown(false)
 
-	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Keep,
-		TCPEstablished: c.TcpEstablished,
-		TargetFile:     c.Import,
-		Name:           c.Name,
-	}
-
 	if c.Import == "" && c.Name != "" {
 		return errors.Errorf("--name can only used with --import")
 	}
@@ -93,5 +85,5 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 		return errors.Errorf("you must provide at least one name or id")
 	}
 
-	return runtime.Restore(getContext(), c, options)
+	return runtime.Restore(getContext(), c)
 }

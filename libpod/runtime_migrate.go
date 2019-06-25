@@ -5,6 +5,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"github.com/containers/libpod/pkg/util"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,7 +13,6 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

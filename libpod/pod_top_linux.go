@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/psgo"
 )
@@ -34,7 +35,7 @@ func (p *Pod) GetPodPidInformation(descriptors []string) ([]string, error) {
 			c.lock.Unlock()
 			return nil, err
 		}
-		if c.state.State == ContainerStateRunning {
+		if c.state.State == define.ContainerStateRunning {
 			pid := strconv.Itoa(c.state.PID)
 			pids = append(pids, pid)
 		}

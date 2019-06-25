@@ -56,7 +56,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	if c.IsSet("cidfile") && os.Geteuid() == 0 {
-		cidFile, err = libpod.OpenExclusiveFile(c.String("cidfile"))
+		cidFile, err = util.OpenExclusiveFile(c.String("cidfile"))
 		if err != nil && os.IsExist(err) {
 			return nil, nil, errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", c.String("cidfile"))
 		}

@@ -6,8 +6,9 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -45,8 +46,8 @@ func init() {
 
 	flags.StringVar(&podCreateCommand.CgroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&podCreateCommand.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
-	flags.StringVar(&podCreateCommand.InfraImage, "infra-image", libpod.DefaultInfraImage, "The image of the infra container to associate with the pod")
-	flags.StringVar(&podCreateCommand.InfraCommand, "infra-command", libpod.DefaultInfraCommand, "The command to run on the infra container when the pod is started")
+	flags.StringVar(&podCreateCommand.InfraImage, "infra-image", define.DefaultInfraImage, "The image of the infra container to associate with the pod")
+	flags.StringVar(&podCreateCommand.InfraCommand, "infra-command", define.DefaultInfraCommand, "The command to run on the infra container when the pod is started")
 	flags.StringSliceVar(&podCreateCommand.LabelFile, "label-file", []string{}, "Read in a line delimited file of labels")
 	flags.StringSliceVarP(&podCreateCommand.Labels, "label", "l", []string{}, "Set metadata on pod (default [])")
 	flags.StringVarP(&podCreateCommand.Name, "name", "n", "", "Assign a name to the pod")
@@ -78,7 +79,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
 	}
 	if c.Flag("pod-id-file").Changed && os.Geteuid() == 0 {
-		podIdFile, err = libpod.OpenExclusiveFile(c.PodIDFile)
+		podIdFile, err = util.OpenExclusiveFile(c.PodIDFile)
 		if err != nil && os.IsExist(err) {
 			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", c.PodIDFile)
 		}

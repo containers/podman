@@ -337,3 +337,14 @@ func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
 	})
 	return strings.Join(optsCommand, " ")
 }
+
+// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
+func OpenExclusiveFile(path string) (*os.File, error) {
+	baseDir := filepath.Dir(path)
+	if baseDir != "" {
+		if _, err := os.Stat(baseDir); err != nil {
+			return nil, err
+		}
+	}
+	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+}

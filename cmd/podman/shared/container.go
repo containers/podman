@@ -51,7 +51,7 @@ type PsOptions struct {
 // container related information
 type BatchContainerStruct struct {
 	ConConfig   *libpod.ContainerConfig
-	ConState    libpod.ContainerStatus
+	ConState    define.ContainerStatus
 	ExitCode    int32
 	Exited      bool
 	Pid         int
@@ -71,7 +71,7 @@ type PsContainerOutput struct {
 	Names     string
 	IsInfra   bool
 	Status    string
-	State     libpod.ContainerStatus
+	State     define.ContainerStatus
 	Pid       int
 	Size      *ContainerSize
 	Pod       string
@@ -113,7 +113,7 @@ type ContainerSize struct {
 // be called in PBatch
 func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput, error) {
 	var (
-		conState  libpod.ContainerStatus
+		conState  define.ContainerStatus
 		command   string
 		created   string
 		status    string
@@ -184,16 +184,16 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 	}
 
 	switch conState.String() {
-	case libpod.ContainerStateExited.String():
+	case define.ContainerStateExited.String():
 		fallthrough
-	case libpod.ContainerStateStopped.String():
+	case define.ContainerStateStopped.String():
 		exitedSince := units.HumanDuration(time.Since(exitedAt))
 		status = fmt.Sprintf("Exited (%d) %s ago", exitCode, exitedSince)
-	case libpod.ContainerStateRunning.String():
+	case define.ContainerStateRunning.String():
 		status = "Up " + units.HumanDuration(time.Since(startedAt)) + " ago"
-	case libpod.ContainerStatePaused.String():
+	case define.ContainerStatePaused.String():
 		status = "Paused"
-	case libpod.ContainerStateCreated.String(), libpod.ContainerStateConfigured.String():
+	case define.ContainerStateCreated.String(), define.ContainerStateConfigured.String():
 		status = "Created"
 	default:
 		status = "Error"
@@ -323,9 +323,9 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 				filterValue = "exited"
 			}
 			state := status.String()
-			if status == libpod.ContainerStateConfigured {
+			if status == define.ContainerStateConfigured {
 				state = "created"
-			} else if status == libpod.ContainerStateStopped {
+			} else if status == define.ContainerStateStopped {
 				state = "exited"
 			}
 			return state == filterValue
@@ -490,7 +490,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 		// We sort out running vs non-running here to save lots of copying
 		// later.
 		if !opts.All && !opts.Latest && opts.Last < 1 {
-			if !res.IsInfra && res.State == libpod.ContainerStateRunning {
+			if !res.IsInfra && res.State == define.ContainerStateRunning {
 				psResults = append(psResults, res)
 			}
 		} else {
@@ -505,7 +505,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStruct, error) {
 	var (
 		conConfig   *libpod.ContainerConfig
-		conState    libpod.ContainerStatus
+		conState    define.ContainerStatus
 		err         error
 		exitCode    int32
 		exited      bool

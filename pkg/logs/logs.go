@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -209,7 +210,7 @@ func followLog(reader *bufio.Reader, writer *logWriter, opts *LogOptions, ctr *l
 			if err != nil {
 				return err
 			}
-			if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+			if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
 				break
 			}
 			continue

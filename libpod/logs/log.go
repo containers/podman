@@ -1,31 +1,29 @@
-package libpod
+package logs
 
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 const (
-	// logTimeFormat is the time format used in the log.
+	// LogTimeFormat is the time format used in the log.
 	// It is a modified version of RFC3339Nano that guarantees trailing
 	// zeroes are not trimmed, taken from
 	// https://github.com/golang/go/issues/19635
-	logTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
+	LogTimeFormat = "2006-01-02T15:04:05.000000000Z07:00"
 
-	// partialLogType signifies a log line that exceeded the buffer
+	// PartialLogType signifies a log line that exceeded the buffer
 	// length and needed to spill into a new line
-	partialLogType = "P"
+	PartialLogType = "P"
 
-	// fullLogType signifies a log line is full
-	fullLogType = "F"
+	// FullLogType signifies a log line is full
+	FullLogType = "F"
 )
 
 // LogOptions is the options you can use for logs
@@ -48,72 +46,8 @@ type LogLine struct {
 	CID          string
 }
 
-// Log is a runtime function that can read one or more container logs.
-func (r *Runtime) Log(containers []*Container, options *LogOptions, logChannel chan *LogLine) error {
-	for _, ctr := range containers {
-		if err := ctr.ReadLog(options, logChannel); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// ReadLog reads a containers log based on the input options and returns loglines over a channel
-func (c *Container) ReadLog(options *LogOptions, logChannel chan *LogLine) error {
-	// TODO Skip sending logs until journald logs can be read
-	// TODO make this not a magic string
-	if c.LogDriver() == JournaldLogging {
-		return c.readFromJournal(options, logChannel)
-	}
-	return c.readFromLogFile(options, logChannel)
-}
-
-func (c *Container) readFromLogFile(options *LogOptions, logChannel chan *LogLine) error {
-	t, tailLog, err := getLogFile(c.LogPath(), options)
-	if err != nil {
-		// If the log file does not exist, this is not fatal.
-		if os.IsNotExist(errors.Cause(err)) {
-			return nil
-		}
-		return errors.Wrapf(err, "unable to read log file %s for %s ", c.ID(), c.LogPath())
-	}
-	options.WaitGroup.Add(1)
-	if len(tailLog) > 0 {
-		for _, nll := range tailLog {
-			nll.CID = c.ID()
-			if nll.Since(options.Since) {
-				logChannel <- nll
-			}
-		}
-	}
-
-	go func() {
-		var partial string
-		for line := range t.Lines {
-			nll, err := newLogLine(line.Text)
-			if err != nil {
-				logrus.Error(err)
-				continue
-			}
-			if nll.Partial() {
-				partial = partial + nll.Msg
-				continue
-			} else if !nll.Partial() && len(partial) > 1 {
-				nll.Msg = partial
-				partial = ""
-			}
-			nll.CID = c.ID()
-			if nll.Since(options.Since) {
-				logChannel <- nll
-			}
-		}
-		options.WaitGroup.Done()
-	}()
-	return nil
-}
-
-// getLogFile returns an hp tail for a container given options
-func getLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error) {
+// GetLogFile returns an hp tail for a container given options
+func GetLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error) {
 	var (
 		whence  int
 		err     error
@@ -154,7 +88,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 		if len(splitContent[i]) == 0 {
 			continue
 		}
-		nll, err := newLogLine(splitContent[i])
+		nll, err := NewLogLine(splitContent[i])
 		if err != nil {
 			return nil, err
 		}
@@ -191,7 +125,7 @@ func (l *LogLine) String(options *LogOptions) string {
 		out = fmt.Sprintf("%s ", cid)
 	}
 	if options.Timestamps {
-		out = out + fmt.Sprintf("%s ", l.Time.Format(logTimeFormat))
+		out = out + fmt.Sprintf("%s ", l.Time.Format(LogTimeFormat))
 	}
 	return out + l.Msg
 }
@@ -201,13 +135,13 @@ func (l *LogLine) Since(since time.Time) bool {
 	return l.Time.After(since)
 }
 
-// newLogLine creates a logLine struct from a container log string
-func newLogLine(line string) (*LogLine, error) {
+// NewLogLine creates a logLine struct from a container log string
+func NewLogLine(line string) (*LogLine, error) {
 	splitLine := strings.Split(line, " ")
 	if len(splitLine) < 4 {
 		return nil, errors.Errorf("'%s' is not a valid container log line", line)
 	}
-	logTime, err := time.Parse(logTimeFormat, splitLine[0])
+	logTime, err := time.Parse(LogTimeFormat, splitLine[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to convert time %s from container log", splitLine[0])
 	}
@@ -222,7 +156,7 @@ func newLogLine(line string) (*LogLine, error) {
 
 // Partial returns a bool if the log line is a partial log type
 func (l *LogLine) Partial() bool {
-	if l.ParseLogType == partialLogType {
+	if l.ParseLogType == PartialLogType {
 		return true
 	}
 	return false

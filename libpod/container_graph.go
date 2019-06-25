@@ -244,13 +244,13 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 
 	// Start the container (only if it is not running)
 	if !ctrErrored {
-		if !restart && node.container.state.State != ContainerStateRunning {
+		if !restart && node.container.state.State != define.ContainerStateRunning {
 			if err := node.container.initAndStart(ctx); err != nil {
 				ctrErrored = true
 				ctrErrors[node.id] = err
 			}
 		}
-		if restart && node.container.state.State != ContainerStatePaused && node.container.state.State != ContainerStateUnknown {
+		if restart && node.container.state.State != define.ContainerStatePaused && node.container.state.State != define.ContainerStateUnknown {
 			if err := node.container.restartWithTimeout(ctx, node.container.config.StopTimeout); err != nil {
 				ctrErrored = true
 				ctrErrors[node.id] = err

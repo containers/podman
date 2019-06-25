@@ -19,12 +19,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// InfoData holds the info type, i.e store, host etc and the data for each type
-type InfoData struct {
-	Type string
-	Data map[string]interface{}
-}
-
 // top-level "host" info
 func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	// lets say OS, arch, number of cpus, amount of memory, maybe os distribution/version, hostname, kernel version, uptime

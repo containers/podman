@@ -1,4 +1,4 @@
-package libpod
+package define
 
 import (
 	"runtime"

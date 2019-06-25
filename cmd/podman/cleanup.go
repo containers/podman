@@ -1,3 +1,5 @@
+//+build !remoteclient
+
 package main
 
 import (

@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage/pkg/archive"
 )
 
@@ -73,7 +74,7 @@ func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct
 		Names:            batchInfo.ConConfig.Name,
 		Labels:           batchInfo.ConConfig.Labels,
 		Mounts:           mounts,
-		Containerrunning: batchInfo.ConState == libpod.ContainerStateRunning,
+		Containerrunning: batchInfo.ConState == define.ContainerStateRunning,
 		Namespaces:       namespace,
 	}
 	if batchInfo.Size != nil {

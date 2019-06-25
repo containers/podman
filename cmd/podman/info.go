@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
@@ -74,12 +74,12 @@ func infoCmd(c *cliconfig.InfoValues) error {
 		remoteClientInfo["RemoteAPI Version"] = version.RemoteAPIVersion
 		remoteClientInfo["Podman Version"] = version.Version
 		remoteClientInfo["OS Arch"] = fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH)
-		infoArr = append(infoArr, libpod.InfoData{Type: "client", Data: remoteClientInfo})
+		infoArr = append(infoArr, define.InfoData{Type: "client", Data: remoteClientInfo})
 	}
 
 	if !runtime.Remote && c.Debug {
 		debugInfo := debugInfo(c)
-		infoArr = append(infoArr, libpod.InfoData{Type: "debug", Data: debugInfo})
+		infoArr = append(infoArr, define.InfoData{Type: "debug", Data: debugInfo})
 	}
 
 	for _, currInfo := range infoArr {
@@ -108,7 +108,7 @@ func debugInfo(c *cliconfig.InfoValues) map[string]interface{} {
 	info["compiler"] = rt.Compiler
 	info["go version"] = rt.Version()
 	info["podman version"] = version.Version
-	version, _ := libpod.GetVersion()
+	version, _ := define.GetVersion()
 	info["git commit"] = version.GitCommit
 	return info
 }

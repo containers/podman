@@ -17,6 +17,7 @@ import (
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
@@ -411,8 +412,8 @@ func BatchContainerOp(ctr *Container, opts shared.PsOptions) (shared.BatchContai
 	return bcs, nil
 }
 
-// Logs one or more containers over a varlink connection
-func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
+// Log one or more containers over a varlink connection
+func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *logs.LogOptions) error {
 	// GetContainersLogs
 	reply, err := iopodman.GetContainersLogs().Send(r.Conn, uint64(varlink.More), c.InputArgs, c.Follow, c.Latest, options.Since.Format(time.RFC3339Nano), int64(c.Tail), c.Timestamps)
 	if err != nil {
@@ -434,7 +435,7 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) 
 		if err != nil {
 			return errors.Wrapf(err, "unable to parse time of log %s", log.Time)
 		}
-		logLine := libpod.LogLine{
+		logLine := logs.LogLine{
 			Device:       log.Device,
 			ParseLogType: log.ParseLogType,
 			Time:         lTime,
@@ -516,7 +517,7 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 			RootFsSize: ctr.RootFsSize,
 			RwSize:     ctr.RwSize,
 		}
-		state, err := libpod.StringToContainerStatus(ctr.State)
+		state, err := define.StringToContainerStatus(ctr.State)
 		if err != nil {
 			return nil, err
 		}
@@ -645,7 +646,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if err != nil {
 		return nil
 	}
-	if ctr.state.State != libpod.ContainerStateRunning {
+	if ctr.state.State != define.ContainerStateRunning {
 		return errors.New("you can only attach to running containers")
 	}
 	inputStream := os.Stdin
@@ -682,7 +683,7 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 			if err != nil {
 				return err
 			}
-			if ctr.state.State == libpod.ContainerStateRunning {
+			if ctr.state.State == define.ContainerStateRunning {
 				runningIds = append(runningIds, id)
 			}
 		}
@@ -703,7 +704,7 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 }
 
 // Restore one or more containers
-func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) error {
 	if c.Import != "" {
 		return errors.New("the remote client does not support importing checkpoints")
 	}
@@ -722,7 +723,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, 
 			if err != nil {
 				return err
 			}
-			if ctr.state.State != libpod.ContainerStateRunning {
+			if ctr.state.State != define.ContainerStateRunning {
 				exitedIDs = append(exitedIDs, id)
 			}
 		}
@@ -730,7 +731,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, 
 	}
 
 	for _, id := range ids {
-		if _, err := iopodman.ContainerRestore().Call(r.Conn, id, options.Keep, options.TCPEstablished); err != nil {
+		if _, err := iopodman.ContainerRestore().Call(r.Conn, id, c.Keep, c.TcpEstablished); err != nil {
 			if lastError != nil {
 				fmt.Fprintln(os.Stderr, lastError)
 			}
@@ -797,7 +798,7 @@ func (r *LocalRuntime) PauseContainers(ctx context.Context, cli *cliconfig.Pause
 	)
 
 	if cli.All {
-		filters := []string{libpod.ContainerStateRunning.String()}
+		filters := []string{define.ContainerStateRunning.String()}
 		ctrs, err = r.LookupContainersWithStatus(filters)
 	} else {
 		ctrs, err = r.LookupContainers(cli.InputArgs)
@@ -834,7 +835,7 @@ func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.Unp
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
 	if cli.All {
-		filters := []string{libpod.ContainerStatePaused.String()}
+		filters := []string{define.ContainerStatePaused.String()}
 		ctrs, err = r.LookupContainersWithStatus(filters)
 	} else {
 		ctrs, err = r.LookupContainers(cli.InputArgs)
@@ -873,7 +874,7 @@ func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) 
 		}
 		restartContainers = append(restartContainers, lastCtr)
 	} else if c.Running {
-		containers, err = r.LookupContainersWithStatus([]string{libpod.ContainerStateRunning.String()})
+		containers, err = r.LookupContainersWithStatus([]string{define.ContainerStateRunning.String()})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -941,7 +942,7 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 	)
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
-	filters := []string{libpod.ContainerStateExited.String()}
+	filters := []string{define.ContainerStateExited.String()}
 	ctrs, err = r.LookupContainersWithStatus(filters)
 	if err != nil {
 		return ok, failures, err
@@ -974,7 +975,7 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 		containers, err = r.GetContainersByContext(false, c.Latest, c.InputArgs)
 	} else {
 		//	we need to only use running containers if all
-		filters := []string{libpod.ContainerStateRunning.String()}
+		filters := []string{define.ContainerStateRunning.String()}
 		containers, err = r.LookupContainersWithStatus(filters)
 	}
 	if err != nil {
@@ -1024,4 +1025,9 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		}
 	}
 	return iid, nil
+}
+
+// Exec executes a container in a running container
+func (r *LocalRuntime) Exec(c *cliconfig.ExecValues, cmd []string) error {
+	return define.ErrNotImplemented
 }

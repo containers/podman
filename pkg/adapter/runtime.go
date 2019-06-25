@@ -5,6 +5,7 @@ package adapter
 import (
 	"bufio"
 	"context"
+	"github.com/containers/libpod/libpod/define"
 	"io"
 	"io/ioutil"
 	"os"
@@ -313,8 +314,13 @@ func IsImageNotFound(err error) bool {
 }
 
 // HealthCheck is a wrapper to same named function in libpod
-func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
-	return r.Runtime.HealthCheck(c.InputArgs[0])
+func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (string, error) {
+	output := "unhealthy"
+	status, err := r.Runtime.HealthCheck(c.InputArgs[0])
+	if status == libpod.HealthCheckSuccess {
+		output = "healthy"
+	}
+	return output, err
 }
 
 // Events is a wrapper to libpod to obtain libpod/podman events
@@ -395,8 +401,8 @@ func (r *LocalRuntime) GetPodsByStatus(statuses []string) ([]*libpod.Pod, error)
 }
 
 // GetVersion is an alias to satisfy interface{}
-func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
-	return libpod.GetVersion()
+func (r *LocalRuntime) GetVersion() (define.Version, error) {
+	return define.GetVersion()
 }
 
 // RemoteEndpoint resolve interface requirement

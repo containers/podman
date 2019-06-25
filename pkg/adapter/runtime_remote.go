@@ -771,8 +771,8 @@ func IsImageNotFound(err error) bool {
 }
 
 // HealthCheck executes a container's healthcheck over a varlink connection
-func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
-	return -1, define.ErrNotImplemented
+func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (string, error) {
+	return "", define.ErrNotImplemented
 }
 
 // Events monitors libpod/podman events over a varlink connection
@@ -907,22 +907,22 @@ func (r *LocalRuntime) GetContainersByContext(all bool, latest bool, namesOrIDs 
 }
 
 // GetVersion returns version information from service
-func (r *LocalRuntime) GetVersion() (libpod.Version, error) {
+func (r *LocalRuntime) GetVersion() (define.Version, error) {
 	version, goVersion, gitCommit, built, osArch, apiVersion, err := iopodman.GetVersion().Call(r.Conn)
 	if err != nil {
-		return libpod.Version{}, errors.Wrapf(err, "Unable to obtain server version information")
+		return define.Version{}, errors.Wrapf(err, "Unable to obtain server version information")
 	}
 
 	var buildTime int64
 	if built != "" {
 		t, err := time.Parse(time.RFC3339, built)
 		if err != nil {
-			return libpod.Version{}, nil
+			return define.Version{}, nil
 		}
 		buildTime = t.Unix()
 	}
 
-	return libpod.Version{
+	return define.Version{
 		RemoteAPIVersion: apiVersion,
 		Version:          version,
 		GoVersion:        goVersion,

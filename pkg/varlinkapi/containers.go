@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/archive"
@@ -139,7 +140,7 @@ func (i *LibpodAPI) GetContainersByStatus(call iopodman.VarlinkCall, statuses []
 		containers  []iopodman.Container
 	)
 	for _, status := range statuses {
-		lpstatus, err := libpod.StringToContainerStatus(status)
+		lpstatus, err := define.StringToContainerStatus(status)
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -199,7 +200,7 @@ func (i *LibpodAPI) ListContainerProcesses(call iopodman.VarlinkCall, name strin
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	if containerState != libpod.ContainerStateRunning {
+	if containerState != define.ContainerStateRunning {
 		return call.ReplyErrorOccurred(fmt.Sprintf("container %s is not running", name))
 	}
 	var psArgs []string
@@ -230,7 +231,7 @@ func (i *LibpodAPI) GetContainerLogs(call iopodman.VarlinkCall, name string) err
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if _, err := os.Stat(logPath); err != nil {
-		if containerState == libpod.ContainerStateConfigured {
+		if containerState == define.ContainerStateConfigured {
 			return call.ReplyGetContainerLogs(logs)
 		}
 	}
@@ -260,7 +261,7 @@ func (i *LibpodAPI) GetContainerLogs(call iopodman.VarlinkCall, name string) err
 				if err != nil {
 					return call.ReplyErrorOccurred(err.Error())
 				}
-				if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
 					return call.ReplyErrorOccurred(fmt.Sprintf("%s is no longer running", ctr.ID()))
 				}
 
@@ -360,7 +361,7 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
+	if state == define.ContainerStateRunning || state == define.ContainerStatePaused {
 		return call.ReplyErrorOccurred("container is already running or paused")
 	}
 	recursive := false
@@ -511,7 +512,7 @@ func (i *LibpodAPI) DeleteStoppedContainers(call iopodman.VarlinkCall) error {
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
-		if state != libpod.ContainerStateRunning {
+		if state != define.ContainerStateRunning {
 			if err := i.Runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
 				return call.ReplyErrorOccurred(err.Error())
 			}
@@ -535,7 +536,7 @@ func (i *LibpodAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) err
 
 	// If the container hasn't been run, we need to run init
 	// so the conmon sockets get created.
-	if status == libpod.ContainerStateConfigured || status == libpod.ContainerStateStopped {
+	if status == define.ContainerStateConfigured || status == define.ContainerStateStopped {
 		if err := ctr.Init(getContext()); err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
@@ -720,7 +721,7 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	options := libpod.LogOptions{
+	options := logs.LogOptions{
 		Follow:     follow,
 		Since:      sinceTime,
 		Tail:       uint64(tail),
@@ -731,7 +732,7 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	if len(names) > 1 {
 		options.Multi = true
 	}
-	logChannel := make(chan *libpod.LogLine, int(tail)*len(names)+1)
+	logChannel := make(chan *logs.LogLine, int(tail)*len(names)+1)
 	containers, err := shortcuts.GetContainersByContext(false, latest, names, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -753,7 +754,7 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	return call.ReplyGetContainersLogs(iopodman.LogLine{})
 }
 
-func newPodmanLogLine(line *libpod.LogLine) iopodman.LogLine {
+func newPodmanLogLine(line *logs.LogLine) iopodman.LogLine {
 	return iopodman.LogLine{
 		Device:       line.Device,
 		ParseLogType: line.ParseLogType,
