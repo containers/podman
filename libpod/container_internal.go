@@ -351,6 +351,16 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		},
 		LabelOpts: c.config.LabelOpts,
 	}
+	if c.restoreFromCheckpoint {
+		// If restoring from a checkpoint, the root file-system
+		// needs to be mounted with the same SELinux labels as
+		// it was mounted previously.
+		if options.Flags == nil {
+			options.Flags = make(map[string]interface{})
+		}
+		options.Flags["ProcessLabel"] = c.config.ProcessLabel
+		options.Flags["MountLabel"] = c.config.MountLabel
+	}
 	if c.config.Privileged {
 		privOpt := func(opt string) bool {
 			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
