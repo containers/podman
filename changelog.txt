@@ -1,3 +1,64 @@
+- Changelog for v1.4.3 (2019-06-25)
+  * Update 'generate kube' tests to verify YAML
+  * Use a different method to retrieve YAML output in tests
+  * update dependencies
+  * Fix tests
+  * Change Marshal -> Unmarshal in generate kube tests
+  * Add test for generate kube on a pod with ports
+  * Only include ports in one container in Kube YAML
+  * Support aliases for .Src and .Dst in inspect .Mounts
+  * Fix a segfault in 'podman ps --sync'
+  * migrate to go-modules
+  * Makefile: add go-get function
+  * rootless: add an entry to /etc/hosts when using slirp4netns
+  * libpod.conf: add runtime crun
+  * Fix configs location in rootless tutorial.
+  * Add additional debugging when refreshing locks
+  * Fix gofmt
+  * Adjust names to match struct tags in Inspect
+  * Fix inspect --format '{{.Mounts}}.
+  * runtime.go: Add /usr/local/{s,}bin
+  * include make podman target in install instructions
+  * Add /usr/local/{s,}bin to conmon paths
+  * update cirrus image
+  * Update conmon to include attach socket unlink
+  * Add --latest, -l to 'podman diff'
+  * Build cgo files with -Wall -Werror
+  * Add some missing periods to the readme
+  * fix bug creats directory copying file
+  * Support Reproducible Builds by removing build path
+  * Support SOURCE_DATE_EPOCH
+  * Properly initialize container OCI runtime
+  * vendor containers/storage v1.12.11
+  * Handle containers whose OCIRuntime fields are paths
+  * Properly handle OCI runtime being set to a path
+  * add windows bridge format
+  * Make configuration validation not require a DB commit
+  * Avoid a read-write transaction on DB init
+  * Fix execvp uage in rootless_linux.c
+  * Handle possible asprintf failure in rootless_linux.c
+  * Fix format specifiers in rootless_linux.c
+  * Print container's OCI runtime in `inspect`
+  * Make a missing OCI runtime nonfatal
+  * Begin adding support for multiple OCI runtimes
+  * docs: add note to system migrate
+  * Fix documentation for log-driver
+  * Minor roadmap adjustment in README
+  * Spoof json-file logging support
+  * Add tests for cached and delegated mounts
+  * Vendor in logrus v1.4.2
+  * Add RUN with priv'd command build test
+  * Bump gitvalidation epoch
+  * Bump to v1.4.3-dev
+  * fix broken healthcheck tests
+  * Allow (but ignore) Cached and Delegated volume options
+  * Fix example in oci-hooks.5.md
+  * First pass rootless tutorial
+  * Correctly identify the defaults for cgroup-manager
+  * Cirrus: Fix F30 ssh guarantee
+  * Cirrus: Add support for testing F30
+  * Bump gate-container up to F30
+
 - Changelog for v1.4.2 (2019-06-18)
   * Update release notes for Podman 1.4.2
   * updating podman logo files
