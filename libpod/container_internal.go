@@ -341,7 +341,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 	// Need both an image ID and image name, plus a bool telling us whether to use the image configuration
 	if c.config.Rootfs == "" && (c.config.RootfsImageID == "" || c.config.RootfsImageName == "") {
-		return errors.Wrapf(ErrInvalidArg, "must provide image ID and image name to use an image")
+		return errors.Wrapf(ErrInvalidArg, "must provide image ID or image name to use an image")
 	}
 
 	options := storage.ContainerOptions{
