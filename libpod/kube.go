@@ -138,6 +138,11 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 			if err != nil {
 				return nil, err
 			}
+
+			// Since port bindings for the pod are handled by the
+			// infra container, wipe them here.
+			result.Ports = nil
+
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.

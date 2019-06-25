@@ -10,6 +10,7 @@ import (
 	"github.com/ghodss/yaml"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/core/v1"
 )
 
 var _ = Describe("Podman generate kube", func() {
@@ -57,8 +58,15 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+
+		numContainers := 0
+		for range pod.Spec.Containers {
+			numContainers = numContainers + 1
+		}
+		Expect(numContainers).To(Equal(1))
 	})
 
 	It("podman generate service kube on container", func() {
@@ -70,8 +78,11 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
-		Expect(err).To(BeNil())
+		// TODO - test generated YAML - service produces multiple
+		// structs.
+		// pod := new(v1.Pod)
+		// err := yaml.Unmarshal([]byte(kube.OutputToString()), pod)
+		// Expect(err).To(BeNil())
 	})
 
 	It("podman generate kube on pod", func() {
@@ -86,8 +97,15 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+
+		numContainers := 0
+		for range pod.Spec.Containers {
+			numContainers = numContainers + 1
+		}
+		Expect(numContainers).To(Equal(1))
 	})
 
 	It("podman generate service kube on pod", func() {
@@ -102,8 +120,53 @@ var _ = Describe("Podman generate kube", func() {
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
-		_, err := yaml.Marshal(kube.OutputToString())
+		// TODO: How do we test unmarshal with a service? We have two
+		// structs that need to be unmarshalled...
+		// _, err := yaml.Marshal(kube.OutputToString())
+		// Expect(err).To(BeNil())
+	})
+
+	It("podman generate kube on pod with ports", func() {
+		podName := "test"
+		podSession := podmanTest.Podman([]string{"pod", "create", "--name", podName, "-p", "4000:4000", "-p", "5000:5000"})
+		podSession.WaitWithDefaultTimeout()
+		Expect(podSession.ExitCode()).To(Equal(0))
+
+		ctr1Name := "ctr1"
+		ctr1Session := podmanTest.Podman([]string{"create", "--name", ctr1Name, "--pod", podName, ALPINE, "top"})
+		ctr1Session.WaitWithDefaultTimeout()
+		Expect(ctr1Session.ExitCode()).To(Equal(0))
+
+		ctr2Name := "ctr2"
+		ctr2Session := podmanTest.Podman([]string{"create", "--name", ctr2Name, "--pod", podName, ALPINE, "top"})
+		ctr2Session.WaitWithDefaultTimeout()
+		Expect(ctr2Session.ExitCode()).To(Equal(0))
+
+		kube := podmanTest.Podman([]string{"generate", "kube", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		pod := new(v1.Pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
+
+		foundPort4000 := 0
+		foundPort5000 := 0
+		foundOtherPort := 0
+		for _, ctr := range pod.Spec.Containers {
+			for _, port := range ctr.Ports {
+				if port.HostPort == 4000 {
+					foundPort4000 = foundPort4000 + 1
+				} else if port.HostPort == 5000 {
+					foundPort5000 = foundPort5000 + 1
+				} else {
+					foundOtherPort = foundOtherPort + 1
+				}
+			}
+		}
+		Expect(foundPort4000).To(Equal(1))
+		Expect(foundPort5000).To(Equal(1))
+		Expect(foundOtherPort).To(Equal(0))
 	})
 
 	It("podman generate and reimport kube on pod", func() {
