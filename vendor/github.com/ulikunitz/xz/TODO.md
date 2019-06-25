@@ -86,6 +86,10 @@
 
 ## Log
 
+### 2019-02-20
+
+Release v0.5.6 supports the go.mod file.
+
 ### 2018-10-28
 
 Release v0.5.5 fixes issues #19 observing ErrLimit outputs.

@@ -109,6 +109,17 @@ func SocketLabel() (string, error) {
 	return "", nil
 }
 
+// SetKeyLabel takes a process label and tells the kernel to assign the
+// label to the next kernel keyring that gets created
+func SetKeyLabel(label string) error {
+	return nil
+}
+
+// KeyLabel retrieves the current kernel keyring label setting
+func KeyLabel() (string, error) {
+	return "", nil
+}
+
 // Get returns the Context as a string
 func (c Context) Get() string {
 	return ""

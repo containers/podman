@@ -1,6 +1,6 @@
 # Contributing to the registry
 
-## Before reporting an issue...
+## Before reporting an issue...
 
 ### If your problem is with...
 
@@ -35,7 +35,7 @@ By following these simple rules you will get better and faster feedback on your 
 
  - search the bugtracker for an already reported issue
 
-### If you found an issue that describes your problem:
+### If you found an issue that describes your problem:
 
  - please read other user comments first, and confirm this is the same issue: a given error condition might be indicative of different problems - you may also find a workaround in the comments
  - please refrain from adding "same thing here" or "+1" comments

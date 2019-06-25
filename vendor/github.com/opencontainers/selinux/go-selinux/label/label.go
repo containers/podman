@@ -37,6 +37,14 @@ func SocketLabel() (string, error) {
 	return "", nil
 }
 
+func SetKeyLabel(processLabel string) error {
+	return nil
+}
+
+func KeyLabel() (string, error) {
+	return "", nil
+}
+
 func FileLabel(path string) (string, error) {
 	return "", nil
 }
