@@ -496,7 +496,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"systemd", cliconfig.DefaultSystemD,
 		"Run container in systemd mode if the command executable is systemd or init",
 	)
-	createFlags.StringSlice(
+	createFlags.StringArray(
 		"tmpfs", []string{},
 		"Mount a temporary filesystem (`tmpfs`) into a container (default [])",
 	)
