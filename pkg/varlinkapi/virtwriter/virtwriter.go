@@ -89,9 +89,13 @@ func (v VirtWriteCloser) Write(input []byte) (int, error) {
 }
 
 // Reader decodes the content that comes over the wire and directs it to the proper destination.
-func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer, resize chan remotecommand.TerminalSize) error {
+func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remotecommand.TerminalSize, execEcChan chan int) error {
 	var messageSize int64
 	headerBytes := make([]byte, 8)
+
+	if r == nil {
+		return errors.Errorf("Reader must not be nil")
+	}
 
 	for {
 		n, err := io.ReadFull(r, headerBytes)
@@ -106,43 +110,56 @@ func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer
 
 		switch IntToSocketDest(int(headerBytes[0])) {
 		case ToStdout:
-			_, err := io.CopyN(output, r, messageSize)
-			if err != nil {
-				return err
-			}
-		case ToStderr:
-			_, err := io.CopyN(errput, r, messageSize)
-			if err != nil {
-				return err
-			}
-		case ToStdin:
-			_, err := io.CopyN(input, r, messageSize)
-			if err != nil {
-				return err
-			}
-		case TerminalResize:
-			out := make([]byte, messageSize)
-			if messageSize > 0 {
-				_, err = io.ReadFull(r, out)
-
+			if output != nil {
+				_, err := io.CopyN(output, r, messageSize)
 				if err != nil {
-					return err
+						return errors.Wrapf(err, "issue stdout")
 				}
 			}
-			// Resize events come over in bytes, need to be reserialized
-			resizeEvent := remotecommand.TerminalSize{}
-			if err := json.Unmarshal(out, &resizeEvent); err != nil {
-				return err
+		case ToStderr:
+			if errput != nil {
+				_, err := io.CopyN(errput, r, messageSize)
+				if err != nil {
+					return err
+						return errors.Wrapf(err, "issue stderr")
+				}
 			}
-			resize <- resizeEvent
+		case ToStdin:
+			if input != nil {
+				_, err := io.CopyN(input, r, messageSize)
+				if err != nil {
+						return errors.Wrapf(err, "issue stdin")
+				}
+			}
+		case TerminalResize:
+			if resize != nil {
+				out := make([]byte, messageSize)
+				if messageSize > 0 {
+					_, err = io.ReadFull(r, out)
+
+					if err != nil {
+						return errors.Wrapf(err, "issue resizing")
+					}
+				}
+				// Resize events come over in bytes, need to be reserialized
+				resizeEvent := remotecommand.TerminalSize{}
+				if err := json.Unmarshal(out, &resizeEvent); err != nil {
+					return errors.Wrapf(err, "issue resizing")
+				}
+				resize <- resizeEvent
+			}
 		case Quit:
 			out := make([]byte, messageSize)
 			if messageSize > 0 {
 				_, err = io.ReadFull(r, out)
 
 				if err != nil {
-					return err
+					return errors.Wrapf(err, "issue quitting")
 				}
+			}
+			if execEcChan != nil {
+				ecInt := binary.BigEndian.Uint32(out)
+				execEcChan <-int(ecInt)
 			}
 			return nil
 
@@ -154,9 +171,12 @@ func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer
 }
 
 // HangUp sends message to peer to close connection
-func HangUp(writer *bufio.Writer) (err error) {
+func HangUp(writer *bufio.Writer, ec int) (err error) {
 	n := 0
-	msg := []byte("HANG-UP")
+	msg := make([]byte, 4)
+
+	binary.LittleEndian.PutUint32(msg, uint32(ec))
+
 
 	writeQuit := NewVirtWriteCloser(writer, Quit)
 	if n, err = writeQuit.Write(msg); err != nil {
