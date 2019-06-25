@@ -291,14 +291,11 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		ConmonPath: []string{
 			"/usr/libexec/podman/conmon",
-			"/usr/libexec/crio/conmon",
 			"/usr/local/lib/podman/conmon",
-			"/usr/local/libexec/crio/conmon",
 			"/usr/bin/conmon",
 			"/usr/sbin/conmon",
 			"/usr/local/bin/conmon",
 			"/usr/local/sbin/conmon",
-			"/usr/lib/crio/bin/conmon",
 		},
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
