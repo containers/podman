@@ -83,10 +83,10 @@ type Driver struct {
 }
 
 // InitFilter returns a new Windows storage filter driver.
-func InitFilter(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+func InitFilter(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 	logrus.Debugf("WindowsGraphDriver InitFilter at %s", home)
 
-	for _, option := range options {
+	for _, option := range options.DriverOptions {
 		if strings.HasPrefix(option, "windows.mountopt=") {
 			return nil, fmt.Errorf("windows driver does not support mount options")
 		} else {
