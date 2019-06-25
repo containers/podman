@@ -3,6 +3,7 @@
 package adapter
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -555,93 +556,6 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 	return psContainers, nil
 }
 
-func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan error, error) {
-	var (
-		oldTermState *term.State
-	)
-	errChan := make(chan error)
-	spec, err := r.Spec(cid)
-	if err != nil {
-		return nil, err
-	}
-	resize := make(chan remotecommand.TerminalSize, 5)
-	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
-
-	// Check if we are attached to a terminal. If we are, generate resize
-	// events, and set the terminal to raw mode
-	if haveTerminal && spec.Process.Terminal {
-		logrus.Debugf("Handling terminal attach")
-
-		subCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		resizeTty(subCtx, resize)
-		oldTermState, err = term.SaveState(os.Stdin.Fd())
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to save terminal state")
-		}
-
-		logrus.SetFormatter(&RawTtyFormatter{})
-		term.SetRawTerminal(os.Stdin.Fd())
-
-	}
-	// TODO add detach keys support
-	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
-	if err != nil {
-		restoreTerminal(oldTermState)
-		return nil, err
-	}
-
-	// See if the server accepts the upgraded connection or returns an error
-	_, err = reply()
-
-	if err != nil {
-		restoreTerminal(oldTermState)
-		return nil, err
-	}
-
-	// These are the varlink sockets
-	reader := r.Conn.Reader
-	writer := r.Conn.Writer
-
-	// These are the special writers that encode input from the client.
-	varlinkStdinWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdin)
-	varlinkResizeWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.TerminalResize)
-
-	go func() {
-		// Read from the wire and direct to stdout or stderr
-		err := virtwriter.Reader(reader, stdout, os.Stderr, nil, nil)
-		defer restoreTerminal(oldTermState)
-		errChan <- err
-	}()
-
-	go func() {
-		for termResize := range resize {
-			b, err := json.Marshal(termResize)
-			if err != nil {
-				defer restoreTerminal(oldTermState)
-				errChan <- err
-			}
-			_, err = varlinkResizeWriter.Write(b)
-			if err != nil {
-				defer restoreTerminal(oldTermState)
-				errChan <- err
-			}
-		}
-	}()
-
-	// Takes stdinput and sends it over the wire after being encoded
-	go func() {
-		if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
-			defer restoreTerminal(oldTermState)
-			errChan <- err
-		}
-
-	}()
-	return errChan, nil
-
-}
-
 // Attach to a remote terminal
 func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) error {
 	ctr, err := r.LookupContainer(c.InputArgs[0])
@@ -794,6 +708,50 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 		}
 	}
 	return exitCode, finalErr
+}
+
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan error, error) {
+	var (
+		oldTermState *term.State
+	)
+	spec, err := r.Spec(cid)
+	if err != nil {
+		return nil, err
+	}
+	resize := make(chan remotecommand.TerminalSize, 5)
+	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+
+	// Check if we are attached to a terminal. If we are, generate resize
+	// events, and set the terminal to raw mode
+	if haveTerminal && spec.Process.Terminal {
+		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
+		if err != nil {
+			return nil, err
+		}
+		defer cancel()
+		defer restoreTerminal(oldTermState)
+
+		logrus.SetFormatter(&RawTtyFormatter{})
+		term.SetRawTerminal(os.Stdin.Fd())
+	}
+
+	// TODO add detach keys support
+	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
+	if err != nil {
+		restoreTerminal(oldTermState)
+		return nil, err
+	}
+
+	// See if the server accepts the upgraded connection or returns an error
+	_, err = reply()
+
+	if err != nil {
+		restoreTerminal(oldTermState)
+		return nil, err
+	}
+
+	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, stdin, stdout, oldTermState, resize, nil)
+	return errChan, nil
 }
 
 // PauseContainers pauses container(s) based on CLI inputs.
@@ -1037,8 +995,11 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 
 // ExecContainer executes a command in the container
 func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecValues) (int, error) {
+	var (
+		oldTermState *term.State
+		ec           int = 125
+	)
 	// default invalid command exit code
-	ec := 125
 	// Validate given environment variables
 	env := map[string]string{}
 	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
@@ -1051,6 +1012,24 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	resize := make(chan remotecommand.TerminalSize, 5)
+	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
+
+	// Check if we are attached to a terminal. If we are, generate resize
+	// events, and set the terminal to raw mode
+	// TODO FIXME tty
+	if haveTerminal && cli.Tty {
+		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
+		if err != nil {
+			return ec, err
+		}
+		defer cancel()
+		defer restoreTerminal(oldTermState)
+
+		logrus.SetFormatter(&RawTtyFormatter{})
+		term.SetRawTerminal(os.Stdin.Fd())
+	}
+
 	opts := iopodman.ExecOpts{
 		Name:       cli.InputArgs[0],
 		Tty:        cli.Tty,
@@ -1061,16 +1040,69 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 		Env:        &envs,
 	}
 
-	receive, err := iopodman.ExecContainer().Send(r.Conn, varlink.Upgrade, opts)
+	inputStream := os.Stdin
+	if !cli.Interactive {
+		inputStream = nil
+	}
+
+	reply, err := iopodman.ExecContainer().Send(r.Conn, varlink.Upgrade, opts)
 	if err != nil {
 		return ec, errors.Wrapf(err, "Exec failed to contact service for %s", cli.InputArgs)
 	}
 
-	_, err = receive()
+	_, err = reply()
 	if err != nil {
 		return ec, errors.Wrapf(err, "Exec operation failed for %s", cli.InputArgs)
 	}
 
-	// TODO return exit code from exec call
-	return 0, nil
+	ecChan := make(chan int, 1)
+	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, inputStream, os.Stdout, oldTermState, resize, ecChan)
+
+	select {
+		case err = <-errChan:
+			break
+		case ec = <-ecChan:
+			break
+	}
+
+	return ec, err
+}
+
+func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, stdin *os.File, stdout *os.File, oldTermState *term.State, resize chan remotecommand.TerminalSize, ecChan chan int) chan error {
+	var errChan chan error
+	// These are the special writers that encode input from the client.
+	varlinkStdinWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdin)
+	varlinkResizeWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.TerminalResize)
+
+	go func() {
+		// Read from the wire and direct to stdout or stderr
+		err := virtwriter.Reader(reader, stdout, os.Stderr, nil, nil, ecChan)
+		defer restoreTerminal(oldTermState)
+		errChan <- err
+	}()
+
+	go func() {
+		for termResize := range resize {
+			b, err := json.Marshal(termResize)
+			if err != nil {
+				defer restoreTerminal(oldTermState)
+				errChan <- err
+			}
+			_, err = varlinkResizeWriter.Write(b)
+			if err != nil {
+				defer restoreTerminal(oldTermState)
+				errChan <- err
+			}
+		}
+	}()
+
+	// Takes stdinput and sends it over the wire after being encoded
+	go func() {
+		if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
+			defer restoreTerminal(oldTermState)
+			errChan <- err
+		}
+
+	}()
+	return errChan
 }
