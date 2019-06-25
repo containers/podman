@@ -133,7 +133,7 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(kube.ExitCode()).To(Equal(0))
 
 		pod := new(v1.Pod)
-		err := yaml.Unmarshal([]byte(kube.OutputToString()), pod)
+		err := yaml.Unmarshal(kube.Out.Contents(), pod)
 		Expect(err).To(BeNil())
 
 		foundPort4000 := 0
