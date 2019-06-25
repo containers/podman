@@ -24,16 +24,16 @@ func init() {
 
 // Init returns a new VFS driver.
 // This sets the home directory for the driver and returns NaiveDiffDriver.
-func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 	d := &Driver{
 		homes:      []string{home},
-		idMappings: idtools.NewIDMappingsFromMaps(uidMaps, gidMaps),
+		idMappings: idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 	}
 	rootIDs := d.idMappings.RootPair()
 	if err := idtools.MkdirAllAndChown(home, 0700, rootIDs); err != nil {
 		return nil, err
 	}
-	for _, option := range options {
+	for _, option := range options.DriverOptions {
 		if strings.HasPrefix(option, "vfs.imagestore=") {
 			d.homes = append(d.homes, strings.Split(option[15:], ",")...)
 			continue
@@ -59,7 +59,7 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 		}
 	}
 	if d.ostreeRepo != "" {
-		rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
+		rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
 		if err != nil {
 			return nil, err
 		}

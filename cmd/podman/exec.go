@@ -109,5 +109,12 @@ func execCmd(c *cli.Context) error {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
 	}
 
-	return ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"), c.String("workdir"))
+	if err := ctr.Exec(c.Bool("tty"), c.Bool("privileged"), envs, cmd, c.String("user"), c.String("workdir")); err != nil {
+		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			exitCode = 126
+		}
+		return err
+	}
+
+	return nil
 }

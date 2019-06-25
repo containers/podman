@@ -34,8 +34,8 @@ type Driver struct {
 }
 
 // Init creates a driver with the given home and the set of options.
-func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
-	deviceSet, err := NewDeviceSet(home, true, options, uidMaps, gidMaps)
+func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
+	deviceSet, err := NewDeviceSet(home, true, options.DriverOptions, options.UIDMaps, options.GIDMaps)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func Init(home string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	d := &Driver{
 		DeviceSet: deviceSet,
 		home:      home,
-		uidMaps:   uidMaps,
-		gidMaps:   gidMaps,
+		uidMaps:   options.UIDMaps,
+		gidMaps:   options.GIDMaps,
 		ctr:       graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
 		locker:    locker.New(),
 	}
