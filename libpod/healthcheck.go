@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -169,7 +170,7 @@ func checkHealthCheckCanBeRun(c *Container) (HealthCheckStatus, error) {
 	if err != nil {
 		return HealthCheckInternalError, err
 	}
-	if cstate != ContainerStateRunning {
+	if cstate != define.ContainerStateRunning {
 		return HealthCheckContainerStopped, errors.Errorf("container %s is not running", c.ID())
 	}
 	if !c.HasHealthCheck() {

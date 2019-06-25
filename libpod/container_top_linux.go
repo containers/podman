@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
@@ -18,7 +19,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to look up state for %s", c.ID())
 	}
-	if conStat != ContainerStateRunning {
+	if conStat != define.ContainerStateRunning {
 		return nil, errors.Errorf("top can only be used on running containers")
 	}
 
@@ -59,10 +60,4 @@ func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, 
 		res = append(res, strings.Join(out, "\t"))
 	}
 	return res, nil
-}
-
-// GetContainerPidInformationDescriptors returns a string slice of all supported
-// format descriptors of GetContainerPidInformation.
-func GetContainerPidInformationDescriptors() ([]string, error) {
-	return psgo.ListDescriptors(), nil
 }

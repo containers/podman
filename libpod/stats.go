@@ -26,7 +26,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		}
 	}
 
-	if c.state.State != ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return stats, define.ErrCtrStateInvalid
 	}
 
@@ -61,7 +61,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
-	if conState == ContainerStateRunning {
+	if conState == define.ContainerStateRunning {
 		stats.PIDs = cgroupStats.Pids.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)

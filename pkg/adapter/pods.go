@@ -4,14 +4,33 @@ package adapter
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"strings"
 
+	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	ns "github.com/containers/libpod/pkg/namespaces"
+	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
+)
+
+const (
+	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
+	createDirectoryPermission = 0755
+	// https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
+	createFilePermission = 0644
 )
 
 // PodContainerStats is struct containing an adapter Pod and a libpod
@@ -419,4 +438,287 @@ func (r *LocalRuntime) GetStatPods(c *cliconfig.PodStatsValues) ([]*Pod, error) 
 		adapterPods = append(adapterPods, &adapterPod)
 	}
 	return adapterPods, nil
+}
+
+// PlayKubeYAML creates pods and containers from a kube YAML file
+func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayValues, yamlFile string) (*Pod, error) {
+	var (
+		containers    []*libpod.Container
+		pod           *libpod.Pod
+		podOptions    []libpod.PodCreateOption
+		podYAML       v1.Pod
+		registryCreds *types.DockerAuthConfig
+		writer        io.Writer
+	)
+
+	content, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := yaml.Unmarshal(content, &podYAML); err != nil {
+		return nil, errors.Wrapf(err, "unable to read %s as YAML", yamlFile)
+	}
+
+	// check for name collision between pod and container
+	podName := podYAML.ObjectMeta.Name
+	for _, n := range podYAML.Spec.Containers {
+		if n.Name == podName {
+			fmt.Printf("a container exists with the same name (%s) as the pod in your YAML file; changing pod name to %s_pod\n", podName, podName)
+			podName = fmt.Sprintf("%s_pod", podName)
+		}
+	}
+
+	podOptions = append(podOptions, libpod.WithInfraContainer())
+	podOptions = append(podOptions, libpod.WithPodName(podName))
+	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
+
+	nsOptions, err := shared.GetNamespaceOptions(strings.Split(shared.DefaultKernelNamespaces, ","))
+	if err != nil {
+		return nil, err
+	}
+	podOptions = append(podOptions, nsOptions...)
+	podPorts := getPodPorts(podYAML.Spec.Containers)
+	podOptions = append(podOptions, libpod.WithInfraContainerPorts(podPorts))
+
+	// Create the Pod
+	pod, err = r.NewPod(ctx, podOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	podInfraID, err := pod.InfraContainerID()
+	if err != nil {
+		return nil, err
+	}
+
+	namespaces := map[string]string{
+		// Disabled during code review per mheon
+		//"pid":  fmt.Sprintf("container:%s", podInfraID),
+		"net":  fmt.Sprintf("container:%s", podInfraID),
+		"user": fmt.Sprintf("container:%s", podInfraID),
+		"ipc":  fmt.Sprintf("container:%s", podInfraID),
+		"uts":  fmt.Sprintf("container:%s", podInfraID),
+	}
+	if !c.Quiet {
+		writer = os.Stderr
+	}
+
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds: registryCreds,
+		DockerCertPath:      c.CertDir,
+	}
+	if c.Flag("tls-verify").Changed {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
+	}
+
+	// map from name to mount point
+	volumes := make(map[string]string)
+	for _, volume := range podYAML.Spec.Volumes {
+		hostPath := volume.VolumeSource.HostPath
+		if hostPath == nil {
+			return nil, errors.Errorf("HostPath is currently the only supported VolumeSource")
+		}
+		if hostPath.Type != nil {
+			switch *hostPath.Type {
+			case v1.HostPathDirectoryOrCreate:
+				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
+					if err := os.Mkdir(hostPath.Path, createDirectoryPermission); err != nil {
+						return nil, errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+					}
+				}
+				// unconditionally label a newly created volume as private
+				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+				}
+				break
+			case v1.HostPathFileOrCreate:
+				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
+					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, createFilePermission)
+					if err != nil {
+						return nil, errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
+					}
+					if err := f.Close(); err != nil {
+						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
+					}
+				}
+				// unconditionally label a newly created volume as private
+				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
+				}
+				break
+			case v1.HostPathDirectory:
+			case v1.HostPathFile:
+			case v1.HostPathUnset:
+				// do nothing here because we will verify the path exists in validateVolumeHostDir
+				break
+			default:
+				return nil, errors.Errorf("Directories are the only supported HostPath type")
+			}
+		}
+
+		if err := createconfig.ValidateVolumeHostDir(hostPath.Path); err != nil {
+			return nil, errors.Wrapf(err, "Error in parsing HostPath in YAML")
+		}
+		volumes[volume.Name] = hostPath.Path
+	}
+
+	for _, container := range podYAML.Spec.Containers {
+		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, false, nil)
+		if err != nil {
+			return nil, err
+		}
+		createConfig, err := kubeContainerToCreateConfig(ctx, container, r.Runtime, newImage, namespaces, volumes, pod.ID())
+		if err != nil {
+			return nil, err
+		}
+		ctr, err := shared.CreateContainerFromCreateConfig(r.Runtime, createConfig, ctx, pod)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, ctr)
+	}
+
+	// start the containers
+	for _, ctr := range containers {
+		if err := ctr.Start(ctx, true); err != nil {
+			// Making this a hard failure here to avoid a mess
+			// the other containers are in created status
+			return nil, err
+		}
+	}
+
+	// We've now successfully converted this YAML into a pod
+	// print our pod and containers, signifying we succeeded
+	fmt.Printf("Pod:\n%s\n", pod.ID())
+	if len(containers) == 1 {
+		fmt.Printf("Container:\n")
+	}
+	if len(containers) > 1 {
+		fmt.Printf("Containers:\n")
+	}
+	for _, ctr := range containers {
+		fmt.Println(ctr.ID())
+	}
+
+	if err := playcleanup(ctx, r, pod, nil); err != nil {
+		logrus.Errorf("unable to remove pod %s after failing to play kube", pod.ID())
+	}
+	return nil, nil
+}
+
+func playcleanup(ctx context.Context, runtime *LocalRuntime, pod *libpod.Pod, err error) error {
+	if err != nil && pod != nil {
+		return runtime.RemovePod(ctx, pod, true, true)
+	}
+	return nil
+}
+
+// getPodPorts converts a slice of kube container descriptions to an
+// array of ocicni portmapping descriptions usable in libpod
+func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
+	var infraPorts []ocicni.PortMapping
+	for _, container := range containers {
+		for _, p := range container.Ports {
+			portBinding := ocicni.PortMapping{
+				HostPort:      p.HostPort,
+				ContainerPort: p.ContainerPort,
+				Protocol:      strings.ToLower(string(p.Protocol)),
+			}
+			if p.HostIP != "" {
+				logrus.Debug("HostIP on port bindings is not supported")
+			}
+			infraPorts = append(infraPorts, portBinding)
+		}
+	}
+	return infraPorts
+}
+
+// kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID string) (*createconfig.CreateConfig, error) {
+	var (
+		containerConfig createconfig.CreateConfig
+	)
+
+	// The default for MemorySwappiness is -1, not 0
+	containerConfig.Resources.MemorySwappiness = -1
+
+	containerConfig.Image = containerYAML.Image
+	containerConfig.ImageID = newImage.ID()
+	containerConfig.Name = containerYAML.Name
+	containerConfig.Tty = containerYAML.TTY
+	containerConfig.WorkDir = containerYAML.WorkingDir
+
+	containerConfig.Pod = podID
+
+	imageData, _ := newImage.Inspect(ctx)
+
+	containerConfig.User = "0"
+	if imageData != nil {
+		containerConfig.User = imageData.Config.User
+	}
+
+	if containerConfig.SecurityOpts != nil {
+		if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
+			containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+		}
+		if containerYAML.SecurityContext.Privileged != nil {
+			containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
+		}
+
+		if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
+			containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+		}
+	}
+
+	containerConfig.Command = []string{}
+	if imageData != nil && imageData.Config != nil {
+		containerConfig.Command = append(containerConfig.Command, imageData.Config.Entrypoint...)
+	}
+	if len(containerConfig.Command) != 0 {
+		containerConfig.Command = append(containerConfig.Command, containerYAML.Command...)
+	} else if imageData != nil && imageData.Config != nil {
+		containerConfig.Command = append(containerConfig.Command, imageData.Config.Cmd...)
+	}
+	if imageData != nil && len(containerConfig.Command) == 0 {
+		return nil, errors.Errorf("No command specified in container YAML or as CMD or ENTRYPOINT in this image for %s", containerConfig.Name)
+	}
+
+	containerConfig.StopSignal = 15
+
+	// If the user does not pass in ID mappings, just set to basics
+	if containerConfig.IDMappings == nil {
+		containerConfig.IDMappings = &storage.IDMappingOptions{}
+	}
+
+	containerConfig.NetMode = ns.NetworkMode(namespaces["net"])
+	containerConfig.IpcMode = ns.IpcMode(namespaces["ipc"])
+	containerConfig.UtsMode = ns.UTSMode(namespaces["uts"])
+	// disabled in code review per mheon
+	//containerConfig.PidMode = ns.PidMode(namespaces["pid"])
+	containerConfig.UsernsMode = ns.UsernsMode(namespaces["user"])
+	if len(containerConfig.WorkDir) == 0 {
+		containerConfig.WorkDir = "/"
+	}
+
+	// Set default environment variables and incorporate data from image, if necessary
+	envs := shared.EnvVariablesFromData(imageData)
+
+	// Environment Variables
+	for _, e := range containerYAML.Env {
+		envs[e.Name] = e.Value
+	}
+	containerConfig.Env = envs
+
+	for _, volume := range containerYAML.VolumeMounts {
+		hostPath, exists := volumes[volume.Name]
+		if !exists {
+			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
+		}
+		if err := createconfig.ValidateVolumeCtrDir(volume.MountPath); err != nil {
+			return nil, errors.Wrapf(err, "error in parsing MountPath")
+		}
+		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", hostPath, volume.MountPath))
+	}
+	return &containerConfig, nil
 }

@@ -217,7 +217,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 	// If not using the OCI runtime, we don't need to do most of this.
 	if !useRuntime {
 		// If the container's not running, nothing to do.
-		if ctr.state.State != ContainerStateRunning && ctr.state.State != ContainerStatePaused {
+		if ctr.state.State != define.ContainerStateRunning && ctr.state.State != define.ContainerStatePaused {
 			return nil
 		}
 
@@ -233,7 +233,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 		}
 
 		// Alright, it exists. Transition to Stopped state.
-		ctr.state.State = ContainerStateStopped
+		ctr.state.State = define.ContainerStateStopped
 
 		// Read the exit file to get our stopped time and exit code.
 		return ctr.handleExitFile(exitFile, info)
@@ -264,7 +264,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 			ctr.removeConmonFiles()
 			ctr.state.ExitCode = -1
 			ctr.state.FinishedTime = time.Now()
-			ctr.state.State = ContainerStateExited
+			ctr.state.State = define.ContainerStateExited
 			return nil
 		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
@@ -283,13 +283,13 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 
 	switch state.Status {
 	case "created":
-		ctr.state.State = ContainerStateCreated
+		ctr.state.State = define.ContainerStateCreated
 	case "paused":
-		ctr.state.State = ContainerStatePaused
+		ctr.state.State = define.ContainerStatePaused
 	case "running":
-		ctr.state.State = ContainerStateRunning
+		ctr.state.State = define.ContainerStateRunning
 	case "stopped":
-		ctr.state.State = ContainerStateStopped
+		ctr.state.State = define.ContainerStateStopped
 	default:
 		return errors.Wrapf(define.ErrInternal, "unrecognized status returned by runtime for container %s: %s",
 			ctr.ID(), state.Status)
@@ -297,7 +297,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 
 	// Only grab exit status if we were not already stopped
 	// If we were, it should already be in the database
-	if ctr.state.State == ContainerStateStopped && oldState != ContainerStateStopped {
+	if ctr.state.State == define.ContainerStateStopped && oldState != define.ContainerStateStopped {
 		var fi os.FileInfo
 		chWait := make(chan error)
 		defer close(chWait)

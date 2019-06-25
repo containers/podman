@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/adapter"
 	"os"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +55,7 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 	args := c.InputArgs
 
 	if c.ListDescriptors {
-		descriptors, err := libpod.GetContainerPidInformationDescriptors()
+		descriptors, err := util.GetContainerPidInformationDescriptors()
 		if err != nil {
 			return err
 		}

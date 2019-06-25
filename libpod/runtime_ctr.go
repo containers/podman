@@ -134,7 +134,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
 
 	ctr.valid = true
-	ctr.state.State = ContainerStateConfigured
+	ctr.state.State = config2.ContainerStateConfigured
 	ctr.runtime = r
 
 	if ctr.config.OCIRuntime == "" {
@@ -371,7 +371,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	if c.state.State == ContainerStatePaused {
+	if c.state.State == config2.ContainerStatePaused {
 		if err := c.ociRuntime.killContainer(c, 9); err != nil {
 			return err
 		}
@@ -385,7 +385,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	// Check that the container's in a good state to be removed
-	if c.state.State == ContainerStateRunning {
+	if c.state.State == config2.ContainerStateRunning {
 		if err := c.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
@@ -465,8 +465,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	// Delete the container.
 	// Not needed in Configured and Exited states, where the container
 	// doesn't exist in the runtime
-	if c.state.State != ContainerStateConfigured &&
-		c.state.State != ContainerStateExited {
+	if c.state.State != config2.ContainerStateConfigured &&
+		c.state.State != config2.ContainerStateExited {
 		if err := c.delete(ctx); err != nil {
 			if cleanupErr == nil {
 				cleanupErr = err
@@ -583,7 +583,7 @@ func (r *Runtime) GetAllContainers() ([]*Container, error) {
 func (r *Runtime) GetRunningContainers() ([]*Container, error) {
 	running := func(c *Container) bool {
 		state, _ := c.State()
-		return state == ContainerStateRunning
+		return state == config2.ContainerStateRunning
 	}
 	return r.GetContainers(running)
 }

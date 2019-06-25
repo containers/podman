@@ -258,25 +258,25 @@ func (p *Pod) AllContainers() ([]*Container, error) {
 }
 
 // Status ...
-func (p *Pod) Status() (map[string]libpod.ContainerStatus, error) {
-	ctrs := make(map[string]libpod.ContainerStatus)
+func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
+	ctrs := make(map[string]define.ContainerStatus)
 	for _, i := range p.containers {
-		var status libpod.ContainerStatus
+		var status define.ContainerStatus
 		switch i.State {
 		case "exited":
-			status = libpod.ContainerStateExited
+			status = define.ContainerStateExited
 		case "stopped":
-			status = libpod.ContainerStateStopped
+			status = define.ContainerStateStopped
 		case "running":
-			status = libpod.ContainerStateRunning
+			status = define.ContainerStateRunning
 		case "paused":
-			status = libpod.ContainerStatePaused
+			status = define.ContainerStatePaused
 		case "created":
-			status = libpod.ContainerStateCreated
-		case "configured":
-			status = libpod.ContainerStateConfigured
+			status = define.ContainerStateCreated
+		case "define.red":
+			status = define.ContainerStateConfigured
 		default:
-			status = libpod.ContainerStateUnknown
+			status = define.ContainerStateUnknown
 		}
 		ctrs[i.ID] = status
 	}
@@ -563,4 +563,9 @@ func (r *LocalRuntime) PrunePods(ctx context.Context, cli *cliconfig.PodPruneVal
 		}
 	}
 	return ok, failures, nil
+}
+
+// PlayKubeYAML creates pods and containers from a kube YAML file
+func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayValues, yamlFile string) (*Pod, error) {
+	return nil, define.ErrNotImplemented
 }

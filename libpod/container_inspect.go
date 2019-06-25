@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/containers/image/manifest"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -255,8 +256,8 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		State: &InspectContainerState{
 			OciVersion: spec.Version,
 			Status:     runtimeInfo.State.String(),
-			Running:    runtimeInfo.State == ContainerStateRunning,
-			Paused:     runtimeInfo.State == ContainerStatePaused,
+			Running:    runtimeInfo.State == define.ContainerStateRunning,
+			Paused:     runtimeInfo.State == define.ContainerStatePaused,
 			OOMKilled:  runtimeInfo.OOMKilled,
 			Dead:       runtimeInfo.State.String() == "bad state",
 			Pid:        runtimeInfo.PID,

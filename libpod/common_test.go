@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -49,7 +50,7 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			},
 		},
 		state: &ContainerState{
-			State:      ContainerStateRunning,
+			State:      define.ContainerStateRunning,
 			ConfigPath: "/does/not/exist/specs/" + id,
 			RunDir:     "/does/not/exist/tmp/",
 			Mounted:    true,

@@ -1,4 +1,4 @@
-// +build linux
+// +build !remoteclient
 
 package main
 
@@ -8,8 +8,7 @@ import (
 	"os/exec"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -41,10 +40,10 @@ func init() {
 	flags.SetInterspersed(false)
 }
 
-func unshareEnv(config *libpod.RuntimeConfig) []string {
+func unshareEnv(graphroot, runroot string) []string {
 	return append(os.Environ(), "_CONTAINERS_USERNS_CONFIGURED=done",
-		fmt.Sprintf("CONTAINERS_GRAPHROOT=%s", config.StorageConfig.GraphRoot),
-		fmt.Sprintf("CONTAINERS_RUNROOT=%s", config.StorageConfig.RunRoot))
+		fmt.Sprintf("CONTAINERS_GRAPHROOT=%s", graphroot),
+		fmt.Sprintf("CONTAINERS_RUNROOT=%s", runroot))
 }
 
 // unshareCmd execs whatever using the ID mappings that we want to use for ourselves
@@ -63,7 +62,7 @@ func unshareCmd(c *cliconfig.PodmanCommand) error {
 		c.InputArgs = []string{shell}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(getContext(), c)
+	runtime, err := adapter.GetRuntime(getContext(), c)
 	if err != nil {
 		return err
 	}
@@ -73,7 +72,7 @@ func unshareCmd(c *cliconfig.PodmanCommand) error {
 	}
 
 	cmd := exec.Command(c.InputArgs[0], c.InputArgs[1:]...)
-	cmd.Env = unshareEnv(runtimeConfig)
+	cmd.Env = unshareEnv(runtimeConfig.StorageConfig.GraphRoot, runtimeConfig.StorageConfig.RunRoot)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

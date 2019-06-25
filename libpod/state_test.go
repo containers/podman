@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
@@ -700,7 +701,7 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		require.NoError(t, err)
 
-		retrievedCtr.state.State = ContainerStateStopped
+		retrievedCtr.state.State = define.ContainerStateStopped
 		retrievedCtr.state.ExitCode = 127
 		retrievedCtr.state.FinishedTime = time.Now()
 
@@ -729,7 +730,7 @@ func TestSaveAndUpdateContainerSameNamespaceSucceeds(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		retrievedCtr.state.State = ContainerStateStopped
+		retrievedCtr.state.State = define.ContainerStateStopped
 		retrievedCtr.state.ExitCode = 127
 		retrievedCtr.state.FinishedTime = time.Now()
 

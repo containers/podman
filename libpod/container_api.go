@@ -36,9 +36,9 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		}
 	}
 
-	if !(c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateStopped ||
-		c.state.State == ContainerStateExited) {
+	if !(c.state.State == define.ContainerStateConfigured ||
+		c.state.State == define.ContainerStateStopped ||
+		c.state.State == define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
@@ -54,7 +54,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		return err
 	}
 
-	if c.state.State == ContainerStateStopped {
+	if c.state.State == define.ContainerStateStopped {
 		// Reinitialize the container
 		return c.reinit(ctx, false)
 	}
@@ -181,14 +181,14 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		}
 	}
 
-	if c.state.State == ContainerStateConfigured ||
-		c.state.State == ContainerStateUnknown ||
-		c.state.State == ContainerStatePaused {
+	if c.state.State == define.ContainerStateConfigured ||
+		c.state.State == define.ContainerStateUnknown ||
+		c.state.State == define.ContainerStatePaused {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
-	if c.state.State == ContainerStateStopped ||
-		c.state.State == ContainerStateExited {
+	if c.state.State == define.ContainerStateStopped ||
+		c.state.State == define.ContainerStateExited {
 		return define.ErrCtrStopped
 	}
 	defer c.newContainerEvent(events.Stop)
@@ -206,7 +206,7 @@ func (c *Container) Kill(signal uint) error {
 		}
 	}
 
-	if c.state.State != ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
@@ -244,7 +244,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	conState := c.state.State
 
 	// TODO can probably relax this once we track exec sessions
-	if conState != ContainerStateRunning {
+	if conState != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 	if privileged || c.config.Privileged {
@@ -402,9 +402,9 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		c.lock.Unlock()
 	}
 
-	if c.state.State != ContainerStateCreated &&
-		c.state.State != ContainerStateRunning &&
-		c.state.State != ContainerStateExited {
+	if c.state.State != define.ContainerStateCreated &&
+		c.state.State != define.ContainerStateRunning &&
+		c.state.State != define.ContainerStateExited {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 	defer c.newContainerEvent(events.Attach)
@@ -443,7 +443,7 @@ func (c *Container) Unmount(force bool) error {
 			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
 		}
 		if mounted == 1 {
-			if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+			if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
 				return errors.Wrapf(define.ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
 			}
 			if len(c.state.ExecSessions) != 0 {
@@ -467,10 +467,10 @@ func (c *Container) Pause() error {
 		}
 	}
 
-	if c.state.State == ContainerStatePaused {
+	if c.state.State == define.ContainerStatePaused {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is already paused", c.ID())
 	}
-	if c.state.State != ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, can't pause", c.state.State)
 	}
 	defer c.newContainerEvent(events.Pause)
@@ -488,7 +488,7 @@ func (c *Container) Unpause() error {
 		}
 	}
 
-	if c.state.State != ContainerStatePaused {
+	if c.state.State != define.ContainerStatePaused {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not paused, can't unpause", c.ID())
 	}
 	defer c.newContainerEvent(events.Unpause)
@@ -581,7 +581,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	// Check if state is good
-	if c.state.State == ContainerStateRunning || c.state.State == ContainerStatePaused {
+	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
 
@@ -659,9 +659,9 @@ func (c *Container) Sync() error {
 
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if (c.state.State != ContainerStateUnknown) &&
-		(c.state.State != ContainerStateConfigured) &&
-		(c.state.State != ContainerStateExited) {
+	if (c.state.State != define.ContainerStateUnknown) &&
+		(c.state.State != define.ContainerStateConfigured) &&
+		(c.state.State != define.ContainerStateExited) {
 		oldState := c.state.State
 		if err := c.ociRuntime.updateContainerStatus(c, true); err != nil {
 			return err
@@ -690,27 +690,27 @@ func (c *Container) Refresh(ctx context.Context) error {
 	}
 
 	wasCreated := false
-	if c.state.State == ContainerStateCreated {
+	if c.state.State == define.ContainerStateCreated {
 		wasCreated = true
 	}
 	wasRunning := false
-	if c.state.State == ContainerStateRunning {
+	if c.state.State == define.ContainerStateRunning {
 		wasRunning = true
 	}
 	wasPaused := false
-	if c.state.State == ContainerStatePaused {
+	if c.state.State == define.ContainerStatePaused {
 		wasPaused = true
 	}
 
 	// First, unpause the container if it's paused
-	if c.state.State == ContainerStatePaused {
+	if c.state.State == define.ContainerStatePaused {
 		if err := c.unpause(); err != nil {
 			return err
 		}
 	}
 
 	// Next, if the container is running, stop it
-	if c.state.State == ContainerStateRunning {
+	if c.state.State == define.ContainerStateRunning {
 		if err := c.stop(c.config.StopTimeout); err != nil {
 			return err
 		}
@@ -727,7 +727,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// If the container is in ContainerStateStopped, we need to delete it
 	// from the runtime and clear conmon state
-	if c.state.State == ContainerStateStopped {
+	if c.state.State == define.ContainerStateStopped {
 		if err := c.delete(ctx); err != nil {
 			return err
 		}

@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -43,12 +43,6 @@ func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
 		return errors.Wrap(err, "could not get runtime")
 	}
 	status, err := runtime.HealthCheck(c)
-	if err != nil {
-		if status == libpod.HealthCheckFailure {
-			fmt.Println("\nunhealthy")
-		}
-		return err
-	}
-	fmt.Println("healthy")
-	return nil
+	fmt.Println(status)
+	return err
 }

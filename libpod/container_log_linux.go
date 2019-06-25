@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/logs"
 	journal "github.com/coreos/go-systemd/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,7 @@ const (
 	bufLen = 16384
 )
 
-func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLine) error {
+func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	var config journal.JournalReaderConfig
 	config.NumFromTail = options.Tail
 	config.Formatter = journalFormatter
@@ -79,7 +80,7 @@ func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLin
 			// because we are reusing bytes, we need to make
 			// sure the old data doesn't get into the new line
 			bytestr := string(bytes[:ec])
-			logLine, err2 := newLogLine(bytestr)
+			logLine, err2 := logs.NewLogLine(bytestr)
 			if err2 != nil {
 				logrus.Error(err2)
 				continue
@@ -98,7 +99,7 @@ func (c *Container) readFromJournal(options *LogOptions, logChannel chan *LogLin
 
 func journalFormatter(entry *journal.JournalEntry) (string, error) {
 	usec := entry.RealtimeTimestamp
-	tsString := time.Unix(0, int64(usec)*int64(time.Microsecond)).Format(logTimeFormat)
+	tsString := time.Unix(0, int64(usec)*int64(time.Microsecond)).Format(logs.LogTimeFormat)
 	output := fmt.Sprintf("%s ", tsString)
 	priority, ok := entry.Fields["PRIORITY"]
 	if !ok {
@@ -114,9 +115,9 @@ func journalFormatter(entry *journal.JournalEntry) (string, error) {
 
 	// if CONTAINER_PARTIAL_MESSAGE is defined, the log type is "P"
 	if _, ok := entry.Fields["CONTAINER_PARTIAL_MESSAGE"]; ok {
-		output += fmt.Sprintf("%s ", partialLogType)
+		output += fmt.Sprintf("%s ", logs.PartialLogType)
 	} else {
-		output += fmt.Sprintf("%s ", fullLogType)
+		output += fmt.Sprintf("%s ", logs.FullLogType)
 	}
 
 	// Finally, append the message
@@ -129,12 +130,12 @@ func journalFormatter(entry *journal.JournalEntry) (string, error) {
 }
 
 type FollowBuffer struct {
-	logChannel chan *LogLine
+	logChannel chan *logs.LogLine
 }
 
 func (f FollowBuffer) Write(p []byte) (int, error) {
 	bytestr := string(p)
-	logLine, err := newLogLine(bytestr)
+	logLine, err := logs.NewLogLine(bytestr)
 	if err != nil {
 		return -1, err
 	}
