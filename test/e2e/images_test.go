@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	"github.com/docker/go-units"
@@ -317,5 +318,74 @@ LABEL "com.example.vendor"="Example Vendor"
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman with images with no layers", func() {
+		if podmanTest.RemoteTest {
+			Skip("Does not work on remote client")
+		}
+
+		dockerfile := strings.Join([]string{
+			`FROM scratch`,
+			`LABEL org.opencontainers.image.authors="<somefolks@example.org>"`,
+			`LABEL org.opencontainers.image.created=2019-06-11T19:03:37Z`,
+			`LABEL org.opencontainers.image.description="This is a test image"`,
+			`LABEL org.opencontainers.image.title=test`,
+			`LABEL org.opencontainers.image.vendor="Example.org"`,
+			`LABEL org.opencontainers.image.version=1`,
+		}, "\n")
+		podmanTest.BuildImage(dockerfile, "foo", "true")
+
+		session := podmanTest.Podman([]string{"images", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"image", "tree", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(MatchRegexp("No Image Layers"))
+
+		session = podmanTest.Podman([]string{"history", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"history", "--quiet", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(6))
+
+		session = podmanTest.Podman([]string{"image", "list", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"image", "list"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Equal("[]"))
 	})
 })
