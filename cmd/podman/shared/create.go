@@ -690,7 +690,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		StopTimeout:   c.Uint("stop-timeout"),
 		Sysctl:        sysctl,
 		Systemd:       systemd,
-		Tmpfs:         c.StringSlice("tmpfs"),
+		Tmpfs:         c.StringArray("tmpfs"),
 		Tty:           tty,
 		User:          user,
 		UsernsMode:    usernsMode,
