@@ -27,7 +27,10 @@ Print usage statement
 
 **--cgroup-manager**=*manager*
 
-CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd (default). Setting this flag can cause certain commands to break when called on containers created by the other CGroup manager type.
+CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the libpod.conf file.
+
+Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
+Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
 
 **--cpu-profile**=*path*
 
