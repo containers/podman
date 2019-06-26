@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 )
 
@@ -26,7 +27,7 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	}
 
 	if c.state.State != ContainerStateRunning {
-		return stats, ErrCtrStateInvalid
+		return stats, define.ErrCtrStateInvalid
 	}
 
 	cgroupPath, err := c.CGroupPath()

@@ -3,6 +3,7 @@ package libpod
 import (
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
@@ -190,7 +191,7 @@ func (p *Pod) CgroupPath() (string, error) {
 // HasContainer checks if a container is present in the pod
 func (p *Pod) HasContainer(id string) (bool, error) {
 	if !p.valid {
-		return false, ErrPodRemoved
+		return false, define.ErrPodRemoved
 	}
 
 	return p.runtime.state.PodHasContainer(p, id)
@@ -202,7 +203,7 @@ func (p *Pod) AllContainersByID() ([]string, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	return p.runtime.state.PodContainersByID(p)
@@ -211,7 +212,7 @@ func (p *Pod) AllContainersByID() ([]string, error) {
 // AllContainers retrieves the containers in the pod
 func (p *Pod) AllContainers() ([]*Container, error) {
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -280,7 +281,7 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (ma
 		newStats, err := c.GetContainerStats(prevStat)
 		// If the container wasn't running, don't include it
 		// but also suppress the error
-		if err != nil && errors.Cause(err) != ErrCtrStateInvalid {
+		if err != nil && errors.Cause(err) != define.ErrCtrStateInvalid {
 			return nil, err
 		}
 		if err == nil {

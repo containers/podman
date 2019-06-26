@@ -10,7 +10,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -169,7 +169,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 				name := cmd[i+1]
 				ctr, err := runtime.LookupContainer(name)
 				if err != nil {
-					if errors.Cause(err) != libpod.ErrNoSuchCtr {
+					if errors.Cause(err) != define.ErrNoSuchCtr {
 						logrus.Debugf("Error occurred searching for container %s: %s", name, err.Error())
 						return err
 					}

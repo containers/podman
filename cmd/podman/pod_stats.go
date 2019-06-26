@@ -13,6 +13,7 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -153,7 +154,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		for _, p := range pods {
 			prevStat := getPreviousPodContainerStats(p.ID(), previousPodStats)
 			newPodStats, err := p.GetPodStats(prevStat)
-			if errors.Cause(err) == libpod.ErrNoSuchPod {
+			if errors.Cause(err) == define.ErrNoSuchPod {
 				continue
 			}
 			if err != nil {

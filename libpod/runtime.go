@@ -14,6 +14,7 @@ import (
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
@@ -75,9 +76,6 @@ var (
 	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
 	// DefaultInfraCommand to be run in an infra container
 	DefaultInfraCommand = "/pause"
-
-	// DefaultInitPath is the default path to the container-init binary
-	DefaultInitPath = "/usr/libexec/podman/catatonit"
 
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
@@ -299,7 +297,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		InitPath:              DefaultInitPath,
+		InitPath:              define.DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
 		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
 		TmpDir:                "",
@@ -655,7 +653,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		break
 	}
 	if !foundConmon {
-		return errors.Wrapf(ErrInvalidArg,
+		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
 			runtime.config.ConmonPath)
 	}
@@ -678,7 +676,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.state = state
 	case SQLiteStateStore:
-		return errors.Wrapf(ErrInvalidArg, "SQLite state is currently disabled")
+		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
 	case BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
 
@@ -688,7 +686,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.state = state
 	default:
-		return errors.Wrapf(ErrInvalidArg, "unrecognized state type passed")
+		return errors.Wrapf(define.ErrInvalidArg, "unrecognized state type passed")
 	}
 
 	// Grab config from the database so we can reset some defaults
@@ -848,7 +846,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 
 		if len(runtime.config.RuntimePath) == 0 {
-			return errors.Wrapf(ErrInvalidArg, "empty runtime path array passed")
+			return errors.Wrapf(define.ErrInvalidArg, "empty runtime path array passed")
 		}
 
 		name := filepath.Base(runtime.config.RuntimePath[0])
@@ -873,7 +871,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
 		if len(paths) == 0 {
-			return errors.Wrapf(ErrInvalidArg, "must provide at least 1 path to OCI runtime %s", name)
+			return errors.Wrapf(define.ErrInvalidArg, "must provide at least 1 path to OCI runtime %s", name)
 		}
 
 		supportsJSON := false
@@ -922,7 +920,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		} else {
 			ociRuntime, ok := runtime.ociRuntimes[runtime.config.OCIRuntime]
 			if !ok {
-				return errors.Wrapf(ErrInvalidArg, "default OCI runtime %q not found", runtime.config.OCIRuntime)
+				return errors.Wrapf(define.ErrInvalidArg, "default OCI runtime %q not found", runtime.config.OCIRuntime)
 			}
 			runtime.defaultOCIRuntime = ociRuntime
 		}
@@ -930,12 +928,12 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Do we have at least one valid OCI runtime?
 	if len(runtime.ociRuntimes) == 0 {
-		return errors.Wrapf(ErrInvalidArg, "no OCI runtime has been configured")
+		return errors.Wrapf(define.ErrInvalidArg, "no OCI runtime has been configured")
 	}
 
 	// Do we have a default runtime?
 	if runtime.defaultOCIRuntime == nil {
-		return errors.Wrapf(ErrInvalidArg, "no default OCI runtime was configured")
+		return errors.Wrapf(define.ErrInvalidArg, "no default OCI runtime was configured")
 	}
 
 	// Make the per-boot files directory if it does not exist
@@ -1087,7 +1085,7 @@ func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	config := new(RuntimeConfig)
@@ -1109,7 +1107,7 @@ func (r *Runtime) Shutdown(force bool) error {
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return define.ErrRuntimeStopped
 	}
 
 	r.valid = false
@@ -1121,7 +1119,7 @@ func (r *Runtime) Shutdown(force bool) error {
 			logrus.Errorf("Error retrieving containers from database: %v", err)
 		} else {
 			for _, ctr := range ctrs {
-				if err := ctr.StopWithTimeout(CtrRemoveTimeout); err != nil {
+				if err := ctr.StopWithTimeout(define.CtrRemoveTimeout); err != nil {
 					logrus.Errorf("Error stopping container %s: %v", ctr.ID(), err)
 				}
 			}
@@ -1242,7 +1240,7 @@ func (r *Runtime) generateName() (string, error) {
 		if _, err := r.state.LookupContainer(name); err == nil {
 			continue
 		} else {
-			if errors.Cause(err) != ErrNoSuchCtr {
+			if errors.Cause(err) != define.ErrNoSuchCtr {
 				return "", err
 			}
 		}
@@ -1250,7 +1248,7 @@ func (r *Runtime) generateName() (string, error) {
 		if _, err := r.state.LookupPod(name); err == nil {
 			continue
 		} else {
-			if errors.Cause(err) != ErrNoSuchPod {
+			if errors.Cause(err) != define.ErrNoSuchPod {
 				return "", err
 			}
 		}

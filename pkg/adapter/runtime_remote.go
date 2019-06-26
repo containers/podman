@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/utils"
@@ -527,12 +528,12 @@ func (r *LocalRuntime) SendFileOverVarlink(source string) (string, error) {
 
 // GetAllVolumes retrieves all the volumes
 func (r *LocalRuntime) GetAllVolumes() ([]*libpod.Volume, error) {
-	return nil, libpod.ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }
 
 // RemoveVolume removes a volumes
 func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force, prune bool) error {
-	return libpod.ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 // GetContainers retrieves all containers from the state
@@ -540,14 +541,14 @@ func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
 func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libpod.Container, error) {
-	return nil, libpod.ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force, volumes bool) error {
-	return libpod.ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 // CreateVolume creates a volume over a varlink connection for the remote client
@@ -771,7 +772,7 @@ func IsImageNotFound(err error) bool {
 
 // HealthCheck executes a container's healthcheck over a varlink connection
 func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
-	return -1, libpod.ErrNotImplemented
+	return -1, define.ErrNotImplemented
 }
 
 // Events monitors libpod/podman events over a varlink connection

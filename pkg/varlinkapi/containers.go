@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/archive"
@@ -119,7 +120,7 @@ func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, lates
 
 	ctrs, err := shortcuts.GetContainersByContext(all, latest, input, i.Runtime)
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
 			return call.ReplyContainerNotFound("", err.Error())
 		}
 		return call.ReplyErrorOccurred(err.Error())
@@ -326,7 +327,7 @@ func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) er
 	}
 	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyNoContainerRunning()
 		}
 		return call.ReplyErrorOccurred(err.Error())
@@ -379,7 +380,7 @@ func (i *LibpodAPI) InitContainer(call iopodman.VarlinkCall, name string) error 
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.Init(getContext()); err != nil {
-		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyInvalidState(ctr.ID(), err.Error())
 		}
 		return call.ReplyErrorOccurred(err.Error())
@@ -394,10 +395,10 @@ func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeou
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := ctr.StopWithTimeout(uint(timeout)); err != nil {
-		if errors.Cause(err) == libpod.ErrCtrStopped {
+		if errors.Cause(err) == define.ErrCtrStopped {
 			return call.ReplyErrCtrStopped(ctr.ID())
 		}
-		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyInvalidState(ctr.ID(), err.Error())
 		}
 		return call.ReplyErrorOccurred(err.Error())
@@ -420,7 +421,7 @@ func (i *LibpodAPI) RestartContainer(call iopodman.VarlinkCall, name string, tim
 // ContainerExists looks in local storage for the existence of a container
 func (i *LibpodAPI) ContainerExists(call iopodman.VarlinkCall, name string) error {
 	_, err := i.Runtime.LookupContainer(name)
-	if errors.Cause(err) == libpod.ErrNoSuchCtr {
+	if errors.Cause(err) == define.ErrNoSuchCtr {
 		return call.ReplyContainerExists(1)
 	}
 	if err != nil {

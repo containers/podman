@@ -5,18 +5,20 @@ package libpod
 import (
 	"os"
 	"os/exec"
+
+	"github.com/containers/libpod/libpod/define"
 )
 
 func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd *exec.Cmd) error {
-	return ErrOSNotSupported
+	return define.ErrOSNotSupported
 }
 
 func newPipe() (parent *os.File, child *os.File, err error) {
-	return nil, nil, ErrNotImplemented
+	return nil, nil, define.ErrNotImplemented
 }
 
 func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (r *OCIRuntime) pathPackage() string {
@@ -28,13 +30,13 @@ func (r *OCIRuntime) conmonPackage() string {
 }
 
 func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
-	return ErrOSNotSupported
+	return define.ErrOSNotSupported
 }
 
 func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
-	return ErrOSNotSupported
+	return define.ErrOSNotSupported
 }
 
 func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
-	return ErrOSNotSupported
+	return define.ErrOSNotSupported
 }

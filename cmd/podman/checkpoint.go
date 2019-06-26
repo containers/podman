@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -59,13 +58,7 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
 
-	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Keep,
-		KeepRunning:    c.LeaveRunning,
-		TCPEstablished: c.TcpEstablished,
-		TargetFile:     c.Export,
-	}
-	return runtime.Checkpoint(c, options)
+	defer runtime.Shutdown(false)
+	return runtime.Checkpoint(c)
 }

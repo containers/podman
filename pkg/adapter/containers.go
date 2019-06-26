@@ -21,6 +21,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
@@ -96,10 +97,10 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 			func() error {
 				err := c.StopWithTimeout(*timeout)
 				if err != nil {
-					if errors.Cause(err) == libpod.ErrCtrStopped {
+					if errors.Cause(err) == define.ErrCtrStopped {
 						logrus.Debugf("Container %s is already stopped", c.ID())
 						return nil
-					} else if cli.All && errors.Cause(err) == libpod.ErrCtrStateInvalid {
+					} else if cli.All && errors.Cause(err) == define.ErrCtrStateInvalid {
 						logrus.Debugf("Container %s is not running, could not stop", c.ID())
 						return nil
 					}
@@ -165,7 +166,7 @@ func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitVa
 				err := ctr.Init(ctx)
 				if err != nil {
 					// If we're initializing all containers, ignore invalid state errors
-					if cli.All && errors.Cause(err) == libpod.ErrCtrStateInvalid {
+					if cli.All && errors.Cause(err) == define.ErrCtrStateInvalid {
 						return nil
 					}
 					return err
@@ -376,7 +377,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 			case "stdin":
 				inputStream = os.Stdin
 			default:
-				return exitCode, errors.Wrapf(libpod.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
+				return exitCode, errors.Wrapf(define.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
 			}
 		}
 	}
@@ -385,7 +386,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
-		if errors.Cause(err) == libpod.ErrDetach {
+		if errors.Cause(err) == define.ErrDetach {
 			exitCode = 0
 			return exitCode, nil
 		}
@@ -403,7 +404,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	}
 
 	if ecode, err := ctr.Wait(); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
 			// The container may have been removed
 			// Go looking for an exit file
 			config, err := r.Runtime.GetConfig()
@@ -496,19 +497,25 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 		inputStream = nil
 	}
 	// If the container is in a pod, also set to recursively start dependencies
-	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != libpod.ErrDetach {
+	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 	return nil
 }
 
 // Checkpoint one or more containers
-func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 	var (
 		containers     []*libpod.Container
 		err, lastError error
 	)
 
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           c.Keep,
+		KeepRunning:    c.LeaveRunning,
+		TCPEstablished: c.TcpEstablished,
+		TargetFile:     c.Export,
+	}
 	if c.All {
 		containers, err = r.Runtime.GetRunningContainers()
 	} else {
@@ -610,7 +617,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 			// attach to the container and also start it not already running
 			// If the container is in a pod, also set to recursively start dependencies
 			err = StartAttachCtr(ctx, ctr.Container, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
-			if errors.Cause(err) == libpod.ErrDetach {
+			if errors.Cause(err) == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
 				exitCode = 0
@@ -626,7 +633,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 			}
 
 			if ecode, err := ctr.Wait(); err != nil {
-				if errors.Cause(err) == libpod.ErrNoSuchCtr {
+				if errors.Cause(err) == define.ErrNoSuchCtr {
 					// The container may have been removed
 					// Go looking for an exit file
 					rtc, err := r.GetConfig()

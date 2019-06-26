@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/kubeutils"
 	"github.com/containers/libpod/utils"
 	"github.com/docker/docker/pkg/term"
@@ -34,7 +35,7 @@ const (
 // Does not check if state is appropriate
 func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, wg *sync.WaitGroup) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
-		return errors.Wrapf(ErrInvalidArg, "must provide at least one stream to attach to")
+		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 
 	// Check the validity of the provided keys first
@@ -57,7 +58,7 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 // TODO add a channel to allow interrupting
 func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams, startContainer bool, wg *sync.WaitGroup) error {
 	if startContainer && wg == nil {
-		return errors.Wrapf(ErrInternal, "wait group not passed when startContainer set")
+		return errors.Wrapf(define.ErrInternal, "wait group not passed when startContainer set")
 	}
 
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
@@ -118,7 +119,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	case err := <-receiveStdoutError:
 		return err
 	case err := <-stdinDone:
-		if err == ErrDetach {
+		if err == define.ErrDetach {
 			return err
 		}
 		if streams.AttachOutput || streams.AttachError {

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -434,19 +435,19 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(data, &ociErr); err == nil {
-						return errors.Wrapf(ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
+						return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
 					}
 				}
 			}
 			// If we failed to parse the JSON errors, then print the output as it is
 			if ss.si.Message != "" {
-				return errors.Wrapf(ErrOCIRuntime, "%s", ss.si.Message)
+				return errors.Wrapf(define.ErrOCIRuntime, "%s", ss.si.Message)
 			}
-			return errors.Wrapf(ErrInternal, "container create failed")
+			return errors.Wrapf(define.ErrInternal, "container create failed")
 		}
 		ctr.state.PID = ss.si.Pid
 	case <-time.After(ContainerCreateTimeout):
-		return errors.Wrapf(ErrInternal, "container creation timeout")
+		return errors.Wrapf(define.ErrInternal, "container creation timeout")
 	}
 	return nil
 }

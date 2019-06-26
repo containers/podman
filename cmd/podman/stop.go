@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -40,8 +40,8 @@ func init() {
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.UintVar(&stopCommand.Timeout, "time", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", libpod.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&stopCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 

@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -31,7 +32,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return "", ErrRuntimeStopped
+		return "", define.ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers

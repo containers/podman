@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -79,7 +80,7 @@ type ociError struct {
 // The first path that points to a valid executable will be used.
 func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON bool) (*OCIRuntime, error) {
 	if name == "" {
-		return nil, errors.Wrapf(ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
+		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
 	}
 
 	runtime := new(OCIRuntime)
@@ -114,14 +115,14 @@ func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *R
 		break
 	}
 	if !foundPath {
-		return nil, errors.Wrapf(ErrInvalidArg, "no valid executable found for OCI runtime %s", name)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "no valid executable found for OCI runtime %s", name)
 	}
 
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
 
 	if runtime.cgroupManager != CgroupfsCgroupsManager && runtime.cgroupManager != SystemdCgroupsManager {
-		return nil, errors.Wrapf(ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
 	}
 
 	// Create the exit files and attach sockets directories
@@ -290,7 +291,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 	case "stopped":
 		ctr.state.State = ContainerStateStopped
 	default:
-		return errors.Wrapf(ErrInternal, "unrecognized status returned by runtime for container %s: %s",
+		return errors.Wrapf(define.ErrInternal, "unrecognized status returned by runtime for container %s: %s",
 			ctr.ID(), state.Status)
 	}
 
@@ -390,11 +391,11 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 // TODO: add --pid-file and use that to generate exec session tracking
 func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams, preserveFDs int) (*exec.Cmd, error) {
 	if len(cmd) == 0 {
-		return nil, errors.Wrapf(ErrInvalidArg, "must provide a command to execute")
+		return nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
 	}
 
 	if sessionID == "" {
-		return nil, errors.Wrapf(ErrEmptyID, "must provide a session ID for exec")
+		return nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
 	}
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()

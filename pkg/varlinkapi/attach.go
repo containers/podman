@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
@@ -78,7 +79,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
 	}
 
-	if finalErr != libpod.ErrDetach && finalErr != nil {
+	if finalErr != define.ErrDetach && finalErr != nil {
 		logrus.Error(finalErr)
 	}
 	quitWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.Quit)

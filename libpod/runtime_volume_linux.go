@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
@@ -20,7 +21,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 	return r.newVolume(ctx, options...)
 }
@@ -86,7 +87,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		if ok, _ := r.state.HasVolume(v.Name()); !ok {
 			return nil
 		}
-		return ErrVolumeRemoved
+		return define.ErrVolumeRemoved
 	}
 
 	deps, err := r.state.VolumeInUse(v)
@@ -96,7 +97,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 	if len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
 		if !force {
-			return errors.Wrapf(ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
+			return errors.Wrapf(define.ErrVolumeBeingUsed, "volume %s is being used by the following container(s): %s", v.Name(), depsStr)
 		}
 
 		// We need to remove all containers using the volume
@@ -105,7 +106,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 			if err != nil {
 				// If the container's removed, no point in
 				// erroring.
-				if errors.Cause(err) == ErrNoSuchCtr || errors.Cause(err) == ErrCtrRemoved {
+				if errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrRemoved {
 					continue
 				}
 
