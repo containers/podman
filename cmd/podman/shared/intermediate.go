@@ -448,7 +448,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["subuidname"] = newCRString(c, "subuidname")
 	m["sysctl"] = newCRStringSlice(c, "sysctl")
 	m["systemd"] = newCRBool(c, "systemd")
-	m["tmpfs"] = newCRStringSlice(c, "tmpfs")
+	m["tmpfs"] = newCRStringArray(c, "tmpfs")
 	m["tty"] = newCRBool(c, "tty")
 	m["uidmap"] = newCRStringSlice(c, "uidmap")
 	m["ulimit"] = newCRStringSlice(c, "ulimit")
