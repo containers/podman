@@ -1,3 +1,5 @@
+// +build linux,cgo
+
 package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
