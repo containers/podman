@@ -1,14 +1,21 @@
-// +build !linux
+// +build !linux !cgo
 
 package rootless
 
 import (
+	"os"
+
 	"github.com/pkg/errors"
 )
 
-// IsRootless returns false on all non-linux platforms
+// IsRootless returns whether the user is rootless
 func IsRootless() bool {
-	return false
+	uid := os.Geteuid()
+	// os.Geteuid() on Windows returns -1
+	if uid == -1 {
+		return false
+	}
+	return uid != 0
 }
 
 // BecomeRootInUserNS re-exec podman in a new userNS.  It returns whether podman was re-executed
