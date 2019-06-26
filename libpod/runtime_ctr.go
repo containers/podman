@@ -191,6 +191,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 					return nil, errors.Wrapf(err, "error retrieving pod %s cgroup", pod.ID())
 				}
 				ctr.config.CgroupParent = podCgroup
+			} else if rootless.IsRootless() {
+				ctr.config.CgroupParent = SystemdDefaultRootlessCgroupParent
 			} else {
 				ctr.config.CgroupParent = SystemdDefaultCgroupParent
 			}

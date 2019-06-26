@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -49,13 +49,13 @@ func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd
 			}
 		} else {
 			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-			control, err := cgroups.New(cgroups.V1, cgroups.StaticPath(cgroupPath), &spec.LinuxResources{})
+			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			} else {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				if err := control.Add(cgroups.Process{Pid: cmd.Process.Pid}); err != nil {
+				if err := control.AddPid(cmd.Process.Pid); err != nil {
 					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 				}
 			}

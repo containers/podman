@@ -14,7 +14,6 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
-	github.com/containerd/cgroups v0.0.0-20190620142518-db272301ab84
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
