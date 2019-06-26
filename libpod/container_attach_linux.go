@@ -19,10 +19,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-//#include <sys/un.h>
-// extern int unix_path_length(){struct sockaddr_un addr; return sizeof(addr.sun_path) - 1;}
-import "C"
-
 /* Sync with stdpipe_t in conmon.c */
 const (
 	AttachPipeStdin  = 1
@@ -80,7 +76,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 
 	socketPath := c.AttachSocketPath()
 
-	maxUnixLength := int(C.unix_path_length())
+	maxUnixLength := unixPathLength()
 	if maxUnixLength < len(socketPath) {
 		socketPath = socketPath[0:maxUnixLength]
 	}
