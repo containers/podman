@@ -373,7 +373,7 @@ func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 func homeDir() (string, error) {
 	home := os.Getenv("HOME")
 	if home == "" {
-		usr, err := user.Current()
+		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to resolve HOME directory")
 		}
@@ -391,28 +391,33 @@ func getRootlessConfigPath() (string, error) {
 	return filepath.Join(home, ".config/containers/libpod.conf"), nil
 }
 
-func getConfigPath() string {
+func getConfigPath() (string, error) {
 	if rootless.IsRootless() {
-		rootlessConfigPath, err := getRootlessConfigPath()
+		path, err := getRootlessConfigPath()
 		if err != nil {
-			if _, err := os.Stat(rootlessConfigPath); err == nil {
-				return rootlessConfigPath
-			}
+			return "", err
 		}
+		if _, err := os.Stat(path); err == nil {
+			return path, nil
+		}
+		return "", err
 	}
 	if _, err := os.Stat(OverrideConfigPath); err == nil {
 		// Use the override configuration path
-		return OverrideConfigPath
+		return OverrideConfigPath, nil
 	}
 	if _, err := os.Stat(ConfigPath); err == nil {
-		return ConfigPath
+		return ConfigPath, nil
 	}
-	return ""
+	return "", nil
 }
 
 // DefaultRuntimeConfig reads default config path and returns the RuntimeConfig
 func DefaultRuntimeConfig() (*RuntimeConfig, error) {
-	configPath := getConfigPath()
+	configPath, err := getConfigPath()
+	if err != nil {
+		return nil, err
+	}
 
 	contents, err := ioutil.ReadFile(configPath)
 	if err != nil {
@@ -460,8 +465,10 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
 	runtime.config.VolumePath = filepath.Join(storageConf.GraphRoot, "volumes")
 
-	configPath := getConfigPath()
-	rootlessConfigPath := ""
+	configPath, err := getConfigPath()
+	if err != nil {
+		return nil, err
+	}
 	if rootless.IsRootless() {
 		home, err := homeDir()
 		if err != nil {
@@ -472,11 +479,6 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			if _, err := os.Stat(newPath); err == nil {
 				runtime.config.SignaturePolicyPath = newPath
 			}
-		}
-
-		rootlessConfigPath, err = getRootlessConfigPath()
-		if err != nil {
-			return nil, err
 		}
 
 		runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -599,7 +601,13 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			return nil, errors.Wrapf(err, "error configuring runtime")
 		}
 	}
-	if rootlessConfigPath != "" {
+
+	if rootless.IsRootless() && configPath == "" {
+		configPath, err := getRootlessConfigPath()
+		if err != nil {
+			return nil, err
+		}
+
 		// storage.conf
 		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
 		if err != nil {
@@ -612,16 +620,16 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		}
 
 		if configPath != "" {
-			os.MkdirAll(filepath.Dir(rootlessConfigPath), 0755)
-			file, err := os.OpenFile(rootlessConfigPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			os.MkdirAll(filepath.Dir(configPath), 0755)
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil && !os.IsExist(err) {
-				return nil, errors.Wrapf(err, "cannot open file %s", rootlessConfigPath)
+				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
 			}
 			if err == nil {
 				defer file.Close()
 				enc := toml.NewEncoder(file)
 				if err := enc.Encode(runtime.config); err != nil {
-					os.Remove(rootlessConfigPath)
+					os.Remove(configPath)
 				}
 			}
 		}
