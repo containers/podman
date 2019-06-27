@@ -84,7 +84,7 @@ func inspectCmd(c *cliconfig.InspectValues) error {
 		return errors.Errorf("you cannot provide additional arguments with --latest")
 	}
 
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := adapter.GetRuntimeReadOnlyStore(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}

@@ -15,20 +15,20 @@ import (
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
 func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, true)
+	return getRuntime(ctx, c, false, true, false)
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, true, false)
+	return getRuntime(ctx, c, true, false, false)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
-func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false)
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand, closeStoreReadOnly bool) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, false, closeStoreReadOnly)
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, migrate bool, closeStoreReadonly bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -135,6 +135,9 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 		options = append(options, libpod.WithHooksDir(c.GlobalFlags.HooksDir...))
 	}
 
+	if closeStoreReadonly {
+		options = append(options, libpod.WithCloseStoreAsReadOnly(closeStoreReadonly))
+	}
 	// TODO flag to set CNI plugins dir?
 
 	// TODO I dont think these belong here?

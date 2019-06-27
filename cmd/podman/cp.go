@@ -64,7 +64,7 @@ func cpCmd(c *cliconfig.CpValues) error {
 		return errors.Errorf("you must provide a source path and a destination path")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

@@ -1663,3 +1663,13 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 		return nil
 	}
 }
+
+// WithCloseStoreAsReadOnly opts out of closing container storage
+func WithCloseStoreAsReadOnly(readonly bool) RuntimeOption {
+	return func(rt *Runtime) error {
+		if readonly {
+			rt.closeStoreAsReadOnly = true
+		}
+		return nil
+	}
+}

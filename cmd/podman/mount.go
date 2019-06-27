@@ -61,7 +61,7 @@ type jsonMountPoint struct {
 }
 
 func mountCmd(c *cliconfig.MountValues) error {
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

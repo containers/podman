@@ -50,6 +50,11 @@ type LocalRuntime struct {
 	*RemoteRuntime
 }
 
+// GetRuntimeReadOnlyStore returns a LocalRuntime struct with the actual runtime embedded in it
+func GetRuntimeReadOnlyStore(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	return GetRuntime(ctx, c)
+}
+
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	var (

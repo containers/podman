@@ -102,7 +102,7 @@ func init() {
 }
 
 func dfSystemCmd(c *cliconfig.SystemDfValues) error {
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}

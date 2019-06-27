@@ -144,7 +144,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
 
-	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

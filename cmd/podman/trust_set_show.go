@@ -74,7 +74,7 @@ File(s) must exist before using this command`)
 }
 
 func showTrustCmd(c *cliconfig.ShowTrustValues) error {
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
@@ -131,7 +131,7 @@ func showTrustCmd(c *cliconfig.ShowTrustValues) error {
 }
 
 func setTrustCmd(c *cliconfig.SetTrustValues) error {
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}

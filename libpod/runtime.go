@@ -120,6 +120,10 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
+
+	// readWriteCloseStore is bool used to determine whether we should be telling
+	// the store to do a filesystem sync when closing the store
+	closeStoreAsReadOnly bool
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -1131,7 +1135,8 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
-	if r.store != nil {
+	if r.store != nil && !r.closeStoreAsReadOnly {
+		logrus.Debug("Closing container storage")
 		if _, err := r.store.Shutdown(force); err != nil {
 			lastError = errors.Wrapf(err, "Error shutting down container storage")
 		}

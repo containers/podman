@@ -56,7 +56,7 @@ func signCmd(c *cliconfig.SignValues) error {
 	if len(args) < 1 {
 		return errors.Errorf("at least one image name must be specified")
 	}
-	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand, false)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
