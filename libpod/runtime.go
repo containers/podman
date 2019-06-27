@@ -239,6 +239,9 @@ type RuntimeConfig struct {
 	// pods.
 	NumLocks uint32 `toml:"num_locks,omitempty"`
 
+	// LockType is the type of locking to use.
+	LockType string `toml:"lock_type,omitempty"`
+
 	// EventsLogger determines where events should be logged
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
@@ -659,6 +662,48 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	return runtime, nil
 }
 
+func getLockManager(runtime *Runtime) (lock.Manager, error) {
+	var err error
+	var manager lock.Manager
+
+	switch runtime.config.LockType {
+	case "", "shm":
+		lockPath := DefaultSHMLockPath
+		if rootless.IsRootless() {
+			lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
+		}
+		// Set up the lock manager
+		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+		if err != nil {
+			if os.IsNotExist(errors.Cause(err)) {
+				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to get new shm lock manager")
+				}
+			} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+				logrus.Debugf("Number of locks does not match - removing old locks")
+
+				// ERANGE indicates a lock numbering mismatch.
+				// Since we're renumbering, this is not fatal.
+				// Remove the earlier set of locks and recreate.
+				if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
+					return nil, errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
+				}
+
+				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
+		}
+	default:
+		return nil, errors.Wrapf(define.ErrInvalidArg, "unknown lock type %s", runtime.config.LockType)
+	}
+	return manager, nil
+}
+
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
@@ -1044,37 +1089,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
-	lockPath := DefaultSHMLockPath
-	if rootless.IsRootless() {
-		lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
-	}
-	// Set up the lock manager
-	manager, err := lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
+	runtime.lockManager, err = getLockManager(runtime)
 	if err != nil {
-		if os.IsNotExist(errors.Cause(err)) {
-			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-			if err != nil {
-				return errors.Wrapf(err, "failed to get new shm lock manager")
-			}
-		} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
-			logrus.Debugf("Number of locks does not match - removing old locks")
-
-			// ERANGE indicates a lock numbering mismatch.
-			// Since we're renumbering, this is not fatal.
-			// Remove the earlier set of locks and recreate.
-			if err := os.Remove(filepath.Join("/dev/shm", lockPath)); err != nil {
-				return errors.Wrapf(err, "error removing libpod locks file %s", lockPath)
-			}
-
-			manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
+		return err
 	}
-	runtime.lockManager = manager
 
 	// If we're renumbering locks, do it now.
 	// It breaks out of normal runtime init, and will not return a valid
