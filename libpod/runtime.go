@@ -380,7 +380,7 @@ func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 func homeDir() (string, error) {
 	home := os.Getenv("HOME")
 	if home == "" {
-		usr, err := user.Current()
+		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to resolve HOME directory")
 		}
