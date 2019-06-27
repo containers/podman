@@ -524,6 +524,10 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 		KeepRunning:    c.LeaveRunning,
 		TCPEstablished: c.TcpEstablished,
 		TargetFile:     c.Export,
+		IgnoreRootfs:   c.IgnoreRootfs,
+	}
+	if c.Export == "" && c.IgnoreRootfs {
+		return errors.Errorf("--ignore-rootfs can only be used with --export")
 	}
 	if c.All {
 		containers, err = r.Runtime.GetRunningContainers()
@@ -560,6 +564,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 		TCPEstablished: c.TcpEstablished,
 		TargetFile:     c.Import,
 		Name:           c.Name,
+		IgnoreRootfs:   c.IgnoreRootfs,
 	}
 
 	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {

@@ -799,6 +799,9 @@ type ContainerCheckpointOptions struct {
 	// checkpoint archive a new name should be used for the
 	// restored container
 	Name string
+	// IgnoreRootfs tells the API to not export changes to
+	// the container's root file-system (or to not import)
+	IgnoreRootfs bool
 }
 
 // Checkpoint checkpoints a container
