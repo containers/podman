@@ -82,7 +82,7 @@ do_pause ()
   struct sigaction act;
   int const sig[] =
     {
-     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGTERM, SIGPOLL,
+     SIGALRM, SIGHUP, SIGINT, SIGPIPE, SIGQUIT, SIGPOLL,
      SIGPROF, SIGVTALRM, SIGXCPU, SIGXFSZ, 0
     };
 
@@ -542,6 +542,11 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
       fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
+  if (sigdelset (&sigset, SIGTERM) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
     {
       fprintf (stderr, "cannot block signals: %s\n", strerror (errno));
@@ -734,6 +739,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   if (sigdelset (&sigset, SIGCHLD) < 0)
     {
       fprintf (stderr, "cannot sigdelset(SIGCHLD): %s\n", strerror (errno));
+      _exit (EXIT_FAILURE);
+    }
+  if (sigdelset (&sigset, SIGTERM) < 0)
+    {
+      fprintf (stderr, "cannot sigdelset(SIGTERM): %s\n", strerror (errno));
       _exit (EXIT_FAILURE);
     }
   if (sigprocmask (SIG_BLOCK, &sigset, &oldsigset) < 0)
