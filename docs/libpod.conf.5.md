@@ -27,6 +27,9 @@ libpod to manage containers.
 **cgroup_manager**=""
   Specify the CGroup Manager to use; valid values are "systemd" and "cgroupfs"
 
+**lock_type**=""
+  Specify the locking mechanism to use; valid values are "shm" and "file".  Change the default only if you are sure of what you are doing, in general "file" is useful only on platforms where cgo is not available for using the faster "shm" lock type.  You may need to run "podman system renumber" after you change the lock type.
+
 **init_path**=""
   Path to the container-init binary, which forwards signals and reaps processes within containers.  Note that the container-init binary will only be used when the `--init` for podman-create and podman-run is set.
 

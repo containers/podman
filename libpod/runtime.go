@@ -321,6 +321,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		NumLocks:              2048,
 		EventsLogger:          events.DefaultEventerType.String(),
 		DetachKeys:            DefaultDetachKeys,
+		LockType:              "shm",
 	}, nil
 }
 
@@ -667,6 +668,20 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	var manager lock.Manager
 
 	switch runtime.config.LockType {
+	case "file":
+		lockPath := filepath.Join(runtime.config.TmpDir, "locks")
+		manager, err = lock.OpenFileLockManager(lockPath)
+		if err != nil {
+			if os.IsNotExist(errors.Cause(err)) {
+				manager, err = lock.NewFileLockManager(lockPath)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to get new file lock manager")
+				}
+			} else {
+				return nil, err
+			}
+		}
+
 	case "", "shm":
 		lockPath := DefaultSHMLockPath
 		if rootless.IsRootless() {
