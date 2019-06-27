@@ -61,7 +61,7 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	defer runtime.DeferredShutdown(false)
 
 	if c.Import == "" && c.Name != "" {
-		return errors.Errorf("--name can only used with --import")
+		return errors.Errorf("--name can only be used with --import")
 	}
 
 	if c.Name != "" && c.TcpEstablished {
