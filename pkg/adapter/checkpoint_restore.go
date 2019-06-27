@@ -55,6 +55,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 			"checkpoint",
 			"artifacts",
 			"ctr.log",
+			"rootfs-diff.tar",
 			"network.status",
 		},
 	}
