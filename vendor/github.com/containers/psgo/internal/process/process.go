@@ -192,8 +192,12 @@ func (p *Process) ElapsedTime() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
+	clockTicks, err := host.ClockTicks()
+	if err != nil {
+		return 0, err
+	}
 
-	sinceBoot = sinceBoot / host.ClockTicks()
+	sinceBoot = sinceBoot / clockTicks
 
 	bootTime, err := host.BootTime()
 	if err != nil {
@@ -213,7 +217,11 @@ func (p *Process) CPUTime() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	secs := (user + system) / host.ClockTicks()
+	clockTicks, err := host.ClockTicks()
+	if err != nil {
+		return 0, err
+	}
+	secs := (user + system) / clockTicks
 	cpu := time.Unix(secs, 0)
 	return cpu.Sub(time.Unix(0, 0)), nil
 }
