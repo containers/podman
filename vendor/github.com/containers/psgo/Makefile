@@ -1,3 +1,5 @@
+export GO111MODULE=off
+
 SHELL= /bin/bash
 GO ?= go
 BUILD_DIR := ./bin
@@ -51,7 +53,7 @@ install:
 .PHONY: .install.lint
 .install.lint:
 	# Workaround for https://github.com/golangci/golangci-lint/issues/523
-	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint@master
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 .PHONY: uninstall
 uninstall:

@@ -72,6 +72,12 @@ github.com/containers/image v2.0.0+incompatible h1:FTr6Br7jlIKNCKMjSOMbAxKp2keQ0
 github.com/containers/image v2.0.0+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
 github.com/containers/psgo v1.3.0/go.mod h1:7MELvPTW1fj6yMrwD9I1Iasx1vU+hKlRkHXAJ51sFtU=
+github.com/containers/psgo v1.3.1-0.20190626112706-fbef66e4ce92 h1:aVJs/Av0Yc9uNoWnIwmG+6Z+XozuRXFwvLwAOVmwlvI=
+github.com/containers/psgo v1.3.1-0.20190626112706-fbef66e4ce92/go.mod h1:LLiRMmxZ6FWP4bB/fOUu6kDT+4okk/ZCeeykqh0O5Ns=
+github.com/containers/psgo v1.3.1 h1:1kE+jJ9Ou5f9zQT/M2IdeSclsKWsXrSFlOcnqc+F2TA=
+github.com/containers/psgo v1.3.1/go.mod h1:LLiRMmxZ6FWP4bB/fOUu6kDT+4okk/ZCeeykqh0O5Ns=
+github.com/containers/storage v1.12.10-0.20190627120555-8eed0c36d1e3 h1:kO/YA36sGuPDFvVIzZxJp7xmwa+/wCVADxDSuFzsZwM=
+github.com/containers/storage v1.12.10-0.20190627120555-8eed0c36d1e3/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/containers/storage v1.12.11 h1:r35VsROen9Kw3+LN/v4O4g7cT5zQPX06vkcjqScJ2z8=
 github.com/containers/storage v1.12.11/go.mod h1:+RirK6VQAqskQlaTBrOG6ulDvn4si2QjFE1NZCn06MM=
 github.com/containers/storage v1.12.12 h1:gao0GNzjmSX4Ai/StOHtUVIrBguC0OKyvx/ZMwBdyuY=
