@@ -24,17 +24,6 @@ const (
 	DefaultTransport = "docker://"
 )
 
-// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
-func OpenExclusiveFile(path string) (*os.File, error) {
-	baseDir := filepath.Dir(path)
-	if baseDir != "" {
-		if _, err := os.Stat(baseDir); err != nil {
-			return nil, err
-		}
-	}
-	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-}
-
 // FuncTimer helps measure the execution time of a function
 // For debug purposes, do not leave in code
 // used like defer FuncTimer("foo")

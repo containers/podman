@@ -20,9 +20,11 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
 	"github.com/containers/psgo"
@@ -242,7 +244,7 @@ func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig
 			logrus.Debugf("Error umounting container %s state: %s", ctr.ID(), err.Error())
 			continue
 		}
-		if state == libpod.ContainerStateRunning {
+		if state == define.ContainerStateRunning {
 			logrus.Debugf("Error umounting container %s, is running", ctr.ID())
 			continue
 		}
@@ -283,13 +285,14 @@ func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.Wait
 }
 
 // Log logs one or more containers
-func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
+func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *logs.LogOptions) error {
+
 	var wg sync.WaitGroup
 	options.WaitGroup = &wg
 	if len(c.InputArgs) > 1 {
 		options.Multi = true
 	}
-	logChannel := make(chan *libpod.LogLine, int(c.Tail)*len(c.InputArgs)+1)
+	logChannel := make(chan *logs.LogLine, int(c.Tail)*len(c.InputArgs)+1)
 	containers, err := shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
 	if err != nil {
 		return err
@@ -488,7 +491,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if err != nil {
 		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
 	}
-	if conState != libpod.ContainerStateRunning {
+	if conState != define.ContainerStateRunning {
 		return errors.Errorf("you can only attach to running containers")
 	}
 
@@ -539,16 +542,23 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 }
 
 // Restore one or more containers
-func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) error {
 	var (
 		containers     []*libpod.Container
 		err, lastError error
 		filterFuncs    []libpod.ContainerFilter
 	)
 
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           c.Keep,
+		TCPEstablished: c.TcpEstablished,
+		TargetFile:     c.Import,
+		Name:           c.Name,
+	}
+
 	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 		state, _ := c.State()
-		return state == libpod.ContainerStateExited
+		return state == define.ContainerStateExited
 	})
 
 	if c.Import != "" {
@@ -606,7 +616,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 			return exitCode, errors.Wrapf(err, "unable to get container state")
 		}
 
-		ctrRunning := ctrState == libpod.ContainerStateRunning
+		ctrRunning := ctrState == define.ContainerStateRunning
 
 		if c.Attach {
 			inputStream := os.Stdin
@@ -732,7 +742,7 @@ func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.Unp
 		var filterFuncs []libpod.ContainerFilter
 		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 			state, _ := c.State()
-			return state == libpod.ContainerStatePaused
+			return state == define.ContainerStatePaused
 		})
 		ctrs, err = r.GetContainers(filterFuncs...)
 	} else {
@@ -929,7 +939,7 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 		if c.PodID() != "" {
 			return false
 		}
-		if state == libpod.ContainerStateStopped || state == libpod.ContainerStateExited {
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
 			return true
 		}
 		return false
@@ -1020,7 +1030,7 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 
 	//Convert libpod containers to adapter Containers
 	for _, con := range containers {
-		if state, _ := con.State(); state != libpod.ContainerStateRunning {
+		if state, _ := con.State(); state != define.ContainerStateRunning {
 			continue
 		}
 		portContainers = append(portContainers, &Container{con})
@@ -1100,4 +1110,62 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		return "", err
 	}
 	return newImage.ID(), nil
+}
+
+// Exec a command in a container
+func (r *LocalRuntime) Exec(c *cliconfig.ExecValues, cmd []string) error {
+	var ctr *Container
+	var err error
+
+	if c.Latest {
+		ctr, err = r.GetLatestContainer()
+	} else {
+		ctr, err = r.LookupContainer(c.InputArgs[0])
+	}
+	if err != nil {
+		return errors.Wrapf(err, "unable to exec into %s", c.InputArgs[0])
+	}
+
+	if c.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				if err != nil {
+					return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+				}
+			}
+			m[i] = true
+		}
+		for i := 3; i < 3+c.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+	}
+
+	// ENVIRONMENT VARIABLES
+	env := map[string]string{}
+
+	if err := parse.ReadKVStrings(env, []string{}, c.Env); err != nil {
+		return errors.Wrapf(err, "unable to process environment variables")
+	}
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	streams.InputStream = os.Stdin
+	streams.AttachOutput = true
+	streams.AttachError = true
+	streams.AttachInput = true
+
+	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
 }

@@ -7,11 +7,12 @@ package util
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/pkg/errors"
 	"os"
 	"path/filepath"
 	"syscall"
+
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/pkg/errors"
 )
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root

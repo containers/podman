@@ -103,7 +103,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		if err != nil {
 			return err
 		}
-		if state == libpod.ContainerStateRunning {
+		if state == define.ContainerStateRunning {
 			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
 		}
 	}

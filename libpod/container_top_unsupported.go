@@ -15,9 +15,3 @@ import "github.com/containers/libpod/libpod/define"
 func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, error) {
 	return nil, define.ErrNotImplemented
 }
-
-// GetContainerPidInformationDescriptors returns a string slice of all supported
-// format descriptors of GetContainerPidInformation.
-func GetContainerPidInformationDescriptors() ([]string, error) {
-	return nil, define.ErrNotImplemented
-}

@@ -1,3 +1,5 @@
+//+build !remoteclient
+
 package main
 
 import (
@@ -12,8 +14,9 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -358,7 +361,7 @@ func ctrIsActive(ctr *libpod.Container) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return state == libpod.ContainerStatePaused || state == libpod.ContainerStateRunning, nil
+	return state == define.ContainerStatePaused || state == define.ContainerStateRunning, nil
 }
 
 func activeContainers(containers []*libpod.Container) (map[string]*libpod.Container, error) {

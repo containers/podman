@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +20,7 @@ import (
 // is desired a -1 can be used to get all containers. For a better
 // error message, if the filter fails, a corresponding verb can be
 // specified which will then appear in the error message.
-func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, filterState libpod.ContainerStatus, verb string) ([]*libpod.Container, error) {
+func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, filterState define.ContainerStatus, verb string) ([]*libpod.Container, error) {
 	var containers []*libpod.Container
 	var lastError error
 	var err error

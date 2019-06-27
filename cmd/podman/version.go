@@ -10,7 +10,7 @@ import (
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -40,7 +40,7 @@ func init() {
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cliconfig.VersionValues) error {
-	clientVersion, err := libpod.GetVersion()
+	clientVersion, err := define.GetVersion()
 	if err != nil {
 		errors.Wrapf(err, "unable to determine version")
 	}
@@ -85,7 +85,7 @@ func versionCmd(c *cliconfig.VersionValues) error {
 	return nil
 }
 
-func formatVersion(writer io.Writer, version libpod.Version) {
+func formatVersion(writer io.Writer, version define.Version) {
 	fmt.Fprintf(writer, "Version:\t%s\n", version.Version)
 	fmt.Fprintf(writer, "RemoteAPI Version:\t%d\n", version.RemoteAPIVersion)
 	fmt.Fprintf(writer, "Go Version:\t%s\n", version.GoVersion)

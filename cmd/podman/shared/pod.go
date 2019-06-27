@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
@@ -29,7 +30,7 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 	return CreatePodStatusResults(ctrStatuses)
 }
 
-func CreatePodStatusResults(ctrStatuses map[string]libpod.ContainerStatus) (string, error) {
+func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
 		return PodStateCreated, nil
@@ -43,15 +44,15 @@ func CreatePodStatusResults(ctrStatuses map[string]libpod.ContainerStatus) (stri
 	}
 	for _, ctrStatus := range ctrStatuses {
 		switch ctrStatus {
-		case libpod.ContainerStateExited:
+		case define.ContainerStateExited:
 			fallthrough
-		case libpod.ContainerStateStopped:
+		case define.ContainerStateStopped:
 			statuses[PodStateStopped]++
-		case libpod.ContainerStateRunning:
+		case define.ContainerStateRunning:
 			statuses[PodStateRunning]++
-		case libpod.ContainerStatePaused:
+		case define.ContainerStatePaused:
 			statuses[PodStatePaused]++
-		case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
+		case define.ContainerStateCreated, define.ContainerStateConfigured:
 			statuses[PodStateCreated]++
 		default:
 			statuses[PodStateErrored]++

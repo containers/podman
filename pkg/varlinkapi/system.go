@@ -3,17 +3,17 @@
 package varlinkapi
 
 import (
+	"github.com/containers/libpod/libpod/define"
 	goruntime "runtime"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
-	"github.com/containers/libpod/libpod"
 )
 
 // GetVersion ...
 func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
-	versionInfo, err := libpod.GetVersion()
+	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
 	}
@@ -30,7 +30,7 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
-	versionInfo, err := libpod.GetVersion()
+	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
 	}

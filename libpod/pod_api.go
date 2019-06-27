@@ -113,7 +113,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -181,7 +181,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -240,7 +240,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 		}
 
 		// Ignore containers that are not paused
-		if ctr.state.State != ContainerStatePaused {
+		if ctr.state.State != define.ContainerStatePaused {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -353,7 +353,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -383,7 +383,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 
 // Status gets the status of all containers in the pod
 // Returns a map of Container ID to Container Status
-func (p *Pod) Status() (map[string]ContainerStatus, error) {
+func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
@@ -403,7 +403,7 @@ func (p *Pod) Status() (map[string]ContainerStatus, error) {
 	}
 
 	// Now that all containers are locked, get their status
-	status := make(map[string]ContainerStatus, len(allCtrs))
+	status := make(map[string]define.ContainerStatus, len(allCtrs))
 	for _, ctr := range allCtrs {
 		if err := ctr.syncContainer(); err != nil {
 			return nil, err

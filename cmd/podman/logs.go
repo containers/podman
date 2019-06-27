@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -80,13 +80,12 @@ func logsCmd(c *cliconfig.LogsValues) error {
 		sinceTime = since
 	}
 
-	opts := &libpod.LogOptions{
+	options := &logs.LogOptions{
 		Details:    c.Details,
 		Follow:     c.Follow,
 		Since:      sinceTime,
 		Tail:       c.Tail,
 		Timestamps: c.Timestamps,
 	}
-
-	return runtime.Log(c, opts)
+	return runtime.Log(c, options)
 }

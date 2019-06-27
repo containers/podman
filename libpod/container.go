@@ -21,31 +21,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ContainerStatus represents the current state of a container
-type ContainerStatus int
-
-const (
-	// ContainerStateUnknown indicates that the container is in an error
-	// state where information about it cannot be retrieved
-	ContainerStateUnknown ContainerStatus = iota
-	// ContainerStateConfigured indicates that the container has had its
-	// storage configured but it has not been created in the OCI runtime
-	ContainerStateConfigured ContainerStatus = iota
-	// ContainerStateCreated indicates the container has been created in
-	// the OCI runtime but not started
-	ContainerStateCreated ContainerStatus = iota
-	// ContainerStateRunning indicates the container is currently executing
-	ContainerStateRunning ContainerStatus = iota
-	// ContainerStateStopped indicates that the container was running but has
-	// exited
-	ContainerStateStopped ContainerStatus = iota
-	// ContainerStatePaused indicates that the container has been paused
-	ContainerStatePaused ContainerStatus = iota
-	// ContainerStateExited indicates the the container has stopped and been
-	// cleaned up
-	ContainerStateExited ContainerStatus = iota
-)
-
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
 const CgroupfsDefaultCgroupParent = "/libpod_parent"
 
@@ -169,7 +144,7 @@ type Container struct {
 // It is stored on disk in a tmpfs and recreated on reboot
 type ContainerState struct {
 	// The current state of the running container
-	State ContainerStatus `json:"state"`
+	State define.ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
@@ -426,51 +401,6 @@ type ContainerNamedVolume struct {
 	Dest string `json:"dest"`
 	// Options are fstab style mount options
 	Options []string `json:"options,omitempty"`
-}
-
-// ContainerStatus returns a string representation for users
-// of a container state
-func (t ContainerStatus) String() string {
-	switch t {
-	case ContainerStateUnknown:
-		return "unknown"
-	case ContainerStateConfigured:
-		return "configured"
-	case ContainerStateCreated:
-		return "created"
-	case ContainerStateRunning:
-		return "running"
-	case ContainerStateStopped:
-		return "stopped"
-	case ContainerStatePaused:
-		return "paused"
-	case ContainerStateExited:
-		return "exited"
-	}
-	return "bad state"
-}
-
-// StringToContainerStatus converts a string representation of a containers
-// status into an actual container status type
-func StringToContainerStatus(status string) (ContainerStatus, error) {
-	switch status {
-	case ContainerStateUnknown.String():
-		return ContainerStateUnknown, nil
-	case ContainerStateConfigured.String():
-		return ContainerStateConfigured, nil
-	case ContainerStateCreated.String():
-		return ContainerStateCreated, nil
-	case ContainerStateRunning.String():
-		return ContainerStateRunning, nil
-	case ContainerStateStopped.String():
-		return ContainerStateStopped, nil
-	case ContainerStatePaused.String():
-		return ContainerStatePaused, nil
-	case ContainerStateExited.String():
-		return ContainerStateExited, nil
-	default:
-		return ContainerStateUnknown, errors.Wrapf(define.ErrInvalidArg, "unknown container state: %s", status)
-	}
 }
 
 // Config accessors
@@ -823,13 +753,13 @@ func (c *Container) WorkingDir() string {
 // Require locking
 
 // State returns the current state of the container
-func (c *Container) State() (ContainerStatus, error) {
+func (c *Container) State() (define.ContainerStatus, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return ContainerStateUnknown, err
+			return define.ContainerStateUnknown, err
 		}
 	}
 	return c.state.State, nil
@@ -1097,7 +1027,7 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 		}
 	}
 
-	if c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused {
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
 		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
 

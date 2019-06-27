@@ -73,9 +73,8 @@ var (
 	OverrideConfigPath = etcDir + "/containers/libpod.conf"
 
 	// DefaultInfraImage to use for infra container
-	DefaultInfraImage = "k8s.gcr.io/pause:3.1"
+
 	// DefaultInfraCommand to be run in an infra container
-	DefaultInfraCommand = "/pause"
 
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
@@ -302,13 +301,32 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		NoPivotRoot:           false,
 		CNIConfigDir:          etcDir + "/cni/net.d/",
 		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/usr/local/lib/cni", "/opt/cni/bin"},
-		InfraCommand:          DefaultInfraCommand,
-		InfraImage:            DefaultInfraImage,
+		InfraCommand:          define.DefaultInfraCommand,
+		InfraImage:            define.DefaultInfraImage,
 		EnablePortReservation: true,
 		EnableLabeling:        true,
 		NumLocks:              2048,
 		EventsLogger:          events.DefaultEventerType.String(),
 	}, nil
+}
+
+// SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
+// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
+func SetXdgRuntimeDir(val string) error {
+	if !rootless.IsRootless() {
+		return nil
+	}
+	if val == "" {
+		var err error
+		val, err = util.GetRootlessRuntimeDir()
+		if err != nil {
+			return err
+		}
+	}
+	if err := os.Setenv("XDG_RUNTIME_DIR", val); err != nil {
+		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+	return nil
 }
 
 func getDefaultTmpDir() (string, error) {
@@ -331,25 +349,6 @@ func getDefaultTmpDir() (string, error) {
 		}
 	}
 	return filepath.Join(libpodRuntimeDir, "tmp"), nil
-}
-
-// SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
-// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
-func SetXdgRuntimeDir(val string) error {
-	if !rootless.IsRootless() {
-		return nil
-	}
-	if val == "" {
-		var err error
-		val, err = util.GetRootlessRuntimeDir()
-		if err != nil {
-			return err
-		}
-	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", val); err != nil {
-		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
-	}
-	return nil
 }
 
 // NewRuntime creates a new container runtime
@@ -1199,21 +1198,21 @@ func (r *Runtime) refresh(alivePath string) error {
 }
 
 // Info returns the store and host information
-func (r *Runtime) Info() ([]InfoData, error) {
-	info := []InfoData{}
+func (r *Runtime) Info() ([]define.InfoData, error) {
+	info := []define.InfoData{}
 	// get host information
 	hostInfo, err := r.hostInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting host info")
 	}
-	info = append(info, InfoData{Type: "host", Data: hostInfo})
+	info = append(info, define.InfoData{Type: "host", Data: hostInfo})
 
 	// get store information
 	storeInfo, err := r.storeInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting store info")
 	}
-	info = append(info, InfoData{Type: "store", Data: storeInfo})
+	info = append(info, define.InfoData{Type: "store", Data: storeInfo})
 
 	reg, err := sysreg.GetRegistries()
 	if err != nil {
@@ -1233,7 +1232,7 @@ func (r *Runtime) Info() ([]InfoData, error) {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	registries["blocked"] = breg
-	info = append(info, InfoData{Type: "registries", Data: registries})
+	info = append(info, define.InfoData{Type: "registries", Data: registries})
 	return info, nil
 }
 
