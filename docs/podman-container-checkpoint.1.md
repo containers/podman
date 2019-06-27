@@ -42,7 +42,15 @@ connections.
 
 Export the checkpoint to a tar.gz file. The exported checkpoint can be used
 to import the container on another system and thus enabling container live
-migration.
+migration. This checkpoint archive also includes all changes to the container's
+root file-system, if not explicitly disabled using **--ignore-rootfs**
+
+**--ignore-rootfs**
+
+This only works in combination with **--export, -e**. If a checkpoint is
+exported to a tar.gz file it is possible with the help of **--ignore-rootfs**
+to explicitly disable including changes to the root file-system into
+the checkpoint archive file.
 
 ## EXAMPLE
 

@@ -668,6 +668,9 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 	if c.Export != "" {
 		return errors.New("the remote client does not support exporting checkpoints")
 	}
+	if c.IgnoreRootfs {
+		return errors.New("the remote client does not support --ignore-rootfs")
+	}
 
 	var lastError error
 	ids, err := iopodman.GetContainersByContext().Call(r.Conn, c.All, c.Latest, c.InputArgs)
@@ -707,6 +710,9 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) error {
 	if c.Import != "" {
 		return errors.New("the remote client does not support importing checkpoints")
+	}
+	if c.IgnoreRootfs {
+		return errors.New("the remote client does not support --ignore-rootfs")
 	}
 
 	var lastError error
