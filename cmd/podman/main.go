@@ -59,7 +59,6 @@ var mainCommands = []*cobra.Command{
 	_stopCommand,
 	_tagCommand,
 	_topCommand,
-	_umountCommand,
 	_unpauseCommand,
 	_versionCommand,
 	_waitCommand,
