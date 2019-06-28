@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/storage"
@@ -312,18 +313,39 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 
 // SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file.
-func SetXdgRuntimeDir(val string) error {
+// It internally calls EnableLinger() so that the user's processes are not
+// killed once the session is terminated.  EnableLinger() also attempts to
+// get the runtime directory when XDG_RUNTIME_DIR is not specified.
+func SetXdgRuntimeDir() error {
 	if !rootless.IsRootless() {
 		return nil
 	}
-	if val == "" {
+
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+
+	runtimeDirLinger, err := rootless.EnableLinger()
+	if err != nil {
+		return errors.Wrapf(err, "error enabling user session")
+	}
+	if runtimeDir == "" && runtimeDirLinger != "" {
+		if _, err := os.Stat(runtimeDirLinger); err != nil && os.IsNotExist(err) {
+			chWait := make(chan error)
+			defer close(chWait)
+			if _, err := WaitForFile(runtimeDirLinger, chWait, time.Second*10); err != nil {
+				return errors.Wrapf(err, "waiting for directory '%s'", runtimeDirLinger)
+			}
+		}
+		runtimeDir = runtimeDirLinger
+	}
+
+	if runtimeDir == "" {
 		var err error
-		val, err = util.GetRootlessRuntimeDir()
+		runtimeDir, err = util.GetRootlessRuntimeDir()
 		if err != nil {
 			return err
 		}
 	}
-	if err := os.Setenv("XDG_RUNTIME_DIR", val); err != nil {
+	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 	return nil
@@ -479,18 +501,6 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 				runtime.config.SignaturePolicyPath = newPath
 			}
 		}
-
-		runtimeDir, err := util.GetRootlessRuntimeDir()
-		if err != nil {
-			return nil, err
-		}
-
-		// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
-		// So make sure the env variable is set.
-		if err := SetXdgRuntimeDir(runtimeDir); err != nil {
-			return nil, errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
-		}
-
 	}
 
 	if userConfigPath != "" {
