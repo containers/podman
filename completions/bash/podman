@@ -1807,10 +1807,11 @@ _podman_container_run() {
 	if [ "$command" = "run" -o "$subcommand" = "run" ] ; then
 		options_with_args="$options_with_args
 			--detach-keys
-			--health-cmd
-			--health-interval
-			--health-retries
-			--health-timeout
+			--healthcheck-command
+			--healthcheck-interval
+			--healthcheck-retries
+			--healthcheck-start-period
+			--healthcheck-timeout
 		"
 		boolean_options="$boolean_options
 			--detach -d
