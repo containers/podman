@@ -19,6 +19,7 @@ func getMainCommands() []*cobra.Command {
 		_refreshCommand,
 		_searchCommand,
 		_statsCommand,
+		_umountCommand,
 		_unshareCommand,
 	}
 
