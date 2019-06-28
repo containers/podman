@@ -1817,7 +1817,6 @@ _podman_container_run() {
 		"
 		boolean_options="$boolean_options
 			--detach -d
-			--no-healthcheck
 			--rm
 			--sig-proxy=false
 		"
