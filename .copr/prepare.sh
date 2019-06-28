@@ -29,4 +29,4 @@ fi
 mkdir build/
 git archive --prefix "libpod-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "build/libpod-${COMMIT_SHORT}.tar.gz"
 git clone https://github.com/containers/conmon
-cd conmon && git checkout 3e47d8dd45cdd973dbe256292d5e9c0bff195e56 && git archive --prefix "conmon/" --format "tar.gz" HEAD -o "../build/conmon.tar.gz"
+cd conmon && git checkout 6f3572558b97bc60dd8f8c7f0807748e6ce2c440 && git archive --prefix "conmon/" --format "tar.gz" HEAD -o "../build/conmon.tar.gz"
