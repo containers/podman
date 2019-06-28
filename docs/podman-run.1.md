@@ -279,6 +279,8 @@ Set or alter a healthcheck command for a container. The command is a command to 
 container that determines your container health.  The command is required for other healthcheck options
 to be applied.  A value of `none` disables existing healthchecks.
 
+Healthchecks currently only work when running as root.
+
 **--healthcheck-interval**=*interval*
 
 Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
