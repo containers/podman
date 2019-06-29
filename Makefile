@@ -399,6 +399,9 @@ build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
 	git rebase $(GIT_BASE_BRANCH) -x make
 
+build-no-cgo:
+	env BUILDTAGS="containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
+
 vendor:
 	export GO111MODULE=on \
 		$(GO) mod tidy && \
