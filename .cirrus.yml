@@ -215,6 +215,35 @@ build_each_commit_task:
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
+build_without_cgo:
+
+    depends_on:
+        - "gating"
+        - "vendor"
+        - "varlink_api"
+
+    # $CIRRUS_BASE_BRANCH is only set when testing a PR
+    only_if: $CIRRUS_BRANCH != 'master' &&
+             $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    gce_instance:
+        image_project: "libpod-218412"
+        zone: "us-central1-a"  # Required by Cirrus for the time being
+        cpu: 8
+        memory: "8Gb"
+        disk: 200
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+
+    timeout_in: 30m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    build_without_cgo_script:
+        - 'source $SCRIPT_BASE/lib.sh'
+        - 'make build-no-cgo'
+
+    on_failure:
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+
 
 # Update metadata on VM images referenced by this repository state
 meta_task:
@@ -224,6 +253,7 @@ meta_task:
         - "vendor"
         - "varlink_api"
         - "build_each_commit"
+        - "build_without_cgo"
 
     container:
         image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
@@ -257,6 +287,7 @@ testing_task:
         - "vendor"
         - "varlink_api"
         - "build_each_commit"
+        - "build_without_cgo"
 
     # Only test build cache-images, if that's what's requested
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
@@ -298,6 +329,7 @@ special_testing_rootless_task:
         - "varlink_api"
         - "vendor"
         - "build_each_commit"
+        - "build_without_cgo"
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
@@ -328,6 +360,7 @@ special_testing_in_podman_task:
         - "varlink_api"
         - "vendor"
         - "build_each_commit"
+        - "build_without_cgo"
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
@@ -433,6 +466,7 @@ success_task:
         - "special_testing_in_podman"
         - "test_build_cache_images"
         - "verify_test_built_images"
+        - "build_without_cgo"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
