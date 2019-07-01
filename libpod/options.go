@@ -300,6 +300,15 @@ func WithTmpDir(dir string) RuntimeOption {
 	}
 }
 
+// WithNoStore sets a bool on the runtime that we do not need
+// any containers storage.
+func WithNoStore() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.noStore = true
+		return nil
+	}
+}
+
 // WithMaxLogSize sets the maximum size of container logs.
 // Positive sizes are limits in bytes, -1 is unlimited.
 func WithMaxLogSize(limit int64) RuntimeOption {

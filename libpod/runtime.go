@@ -125,6 +125,9 @@ type Runtime struct {
 
 	// mechanism to read and write even logs
 	eventer events.Eventer
+
+	// noStore indicates whether we need to interact with a store or not
+	noStore bool
 }
 
 // RuntimeConfig contains configuration options used to set up the runtime
@@ -784,11 +787,14 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	var store storage.Store
 	if os.Geteuid() != 0 {
 		logrus.Debug("Not configuring container store")
+	} else if runtime.noStore {
+		logrus.Debug("No store required. Not opening container store.")
 	} else {
 		store, err = storage.GetStore(runtime.config.StorageConfig)
 		if err != nil {
 			return err
 		}
+		err = nil
 
 		defer func() {
 			if err != nil && store != nil {
@@ -1148,6 +1154,8 @@ func (r *Runtime) Shutdown(force bool) error {
 	}
 
 	var lastError error
+	// If no store was requested, it can bew nil and there is no need to
+	// attempt to shut it down
 	if r.store != nil {
 		if _, err := r.store.Shutdown(force); err != nil {
 			lastError = errors.Wrapf(err, "Error shutting down container storage")
