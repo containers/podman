@@ -75,10 +75,12 @@ LIBSECCOMP_COMMIT := release-2.3
 GINKGOTIMEOUT ?= -timeout=90m
 
 RELEASE_VERSION ?= $(shell git fetch --tags && git describe HEAD 2> /dev/null)
+RELEASE_NUMBER ?= $(shell echo $(RELEASE_VERSION) | sed 's/-.*//')
 RELEASE_DIST ?= $(shell ( source /etc/os-release; echo $$ID ))
 RELEASE_DIST_VER ?= $(shell ( source /etc/os-release; echo $$VERSION_ID | cut -d '.' -f 1))
 RELEASE_ARCH ?= $(shell go env GOARCH 2> /dev/null)
 RELEASE_BASENAME := $(shell basename $(PROJECT))
+
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -143,7 +145,6 @@ gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
 
-
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 	$(GO) build -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
 
@@ -175,8 +176,10 @@ clean: ## Clean artifacts
 		.gopathok \
 		_output \
 		podman*.zip \
+		podman*.tar.gz \
 		bin \
 		build \
+		docs/remote \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
 		test/testdata/redis-image \
@@ -291,6 +294,22 @@ $(MANPAGES): %: %.md .gopathok
 	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $@
 
 docs: $(MANPAGES) ## Generate documentation
+
+install-podman-remote-docs: docs
+	@(cd docs; ./podman-remote.sh ./remote)
+
+
+brew-pkg: install-podman-remote-docs podman-remote-darwin
+	@mkdir -p ./brew
+	@cp ./bin/podman-remote-darwin ./brew/podman
+	@cp -r ./docs/remote ./brew/docs/
+	@cp docs/podman-remote.1 ./brew/docs/podman.1
+	@sed -i 's/podman\\*-remote/podman/g' ./brew/docs/podman.1
+	@sed -i 's/Podman\\*-remote/Podman\ for\ Mac/g' ./brew/docs/podman.1
+	@sed -i 's/podman\.conf/podman\-remote\.conf/g' ./brew/docs/podman.1
+	@sed -i 's/A\ remote\ CLI\ for\ Podman\:\ //g' ./brew/docs/podman.1
+	tar -czvf podman-${RELEASE_NUMBER}.tar.gz ./brew
+	@rm -rf ./brew
 
 docker-docs: docs
 	(cd docs; ./dckrman.sh *.1)
