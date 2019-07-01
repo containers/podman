@@ -8,7 +8,6 @@ import (
 	"net"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/kubeutils"
@@ -33,32 +32,35 @@ const (
 
 // Attach to the given container
 // Does not check if state is appropriate
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, wg *sync.WaitGroup) error {
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
 
-	// Check the validity of the provided keys first
-	var err error
-	detachKeys := []byte{}
-	if len(keys) > 0 {
-		detachKeys, err = term.ToBytes(keys)
-		if err != nil {
-			return errors.Wrapf(err, "invalid detach keys")
-		}
-	}
-
 	logrus.Debugf("Attaching to container %s", c.ID())
 
-	return c.attachContainerSocket(resize, detachKeys, streams, startContainer, wg)
+	return c.attachContainerSocket(resize, keys, streams, startContainer, started)
 }
 
 // attachContainerSocket connects to the container's attach socket and deals with the IO.
-// wg is only required if startContainer is true
+// started is only required if startContainer is true
 // TODO add a channel to allow interrupting
-func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, detachKeys []byte, streams *AttachStreams, startContainer bool, wg *sync.WaitGroup) error {
-	if startContainer && wg == nil {
-		return errors.Wrapf(define.ErrInternal, "wait group not passed when startContainer set")
+func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSize, keys string, streams *AttachStreams, startContainer bool, started chan bool) error {
+	if startContainer && started == nil {
+		return errors.Wrapf(define.ErrInternal, "started chan not passed when startContainer set")
+	}
+
+	// Use default detach keys when keys aren't passed or specified in libpod.conf
+	if len(keys) == 0 {
+		keys = DefaultDetachKeys
+	}
+
+	// Check the validity of the provided keys
+	detachKeys := []byte{}
+	var err error
+	detachKeys, err = term.ToBytes(keys)
+	if err != nil {
+		return errors.Wrapf(err, "invalid detach keys")
 	}
 
 	kubeutils.HandleResizing(resize, func(size remotecommand.TerminalSize) {
@@ -97,7 +99,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		if err := c.start(); err != nil {
 			return err
 		}
-		wg.Done()
+		started <- true
 	}
 
 	receiveStdoutError := make(chan error)

@@ -11,12 +11,16 @@ The attach command allows you to attach to a running container using the contain
 or name, either to view its ongoing output or to control it interactively.
 
 You can detach from the container (and leave it running) using a configurable key sequence. The default
-sequence is `ctrl-p,ctrl-q`. You configure the key sequence using the --detach-keys option
+sequence is `ctrl-p,ctrl-q`.
+Configure the keys sequence using the **--detach-keys** option, or specifying
+it in the **libpod.conf** file: see **libpod.conf(5)** for more information.
 
 ## OPTIONS
-**--detach-keys**=*char*
+**--detach-keys**=*sequence*
 
-Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
+Override the key sequence for detaching a container. Format is a single character `[a-Z]` or
+a comma separated sequence of `ctrl-<value>`, where `<value>` is one of:
+`a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
 
 **--latest**, **-l**
 

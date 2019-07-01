@@ -81,6 +81,10 @@ var (
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
 	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
+
+	// DefaultDetachKeys is the default keys sequence for detaching a
+	// container
+	DefaultDetachKeys = "ctrl-p,ctrl-q"
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -236,6 +240,8 @@ type RuntimeConfig struct {
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
 	EventsLogFilePath string `toml:-"events_logfile_path"`
+	//DetachKeys is the sequence of keys used to detach a container
+	DetachKeys string `toml:"detach_keys"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -308,6 +314,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		EnableLabeling:        true,
 		NumLocks:              2048,
 		EventsLogger:          events.DefaultEventerType.String(),
+		DetachKeys:            DefaultDetachKeys,
 	}, nil
 }
 

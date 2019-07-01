@@ -384,8 +384,18 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 			}
 		}
 	}
+
+	config, err := r.Runtime.GetConfig()
+	if err != nil {
+		return exitCode, err
+	}
+	detachKeys := c.String("detach-keys")
+	if detachKeys == "" {
+		detachKeys = config.DetachKeys
+	}
+
 	// if the container was created as part of a pod, also start its dependencies, if any.
-	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
+	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, detachKeys, c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
@@ -410,10 +420,6 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			// The container may have been removed
 			// Go looking for an exit file
-			config, err := r.Runtime.GetConfig()
-			if err != nil {
-				return exitCode, err
-			}
 			ctrExitCode, err := ReadExitFile(config.TmpDir, ctr.ID())
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
