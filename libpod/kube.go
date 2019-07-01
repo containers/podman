@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -131,11 +132,12 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
 	var (
 		podContainers []v1.Container
+		podVolumes    []v1.Volume
 	)
 	first := true
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
-			result, err := containerToV1Container(ctr)
+			result, volumes, err := containerToV1Container(ctr)
 			if err != nil {
 				return nil, err
 			}
@@ -152,12 +154,13 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 				first = false
 			}
 			podContainers = append(podContainers, result)
+			podVolumes = append(podVolumes, volumes...)
 		}
 	}
-	return addContainersToPodObject(podContainers, p.Name()), nil
+	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name()), nil
 }
 
-func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod {
+func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -177,6 +180,7 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 	}
 	ps := v1.PodSpec{
 		Containers: containers,
+		Volumes:    volumes,
 	}
 	p := v1.Pod{
 		TypeMeta:   tm,
@@ -190,56 +194,58 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 // for a single container.  we "insert" that container description in a pod.
 func simplePodWithV1Container(ctr *Container) (*v1.Pod, error) {
 	var containers []v1.Container
-	result, err := containerToV1Container(ctr)
+	kubeCtr, kubeVols, err := containerToV1Container(ctr)
 	if err != nil {
 		return nil, err
 	}
-	containers = append(containers, result)
-	return addContainersToPodObject(containers, ctr.Name()), nil
+	containers = append(containers, kubeCtr)
+	return addContainersAndVolumesToPodObject(containers, kubeVols, ctr.Name()), nil
 
 }
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(c *Container) (v1.Container, error) {
+func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	kubeContainer := v1.Container{}
+	kubeVolumes := []v1.Volume{}
 	kubeSec, err := generateKubeSecurityContext(c)
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 
 	if len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		devices, err := generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
 		if err != nil {
-			return kubeContainer, err
+			return kubeContainer, kubeVolumes, err
 		}
 		kubeContainer.VolumeDevices = devices
-		return kubeContainer, errors.Wrapf(define.ErrNotImplemented, "linux devices")
+		return kubeContainer, kubeVolumes, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {
 		// TODO When we until we can resolve what the volume name should be, this is disabled
 		// Volume names need to be coordinated "globally" in the kube files.
-		volumes, err := libpodMountsToKubeVolumeMounts(c)
+		volumeMounts, volumes, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
-			return kubeContainer, err
+			return kubeContainer, kubeVolumes, err
 		}
-		kubeContainer.VolumeMounts = volumes
+		kubeContainer.VolumeMounts = volumeMounts
+		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 
 	portmappings, err := c.PortMappings()
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 
 	containerCommands := c.Command()
@@ -263,7 +269,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
 
-	return kubeContainer, nil
+	return kubeContainer, kubeVolumes, nil
 }
 
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
@@ -325,26 +331,48 @@ func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceLi
 	return maxResources, minResources
 }
 
-func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, error) {
+func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	vm := v1.VolumeMount{}
+	vo := v1.Volume{}
 	for _, m := range mounts {
-		fmt.Println(m.Destination, hostSourcePath)
 		if m.Destination == hostSourcePath {
-			// TODO Name is not provided and is required by Kube; therefore, this is disabled earlier
 			name, err := convertVolumePathToName(m.Source)
 			if err != nil {
-				return vm, err
+				return vm, vo, err
 			}
 			vm.Name = name
-			vm.MountPath = m.Source
-			vm.SubPath = m.Destination
+			vm.MountPath = m.Destination
 			if util.StringInSlice("ro", m.Options) {
 				vm.ReadOnly = true
 			}
-			return vm, nil
+
+			vo.Name = name
+			vo.HostPath = &v1.HostPathVolumeSource{}
+			vo.HostPath.Path = m.Source
+			isDir, err := isHostPathDirectory(m.Source)
+			// neither a directory or a file lives here, default to creating a directory
+			// TODO should this be an error instead?
+			var hostPathType v1.HostPathType
+			if err != nil {
+				hostPathType = v1.HostPathDirectoryOrCreate
+			} else if isDir {
+				hostPathType = v1.HostPathDirectory
+			} else {
+				hostPathType = v1.HostPathFile
+			}
+			vo.HostPath.Type = &hostPathType
+			return vm, vo, nil
 		}
 	}
-	return vm, errors.New("unable to find mount source")
+	return vm, vo, errors.New("unable to find mount source")
+}
+
+func isHostPathDirectory(hostPathSource string) (bool, error) {
+	info, err := os.Stat(hostPathSource)
+	if err != nil {
+		return false, err
+	}
+	return info.Mode().IsDir(), nil
 }
 
 func convertVolumePathToName(hostSourcePath string) (string, error) {
@@ -364,18 +392,20 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 }
 
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
-func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
+func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
 	// At this point, I dont think we can distinguish between the default
 	// volume mounts and user added ones.  For now, we pass them all.
 	var vms []v1.VolumeMount
+	var vos []v1.Volume
 	for _, hostSourcePath := range c.config.UserVolumes {
-		vm, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
+		vm, vo, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
 		if err != nil {
-			return vms, err
+			return vms, vos, err
 		}
 		vms = append(vms, vm)
+		vos = append(vos, vo)
 	}
-	return vms, nil
+	return vms, vos, nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
