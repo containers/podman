@@ -44,6 +44,9 @@ func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
 	}
 	defer runtime.DeferredShutdown(false)
 	status, err := runtime.HealthCheck(c)
+	if err == nil && status == "unhealthy" {
+		exitCode = 1
+	}
 	fmt.Println(status)
 	return err
 }

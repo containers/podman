@@ -97,6 +97,14 @@ var (
 	// OS.
 	ErrOSNotSupported = errors.New("no support for this OS yet")
 
-	// ErrOCIRuntime indicates an error from the OCI runtime
+	// ErrOCIRuntime indicates a generic error from the OCI runtime
 	ErrOCIRuntime = errors.New("OCI runtime error")
+
+	// ErrOCIRuntimePermissionDenied indicates the OCI runtime attempted to invoke a command that returned
+	// a permission denied error
+	ErrOCIRuntimePermissionDenied = errors.New("OCI runtime permission denied error")
+
+	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
+	// that was not found
+	ErrOCIRuntimeNotFound = errors.New("OCI runtime command not found error")
 )

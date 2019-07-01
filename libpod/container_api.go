@@ -2,16 +2,13 @@ package libpod
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/docker/oci/caps"
 	"github.com/opentracing/opentracing-go"
@@ -19,6 +16,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	defaultExecExitCode             = 125
+	defaultExecExitCodeCannotInvoke = 126
 )
 
 // Init creates a container in the OCI runtime
@@ -220,23 +222,19 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
+// Returns an exit code and an error. If Exec was not able to exec in the container before a failure, an exit code of 126 is returned.
+// If another generic error happens, an exit code of 125 is returned.
+// Sometimes, the $RUNTIME exec call errors, and if that is the case, the exit code is the exit code of the call.
+// Otherwise, the exit code will be the exit code of the executed call inside of the container.
 // TODO investigate allowing exec without attaching
-func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs int) error {
+func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir string, streams *AttachStreams, preserveFDs int, resize chan remotecommand.TerminalSize, detachKeys string) (int, error) {
 	var capList []string
-
-	locked := false
 	if !c.batched {
-		locked = true
-
 		c.lock.Lock()
-		defer func() {
-			if locked {
-				c.lock.Unlock()
-			}
-		}()
+		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return err
+			return defaultExecExitCodeCannotInvoke, err
 		}
 	}
 
@@ -244,23 +242,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	// TODO can probably relax this once we track exec sessions
 	if conState != define.ContainerStateRunning {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
+		return defaultExecExitCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
+
 	if privileged || c.config.Privileged {
 		capList = caps.GetAllCapabilities()
-	}
-
-	// If user was set, look it up in the container to get a UID to use on
-	// the host
-	hostUser := ""
-	if user != "" {
-		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, nil)
-		if err != nil {
-			return err
-		}
-
-		// runc expects user formatted as uid:gid
-		hostUser = fmt.Sprintf("%d:%d", execUser.Uid, execUser.Gid)
 	}
 
 	// Generate exec session ID
@@ -282,55 +268,27 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	}
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
-
-	execCmd, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, hostUser, sessionID, streams, preserveFDs)
-	if err != nil {
-		return errors.Wrapf(err, "error exec %s", c.ID())
+	if err := c.createExecBundle(sessionID); err != nil {
+		return defaultExecExitCodeCannotInvoke, err
 	}
-	chWait := make(chan error)
-	go func() {
-		chWait <- execCmd.Wait()
-		close(chWait)
+
+	defer func() {
+		// cleanup exec bundle
+		if err := c.cleanupExecBundle(sessionID); err != nil {
+			logrus.Errorf("Error removing exec session %s bundle path for container %s: %v", sessionID, c.ID(), err)
+		}
 	}()
 
-	pidFile := c.execPidPath(sessionID)
-	// 60 second seems a reasonable time to wait
-	// https://github.com/containers/libpod/issues/1495
-	// https://github.com/containers/libpod/issues/1816
-	const pidWaitTimeout = 60000
-
-	// Wait until the runtime makes the pidfile
-	exited, err := WaitForFile(pidFile, chWait, pidWaitTimeout*time.Millisecond)
+	pid, attachChan, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, user, sessionID, streams, preserveFDs, resize, detachKeys)
 	if err != nil {
-		if exited {
-			// If the runtime exited, propagate the error we got from the process.
-			// We need to remove PID files to ensure no memory leaks
-			if err2 := os.Remove(pidFile); err2 != nil {
-				logrus.Errorf("Error removing exit file for container %s exec session %s: %v", c.ID(), sessionID, err2)
-			}
-
-			return err
+		ec := defaultExecExitCode
+		// Conmon will pass a non-zero exit code from the runtime as a pid here.
+		// we differentiate a pid with an exit code by sending it as negative, so reverse
+		// that change and return the exit code the runtime failed with.
+		if pid < 0 {
+			ec = -1 * pid
 		}
-		return errors.Wrapf(err, "timed out waiting for runtime to create pidfile for exec session in container %s", c.ID())
-	}
-
-	// Pidfile exists, read it
-	contents, err := ioutil.ReadFile(pidFile)
-	// We need to remove PID files to ensure no memory leaks
-	if err2 := os.Remove(pidFile); err2 != nil {
-		logrus.Errorf("Error removing exit file for container %s exec session %s: %v", c.ID(), sessionID, err2)
-	}
-	if err != nil {
-		// We don't know the PID of the exec session
-		// However, it may still be alive
-		// TODO handle this better
-		return errors.Wrapf(err, "could not read pidfile for exec session %s in container %s", sessionID, c.ID())
-	}
-	pid, err := strconv.ParseInt(string(contents), 10, 32)
-	if err != nil {
-		// As above, we don't have a valid PID, but the exec session is likely still alive
-		// TODO handle this better
-		return errors.Wrapf(err, "error parsing PID of exec session %s in container %s", sessionID, c.ID())
+		return ec, err
 	}
 
 	// We have the PID, add it to state
@@ -340,12 +298,12 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	session := new(ExecSession)
 	session.ID = sessionID
 	session.Command = cmd
-	session.PID = int(pid)
+	session.PID = pid
 	c.state.ExecSessions[sessionID] = session
 	if err := c.save(); err != nil {
 		// Now we have a PID but we can't save it in the DB
 		// TODO handle this better
-		return errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
+		return defaultExecExitCode, errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
 	}
 	c.newContainerEvent(events.Exec)
 	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())
@@ -353,23 +311,33 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	// Unlock so other processes can use the container
 	if !c.batched {
 		c.lock.Unlock()
-		locked = false
 	}
 
-	var waitErr error
-	if !exited {
-		waitErr = <-chWait
+	lastErr := <-attachChan
+
+	exitCode, err := c.readExecExitCode(sessionID)
+	if err != nil {
+		if lastErr != nil {
+			logrus.Errorf(lastErr.Error())
+		}
+		lastErr = err
+	}
+	if exitCode != 0 {
+		if lastErr != nil {
+			logrus.Errorf(lastErr.Error())
+		}
+		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCode)
 	}
 
 	// Lock again
 	if !c.batched {
-		locked = true
 		c.lock.Lock()
 	}
 
 	// Sync the container again to pick up changes in state
 	if err := c.syncContainer(); err != nil {
-		return errors.Wrapf(err, "error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+		logrus.Errorf("error syncing container %s state to remove exec session %s", c.ID(), sessionID)
+		return exitCode, lastErr
 	}
 
 	// Remove the exec session from state
@@ -377,7 +345,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	if err := c.save(); err != nil {
 		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
 	}
-	return waitErr
+	return exitCode, lastErr
 }
 
 // AttachStreams contains streams that will be attached to the container

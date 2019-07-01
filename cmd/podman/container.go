@@ -57,6 +57,7 @@ var (
 		_contInspectSubCommand,
 		_cpCommand,
 		_diffCommand,
+		_execCommand,
 		_exportCommand,
 		_createCommand,
 		_initCommand,

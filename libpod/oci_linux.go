@@ -3,77 +3,28 @@
 package libpod
 
 import (
-	"bufio"
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/coreos/go-systemd/activation"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 const unknownPackage = "Unknown"
-
-func (r *OCIRuntime) moveConmonToCgroup(ctr *Container, cgroupParent string, cmd *exec.Cmd) error {
-	if os.Geteuid() == 0 {
-		if r.cgroupManager == SystemdCgroupsManager {
-			unitName := createUnitName("libpod-conmon", ctr.ID())
-
-			realCgroupParent := cgroupParent
-			splitParent := strings.Split(cgroupParent, "/")
-			if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
-				realCgroupParent = splitParent[len(splitParent)-1]
-			}
-
-			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
-			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-			}
-		} else {
-			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
-			if err != nil {
-				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else {
-				// we need to remove this defer and delete the cgroup once conmon exits
-				// maybe need a conmon monitor?
-				if err := control.AddPid(cmd.Process.Pid); err != nil {
-					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-				}
-			}
-		}
-	}
-	return nil
-}
-
-// newPipe creates a unix socket pair for communication
-func newPipe() (parent *os.File, child *os.File, err error) {
-	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
-	if err != nil {
-		return nil, nil, err
-	}
-	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
-}
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int) error {
@@ -100,7 +51,7 @@ func makeAccessible(path string, uid, gid int) error {
 // CreateContainer creates a container in the OCI runtime
 // TODO terminal support for container
 // Presently just ignoring conmon opts related to it
-func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
+func (r *OCIRuntime) createContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
 	if len(ctr.config.IDMappings.UIDMap) != 0 || len(ctr.config.IDMappings.GIDMap) != 0 {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
@@ -152,7 +103,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 							return errors.Wrapf(err, "cannot unmount %s", m.Mountpoint)
 						}
 					}
-					return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+					return r.createOCIContainer(ctr, restoreOptions)
 				}()
 				ch <- err
 			}()
@@ -160,7 +111,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 			return err
 		}
 	}
-	return r.createOCIContainer(ctr, cgroupParent, restoreOptions)
+	return r.createOCIContainer(ctr, restoreOptions)
 }
 
 func rpmVersion(path string) string {
@@ -195,293 +146,178 @@ func (r *OCIRuntime) conmonPackage() string {
 	return dpkgVersion(r.conmonPath)
 }
 
-func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, restoreOptions *ContainerCheckpointOptions) (err error) {
-	var stderrBuf bytes.Buffer
+// execContainer executes a command in a running container
+// TODO: Add --detach support
+// TODO: Convert to use conmon
+// TODO: add --pid-file and use that to generate exec session tracking
+func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams, preserveFDs int, resize chan remotecommand.TerminalSize, detachKeys string) (int, chan error, error) {
+	if len(cmd) == 0 {
+		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
+	}
+
+	if sessionID == "" {
+		return -1, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
+	}
+
+	// create sync pipe to receive the pid
+	parentSyncPipe, childSyncPipe, err := newPipe()
+	if err != nil {
+		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+
+	defer errorhandling.CloseQuiet(parentSyncPipe)
+
+	// create start pipe to set the cgroup before running
+	// attachToExec is responsible for closing parentStartPipe
+	childStartPipe, parentStartPipe, err := newPipe()
+	if err != nil {
+		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+
+	// We want to make sure we close the parent{Start,Attach}Pipes if we fail
+	// but also don't want to close them after attach to exec is called
+	attachToExecCalled := false
+
+	defer func() {
+		if !attachToExecCalled {
+			errorhandling.CloseQuiet(parentStartPipe)
+		}
+	}()
+
+	// create the attach pipe to allow attach socket to be created before
+	// $RUNTIME exec starts running. This is to make sure we can capture all output
+	// from the process through that socket, rather than half reading the log, half attaching to the socket
+	// attachToExec is responsible for closing parentAttachPipe
+	parentAttachPipe, childAttachPipe, err := newPipe()
+	if err != nil {
+		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+	}
+
+	defer func() {
+		if !attachToExecCalled {
+			errorhandling.CloseQuiet(parentAttachPipe)
+		}
+	}()
+
+	childrenClosed := false
+	defer func() {
+		if !childrenClosed {
+			errorhandling.CloseQuiet(childSyncPipe)
+			errorhandling.CloseQuiet(childAttachPipe)
+			errorhandling.CloseQuiet(childStartPipe)
+		}
+	}()
 
 	runtimeDir, err := util.GetRootlessRuntimeDir()
 	if err != nil {
-		return err
+		return -1, nil, err
 	}
 
-	parentPipe, childPipe, err := newPipe()
+	processFile, err := prepareProcessExec(c, cmd, env, tty, cwd, user, sessionID)
 	if err != nil {
-		return errors.Wrapf(err, "error creating socket pair")
+		return -1, nil, err
 	}
 
-	childStartPipe, parentStartPipe, err := newPipe()
-	if err != nil {
-		return errors.Wrapf(err, "error creating socket pair for start pipe")
+	var ociLog string
+	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
+		ociLog = c.execOCILog(sessionID)
+	}
+	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog)
+
+	if preserveFDs > 0 {
+		args = append(args, formatRuntimeOpts("--preserve-fds", string(preserveFDs))...)
 	}
 
-	defer errorhandling.CloseQuiet(parentPipe)
-	defer errorhandling.CloseQuiet(parentStartPipe)
+	for _, capability := range capAdd {
+		args = append(args, formatRuntimeOpts("--cap", capability)...)
+	}
 
-	ociLog := filepath.Join(ctr.state.RunDir, "oci-log")
-	logLevel := logrus.GetLevel()
-
-	args := []string{}
-	if r.cgroupManager == SystemdCgroupsManager {
-		args = append(args, "-s")
-	}
-	args = append(args, "-c", ctr.ID())
-	args = append(args, "-u", ctr.ID())
-	args = append(args, "-n", ctr.Name())
-	args = append(args, "-r", r.path)
-	args = append(args, "-b", ctr.bundlePath())
-	args = append(args, "-p", filepath.Join(ctr.state.RunDir, "pidfile"))
-	args = append(args, "--exit-dir", r.exitsDir)
-	if logLevel != logrus.DebugLevel && r.supportsJSON {
-		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLog))
-	}
-	if ctr.config.ConmonPidFile != "" {
-		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
-	}
-	if len(ctr.config.ExitCommand) > 0 {
-		args = append(args, "--exit-command", ctr.config.ExitCommand[0])
-		for _, arg := range ctr.config.ExitCommand[1:] {
-			args = append(args, []string{"--exit-command-arg", arg}...)
-		}
-	}
-	args = append(args, "--socket-dir-path", r.socketsDir)
-	if ctr.config.Spec.Process.Terminal {
+	if tty {
 		args = append(args, "-t")
-	} else if ctr.config.Stdin {
-		args = append(args, "-i")
-	}
-	if r.logSizeMax >= 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.logSizeMax))
 	}
 
-	logDriver := KubernetesLogging
-	if ctr.LogDriver() == JSONLogging {
-		logrus.Errorf("json-file logging specified but not supported. Choosing k8s-file logging instead")
-	} else if ctr.LogDriver() != "" {
-		logDriver = ctr.LogDriver()
-	}
-	args = append(args, "-l", fmt.Sprintf("%s:%s", logDriver, ctr.LogPath()))
-
-	if r.noPivot {
-		args = append(args, "--no-pivot")
-	}
-
-	args = append(args, "--log-level", logLevel.String())
-
-	if logLevel == logrus.DebugLevel {
-		logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
-		args = append(args, "--syslog")
-	}
-
-	if restoreOptions != nil {
-		args = append(args, "--restore", ctr.CheckpointPath())
-		if restoreOptions.TCPEstablished {
-			args = append(args, "--restore-arg", "--tcp-established")
-		}
-	}
+	// Append container ID and command
+	args = append(args, "-e")
+	// TODO make this optional when we can detach
+	args = append(args, "--exec-attach")
+	args = append(args, "--exec-process-spec", processFile.Name())
 
 	logrus.WithFields(logrus.Fields{
 		"args": args,
 	}).Debugf("running conmon: %s", r.conmonPath)
+	execCmd := exec.Command(r.conmonPath, args...)
 
-	cmd := exec.Command(r.conmonPath, args...)
-	cmd.Dir = ctr.bundlePath()
-	cmd.SysProcAttr = &syscall.SysProcAttr{
+	if streams.AttachInput {
+		execCmd.Stdin = streams.InputStream
+	}
+	if streams.AttachOutput {
+		execCmd.Stdout = streams.OutputStream
+	}
+	if streams.AttachError {
+		execCmd.Stderr = streams.ErrorStream
+	}
+
+	conmonEnv, extraFiles, err := r.configureConmonEnv(runtimeDir)
+	if err != nil {
+		return -1, nil, err
+	}
+
+	// we don't want to step on users fds they asked to preserve
+	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
+	execCmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", preserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", preserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", preserveFDs+5))
+	execCmd.Env = append(execCmd.Env, conmonEnv...)
+
+	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
+	execCmd.ExtraFiles = append(execCmd.ExtraFiles, extraFiles...)
+	execCmd.Dir = c.execBundlePath(sessionID)
+	execCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
-	// TODO this is probably a really bad idea for some uses
-	// Make this configurable
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if ctr.config.Spec.Process.Terminal {
-		cmd.Stderr = &stderrBuf
+
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
 	}
 
-	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
-	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
-	cmd.Env = append(cmd.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	home, err := homeDir()
+	err = startCommandGivenSelinux(execCmd)
+
+	// We don't need children pipes  on the parent side
+	errorhandling.CloseQuiet(childSyncPipe)
+	errorhandling.CloseQuiet(childAttachPipe)
+	errorhandling.CloseQuiet(childStartPipe)
+	childrenClosed = true
+
 	if err != nil {
-		return err
+		return -1, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
-	cmd.Env = append(cmd.Env, fmt.Sprintf("HOME=%s", home))
-
-	if r.reservePorts && !ctr.config.NetMode.IsSlirp4netns() {
-		ports, err := bindPorts(ctr.config.PortMappings)
-		if err != nil {
-			return err
-		}
-
-		// Leak the port we bound in the conmon process.  These fd's won't be used
-		// by the container and conmon will keep the ports busy so that another
-		// process cannot use them.
-		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe, sessionID); err != nil {
+		return -1, nil, err
 	}
 
-	if ctr.config.NetMode.IsSlirp4netns() {
-		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-		if err != nil {
-			return errors.Wrapf(err, "failed to create rootless network sync pipe")
-		}
-		// Leak one end in conmon, the other one will be leaked into slirp4netns
-		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
-	}
-
-	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
-	}
-	if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
-		fds := activation.Files(false)
-		cmd.ExtraFiles = append(cmd.ExtraFiles, fds...)
-	}
-	if selinux.GetEnabled() {
-		// Set the label of the conmon process to be level :s0
-		// This will allow the container processes to talk to fifo-files
-		// passed into the container by conmon
-		var (
-			plabel string
-			con    selinux.Context
-		)
-		plabel, err = selinux.CurrentLabel()
-		if err != nil {
-			if err := childPipe.Close(); err != nil {
-				logrus.Errorf("failed to close child pipe: %q", err)
-			}
-			return errors.Wrapf(err, "Failed to get current SELinux label")
-		}
-
-		con, err = selinux.NewContext(plabel)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to get new context from SELinux label")
-		}
-
-		runtime.LockOSThread()
-		if con["level"] != "s0" && con["level"] != "" {
-			con["level"] = "s0"
-			if err = label.SetProcessLabel(con.Get()); err != nil {
-				runtime.UnlockOSThread()
-				return err
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			// These fds were passed down to the runtime.  Close them
+			// and not interfere
+			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
+				logrus.Debugf("unable to close file fd-%d", fd)
 			}
 		}
-		err = cmd.Start()
-		// Ignore error returned from SetProcessLabel("") call,
-		// can't recover.
-		if err := label.SetProcessLabel(""); err != nil {
-			_ = err
-		}
-		runtime.UnlockOSThread()
-	} else {
-		err = cmd.Start()
-	}
-	if err != nil {
-		errorhandling.CloseQuiet(childPipe)
-		return err
-	}
-	defer func() {
-		_ = cmd.Wait()
-	}()
-
-	// We don't need childPipe on the parent side
-	if err := childPipe.Close(); err != nil {
-		return err
-	}
-	if err := childStartPipe.Close(); err != nil {
-		return err
 	}
 
-	// Move conmon to specified cgroup
-	if err := r.moveConmonToCgroup(ctr, cgroupParent, cmd); err != nil {
-		return err
-	}
-
-	/* We set the cgroup, now the child can start creating children */
-	someData := []byte{0}
-	_, err = parentStartPipe.Write(someData)
-	if err != nil {
-		return err
-	}
-
-	/* Wait for initial setup and fork, and reap child */
-	err = cmd.Wait()
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		if err != nil {
-			if err2 := r.deleteContainer(ctr); err2 != nil {
-				logrus.Errorf("Error removing container %s from runtime after creation failed", ctr.ID())
-			}
-		}
-	}()
-
-	// Wait to get container pid from conmon
-	type syncStruct struct {
-		si  *syncInfo
-		err error
-	}
-	ch := make(chan syncStruct)
+	// TODO Only create if !detach
+	// Attach to the container before starting it
+	attachChan := make(chan error)
 	go func() {
-		var si *syncInfo
-		rdr := bufio.NewReader(parentPipe)
-		b, err := rdr.ReadBytes('\n')
-		if err != nil {
-			ch <- syncStruct{err: err}
-		}
-		if err := json.Unmarshal(b, &si); err != nil {
-			ch <- syncStruct{err: err}
-			return
-		}
-		ch <- syncStruct{si: si}
+		// attachToExec is responsible for closing pipes
+		attachChan <- c.attachToExec(streams, detachKeys, resize, sessionID, parentStartPipe, parentAttachPipe)
+		close(attachChan)
 	}()
+	attachToExecCalled = true
 
-	select {
-	case ss := <-ch:
-		if ss.err != nil {
-			return errors.Wrapf(ss.err, "error reading container (probably exited) json message")
-		}
-		logrus.Debugf("Received container pid: %d", ss.si.Pid)
-		if ss.si.Pid == -1 {
-			if r.supportsJSON {
-				data, err := ioutil.ReadFile(ociLog)
-				if err == nil {
-					var ociErr ociError
-					if err := json.Unmarshal(data, &ociErr); err == nil {
-						return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(ociErr.Msg, "\n"))
-					}
-				}
-			}
-			// If we failed to parse the JSON errors, then print the output as it is
-			if ss.si.Message != "" {
-				return errors.Wrapf(define.ErrOCIRuntime, "%s", ss.si.Message)
-			}
-			return errors.Wrapf(define.ErrInternal, "container create failed")
-		}
-		ctr.state.PID = ss.si.Pid
-		// Let's try reading the Conmon pid at the same time.
-		if ctr.config.ConmonPidFile != "" {
-			contents, err := ioutil.ReadFile(ctr.config.ConmonPidFile)
-			if err != nil {
-				logrus.Warnf("Error reading Conmon pidfile for container %s: %v", ctr.ID(), err)
-			} else {
-				// Convert it to an int
-				conmonPID, err := strconv.Atoi(string(contents))
-				if err != nil {
-					logrus.Warnf("Error decoding Conmon PID %q for container %s: %v", string(contents), ctr.ID(), err)
-				} else {
-					ctr.state.ConmonPID = conmonPID
-					logrus.Infof("Got Conmon PID as %d", conmonPID)
-				}
-			}
-		}
-	case <-time.After(ContainerCreateTimeout):
-		return errors.Wrapf(define.ErrInternal, "container creation timeout")
-	}
-	return nil
+	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
+
+	return pid, attachChan, err
 }
 
 // Wait for a container which has been sent a signal to stop
