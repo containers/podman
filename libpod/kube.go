@@ -328,9 +328,14 @@ func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceLi
 func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, error) {
 	vm := v1.VolumeMount{}
 	for _, m := range mounts {
-		if m.Source == hostSourcePath {
+		fmt.Println(m.Destination, hostSourcePath)
+		if m.Destination == hostSourcePath {
 			// TODO Name is not provided and is required by Kube; therefore, this is disabled earlier
-			//vm.Name =
+			name, err := convertVolumePathToName(m.Source)
+			if err != nil {
+				return vm, err
+			}
+			vm.Name = name
 			vm.MountPath = m.Source
 			vm.SubPath = m.Destination
 			if util.StringInSlice("ro", m.Options) {
@@ -342,6 +347,22 @@ func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.Vo
 	return vm, errors.New("unable to find mount source")
 }
 
+func convertVolumePathToName(hostSourcePath string) (string, error) {
+	if len(hostSourcePath) == 0 {
+		return "", errors.Errorf("hostSourcePath must be specified to generate volume name")
+	}
+	if len(hostSourcePath) == 1 {
+		if hostSourcePath != "/" {
+			return "", errors.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
+		}
+		// add special case name
+		return "root", nil
+	}
+	// First, trim trailing slashes, then replace slashes with dashes.
+	// Thus, /mnt/data/ will become mnt-data
+	return strings.Replace(strings.Trim(hostSourcePath, "/"), "/", "-", -1), nil
+}
+
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
 func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
 	// At this point, I dont think we can distinguish between the default
@@ -350,7 +371,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
 	for _, hostSourcePath := range c.config.UserVolumes {
 		vm, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
 		if err != nil {
-			continue
+			return vms, err
 		}
 		vms = append(vms, vm)
 	}
