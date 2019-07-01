@@ -53,7 +53,7 @@ Note: When using the all-tags flag, Podman will not iterate over the search regi
 
 **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
 If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
