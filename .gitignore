@@ -1,8 +1,10 @@
 /.artifacts/
 /_output/
+/brew
 /conmon/conmon.o
 /docs/*.[158]
 /docs/*.[158].gz
+/docs/remote
 *.o
 *.orig
 /pause/pause.o
@@ -19,3 +21,4 @@ __pycache__
 .gopathok
 test/e2e/e2e.coverprofile
 /podman*zip
+podman*.tar.gz
