@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"io"
+
+	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -95,7 +96,7 @@ func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer
 	for {
 		n, err := io.ReadFull(r, headerBytes)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "Virtual Read failed, %d", n)
 		}
 		if n < 8 {
 			return errors.New("short read and no full header read")
@@ -150,4 +151,20 @@ func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer
 			return errors.New("unknown multiplex destination")
 		}
 	}
+}
+
+// HangUp sends message to peer to close connection
+func HangUp(writer *bufio.Writer) (err error) {
+	n := 0
+	msg := []byte("HANG-UP")
+
+	writeQuit := NewVirtWriteCloser(writer, Quit)
+	if n, err = writeQuit.Write(msg); err != nil {
+		return
+	}
+
+	if n != len(msg) {
+		return errors.Errorf("Failed to send complete %s message", string(msg))
+	}
+	return
 }

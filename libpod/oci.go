@@ -62,12 +62,6 @@ type OCIRuntime struct {
 	supportsJSON  bool
 }
 
-// syncInfo is used to return data from monitor process to daemon
-type syncInfo struct {
-	Pid     int    `json:"pid"`
-	Message string `json:"message,omitempty"`
-}
-
 // ociError is used to parse the OCI runtime JSON log.  It is not part of the
 // OCI runtime specifications, it follows what runc does
 type ociError struct {
@@ -245,6 +239,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 
 	cmd := exec.Command(r.path, "state", ctr.ID())
 	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
+
 	outPipe, err := cmd.StdoutPipe()
 	if err != nil {
 		return errors.Wrapf(err, "getting stdout pipe")
@@ -388,103 +383,6 @@ func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "resume", ctr.ID())
-}
-
-// execContainer executes a command in a running container
-// TODO: Add --detach support
-// TODO: Convert to use conmon
-// TODO: add --pid-file and use that to generate exec session tracking
-func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty bool, cwd, user, sessionID string, streams *AttachStreams, preserveFDs int) (*exec.Cmd, error) {
-	if len(cmd) == 0 {
-		return nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
-	}
-
-	if sessionID == "" {
-		return nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
-	}
-
-	runtimeDir, err := util.GetRootlessRuntimeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	args := []string{}
-
-	// TODO - should we maintain separate logpaths for exec sessions?
-	args = append(args, "exec")
-
-	if cwd != "" {
-		args = append(args, "--cwd", cwd)
-	}
-
-	args = append(args, "--pid-file", c.execPidPath(sessionID))
-
-	if tty {
-		args = append(args, "--tty")
-	} else {
-		args = append(args, "--tty=false")
-	}
-
-	if user != "" {
-		args = append(args, "--user", user)
-	}
-
-	if preserveFDs > 0 {
-		args = append(args, fmt.Sprintf("--preserve-fds=%d", preserveFDs))
-	}
-	if c.config.Spec.Process.NoNewPrivileges {
-		args = append(args, "--no-new-privs")
-	}
-
-	for _, capabilityAdd := range capAdd {
-		args = append(args, "--cap", capabilityAdd)
-	}
-
-	for _, envVar := range env {
-		args = append(args, "--env", envVar)
-	}
-
-	// Append container ID, name and command
-	args = append(args, c.ID())
-	args = append(args, cmd...)
-
-	logrus.Debugf("Starting runtime %s with following arguments: %v", r.path, args)
-
-	execCmd := exec.Command(r.path, args...)
-
-	if streams.AttachOutput {
-		execCmd.Stdout = streams.OutputStream
-	}
-	if streams.AttachInput {
-		execCmd.Stdin = streams.InputStream
-	}
-	if streams.AttachError {
-		execCmd.Stderr = streams.ErrorStream
-	}
-
-	execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
-		}
-	}
-
-	if err := execCmd.Start(); err != nil {
-		return nil, errors.Wrapf(err, "cannot start container %s", c.ID())
-	}
-
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			// These fds were passed down to the runtime.  Close them
-			// and not interfere
-			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
-				logrus.Debugf("unable to close file fd-%d", fd)
-			}
-		}
-	}
-
-	return execCmd, nil
 }
 
 // checkpointContainer checkpoints the given container

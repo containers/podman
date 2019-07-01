@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
@@ -1034,7 +1035,42 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 	return iid, nil
 }
 
-// Exec executes a container in a running container
-func (r *LocalRuntime) Exec(c *cliconfig.ExecValues, cmd []string) error {
-	return define.ErrNotImplemented
+// ExecContainer executes a command in the container
+func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecValues) (int, error) {
+	// default invalid command exit code
+	ec := 125
+	// Validate given environment variables
+	env := map[string]string{}
+	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
+		return -1, errors.Wrapf(err, "Exec unable to process environment variables")
+	}
+
+	// Build env slice of key=value strings for Exec
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	opts := iopodman.ExecOpts{
+		Name:       cli.InputArgs[0],
+		Tty:        cli.Tty,
+		Privileged: cli.Privileged,
+		Cmd:        cli.InputArgs[1:],
+		User:       &cli.User,
+		Workdir:    &cli.Workdir,
+		Env:        &envs,
+	}
+
+	receive, err := iopodman.ExecContainer().Send(r.Conn, varlink.Upgrade, opts)
+	if err != nil {
+		return ec, errors.Wrapf(err, "Exec failed to contact service for %s", cli.InputArgs)
+	}
+
+	_, err = receive()
+	if err != nil {
+		return ec, errors.Wrapf(err, "Exec operation failed for %s", cli.InputArgs)
+	}
+
+	// TODO return exit code from exec call
+	return 0, nil
 }

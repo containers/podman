@@ -19,8 +19,11 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // ListContainers ...
@@ -755,4 +758,83 @@ func (i *LibpodAPI) Top(call iopodman.VarlinkCall, nameOrID string, descriptors 
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyTop(topInfo)
+}
+
+// ExecContainer is the varlink endpoint to execute a command in a container
+func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecOpts) error {
+	if !call.WantsUpgrade() {
+		return call.ReplyErrorOccurred("client must use upgraded connection to exec")
+	}
+
+	ctr, err := i.Runtime.LookupContainer(opts.Name)
+	if err != nil {
+		return call.ReplyContainerNotFound(opts.Name, err.Error())
+	}
+
+	state, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(
+			fmt.Sprintf("exec failed to obtain container %s state: %s", ctr.ID(), err.Error()))
+	}
+
+	if state != define.ContainerStateRunning {
+		return call.ReplyErrorOccurred(
+			fmt.Sprintf("exec requires a running container, %s is %s", ctr.ID(), state.String()))
+	}
+
+	envs := []string{}
+	if opts.Env != nil {
+		envs = *opts.Env
+	}
+
+	var user string
+	if opts.User != nil {
+		user = *opts.User
+	}
+
+	var workDir string
+	if opts.Workdir != nil {
+		workDir = *opts.Workdir
+	}
+
+	resizeChan := make(chan remotecommand.TerminalSize)
+	errChan := make(chan error)
+
+	reader, writer, _, pipeWriter, streams := setupStreams(call)
+
+	go func() {
+		fmt.Printf("ExecContainer Start Reader\n")
+		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan); err != nil {
+			fmt.Printf("ExecContainer Reader err %s, %s\n", err.Error(), errors.Cause(err).Error())
+			errChan <- err
+		}
+	}()
+
+	// Debugging...
+	time.Sleep(5 * time.Second)
+
+	go func() {
+		fmt.Printf("ExecContainer Start ctr.Exec\n")
+		// TODO detach keys and resize
+		// TODO add handling for exit code
+		// TODO capture exit code and return to main thread
+		_, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, nil, "")
+		if err != nil {
+			fmt.Printf("ExecContainer Exec err %s, %s\n", err.Error(), errors.Cause(err).Error())
+			errChan <- errors.Wrapf(err, "ExecContainer failed for container %s", ctr.ID())
+		}
+	}()
+
+	execErr := <-errChan
+
+	if execErr != nil && errors.Cause(execErr) != io.EOF {
+		fmt.Printf("ExecContainer err: %s\n", execErr.Error())
+		return call.ReplyErrorOccurred(execErr.Error())
+	}
+
+	if err = virtwriter.HangUp(writer); err != nil {
+		fmt.Printf("ExecContainer hangup err: %s\n", err.Error())
+		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
+	}
+	return call.Writer.Flush()
 }
