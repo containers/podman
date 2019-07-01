@@ -107,7 +107,7 @@ func containerExistsCmd(c *cliconfig.ContainerExistsValues) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one container at a time")
 	}
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -126,7 +126,7 @@ func podExistsCmd(c *cliconfig.PodExistsValues) error {
 	if len(args) > 1 || len(args) < 1 {
 		return errors.New("you may only check for the existence of one pod at a time")
 	}
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	runtime, err := adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}

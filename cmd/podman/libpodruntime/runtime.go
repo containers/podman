@@ -15,20 +15,25 @@ import (
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
 func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, true)
+	return getRuntime(ctx, c, false, true, false)
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, true, false)
+	return getRuntime(ctx, c, true, false, false)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false)
+	return getRuntime(ctx, c, false, false, false)
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, migrate bool) (*libpod.Runtime, error) {
+// GetRuntimeNoStore generates a new libpod runtime configured by command line options
+func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, false, true)
+}
+
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -89,6 +94,9 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber bool, 
 		options = append(options, libpod.WithStorageConfig(storageOpts))
 	}
 
+	if !storageSet && noStore {
+		options = append(options, libpod.WithNoStore())
+	}
 	// TODO CLI flags for image config?
 	// TODO CLI flag for signature policy?
 
