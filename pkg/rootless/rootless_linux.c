@@ -244,7 +244,7 @@ static void __attribute__((constructor)) init()
   /* Shortcut.  If we are able to join the pause pid file, do it now so we don't
      need to re-exec.  */
   xdg_runtime_dir = getenv ("XDG_RUNTIME_DIR");
-  if (xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
+  if (geteuid () != 0 && xdg_runtime_dir && xdg_runtime_dir[0] && can_use_shortcut ())
     {
       int r;
       int fd;
