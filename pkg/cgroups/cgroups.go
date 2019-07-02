@@ -30,7 +30,7 @@ type CgroupControl struct {
 	additionalControllers []controller
 }
 
-// CPUUsage keeps stats for the CPU usage
+// CPUUsage keeps stats for the CPU usage (unit: nanoseconds)
 type CPUUsage struct {
 	Kernel uint64
 	Total  uint64

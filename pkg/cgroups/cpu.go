@@ -85,12 +85,14 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 			if err != nil {
 				return err
 			}
+			usage.Kernel *= 1000
 		}
 		if val, found := values["system_usec"]; found {
 			usage.Total, err = strconv.ParseUint(cleanString(val[0]), 10, 0)
 			if err != nil {
 				return err
 			}
+			usage.Total *= 1000
 		}
 		// FIXME: How to read usage.PerCPU?
 	} else {
