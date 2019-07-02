@@ -368,58 +368,41 @@ func (c *Container) getInspectMounts(ctrSpec *spec.Spec) ([]InspectMount, error)
 		return inspectMounts, nil
 	}
 
-	// We need to parse all named volumes and mounts into maps, so we don't
-	// end up with repeated lookups for each user volume.
-	// Map destination to struct, as destination is what is stored in
-	// UserVolumes.
-	namedVolumes := make(map[string]*ContainerNamedVolume)
-	mounts := make(map[string]spec.Mount)
-	for _, namedVol := range c.config.NamedVolumes {
-		namedVolumes[namedVol.Dest] = namedVol
-	}
-	for _, mount := range ctrSpec.Mounts {
-		mounts[mount.Destination] = mount
-	}
+	namedVolumes, mounts := c.sortUserVolumes(ctrSpec)
+	for _, volume := range namedVolumes {
+		mountStruct := InspectMount{}
+		mountStruct.Type = "volume"
+		mountStruct.Destination = volume.Dest
+		mountStruct.Name = volume.Name
 
-	for _, vol := range c.config.UserVolumes {
-		// We need to look up the volumes.
-		// First: is it a named volume?
-		if volume, ok := namedVolumes[vol]; ok {
-			mountStruct := InspectMount{}
-			mountStruct.Type = "volume"
-			mountStruct.Destination = volume.Dest
-			mountStruct.Name = volume.Name
-
-			// For src and driver, we need to look up the named
-			// volume.
-			volFromDB, err := c.runtime.state.Volume(volume.Name)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
-			}
-			mountStruct.Driver = volFromDB.Driver()
-			mountStruct.Source = volFromDB.MountPoint()
-
-			parseMountOptionsForInspect(volume.Options, &mountStruct)
-
-			inspectMounts = append(inspectMounts, mountStruct)
-		} else if mount, ok := mounts[vol]; ok {
-			// It's a mount.
-			// Is it a tmpfs? If so, discard.
-			if mount.Type == "tmpfs" {
-				continue
-			}
-
-			mountStruct := InspectMount{}
-			mountStruct.Type = "bind"
-			mountStruct.Source = mount.Source
-			mountStruct.Destination = mount.Destination
-
-			parseMountOptionsForInspect(mount.Options, &mountStruct)
-
-			inspectMounts = append(inspectMounts, mountStruct)
+		// For src and driver, we need to look up the named
+		// volume.
+		volFromDB, err := c.runtime.state.Volume(volume.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up volume %s in container %s config", volume.Name, c.ID())
 		}
-		// We couldn't find a mount. Log a warning.
-		logrus.Warnf("Could not find mount at destination %q when building inspect output for container %s", vol, c.ID())
+		mountStruct.Driver = volFromDB.Driver()
+		mountStruct.Source = volFromDB.MountPoint()
+
+		parseMountOptionsForInspect(volume.Options, &mountStruct)
+
+		inspectMounts = append(inspectMounts, mountStruct)
+	}
+	for _, mount := range mounts {
+		// It's a mount.
+		// Is it a tmpfs? If so, discard.
+		if mount.Type == "tmpfs" {
+			continue
+		}
+
+		mountStruct := InspectMount{}
+		mountStruct.Type = "bind"
+		mountStruct.Source = mount.Source
+		mountStruct.Destination = mount.Destination
+
+		parseMountOptionsForInspect(mount.Options, &mountStruct)
+
+		inspectMounts = append(inspectMounts, mountStruct)
 	}
 
 	return inspectMounts, nil

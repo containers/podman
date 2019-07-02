@@ -340,40 +340,58 @@ func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceLi
 	return maxResources, minResources
 }
 
-func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, v1.Volume, error) {
+// libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
+func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
+	var vms []v1.VolumeMount
+	var vos []v1.Volume
+
+	// TjDO when named volumes are supported in play kube, also parse named volumes here
+	_, mounts := c.sortUserVolumes(c.config.Spec)
+	for _, m := range mounts {
+		vm, vo, err := generateKubeVolumeMount(m)
+		if err != nil {
+			return vms, vos, err
+		}
+		vms = append(vms, vm)
+		vos = append(vos, vo)
+	}
+	return vms, vos, nil
+}
+
+// generateKubeVolumeMount takes a user specfied mount and returns
+// a kubernetes VolumeMount (to be added to the container) and a kubernetes Volume
+// (to be added to the pod)
+func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	vm := v1.VolumeMount{}
 	vo := v1.Volume{}
-	for _, m := range mounts {
-		if m.Destination == hostSourcePath {
-			name, err := convertVolumePathToName(m.Source)
-			if err != nil {
-				return vm, vo, err
-			}
-			vm.Name = name
-			vm.MountPath = m.Destination
-			if util.StringInSlice("ro", m.Options) {
-				vm.ReadOnly = true
-			}
 
-			vo.Name = name
-			vo.HostPath = &v1.HostPathVolumeSource{}
-			vo.HostPath.Path = m.Source
-			isDir, err := isHostPathDirectory(m.Source)
-			// neither a directory or a file lives here, default to creating a directory
-			// TODO should this be an error instead?
-			var hostPathType v1.HostPathType
-			if err != nil {
-				hostPathType = v1.HostPathDirectoryOrCreate
-			} else if isDir {
-				hostPathType = v1.HostPathDirectory
-			} else {
-				hostPathType = v1.HostPathFile
-			}
-			vo.HostPath.Type = &hostPathType
-			return vm, vo, nil
-		}
+	name, err := convertVolumePathToName(m.Source)
+	if err != nil {
+		return vm, vo, err
 	}
-	return vm, vo, errors.New("unable to find mount source")
+	vm.Name = name
+	vm.MountPath = m.Destination
+	if util.StringInSlice("ro", m.Options) {
+		vm.ReadOnly = true
+	}
+
+	vo.Name = name
+	vo.HostPath = &v1.HostPathVolumeSource{}
+	vo.HostPath.Path = m.Source
+	isDir, err := isHostPathDirectory(m.Source)
+	// neither a directory or a file lives here, default to creating a directory
+	// TODO should this be an error instead?
+	var hostPathType v1.HostPathType
+	if err != nil {
+		hostPathType = v1.HostPathDirectoryOrCreate
+	} else if isDir {
+		hostPathType = v1.HostPathDirectory
+	} else {
+		hostPathType = v1.HostPathFile
+	}
+	vo.HostPath.Type = &hostPathType
+
+	return vm, vo, nil
 }
 
 func isHostPathDirectory(hostPathSource string) (bool, error) {
@@ -398,23 +416,6 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 	// First, trim trailing slashes, then replace slashes with dashes.
 	// Thus, /mnt/data/ will become mnt-data
 	return strings.Replace(strings.Trim(hostSourcePath, "/"), "/", "-", -1), nil
-}
-
-// libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
-func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
-	// At this point, I dont think we can distinguish between the default
-	// volume mounts and user added ones.  For now, we pass them all.
-	var vms []v1.VolumeMount
-	var vos []v1.Volume
-	for _, hostSourcePath := range c.config.UserVolumes {
-		vm, vo, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
-		if err != nil {
-			return vms, vos, err
-		}
-		vms = append(vms, vm)
-		vos = append(vos, vo)
-	}
-	return vms, vos, nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
