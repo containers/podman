@@ -6,10 +6,7 @@ then
 	exit 1
 fi
 
-DATA=$(grep --no-filename packagefile $WORK/**/importcfg \
+grep --no-filename packagefile $WORK/**/importcfg \
 	| awk '{ split($2, data, "="); printf "%s ", data[1]; system("du -sh " data[2]) }' \
 	| awk '{ printf "%s %s\n", $2, $1 }' \
-	| sort -ruh \
-	)
-
-echo "$DATA"
+	| sort -u | sort -rh
