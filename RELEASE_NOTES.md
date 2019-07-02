@@ -7,6 +7,7 @@
 - Fixed a bug where running Podman as root with `sudo -E` would not work after running rootless Podman at least once
 - Fixed a bug where options for `tmpfs` volumes added with the `--tmpfs` flag were being ignored
 - Fixed a bug where images with no layers could not properly be displayed and removed by Podman
+- Fixed a bug where locks were not properly freed on failure to create a container or pod
 
 ### Misc
 - Updated containers/storage to v1.12.13
