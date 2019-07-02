@@ -1,5 +1,16 @@
 # Release Notes
 
+## 1.4.4
+### Bugfixes
+- Fixed a bug where rootless Podman would attempt to use the entire root configuration if no rootless configuration was present for the user, breaking rootless Podman for new installations
+- Fixed a bug where rootless Podman's pause process would block SIGTERM, preventing graceful system shutdown and hanging until the system's init send SIGKILL
+- Fixed a bug where running Podman as root with `sudo -E` would not work after running rootless Podman at least once
+- Fixed a bug where options for `tmpfs` volumes added with the `--tmpfs` flag were being ignored
+- Fixed a bug where images with no layers could not properly be displayed and removed by Podman
+
+### Misc
+- Updated containers/storage to v1.12.13
+
 ## 1.4.3
 ### Features
 - Podman now has greatly improved support for containers using multiple OCI runtimes. Containers now remember if they were created with a different runtime using `--runtime` and will always use that runtime
