@@ -207,4 +207,35 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(psOut).To(ContainSubstring("test1"))
 		Expect(psOut).To(ContainSubstring("test2"))
 	})
+
+	It("podman generate kube with volume", func() {
+		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
+		err := os.MkdirAll(vol1, 0755)
+		Expect(err).To(BeNil())
+
+		// we need a container name because IDs don't persist after rm/play
+		ctrName := "test-ctr"
+
+		session1 := podmanTest.Podman([]string{"run", "-d", "--pod", "new:test1", "--name", ctrName, "-v", vol1 + ":/volume/:z", "alpine", "top"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session1.ExitCode()).To(Equal(0))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"generate", "kube", "test1", "-f", outputFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		rm := podmanTest.Podman([]string{"pod", "rm", "-f", "test1"})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm.ExitCode()).To(Equal(0))
+
+		play := podmanTest.Podman([]string{"play", "kube", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
+	})
 })
