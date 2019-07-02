@@ -1,11 +1,10 @@
 package main
 
 import (
-	"os"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +38,7 @@ func init() {
 }
 
 func pauseCmd(c *cliconfig.PauseValues) error {
-	if os.Geteuid() != 0 {
+	if rootless.IsRootless() && !remoteclient {
 		return errors.New("pause is not supported for rootless containers")
 	}
 
