@@ -132,31 +132,40 @@ func containersToServicePorts(containers []v1.Container) []v1.ServicePort {
 func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPort) (*v1.Pod, error) {
 	var (
 		podContainers []v1.Container
-		podVolumes    []v1.Volume
 	)
+	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
-			result, volumes, err := containerToV1Container(ctr)
+			ctr, volumes, err := containerToV1Container(ctr)
 			if err != nil {
 				return nil, err
 			}
 
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here.
-			result.Ports = nil
+			ctr.Ports = nil
 
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.
 			if first && len(ports) > 0 {
-				result.Ports = ports
+				ctr.Ports = ports
 				first = false
 			}
-			podContainers = append(podContainers, result)
-			podVolumes = append(podVolumes, volumes...)
+			podContainers = append(podContainers, ctr)
+			// Deduplicate volumes, so if containers in the pod share a volume, it's only
+			// listed in the volumes section once
+			for _, vol := range volumes {
+				deDupPodVolumes[vol.Name] = &vol
+			}
 		}
 	}
+	podVolumes := make([]v1.Volume, 0, len(deDupPodVolumes))
+	for _, vol := range deDupPodVolumes {
+		podVolumes = append(podVolumes, *vol)
+	}
+
 	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name()), nil
 }
 
