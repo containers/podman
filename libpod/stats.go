@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -105,7 +106,11 @@ func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uin
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
 		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
 		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CPU.Usage.PerCPU)) * 100
+		nCPUS := len(stats.CPU.Usage.PerCPU)
+		if nCPUS == 0 {
+			nCPUS = runtime.NumCPU()
+		}
+		cpuPercent = (cpuDelta / systemDelta) * float64(nCPUS) * 100
 	}
 	return cpuPercent
 }
