@@ -234,6 +234,8 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 
 		// Alright, it exists. Transition to Stopped state.
 		ctr.state.State = define.ContainerStateStopped
+		ctr.state.PID = 0
+		ctr.state.ConmonPID = 0
 
 		// Read the exit file to get our stopped time and exit code.
 		return ctr.handleExitFile(exitFile, info)

@@ -1054,6 +1054,8 @@ func (c *Container) stop(timeout uint) error {
 		return err
 	}
 
+	c.state.PID = 0
+	c.state.ConmonPID = 0
 	c.state.StoppedByUser = true
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error saving container %s state after stopping", c.ID())
