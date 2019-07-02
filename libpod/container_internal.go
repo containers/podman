@@ -1534,3 +1534,34 @@ func (c *Container) prepareCheckpointExport() (err error) {
 
 	return nil
 }
+
+// sortUserVolumes sorts the volumes specified for a container
+// between named and normal volumes
+func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume, []spec.Mount) {
+	namedUserVolumes := []*ContainerNamedVolume{}
+	userMounts := []spec.Mount{}
+
+	// We need to parse all named volumes and mounts into maps, so we don't
+	// end up with repeated lookups for each user volume.
+	// Map destination to struct, as destination is what is stored in
+	// UserVolumes.
+	namedVolumes := make(map[string]*ContainerNamedVolume)
+	mounts := make(map[string]spec.Mount)
+	for _, namedVol := range c.config.NamedVolumes {
+		namedVolumes[namedVol.Dest] = namedVol
+	}
+	for _, mount := range ctrSpec.Mounts {
+		mounts[mount.Destination] = mount
+	}
+
+	for _, vol := range c.config.UserVolumes {
+		if volume, ok := namedVolumes[vol]; ok {
+			namedUserVolumes = append(namedUserVolumes, volume)
+		} else if mount, ok := mounts[vol]; ok {
+			userMounts = append(userMounts, mount)
+		} else {
+			logrus.Warnf("Could not find mount at destination %q when parsing user volumes for container %s", vol, c.ID())
+		}
+	}
+	return namedUserVolumes, userMounts
+}
