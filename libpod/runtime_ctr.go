@@ -132,6 +132,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 	ctr.config.LockID = ctr.lock.ID()
 	logrus.Debugf("Allocated lock %d for container %s", ctr.lock.ID(), ctr.ID())
 
+	defer func() {
+		if err != nil {
+			if err2 := ctr.lock.Free(); err2 != nil {
+				logrus.Errorf("Error freeing lock for container after creation failed: %v", err2)
+			}
+		}
+	}()
+
 	ctr.valid = true
 	ctr.state.State = config2.ContainerStateConfigured
 	ctr.runtime = r

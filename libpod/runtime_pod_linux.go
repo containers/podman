@@ -19,7 +19,7 @@ import (
 )
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod, error) {
+func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Pod, Err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -59,6 +59,14 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	}
 	pod.lock = lock
 	pod.config.LockID = pod.lock.ID()
+
+	defer func() {
+		if Err != nil {
+			if err := pod.lock.Free(); err != nil {
+				logrus.Errorf("Error freeing pod lock after failed creation: %v", err)
+			}
+		}
+	}()
 
 	pod.valid = true
 
@@ -113,15 +121,17 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (*Pod,
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
+	defer func() {
+		if Err != nil {
+			if err := r.removePod(ctx, pod, true, true); err != nil {
+				logrus.Errorf("Error removing pod after pause container creation failure: %v", err)
+			}
+		}
+	}()
 
 	if pod.HasInfraContainer() {
 		ctr, err := r.createInfraContainer(ctx, pod)
 		if err != nil {
-			// Tear down pod, as it is assumed a the pod will contain
-			// a pause container, and it does not.
-			if err2 := r.removePod(ctx, pod, true, true); err2 != nil {
-				logrus.Errorf("Error removing pod after pause container creation failure: %v", err2)
-			}
 			return nil, errors.Wrapf(err, "error adding Infra Container")
 		}
 		pod.state.InfraContainerID = ctr.ID()
