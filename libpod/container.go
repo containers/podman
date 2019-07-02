@@ -171,6 +171,8 @@ type ContainerState struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
+	// ConmonPID is the PID of the container's conmon
+	ConmonPID int `json:"conmonPid,omitempty"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
@@ -852,7 +854,7 @@ func (c *Container) OOMKilled() (bool, error) {
 	return c.state.OOMKilled, nil
 }
 
-// PID returns the PID of the container
+// PID returns the PID of the container.
 // If the container is not running, a pid of 0 will be returned. No error will
 // occur.
 func (c *Container) PID() (int, error) {
@@ -866,6 +868,22 @@ func (c *Container) PID() (int, error) {
 	}
 
 	return c.state.PID, nil
+}
+
+// ConmonPID Returns the PID of the container's conmon process.
+// If the container is not running, a PID of 0 will be returned. No error will
+// occur.
+func (c *Container) ConmonPID() (int, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
+	}
+
+	return c.state.ConmonPID, nil
 }
 
 // ExecSessions retrieves active exec sessions running in the container

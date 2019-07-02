@@ -446,6 +446,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 			return errors.Wrapf(define.ErrInternal, "container create failed")
 		}
 		ctr.state.PID = ss.si.Pid
+		if cmd.Process != nil {
+			ctr.state.ConmonPID = cmd.Process.Pid
+		}
 	case <-time.After(ContainerCreateTimeout):
 		return errors.Wrapf(define.ErrInternal, "container creation timeout")
 	}
