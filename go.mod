@@ -20,7 +20,7 @@ require (
 	github.com/containers/buildah v1.9.0
 	github.com/containers/image v2.0.0+incompatible
 	github.com/containers/psgo v1.3.0
-	github.com/containers/storage v1.12.12
+	github.com/containers/storage v1.12.13
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-iptables v0.4.1
