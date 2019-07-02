@@ -58,12 +58,26 @@ type Volume struct {
 // VolumeFilter is for filtering volumes on the client
 type VolumeFilter func(*Volume) bool
 
+// GetRuntimeNoStore returns a localruntime struct wit an embedded runtime but
+// without a configured storage.
+func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	runtime, err := libpodruntime.GetRuntimeNoStore(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	return getRuntime(runtime)
+}
+
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	runtime, err := libpodruntime.GetRuntime(ctx, c)
 	if err != nil {
 		return nil, err
 	}
+	return getRuntime(runtime)
+}
+
+func getRuntime(runtime *libpod.Runtime) (*LocalRuntime, error) {
 	return &LocalRuntime{
 		Runtime: runtime,
 	}, nil

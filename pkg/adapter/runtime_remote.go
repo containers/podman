@@ -50,6 +50,12 @@ type LocalRuntime struct {
 	*RemoteRuntime
 }
 
+// GetRuntimeNoStore returns a LocalRuntime struct with the actual runtime embedded in it
+// The nostore is ignored
+func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	return GetRuntime(ctx, c)
+}
+
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
 	var (
