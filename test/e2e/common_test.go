@@ -530,6 +530,19 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 		if hc.ExitCode() == 0 {
 			return nil
 		}
+		// Restart container if it's not running
+		ps := p.Podman([]string{"ps", "--no-trunc", "--q", "--filter", fmt.Sprintf("id=%s", cid)})
+		ps.WaitWithDefaultTimeout()
+		if ps.ExitCode() == 0 {
+			if !strings.Contains(ps.OutputToString(), cid) {
+				fmt.Printf("Container %s is not running, restarting", cid)
+				restart := p.Podman([]string{"restart", cid})
+				restart.WaitWithDefaultTimeout()
+				if restart.ExitCode() != 0 {
+					return errors.Errorf("unable to restart %s", cid)
+				}
+			}
+		}
 		fmt.Printf("Waiting for %s to pass healthcheck\n", cid)
 		time.Sleep(1 * time.Second)
 	}
