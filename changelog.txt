@@ -1,3 +1,39 @@
+- Changelog for v1.4.4 (2019-07-02)
+  * Fix release notes
+  * Ensure locks are freed when ctr/pod creation fails
+  * Update release notes for 1.4.4
+  * stats: use runtime.NumCPU when percpu counters are not available
+  * cgroups: fix times conversion
+  * Update to containers/storage v1.12.13
+  * rootless: do not join namespace if it has already euid == 0
+  * Exclude SIGTERM from blocked signals for pause process.
+  * Remove umount command from remote client.
+  * rootless: enable linger if /run/user/UID not exists
+  * Makefile: set GO111MODULE=off
+  * libpod removal from main (phase 2)
+  * runtime: do not attempt to use global conf file
+  * runtime: use GetRootlessUID() to get rootless uid
+  * Remove refs to crio/conmon
+  * Handle images which contain no layers
+  * Add tests that we don't hit errors with layerless images
+  * stats: fix cgroup path for rootless containers
+  * pkg, cgroups: add initial support for cgroup v2
+  * util: drop IsCgroup2UnifiedMode and use it from cgroups
+  * vendor: drop github.com/containerd/cgroups
+  * libpod: use pkg/cgroups instead of containerd/cgroups
+  * pkg: new package cgroups
+  * Remove unnecessary blackfriday dependency
+  * libpod: fix hang on container start and attach
+  * podman: clarify the format of --detach-keys argument
+  * libpod: specify a detach keys sequence in libpod.conf
+  * Fix parsing of the --tmpfs option
+  * Fix crash for when remote host IP or Username is not set in conf file & conf file exists.
+  * Bump gitvalidation epoch
+  * Bump to v1.4.4-dev
+  * Cirrus: More tests to verify cache_images
+  * Update release notes for 1.4.3 release
+  * remove libpod from main
+
 - Changelog for v1.4.3 (2019-06-25)
   * Update 'generate kube' tests to verify YAML
   * Use a different method to retrieve YAML output in tests
