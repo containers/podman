@@ -206,12 +206,12 @@ func (c *Container) Inspect(size bool) (*InspectContainerData, error) {
 func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) (*InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
-	spec, err := c.specFromState()
+	stateSpec, err := c.specFromState()
 	if err != nil {
 		return nil, err
 	}
 
-	// Process is allowed to be nil in the spec
+	// Process is allowed to be nil in the stateSpec
 	args := []string{}
 	if config.Spec.Process != nil {
 		args = config.Spec.Process.Args
@@ -244,7 +244,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		}
 	}
 
-	mounts, err := c.getInspectMounts(spec)
+	mounts, err := c.getInspectMounts(stateSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		Path:    path,
 		Args:    args,
 		State: &InspectContainerState{
-			OciVersion: spec.Version,
+			OciVersion: stateSpec.Version,
 			Status:     runtimeInfo.State.String(),
 			Running:    runtimeInfo.State == define.ContainerStateRunning,
 			Paused:     runtimeInfo.State == define.ContainerStatePaused,
@@ -285,9 +285,9 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		Driver:          driverData.Name,
 		MountLabel:      config.MountLabel,
 		ProcessLabel:    config.ProcessLabel,
-		EffectiveCaps:   spec.Process.Capabilities.Effective,
-		BoundingCaps:    spec.Process.Capabilities.Bounding,
-		AppArmorProfile: spec.Process.ApparmorProfile,
+		EffectiveCaps:   stateSpec.Process.Capabilities.Effective,
+		BoundingCaps:    stateSpec.Process.Capabilities.Bounding,
+		AppArmorProfile: stateSpec.Process.ApparmorProfile,
 		ExecIDs:         execIDs,
 		GraphDriver:     driverData,
 		Mounts:          mounts,
@@ -338,7 +338,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 	// Get information on the container's network namespace (if present)
 	data = c.getContainerNetworkInfo(data)
 
-	inspectConfig, err := c.generateInspectContainerConfig(spec)
+	inspectConfig, err := c.generateInspectContainerConfig(stateSpec)
 	if err != nil {
 		return nil, err
 	}

@@ -342,7 +342,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		)
 		plabel, err = selinux.CurrentLabel()
 		if err != nil {
-			childPipe.Close()
+			if err := childPipe.Close(); err != nil {
+				logrus.Errorf("failed to close child pipe: %q", err)
+			}
 			return errors.Wrapf(err, "Failed to get current SELinux label")
 		}
 

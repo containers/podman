@@ -263,7 +263,9 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 			return errors.Wrapf(err, "error getting container %s state", ctr.ID())
 		}
 		if strings.Contains(string(out), "does not exist") {
-			ctr.removeConmonFiles()
+			if err := ctr.removeConmonFiles(); err != nil {
+				logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
+			}
 			ctr.state.ExitCode = -1
 			ctr.state.FinishedTime = time.Now()
 			ctr.state.State = define.ContainerStateExited
@@ -273,7 +275,9 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 	}
 	defer cmd.Wait()
 
-	errPipe.Close()
+	if err := errPipe.Close(); err != nil {
+		return err
+	}
 	out, err := ioutil.ReadAll(outPipe)
 	if err != nil {
 		return errors.Wrapf(err, "error reading stdout: %s", ctr.ID())
@@ -433,8 +437,8 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		args = append(args, "--no-new-privs")
 	}
 
-	for _, cap := range capAdd {
-		args = append(args, "--cap", cap)
+	for _, capabilityAdd := range capAdd {
+		args = append(args, "--cap", capabilityAdd)
 	}
 
 	for _, envVar := range env {
@@ -475,7 +479,9 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		for fd := 3; fd < 3+preserveFDs; fd++ {
 			// These fds were passed down to the runtime.  Close them
 			// and not interfere
-			os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close()
+			if err := os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)).Close(); err != nil {
+				logrus.Debugf("unable to close file fd-%d", fd)
+			}
 		}
 	}
 
@@ -484,7 +490,9 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 
 // checkpointContainer checkpoints the given container
 func (r *OCIRuntime) checkpointContainer(ctr *Container, options ContainerCheckpointOptions) error {
-	label.SetSocketLabel(ctr.ProcessLabel())
+	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
+		return err
+	}
 	// imagePath is used by CRIU to store the actual checkpoint files
 	imagePath := ctr.CheckpointPath()
 	// workPath will be used to store dump.log and stats-dump

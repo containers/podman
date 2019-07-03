@@ -48,11 +48,6 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	return nil
 }
 
-// StatusToExitCode converts wait status code to an exit code
-func StatusToExitCode(status int) int {
-	return ((status) & 0xff00) >> 8
-}
-
 // ErrDetach is an error indicating that the user manually detached from the
 // container.
 var ErrDetach = errors.New("detached from container")

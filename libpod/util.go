@@ -9,8 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/signature"
-	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -30,24 +28,6 @@ const (
 func FuncTimer(funcName string) {
 	elapsed := time.Since(time.Now())
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
-}
-
-// CopyStringStringMap deep copies a map[string]string and returns the result
-func CopyStringStringMap(m map[string]string) map[string]string {
-	n := map[string]string{}
-	for k, v := range m {
-		n[k] = v
-	}
-	return n
-}
-
-// GetPolicyContext creates a signature policy context for the given signature policy path
-func GetPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
 }
 
 // RemoveScientificNotationFromFloat returns a float without any

@@ -46,10 +46,6 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
 	conState := c.state.State
-	if err != nil {
-		return stats, errors.Wrapf(err, "unable to determine container state")
-	}
-
 	netStats, err := getContainerNetIO(c)
 	if err != nil {
 		return nil, err
