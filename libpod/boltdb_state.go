@@ -381,11 +381,6 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 	defer s.closeDBCon(db)
 
 	err = db.View(func(tx *bolt.Tx) error {
-		idBucket, err := getIDBucket(tx)
-		if err != nil {
-			return err
-		}
-
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
@@ -436,7 +431,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 		// We were not given a full container ID or name.
 		// Search for partial ID matches.
 		exists := false
-		err = idBucket.ForEach(func(checkID, checkName []byte) error {
+		err = ctrBucket.ForEach(func(checkID, checkName []byte) error {
 			// If the container isn't in our namespace, we
 			// can't match it
 			if s.namespaceBytes != nil {
@@ -963,11 +958,6 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 	defer s.closeDBCon(db)
 
 	err = db.View(func(tx *bolt.Tx) error {
-		idBucket, err := getIDBucket(tx)
-		if err != nil {
-			return err
-		}
-
 		podBkt, err := getPodBucket(tx)
 		if err != nil {
 			return err
@@ -1015,7 +1005,7 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 		// They did not give us a full pod name or ID.
 		// Search for partial ID matches.
 		exists := false
-		err = idBucket.ForEach(func(checkID, checkName []byte) error {
+		err = podBkt.ForEach(func(checkID, checkName []byte) error {
 			// If the pod isn't in our namespace, we
 			// can't match it
 			if s.namespaceBytes != nil {
