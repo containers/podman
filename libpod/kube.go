@@ -17,7 +17,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -324,22 +323,6 @@ func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 	return envVars, nil
 }
 
-// Is this worth it?
-func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceList) { //nolint
-	// It does not appear we can properly calculate CPU resources from the information
-	// we know in libpod.  Libpod knows CPUs by time, shares, etc.
-
-	// We also only know about a memory limit; no memory minimum
-	maxResources := make(map[v1.ResourceName]resource.Quantity)
-	minResources := make(map[v1.ResourceName]resource.Quantity)
-	config := c.Config()
-	maxMem := config.Spec.Linux.Resources.Memory.Limit
-
-	_ = maxMem
-
-	return maxResources, minResources
-}
-
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
 func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
 	var vms []v1.VolumeMount
@@ -427,16 +410,14 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// those indicate a dropped cap
 	for _, capability := range defaultCaps {
 		if !util.StringInSlice(capability, containerCaps) {
-			cap := v1.Capability(capability)
-			drop = append(drop, cap)
+			drop = append(drop, v1.Capability(capability))
 		}
 	}
 	// Find caps in the container but not in the defaults; those indicate
 	// an added cap
 	for _, capability := range containerCaps {
 		if !util.StringInSlice(capability, defaultCaps) {
-			cap := v1.Capability(capability)
-			add = append(add, cap)
+			add = append(add, v1.Capability(capability))
 		}
 	}
 

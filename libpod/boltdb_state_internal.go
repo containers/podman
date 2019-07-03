@@ -339,7 +339,6 @@ func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 }
 
 func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
-	valid := true
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
 		return errors.Wrapf(define.ErrNoSuchCtr, "container %s not found in DB", string(id))
@@ -386,7 +385,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	}
 
 	ctr.runtime = s.runtime
-	ctr.valid = valid
+	ctr.valid = true
 
 	return nil
 }
@@ -639,7 +638,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		}
 
 		// Add ctr to pod
-		if pod != nil {
+		if pod != nil && podCtrs != nil {
 			if err := podCtrs.Put(ctrID, ctrName); err != nil {
 				return errors.Wrapf(err, "error adding container %s to pod %s", ctr.ID(), pod.ID())
 			}
@@ -737,7 +736,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		}
 	}
 
-	if podDB != nil {
+	if podDB != nil && pod != nil {
 		// Check if the container is in the pod, remove it if it is
 		podCtrs := podDB.Bucket(containersBkt)
 		if podCtrs == nil {

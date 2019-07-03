@@ -325,7 +325,7 @@ func WithMaxLogSize(limit int64) RuntimeOption {
 
 // WithNoPivotRoot sets the runtime to use MS_MOVE instead of PIVOT_ROOT when
 // starting containers.
-func WithNoPivotRoot(noPivot bool) RuntimeOption {
+func WithNoPivotRoot() RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return config2.ErrRuntimeFinalized

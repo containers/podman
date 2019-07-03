@@ -89,13 +89,13 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 
 	ctr.config.Labels["test"] = "testing"
 
-	// Allocate a lock for the container
-	lock, err := manager.AllocateLock()
+	// Allocate a containerLock for the container
+	containerLock, err := manager.AllocateLock()
 	if err != nil {
 		return nil, err
 	}
-	ctr.lock = lock
-	ctr.config.LockID = lock.ID()
+	ctr.lock = containerLock
+	ctr.config.LockID = containerLock.ID()
 
 	return ctr, nil
 }
@@ -114,13 +114,13 @@ func getTestPod(id, name string, manager lock.Manager) (*Pod, error) {
 		valid: true,
 	}
 
-	// Allocate a lock for the pod
-	lock, err := manager.AllocateLock()
+	// Allocate a podLock for the pod
+	podLock, err := manager.AllocateLock()
 	if err != nil {
 		return nil, err
 	}
-	pod.lock = lock
-	pod.config.LockID = lock.ID()
+	pod.lock = podLock
+	pod.config.LockID = podLock.ID()
 
 	return pod, nil
 }

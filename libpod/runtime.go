@@ -245,7 +245,7 @@ type RuntimeConfig struct {
 	// EventsLogger determines where events should be logged
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:-"events_logfile_path"`
+	EventsLogFilePath string `toml:"-events_logfile_path"`
 	//DetachKeys is the sequence of keys used to detach a container
 	DetachKeys string `toml:"detach_keys"`
 }
@@ -643,7 +643,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		}
 
 		if configPath != "" {
-			os.MkdirAll(filepath.Dir(configPath), 0755)
+			if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+				return nil, err
+			}
 			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 			if err != nil && !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
@@ -652,7 +654,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 				defer file.Close()
 				enc := toml.NewEncoder(file)
 				if err := enc.Encode(runtime.config); err != nil {
-					os.Remove(configPath)
+					if removeErr := os.Remove(configPath); removeErr != nil {
+						logrus.Debugf("unable to remove %s: %q", configPath, err)
+					}
 				}
 			}
 		}

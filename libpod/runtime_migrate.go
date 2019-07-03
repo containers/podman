@@ -37,7 +37,9 @@ func stopPauseProcess() error {
 		if err := os.Remove(pausePidPath); err != nil {
 			return errors.Wrapf(err, "cannot delete pause pid file %s", pausePidPath)
 		}
-		syscall.Kill(pausePid, syscall.SIGKILL)
+		if err := syscall.Kill(pausePid, syscall.SIGKILL); err != nil {
+			return err
+		}
 	}
 	return nil
 }
