@@ -145,6 +145,7 @@ type InspectContainerState struct {
 	OOMKilled   bool               `json:"OOMKilled"`
 	Dead        bool               `json:"Dead"`
 	Pid         int                `json:"Pid"`
+	ConmonPid   int                `json:"ConmonPid,omitempty"`
 	ExitCode    int32              `json:"ExitCode"`
 	Error       string             `json:"Error"` // TODO
 	StartedAt   time.Time          `json:"StartedAt"`
@@ -261,6 +262,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 			OOMKilled:  runtimeInfo.OOMKilled,
 			Dead:       runtimeInfo.State.String() == "bad state",
 			Pid:        runtimeInfo.PID,
+			ConmonPid:  runtimeInfo.ConmonPID,
 			ExitCode:   runtimeInfo.ExitCode,
 			Error:      "", // can't get yet
 			StartedAt:  runtimeInfo.StartedTime,
