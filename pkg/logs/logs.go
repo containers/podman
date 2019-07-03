@@ -135,7 +135,7 @@ func parseCRILog(log []byte, msg *logMessage) error {
 	}
 	// Keep this forward compatible.
 	tags := bytes.Split(log[:idx], tagDelimiter)
-	partial := (LogTag(tags[0]) == LogTagPartial)
+	partial := LogTag(tags[0]) == LogTagPartial
 	// Trim the tailing new line if this is a partial line.
 	if partial && len(log) > 0 && log[len(log)-1] == '\n' {
 		log = log[:len(log)-1]

@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )

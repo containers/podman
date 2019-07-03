@@ -30,7 +30,7 @@ func TestAlways(t *testing.T) {
 	for _, always := range []bool{true, false} {
 		for _, or := range []bool{true, false} {
 			for _, process := range []*rspec.Process{processStruct, nil} {
-				t.Run(fmt.Sprintf("always %t, or %t, has process %t", always, or, (process != nil)), func(t *testing.T) {
+				t.Run(fmt.Sprintf("always %t, or %t, has process %t", always, or, process != nil), func(t *testing.T) {
 					config.Process = process
 					when := When{Always: &always, Or: or}
 					match, err := when.Match(config, map[string]string{}, false)

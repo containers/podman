@@ -271,7 +271,7 @@ func printPSFormat(format string, stats []*podStatOut, headerNames map[string]st
 
 func outputToStdOut(stats []*podStatOut) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	outFormat := ("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n")
+	outFormat := "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
 	fmt.Fprintf(w, outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
 	for _, i := range stats {
 		if len(stats) == 0 {

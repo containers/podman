@@ -4,7 +4,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/docker/go-connections/nat"
-	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // InspectContainer holds all inspect data for a container.
