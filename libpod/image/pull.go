@@ -19,8 +19,8 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
-	multierror "github.com/hashicorp/go-multierror"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/hashicorp/go-multierror"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

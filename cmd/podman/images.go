@@ -280,7 +280,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					ID:          imageID,
 					Digest:      img.Digest(),
 					CreatedTime: createdTime,
-					Created:     units.HumanDuration(time.Since((createdTime))) + " ago",
+					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
 					Size:        sizeStr,
 				}
 				imagesOutput = append(imagesOutput, params)

@@ -215,7 +215,7 @@ func EnableLinger() (string, error) {
 
 	// If we have a D-BUS connection, attempt to read the LINGER property from it.
 	if conn != nil {
-		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		path := dbus.ObjectPath(fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid))
 		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.Linger")
 		if err == nil && ret.Value().(bool) {
 			lingerEnabled = true
@@ -265,7 +265,7 @@ func EnableLinger() (string, error) {
 
 	// If we have a D-BUS connection, attempt to read the RUNTIME PATH from it.
 	if conn != nil {
-		path := dbus.ObjectPath((fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid)))
+		path := dbus.ObjectPath(fmt.Sprintf("/org/freedesktop/login1/user/_%s", uid))
 		ret, err := conn.Object("org.freedesktop.login1", path).GetProperty("org.freedesktop.login1.User.RuntimePath")
 		if err == nil {
 			return strings.Trim(ret.String(), "\"\n"), nil
