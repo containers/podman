@@ -26,7 +26,7 @@ require (
 	github.com/coreos/go-iptables v0.4.1
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
-	github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
+	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
