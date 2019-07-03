@@ -153,7 +153,7 @@ github.com/coreos/go-systemd/sdjournal
 github.com/coreos/go-systemd/journal
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/dlopen
-# github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27
+# github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin
