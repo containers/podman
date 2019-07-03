@@ -28,21 +28,23 @@ import (
 
 // Get an OCICNI network config
 func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
+	defaultNetwork := r.netPlugin.GetDefaultNetworkName()
 	network := ocicni.PodNetwork{
-		Name:         name,
-		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
-		ID:           id,
-		NetNS:        nsPath,
-		PortMappings: ports,
-		Networks:     networks,
+		Name:      name,
+		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
+		ID:        id,
+		NetNS:     nsPath,
+		Networks:  networks,
+		RuntimeConfig: map[string]ocicni.RuntimeConfig{
+			defaultNetwork: {PortMappings: ports},
+		},
 	}
 
 	if staticIP != nil {
-		defaultNetwork := r.netPlugin.GetDefaultNetworkName()
-
 		network.Networks = []string{defaultNetwork}
-		network.NetworkConfig = make(map[string]ocicni.NetworkConfig)
-		network.NetworkConfig[defaultNetwork] = ocicni.NetworkConfig{IP: staticIP.String()}
+		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
+			defaultNetwork: {IP: staticIP.String(), PortMappings: ports},
+		}
 	}
 
 	return network
