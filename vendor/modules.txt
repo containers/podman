@@ -98,7 +98,7 @@ github.com/containers/image/pkg/compression
 github.com/containers/image/pkg/blobinfocache/boltdb
 github.com/containers/image/pkg/blobinfocache/memory
 github.com/containers/image/pkg/blobinfocache/internal/prioritize
-# github.com/containers/psgo v1.3.0
+# github.com/containers/psgo v1.3.1
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
 github.com/containers/psgo/internal/dev
