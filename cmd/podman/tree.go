@@ -127,7 +127,7 @@ func printImageChildren(layerMap map[string]*image.LayerInfo, layerID string, pr
 	}
 	fmt.Printf("%sID: %s Size: %7v%s\n", intend, ll.ID[:12], units.HumanSizeWithPrecision(float64(ll.Size), 4), tags)
 	for count, childID := range ll.ChildID {
-		if err := printImageChildren(layerMap, childID, prefix, (count == len(ll.ChildID)-1)); err != nil {
+		if err := printImageChildren(layerMap, childID, prefix, count == len(ll.ChildID)-1); err != nil {
 			return err
 		}
 	}

@@ -279,8 +279,8 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 			return strings.Contains(c.ID(), filterValue)
 		}, nil
 	case "label":
-		var filterArray []string = strings.SplitN(filterValue, "=", 2)
-		var filterKey string = filterArray[0]
+		var filterArray = strings.SplitN(filterValue, "=", 2)
+		var filterKey = filterArray[0]
 		if len(filterArray) > 1 {
 			filterValue = filterArray[1]
 		} else {

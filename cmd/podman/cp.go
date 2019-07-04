@@ -86,7 +86,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		return errors.Errorf("invalid arguments %s, %s you must specify paths", src, dest)
 	}
 	ctr := srcCtr
-	isFromHostToCtr := (ctr == nil)
+	isFromHostToCtr := ctr == nil
 	if isFromHostToCtr {
 		ctr = destCtr
 	}
@@ -307,7 +307,7 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	if err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error checking directory %q", destdir)
 	}
-	destDirIsExist := (err == nil)
+	destDirIsExist := err == nil
 	if err = os.MkdirAll(destdir, 0755); err != nil {
 		return errors.Wrapf(err, "error creating directory %q", destdir)
 	}

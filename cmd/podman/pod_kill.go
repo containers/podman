@@ -55,7 +55,7 @@ func podKillCmd(c *cliconfig.PodKillValues) error {
 	}
 	defer runtime.Shutdown(false)
 
-	var killSignal uint = uint(syscall.SIGTERM)
+	killSignal := uint(syscall.SIGTERM)
 
 	if c.Signal != "" {
 		// Check if the signalString provided by the user is valid

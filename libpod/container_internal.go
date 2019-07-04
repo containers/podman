@@ -610,7 +610,7 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return (c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused), nil
+	return c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused, nil
 }
 
 // save container state to the database

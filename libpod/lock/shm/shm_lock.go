@@ -22,7 +22,7 @@ var (
 	// BitmapSize is the size of the bitmap used when managing SHM locks.
 	// an SHM lock manager's max locks will be rounded up to a multiple of
 	// this number.
-	BitmapSize uint32 = uint32(C.bitmap_size_c)
+	BitmapSize = uint32(C.bitmap_size_c)
 )
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory

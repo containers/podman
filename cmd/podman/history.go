@@ -154,7 +154,7 @@ func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (hi
 		}
 
 		if opts.human {
-			createdTime = units.HumanDuration(time.Since((*hist.Created))) + " ago"
+			createdTime = units.HumanDuration(time.Since(*hist.Created)) + " ago"
 			outputSize = units.HumanSize(float64(hist.Size))
 		} else {
 			createdTime = (hist.Created).Format(time.RFC3339)

@@ -62,7 +62,7 @@ func init() {
 	layerFlags := buildahcli.GetLayerFlags(&layerValues)
 	flag = layerFlags.Lookup("layers")
 	flag.Value.Set(useLayers())
-	flag.DefValue = (useLayers())
+	flag.DefValue = useLayers()
 	flag = layerFlags.Lookup("force-rm")
 	flag.Value.Set("true")
 	flag.DefValue = "true"

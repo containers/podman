@@ -14,7 +14,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // PolicyContent struct for policy.json file
