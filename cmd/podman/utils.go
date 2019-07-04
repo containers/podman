@@ -47,3 +47,19 @@ func markFlagHidden(flags *pflag.FlagSet, flag string) {
 		logrus.Errorf("unable to mark flag '%s' as hidden: %q", flag, err)
 	}
 }
+
+func aliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	switch name {
+	case "healthcheck-command":
+		name = "health-cmd"
+	case "healthcheck-interval":
+		name = "health-interval"
+	case "healthcheck-retries":
+		name = "health-retries"
+	case "healthcheck-start-period":
+		name = "health-start-period"
+	case "healthcheck-timeout":
+		name = "health-timeout"
+	}
+	return pflag.NormalizedName(name)
+}

@@ -279,7 +279,7 @@ The example maps gids 0-2000 in the container to the gids 30000-31999 on the hos
 
 Add additional groups to run as
 
-**--healthcheck-command**=*"command"* | *'["command", "arg1", ...]'*
+**--health-cmd**=*"command"* | *'["command", "arg1", ...]'*
 
 Set or alter a healthcheck command for a container. The command is a command to be executed inside your
 container that determines your container health.  The command is required for other healthcheck options
@@ -288,20 +288,20 @@ to be applied.  A value of `none` disables existing healthchecks.
 Multiple options can be passed in the form of a JSON array; otherwise, the command will be interpreted
 as an argument to `/bin/sh -c`.
 
-**--healthcheck-interval**=*interval*
+**--health-interval**=*interval*
 
 Set an interval for the healthchecks (a value of `disable` results in no automatic timer setup) (default "30s")
 
-**--healthcheck-retries**=*retries*
+**--health-retries**=*retries*
 
 The number of retries allowed before a healthcheck is considered to be unhealthy.  The default value is `3`.
 
-**--healthcheck-start-period**=*period*
+**--health-start-period**=*period*
 
 The initialization time needed for a container to bootstrap. The value can be expressed in time format like
 `2m3s`.  The default value is `0s`
 
-**--healthcheck-timeout**=*timeout*
+**--health-timeout**=*timeout*
 
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.

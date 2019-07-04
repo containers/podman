@@ -40,7 +40,7 @@ func init() {
 	getCreateFlags(&createCommand.PodmanCommand)
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
-
+	flags.SetNormalizeFunc(aliasFlags)
 }
 
 func createCmd(c *cliconfig.CreateValues) error {
