@@ -3,15 +3,28 @@
 package integration
 
 import (
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
+	"strconv"
+	"time"
 
 	"github.com/containers/libpod/pkg/criu"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func getRunString(input []string) []string {
+	// To avoid IP collisions of initialize random seed for random IP addresses
+	rand.Seed(time.Now().UnixNano())
+	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	// CRIU does not work with seccomp correctly on RHEL7 : seccomp=unconfined
+	runString := []string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", "--ip", "10.88." + ip3 + "." + ip4}
+	return append(runString, input...)
+}
 
 var _ = Describe("Podman checkpoint", func() {
 	var (
@@ -49,7 +62,6 @@ var _ = Describe("Podman checkpoint", func() {
 		if hostInfo.Distribution == "fedora" && hostInfo.Version < "29" {
 			Skip("Checkpoint/Restore with SELinux only works on Fedora >= 29")
 		}
-
 	})
 
 	AfterEach(func() {
@@ -72,8 +84,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint a running container by id", func() {
-		// CRIU does not work with seccomp correctly on RHEL7
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -94,7 +106,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint a running container by name", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "test_name", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--name", "test_name", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -114,7 +127,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman pause a checkpointed container by id", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -151,11 +165,13 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint latest running container", func() {
-		session1 := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "first", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--name", "first", ALPINE, "top"})
+		session1 := podmanTest.Podman(localRunString)
 		session1.WaitWithDefaultTimeout()
 		Expect(session1.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "second", "-d", ALPINE, "top"})
+		localRunString = getRunString([]string{"--name", "second", ALPINE, "top"})
+		session2 := podmanTest.Podman(localRunString)
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 
@@ -186,11 +202,13 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint all running container", func() {
-		session1 := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "first", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--name", "first", ALPINE, "top"})
+		session1 := podmanTest.Podman(localRunString)
 		session1.WaitWithDefaultTimeout()
 		Expect(session1.ExitCode()).To(Equal(0))
 
-		session2 := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "second", "-d", ALPINE, "top"})
+		localRunString = getRunString([]string{"--name", "second", ALPINE, "top"})
+		session2 := podmanTest.Podman(localRunString)
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 
@@ -221,7 +239,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with established tcp connections", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", redis})
+		localRunString := getRunString([]string{redis})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -275,7 +294,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint with --leave-running", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		cid := session.OutputToString()
@@ -312,7 +332,8 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint and restore container with same IP", func() {
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "--name", "test_name", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--name", "test_name", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -355,8 +376,10 @@ var _ = Describe("Podman checkpoint", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		cid := session.OutputToString()
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
 
-		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", "/tmp/checkpoint.tar.gz"})
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -369,7 +392,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
-		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz"})
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -377,7 +400,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
 		// Restore container a second time with different name
-		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz", "-n", "restore_again"})
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName, "-n", "restore_again"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -390,19 +413,21 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 
 		// Remove exported checkpoint
-		os.Remove("/tmp/checkpoint.tar.gz")
+		os.Remove(fileName)
 	})
 
 	It("podman checkpoint and run exec in restored container", func() {
 		// Start the container
-		session := podmanTest.Podman([]string{"run", "-it", "--rm", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--rm", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		cid := session.OutputToString()
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
 
 		// Checkpoint the container
-		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", "/tmp/checkpoint.tar.gz"})
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -410,7 +435,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
 		// Restore the container
-		result = podmanTest.Podman([]string{"container", "restore", "-i", "/tmp/checkpoint.tar.gz"})
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -429,6 +454,6 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(ContainSubstring(cid))
 
 		// Remove exported checkpoint
-		os.Remove("/tmp/checkpoint.tar.gz")
+		os.Remove(fileName)
 	})
 })
