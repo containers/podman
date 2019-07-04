@@ -197,7 +197,11 @@ func init() {
 }
 
 func psCmd(c *cliconfig.PsValues) error {
-	var watch bool
+	var (
+		watch   bool
+		runtime *adapter.LocalRuntime
+		err     error
+	)
 
 	if c.Watch > 0 {
 		watch = true
@@ -210,8 +214,11 @@ func psCmd(c *cliconfig.PsValues) error {
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
 	}
-
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	if !c.Size {
+		runtime, err = adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
+	} else {
+		runtime, err = adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	}
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
@@ -306,57 +313,6 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
 	return psOutput, nil
-}
-
-// getLabels converts the labels to a string of the form "key=value, key2=value2"
-func formatLabels(labels map[string]string) string {
-	var arr []string
-	if len(labels) > 0 {
-		for key, val := range labels {
-			temp := key + "=" + val
-			arr = append(arr, temp)
-		}
-		return strings.Join(arr, ",")
-	}
-	return ""
-}
-
-// getMounts converts the volumes mounted to a string of the form "mount1, mount2"
-// it truncates it if noTrunc is false
-func getMounts(mounts []string, noTrunc bool) string {
-	return strings.Join(getMountsArray(mounts, noTrunc), ",")
-}
-
-func getMountsArray(mounts []string, noTrunc bool) []string {
-	var arr []string
-	if len(mounts) == 0 {
-		return mounts
-	}
-	for _, mount := range mounts {
-		splitArr := strings.Split(mount, ":")
-		if len(splitArr[0]) > mountTruncLength && !noTrunc {
-			arr = append(arr, splitArr[0][:mountTruncLength]+"...")
-			continue
-		}
-		arr = append(arr, splitArr[0])
-	}
-	return arr
-}
-
-// portsToString converts the ports used to a string of the from "port1, port2"
-func portsToString(ports []ocicni.PortMapping) string {
-	var portDisplay []string
-	if len(ports) == 0 {
-		return ""
-	}
-	for _, v := range ports {
-		hostIP := v.HostIP
-		if hostIP == "" {
-			hostIP = "0.0.0.0"
-		}
-		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
-	}
-	return strings.Join(portDisplay, ", ")
 }
 
 func printFormat(format string, containers []shared.PsContainerOutput) error {
