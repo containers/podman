@@ -258,6 +258,20 @@ type MountValues struct {
 	Latest  bool
 }
 
+type NetworkListValues struct {
+	PodmanCommand
+	Filter []string
+	Quiet  bool
+}
+
+type NetworkRmValues struct {
+	PodmanCommand
+}
+
+type NetworkInspectValues struct {
+	PodmanCommand
+}
+
 type PauseValues struct {
 	PodmanCommand
 	All bool

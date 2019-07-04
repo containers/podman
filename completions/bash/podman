@@ -946,6 +946,78 @@ _podman_healthcheck() {
      esac
 }
 
+_podman_network() {
+    local boolean_options="
+	--help
+	-h
+	"
+     subcommands="
+	 inspect
+	 ls
+	 rm
+     "
+     __podman_subcommands "$subcommands $aliases" && return
+
+     case "$cur" in
+	-*)
+		COMPREPLY=( $( compgen -W "--help" -- "$cur" ) )
+		;;
+	*)
+		COMPREPLY=( $( compgen -W "$subcommands" -- "$cur" ) )
+		;;
+     esac
+}
+
+_podman_network_inspect() {
+    local options_with_args="
+     "
+    local boolean_options="
+	--help
+	-h
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
+_podman_network_ls() {
+    local options_with_args="
+     "
+    local boolean_options="
+    --help
+    -h
+	--quiet
+	-q
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
+_podman_network_ls() {
+    local options_with_args="
+     "
+    local boolean_options="
+    --help
+    -h
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
 _podman_generate() {
     local boolean_options="
 	--help
