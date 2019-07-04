@@ -1058,7 +1058,14 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 	if c.Name {
 		name = ctr.Name()
 	}
-	return systemdgen.CreateSystemdUnitAsString(name, ctr.ID(), c.RestartPolicy, ctr.Config().StaticDir, timeout)
+
+	config := ctr.Config()
+	conmonPidFile := config.ConmonPidFile
+	if conmonPidFile == "" {
+		return "", errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
+	}
+
+	return systemdgen.CreateSystemdUnitAsString(name, ctr.ID(), c.RestartPolicy, conmonPidFile, timeout)
 }
 
 // GetNamespaces returns namespace information about a container for PS

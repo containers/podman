@@ -2,7 +2,6 @@ package systemdgen
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/pkg/errors"
 )
@@ -33,11 +32,11 @@ func ValidateRestartPolicy(restart string) error {
 
 // CreateSystemdUnitAsString takes variables to create a systemd unit file used to control
 // a libpod container
-func CreateSystemdUnitAsString(name, cid, restart, pidPath string, stopTimeout int) (string, error) {
+func CreateSystemdUnitAsString(name, cid, restart, pidFile string, stopTimeout int) (string, error) {
 	if err := ValidateRestartPolicy(restart); err != nil {
 		return "", err
 	}
-	pidFile := filepath.Join(pidPath, fmt.Sprintf("%s.pid", cid))
+
 	unit := fmt.Sprintf(template, name, restart, name, stopTimeout, name, pidFile)
 	return unit, nil
 }
