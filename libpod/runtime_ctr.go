@@ -236,7 +236,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 		}
 	}()
 
-	if rootless.IsRootless() && ctr.config.ConmonPidFile == "" {
+	if ctr.config.ConmonPidFile == "" {
 		ctr.config.ConmonPidFile = filepath.Join(ctr.state.RunDir, "conmon.pid")
 	}
 
