@@ -636,6 +636,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		}
 	}
 
+	c.state.FinishedTime = time.Now()
 	return c.save()
 }
 
