@@ -386,7 +386,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 			return err
 		}
 		// Need to update container state to make sure we know it's stopped
-		if err := c.waitForExitFileAndSync(); err != nil {
+		if err := c.waitForExitFileAndSync(); err != nil && !force {
 			return err
 		}
 	}
@@ -398,7 +398,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 
 		// Need to update container state to make sure we know it's stopped
-		if err := c.waitForExitFileAndSync(); err != nil {
+		if err := c.waitForExitFileAndSync(); err != nil && !force {
 			return err
 		}
 	}

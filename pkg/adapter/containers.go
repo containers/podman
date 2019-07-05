@@ -204,7 +204,16 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 	}
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
-	if err != nil {
+	switch errors.Cause(err) {
+	case nil:
+		break
+	case define.ErrRuntimeUnavailable:
+		if cli.Force {
+			logrus.WithError(err).Debug("Remove force specified, removing with error")
+			break
+		}
+		fallthrough
+	default:
 		return ok, failures, err
 	}
 
