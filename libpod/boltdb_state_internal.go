@@ -380,7 +380,9 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
-			return errors.Wrapf(define.ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
+			err = errors.Wrapf(define.ErrRuntimeUnavailable, "cannot find OCI runtime %q for container %s", ctr.config.OCIRuntime, ctr.ID())
+			// fall back to the default runtime to allow ctr clean up
+			ociRuntime = s.runtime.defaultOCIRuntime
 		}
 		ctr.ociRuntime = ociRuntime
 	}
@@ -388,7 +390,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 	ctr.runtime = s.runtime
 	ctr.valid = valid
 
-	return nil
+	return err
 }
 
 func (s *BoltState) getPodFromDB(id []byte, pod *Pod, podBkt *bolt.Bucket) error {

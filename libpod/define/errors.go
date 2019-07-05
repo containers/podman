@@ -99,4 +99,8 @@ var (
 
 	// ErrOCIRuntime indicates an error from the OCI runtime
 	ErrOCIRuntime = errors.New("OCI runtime error")
+
+	// ErrRuntimeUnavailable indicates that the runtime associated to a container
+	// could not be found in the configuration
+	ErrRuntimeUnavailable = errors.New("runtime not available in the current configuration")
 )

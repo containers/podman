@@ -461,11 +461,8 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 
 		return s.getContainerFromDB(id, ctr, ctrBucket)
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	return ctr, nil
+	return ctr, err
 }
 
 // HasContainer checks if a container is present in the state
