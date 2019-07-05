@@ -32,7 +32,7 @@ function teardown() {
 
     run systemctl --user start "$SERVICE_NAME"
     if [ $status -ne 0 ]; then
-        die "The systemd service $SERVICE_NAME did not start correctly!"
+        die "The systemd service $SERVICE_NAME did not start correctly, output: $output"
     fi
 
     run_podman logs $cid
