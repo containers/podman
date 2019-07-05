@@ -508,7 +508,16 @@ func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, forc
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyRemoveContainer(ctr.ID())
+}
 
+// EvictContainer ...
+func (i *LibpodAPI) EvictContainer(call iopodman.VarlinkCall, name string, removeVolumes bool) error {
+	ctx := getContext()
+	id, err := i.Runtime.EvictContainer(ctx, name, removeVolumes)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyEvictContainer(id)
 }
 
 // DeleteStoppedContainers ...

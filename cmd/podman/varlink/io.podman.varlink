@@ -727,10 +727,12 @@ method GetAttachSockets(name: string) -> (sockets: Sockets)
 # or name, a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string, interval: int) -> (exitcode: int)
 
-# RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
+# RemoveContainer requires the name or ID of a container as well as a boolean that
+# indicates whether a container should be forcefully removed (e.g., by stopping it), and a boolean
 # indicating whether to remove builtin volumes. Upon successful removal of the
 # container, its ID is returned.  If the
 # container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# See also [EvictContainer](EvictContainer).
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
@@ -739,6 +741,20 @@ method WaitContainer(name: string, interval: int) -> (exitcode: int)
 # }
 # ~~~
 method RemoveContainer(name: string, force: bool, removeVolumes: bool) -> (container: string)
+
+# EvictContainer requires the name or ID of a container as well as a boolean that
+# indicates to remove builtin volumes. Upon successful eviction of the container,
+# its ID is returned.  If the container cannot be found by name or ID,
+# a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# See also [RemoveContainer](RemoveContainer).
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.EvictContainer '{"name": "62f4fd98cb57"}'
+# {
+#   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+# }
+# ~~~
+method EvictContainer(name: string, removeVolumes: bool) -> (container: string)
 
 # DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
 # container IDs.  See also [RemoveContainer](RemoveContainer).

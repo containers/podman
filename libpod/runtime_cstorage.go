@@ -60,6 +60,12 @@ func (r *Runtime) RemoveStorageContainer(idOrName string, force bool) error {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	return r.removeStorageContainer(idOrName, force)
+}
+
+// Internal function to remove the container storage without
+// locking the runtime.
+func (r *Runtime) removeStorageContainer(idOrName string, force bool) error {
 	targetID, err := r.store.Lookup(idOrName)
 	if err != nil {
 		if err == storage.ErrLayerUnknown {

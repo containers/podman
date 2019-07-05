@@ -321,15 +321,30 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 
 // RemoveContainer removes container(s) based on varlink inputs.
 func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmValues) ([]string, map[string]error, error) {
-	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
-	if err != nil {
-		return nil, nil, TranslateError(err)
-	}
-
 	var (
 		ok       = []string{}
 		failures = map[string]error{}
 	)
+
+	ids, err := iopodman.GetContainersByContext().Call(r.Conn, cli.All, cli.Latest, cli.InputArgs)
+	if err != nil {
+		// Failed to get containers. If force is specified, get the containers ID
+		// and evict them
+		if !cli.Force {
+			return nil, nil, TranslateError(err)
+		}
+
+		for _, ctr := range cli.InputArgs {
+			logrus.Debugf("Evicting container %q", ctr)
+			id, err := iopodman.EvictContainer().Call(r.Conn, ctr, cli.Volumes)
+			if err != nil {
+				failures[ctr] = errors.Wrapf(err, "Failed to evict container: %q", id)
+				continue
+			}
+			ok = append(ok, string(id))
+		}
+		return ok, failures, nil
+	}
 
 	for _, id := range ids {
 		_, err := iopodman.RemoveContainer().Call(r.Conn, id, cli.Force, cli.Volumes)

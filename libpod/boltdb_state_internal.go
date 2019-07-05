@@ -347,7 +347,7 @@ func getRuntimeConfigBucket(tx *bolt.Tx) (*bolt.Bucket, error) {
 	return bkt, nil
 }
 
-func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig, ctrsBkt *bolt.Bucket) error {
 	ctrBkt := ctrsBkt.Bucket(id)
 	if ctrBkt == nil {
 		return errors.Wrapf(define.ErrNoSuchCtr, "container %s not found in DB", string(id))
@@ -365,8 +365,16 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 		return errors.Wrapf(define.ErrInternal, "container %s missing config key in DB", string(id))
 	}
 
-	if err := json.Unmarshal(configBytes, ctr.config); err != nil {
+	if err := json.Unmarshal(configBytes, config); err != nil {
 		return errors.Wrapf(err, "error unmarshalling container %s config", string(id))
+	}
+
+	return nil
+}
+
+func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+	if err := s.getContainerConfigFromDB(id, ctr.config, ctrsBkt); err != nil {
+		return err
 	}
 
 	// Get the lock
@@ -388,7 +396,7 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
-			return errors.Wrapf(define.ErrInternal, "container %s was created with OCI runtime %s, but that runtime is not available in the current configuration", ctr.ID(), ctr.config.OCIRuntime)
+			return errors.Wrapf(define.ErrOCIRuntimeUnavailable, "cannot find OCI runtime %q for container %s", ctr.config.OCIRuntime, ctr.ID())
 		}
 		ctr.ociRuntime = ociRuntime
 	}
@@ -861,4 +869,73 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	}
 
 	return nil
+}
+
+// lookupContainerID retrieves a container ID from the state by full or unique
+// partial ID or name.
+// NOTE: the retrieved container ID namespace may not match the state namespace.
+func (s *BoltState) lookupContainerID(idOrName string, ctrBucket, namesBucket, nsBucket *bolt.Bucket) ([]byte, error) {
+	// First, check if the ID given was the actual container ID
+	ctrExists := ctrBucket.Bucket([]byte(idOrName))
+	if ctrExists != nil {
+		// A full container ID was given.
+		// It might not be in our namespace, but this will be handled
+		// the callers.
+		return []byte(idOrName), nil
+	}
+
+	// Next, check if the full name was given
+	isPod := false
+	fullID := namesBucket.Get([]byte(idOrName))
+	if fullID != nil {
+		// The name exists and maps to an ID.
+		// However, we are not yet certain the ID is a
+		// container.
+		ctrExists = ctrBucket.Bucket(fullID)
+		if ctrExists != nil {
+			// A container bucket matching the full ID was
+			// found.
+			return fullID, nil
+		}
+		// Don't error if we have a name match but it's not a
+		// container - there's a chance we have a container with
+		// an ID starting with those characters.
+		// However, so we can return a good error, note whether
+		// this is a pod.
+		isPod = true
+	}
+
+	var id []byte
+	// We were not given a full container ID or name.
+	// Search for partial ID matches.
+	exists := false
+	err := ctrBucket.ForEach(func(checkID, checkName []byte) error {
+		// If the container isn't in our namespace, we
+		// can't match it
+		if s.namespaceBytes != nil {
+			ns := nsBucket.Get(checkID)
+			if !bytes.Equal(ns, s.namespaceBytes) {
+				return nil
+			}
+		}
+		if strings.HasPrefix(string(checkID), idOrName) {
+			if exists {
+				return errors.Wrapf(define.ErrCtrExists, "more than one result for container ID %s", idOrName)
+			}
+			id = checkID
+			exists = true
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	} else if !exists {
+		if isPod {
+			return nil, errors.Wrapf(define.ErrNoSuchCtr, "%s is a pod, not a container", idOrName)
+		}
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container with name or ID %s found", idOrName)
+	}
+	return id, nil
 }

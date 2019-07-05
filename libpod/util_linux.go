@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"strings"
+	"syscall"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -12,6 +13,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // systemdSliceFromPath makes a new systemd slice under the given parent with
@@ -106,4 +108,15 @@ func LabelVolumePath(path string, shared bool) error {
 		return errors.Wrapf(err, "error setting selinux label for %s to %q as %s", path, mountLabel, permString)
 	}
 	return nil
+}
+
+// Unmount umounts a target directory
+func Unmount(mount string) {
+	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
+		if err != syscall.EINVAL {
+			logrus.Warnf("failed to unmount %s : %v", mount, err)
+		} else {
+			logrus.Debugf("failed to unmount %s : %v", mount, err)
+		}
+	}
 }
