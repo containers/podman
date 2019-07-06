@@ -11,6 +11,9 @@ UNIT_DIR="$HOME/.config/systemd/user"
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
 function setup() {
+    skip_if_not_systemd
+    skip_if_remote
+
     basic_setup
 
     if [ ! -d "$UNIT_DIR" ]; then
@@ -26,9 +29,6 @@ function teardown() {
 }
 
 @test "podman generate - systemd - basic" {
-    skip_if_not_systemd
-    skip_if_remote
-
     run_podman create $IMAGE echo "I'm alive!"
     cid="$output"
 
