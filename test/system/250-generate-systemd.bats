@@ -12,7 +12,11 @@ UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 
 function setup() {
     basic_setup
-    mkdir -p "$UNIT_DIR"
+
+    if [ ! -d "$UNIT_DIR" ]; then
+        mkdir -p "$UNIT_DIR"
+        systemctl --user daemon-reload
+    fi
 }
 
 function teardown() {
