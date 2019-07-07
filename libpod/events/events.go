@@ -95,6 +95,8 @@ func StringToType(name string) (Type, error) {
 		return System, nil
 	case Volume.String():
 		return Volume, nil
+	case "":
+		return "", ErrEventTypeBlank
 	}
 	return "", errors.Errorf("unknown event type %q", name)
 }
