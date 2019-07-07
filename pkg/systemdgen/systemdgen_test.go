@@ -58,6 +58,7 @@ PIDFile=/var/run/containers/storage/overlay-containers/639c53578af4d84b8800b4635
 WantedBy=multi-user.target`
 
 	type args struct {
+		exe         string
 		name        string
 		cid         string
 		restart     string
@@ -73,6 +74,7 @@ WantedBy=multi-user.target`
 
 		{"good with id",
 			args{
+				"/usr/bin/podman",
 				"639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				"639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				"always",
@@ -84,6 +86,7 @@ WantedBy=multi-user.target`
 		},
 		{"good with name",
 			args{
+				"/usr/bin/podman",
 				"foobar",
 				"639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				"always",
@@ -95,6 +98,7 @@ WantedBy=multi-user.target`
 		},
 		{"bad restart policy",
 			args{
+				"/usr/bin/podman",
 				"639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				"639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401",
 				"never",
@@ -107,7 +111,7 @@ WantedBy=multi-user.target`
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := CreateSystemdUnitAsString(tt.args.name, tt.args.cid, tt.args.restart, tt.args.pidFile, tt.args.stopTimeout)
+			got, err := createSystemdUnitAsString(tt.args.exe, tt.args.name, tt.args.cid, tt.args.restart, tt.args.pidFile, tt.args.stopTimeout)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CreateSystemdUnitAsString() error = %v, wantErr %v", err, tt.wantErr)
 				return
