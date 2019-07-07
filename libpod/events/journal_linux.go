@@ -101,7 +101,9 @@ func (e EventJournalD) Read(options ReadOptions) error {
 			// We can't decode this event.
 			// Don't fail hard - that would make events unusable.
 			// Instead, log and continue.
-			logrus.Errorf("Unable to decode event: %v", err)
+			if errors.Cause(err) != ErrEventTypeBlank {
+				logrus.Errorf("Unable to decode event: %v", err)
+			}
 			continue
 		}
 		include := true
