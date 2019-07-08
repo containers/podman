@@ -4,6 +4,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -35,18 +36,32 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
+		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
+		result.WaitWithDefaultTimeout()
+		cid := result.OutputToString()
+		Expect(result.ExitCode()).To(Equal(0))
+
 		mount := SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(mount.OutputToString(), cid))
 
-		out1 := mount.OutputToString()
-		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		pmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount.WaitWithDefaultTimeout()
+		Expect(strings.Contains(pmount.OutputToString(), cid))
+		Expect(pmount.ExitCode()).To(Equal(0))
+
+		stop := podmanTest.Podman([]string{"stop", cid})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
 
 		mount = SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
+		Expect(!strings.Contains(mount.OutputToString(), cid))
 
-		out2 := mount.OutputToString()
-		Expect(out1).To(Equal(out2))
+		pmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount.WaitWithDefaultTimeout()
+		Expect(!strings.Contains(pmount.OutputToString(), cid))
+		Expect(pmount.ExitCode()).To(Equal(0))
+
 	})
 })
