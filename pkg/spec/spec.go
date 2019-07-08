@@ -325,6 +325,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	if err := addIpcNS(config, &g); err != nil {
 		return nil, err
 	}
+
+	if err := addCgroupNS(config, &g); err != nil {
+		return nil, err
+	}
 	configSpec := g.Config
 
 	// HANDLE CAPABILITIES
@@ -619,6 +623,23 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 		logrus.Debug("Using container ipcmode")
 	}
 
+	return nil
+}
+
+func addCgroupNS(config *CreateConfig, g *generate.Generator) error {
+	cgroupMode := config.CgroupMode
+	if cgroupMode.IsNS() {
+		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), NS(string(cgroupMode)))
+	}
+	if cgroupMode.IsHost() {
+		return g.RemoveLinuxNamespace(spec.CgroupNamespace)
+	}
+	if cgroupMode.IsPrivate() {
+		return g.AddOrReplaceLinuxNamespace(spec.CgroupNamespace, "")
+	}
+	if cgroupMode.IsContainer() {
+		logrus.Debug("Using container cgroup mode")
+	}
 	return nil
 }
 

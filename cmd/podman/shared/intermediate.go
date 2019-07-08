@@ -370,6 +370,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["blkio-weight-device"] = newCRStringSlice(c, "blkio-weight-device")
 	m["cap-add"] = newCRStringSlice(c, "cap-add")
 	m["cap-drop"] = newCRStringSlice(c, "cap-drop")
+	m["cgroupns"] = newCRString(c, "cgroupns")
 	m["cgroup-parent"] = newCRString(c, "cgroup-parent")
 	m["cidfile"] = newCRString(c, "cidfile")
 	m["conmon-pidfile"] = newCRString(c, "conmon-pidfile")
