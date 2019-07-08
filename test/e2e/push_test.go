@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -58,6 +59,9 @@ var _ = Describe("Podman push", func() {
 	It("podman push to local registry", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
+		}
+		if rootless.IsRootless() {
+			podmanTest.RestoreArtifact(registry)
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()

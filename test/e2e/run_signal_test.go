@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/rootless"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -53,7 +54,9 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		os.Mkdir(udsDir, 0700)
 		udsPath := filepath.Join(udsDir, "fifo")
 		syscall.Mkfifo(udsPath, 0600)
-
+		if rootless.IsRootless() {
+			podmanTest.RestoreArtifact(fedoraMinimal)
+		}
 		_, pid := podmanTest.PodmanPID([]string{"run", "-it", "-v", fmt.Sprintf("%s:/h:Z", udsDir), fedoraMinimal, "bash", "-c", sigCatch})
 
 		uds, _ := os.OpenFile(udsPath, os.O_RDONLY|syscall.O_NONBLOCK, 0600)
@@ -108,6 +111,9 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
 		signal := syscall.SIGPOLL
+		if rootless.IsRootless() {
+			podmanTest.RestoreArtifact(fedoraMinimal)
+		}
 		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch})
 
 		ok := WaitForContainer(podmanTest)
