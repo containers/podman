@@ -1,7 +1,10 @@
 package libpod
 
 import (
+	"fmt"
+
 	"github.com/containers/libpod/libpod/events"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -78,4 +81,56 @@ func (r *Runtime) Events(options events.ReadOptions) error {
 		return err
 	}
 	return eventer.Read(options)
+}
+
+// GetEvents reads the event log and returns events based on input filters
+func (r *Runtime) GetEvents(filters []string) ([]*events.Event, error) {
+	var (
+		logEvents []*events.Event
+		readErr   error
+	)
+	eventChannel := make(chan *events.Event)
+	options := events.ReadOptions{
+		EventChannel: eventChannel,
+		Filters:      filters,
+		FromStart:    true,
+		Stream:       false,
+	}
+	eventer, err := r.newEventer()
+	if err != nil {
+		return nil, err
+	}
+	go func() {
+		readErr = eventer.Read(options)
+	}()
+	if readErr != nil {
+		return nil, readErr
+	}
+	for e := range eventChannel {
+		logEvents = append(logEvents, e)
+	}
+	return logEvents, nil
+}
+
+// GetLastContainerEvent takes a container name or ID and an event status and returns
+// the last occurrence of the container event
+func (r *Runtime) GetLastContainerEvent(nameOrID string, containerEvent events.Status) (*events.Event, error) {
+	// check to make sure the event.Status is valid
+	if _, err := events.StringToStatus(containerEvent.String()); err != nil {
+		return nil, err
+	}
+	filters := []string{
+		fmt.Sprintf("container=%s", nameOrID),
+		fmt.Sprintf("event=%s", containerEvent),
+		"type=container",
+	}
+	containerEvents, err := r.GetEvents(filters)
+	if err != nil {
+		return nil, err
+	}
+	if len(containerEvents) < 1 {
+		return nil, errors.Wrapf(events.ErrEventNotFound, "%s not found", containerEvent.String())
+	}
+	// return the last element in the slice
+	return containerEvents[len(containerEvents)-1], nil
 }

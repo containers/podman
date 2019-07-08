@@ -2,6 +2,8 @@ package events
 
 import (
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // EventerType ...
@@ -158,3 +160,12 @@ const (
 
 // EventFilter for filtering events
 type EventFilter func(*Event) bool
+
+var (
+	// ErrEventTypeBlank indicates the event log found something done by podman
+	// but it isnt likely an event
+	ErrEventTypeBlank = errors.New("event type blank")
+
+	// ErrEventNotFound indicates that the event was not found in the event log
+	ErrEventNotFound = errors.New("unable to find event")
+)
