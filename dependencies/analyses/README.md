@@ -1,5 +1,8 @@
 # A set of scripts and instructions that help to analyze and debloat go-lang dependencies.
 
+Note that all scripts mentioned below follow the [KISS principle](https://en.wikipedia.org/wiki/KISS_principle) on purpose.
+The scripts are meant to be used in combination to aid in undestanding the packages' dependencies and how they contribute to the size of the compiled binary.
+
 ## Size of packages
 
 To analyze the size of all go packages used during the build process, pass the `-work -a` build flags to `go build`.
@@ -62,3 +65,23 @@ Running such an analysis on libpod may look as follows:
 ```
 
 Running the script can help identify sources of bloat and reveal potential candidates (e.g., entire packages, types, or function) for refactoring.
+
+
+## Dependency Tree
+
+Use the `dependency-tree.sh` script to figure out which package including which packages.
+The output of the script has the format `package: dependency_1, dependency_2, ...`.
+Each line is followed by a blank link to make it easier to read.
+Note that the list of dependencies includes only the direct dependencies and not all transitive dependencies.
+The transitive dependencies of a given package can be examined by running `go list -f '{{ .Name }}: {{ join .Deps ", " }}' $PACKAGE` or by browsing through the output of `dependency-tree.sh`.
+
+Running such a dependency-tree analysis may look as follows:
+
+
+```
+[libpod]$ ./dependencies/analyses/dependency-tree.sh github.com/containers/libpod > tree.txt
+[libpod]$ grep "^github.com/containers/libpod/pkg/registries" tree.txt
+github.com/containers/libpod/pkg/registries: github.com/containers/libpod/vendor/github.com/containers/image/pkg/sysregistriesv2, github.com/containers/libpod/vendor/github.com/containers/image/types, github.com/containers/libpod/pkg/rootless, github.com/containers/libpod/vendor/github.com/docker/distribution/reference, github.com/containers/libpod/vendor/github.com/pkg/errors, os, path/filepath, strings
+```
+
+As shown above, the script's output can then be used to query for specific packages.
