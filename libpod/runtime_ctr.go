@@ -52,7 +52,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
 	}
-	return r.setupContainer(ctx, ctr, true)
+	return r.setupContainer(ctx, ctr)
 }
 
 func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConfig) (c *Container, err error) {
@@ -68,6 +68,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 		ctr.config.ShmSize = DefaultShmSize
 	} else {
 		// This is a restore from an imported checkpoint
+		ctr.restoreFromCheckpoint = true
 		if err := JSONDeepCopy(config, ctr.config); err != nil {
 			return nil, errors.Wrapf(err, "error copying container config for restore")
 		}
@@ -119,10 +120,10 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
-	return r.setupContainer(ctx, ctr, false)
+	return r.setupContainer(ctx, ctr)
 }
 
-func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bool) (c *Container, err error) {
+func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Container, err error) {
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -211,7 +212,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container, restore bo
 		return nil, errors.Wrapf(config2.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
 	}
 
-	if restore {
+	if ctr.restoreFromCheckpoint {
 		// Remove information about bind mount
 		// for new container from imported checkpoint
 		g := generate.Generator{Config: ctr.config.Spec}

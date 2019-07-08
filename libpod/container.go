@@ -138,6 +138,9 @@ type Container struct {
 	// being checkpointed. If requestedIP is set it will be used instead
 	// of config.StaticIP.
 	requestedIP net.IP
+
+	// This is true if a container is restored from a checkpoint.
+	restoreFromCheckpoint bool
 }
 
 // ContainerState contains the current state of the container
