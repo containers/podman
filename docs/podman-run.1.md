@@ -275,7 +275,7 @@ The example maps gids 0-2000 in the container to the gids 30000-31999 on the hos
 
 Add additional groups to run as
 
-**--healthcheck**=*command*
+**--healthcheck-command**=*command*
 
 Set or alter a healthcheck command for a container. The command is a command to be executed inside your
 container that determines your container health.  The command is required for other healthcheck options
