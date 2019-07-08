@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/rootless"
@@ -322,7 +321,7 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 }
 
 // InspectContainer returns a container's inspect data in JSON format
-func (p *PodmanTestIntegration) InspectContainer(name string) []shared.InspectContainer {
+func (p *PodmanTestIntegration) InspectContainer(name string) []libpod.InspectContainerData {
 	cmd := []string{"inspect", name}
 	session := p.Podman(cmd)
 	session.WaitWithDefaultTimeout()
@@ -481,8 +480,8 @@ func (p *PodmanTestIntegration) PullImage(image string) error {
 
 // InspectContainerToJSON takes the session output of an inspect
 // container and returns json
-func (s *PodmanSessionIntegration) InspectContainerToJSON() []shared.InspectContainer {
-	var i []shared.InspectContainer
+func (s *PodmanSessionIntegration) InspectContainerToJSON() []libpod.InspectContainerData {
+	var i []libpod.InspectContainerData
 	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).To(BeNil())
 	return i
