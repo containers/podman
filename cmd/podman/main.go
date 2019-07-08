@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/containers/libpod/libpod"
 	"io"
 	"os"
+	"path"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/version"
@@ -68,7 +69,7 @@ var mainCommands = []*cobra.Command{
 }
 
 var rootCmd = &cobra.Command{
-	Use:  "podman",
+	Use:  path.Base(os.Args[0]),
 	Long: "manage pods and images",
 	RunE: commandRunE(),
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
