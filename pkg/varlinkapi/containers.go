@@ -19,7 +19,6 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
-	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 )
@@ -170,16 +169,7 @@ func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) err
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	inspectInfo, err := ctr.Inspect(true)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-	artifact, err := getArtifact(ctr)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-
-	data, err := shared.GetCtrInspectInfo(ctr.Config(), inspectInfo, artifact)
+	data, err := ctr.Inspect(true)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -585,18 +575,6 @@ func (i *LibpodAPI) ContainerRestore(call iopodman.VarlinkCall, name string, kee
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyContainerRestore(ctr.ID())
-}
-
-func getArtifact(ctr *libpod.Container) (*cc.CreateConfig, error) {
-	var createArtifact cc.CreateConfig
-	artifact, err := ctr.GetArtifact("create-config")
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-		return nil, err
-	}
-	return &createArtifact, nil
 }
 
 // ContainerConfig returns just the container.config struct

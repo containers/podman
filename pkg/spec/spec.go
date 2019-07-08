@@ -418,6 +418,43 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
+	// Add annotations
+	if configSpec.Annotations == nil {
+		configSpec.Annotations = make(map[string]string)
+	}
+
+	if config.CidFile != "" {
+		configSpec.Annotations[libpod.InspectAnnotationCIDFile] = config.CidFile
+	}
+
+	if config.Rm {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseFalse
+	}
+
+	if len(config.VolumesFrom) > 0 {
+		configSpec.Annotations[libpod.InspectAnnotationVolumesFrom] = strings.Join(config.VolumesFrom, ",")
+	}
+
+	if config.Privileged {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseFalse
+	}
+
+	if config.PublishAll {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse
+	}
+
+	if config.Init {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseFalse
+	}
+
 	return configSpec, nil
 }
 
