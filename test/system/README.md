@@ -42,6 +42,15 @@ should be reserved for a first-pass fail-fast subset of tests:
 without having to wait for the entire test suite.
 
 
+Running tests
+=============
+To run the tests locally in your sandbox, you can use one of these methods:
+* make;PODMAN=./bin/podman bats ./test/system/070-build.bats # runs just the specified test
+* make;PODMAN=./bin/podman bats ./test/system                # runs all
+
+To test as root:
+*  $ PODMAN=./bin/podman sudo --preserve-env=PODMAN bats test/system
+
 Analyzing test failures
 =======================
 

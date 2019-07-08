@@ -536,6 +536,28 @@ EOF
 fi
 
 ########
+# Build Dockerfile for RUN with priv'd command test
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM alpine
+RUN apk add nginx
+EOM
+chmod +x $FILE
+
+########
+# Build with the Dockerfile
+########
+podman build -f Dockerfile -t build-priv
+
+########
+# Cleanup
+########
+podman rm -a -f
+podman rmi -a -f
+rm ./Dockerfile
+
+########
 # Build Dockerfile for WhaleSays test
 ########
 FILE=./Dockerfile
