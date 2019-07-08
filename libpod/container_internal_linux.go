@@ -185,9 +185,13 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		if c.config.PostConfigureNetNS {
-			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, "")
+			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, ""); err != nil {
+				return nil, err
+			}
 		} else {
-			g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -415,7 +419,9 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	if rootPropagation != "" {
 		logrus.Debugf("set root propagation to %q", rootPropagation)
-		g.SetLinuxRootPropagation(rootPropagation)
+		if err := g.SetLinuxRootPropagation(rootPropagation); err != nil {
+			return nil, err
+		}
 	}
 
 	// Warning: precreate hooks may alter g.Config in place.
@@ -561,7 +567,9 @@ func (c *Container) checkpointRestoreLabelLog(fileName string) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "failed to create CRIU log file %q", dumpLog)
 	}
-	logFile.Close()
+	if err := logFile.Close(); err != nil {
+		logrus.Errorf("unable to close log file: %q", err)
+	}
 	if err = label.SetFileLabel(dumpLog, c.MountLabel()); err != nil {
 		return errors.Wrapf(err, "failed to label CRIU log file %q", dumpLog)
 	}
@@ -620,9 +628,11 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 			"config.dump",
 			"spec.dump",
 		}
-		for _, delete := range cleanup {
-			file := filepath.Join(c.bundlePath(), delete)
-			os.Remove(file)
+		for _, del := range cleanup {
+			file := filepath.Join(c.bundlePath(), del)
+			if err := os.Remove(file); err != nil {
+				logrus.Debugf("unable to remove file %s", file)
+			}
 		}
 	}
 
@@ -702,7 +712,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			return err
 		}
-		json.Unmarshal(networkJSON, &networkStatus)
+		if err := json.Unmarshal(networkJSON, &networkStatus); err != nil {
+			return err
+		}
 		// Take the first IP address
 		var IP net.IP
 		if len(networkStatus) > 0 {
@@ -744,7 +756,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// We want to have the same network namespace as before.
 	if c.config.CreateNetNS {
-		g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path())
+		if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
+			return err
+		}
 	}
 
 	if err := c.makeBindMounts(); err != nil {
@@ -769,7 +783,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Cleanup for a working restore.
-	c.removeConmonFiles()
+	if err := c.removeConmonFiles(); err != nil {
+		return err
+	}
 
 	// Save the OCI spec to disk
 	if err := c.saveSpec(g.Spec()); err != nil {
@@ -793,8 +809,8 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
 		}
 		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status"}
-		for _, delete := range cleanup {
-			file := filepath.Join(c.bundlePath(), delete)
+		for _, del := range cleanup {
+			file := filepath.Join(c.bundlePath(), del)
 			err = os.Remove(file)
 			if err != nil {
 				logrus.Debugf("Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
@@ -824,14 +840,14 @@ func (c *Container) makeBindMounts() error {
 		// will recreate. Only do this if we aren't sharing them with
 		// another container.
 		if c.config.NetNsCtr == "" {
-			if path, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
-				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			if resolvePath, ok := c.state.BindMounts["/etc/resolv.conf"]; ok {
+				if err := os.Remove(resolvePath); err != nil && !os.IsNotExist(err) {
 					return errors.Wrapf(err, "error removing container %s resolv.conf", c.ID())
 				}
 				delete(c.state.BindMounts, "/etc/resolv.conf")
 			}
-			if path, ok := c.state.BindMounts["/etc/hosts"]; ok {
-				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			if hostsPath, ok := c.state.BindMounts["/etc/hosts"]; ok {
+				if err := os.Remove(hostsPath); err != nil && !os.IsNotExist(err) {
 					return errors.Wrapf(err, "error removing container %s hosts", c.ID())
 				}
 				delete(c.state.BindMounts, "/etc/hosts")
@@ -968,10 +984,10 @@ func (c *Container) makeBindMounts() error {
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
 	resolvConf := "/etc/resolv.conf"
-	for _, ns := range c.config.Spec.Linux.Namespaces {
-		if ns.Type == spec.NetworkNamespace {
-			if ns.Path != "" && !strings.HasPrefix(ns.Path, "/proc/") {
-				definedPath := filepath.Join("/etc/netns", filepath.Base(ns.Path), "resolv.conf")
+	for _, namespace := range c.config.Spec.Linux.Namespaces {
+		if namespace.Type == spec.NetworkNamespace {
+			if namespace.Path != "" && !strings.HasPrefix(namespace.Path, "/proc/") {
+				definedPath := filepath.Join("/etc/netns", filepath.Base(namespace.Path), "resolv.conf")
 				_, err := os.Stat(definedPath)
 				if err == nil {
 					resolvConf = definedPath
@@ -1096,10 +1112,10 @@ func (c *Container) generatePasswd() (string, error) {
 	if c.config.User == "" {
 		return "", nil
 	}
-	spec := strings.SplitN(c.config.User, ":", 2)
-	userspec := spec[0]
-	if len(spec) > 1 {
-		groupspec = spec[1]
+	splitSpec := strings.SplitN(c.config.User, ":", 2)
+	userspec := splitSpec[0]
+	if len(splitSpec) > 1 {
+		groupspec = splitSpec[1]
 	}
 	// If a non numeric User, then don't generate passwd
 	uid, err := strconv.ParseUint(userspec, 10, 32)
@@ -1137,7 +1153,7 @@ func (c *Container) generatePasswd() (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to create temporary passwd file")
 	}
-	if os.Chmod(passwdFile, 0644); err != nil {
+	if err := os.Chmod(passwdFile, 0644); err != nil {
 		return "", err
 	}
 	return passwdFile, nil

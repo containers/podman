@@ -294,14 +294,14 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
 			}
 			buf := make([]byte, 2048)
-			len, err := conn.Read(buf)
+			readLength, err := conn.Read(buf)
 			if err != nil {
 				return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
 			}
 			// if there is no 'error' key in the received JSON data, then the operation was
 			// successful.
 			var y map[string]interface{}
-			if err := json.Unmarshal(buf[0:len], &y); err != nil {
+			if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
 				return errors.Wrapf(err, "error parsing error status from slirp4netns")
 			}
 			if e, found := y["error"]; found {
@@ -332,7 +332,9 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", nsPath)
 	}
-	mountPointFd.Close()
+	if err := mountPointFd.Close(); err != nil {
+		return err
+	}
 
 	if err := unix.Mount(nsProcess, nsPath, "none", unix.MS_BIND, ""); err != nil {
 		return errors.Wrapf(err, "cannot mount %s", nsPath)
@@ -352,12 +354,12 @@ func (r *Runtime) setupNetNS(ctr *Container) (err error) {
 
 // Join an existing network namespace
 func joinNetNS(path string) (ns.NetNS, error) {
-	ns, err := ns.GetNS(path)
+	netNS, err := ns.GetNS(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving network namespace at %s", path)
 	}
 
-	return ns, nil
+	return netNS, nil
 }
 
 // Close a network namespace.

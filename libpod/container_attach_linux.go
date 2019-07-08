@@ -145,7 +145,9 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 			default:
 				logrus.Infof("Received unexpected attach type %+d", buf[0])
 			}
-
+			if dst == nil {
+				return errors.New("output destination cannot be nil")
+			}
 			if doWrite {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {
