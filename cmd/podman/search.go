@@ -13,11 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	descriptionTruncLength = 44
-	maxQueries             = 25
-)
-
 var (
 	searchCommand     cliconfig.SearchValues
 	searchDescription = `Search registries for a given image. Can search all the default registries or a specific registry.
@@ -89,8 +84,7 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		return nil
 	}
 	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: searchHeaderMap()}
-	formats.Writer(out).Out()
-	return nil
+	return formats.Writer(out).Out()
 }
 
 // searchHeaderMap returns the headers of a SearchResult.

@@ -99,7 +99,9 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 
 	ctx := context.Background()
 	for i := range registries {
-		sem.Acquire(ctx, 1)
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return nil, err
+		}
 		go searchImageInRegistryHelper(i, registries[i])
 	}
 

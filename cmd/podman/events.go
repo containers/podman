@@ -36,7 +36,7 @@ func init() {
 	flags.BoolVar(&eventsCommand.Stream, "stream", true, "stream new events; for testing only")
 	flags.StringVar(&eventsCommand.Since, "since", "", "show all events created since timestamp")
 	flags.StringVar(&eventsCommand.Until, "until", "", "show all events until timestamp")
-	flags.MarkHidden("stream")
+	markFlagHidden(flags, "stream")
 }
 
 func eventsCmd(c *cliconfig.EventValues) error {
@@ -44,7 +44,7 @@ func eventsCmd(c *cliconfig.EventValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	return runtime.Events(c)
 }

@@ -97,6 +97,14 @@ func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime,
 	}, nil
 }
 
+// DeferredShutdown is a bogus wrapper for compaat with the libpod
+// runtime and should only be run when a defer is being used
+func (r RemoteRuntime) DeferredShutdown(force bool) {
+	if err := r.Shutdown(force); err != nil {
+		logrus.Error("unable to shutdown runtime")
+	}
+}
+
 // Shutdown is a bogus wrapper for compat with the libpod runtime
 func (r RemoteRuntime) Shutdown(force bool) error {
 	return nil

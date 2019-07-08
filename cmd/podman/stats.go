@@ -93,7 +93,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	times := -1
 	if c.NoStream {
@@ -175,7 +175,9 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			tm.MoveCursor(1, 1)
 			tm.Flush()
 		}
-		outputStats(reportStats, format)
+		if err := outputStats(reportStats, format); err != nil {
+			return err
+		}
 		time.Sleep(time.Second)
 	}
 	return nil

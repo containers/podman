@@ -57,14 +57,20 @@ func init() {
 
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
 	flag := budFlags.Lookup("pull")
-	flag.Value.Set("true")
+	if err := flag.Value.Set("true"); err != nil {
+		logrus.Error("unable to set pull flag to true")
+	}
 	flag.DefValue = "true"
 	layerFlags := buildahcli.GetLayerFlags(&layerValues)
 	flag = layerFlags.Lookup("layers")
-	flag.Value.Set(useLayers())
+	if err := flag.Value.Set(useLayers()); err != nil {
+		logrus.Error("unable to set uselayers")
+	}
 	flag.DefValue = useLayers()
 	flag = layerFlags.Lookup("force-rm")
-	flag.Value.Set("true")
+	if err := flag.Value.Set("true"); err != nil {
+		logrus.Error("unable to set force-rm flag to true")
+	}
 	flag.DefValue = "true"
 
 	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
@@ -72,7 +78,7 @@ func init() {
 	flags.AddFlagSet(&budFlags)
 	flags.AddFlagSet(&layerFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
-	flags.MarkHidden("signature-policy")
+	markFlagHidden(flags, "signature-policy")
 }
 
 func getDockerfiles(files []string) []string {
@@ -177,7 +183,6 @@ func buildCmd(c *cliconfig.BuildValues) error {
 			}
 			contextDir = absDir
 		}
-		cliArgs = Tail(cliArgs)
 	} else {
 		// No context directory or URL was specified.  Try to use the
 		// home of the first locally-available Dockerfile.
@@ -218,7 +223,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	}
 	// end from buildah
 
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var stdout, stderr, reporter *os.File
 	stdout = os.Stdout

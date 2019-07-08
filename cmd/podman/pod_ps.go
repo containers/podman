@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	STOPPED      = "Stopped"
+	STOPPED      = "Stopped" //nolint
 	RUNNING      = "Running"
 	PAUSED       = "Paused"
 	EXITED       = "Exited"
@@ -36,9 +36,9 @@ var (
 )
 
 type podPsCtrInfo struct {
-	Name   string `"json:name,omitempty"`
-	Id     string `"json:id,omitempty"`
-	Status string `"json:status,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Id     string `json:"id,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 type podPsOptions struct {
@@ -161,7 +161,7 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	opts := podPsOptions{
 		NoTrunc:            c.NoTrunc,

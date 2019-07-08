@@ -43,7 +43,7 @@ func pruneContainersCmd(c *cliconfig.PruneContainersValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	maxWorkers := shared.DefaultPoolSize("prune")
 	if c.GlobalIsSet("max-workers") {

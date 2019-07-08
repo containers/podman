@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage"
 	"github.com/fatih/camelcase"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -19,8 +18,7 @@ import (
 )
 
 var (
-	stores = make(map[storage.Store]struct{})
-	json   = jsoniter.ConfigCompatibleWithStandardLibrary
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 const (

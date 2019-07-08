@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"io"
 	"os"
 	"path/filepath"
@@ -63,8 +64,8 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, nil, errors.Errorf("error opening cidfile %s", c.String("cidfile"))
 		}
-		defer cidFile.Close()
-		defer cidFile.Sync()
+		defer errorhandling.CloseQuiet(cidFile)
+		defer errorhandling.SyncQuiet(cidFile)
 	}
 
 	imageName := ""
@@ -82,6 +83,9 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, nil, err
 		}
 		data, err = newImage.Inspect(ctx)
+		if err != nil {
+			return nil, nil, err
+		}
 		names := newImage.Names()
 		if len(names) > 0 {
 			imageName = names[0]

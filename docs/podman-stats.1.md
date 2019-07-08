@@ -39,7 +39,7 @@ Valid placeholders for the Go template are listed below:
 | **Placeholder** | **Description**   |
 | --------------- | ---------------   |
 | .Pod            | Pod ID      |
-| .CID            | Container ID      |
+| .ID             | Container ID      |
 | .Name           | Container Name    |
 | .CPU            | CPU percentage    |
 | .MemUsage       | Memory usage      |

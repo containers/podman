@@ -37,7 +37,6 @@ func init() {
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
 	getCreateFlags(&runCommand.PodmanCommand)
 	markFlagHiddenForRemoteClient("authfile", flags)
-	flags.MarkHidden("signature-policy")
 }
 
 func runCmd(c *cliconfig.RunValues) error {
@@ -54,7 +53,7 @@ func runCmd(c *cliconfig.RunValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	exitCode, err = runtime.Run(getContext(), c, exitCode)
 	return err

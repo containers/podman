@@ -42,7 +42,7 @@ func refreshCmd(c *cliconfig.RefreshValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	allCtrs, err := runtime.GetAllContainers()
 	if err != nil {

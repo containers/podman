@@ -65,7 +65,7 @@ var _ = Describe("Podman stats", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.Container}}\""})
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.ID}}\""})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

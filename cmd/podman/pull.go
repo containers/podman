@@ -60,7 +60,7 @@ func init() {
 		flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
-		flags.MarkHidden("signature-policy")
+		markFlagHidden(flags, "signature-policy")
 	}
 }
 
@@ -82,7 +82,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	args := c.InputArgs
 	if len(args) == 0 {

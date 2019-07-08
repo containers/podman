@@ -40,8 +40,11 @@ func podPruneCmd(c *cliconfig.PodPruneValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.PrunePods(getContext(), c)
+	if err != nil {
+		return err
+	}
 	return printCmdResults(ok, failures)
 }

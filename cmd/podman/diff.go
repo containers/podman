@@ -61,8 +61,7 @@ func init() {
 	flags.BoolVar(&diffCommand.Archive, "archive", true, "Save the diff as a tar archive")
 	flags.StringVar(&diffCommand.Format, "format", "", "Change the output format")
 	flags.BoolVarP(&diffCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-
-	flags.MarkHidden("archive")
+	markFlagHidden(flags, "archive")
 	markFlagHiddenForRemoteClient("latest", flags)
 
 }
@@ -93,7 +92,7 @@ func diffCmd(c *cliconfig.DiffValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var to string
 	if c.Latest {
@@ -137,7 +136,5 @@ func diffCmd(c *cliconfig.DiffValues) error {
 	} else {
 		out = stdoutStruct{output: diffOutput}
 	}
-	formats.Writer(out).Out()
-
-	return nil
+	return formats.Writer(out).Out()
 }

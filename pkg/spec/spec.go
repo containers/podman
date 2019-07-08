@@ -481,7 +481,9 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 
 func addUserNS(config *CreateConfig, g *generate.Generator) error {
 	if IsNS(string(config.UsernsMode)) {
-		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, NS(string(config.UsernsMode)))
+		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, NS(string(config.UsernsMode))); err != nil {
+			return err
+		}
 
 		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
 		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
@@ -489,7 +491,9 @@ func addUserNS(config *CreateConfig, g *generate.Generator) error {
 	}
 
 	if (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost() {
-		g.AddOrReplaceLinuxNamespace(spec.UserNamespace, "")
+		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, ""); err != nil {
+			return err
+		}
 	}
 	return nil
 }

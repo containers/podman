@@ -58,7 +58,7 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Import == "" && c.Name != "" {
 		return errors.Errorf("--name can only used with --import")

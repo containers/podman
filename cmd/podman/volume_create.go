@@ -46,7 +46,7 @@ func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if len(c.InputArgs) > 1 {
 		return errors.Errorf("too many arguments, create takes at most 1 argument")

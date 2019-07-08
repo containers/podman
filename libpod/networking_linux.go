@@ -5,6 +5,7 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"net"
 	"os"
 	"os/exec"
@@ -168,8 +169,8 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open pipe")
 	}
-	defer syncR.Close()
-	defer syncW.Close()
+	defer errorhandling.CloseQuiet(syncR)
+	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	apiSocket := filepath.Join(ctr.ociRuntime.tmpDir, fmt.Sprintf("%s.net", ctr.config.ID))

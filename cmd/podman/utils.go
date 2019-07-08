@@ -3,26 +3,11 @@ package main
 import (
 	"fmt"
 	"reflect"
+	"runtime/debug"
 
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 )
-
-// printParallelOutput takes the map of parallel worker results and outputs them
-// to stdout
-func printParallelOutput(m map[string]error, errCount int) error {
-	var lastError error
-	for cid, result := range m {
-		if result != nil {
-			if errCount > 1 {
-				fmt.Println(result.Error())
-			}
-			lastError = result
-			continue
-		}
-		fmt.Println(cid)
-	}
-	return lastError
-}
 
 // print results from CLI command
 func printCmdResults(ok []string, failures map[string]error) error {
@@ -48,6 +33,17 @@ func printCmdResults(ok []string, failures map[string]error) error {
 // on the remote-client
 func markFlagHiddenForRemoteClient(flagName string, flags *pflag.FlagSet) {
 	if remoteclient {
-		flags.MarkHidden(flagName)
+		if err := flags.MarkHidden(flagName); err != nil {
+			debug.PrintStack()
+			logrus.Errorf("unable to mark %s as hidden in the remote-client", flagName)
+		}
+	}
+}
+
+// markFlagHidden is a helper function to log an error if marking
+// a flag as hidden happens to fail
+func markFlagHidden(flags *pflag.FlagSet, flag string) {
+	if err := flags.MarkHidden(flag); err != nil {
+		logrus.Errorf("unable to mark flag '%s' as hidden: %q", flag, err)
 	}
 }

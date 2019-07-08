@@ -59,6 +59,6 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 	return runtime.Checkpoint(c)
 }

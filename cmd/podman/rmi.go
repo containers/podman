@@ -55,7 +55,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	args := c.InputArgs
 	if len(args) == 0 && !removeAll {
