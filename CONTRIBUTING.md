@@ -48,18 +48,18 @@ First you need to fork this project on GitHub.
 
 Be sure to have [defined your `$GOPATH` environment variable](https://github.com/golang/go/wiki/GOPATH).
 
-Create a path that correspond to your clone `mkdir -p $GOPATH/github.com/<you>`.
+Create a path that correspond to your clone `mkdir -p $GOPATH/src/github.com/<you>`.
 
 Clone your fork locally:
 ```shell
-$ git clone git@github.com:<you>/libpod github.com/<you> $GOPATH/github.com/<you>/libpod
-$ cd $GOPATH/github.com/<you>/libpod
+$ git clone git@github.com:<you>/libpod github.com/<you> $GOPATH/src/github.com/<you>/libpod
+$ cd $GOPATH/src/github.com/<you>/libpod
 ```
 
 You can also use `go get` to clone your fork:
 ```shell
 $ go get github.com:<you>/libpod
-$ cd $GOPATH/github.com/<you>/libpod
+$ cd $GOPATH/src/github.com/<you>/libpod
 ```
 
 ### Deal with make
