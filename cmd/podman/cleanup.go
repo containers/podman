@@ -52,7 +52,7 @@ func cleanupCmd(c *cliconfig.CleanupValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.CleanupContainers(getContext(), c)
 	if err != nil {

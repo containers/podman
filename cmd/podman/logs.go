@@ -54,8 +54,7 @@ func init() {
 	flags.StringVar(&logsCommand.Since, "since", "", "Show logs since TIMESTAMP")
 	flags.Uint64Var(&logsCommand.Tail, "tail", 0, "Output the specified number of LINES at the end of the logs.  Defaults to 0, which prints all lines")
 	flags.BoolVarP(&logsCommand.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
-	flags.MarkHidden("details")
-
+	markFlagHidden(flags, "details")
 	flags.SetInterspersed(false)
 
 	markFlagHiddenForRemoteClient("latest", flags)
@@ -68,7 +67,7 @@ func logsCmd(c *cliconfig.LogsValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	sinceTime := time.Time{}
 	if c.Flag("since").Changed {

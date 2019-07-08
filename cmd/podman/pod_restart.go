@@ -51,7 +51,7 @@ func podRestartCmd(c *cliconfig.PodRestartValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	restartIDs, conErrors, restartErrors := runtime.RestartPods(getContext(), c)
 

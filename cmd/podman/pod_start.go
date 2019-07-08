@@ -49,7 +49,7 @@ func podStartCmd(c *cliconfig.PodStartValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podStartIDs, podStartErrors := runtime.StartPods(getContext(), c)
 	for _, p := range podStartIDs {

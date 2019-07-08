@@ -64,7 +64,7 @@ func execCmd(c *cliconfig.ExecValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	err = runtime.Exec(c, cmd)
 	if errors.Cause(err) == define.ErrCtrStateInvalid {

@@ -95,8 +95,8 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 		}
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				err := c.StopWithTimeout(*timeout)
 				if err != nil {
 					if errors.Cause(err) == define.ErrCtrStopped {
@@ -134,8 +134,8 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 		c := c
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				return c.Kill(uint(signal))
 			},
 		})
@@ -163,8 +163,8 @@ func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitVa
 		ctr := c
 
 		pool.Add(shared.Job{
-			ctr.ID(),
-			func() error {
+			ID: ctr.ID(),
+			Fn: func() error {
 				err := ctr.Init(ctx)
 				if err != nil {
 					// If we're initializing all containers, ignore invalid state errors

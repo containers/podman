@@ -57,7 +57,7 @@ func createCmd(c *cliconfig.CreateValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	cid, err := runtime.CreateContainer(getContext(), c)
 	if err != nil {

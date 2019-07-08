@@ -51,7 +51,7 @@ func podRmCmd(c *cliconfig.PodRmValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podRmIds, podRmErrors := runtime.RemovePods(getContext(), c)
 	for _, p := range podRmIds {

@@ -18,6 +18,7 @@ package firewall
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"strings"
 
 	"github.com/godbus/dbus"
@@ -113,7 +114,9 @@ func (fb *fwdBackend) Del(conf *FirewallNetConf) error {
 		// Remove firewalld rules which assigned the given source IP to the given zone
 		firewalldObj := fb.conn.Object(firewalldName, firewalldPath)
 		var res string
-		firewalldObj.Call(firewalldZoneInterface+"."+firewalldRemoveSourceMethod, 0, getFirewalldZone(conf), ipStr).Store(&res)
+		if err := firewalldObj.Call(firewalldZoneInterface+"."+firewalldRemoveSourceMethod, 0, getFirewalldZone(conf), ipStr).Store(&res); err != nil {
+			logrus.Errorf("unable to store firewallobj")
+		}
 	}
 	return nil
 }

@@ -76,7 +76,7 @@ func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	opts := volumeLsOptions{
 		Quiet: c.Quiet,

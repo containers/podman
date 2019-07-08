@@ -42,6 +42,7 @@ func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
 	if err != nil {
 		return errors.Wrap(err, "could not get runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 	status, err := runtime.HealthCheck(c)
 	fmt.Println(status)
 	return err

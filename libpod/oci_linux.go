@@ -17,6 +17,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -117,7 +118,7 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 					if err != nil {
 						return err
 					}
-					defer fd.Close()
+					defer errorhandling.CloseQuiet(fd)
 
 					// create a new mountns on the current thread
 					if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
@@ -207,8 +208,8 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		return errors.Wrapf(err, "error creating socket pair for start pipe")
 	}
 
-	defer parentPipe.Close()
-	defer parentStartPipe.Close()
+	defer errorhandling.CloseQuiet(parentPipe)
+	defer errorhandling.CloseQuiet(parentStartPipe)
 
 	ociLog := filepath.Join(ctr.state.RunDir, "oci-log")
 	logLevel := logrus.GetLevel()
@@ -364,20 +365,26 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		err = cmd.Start()
 		// Ignore error returned from SetProcessLabel("") call,
 		// can't recover.
-		label.SetProcessLabel("")
+		if err := label.SetProcessLabel(""); err != nil {
+			_ = err
+		}
 		runtime.UnlockOSThread()
 	} else {
 		err = cmd.Start()
 	}
 	if err != nil {
-		childPipe.Close()
+		errorhandling.CloseQuiet(childPipe)
 		return err
 	}
 	defer cmd.Wait()
 
 	// We don't need childPipe on the parent side
-	childPipe.Close()
-	childStartPipe.Close()
+	if err := childPipe.Close(); err != nil {
+		return err
+	}
+	if err := childStartPipe.Close(); err != nil {
+		return err
+	}
 
 	// Move conmon to specified cgroup
 	if err := r.moveConmonToCgroup(ctr, cgroupParent, cmd); err != nil {

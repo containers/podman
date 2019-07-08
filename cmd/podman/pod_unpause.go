@@ -50,7 +50,7 @@ func podUnpauseCmd(c *cliconfig.PodUnpauseValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	unpauseIDs, conErrors, unpauseErrors := runtime.UnpausePods(c)
 

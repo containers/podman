@@ -83,7 +83,9 @@ func NewNS() (ns.NetNS, error) {
 	if err != nil {
 		return nil, err
 	}
-	mountPointFd.Close()
+	if err := mountPointFd.Close(); err != nil {
+		return nil, err
+	}
 
 	// Ensure the mount point is cleaned up on errors; if the namespace
 	// was successfully mounted this will have no effect because the file

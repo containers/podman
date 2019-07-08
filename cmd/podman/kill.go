@@ -63,7 +63,7 @@ func killCmd(c *cliconfig.KillValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.KillContainers(getContext(), c, killSignal)
 	if err != nil {

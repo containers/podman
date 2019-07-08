@@ -54,7 +54,7 @@ func rmCmd(c *cliconfig.RmValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	// Storage conflicts with --all/--latest/--volumes
 	if c.Storage {

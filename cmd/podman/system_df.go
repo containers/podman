@@ -106,7 +106,7 @@ func dfSystemCmd(c *cliconfig.SystemDfValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ctx := getContext()
 
@@ -131,11 +131,10 @@ func dfSystemCmd(c *cliconfig.SystemDfValues) error {
 	if c.Format != "" {
 		format = strings.Replace(c.Format, `\t`, "\t", -1)
 	}
-	generateSysDfOutput(systemDfDiskUsages, format)
-	return nil
+	return generateSysDfOutput(systemDfDiskUsages, format)
 }
 
-func generateSysDfOutput(systemDfDiskUsages []systemDfDiskUsage, format string) {
+func generateSysDfOutput(systemDfDiskUsages []systemDfDiskUsage, format string) error {
 	var systemDfHeader = map[string]string{
 		"Type":        "TYPE",
 		"Total":       "TOTAL",
@@ -144,7 +143,7 @@ func generateSysDfOutput(systemDfDiskUsages []systemDfDiskUsage, format string) 
 		"Reclaimable": "RECLAIMABLE",
 	}
 	out := formats.StdoutTemplateArray{Output: systemDfDiskUsageToGeneric(systemDfDiskUsages), Template: format, Fields: systemDfHeader}
-	formats.Writer(out).Out()
+	return formats.Writer(out).Out()
 }
 
 func getDiskUsage(ctx context.Context, runtime *libpod.Runtime, metaData dfMetaData) ([]systemDfDiskUsage, error) {
@@ -554,10 +553,11 @@ func imagesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting verbose output of images")
 	}
-	os.Stderr.WriteString("Images space usage:\n\n")
+	if _, err := os.Stderr.WriteString("Images space usage:\n\n"); err != nil {
+		return err
+	}
 	out := formats.StdoutTemplateArray{Output: systemDfImageVerboseDiskUsageToGeneric(imagesVerboseDiskUsage), Template: imageVerboseFormat, Fields: imageVerboseHeader}
-	formats.Writer(out).Out()
-	return nil
+	return formats.Writer(out).Out()
 }
 
 func containersVerboseOutput(ctx context.Context, metaData dfMetaData) error {
@@ -575,10 +575,12 @@ func containersVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting verbose output of containers")
 	}
-	os.Stderr.WriteString("\nContainers space usage:\n\n")
+	if _, err := os.Stderr.WriteString("\nContainers space usage:\n\n"); err != nil {
+		return err
+	}
 	out := formats.StdoutTemplateArray{Output: systemDfContainerVerboseDiskUsageToGeneric(containersVerboseDiskUsage), Template: containerVerboseFormat, Fields: containerVerboseHeader}
-	formats.Writer(out).Out()
-	return nil
+	return formats.Writer(out).Out()
+
 }
 
 func volumesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
@@ -591,10 +593,11 @@ func volumesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 	if err != nil {
 		return errors.Wrapf(err, "error getting verbose output of volumes")
 	}
-	os.Stderr.WriteString("\nLocal Volumes space usage:\n\n")
+	if _, err := os.Stderr.WriteString("\nLocal Volumes space usage:\n\n"); err != nil {
+		return err
+	}
 	out := formats.StdoutTemplateArray{Output: systemDfVolumeVerboseDiskUsageToGeneric(volumesVerboseDiskUsage), Template: volumeVerboseFormat, Fields: volumeVerboseHeader}
-	formats.Writer(out).Out()
-	return nil
+	return formats.Writer(out).Out()
 }
 
 func verboseOutput(ctx context.Context, metaData dfMetaData) error {

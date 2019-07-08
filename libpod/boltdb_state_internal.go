@@ -247,6 +247,15 @@ func (s *BoltState) getDBCon() (*bolt.DB, error) {
 	return db, nil
 }
 
+// deferredCloseDBCon closes the bolt db but instead of returning an
+// error it logs the error. it is meant to be used within the confines
+// of a defer statement only
+func (s *BoltState) deferredCloseDBCon(db *bolt.DB) {
+	if err := s.closeDBCon(db); err != nil {
+		logrus.Errorf("failed to close libpod db: %q", err)
+	}
+}
+
 // Close a connection to the database.
 // MUST be used in place of `db.Close()` to ensure proper unlocking of the
 // state.
@@ -479,7 +488,7 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return err
 	}
-	defer s.closeDBCon(db)
+	defer s.deferredCloseDBCon(db)
 
 	err = db.Update(func(tx *bolt.Tx) error {
 		idsBucket, err := getIDBucket(tx)

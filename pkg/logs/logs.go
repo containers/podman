@@ -30,6 +30,7 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -153,7 +154,7 @@ func ReadLogs(logPath string, ctr *libpod.Container, opts *LogOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open log file %q", logPath)
 	}
-	defer file.Close()
+	defer errorhandling.CloseQuiet(file)
 
 	msg := &logMessage{}
 	opts.bytes = -1
@@ -161,9 +162,9 @@ func ReadLogs(logPath string, ctr *libpod.Container, opts *LogOptions) error {
 	reader := bufio.NewReader(file)
 
 	if opts.Follow {
-		followLog(reader, writer, opts, ctr, msg, logPath)
+		err = followLog(reader, writer, opts, ctr, msg, logPath)
 	} else {
-		dumpLog(reader, writer, opts, msg, logPath)
+		err = dumpLog(reader, writer, opts, msg, logPath)
 	}
 	return err
 }

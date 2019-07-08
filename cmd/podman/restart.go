@@ -55,7 +55,7 @@ func restartCmd(c *cliconfig.RestartValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.Restart(getContext(), c)
 	if err != nil {

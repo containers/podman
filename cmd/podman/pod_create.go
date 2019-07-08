@@ -8,6 +8,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -56,7 +57,6 @@ func init() {
 	flags.StringVar(&podCreateCommand.Share, "share", shared.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 
 }
-
 func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	var (
 		err       error
@@ -67,7 +67,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if len(c.Publish) > 0 {
 		if !c.Infra {
@@ -86,8 +86,8 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		if err != nil {
 			return errors.Errorf("error opening pod-id-file %s", c.PodIDFile)
 		}
-		defer podIdFile.Close()
-		defer podIdFile.Sync()
+		defer errorhandling.CloseQuiet(podIdFile)
+		defer errorhandling.SyncQuiet(podIdFile)
 	}
 
 	labels, err := shared.GetAllLabels(c.LabelFile, c.Labels)

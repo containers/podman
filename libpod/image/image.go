@@ -323,7 +323,7 @@ func (i *Image) Names() []string {
 // RepoDigests returns a string array of repodigests associated with the image
 func (i *Image) RepoDigests() ([]string, error) {
 	var repoDigests []string
-	digest := i.Digest()
+	imageDigest := i.Digest()
 
 	for _, name := range i.Names() {
 		named, err := reference.ParseNormalizedNamed(name)
@@ -331,7 +331,7 @@ func (i *Image) RepoDigests() ([]string, error) {
 			return nil, err
 		}
 
-		canonical, err := reference.WithDigest(reference.TrimNamed(named), digest)
+		canonical, err := reference.WithDigest(reference.TrimNamed(named), imageDigest)
 		if err != nil {
 			return nil, err
 		}
@@ -462,11 +462,11 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 		return "", err
 	}
 	defer newImg.Close()
-	digest := newImg.ConfigInfo().Digest
-	if err = digest.Validate(); err != nil {
+	imageDigest := newImg.ConfigInfo().Digest
+	if err = imageDigest.Validate(); err != nil {
 		return "", errors.Wrapf(err, "error getting config info")
 	}
-	return "@" + digest.Hex(), nil
+	return "@" + imageDigest.Hex(), nil
 }
 
 // normalizedTag returns the canonical version of tag for use in Image.Names()
@@ -495,7 +495,9 @@ func normalizedTag(tag string) (reference.Named, error) {
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
-	i.reloadImage()
+	if err := i.reloadImage(); err != nil {
+		return err
+	}
 	ref, err := normalizedTag(tag)
 	if err != nil {
 		return err
@@ -508,14 +510,18 @@ func (i *Image) TagImage(tag string) error {
 	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
 		return err
 	}
-	i.reloadImage()
+	if err := i.reloadImage(); err != nil {
+		return err
+	}
 	defer i.newImageEvent(events.Tag)
 	return nil
 }
 
 // UntagImage removes a tag from the given image
 func (i *Image) UntagImage(tag string) error {
-	i.reloadImage()
+	if err := i.reloadImage(); err != nil {
+		return err
+	}
 	var newTags []string
 	tags := i.Names()
 	if !util.StringInSlice(tag, tags) {
@@ -529,7 +535,9 @@ func (i *Image) UntagImage(tag string) error {
 	if err := i.imageruntime.store.SetNames(i.ID(), newTags); err != nil {
 		return err
 	}
-	i.reloadImage()
+	if err := i.reloadImage(); err != nil {
+		return err
+	}
 	defer i.newImageEvent(events.Untag)
 	return nil
 }
@@ -825,7 +833,7 @@ func (i *Image) GetLabel(ctx context.Context, label string) (string, error) {
 
 // Annotations returns the annotations of an image
 func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
-	manifest, manifestType, err := i.Manifest(ctx)
+	imageManifest, manifestType, err := i.Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -833,7 +841,7 @@ func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 	switch manifestType {
 	case ociv1.MediaTypeImageManifest:
 		var m ociv1.Manifest
-		if err := json.Unmarshal(manifest, &m); err == nil {
+		if err := json.Unmarshal(imageManifest, &m); err == nil {
 			for k, v := range m.Annotations {
 				annotations[k] = v
 			}

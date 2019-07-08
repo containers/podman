@@ -57,7 +57,7 @@ func init() {
 	flags := topCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.BoolVar(&topCommand.ListDescriptors, "list-descriptors", false, "")
-	flags.MarkHidden("list-descriptors")
+	markFlagHidden(flags, "list-descriptors")
 	flags.BoolVarP(&topCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -83,7 +83,7 @@ func topCmd(c *cliconfig.TopValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	psOutput, err := runtime.Top(c)
 	if err != nil {
@@ -91,8 +91,9 @@ func topCmd(c *cliconfig.TopValues) error {
 	}
 	w := tabwriter.NewWriter(os.Stdout, 5, 1, 3, ' ', 0)
 	for _, proc := range psOutput {
-		fmt.Fprintln(w, proc)
+		if _, err := fmt.Fprintln(w, proc); err != nil {
+			return err
+		}
 	}
-	w.Flush()
-	return nil
+	return w.Flush()
 }

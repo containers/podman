@@ -83,7 +83,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(&c.PodmanCommand, runtime)}
 	// Register varlink service. The metadata can be retrieved with:

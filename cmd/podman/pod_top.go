@@ -44,8 +44,7 @@ func init() {
 	flags := podTopCommand.Flags()
 	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&podTopCommand.ListDescriptors, "list-descriptors", false, "")
-	flags.MarkHidden("list-descriptors")
-
+	markFlagHidden(flags, "list-descriptors")
 }
 
 func podTopCmd(c *cliconfig.PodTopValues) error {
@@ -71,7 +70,7 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Latest {
 		descriptors = args
@@ -85,8 +84,9 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		return err
 	}
 	for _, proc := range psOutput {
-		fmt.Fprintln(w, proc)
+		if _, err := fmt.Fprintln(w, proc); err != nil {
+			return err
+		}
 	}
-	w.Flush()
-	return nil
+	return w.Flush()
 }

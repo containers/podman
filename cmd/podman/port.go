@@ -95,9 +95,12 @@ func portCmd(c *cliconfig.PortValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	containers, err := runtime.Port(c)
+	if err != nil {
+		return err
+	}
 	for _, con := range containers {
 		portmappings, err := con.PortMappings()
 		if err != nil {

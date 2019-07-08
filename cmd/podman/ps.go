@@ -15,86 +15,31 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/fields"
 )
 
 const (
-	mountTruncLength = 12
-	hid              = "CONTAINER ID"
-	himage           = "IMAGE"
-	hcommand         = "COMMAND"
-	hcreated         = "CREATED"
-	hstatus          = "STATUS"
-	hports           = "PORTS"
-	hnames           = "NAMES"
-	hsize            = "SIZE"
-	hinfra           = "IS INFRA"
-	hpod             = "POD"
-	nspid            = "PID"
-	nscgroup         = "CGROUPNS"
-	nsipc            = "IPC"
-	nsmnt            = "MNT"
-	nsnet            = "NET"
-	nspidns          = "PIDNS"
-	nsuserns         = "USERNS"
-	nsuts            = "UTS"
+	hid      = "CONTAINER ID"
+	himage   = "IMAGE"
+	hcommand = "COMMAND"
+	hcreated = "CREATED"
+	hstatus  = "STATUS"
+	hports   = "PORTS"
+	hnames   = "NAMES"
+	hsize    = "SIZE"
+	hinfra   = "IS INFRA" //nolint
+	hpod     = "POD"
+	nspid    = "PID"
+	nscgroup = "CGROUPNS"
+	nsipc    = "IPC"
+	nsmnt    = "MNT"
+	nsnet    = "NET"
+	nspidns  = "PIDNS"
+	nsuserns = "USERNS"
+	nsuts    = "UTS"
 )
-
-type psTemplateParams struct {
-	ID            string
-	Image         string
-	Command       string
-	CreatedAtTime time.Time
-	Created       string
-	Status        string
-	Ports         string
-	Size          string
-	Names         string
-	Labels        string
-	Mounts        string
-	PID           int
-	CGROUPNS      string
-	IPC           string
-	MNT           string
-	NET           string
-	PIDNS         string
-	USERNS        string
-	UTS           string
-	Pod           string
-	IsInfra       bool
-}
-
-// psJSONParams is used as a base structure for the psParams
-// If template output is requested, psJSONParams will be converted to
-// psTemplateParams.
-// psJSONParams will be populated by data from libpod.Container,
-// the members of the struct are the sama data types as their sources.
-type psJSONParams struct {
-	ID               string                `json:"id"`
-	Image            string                `json:"image"`
-	ImageID          string                `json:"image_id"`
-	Command          []string              `json:"command"`
-	ExitCode         int32                 `json:"exitCode"`
-	Exited           bool                  `json:"exited"`
-	CreatedAt        time.Time             `json:"createdAt"`
-	StartedAt        time.Time             `json:"startedAt"`
-	ExitedAt         time.Time             `json:"exitedAt"`
-	Status           string                `json:"status"`
-	PID              int                   `json:"PID"`
-	Ports            []ocicni.PortMapping  `json:"ports"`
-	Size             *shared.ContainerSize `json:"size,omitempty"`
-	Names            string                `json:"names"`
-	Labels           fields.Set            `json:"labels"`
-	Mounts           []string              `json:"mounts"`
-	ContainerRunning bool                  `json:"ctrRunning"`
-	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
-	Pod              string                `json:"pod,omitempty"`
-	IsInfra          bool                  `json:"infra"`
-}
 
 // Type declaration and functions for sorting the PS output
 type psSorted []shared.PsContainerOutput
@@ -223,7 +168,7 @@ func psCmd(c *cliconfig.PsValues) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if !watch {
 		if err := psDisplay(c, runtime); err != nil {
@@ -271,22 +216,6 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
-}
-
-// generate the accurate header based on template given
-func (p *psTemplateParams) headerMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(p))
-	values := make(map[string]string)
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		if value == "ID" {
-			value = "Container" + value
-		}
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
 }
 
 func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {

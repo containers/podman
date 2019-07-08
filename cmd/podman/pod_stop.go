@@ -51,7 +51,7 @@ func podStopCmd(c *cliconfig.PodStopValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podStopIds, podStopErrors := runtime.StopPods(getContext(), c)
 	for _, p := range podStopIds {

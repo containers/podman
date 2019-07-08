@@ -53,7 +53,7 @@ func podInspectCmd(c *cliconfig.PodInspectValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Latest {
 		pod, err = runtime.GetLatestPod()

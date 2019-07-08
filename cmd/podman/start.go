@@ -69,7 +69,7 @@ func startCmd(c *cliconfig.StartValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 	exitCode, err = runtime.Start(getContext(), c, sigProxy)
 	return err
 }

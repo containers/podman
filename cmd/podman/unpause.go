@@ -45,7 +45,7 @@ func unpauseCmd(c *cliconfig.UnpauseValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	args := c.InputArgs
 	if len(args) < 1 && !c.All {

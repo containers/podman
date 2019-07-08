@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/adapter"
@@ -45,7 +44,7 @@ func init() {
 		flags.StringVar(&playKubeCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&playKubeCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
-		flags.MarkHidden("signature-policy")
+		markFlagHidden(flags, "signature-policy")
 	}
 }
 
@@ -63,7 +62,7 @@ func playKubeCmd(c *cliconfig.KubePlayValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	_, err = runtime.PlayKubeYAML(ctx, c, args[0])
 	return err

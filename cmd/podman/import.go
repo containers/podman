@@ -49,7 +49,7 @@ func importCmd(c *cliconfig.ImportValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var (
 		source    string

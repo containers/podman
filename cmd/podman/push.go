@@ -63,7 +63,7 @@ func init() {
 		flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 		flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&pushCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
-		flags.MarkHidden("signature-policy")
+		markFlagHidden(flags, "signature-policy")
 	}
 }
 
@@ -109,7 +109,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var writer io.Writer
 	if !c.Quiet {
