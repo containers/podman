@@ -37,10 +37,6 @@ var _ = Describe("Podman image tree", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
-		session := podmanTest.PodmanNoCache([]string{"pull", "docker.io/library/busybox:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
 		dockerfile := `FROM docker.io/library/busybox:latest
 RUN mkdir hello
 RUN touch test.txt
@@ -48,7 +44,7 @@ ENV foo=bar
 `
 		podmanTest.BuildImage(dockerfile, "test:latest", "true")
 
-		session = podmanTest.PodmanNoCache([]string{"image", "tree", "test:latest"})
+		session := podmanTest.PodmanNoCache([]string{"image", "tree", "test:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.PodmanNoCache([]string{"image", "tree", "--whatrequires", "docker.io/library/busybox:latest"})
