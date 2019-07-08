@@ -16,9 +16,9 @@ can easily fail
   * Cgroups V2 development for container support is ongoing.
 * Can not share container images with CRI-O or other users
 * Difficult to use additional stores for sharing content
-* Does not work on NFS homedirs
-  * NFS enforces file creation on different UIDs on the server side and does not understand User Namespace.
-  * When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.
+* Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
+  * NFS and parallel filesystems enforce file creation on different UIDs on the server side and does not understand User Namespace.
+  * When a container root process like YUM attempts to create a file owned by a different UID, NFS Server/GPFS denies the creation.
 * Does not work with homedirs mounted with noexec/nodev
   * User can setup storage to point to other directories they can write to that are not mounted noexec/nodev
 * Can not use overlayfs driver, but does support fuse-overlayfs
@@ -26,7 +26,7 @@ can easily fail
 * Only other supported driver is VFS.
 * No KATA Container support
 * No CNI Support
-  * CNI wants to modify IPTables, plus other network manipulation that I requires CAP_SYS_ADMIN.
+  * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
   * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
 * Cannot use ping
   * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
