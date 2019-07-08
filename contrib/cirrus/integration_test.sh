@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+
 source $(dirname $0)/lib.sh
 
 req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME

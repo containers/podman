@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE FEDORA_CNI_COMMIT CNI_COMMIT CONMON_COMMIT CRIU_COMMIT
+req_env_var SCRIPT_BASE
 
 install_ooe
 
@@ -17,11 +17,16 @@ trap "sudo rm -rf $GOPATH" EXIT
 
 ooe.sh sudo dnf update -y
 
+echo "Installing general build/test dependencies"
 ooe.sh sudo dnf install -y \
     atomic-registries \
     bats \
+    bridge-utils \
     btrfs-progs-devel \
     bzip2 \
+    container-selinux \
+    containernetworking-plugins \
+    containers-common \
     criu \
     device-mapper-devel \
     emacs-nox \
@@ -32,22 +37,24 @@ ooe.sh sudo dnf install -y \
     gnupg \
     golang \
     golang-github-cpuguy83-go-md2man \
-    golang-github-cpuguy83-go-md2man \
     gpgme-devel \
-    iptables \
     iproute \
+    iptables \
     jq \
     libassuan-devel \
     libcap-devel \
     libnet \
     libnet-devel \
     libnl3-devel \
+    libseccomp \
     libseccomp-devel \
     libselinux-devel \
     lsof \
     make \
     nmap-ncat \
+    ostree \
     ostree-devel \
+    podman \
     procps-ng \
     protobuf \
     protobuf-c \
@@ -61,7 +68,7 @@ ooe.sh sudo dnf install -y \
     python3-psutil \
     python3-pytoml \
     runc \
-    skopeo-containers \
+    selinux-policy-devel \
     slirp4netns \
     unzip \
     vim \
@@ -69,15 +76,8 @@ ooe.sh sudo dnf install -y \
     xz \
     zip
 
-install_varlink
-
-install_conmon
-
-CNI_COMMIT=$FEDORA_CNI_COMMIT
-install_cni_plugins
-
 sudo /tmp/libpod/hack/install_catatonit.sh
 
-rh_finalize # N/B: Halts system!
+rh_finalize
 
 echo "SUCCESS!"

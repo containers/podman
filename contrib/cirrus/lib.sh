@@ -55,15 +55,23 @@ PACKER_VER="1.3.5"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,fedora-29}"
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,fedora-29}"
 # Google-maintained base-image names
-UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
+export UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
-PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
-BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
+export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
+
+# Avoid getting stuck waiting for user input
+export DEBIAN_FRONTEND="noninteractive"
+SUDOAPTGET="ooe.sh sudo -E apt-get -qq --yes"
+SUDOAPTADD="ooe.sh sudo -E add-apt-repository --yes"
+# Short-cuts for retrying/timeout calls
+LILTO="timeout_attempt_delay_command 24s 5 30s"
+BIGTO="timeout_attempt_delay_command 300s 5 30s"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
@@ -148,9 +156,6 @@ show_env_vars() {
         # Supports older BASH versions
         printf "    ${_env_var_name}=%q\n" "$(printenv $_env_var_name)"
     done
-    echo ""
-    echo "##### $(go version) #####"
-    echo ""
 }
 
 die() {
@@ -169,6 +174,35 @@ stub() {
     echo "STUB: Pretending to do $1"
 }
 
+timeout_attempt_delay_command() {
+    TIMEOUT=$1
+    ATTEMPTS=$2
+    DELAY=$3
+    shift 3
+    STDOUTERR=$(mktemp -p '' $(basename $0)_XXXXX)
+    req_env_var ATTEMPTS DELAY
+    echo "Retrying $ATTEMPTS times with a $DELAY delay, and $TIMEOUT timeout for command: $@"
+    for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
+    do
+        echo "##### (attempt #$COUNT)" &>> "$STDOUTERR"
+        if timeout --foreground $TIMEOUT "$@" &>> "$STDOUTERR"
+        then
+            echo "##### (success after #$COUNT attempts)" &>> "$STDOUTERR"
+            break
+        else
+            echo "##### (failed with exit: $?)" &>> "$STDOUTERR"
+            sleep $DELAY
+        fi
+    done
+    cat "$STDOUTERR"
+    rm -f "$STDOUTERR"
+    if (( COUNT > $ATTEMPTS ))
+    then
+        echo "##### (exceeded $ATTEMPTS attempts)"
+        exit 125
+    fi
+}
+
 ircmsg() {
     req_env_var CIRRUS_TASK_ID IRCID
     [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
@@ -183,7 +217,7 @@ ircmsg() {
 }
 
 setup_rootless() {
-    req_env_var ROOTLESS_USER GOSRC
+    req_env_var ROOTLESS_USER GOSRC SECRET_ENV_RE ROOTLESS_ENV_RE
 
     # Only do this once
     if passwd --status $ROOTLESS_USER
@@ -257,7 +291,7 @@ setup_rootless() {
 install_ooe() {
     req_env_var SCRIPT_BASE
     echo "Installing script to mask stdout/stderr unless non-zero exit."
-    sudo install -D -m 755 "/tmp/libpod/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
+    sudo install -D -m 755 "$GOSRC/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
 }
 
 # Grab a newer version of git from software collections
@@ -274,110 +308,34 @@ EOF
     sudo chmod 755 /usr/bin/git
 }
 
-install_cni_plugins() {
-    echo "Installing CNI Plugins from commit $CNI_COMMIT"
-    req_env_var GOPATH CNI_COMMIT
-    DEST="$GOPATH/src/github.com/containernetworking/plugins"
-    rm -rf "$DEST"
-    ooe.sh git clone "https://github.com/containernetworking/plugins.git" "$DEST"
-    cd "$DEST"
-    ooe.sh git checkout -q "$CNI_COMMIT"
-    ooe.sh ./build.sh
-    sudo mkdir -p /usr/libexec/cni
-    sudo cp bin/* /usr/libexec/cni
+install_test_configs(){
+    echo "Installing cni config, policy and registry config"
+    req_env_var GOSRC
+    sudo install -D -m 755 $GOSRC/cni/87-podman-bridge.conflist \
+                           /etc/cni/net.d/87-podman-bridge.conflist
+    sudo install -D -m 755 $GOSRC/test/policy.json \
+                           /etc/containers/policy.json
+    sudo install -D -m 755 $GOSRC/test/registries.conf \
+                           /etc/containers/registries.conf
 }
 
-install_runc_from_git(){
-    req_env_var GOPATH OS_RELEASE_ID RUNC_COMMIT
-    wd=$(pwd)
-    DEST="$GOPATH/src/github.com/opencontainers/runc"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/opencontainers/runc.git "$DEST"
-    cd "$DEST"
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$RUNC_COMMIT"
-    if [[ "${OS_RELEASE_ID}" == "ubuntu" ]]
+remove_packaged_podman_files(){
+    show_and_store_warning "Removing packaged podman files to prevent conflicts with source build and testing."
+    req_env_var OS_RELEASE_ID
+    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then
-        ooe.sh make static BUILDTAGS="seccomp apparmor"
+        LISTING_CMD="sudo -E dpkg-query -L podman"
     else
-        ooe.sh make BUILDTAGS="seccomp selinux"
+        LISTING_CMD='sudo rpm -ql podman'
     fi
-    sudo install -m 755 runc /usr/bin/runc
-    cd $wd
-}
 
-install_runc(){
-    echo "Installing RunC from commit $RUNC_COMMIT"
-    echo "Platform is $OS_RELEASE_ID"
-    req_env_var GOPATH RUNC_COMMIT OS_RELEASE_ID
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
-        echo "Running make install.libseccomp.sudo for ubuntu"
-        if ! [[ -d "/tmp/libpod" ]]
-        then
-            echo "Expecting a copy of libpod repository in /tmp/libpod"
-            exit 5
-        fi
-        mkdir -p "$GOPATH/src/github.com/containers/"
-        # Symlinks don't work with Go
-        cp -a /tmp/libpod "$GOPATH/src/github.com/containers/"
-        cd "$GOPATH/src/github.com/containers/libpod"
-        ooe.sh sudo make install.libseccomp.sudo
-    fi
-    install_runc_from_git
-}
-
-install_buildah() {
-    echo "Installing buildah from latest upstream master"
-    req_env_var GOPATH
-    DEST="$GOPATH/src/github.com/containers/buildah"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/containers/buildah "$DEST"
-    cd "$DEST"
-    ooe.sh make
-    ooe.sh sudo make install
-}
-
-# Requires $GOPATH and $CONMON_COMMIT to be set
-install_conmon(){
-    echo "Installing conmon from commit $CONMON_COMMIT"
-    req_env_var GOPATH CONMON_COMMIT
-    DEST="$GOPATH/src/github.com/containers/conmon.git"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/containers/conmon.git "$DEST"
-    cd "$DEST"
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$CONMON_COMMIT"
-    ooe.sh make
-    sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
-}
-
-install_criu(){
-    echo "Installing CRIU"
-    echo "Installing CRIU from commit $CRIU_COMMIT"
-    echo "Platform is $OS_RELEASE_ID"
-    req_env_var CRIU_COMMIT
-
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
-        ooe.sh sudo -E add-apt-repository -y ppa:criu/ppa
-        ooe.sh sudo -E apt-get -qq -y update
-        ooe.sh sudo -E apt-get -qq -y install criu
-    elif [[ "$OS_RELEASE_ID" =~ "fedora" ]]; then
-        echo "Using CRIU from distribution"
-    else
-        DEST="/tmp/criu"
-        rm -rf "$DEST"
-        ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
-        cd $DEST
-        ooe.sh git fetch origin --tags
-        ooe.sh git checkout -q "$CRIU_COMMIT"
-        ooe.sh make
-        sudo install -D -m 755  criu/criu /usr/sbin/
-    fi
-}
-
-install_varlink() {
-    echo "Installing varlink from the cheese-factory"
-    ooe.sh sudo -H pip3 install varlink
+    # yum/dnf/dpkg may list system directories, only remove files
+    $LISTING_CMD | while read fullpath
+    do
+        # TODO: This can go away when conmon gets it's own package
+        if [[ -d "$fullpath" ]] || [[ $(basename "$fullpath") == "conmon" ]] ; then continue; fi
+        ooe.sh sudo rm -vf "$fullpath"
+    done
 }
 
 _finalize(){
@@ -390,7 +348,7 @@ _finalize(){
     sudo rm -rf /home/*
     sudo rm -rf /tmp/*
     sudo rm -rf /tmp/.??*
-    sync
+    sudo sync
     sudo fstrim -av
 }
 
@@ -413,6 +371,7 @@ rh_finalize(){
 ubuntu_finalize(){
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
+    $LILTO $SUDOAPTGET autoremove
     sudo rm -rf /var/cache/apt
     _finalize
 }
