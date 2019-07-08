@@ -55,7 +55,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi all images", func() {
-		podmanTest.PullImages([]string{nginx})
+		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.PodmanNoCache([]string{"rmi", "-a"})
 		session.WaitWithDefaultTimeout()
 		images := podmanTest.PodmanNoCache([]string{"images"})
@@ -66,7 +66,7 @@ var _ = Describe("Podman rmi", func() {
 	})
 
 	It("podman rmi all images forcibly with short options", func() {
-		podmanTest.PullImages([]string{nginx})
+		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.PodmanNoCache([]string{"rmi", "-fa"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
