@@ -63,6 +63,7 @@ type CreateConfig struct {
 	CapDrop            []string // cap-drop
 	CidFile            string
 	ConmonPidFile      string
+	Cgroupns           string
 	CgroupParent       string // cgroup-parent
 	Command            []string
 	Detach             bool              // detach
@@ -101,6 +102,7 @@ type CreateConfig struct {
 	NetworkAlias       []string               //network-alias
 	PidMode            namespaces.PidMode     //pid
 	Pod                string                 //pod
+	CgroupMode         namespaces.CgroupMode  //cgroup
 	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
@@ -266,6 +268,23 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
 		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
+	}
+
+	if c.CgroupMode.IsNS() {
+		ns := c.CgroupMode.NS()
+		if ns == "" {
+			return nil, errors.Errorf("invalid empty user-defined network namespace")
+		}
+		_, err := os.Stat(ns)
+		if err != nil {
+			return nil, err
+		}
+	} else if c.CgroupMode.IsContainer() {
+		connectedCtr, err := runtime.LookupContainer(c.CgroupMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.CgroupMode.Container())
+		}
+		options = append(options, libpod.WithCgroupNSFrom(connectedCtr))
 	}
 
 	if c.PidMode.IsContainer() {

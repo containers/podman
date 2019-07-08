@@ -4,6 +4,63 @@ import (
 	"strings"
 )
 
+// CgroupMode represents cgroup mode in the container.
+type CgroupMode string
+
+// IsHost indicates whether the container uses the host's cgroup.
+func (n CgroupMode) IsHost() bool {
+	return n == "host"
+}
+
+// IsNS indicates a cgroup namespace passed in by path (ns:<path>)
+func (n CgroupMode) IsNS() bool {
+	return strings.HasPrefix(string(n), "ns:")
+}
+
+// NS gets the path associated with a ns:<path> cgroup ns
+func (n CgroupMode) NS() string {
+	parts := strings.SplitN(string(n), ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
+// IsContainer indicates whether the container uses a new cgroup namespace.
+func (n CgroupMode) IsContainer() bool {
+	parts := strings.SplitN(string(n), ":", 2)
+	return len(parts) > 1 && parts[0] == "container"
+}
+
+// Container returns the name of the container whose cgroup namespace is going to be used.
+func (n CgroupMode) Container() string {
+	parts := strings.SplitN(string(n), ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
+// IsPrivate indicates whether the container uses the a private cgroup.
+func (n CgroupMode) IsPrivate() bool {
+	return n == "private"
+}
+
+// Valid indicates whether the Cgroup namespace is valid.
+func (n CgroupMode) Valid() bool {
+	parts := strings.Split(string(n), ":")
+	switch mode := parts[0]; mode {
+	case "", "host", "private", "ns":
+	case "container":
+		if len(parts) != 2 || parts[1] == "" {
+			return false
+		}
+	default:
+		return false
+	}
+	return true
+}
+
 // UsernsMode represents userns mode in the container.
 type UsernsMode string
 

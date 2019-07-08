@@ -400,11 +400,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		namespaceNet = c.String("net")
 	}
 	namespaces = map[string]string{
-		"pid":  c.String("pid"),
-		"net":  namespaceNet,
-		"ipc":  c.String("ipc"),
-		"user": c.String("userns"),
-		"uts":  c.String("uts"),
+		"cgroup": c.String("cgroupns"),
+		"pid":    c.String("pid"),
+		"net":    namespaceNet,
+		"ipc":    c.String("ipc"),
+		"user":   c.String("userns"),
+		"uts":    c.String("uts"),
 	}
 
 	originalPodName := c.String("pod")
@@ -460,6 +461,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	utsMode := ns.UTSMode(namespaces["uts"])
 	if !cc.Valid(string(utsMode), utsMode) {
 		return nil, errors.Errorf("--uts %q is not valid", namespaces["uts"])
+	}
+
+	cgroupMode := ns.CgroupMode(namespaces["cgroup"])
+	if !cgroupMode.Valid() {
+		return nil, errors.Errorf("--cgroup %q is not valid", namespaces["cgroup"])
 	}
 
 	ipcMode := ns.IpcMode(namespaces["ipc"])
@@ -652,6 +658,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		CapAdd:            c.StringSlice("cap-add"),
 		CapDrop:           c.StringSlice("cap-drop"),
 		CidFile:           c.String("cidfile"),
+		Cgroupns:          c.String("cgroupns"),
 		CgroupParent:      c.String("cgroup-parent"),
 		Command:           command,
 		Detach:            c.Bool("detach"),
@@ -687,6 +694,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		NetMode:        netMode,
 		UtsMode:        utsMode,
 		PidMode:        pidMode,
+		CgroupMode:     cgroupMode,
 		Pod:            podName,
 		Privileged:     c.Bool("privileged"),
 		Publish:        c.StringSlice("publish"),
