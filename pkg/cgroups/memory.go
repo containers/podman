@@ -26,7 +26,7 @@ func (c *memHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 // Create the cgroup
 func (c *memHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("memory create not implemented for cgroup v2")
+		return false, nil
 	}
 	return ctr.createCgroupDirectory(Memory)
 }

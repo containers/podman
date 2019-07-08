@@ -149,6 +149,51 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 	return filepath.Join(cgroupRoot, name, c.path)
 }
 
+// createCgroupv2Path creates the cgroupv2 path and enables all the available controllers
+func createCgroupv2Path(path string) (Err error) {
+	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
+	if err != nil {
+		return errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
+	}
+	if !filepath.HasPrefix(path, "/sys/fs/cgroup") {
+		return fmt.Errorf("invalid cgroup path %s", path)
+	}
+
+	res := ""
+	for i, c := range strings.Split(strings.TrimSpace(string(content)), " ") {
+		if i == 0 {
+			res = fmt.Sprintf("+%s", c)
+		} else {
+			res = res + fmt.Sprintf(" +%s", c)
+		}
+	}
+	resByte := []byte(res)
+
+	current := "/sys/fs"
+	elements := strings.Split(path, "/")
+	for i, e := range elements[3:] {
+		current = filepath.Join(current, e)
+		if i > 0 {
+			if err := os.Mkdir(current, 0755); err != nil {
+				if !os.IsExist(err) {
+					return errors.Wrapf(err, "mkdir %s", path)
+				}
+			} else {
+				// If the directory was created, be sure it is not left around on errors.
+				defer func() {
+					if Err != nil {
+						os.Remove(current)
+					}
+				}()
+			}
+		}
+		if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), resByte, 0755); err != nil {
+			return errors.Wrapf(err, "write %s", filepath.Join(current, "cgroup.subtree_control"))
+		}
+	}
+	return nil
+}
+
 // initialize initializes the specified hierarchy
 func (c *CgroupControl) initialize() (err error) {
 	createdSoFar := map[string]controllerHandler{}
@@ -161,6 +206,11 @@ func (c *CgroupControl) initialize() (err error) {
 			}
 		}
 	}()
+	if c.cgroup2 {
+		if err := createCgroupv2Path(filepath.Join(cgroupRoot, c.path)); err != nil {
+			return errors.Wrapf(err, "error creating cgroup path %s", c.path)
+		}
+	}
 	for name, handler := range handlers {
 		created, err := handler.Create(c)
 		if err != nil {
@@ -341,7 +391,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 	pidString := []byte(fmt.Sprintf("%d\n", pid))
 
 	if c.cgroup2 {
-		p := filepath.Join(cgroupRoot, c.path, "tasks")
+		p := filepath.Join(cgroupRoot, c.path, "cgroup.procs")
 		if err := ioutil.WriteFile(p, pidString, 0644); err != nil {
 			return errors.Wrapf(err, "write %s", p)
 		}

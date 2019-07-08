@@ -30,7 +30,7 @@ func (c *blkioHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error
 // Create the cgroup
 func (c *blkioHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("io create not implemented for cgroup v2")
+		return false, nil
 	}
 	return ctr.createCgroupDirectory(Blkio)
 }
