@@ -9,6 +9,21 @@ import (
 	"github.com/google/shlex"
 )
 
+func GetAuthFile(authfile string) string {
+	if authfile != "" {
+		return authfile
+	}
+	authfile = os.Getenv("REGISTRY_AUTH_FILE")
+	if authfile != "" {
+		return authfile
+	}
+	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+	if runtimeDir != "" {
+		return filepath.Join(runtimeDir, "containers/auth.json")
+	}
+	return ""
+}
+
 func substituteCommand(cmd string) (string, error) {
 	var (
 		newCommand string
