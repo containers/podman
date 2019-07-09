@@ -26,11 +26,6 @@ func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int
 	defer outputFile.Close()
 
 	if err = call.ReplySendFile(outputFile.Name()); err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-
-	// FIXME return parameter
-	if err = call.ReplySendFile("FIXME_file_handle"); err != nil {
 		// If an error occurs while sending the reply, return the error
 		return err
 	}
