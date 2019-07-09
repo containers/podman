@@ -61,7 +61,7 @@ func init() {
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&runlabelCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&runlabelCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")

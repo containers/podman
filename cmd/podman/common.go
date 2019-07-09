@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
@@ -112,7 +112,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Attach to STDIN, STDOUT or STDERR (default [])",
 	)
 	createFlags.String(
-		"authfile", getAuthFile(""),
+		"authfile", shared.GetAuthFile(""),
 		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
 	createFlags.String(
@@ -500,24 +500,6 @@ func getFormat(c *cliconfig.PodmanCommand) (string, error) {
 		return buildah.Dockerv2ImageManifest, nil
 	}
 	return "", errors.Errorf("unrecognized image type %q", format)
-}
-
-func getAuthFile(authfile string) string {
-	if authfile != "" {
-		return authfile
-	}
-	if remote {
-		return ""
-	}
-	authfile = os.Getenv("REGISTRY_AUTH_FILE")
-	if authfile != "" {
-		return authfile
-	}
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir != "" {
-		return filepath.Join(runtimeDir, "containers/auth.json")
-	}
-	return ""
 }
 
 // scrubServer removes 'http://' or 'https://' from the front of the
