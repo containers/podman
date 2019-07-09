@@ -100,6 +100,9 @@ OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
 
+# Installed into cache-images, supports overrides
+# by user-data in case of breakage or for debugging.
+CUSTOM_CLOUD_CONFIG_DEFAULTS="$GOSRC/$PACKER_BASE/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
 # Pass in a list of one or more envariable names; exit non-zero with
 # helpful error message if any value is empty
 req_env_var() {
@@ -354,7 +357,7 @@ remove_packaged_podman_files(){
 }
 
 systemd_banish(){
-    echo "Disabling periodic services that could destabilize testing:"
+    echo "Disabling periodic services that could destabilize testing (ignoring errors):"
     set +e  # Not all of these exist on every platform
     for unit in $EVIL_UNITS
     do
@@ -372,11 +375,20 @@ systemd_banish(){
 
 _finalize(){
     set +e  # Don't fail at the very end
-    set +e  # make errors non-fatal
-    echo "Removing leftover giblets from cloud-init"
+    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
+    then
+        echo "Installing custom cloud-init defaults"
+        sudo cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
+    else
+        echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
+    fi
+    echo "Re-initializing so next boot does 'first-boot' setup again."
+    sudo history -c
     cd /
     sudo rm -rf /var/lib/cloud/instanc*
     sudo rm -rf /root/.ssh/*
+    sudo rm -rf /etc/ssh/*key*
+    sudo rm -rf /etc/ssh/moduli
     sudo rm -rf /home/*
     sudo rm -rf /tmp/*
     sudo rm -rf /tmp/.??*
@@ -386,11 +398,6 @@ _finalize(){
 
 rh_finalize(){
     set +e  # Don't fail at the very end
-    # Allow root ssh-logins
-    if [[ -r /etc/cloud/cloud.cfg ]]
-    then
-        sudo sed -re 's/^disable_root:.*/disable_root: 0/g' -i /etc/cloud/cloud.cfg
-    fi
     echo "Resetting to fresh-state for usage as cloud-image."
     PKG=$(type -P dnf || type -P yum || echo "")
     sudo $PKG clean all

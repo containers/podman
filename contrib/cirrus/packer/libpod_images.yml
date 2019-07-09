@@ -33,7 +33,7 @@ builders:
       image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
       image_family: '{{build_name}}-libpod'
       source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
-      disk_size: 20
+      disk_size: 20  # REQUIRED: Runtime allocation > this value
       project_id: '{{user `GCP_PROJECT_ID`}}'
       service_account_email: '{{user `SERVICE_ACCOUNT`}}'
       communicator: 'ssh'

@@ -30,9 +30,9 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-30-libpod-5479475851034624"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5479475851034624"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5479475851034624"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-30-libpod-5789386598252544"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5789386598252544"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5789386598252544"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -47,6 +47,7 @@ env:
     ####
     SPECIALMODE: "none"  # don't do anything special
     TEST_REMOTE_CLIENT: false  # don't test remote client by default
+    ADD_SECOND_PARTITION: false  # will certainly fail inside containers
 
     ####
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
@@ -322,6 +323,7 @@ testing_task:
     timeout_in: 120m
 
     env:
+        ADD_SECOND_PARTITION: true
         matrix:
             TEST_REMOTE_CLIENT: true
             TEST_REMOTE_CLIENT: false
@@ -357,6 +359,7 @@ special_testing_rootless_task:
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     env:
+        ADD_SECOND_PARTITION: true
         SPECIALMODE: 'rootless'  # See docs
 
         matrix:
@@ -388,6 +391,7 @@ special_testing_in_podman_task:
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     env:
+        ADD_SECOND_PARTITION: true
         SPECIALMODE: 'in_podman'  # See docs
 
     timeout_in: 60m
@@ -481,6 +485,7 @@ verify_test_built_images_task:
             image_name: "ubuntu-18${BUILT_IMAGE_SUFFIX}"
 
     env:
+        ADD_SECOND_PARTITION: true
         matrix:
             TEST_REMOTE_CLIENT: true
             TEST_REMOTE_CLIENT: false

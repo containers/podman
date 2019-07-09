@@ -42,8 +42,11 @@ case "${OS_REL_VER}" in
             ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
         fi
         ;;
-    fedora-30) ;;
-    fedora-29) ;;
+    fedora-30) ;&  # continue to next item
+    fedora-29)
+        if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
+            bash "$SCRIPT_BASE/add_second_partition.sh"; fi
+        ;;
     centos-7)  # Current VM is an image-builder-image no local podman/testing
         echo "No further setup required for VM image building"
         exit 0

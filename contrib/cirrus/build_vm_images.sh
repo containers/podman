@@ -62,6 +62,6 @@ URI="gs://packer-import${POST_MERGE_BUCKET_SUFFIX}/manifest${BUILT_IMAGE_SUFFIX}
 gsutil cp packer-manifest.json "$URI"
 
 # Ensure any background 'gcloud compute images update' processes finish
-wait  # CentOS has no -n option :(
+wait  # No -n option in CentOS, this is the best that can be done :(
 
 echo "Finished. A JSON manifest of produced images is available at $URI"

@@ -7,7 +7,7 @@ source $(dirname $0)/lib.sh
 NFAILS=0
 echo "Validating VM image"
 
-MIN_SLASH_GIGS=50
+MIN_SLASH_GIGS=30
 read SLASH_DEVICE SLASH_FSTYPE SLASH_SIZE JUNK <<<$(findmnt --df --first-only --noheadings / | cut -d '.' -f 1)
 SLASH_SIZE_GIGS=$(echo "$SLASH_SIZE" | sed -r -e 's/G|g//')
 item_test "Minimum available disk space" $SLASH_SIZE_GIGS -gt $MIN_SLASH_GIGS || let "NFAILS+=1"
