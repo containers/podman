@@ -98,15 +98,24 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	} else {
 		usage.Total, err = readAcct(ctr, "cpuacct.usage")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.Total = 0
 		}
 		usage.Kernel, err = readAcct(ctr, "cpuacct.usage_sys")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.Kernel = 0
 		}
 		usage.PerCPU, err = readAcctList(ctr, "cpuacct.usage_percpu")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.PerCPU = nil
 		}
 	}
 	m.CPU = CPUMetrics{Usage: usage}
