@@ -1,12 +1,12 @@
-# A set of scripts and instructions that help to analyze and debloat go-lang dependencies.
+# A set of scripts and instructions that help to analyze and debloat go-lang dependencies
 
 Note that all scripts mentioned below follow the [KISS principle](https://en.wikipedia.org/wiki/KISS_principle) on purpose.
-The scripts are meant to be used in combination to aid in undestanding the packages' dependencies and how they contribute to the size of the compiled binary.
+The scripts are meant to be used in combination to aid in understanding the packages' dependencies and how they contribute to the size of the compiled binary.
 
 ## Size of packages
 
 To analyze the size of all go packages used during the build process, pass the `-work -a` build flags to `go build`.
-The `-a` flag forces go to rebuild all packages even if they are already up-to-date (e.g., in the build cache), while the `-work` flag instructs go to print path of the temporary work directory used for compiling the packages.
+The `-a` flag forces go to rebuild all packages even if they are already up-to-date (e.g., in the build cache), while the `-work` flag instructs go to print the temporary work directory used for compiling the packages.
 The path to the temporary work directory of `go-build` must be passed to `go-archive-analysis.sh` by setting it as an environment variable.
 The analysis script will then read and parse the build data and print a sorted table of the package size in bytes followed by the package name.
 
@@ -40,7 +40,7 @@ The size denotes the size of the compiled package (i.e., the `.a` file).
 ## Size of symbols in binary
 
 Once the binary is compiled, we can run another set of analyses on it.
-The `nm-symbols-analysis.sh` is a wrapper around `go tool nm` and prints a table with size in bytes followed by the symbols name.
+The `nm-symbols-analysis.sh` is a wrapper around `go tool nm` and prints a table with the size in bytes followed by the symbol's name.
 To avoid information overload, the scripts prints only symbols from the text/code segment.
 
 Running such an analysis on libpod may look as follows:
@@ -69,9 +69,9 @@ Running the script can help identify sources of bloat and reveal potential candi
 
 ## Dependency Tree
 
-Use the `dependency-tree.sh` script to figure out which package including which packages.
+Use the `dependency-tree.sh` script to figure out which package includes which packages.
 The output of the script has the format `package: dependency_1, dependency_2, ...`.
-Each line is followed by a blank link to make it easier to read.
+Each line is followed by a blank line to make it easier to read.
 Note that the list of dependencies includes only the direct dependencies and not all transitive dependencies.
 The transitive dependencies of a given package can be examined by running `go list -f '{{ .Name }}: {{ join .Deps ", " }}' $PACKAGE` or by browsing through the output of `dependency-tree.sh`.
 
@@ -84,4 +84,4 @@ Running such a dependency-tree analysis may look as follows:
 github.com/containers/libpod/pkg/registries: github.com/containers/libpod/vendor/github.com/containers/image/pkg/sysregistriesv2, github.com/containers/libpod/vendor/github.com/containers/image/types, github.com/containers/libpod/pkg/rootless, github.com/containers/libpod/vendor/github.com/docker/distribution/reference, github.com/containers/libpod/vendor/github.com/pkg/errors, os, path/filepath, strings
 ```
 
-As shown above, the script's output can then be used to query for specific packages.
+As shown above, the script's output can then be used to query for specific packages (e.g, with `grep`).
