@@ -237,6 +237,8 @@ localintegration: varlink_generate test-binaries ginkgo
 remoteintegration: varlink_generate test-binaries ginkgo-remote
 
 localsystem:
+	# Wipe existing config, database, and cache: start with clean slate.
+	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
 	if timeout -v 1 true; then PODMAN=./bin/podman bats test/system/; else echo "Skipping localsystem: 'timeout -v' unavailable'"; fi
 
 remotesystem:
