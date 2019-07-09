@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
@@ -57,7 +58,7 @@ func init() {
 
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&pushCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pushCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&pushCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 		flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")

@@ -7,6 +7,7 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -49,7 +50,7 @@ func init() {
 	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&searchCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&searchCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	}
 }

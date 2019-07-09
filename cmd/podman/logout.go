@@ -6,6 +6,7 @@ import (
 	"github.com/containers/image/docker"
 	"github.com/containers/image/pkg/docker/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -39,7 +40,7 @@ func init() {
 	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
 	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
-	flags.StringVar(&logoutCommand.Authfile, "authfile", getAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&logoutCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
