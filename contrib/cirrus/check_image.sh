@@ -16,7 +16,9 @@ MIN_MEM_MB=2000
 read JUNK TOTAL USED MEM_FREE JUNK <<<$(free -tm | tail -1)
 item_test 'Minimum available memory' $MEM_FREE -ge $MIN_MEM_MB || let "RET+=1"
 
-item_test "podman command NOT found on path" -z "$(type -P podman)" || let "RET+=1"
+# We're testing a custom-built podman; make sure there isn't a distro-provided
+# binary anywhere; that could potentially taint our results.
+item_test "remove_packaged_podman_files() did it's job" -z "$(type -P podman)" || let "RET+=1"
 
 MIN_ZIP_VER='3.0'
 VER_RE='.+([[:digit:]]+\.[[:digit:]]+).+'
