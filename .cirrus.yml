@@ -472,6 +472,7 @@ verify_test_built_images_task:
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     check_image_script: '$SCRIPT_BASE/check_image.sh'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     always:
         <<: *standardlogs
