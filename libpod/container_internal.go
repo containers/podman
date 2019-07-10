@@ -544,19 +544,15 @@ func (c *Container) removeConmonFiles() error {
 		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
 	}
 
-	// Instead of outright deleting the exit file, rename it (if it exists).
-	// We want to retain it so we can get the exit code of containers which
-	// are removed (at least until we have a workable events system)
+	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile := filepath.Join(c.runtime.ociRuntime.exitsDir, c.ID())
-	oldExitFile := filepath.Join(c.runtime.ociRuntime.exitsDir, fmt.Sprintf("%s-old", c.ID()))
 	if _, err := os.Stat(exitFile); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
 		}
-	} else if err == nil {
-		// Rename should replace the old exit file (if it exists)
-		if err := os.Rename(exitFile, oldExitFile); err != nil {
-			return errors.Wrapf(err, "error renaming container %s exit file", c.ID())
+	} else {
+		if err := os.Remove(exitFile); err != nil {
+			return errors.Wrapf(err, "error removing container %s exit file", c.ID())
 		}
 	}
 
