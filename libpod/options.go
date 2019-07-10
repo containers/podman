@@ -1152,10 +1152,7 @@ func WithUserVolumes(volumes []string) CtrCreateOption {
 		}
 
 		ctr.config.UserVolumes = make([]string, 0, len(volumes))
-		for _, vol := range volumes {
-			ctr.config.UserVolumes = append(ctr.config.UserVolumes, vol)
-		}
-
+		ctr.config.UserVolumes = append(ctr.config.UserVolumes, volumes...)
 		return nil
 	}
 }
@@ -1172,10 +1169,7 @@ func WithEntrypoint(entrypoint []string) CtrCreateOption {
 		}
 
 		ctr.config.Entrypoint = make([]string, 0, len(entrypoint))
-		for _, str := range entrypoint {
-			ctr.config.Entrypoint = append(ctr.config.Entrypoint, str)
-		}
-
+		ctr.config.Entrypoint = append(ctr.config.Entrypoint, entrypoint...)
 		return nil
 	}
 }
@@ -1192,10 +1186,7 @@ func WithCommand(command []string) CtrCreateOption {
 		}
 
 		ctr.config.Command = make([]string, 0, len(command))
-		for _, str := range command {
-			ctr.config.Command = append(ctr.config.Command, str)
-		}
-
+		ctr.config.Command = append(ctr.config.Command, command...)
 		return nil
 	}
 }

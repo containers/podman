@@ -319,6 +319,9 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 	}
 
 	pss, err := runtime.Ps(c, opts)
+	if err != nil {
+		return err
+	}
 	// Here and down
 	if opts.Sort != "" {
 		pss, err = sortPsOutput(opts.Sort, pss)
@@ -376,8 +379,8 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 					size = units.HumanSizeWithPrecision(0, 0)
 				} else {
 					size = units.HumanSizeWithPrecision(float64(container.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(container.Size.RootFsSize), 3) + ")"
-					fmt.Fprintf(w, "\t%s", size)
 				}
+				fmt.Fprintf(w, "\t%s", size)
 			}
 
 		} else {

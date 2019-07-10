@@ -639,10 +639,7 @@ func (c *Container) HostsAdd() []string {
 // trigger some OCI hooks.
 func (c *Container) UserVolumes() []string {
 	volumes := make([]string, 0, len(c.config.UserVolumes))
-	for _, vol := range c.config.UserVolumes {
-		volumes = append(volumes, vol)
-	}
-
+	volumes = append(volumes, c.config.UserVolumes...)
 	return volumes
 }
 
@@ -650,10 +647,7 @@ func (c *Container) UserVolumes() []string {
 // This is not added to the spec, but is instead used during image commit.
 func (c *Container) Entrypoint() []string {
 	entrypoint := make([]string, 0, len(c.config.Entrypoint))
-	for _, str := range c.config.Entrypoint {
-		entrypoint = append(entrypoint, str)
-	}
-
+	entrypoint = append(entrypoint, c.config.Entrypoint...)
 	return entrypoint
 }
 
@@ -661,10 +655,7 @@ func (c *Container) Entrypoint() []string {
 // This is not added to the spec, but is instead used during image commit
 func (c *Container) Command() []string {
 	command := make([]string, 0, len(c.config.Command))
-	for _, str := range c.config.Command {
-		command = append(command, str)
-	}
-
+	command = append(command, c.config.Command...)
 	return command
 }
 

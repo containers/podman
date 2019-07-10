@@ -62,7 +62,7 @@ func (c *Container) createTimer() error {
 	if rootless.IsRootless() {
 		cmd = append(cmd, "--user")
 	}
-	cmd = append(cmd, "--unit", fmt.Sprintf("%s", c.ID()), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID())
+	cmd = append(cmd, "--unit", c.ID(), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID())
 
 	conn, err := getConnection()
 	if err != nil {

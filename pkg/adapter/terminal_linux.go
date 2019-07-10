@@ -39,7 +39,11 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 			return err
 		}
 
-		defer restoreTerminal(oldTermState)
+		defer func() {
+			if err := restoreTerminal(oldTermState); err != nil {
+				logrus.Errorf("unable to restore terminal: %q", err)
+			}
+		}()
 	}
 
 	streams := new(libpod.AttachStreams)

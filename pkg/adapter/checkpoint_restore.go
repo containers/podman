@@ -4,16 +4,19 @@ package adapter
 
 import (
 	"context"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/storage/pkg/archive"
-	jsoniter "github.com/json-iterator/go"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/errorhandling"
+	"github.com/containers/storage/pkg/archive"
+	jsoniter "github.com/json-iterator/go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Prefixing the checkpoint/restore related functions with 'cr'
@@ -25,7 +28,7 @@ func crImportFromJSON(filePath string, v interface{}) error {
 	if err != nil {
 		return errors.Wrapf(err, "Failed to open container definition %s for restore", filePath)
 	}
-	defer jsonFile.Close()
+	defer errorhandling.CloseQuiet(jsonFile)
 
 	content, err := ioutil.ReadAll(jsonFile)
 	if err != nil {
@@ -48,7 +51,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to open checkpoint archive %s for import", input)
 	}
-	defer archiveFile.Close()
+	defer errorhandling.CloseQuiet(archiveFile)
 	options := &archive.TarOptions{
 		// Here we only need the files config.dump and spec.dump
 		ExcludePatterns: []string{
@@ -63,15 +66,19 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	if err != nil {
 		return nil, err
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			logrus.Errorf("could not recursively remove %s: %q", dir, err)
+		}
+	}()
 	err = archive.Untar(archiveFile, dir, options)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unpacking of checkpoint archive %s failed", input)
 	}
 
 	// Load spec.dump from temporary directory
-	spec := new(spec.Spec)
-	if err := crImportFromJSON(filepath.Join(dir, "spec.dump"), spec); err != nil {
+	dumpSpec := new(spec.Spec)
+	if err := crImportFromJSON(filepath.Join(dir, "spec.dump"), dumpSpec); err != nil {
 		return nil, err
 	}
 
@@ -113,7 +120,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	}
 
 	// Now create a new container from the just loaded information
-	container, err := runtime.RestoreContainer(ctx, spec, config)
+	container, err := runtime.RestoreContainer(ctx, dumpSpec, config)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +135,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 		return nil, errors.Errorf("Name of restored container (%s) does not match requested name (%s)", containerConfig.Name, ctrName)
 	}
 
-	if newName == false {
+	if !newName {
 		// Only check ID for a restore with the same name.
 		// Using -n to request a new name for the restored container, will also create a new ID
 		if containerConfig.ID != ctrID {

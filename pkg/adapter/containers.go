@@ -213,8 +213,8 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 		c := c
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes)
 				if err != nil {
 					logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())

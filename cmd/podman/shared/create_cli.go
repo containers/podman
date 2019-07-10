@@ -133,7 +133,7 @@ func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, e
 	if config.Resources.KernelMemory > 0 && config.Resources.KernelMemory < linuxMinMemory {
 		return warnings, fmt.Errorf("minimum kernel memory limit allowed is 4MB")
 	}
-	if config.Resources.DisableOomKiller == true && !sysInfo.OomKillDisable {
+	if config.Resources.DisableOomKiller && !sysInfo.OomKillDisable {
 		// only produce warnings if the setting wasn't to *disable* the OOM Kill; no point
 		// warning the caller if they already wanted the feature to be off
 		warnings = addWarning(warnings, "Your kernel does not support OomKillDisable. OomKillDisable discarded.")

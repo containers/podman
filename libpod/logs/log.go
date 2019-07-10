@@ -156,8 +156,5 @@ func NewLogLine(line string) (*LogLine, error) {
 
 // Partial returns a bool if the log line is a partial log type
 func (l *LogLine) Partial() bool {
-	if l.ParseLogType == PartialLogType {
-		return true
-	}
-	return false
+	return l.ParseLogType == PartialLogType
 }
