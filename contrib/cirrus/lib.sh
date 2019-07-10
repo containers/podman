@@ -18,9 +18,8 @@ if type -P go &> /dev/null
 then
     # required for go 1.12+
     export GOCACHE="${GOCACHE:-$HOME/.cache/go-build}"
-    eval "$(go env)"
-    # required by make and other tools
-    export $(go env | cut -d '=' -f 1)
+    # called processes like `make` and other tools need these vars.
+    eval "export $(go env)"
 
     # Ensure compiled tooling is reachable
     export PATH="$PATH:$GOPATH/bin"
@@ -163,6 +162,11 @@ die() {
     echo ">>>>> ${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
     echo "************************************************"
     exit ${1:-1}
+}
+
+warn() {
+    echo ">>>>> ${2:-WARNING (but no message given!) in ${FUNCNAME[1]}()}" > /dev/stderr
+    echo ${1:-1} > /dev/stdout
 }
 
 bad_os_id_ver() {

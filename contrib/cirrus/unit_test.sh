@@ -9,4 +9,17 @@ req_env_var GOSRC
 cd "$GOSRC"
 make install.tools
 make localunit
-make
+
+case "$SPECIALMODE" in
+    in_podman) ;&
+    rootless) ;&
+    none)
+        make
+        ;;
+    windows) ;&
+    darwin)
+        make podman-remote-$SPECIALMODE
+        ;;
+    *)
+        die 109 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
+esac

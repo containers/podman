@@ -69,10 +69,15 @@ LDFLAGS_PODMAN ?= $(LDFLAGS) \
 	  -X $(LIBPOD).etcDir=$(ETCDIR)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
-
 # Rarely if ever should integration tests take more than 50min,
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
+
+RELEASE_VERSION ?= $(shell git fetch --tags && git describe HEAD 2> /dev/null)
+RELEASE_DIST ?= $(shell ( source /etc/os-release; echo $$ID ))
+RELEASE_DIST_VER ?= $(shell ( source /etc/os-release; echo $$VERSION_ID | cut -d '.' -f 1))
+RELEASE_ARCH ?= $(shell go env GOARCH 2> /dev/null)
+RELEASE_BASENAME := $(shell basename $(PROJECT))
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -148,10 +153,10 @@ podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on 
 	$(GO) build -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
 podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote OSX environment
-	GOOS=darwin $(GO) build -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
+	CGO_ENABLED=0 GOOS=darwin $(GO) build -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
 
 podman-remote-windows: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman for a remote windows environment
-	GOOS=windows $(GO) build -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@.exe $(PROJECT)/cmd/podman
+	CGO_ENABLED=0 GOOS=windows $(GO) build -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@.exe $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -165,6 +170,7 @@ clean: ## Clean artifacts
 	rm -rf \
 		.gopathok \
 		_output \
+		podman*.zip \
 		bin \
 		build \
 		test/checkseccomp/checkseccomp \
@@ -251,6 +257,23 @@ vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
 binaries: varlink_generate podman podman-remote  ## Build podman
+
+# Zip archives are supported on all platforms + allows embedding metadata
+podman.zip: binaries docs
+	$(eval TMPDIR := $(shell mktemp -d -p '' $@_XXXX))
+	test -n "$(TMPDIR)"
+	$(MAKE) install "DESTDIR=$(TMPDIR)" "PREFIX=$(TMPDIR)/usr"
+	# Encoded RELEASE_INFO format depended upon by CI tooling
+	# X-RELEASE-INFO format depended upon by CI tooling
+	cd "$(TMPDIR)" && echo \
+		"X-RELEASE-INFO: $(RELEASE_BASENAME) $(RELEASE_VERSION) $(RELEASE_DIST) $(RELEASE_DIST_VER) $(RELEASE_ARCH)" | \
+		zip --recurse-paths --archive-comment "$(CURDIR)/$@" "./"
+	-rm -rf "$(TMPDIR)"
+
+podman-remote-%.zip: podman-remote-%
+	# Don't label darwin/windows cros-compiles with local distribution & version
+	echo "X-RELEASE-INFO: podman-remote $(RELEASE_VERSION) $* cc $(RELEASE_ARCH)" | \
+        zip --archive-comment "$(CURDIR)/$@" ./bin/$<*
 
 install.catatonit:
 	./hack/install_catatonit.sh

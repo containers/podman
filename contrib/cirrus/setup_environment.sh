@@ -70,6 +70,8 @@ case "$SPECIALMODE" in
         dnf install -y podman
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
+    windows) ;&  # for podman-remote building only
+    darwin) ;;
     *)
         die 111 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
 esac
