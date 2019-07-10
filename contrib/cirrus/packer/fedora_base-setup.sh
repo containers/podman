@@ -27,6 +27,9 @@ ooe.sh systemctl enable rngd
 echo "Setting cloud-init service to start after google-network-daemon.service"
 cp -v $GOSRC/$PACKER_BASE/cloud-init/fedora/cloud-init.service /etc/systemd/system/
 
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
+
 rh_finalize
 
 echo "SUCCESS!"
