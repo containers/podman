@@ -53,7 +53,7 @@ func podKillCmd(c *cliconfig.PodKillValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	killSignal := uint(syscall.SIGTERM)
 

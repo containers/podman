@@ -41,7 +41,7 @@ func pruneImagesCmd(c *cliconfig.PruneImagesValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up

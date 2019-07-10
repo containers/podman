@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/kubeutils"
 	"github.com/containers/libpod/utils"
 	"github.com/docker/docker/pkg/term"
@@ -66,7 +67,7 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 			logrus.Debugf("Could not open ctl file: %v", err)
 			return
 		}
-		defer controlFile.Close()
+		defer errorhandling.CloseQuiet(controlFile)
 
 		logrus.Debugf("Received a resize event: %+v", size)
 		if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width); err != nil {
@@ -108,7 +109,9 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
-			conn.CloseWrite()
+			if err := conn.CloseWrite(); err != nil {
+				logrus.Error("failed to close write in attach")
+			}
 		}
 		stdinDone <- err
 	}()

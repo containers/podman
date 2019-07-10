@@ -52,7 +52,7 @@ func umountCmd(c *cliconfig.UmountValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.UmountRootFilesystems(getContext(), c)
 	if err != nil {

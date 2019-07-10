@@ -263,7 +263,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		copyOptions.SourceCtx.SystemRegistriesConfPath = systemRegistriesConfPath // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
 		// Print the following statement only when pulling from a docker or atomic registry
 		if writer != nil && (imageInfo.srcRef.Transport().Name() == DockerTransport || imageInfo.srcRef.Transport().Name() == AtomicTransport) {
-			io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image))
+			if _, err := io.WriteString(writer, fmt.Sprintf("Trying to pull %s...", imageInfo.image)); err != nil {
+				return nil, err
+			}
 		}
 		// If the label is not nil, check if the label exists and if not, return err
 		if label != nil {
@@ -277,7 +279,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 			pullErrors = multierror.Append(pullErrors, err)
 			logrus.Errorf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
-				io.WriteString(writer, "Failed\n")
+				_, _ = io.WriteString(writer, "Failed\n")
 			}
 		} else {
 			if !goal.pullAllPairs {

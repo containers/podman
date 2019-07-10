@@ -35,7 +35,9 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 		}
 
 		logrus.SetFormatter(&RawTtyFormatter{})
-		term.SetRawTerminal(os.Stdin.Fd())
+		if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
+			return err
+		}
 
 		defer restoreTerminal(oldTermState)
 	}

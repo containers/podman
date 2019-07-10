@@ -47,7 +47,7 @@ func volumeInspectCmd(c *cliconfig.VolumeInspectValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	vols, err := runtime.InspectVolumes(getContext(), c)
 	if err != nil {

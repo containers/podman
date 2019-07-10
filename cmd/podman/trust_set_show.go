@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
@@ -57,7 +56,7 @@ func init() {
 	showTrustCommand.SetUsageTemplate(UsageTemplate())
 	setFlags := setTrustCommand.Flags()
 	setFlags.StringVar(&setTrustCommand.PolicyPath, "policypath", "", "")
-	setFlags.MarkHidden("policypath")
+	markFlagHidden(setFlags, "policypath")
 	setFlags.StringSliceVarP(&setTrustCommand.PubKeysFile, "pubkeysfile", "f", []string{}, `Path of installed public key(s) to trust for TARGET.
 Absolute path to keys is added to policy.json. May
 used multiple times to define multiple public keys.
@@ -68,9 +67,9 @@ File(s) must exist before using this command`)
 	showFlags.BoolVarP(&showTrustCommand.Json, "json", "j", false, "Output as json")
 	showFlags.StringVar(&showTrustCommand.PolicyPath, "policypath", "", "")
 	showFlags.BoolVar(&showTrustCommand.Raw, "raw", false, "Output raw policy file")
-	showFlags.MarkHidden("policypath")
+	markFlagHidden(showFlags, "policypath")
 	showFlags.StringVar(&showTrustCommand.RegistryPath, "registrypath", "", "")
-	showFlags.MarkHidden("registrypath")
+	markFlagHidden(showFlags, "registrypath")
 }
 
 func showTrustCmd(c *cliconfig.ShowTrustValues) error {
@@ -236,10 +235,6 @@ func isValidTrustType(t string) bool {
 		return true
 	}
 	return false
-}
-
-func getDefaultPolicyPath() string {
-	return trust.DefaultPolicyPath(&types.SystemContext{})
 }
 
 func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, error) {

@@ -76,27 +76,33 @@ Are you sure you want to continue? [y/N] `, volumeString)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
-	rmWorkers := shared.Parallelize("rm")
-	ctx := getContext()
-	fmt.Println("Deleted Containers")
-	ok, failures, lasterr := runtime.Prune(ctx, rmWorkers, false)
-	printCmdResults(ok, failures)
-
+	// We must clean out pods first because if they may have infra containers
 	fmt.Println("Deleted Pods")
 	pruneValues := cliconfig.PodPruneValues{
 		PodmanCommand: c.PodmanCommand,
 		Force:         c.Force,
 	}
-	ok, failures, err = runtime.PrunePods(ctx, &pruneValues)
+	ctx := getContext()
+	ok, failures, lasterr := runtime.PrunePods(ctx, &pruneValues)
+
+	if err := printCmdResults(ok, failures); err != nil {
+		return err
+	}
+
+	rmWorkers := shared.Parallelize("rm")
+	fmt.Println("Deleted Containers")
+	ok, failures, err = runtime.Prune(ctx, rmWorkers, false)
 	if err != nil {
 		if lasterr != nil {
-			logrus.Errorf("%q", lasterr)
+			logrus.Errorf("%q", err)
 		}
 		lasterr = err
 	}
-	printCmdResults(ok, failures)
+	if err := printCmdResults(ok, failures); err != nil {
+		return err
+	}
 
 	if c.Bool("volumes") {
 		fmt.Println("Deleted Volumes")

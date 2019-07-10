@@ -74,16 +74,13 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
-	} else if ctr == 0 {
-		// If user didn't specify, imply --all
-		all = true
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	times := -1
 	if c.NoStream {
@@ -173,7 +170,9 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 			tm.Flush()
 		}
 		if strings.ToLower(format) == formats.JSONString {
-			outputJson(newStats)
+			if err := outputJson(newStats); err != nil {
+				return err
+			}
 
 		} else {
 			results := podContainerStatsToPodStatOut(newStats)
@@ -299,18 +298,4 @@ func outputJson(stats []*adapter.PodContainerStats) error {
 	}
 	fmt.Println(string(b))
 	return nil
-}
-
-func getPodsByList(podList []string, r *libpod.Runtime) ([]*libpod.Pod, error) {
-	var (
-		pods []*libpod.Pod
-	)
-	for _, p := range podList {
-		pod, err := r.LookupPod(p)
-		if err != nil {
-			return nil, err
-		}
-		pods = append(pods, pod)
-	}
-	return pods, nil
 }

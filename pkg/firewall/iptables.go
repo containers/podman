@@ -21,6 +21,7 @@ package firewall
 
 import (
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"net"
 
 	"github.com/coreos/go-iptables/iptables"
@@ -53,7 +54,9 @@ func generateFilterRule(privChainName string) []string {
 
 func cleanupRules(ipt *iptables.IPTables, privChainName string, rules [][]string) {
 	for _, rule := range rules {
-		ipt.Delete("filter", privChainName, rule...)
+		if err := ipt.Delete("filter", privChainName, rule...); err != nil {
+			logrus.Errorf("failed to delete iptables rule %s", privChainName)
+		}
 	}
 }
 
@@ -185,7 +188,9 @@ func (ib *iptablesBackend) Add(conf *FirewallNetConf) error {
 
 func (ib *iptablesBackend) Del(conf *FirewallNetConf) error {
 	for proto, ipt := range ib.protos {
-		ib.delRules(conf, ipt, proto)
+		if err := ib.delRules(conf, ipt, proto); err != nil {
+			logrus.Errorf("failed to delete iptables backend rule %s", conf.IptablesAdminChainName)
+		}
 	}
 	return nil
 }

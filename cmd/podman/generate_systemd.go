@@ -50,7 +50,7 @@ func generateSystemdCmd(c *cliconfig.GenerateSystemdValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	// User input stop timeout must be 0 or greater
 	if c.Flag("timeout").Changed && c.StopTimeout < 0 {

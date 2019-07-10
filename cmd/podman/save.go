@@ -74,7 +74,7 @@ func saveCmd(c *cliconfig.SaveValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Flag("compress").Changed && (c.Format != ociManifestDir && c.Format != v2s2ManifestDir && c.Format == "") {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")

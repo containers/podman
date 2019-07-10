@@ -67,7 +67,7 @@ func volumePruneCmd(c *cliconfig.VolumePruneValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	// Prompt for confirmation if --force is not set
 	if !c.Force {

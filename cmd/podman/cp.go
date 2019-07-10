@@ -68,7 +68,7 @@ func cpCmd(c *cliconfig.CpValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	return copyBetweenHostAndContainer(runtime, args[0], args[1], c.Extract, c.Pause)
 }
@@ -95,7 +95,11 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	if err != nil {
 		return err
 	}
-	defer ctr.Unmount(false)
+	defer func() {
+		if err := ctr.Unmount(false); err != nil {
+			logrus.Errorf("unable to umount container '%s': %q", ctr.ID(), err)
+		}
+	}()
 
 	// We can't pause rootless containers.
 	if pause && rootless.IsRootless() {

@@ -43,7 +43,7 @@ func init() {
 	// Disabled flags for the remote client
 	if !remote {
 		flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
-		flags.MarkHidden("signature-policy")
+		markFlagHidden(flags, "signature-policy")
 	}
 }
 
@@ -65,7 +65,7 @@ func loadCmd(c *cliconfig.LoadValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if len(c.Input) > 0 {
 		if err := parse.ValidateFileName(c.Input); err != nil {

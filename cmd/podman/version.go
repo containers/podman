@@ -42,7 +42,7 @@ func init() {
 func versionCmd(c *cliconfig.VersionValues) error {
 	clientVersion, err := define.GetVersion()
 	if err != nil {
-		errors.Wrapf(err, "unable to determine version")
+		return errors.Wrapf(err, "unable to determine version")
 	}
 
 	versionOutputFormat := c.Format
@@ -63,18 +63,22 @@ func versionCmd(c *cliconfig.VersionValues) error {
 	defer w.Flush()
 
 	if remote {
-		fmt.Fprintf(w, "Client:\n")
+		if _, err := fmt.Fprintf(w, "Client:\n"); err != nil {
+			return err
+		}
 	}
 	formatVersion(w, clientVersion)
 
 	if remote {
-		fmt.Fprintf(w, "\nService:\n")
+		if _, err := fmt.Fprintf(w, "\nService:\n"); err != nil {
+			return err
+		}
 
 		runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 		if err != nil {
 			return errors.Wrapf(err, "could not get runtime")
 		}
-		defer runtime.Shutdown(false)
+		defer runtime.DeferredShutdown(false)
 
 		serviceVersion, err := runtime.GetVersion()
 		if err != nil {

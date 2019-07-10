@@ -88,7 +88,7 @@ func inspectCmd(c *cliconfig.InspectValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if !util.StringInSlice(inspectType, []string{inspectTypeContainer, inspectTypeImage, inspectAll}) {
 		return errors.Errorf("the only recognized types are %q, %q, and %q", inspectTypeContainer, inspectTypeImage, inspectAll)
@@ -193,8 +193,8 @@ func iterateInput(ctx context.Context, size bool, args []string, runtime *adapte
 					inspectError = errors.Wrapf(err, "error getting libpod container inspect data %s", ctr.ID())
 					break
 				}
-				artifact, inspectError := getArtifact(ctr)
-				if inspectError != nil {
+				artifact, err := getArtifact(ctr)
+				if err != nil {
 					inspectError = err
 					break
 				}

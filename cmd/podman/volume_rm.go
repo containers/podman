@@ -51,7 +51,7 @@ func volumeRmCmd(c *cliconfig.VolumeRmValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 	deletedVolumeNames, err := runtime.RemoveVolumes(getContext(), c)
 	if err != nil {
 		if len(deletedVolumeNames) > 0 {

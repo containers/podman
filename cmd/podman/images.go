@@ -138,7 +138,7 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 	if len(c.InputArgs) == 1 {
 		image = c.InputArgs[0]
 	}

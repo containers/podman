@@ -1162,6 +1162,13 @@ func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 	return config, nil
 }
 
+// DeferredShutdown shuts down the runtime without exposing any
+// errors. This is only meant to be used when the runtime is being
+// shutdown within a defer statement; else use Shutdown
+func (r *Runtime) DeferredShutdown(force bool) {
+	_ = r.Shutdown(force)
+}
+
 // Shutdown shuts down the runtime and associated containers and storage
 // If force is true, containers and mounted storage will be shut down before
 // cleaning up; if force is false, an error will be returned if there are

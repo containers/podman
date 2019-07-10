@@ -60,7 +60,7 @@ func signCmd(c *cliconfig.SignValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	signby := c.SignBy
 	if signby == "" {

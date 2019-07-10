@@ -12,12 +12,14 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -272,16 +274,20 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 
 // WriteStorageConfigFile writes the configuration to a file
 func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
-	os.MkdirAll(filepath.Dir(storageConf), 0755)
-	file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
+		return err
+	}
+	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}
 	tomlConfiguration := getTomlStorage(storageOpts)
-	defer file.Close()
-	enc := toml.NewEncoder(file)
+	defer errorhandling.CloseQuiet(storageFile)
+	enc := toml.NewEncoder(storageFile)
 	if err := enc.Encode(tomlConfiguration); err != nil {
-		os.Remove(storageConf)
+		if err := os.Remove(storageConf); err != nil {
+			logrus.Errorf("unable to remove file %s", storageConf)
+		}
 		return err
 	}
 	return nil

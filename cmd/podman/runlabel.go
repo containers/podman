@@ -53,10 +53,9 @@ func init() {
 	flags.StringVar(&runlabelCommand.Opt1, "opt1", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt2, "opt2", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt3, "opt3", "", "Optional parameter to pass for install")
-	flags.MarkHidden("opt1")
-	flags.MarkHidden("opt2")
-	flags.MarkHidden("opt3")
-
+	markFlagHidden(flags, "opt1")
+	markFlagHidden(flags, "opt2")
+	markFlagHidden(flags, "opt3")
 	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	// Disabled flags for the remote client
@@ -66,10 +65,11 @@ func init() {
 		flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
-		flags.MarkDeprecated("pull", "podman will pull if not found in local storage")
-		flags.MarkHidden("signature-policy")
+		if err := flags.MarkDeprecated("pull", "podman will pull if not found in local storage"); err != nil {
+			logrus.Error("unable to mark pull flag deprecated")
+		}
+		markFlagHidden(flags, "signature-policy")
 	}
-	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
 // installCmd gets the data from the command line and calls installImage
@@ -95,7 +95,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	args := c.InputArgs
 	if len(args) < 2 {

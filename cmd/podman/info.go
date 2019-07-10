@@ -55,7 +55,7 @@ func infoCmd(c *cliconfig.InfoValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	infoArr, err := runtime.Info()
 	if err != nil {
@@ -97,9 +97,7 @@ func infoCmd(c *cliconfig.InfoValues) error {
 		out = formats.StdoutTemplate{Output: info, Template: infoOutputFormat}
 	}
 
-	formats.Writer(out).Out()
-
-	return nil
+	return formats.Writer(out).Out()
 }
 
 // top-level "debug" info

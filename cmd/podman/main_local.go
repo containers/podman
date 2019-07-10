@@ -45,14 +45,18 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.NetworkCmdPath, "network-cmd-path", "", "Path to the command for configuring the network")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", "", "Path of the configuration directory for CNI networks")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", "", "Path to default mounts file")
-	rootCmd.PersistentFlags().MarkHidden("defaults-mount-file")
+	if err := rootCmd.PersistentFlags().MarkHidden("default-mounts-file"); err != nil {
+		logrus.Error("unable to mark default-mounts-file flag as hidden")
+	}
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")
 	rootCmd.PersistentFlags().StringSliceVar(&MainGlobalOpts.HooksDir, "hooks-dir", []string{}, "Set the OCI hooks directory path (may be set multiple times)")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic")
 	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
-	rootCmd.PersistentFlags().MarkHidden("max-workers")
+	if err := rootCmd.PersistentFlags().MarkHidden("max-workers"); err != nil {
+		logrus.Error("unable to mark max-workers flag as hidden")
+	}
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Namespace, "namespace", "", "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Root, "root", "", "Path to the root directory in which data, including images, is stored")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
@@ -118,10 +122,10 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 	podmanCmd := cliconfig.PodmanCommand{
-		cmd,
-		args,
-		MainGlobalOpts,
-		remoteclient,
+		Command:     cmd,
+		InputArgs:   args,
+		GlobalFlags: MainGlobalOpts,
+		Remote:      remoteclient,
 	}
 
 	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
@@ -148,7 +152,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ctrs, err := runtime.GetRunningContainers()
 	if err != nil {
