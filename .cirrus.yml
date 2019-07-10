@@ -13,6 +13,8 @@ env:
     ####
     #### Global variables used for all tasks
     ####
+    # Name of the ultimate destination branch for this build
+    DEST_BRANCH: "master"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: "/var/tmp/go"
     GOSRC: "/var/tmp/go/src/github.com/containers/libpod"
@@ -118,7 +120,7 @@ gating_task:
     pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
@@ -150,7 +152,7 @@ vendor_task:
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh |& ${TIMESTAMP}'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 
 # This task runs `make varlink_api_generate` followed by ./hack/tree_status.sh to check
@@ -182,7 +184,7 @@ varlink_api_task:
         - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_each_commit_task:
@@ -193,7 +195,7 @@ build_each_commit_task:
         - "varlink_api"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
-    only_if: $CIRRUS_BRANCH != 'master' &&
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
@@ -213,7 +215,7 @@ build_each_commit_task:
         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 build_without_cgo_task:
@@ -224,7 +226,7 @@ build_without_cgo_task:
         - "varlink_api"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
-    only_if: $CIRRUS_BRANCH != 'master' &&
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
@@ -243,7 +245,7 @@ build_without_cgo_task:
         - 'make build-no-cgo'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Update metadata on VM images referenced by this repository state
@@ -341,7 +343,7 @@ testing_task:
             $SCRIPT_BASE/cache_release_archive.sh |& ${TIMESTAMP}
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always: &standardlogs
         ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
@@ -376,7 +378,7 @@ special_testing_rootless_task:
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -402,7 +404,7 @@ special_testing_in_podman_task:
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always:
         <<: *standardlogs
@@ -428,14 +430,14 @@ special_testing_cross_task:
     cache_release_archive_script: '$SCRIPT_BASE/cache_release_archive.sh |& ${TIMESTAMP}'
 
     on_failure:
-        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
 
     only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
@@ -470,7 +472,7 @@ test_build_cache_images_task:
 verify_test_built_images_task:
 
     only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
@@ -505,7 +507,9 @@ verify_test_built_images_task:
 # Post message to IRC if everything passed PR testing
 success_task:
 
-    only_if: $CIRRUS_BRANCH != 'master'
+    # This task is a required-pass in github settings,
+    # it blocks PRs from merging if a depends_on task fails
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
     # ignores any dependent task conditions, include everything except 'release'
     depends_on: &alltasks
@@ -555,3 +559,6 @@ release_task:
         GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
 
     uncache_release_archives_script: '$SCRIPT_BASE/uncache_release_archives.sh |& ${TIMESTAMP}'
+
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
