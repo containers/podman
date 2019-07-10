@@ -211,6 +211,13 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 			}
 			mount.Options = opts
 		}
+		if mount.Type == TypeBind {
+			absSrc, err := filepath.Abs(mount.Source)
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "error getting absolute path of %s", mount.Source)
+			}
+			mount.Source = absSrc
+		}
 		finalMounts = append(finalMounts, mount)
 	}
 	finalVolumes := make([]*libpod.ContainerNamedVolume, 0, len(baseVolumes))
