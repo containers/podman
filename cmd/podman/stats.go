@@ -101,9 +101,8 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	}
 
 	var ctrs []*libpod.Container
-	var containerFunc func() ([]*libpod.Container, error)
 
-	containerFunc = runtime.GetRunningContainers
+	containerFunc := runtime.GetRunningContainers
 	if len(c.InputArgs) > 0 {
 		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.InputArgs) }
 	} else if latest {

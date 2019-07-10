@@ -552,9 +552,6 @@ func generatePodPsOutput(pods []*adapter.Pod, opts podPsOptions) error {
 
 	switch opts.Format {
 	case formats.JSONString:
-		if err != nil {
-			return errors.Wrapf(err, "unable to create JSON for output")
-		}
 		out = formats.JSONStructArray{Output: podPsToGeneric([]podPsTemplateParams{}, psOutput)}
 	default:
 		psOutput, err := getPodTemplateOutput(psOutput, opts)

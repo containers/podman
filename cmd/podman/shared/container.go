@@ -305,7 +305,7 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 		}
 		return func(c *libpod.Container) bool {
 			ec, exited, err := c.ExitCode()
-			if ec == int32(exitCode) && err == nil && exited == true {
+			if ec == int32(exitCode) && err == nil && exited {
 				return true
 			}
 			return false
@@ -611,7 +611,7 @@ func getNamespaceInfo(path string) (string, error) {
 
 // getStrFromSquareBrackets gets the string inside [] from a string
 func getStrFromSquareBrackets(cmd string) string {
-	reg, err := regexp.Compile(".*\\[|\\].*")
+	reg, err := regexp.Compile(`.*\[|\].*`)
 	if err != nil {
 		return ""
 	}

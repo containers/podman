@@ -28,6 +28,7 @@ import (
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -90,7 +91,9 @@ func NewNS() (ns.NetNS, error) {
 	// Ensure the mount point is cleaned up on errors; if the namespace
 	// was successfully mounted this will have no effect because the file
 	// is in-use
-	defer os.RemoveAll(nsPath)
+	defer func() {
+		_ = os.RemoveAll(nsPath)
+	}()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -109,7 +112,11 @@ func NewNS() (ns.NetNS, error) {
 		if err != nil {
 			return
 		}
-		defer origNS.Close()
+		defer func() {
+			if err := origNS.Close(); err != nil {
+				logrus.Errorf("unable to close namespace: %q", err)
+			}
+		}()
 
 		// create a new netns on the current thread
 		err = unix.Unshare(unix.CLONE_NEWNET)
@@ -118,7 +125,11 @@ func NewNS() (ns.NetNS, error) {
 		}
 
 		// Put this thread back to the orig ns, since it might get reused (pre go1.10)
-		defer origNS.Set()
+		defer func() {
+			if err := origNS.Set(); err != nil {
+				logrus.Errorf("unable to set namespace: %q", err)
+			}
+		}()
 
 		// bind mount the netns from the current thread (from /proc) onto the
 		// mount point. This causes the namespace to persist, even when there

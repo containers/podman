@@ -815,34 +815,6 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 	return notRunning, nil
 }
 
-// Check if a container's dependencies are running
-// Returns a []string containing the IDs of dependencies that are not running
-// Assumes depencies are already locked, and will be passed in
-// Accepts a map[string]*Container containing, at a minimum, the locked
-// dependency containers
-// (This must be a map from container ID to container)
-func (c *Container) checkDependenciesRunningLocked(depCtrs map[string]*Container) ([]string, error) {
-	deps := c.Dependencies()
-	notRunning := []string{}
-
-	for _, dep := range deps {
-		depCtr, ok := depCtrs[dep]
-		if !ok {
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "container %s depends on container %s but it is not on containers passed to checkDependenciesRunning", c.ID(), dep)
-		}
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-
-		if depCtr.state.State != define.ContainerStateRunning {
-			notRunning = append(notRunning, dep)
-		}
-	}
-
-	return notRunning, nil
-}
-
 func (c *Container) completeNetworkSetup() error {
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {

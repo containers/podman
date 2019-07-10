@@ -277,7 +277,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 				break
 			}
 		}
-		if found == true {
+		if found {
 			sessionID = stringid.GenerateNonCryptoID()
 		}
 	}

@@ -124,7 +124,11 @@ func (r *OCIRuntime) createContainer(ctr *Container, cgroupParent string, restor
 					if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
 						return err
 					}
-					defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+					defer func() {
+						if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
+							logrus.Errorf("unable to clone new namespace: %q", err)
+						}
+					}()
 
 					// don't spread our mounts around.  We are setting only /sys to be slave
 					// so that the cleanup process is still able to umount the storage and the
@@ -376,7 +380,9 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 		errorhandling.CloseQuiet(childPipe)
 		return err
 	}
-	defer cmd.Wait()
+	defer func() {
+		_ = cmd.Wait()
+	}()
 
 	// We don't need childPipe on the parent side
 	if err := childPipe.Close(); err != nil {

@@ -1,7 +1,6 @@
 package events
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -23,7 +22,7 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 		}, nil
 	case "EVENT", "STATUS":
 		return func(e *Event) bool {
-			return fmt.Sprintf("%s", e.Status) == filterValue
+			return string(e.Status) == filterValue
 		}, nil
 	case "IMAGE":
 		return func(e *Event) bool {
@@ -54,7 +53,7 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 		}, nil
 	case "TYPE":
 		return func(e *Event) bool {
-			return fmt.Sprintf("%s", e.Type) == filterValue
+			return string(e.Type) == filterValue
 		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)

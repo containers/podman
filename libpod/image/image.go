@@ -461,7 +461,11 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 	if err != nil {
 		return "", err
 	}
-	defer newImg.Close()
+	defer func() {
+		if err := newImg.Close(); err != nil {
+			logrus.Errorf("failed to close image: %q", err)
+		}
+	}()
 	imageDigest := newImg.ConfigInfo().Digest
 	if err = imageDigest.Validate(); err != nil {
 		return "", errors.Wrapf(err, "error getting config info")
@@ -513,7 +517,7 @@ func (i *Image) TagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {
 		return err
 	}
-	defer i.newImageEvent(events.Tag)
+	i.newImageEvent(events.Tag)
 	return nil
 }
 
@@ -538,7 +542,7 @@ func (i *Image) UntagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {
 		return err
 	}
-	defer i.newImageEvent(events.Untag)
+	i.newImageEvent(events.Untag)
 	return nil
 }
 
@@ -574,7 +578,11 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return err
 	}
-	defer policyContext.Destroy()
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
 
 	// Look up the source image, expecting it to be in local storage
 	src, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
@@ -588,7 +596,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	if err != nil {
 		return errors.Wrapf(err, "Error copying image to the remote destination")
 	}
-	defer i.newImageEvent(events.Push)
+	i.newImageEvent(events.Push)
 	return nil
 }
 
@@ -984,11 +992,15 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	if err != nil {
 		return nil, err
 	}
-	defer policyContext.Destroy()
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
 	copyOptions := getCopyOptions(sc, writer, nil, nil, signingOptions, "", nil)
 	dest, err := is.Transport.ParseStoreReference(ir.store, reference)
 	if err != nil {
-		errors.Wrapf(err, "error getting image reference for %q", reference)
+		return nil, errors.Wrapf(err, "error getting image reference for %q", reference)
 	}
 	_, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 	if err != nil {
@@ -996,7 +1008,7 @@ func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io
 	}
 	newImage, err := ir.NewFromLocal(reference)
 	if err == nil {
-		defer newImage.newImageEvent(events.Import)
+		newImage.newImageEvent(events.Import)
 	}
 	return newImage, err
 }
@@ -1339,7 +1351,7 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 	if err := i.PushImageToReference(ctx, destRef, manifestType, "", "", writer, compress, SigningOptions{}, &DockerRegistryOptions{}, additionaltags); err != nil {
 		return errors.Wrapf(err, "unable to save %q", source)
 	}
-	defer i.newImageEvent(events.Save)
+	i.newImageEvent(events.Save)
 	return nil
 }
 
