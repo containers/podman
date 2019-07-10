@@ -439,9 +439,12 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	} else {
 		if err := r.state.RemoveContainer(c); err != nil {
-			cleanupErr = err
+			if cleanupErr == nil {
+				cleanupErr = err
+			} else {
+				logrus.Errorf("removing container: %v", err)
+			}
 		}
-		logrus.Errorf("removing container: %v", err)
 	}
 
 	// Set container as invalid so it can no longer be used
