@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
@@ -402,8 +403,14 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 
 	if ecode, err := ctr.Wait(); err != nil {
 		if errors.Cause(err) == libpod.ErrNoSuchCtr {
-			logrus.Errorf("Cannot get exit code: %v", err)
-			exitCode = 127
+			// Check events
+			event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+			if err != nil {
+				logrus.Errorf("Cannot get exit code: %v", err)
+				exitCode = 127
+			} else {
+				exitCode = event.ContainerExitCode
+			}
 		}
 	} else {
 		exitCode = int(ecode)
@@ -589,8 +596,14 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 
 			if ecode, err := ctr.Wait(); err != nil {
 				if errors.Cause(err) == libpod.ErrNoSuchCtr {
-					logrus.Errorf("Cannot get exit code: %v", err)
-					exitCode = 127
+					// Check events
+					event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+					if err != nil {
+						logrus.Errorf("Cannot get exit code: %v", err)
+						exitCode = 127
+					} else {
+						exitCode = event.ContainerExitCode
+					}
 				}
 			} else {
 				exitCode = int(ecode)
