@@ -476,13 +476,13 @@ verify_test_built_images_task:
     always:
         <<: *standardlogs
 
-
-# Post message to IRC if everything passed
+# Post message to IRC if everything passed PR testing
 success_task:
 
     only_if: $CIRRUS_BRANCH != 'master'
 
-    depends_on:  # ignores any dependent task conditions
+    # ignores any dependent task conditions, include everything except 'release'
+    depends_on: &alltasks
         - "gating"
         - "vendor"
         - "varlink_api"
@@ -515,8 +515,7 @@ release_task:
     # allow_failures: $CI == "true"
     # skip_notifications: $CI == "true"
 
-    depends_on:
-        - "success"
+    depends_on: *alltasks
 
     gce_instance:
         image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
