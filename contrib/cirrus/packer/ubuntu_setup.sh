@@ -100,6 +100,9 @@ ooe.sh sudo update-grub
 sudo /tmp/libpod/hack/install_catatonit.sh
 ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
 
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
+
 ubuntu_finalize
 
 echo "SUCCESS!"

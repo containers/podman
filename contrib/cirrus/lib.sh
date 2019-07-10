@@ -350,6 +350,20 @@ remove_packaged_podman_files(){
     done
 }
 
+systemd_banish(){
+    echo "Disabling periodic services that could destabalize testing:"
+    set +e  # Not all of these exist on every platform
+    for unit in cron atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean
+    do
+        ooe.sh sudo systemctl stop $unit
+        ooe.sh sudo systemctl disable $unit
+        ooe.sh sudo systemctl disable $unit.timer
+        ooe.sh sudo systemctl mask $unit
+        ooe.sh sudo systemctl mask $unit.timer
+    done
+    set -e
+}
+
 _finalize(){
     set +e  # Don't fail at the very end
     set +e  # make errors non-fatal
