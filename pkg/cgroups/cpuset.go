@@ -14,19 +14,23 @@ import (
 type cpusetHandler struct {
 }
 
-func cpusetCopyFileFromParent(dir, file string) ([]byte, error) {
+func cpusetCopyFileFromParent(dir, file string, cgroupv2 bool) ([]byte, error) {
 	if dir == cgroupRoot {
 		return nil, fmt.Errorf("could not find parent to initialize cpuset %s", file)
 	}
 	path := filepath.Join(dir, file)
-	data, err := ioutil.ReadFile(path)
+	parentPath := path
+	if cgroupv2 {
+		parentPath = fmt.Sprintf("%s.effective", parentPath)
+	}
+	data, err := ioutil.ReadFile(parentPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "open %s", path)
 	}
 	if len(strings.Trim(string(data), "\n")) != 0 {
 		return data, nil
 	}
-	data, err = cpusetCopyFileFromParent(filepath.Dir(dir), file)
+	data, err = cpusetCopyFileFromParent(filepath.Dir(dir), file, cgroupv2)
 	if err != nil {
 		return nil, err
 	}
@@ -36,9 +40,9 @@ func cpusetCopyFileFromParent(dir, file string) ([]byte, error) {
 	return data, nil
 }
 
-func cpusetCopyFromParent(path string) error {
+func cpusetCopyFromParent(path string, cgroupv2 bool) error {
 	for _, file := range []string{"cpuset.cpus", "cpuset.mems"} {
-		if _, err := cpusetCopyFileFromParent(path, file); err != nil {
+		if _, err := cpusetCopyFileFromParent(path, file, cgroupv2); err != nil {
 			return err
 		}
 	}
@@ -60,14 +64,15 @@ func (c *cpusetHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) erro
 // Create the cgroup
 func (c *cpusetHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("cpuset create not implemented for cgroup v2")
+		path := filepath.Join(cgroupRoot, ctr.path)
+		return true, cpusetCopyFromParent(path, true)
 	}
 
 	created, err := ctr.createCgroupDirectory(CPUset)
 	if !created || err != nil {
 		return created, err
 	}
-	return true, cpusetCopyFromParent(ctr.getCgroupv1Path(CPUset))
+	return true, cpusetCopyFromParent(ctr.getCgroupv1Path(CPUset), false)
 }
 
 // Destroy the cgroup

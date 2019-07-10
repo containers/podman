@@ -61,7 +61,7 @@ func (c *cpuHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 // Create the cgroup
 func (c *cpuHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
-		return false, fmt.Errorf("cpu create not implemented for cgroup v2")
+		return false, nil
 	}
 	return ctr.createCgroupDirectory(CPU)
 }
@@ -98,15 +98,24 @@ func (c *cpuHandler) Stat(ctr *CgroupControl, m *Metrics) error {
 	} else {
 		usage.Total, err = readAcct(ctr, "cpuacct.usage")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.Total = 0
 		}
 		usage.Kernel, err = readAcct(ctr, "cpuacct.usage_sys")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.Kernel = 0
 		}
 		usage.PerCPU, err = readAcctList(ctr, "cpuacct.usage_percpu")
 		if err != nil {
-			return err
+			if !os.IsNotExist(errors.Cause(err)) {
+				return err
+			}
+			usage.PerCPU = nil
 		}
 	}
 	m.CPU = CPUMetrics{Usage: usage}

@@ -35,9 +35,6 @@ func (c *pidHandler) Apply(ctr *CgroupControl, res *spec.LinuxResources) error {
 
 // Create the cgroup
 func (c *pidHandler) Create(ctr *CgroupControl) (bool, error) {
-	if ctr.cgroup2 {
-		return false, fmt.Errorf("pid create not implemented for cgroup v2")
-	}
 	return ctr.createCgroupDirectory(Pids)
 }
 
