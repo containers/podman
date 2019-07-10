@@ -45,6 +45,7 @@ fi
 # Defaults when not running under CI
 export CI="${CI:-false}"
 CIRRUS_CI="${CIRRUS_CI:-false}"
+DEST_BRANCH="${DEST_BRANCH:-master}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
