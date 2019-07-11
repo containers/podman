@@ -36,6 +36,17 @@ case "$SPECIALMODE" in
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
                 -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
         ;;
+    udica)
+        make
+        make install PREFIX=/usr ETCDIR=/etc
+        cd /tmp
+        git clone https://github.com/containers/udica
+        cd udica && python3 ./setup.py install
+        podman run -d -v /home:/home:ro -v /var/spool:/var/spool:rw -p 21:21 fedora sleep 1h
+        podman inspect -l > container.json
+        udica -j container.json my_container || \
+            echo "FIXME: Notify someone it broke"
+        ;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc

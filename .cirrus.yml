@@ -406,6 +406,25 @@ special_testing_cross_task:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
+special_testing_udica_task:
+
+    depends_on:
+        - "testing"
+
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    env:
+        SPECIALMODE: 'udica'
+
+    timeout_in: 10m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    udica_test_script: '$SCRIPT_BASE/idica_test.sh |& ${TIMESTAMP}'
+
+    on_failure:
+        failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
+
+
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
 

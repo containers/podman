@@ -266,5 +266,7 @@ values follows:
               and utilized for testing.
 * `in_podman`: Causes testing to occur within a container executed by
                podman on the host.
+* `udica`: Execute testing for containers/udica - ensures their tooling
+           remains compatible with podman inspect JSON format.
 * `windows`: See **darwin**
 * `darwin`: Signals the ``special_testing_cross`` task to cross-compile the remote client.

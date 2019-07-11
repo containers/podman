@@ -52,6 +52,7 @@ install_test_configs
 make install.tools
 
 case "$SPECIALMODE" in
+    udica) ;&  # Continue to next item
     none)
         remove_packaged_podman_files  # we're building from source
         ;;
