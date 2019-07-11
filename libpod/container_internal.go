@@ -1044,7 +1044,13 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	// Wait until we have an exit file, and sync once we do
-	return c.waitForExitFileAndSync()
+	if err := c.waitForExitFileAndSync(); err != nil {
+		return err
+	}
+
+	c.newContainerEvent(events.Stop)
+
+	return nil
 }
 
 // Internal, non-locking function to pause a container

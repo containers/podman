@@ -16,6 +16,7 @@ type MainFlags struct {
 	CniConfigDir      string
 	ConmonPath        string
 	DefaultMountsFile string
+	EventsBackend     string
 	HooksDir          []string
 	MaxWorks          int
 	Namespace         string

@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/containers/image/manifest"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -416,6 +417,25 @@ func WithDefaultInfraCommand(cmd string) RuntimeOption {
 		}
 
 		rt.config.InfraCommand = cmd
+
+		return nil
+	}
+}
+
+// WithEventsLogger sets the events backend to use.
+// Currently supported values are "file" for file backend and "journald" for
+// journald backend.
+func WithEventsLogger(logger string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return ErrRuntimeFinalized
+		}
+
+		if !events.IsValidEventer(logger) {
+			return errors.Wrapf(ErrInvalidArg, "%q is not a valid events backend", logger)
+		}
+
+		rt.config.EventsLogger = logger
 
 		return nil
 	}
