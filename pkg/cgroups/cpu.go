@@ -68,7 +68,7 @@ func (c *cpuHandler) Create(ctr *CgroupControl) (bool, error) {
 
 // Destroy the cgroup
 func (c *cpuHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(CPU))
+	return rmDirRecursively(ctr.getCgroupv1Path(CPU))
 }
 
 // Stat fills a metrics structure with usage stats for the controller
