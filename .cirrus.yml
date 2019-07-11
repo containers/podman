@@ -215,7 +215,8 @@ build_each_commit_task:
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
-build_without_cgo:
+
+build_without_cgo_task:
 
     depends_on:
         - "gating"
@@ -475,17 +476,18 @@ verify_test_built_images_task:
     always:
         <<: *standardlogs
 
-
-# Post message to IRC if everything passed
+# Post message to IRC if everything passed PR testing
 success_task:
 
     only_if: $CIRRUS_BRANCH != 'master'
 
-    depends_on:  # ignores any dependent task conditions
+    # ignores any dependent task conditions, include everything except 'release'
+    depends_on: &alltasks
         - "gating"
         - "vendor"
         - "varlink_api"
         - "build_each_commit"
+        - "build_without_cgo"
         - "meta"
         - "testing"
         - "special_testing_rootless"
@@ -493,7 +495,6 @@ success_task:
         - "special_testing_cross"
         - "test_build_cache_images"
         - "verify_test_built_images"
-        - "build_without_cgo"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
@@ -514,8 +515,7 @@ release_task:
     # allow_failures: $CI == "true"
     # skip_notifications: $CI == "true"
 
-    depends_on:
-        - "success"
+    depends_on: *alltasks
 
     gce_instance:
         image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
