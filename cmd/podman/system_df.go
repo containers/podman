@@ -143,7 +143,7 @@ func generateSysDfOutput(systemDfDiskUsages []systemDfDiskUsage, format string) 
 		"Reclaimable": "RECLAIMABLE",
 	}
 	out := formats.StdoutTemplateArray{Output: systemDfDiskUsageToGeneric(systemDfDiskUsages), Template: format, Fields: systemDfHeader}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func getDiskUsage(ctx context.Context, runtime *libpod.Runtime, metaData dfMetaData) ([]systemDfDiskUsage, error) {
@@ -557,7 +557,7 @@ func imagesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return err
 	}
 	out := formats.StdoutTemplateArray{Output: systemDfImageVerboseDiskUsageToGeneric(imagesVerboseDiskUsage), Template: imageVerboseFormat, Fields: imageVerboseHeader}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func containersVerboseOutput(ctx context.Context, metaData dfMetaData) error {
@@ -579,7 +579,7 @@ func containersVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return err
 	}
 	out := formats.StdoutTemplateArray{Output: systemDfContainerVerboseDiskUsageToGeneric(containersVerboseDiskUsage), Template: containerVerboseFormat, Fields: containerVerboseHeader}
-	return formats.Writer(out).Out()
+	return out.Out()
 
 }
 
@@ -597,7 +597,7 @@ func volumesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		return err
 	}
 	out := formats.StdoutTemplateArray{Output: systemDfVolumeVerboseDiskUsageToGeneric(volumesVerboseDiskUsage), Template: volumeVerboseFormat, Fields: volumeVerboseHeader}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func verboseOutput(ctx context.Context, metaData dfMetaData) error {

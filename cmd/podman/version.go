@@ -57,7 +57,7 @@ func versionCmd(c *cliconfig.VersionValues) error {
 		default:
 			out = formats.StdoutTemplate{Output: clientVersion, Template: versionOutputFormat}
 		}
-		return formats.Writer(out).Out()
+		return out.Out()
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()

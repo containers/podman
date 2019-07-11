@@ -97,7 +97,7 @@ func infoCmd(c *cliconfig.InfoValues) error {
 		out = formats.StdoutTemplate{Output: info, Template: infoOutputFormat}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // top-level "debug" info

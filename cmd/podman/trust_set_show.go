@@ -118,7 +118,7 @@ func showTrustCmd(c *cliconfig.ShowTrustValues) error {
 		}
 		outjson = policyJSON
 		out := formats.JSONStruct{Output: outjson}
-		return formats.Writer(out).Out()
+		return out.Out()
 	}
 
 	showOutputMap, err := getPolicyShowOutput(policyContentStruct, systemRegistriesDirPath)
@@ -126,7 +126,7 @@ func showTrustCmd(c *cliconfig.ShowTrustValues) error {
 		return errors.Wrapf(err, "could not show trust policies")
 	}
 	out := formats.StdoutTemplateArray{Output: showOutputMap, Template: "{{.Repo}}\t{{.Trusttype}}\t{{.GPGid}}\t{{.Sigstore}}"}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func setTrustCmd(c *cliconfig.SetTrustValues) error {
@@ -254,15 +254,12 @@ func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirP
 			policyJSON[repo]["type"] = repoval[0].Type
 			policyJSON[repo]["transport"] = transname
 			keyarr := []string{}
-			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
 					keyarr = append(keyarr, repoele.KeyPath)
-					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					keyarr = append(keyarr, string(repoele.KeyData))
-					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+					keyarr = append(keyarr, repoele.KeyData)
 				}
 			}
 			policyJSON[repo]["keys"] = keyarr
@@ -308,16 +305,17 @@ func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistri
 				Repo:      repo,
 				Trusttype: repoval[0].Type,
 			}
-			keyarr := []string{}
+			// TODO - keyarr is not used and I don't know its intent; commenting out for now for someone to fix later
+			//keyarr := []string{}
 			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
-					keyarr = append(keyarr, repoele.KeyPath)
+					//keyarr = append(keyarr, repoele.KeyPath)
 					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					keyarr = append(keyarr, string(repoele.KeyData))
-					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+					//keyarr = append(keyarr, string(repoele.KeyData))
+					uids = append(uids, trust.GetGPGIdFromKeyData(repoele.KeyData)...)
 				}
 			}
 			tempTrustShowOutput.GPGid = strings.Join(uids, ", ")

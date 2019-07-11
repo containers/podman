@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"os"
-
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -90,7 +88,7 @@ func (v VirtWriteCloser) Write(input []byte) (int, error) {
 }
 
 // Reader decodes the content that comes over the wire and directs it to the proper destination.
-func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resize chan remotecommand.TerminalSize) error {
+func Reader(r *bufio.Reader, output io.Writer, errput io.Writer, input io.Writer, resize chan remotecommand.TerminalSize) error {
 	var messageSize int64
 	headerBytes := make([]byte, 8)
 
@@ -149,7 +147,7 @@ func Reader(r *bufio.Reader, output, errput *os.File, input *io.PipeWriter, resi
 
 		default:
 			// Something really went wrong
-			return errors.New("Unknown multiplex destination")
+			return errors.New("unknown multiplex destination")
 		}
 	}
 }

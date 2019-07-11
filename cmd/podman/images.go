@@ -248,7 +248,8 @@ func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) (imagesOutput imagesSorted) {
+func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) imagesSorted {
+	var imagesOutput imagesSorted
 	for _, img := range images {
 		// If all is false and the image doesn't have a name, check to see if the top layer of the image is a parent
 		// to another image's top layer. If it is, then it is an intermediate image so don't print out if the --all flag
@@ -305,7 +306,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 
 	// Sort images by created time
 	sortImagesOutput(opts.sort, imagesOutput)
-	return
+	return imagesOutput
 }
 
 // getImagesJSONOutput returns the images information in its raw form
@@ -346,7 +347,7 @@ func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage,
 		imagesOutput := getImagesTemplateOutput(ctx, images, opts)
 		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: templateMap}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // GenImageOutputMap generates the map used for outputting the images header

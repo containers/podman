@@ -84,7 +84,7 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		return nil
 	}
 	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: searchHeaderMap()}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // searchHeaderMap returns the headers of a SearchResult.

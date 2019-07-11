@@ -88,7 +88,11 @@ func (c *Container) attachContainerSocket(resize <-chan remotecommand.TerminalSi
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
 	}
-	defer conn.Close()
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("unable to close socket: %q", err)
+		}
+	}()
 
 	// If starting was requested, start the container and notify when that's
 	// done.

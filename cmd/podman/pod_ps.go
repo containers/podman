@@ -561,5 +561,5 @@ func generatePodPsOutput(pods []*adapter.Pod, opts podPsOptions) error {
 		out = formats.StdoutTemplateArray{Output: podPsToGeneric(psOutput, []podPsJSONParams{}), Template: opts.Format, Fields: psOutput[0].podHeaderMap()}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }

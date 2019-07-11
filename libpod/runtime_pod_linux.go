@@ -201,11 +201,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted {
-			if removalErr == nil {
-				removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
-			} else {
-				logrus.Errorf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
-			}
+			removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
 		}
 
 		// New resource limits

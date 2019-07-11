@@ -15,7 +15,7 @@ import (
 func findCgroupMountpoints() (map[string]string, error) {
 	cgMounts, err := cgroups.GetCgroupMounts(false)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse cgroup information: %v", err)
+		return nil, fmt.Errorf("failed to parse cgroup information: %v", err)
 	}
 	mps := make(map[string]string)
 	for _, m := range cgMounts {

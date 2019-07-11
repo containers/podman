@@ -217,7 +217,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 		} else {
 			con := strings.SplitN(opt, "=", 2)
 			if len(con) != 2 {
-				return fmt.Errorf("Invalid --security-opt 1: %q", opt)
+				return fmt.Errorf("invalid --security-opt 1: %q", opt)
 			}
 
 			switch con[0] {
@@ -228,7 +228,7 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 			case "seccomp":
 				config.SeccompProfilePath = con[1]
 			default:
-				return fmt.Errorf("Invalid --security-opt 2: %q", opt)
+				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
 		}
 	}
@@ -841,7 +841,7 @@ func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid healthcheck-timeout %s", inTimeout)
 	}
-	if timeoutDuration < time.Duration(time.Second*1) {
+	if timeoutDuration < time.Duration(1) {
 		return nil, errors.New("healthcheck-timeout must be at least 1 second")
 	}
 	hc.Timeout = timeoutDuration

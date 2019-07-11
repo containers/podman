@@ -141,11 +141,12 @@ func (h *historyTemplateParams) headerMap() map[string]string {
 }
 
 // getHistorytemplateOutput gets the modified history information to be printed in human readable format
-func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (historyOutput []historyTemplateParams) {
+func getHistoryTemplateOutput(history []*image.History, opts historyOptions) []historyTemplateParams {
 	var (
-		outputSize  string
-		createdTime string
-		createdBy   string
+		outputSize    string
+		createdTime   string
+		createdBy     string
+		historyOutput []historyTemplateParams
 	)
 	for _, hist := range history {
 		imageID := hist.ID
@@ -175,7 +176,7 @@ func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (hi
 		}
 		historyOutput = append(historyOutput, params)
 	}
-	return
+	return historyOutput
 }
 
 // generateHistoryOutput generates the history based on the format given
@@ -194,5 +195,5 @@ func generateHistoryOutput(history []*image.History, opts historyOptions) error 
 		out = formats.StdoutTemplateArray{Output: historyToGeneric(historyOutput, []*image.History{}), Template: opts.format, Fields: historyOutput[0].headerMap()}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }

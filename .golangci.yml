@@ -1,0 +1,55 @@
+---
+run:
+  build-tags:
+    - apparmor
+    - ostree
+    - seccomp
+    - selinux
+  concurrency: 6
+  deadline: 5m
+  skip-dirs:
+    - dependencies/*
+    - contrib
+    - test/e2e
+    - docs
+    - test/
+    - tracing
+  skip-files:
+    - iopodman.go
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    # dupl really overdid it; disabling
+    # - dupl
+    - errcheck
+    - gofmt
+    - gosimple
+    - govet
+    - ineffassign
+    - nakedret
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    # - gochecknoglobals
+    # - gochecknoinits
+    # - goconst
+    # - gocritic
+    # - gocyclo
+    # - goimports
+    # - golint
+    # - gosec
+    - interfacer
+    # - lll
+    # - maligned
+    # - misspell
+    # - prealloc
+    - scopelint
+    - stylecheck
+    - unconvert
+    # I think we should uncomment this one and used it
+    # - unparam

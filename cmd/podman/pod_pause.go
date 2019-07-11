@@ -56,7 +56,7 @@ func podPauseCmd(c *cliconfig.PodPauseValues) error {
 	for _, p := range pauseIDs {
 		fmt.Println(p)
 	}
-	if conErrors != nil && len(conErrors) > 0 {
+	if len(conErrors) > 0 {
 		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)
