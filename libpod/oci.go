@@ -273,7 +273,9 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 		}
 		return errors.Wrapf(err, "error getting container %s state. stderr/out: %s", ctr.ID(), out)
 	}
-	defer cmd.Wait()
+	defer func() {
+		_ = cmd.Wait()
+	}()
 
 	if err := errPipe.Close(); err != nil {
 		return err

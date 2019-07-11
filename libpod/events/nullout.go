@@ -17,7 +17,6 @@ func (e EventToNull) Read(options ReadOptions) error {
 // NewNullEventer returns a new null eventer.  You should only do this for
 // the purposes on internal libpod testing.
 func NewNullEventer() Eventer {
-	var e Eventer
-	e = EventToNull{}
+	e := EventToNull{}
 	return e
 }

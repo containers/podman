@@ -220,7 +220,11 @@ func EnableLinger() (string, error) {
 
 	conn, err := dbus.SystemBus()
 	if err == nil {
-		defer conn.Close()
+		defer func() {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close dbus connection: %q", err)
+			}
+		}()
 	}
 
 	lingerEnabled := false
@@ -310,13 +314,21 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	if err != nil {
 		return false, -1, err
 	}
-	defer userNS.Close()
+	defer func() {
+		if err := userNS.Close(); err != nil {
+			logrus.Errorf("unable to close namespace: %q", err)
+		}
+	}()
 
 	mountNS, err := os.Open(fmt.Sprintf("/proc/%d/ns/mnt", pid))
 	if err != nil {
 		return false, -1, err
 	}
-	defer userNS.Close()
+	defer func() {
+		if err := mountNS.Close(); err != nil {
+			logrus.Errorf("unable to close namespace: %q", err)
+		}
+	}()
 
 	fd, err := getUserNSFirstChild(userNS.Fd())
 	if err != nil {
@@ -364,7 +376,11 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 
 	defer errorhandling.CloseQuiet(r)
 	defer errorhandling.CloseQuiet(w)
-	defer w.Write([]byte("0"))
+	defer func() {
+		if _, err := w.Write([]byte("0")); err != nil {
+			logrus.Errorf("failed to write byte 0: %q", err)
+		}
+	}()
 
 	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
 	pid := int(pidC)
