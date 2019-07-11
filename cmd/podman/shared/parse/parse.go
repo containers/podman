@@ -112,9 +112,22 @@ func parseEnv(env map[string]string, line string) error {
 	if len(data) > 1 {
 		env[name] = data[1]
 	} else {
-		// if only a pass-through variable is given, clean it up.
-		val, _ := os.LookupEnv(name)
-		env[name] = val
+		if strings.HasSuffix(name, "*") {
+			name = strings.TrimSuffix(name, "*")
+			for _, e := range os.Environ() {
+				part := strings.SplitN(e, "=", 2)
+				if len(part) < 2 {
+					continue
+				}
+				if strings.HasPrefix(part[0], name) {
+					env[part[0]] = part[1]
+				}
+			}
+		} else {
+			// if only a pass-through variable is given, clean it up.
+			val, _ := os.LookupEnv(name)
+			env[name] = val
+		}
 	}
 	return nil
 }

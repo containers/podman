@@ -245,7 +245,9 @@ You need to specify multi option commands in the form of a json string.
 
 Set environment variables
 
-This option allows you to specify arbitrary environment variables that are available for the process that will be launched inside of the container. If you specify a environment variable without a value, podman will check the host environment for a value or set the environment to "".  See **Environment** note below for precedence.
+This option allows you to specify arbitrary environment variables that are available for the process that will be launched inside of the container. If you specify a environment variable without a value, podman will check the host environment for a value or set the environment to "". If you specify a environment variable ending in --*--, podman will search the host environment for variables starting with the prefix and add them to the container.  If you want to add an environment variable with a ***** following it, then you need to set a value.
+
+See **Environment** note below for precedence.
 
 **--env-host**=*true|false*
 
@@ -907,16 +909,16 @@ required for VPN, without it containers need to be run with the --net=host flag.
 
 ## ENVIRONMENT
 
-Environment variables within containers can be set using multiple different options:  This section describes the presidence.
+Environment variables within containers can be set using multiple different options:  This section describes the precedence.
 
-Presidence Order:
+Precedence Order:
 	   **--env-host** : Host environment of the process executing podman is added.
 
-	   Container image : Any enviroment variables specified in the contianer image.
+	   Container image : Any enviroment variables specified in the container image.
 
-	   **--env-file** : Any environment variables specfied via env-files.  If multiple files specified, then they override each other in order of entry.
+	   **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
 
-	   **--env** : Any environment variables specified will overide previous settings.
+	   **--env** : Any environment variables specified will override previous settings.
 
 ## FILES
 
