@@ -221,6 +221,9 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"env", "e", []string{},
 		"Set environment variables in container",
 	)
+	createFlags.Bool(
+		"env-host", false, "Use all current host environment variables in container",
+	)
 	createFlags.StringSlice(
 		"env-file", []string{},
 		"Read in a file of environment variables",

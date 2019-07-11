@@ -224,6 +224,22 @@ var _ = Describe("Podman run", func() {
 		Expect(match).Should(BeTrue())
 	})
 
+	It("podman run --host-env environment test", func() {
+		os.Setenv("FOO", "BAR")
+		session := podmanTest.Podman([]string{"run", "--rm", "--env-host", ALPINE, "printenv", "FOO"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("BAR")
+		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO=BAR1", "--env-host", ALPINE, "printenv", "FOO"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("BAR1")
+		Expect(match).Should(BeTrue())
+		os.Unsetenv("FOO")
+	})
+
 	It("podman run limits test", func() {
 		SkipIfRootless()
 		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "rtprio=99", "--cap-add=sys_nice", fedoraMinimal, "cat", "/proc/self/sched"})

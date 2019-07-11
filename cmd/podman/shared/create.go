@@ -483,6 +483,16 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// ENVIRONMENT VARIABLES
 	env := EnvVariablesFromData(data)
+	if c.Bool("env-host") {
+		for _, e := range os.Environ() {
+			pair := strings.SplitN(e, "=", 2)
+			if _, ok := env[pair[0]]; !ok {
+				if len(pair) > 1 {
+					env[pair[0]] = pair[1]
+				}
+			}
+		}
+	}
 	if err := parse.ReadKVStrings(env, c.StringSlice("env-file"), c.StringArray("env")); err != nil {
 		return nil, errors.Wrapf(err, "unable to process environment variables")
 	}
