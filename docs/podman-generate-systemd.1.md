@@ -23,7 +23,7 @@ Use the name of the container for the start, stop, and description in the unit f
 Override the default stop timeout for the container with the given value.
 
 **--restart-policy**=*policy*
-Set the SystemD restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
+Set the systemd restart policy.  The restart-policy must be one of: "no", "on-success", "on-failure", "on-abnormal",
 "on-watchdog", "on-abort", or "always".  The default policy is *on-failure*.
 
 ## Examples

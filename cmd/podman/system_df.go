@@ -546,7 +546,7 @@ func imagesVerboseOutput(ctx context.Context, metaData dfMetaData) error {
 		"Created":    "CREATED",
 		"Size":       "SIZE",
 		"SharedSize": "SHARED SIZE",
-		"UniqueSize": "UNQUE SIZE",
+		"UniqueSize": "UNIQUE SIZE",
 		"Containers": "CONTAINERS",
 	}
 	imagesVerboseDiskUsage, err := getImageVerboseDiskUsage(ctx, metaData.images, metaData.imagesUsedbyCtrMap)

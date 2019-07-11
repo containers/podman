@@ -316,7 +316,7 @@ those.  This option is only needed when the host system must use a proxy but
 the container should not use any proxy.  Proxy environment variables specified
 for the container in any other way will override the values that would have
 been passed thru from the host.  (Other ways to specify the proxy for the
-container include passing the values with the `--env` flag, or hardcoding the
+container include passing the values with the `--env` flag, or hard coding the
 proxy environment at container build time.)
 
 For example, to disable passing these environment variables from host to
@@ -634,7 +634,7 @@ Security Options
 "seccomp=unconfined" : Turn off seccomp confinement for the container
 "seccomp=profile.json :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
-Note: Labelling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
+Note: Labeling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
 
 **--shm-size**=*size*
 
@@ -914,7 +914,7 @@ Environment variables within containers can be set using multiple different opti
 Precedence Order:
 	   **--env-host** : Host environment of the process executing podman is added.
 
-	   Container image : Any enviroment variables specified in the container image.
+	   Container image : Any environment variables specified in the container image.
 
 	   **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
 
