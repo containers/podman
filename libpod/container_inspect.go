@@ -454,9 +454,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*InspectCon
 	if spec.Process != nil {
 		ctrConfig.Tty = spec.Process.Terminal
 		ctrConfig.Env = []string{}
-		for _, val := range spec.Process.Env {
-			ctrConfig.Env = append(ctrConfig.Env, val)
-		}
+		ctrConfig.Env = append(ctrConfig.Env, spec.Process.Env...)
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 
@@ -466,9 +464,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) (*InspectCon
 	// Leave empty is not explicitly overwritten by user
 	if len(c.config.Command) != 0 {
 		ctrConfig.Cmd = []string{}
-		for _, val := range c.config.Command {
-			ctrConfig.Cmd = append(ctrConfig.Cmd, val)
-		}
+		ctrConfig.Cmd = append(ctrConfig.Cmd, c.config.Command...)
 	}
 
 	// Leave empty if not explicitly overwritten by user

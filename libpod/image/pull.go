@@ -249,7 +249,11 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	if err != nil {
 		return nil, err
 	}
-	defer policyContext.Destroy()
+	defer func() {
+		if err := policyContext.Destroy(); err != nil {
+			logrus.Errorf("failed to destroy policy context: %q", err)
+		}
+	}()
 
 	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
 
@@ -304,7 +308,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		return nil, pullErrors
 	}
 	if len(images) > 0 {
-		defer ir.newImageEvent(events.Pull, images[0])
+		ir.newImageEvent(events.Pull, images[0])
 	}
 	return images, nil
 }

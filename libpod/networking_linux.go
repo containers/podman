@@ -5,7 +5,6 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
-	"github.com/containers/libpod/pkg/errorhandling"
 	"net"
 	"os"
 	"os/exec"
@@ -17,6 +16,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
@@ -151,8 +151,8 @@ func checkSlirpFlags(path string) (bool, bool, error) {
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
-	defer ctr.rootlessSlirpSyncR.Close()
-	defer ctr.rootlessSlirpSyncW.Close()
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
 
 	path := r.config.NetworkCmdPath
 
@@ -201,7 +201,11 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if err := cmd.Start(); err != nil {
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
-	defer cmd.Process.Release()
+	defer func() {
+		if err := cmd.Process.Release(); err != nil {
+			logrus.Errorf("unable to release comman process: %q", err)
+		}
+	}()
 
 	b := make([]byte, 16)
 	for {
@@ -268,7 +272,11 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 			if err != nil {
 				return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
 			}
-			defer conn.Close()
+			defer func() {
+				if err := conn.Close(); err != nil {
+					logrus.Errorf("unable to close connection: %q", err)
+				}
+			}()
 			hostIP := i.HostIP
 			if hostIP == "" {
 				hostIP = "0.0.0.0"

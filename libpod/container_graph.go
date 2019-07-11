@@ -264,6 +264,4 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 	for _, successor := range node.dependedOn {
 		startNode(ctx, successor, ctrErrored, ctrErrors, ctrsVisited, restart)
 	}
-
-	return
 }

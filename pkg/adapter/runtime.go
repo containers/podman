@@ -359,9 +359,6 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	if eventsError != nil {
 		return eventsError
 	}
-	if err != nil {
-		return errors.Wrapf(err, "unable to tail the events log")
-	}
 	w := bufio.NewWriter(os.Stdout)
 	for event := range eventChannel {
 		if len(c.Format) > 0 {

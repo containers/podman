@@ -107,7 +107,7 @@ func printImageChildren(layerMap map[string]*image.LayerInfo, layerID string, pr
 	if !ok {
 		return fmt.Errorf("lookup error: layerid  %s, not found", layerID)
 	}
-	fmt.Printf(prefix)
+	fmt.Print(prefix)
 
 	//initialize intend with middleItem to reduce middleItem checks.
 	intend := middleItem
