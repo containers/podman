@@ -8,7 +8,9 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	. "github.com/containers/libpod/test/utils"
@@ -248,6 +250,25 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("100"))
+	})
+
+	It("podman run limits host test", func() {
+		SkipIfRemote()
+
+		var l syscall.Rlimit
+
+		err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &l)
+		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"run", "--rm", "--ulimit", "host", fedoraMinimal, "ulimit", "-Hn"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ulimitCtrStr := strings.TrimSpace(session.OutputToString())
+		ulimitCtr, err := strconv.ParseUint(ulimitCtrStr, 10, 0)
+		Expect(err).To(BeNil())
+
+		Expect(ulimitCtr).Should(BeNumerically(">=", l.Max))
 	})
 
 	It("podman run with cidfile", func() {

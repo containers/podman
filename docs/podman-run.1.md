@@ -759,6 +759,8 @@ The example maps uids 0-2000 in the container to the uids 30000-31999 on the hos
 
 Ulimit options
 
+You can pass `host` to copy the current configuration from the host.
+
 **--user**, **-u**=*user*
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
