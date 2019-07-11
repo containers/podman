@@ -123,6 +123,9 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 		// command supplied on command line - pass as-is
 		newCommand = hcCommand
 	}
+	if len(newCommand) < 1 || newCommand[0] == "" {
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+	}
 	captureBuffer := bufio.NewWriter(&capture)
 	hcw := hcWriteCloser{
 		captureBuffer,
