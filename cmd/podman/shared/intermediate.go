@@ -393,6 +393,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["dns-search"] = newCRStringSlice(c, "dns-search")
 	m["entrypoint"] = newCRString(c, "entrypoint")
 	m["env"] = newCRStringArray(c, "env")
+	m["env-host"] = newCRBool(c, "env-host")
 	m["env-file"] = newCRStringSlice(c, "env-file")
 	m["expose"] = newCRStringSlice(c, "expose")
 	m["gidmap"] = newCRStringSlice(c, "gidmap")

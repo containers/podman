@@ -245,13 +245,15 @@ You need to specify multi option commands in the form of a json string.
 
 Set environment variables
 
-This option allows you to specify arbitrary
-environment variables that are available for the process that will be launched
-inside of the container.
+This option allows you to specify arbitrary environment variables that are available for the process that will be launched inside of the container. If you specify a environment variable without a value, podman will check the host environment for a value or set the environment to "".  See **Environment** note below for precedence.
+
+**--env-host**=*true|false*
+
+Use host environment inside of the container. See **Environment** note below for precedence.
 
 **--env-file**=*file*
 
-Read in a line delimited file of environment variables
+Read in a line delimited file of environment variables. See **Environment** note below for precedence.
 
 **--expose**=*port*
 
@@ -902,6 +904,19 @@ Rootless podman works better if the fuse-overlayfs and slirp4netns packages are 
 The fuse-overlay package provides a userspace overlay storage driver, otherwise users need to use
 the vfs storage driver, which is diskspace expensive and does not perform well. slirp4netns is
 required for VPN, without it containers need to be run with the --net=host flag.
+
+## ENVIRONMENT
+
+Environment variables within containers can be set using multiple different options:  This section describes the presidence.
+
+Presidence Order:
+	   **--env-host** : Host environment of the process executing podman is added.
+
+	   Container image : Any enviroment variables specified in the contianer image.
+
+	   **--env-file** : Any environment variables specfied via env-files.  If multiple files specified, then they override each other in order of entry.
+
+	   **--env** : Any environment variables specified will overide previous settings.
 
 ## FILES
 

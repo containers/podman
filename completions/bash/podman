@@ -1742,6 +1742,7 @@ _podman_container_run() {
 		--dns-search
 		--entrypoint
 		--env -e
+		--env-host
 		--env-file
 		--expose
 		--gidmap
