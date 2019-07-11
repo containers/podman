@@ -28,7 +28,7 @@ Local Volumes   1       1        22B     0B (0%)
 $ podman system df -v
 Images space usage:
 
-REPOSITORY                 TAG      IMAGE ID       CREATED       SIZE     SHARED SIZE   UNQUE SIZE   CONTAINERS
+REPOSITORY                 TAG      IMAGE ID       CREATED       SIZE     SHARED SIZE   UNIQUE SIZE   CONTAINERS
 docker.io/library/alpine   latest   5cb3aa00f899   2 weeks ago   5.79MB   0B            5.79MB       5
 
 Containers space usage:

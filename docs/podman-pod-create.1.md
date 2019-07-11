@@ -64,7 +64,7 @@ NOTE: This cannot be modified once the pod is created.
 
 **--share**=*namespace*
 
-A comma deliminated list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
+A comma delimited list of kernel namespaces to share. If none or "" is specified, no namespaces will be shared. The namespaces to choose from are ipc, net, pid, user, uts.
 
 The operator can identify a pod in three ways:
 UUID long identifier (“f78375b1c487e03c9438c729345e54db9d20cfa2ac1fc3494b6eb60872e74778”)

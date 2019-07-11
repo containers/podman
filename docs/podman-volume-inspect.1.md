@@ -8,7 +8,7 @@ podman\-volume\-inspect - Inspect one or more volumes
 
 ## DESCRIPTION
 
-Display detailed information on one or more volumes. The output can be formated using
+Display detailed information on one or more volumes. The output can be formatted using
 the **--format** flag and a Go template. To get detailed information about all the
 existing volumes, use the **--all** flag.
 

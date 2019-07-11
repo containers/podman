@@ -339,7 +339,7 @@ environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 
 **--runtime-flag**=*flag*
 
-Adds global flags for the container rutime. To list the supported flags, please
+Adds global flags for the container runtime. To list the supported flags, please
 consult the manpages of the selected container runtime (`runc` is the default
 runtime, the manpage to consult is `runc(8)`).
 
@@ -394,7 +394,7 @@ Require HTTPS and verify certificates when talking to container registries (defa
 Specifies resource limits to apply to processes launched when processing `RUN` instructions.
 This option can be specified multiple times.  Recognized resource types
 include:
-  "core": maximimum core dump size (ulimit -c)
+  "core": maximum core dump size (ulimit -c)
   "cpu": maximum CPU time (ulimit -t)
   "data": maximum size of a process's data segment (ulimit -d)
   "fsize": maximum size of new files (ulimit -f)
@@ -422,7 +422,7 @@ process.
 **--userns-uid-map**=*mapping*
 
 Directly specifies a UID mapping which should be used to set ownership, at the
-filesytem level, on the working container's contents.
+filesystem level, on the working container's contents.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 
@@ -443,7 +443,7 @@ use the same numeric values as the GID map.
 **--userns-gid-map**=*mapping*
 
 Directly specifies a GID mapping which should be used to set ownership, at the
-filesytem level, on the working container's contents.
+filesystem level, on the working container's contents.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
 
@@ -464,7 +464,7 @@ use the same numeric values as the UID map.
 **--userns-uid-map-user**=*user*
 
 Specifies that a UID mapping which should be used to set ownership, at the
-filesytem level, on the working container's contents, can be found in entries
+filesystem level, on the working container's contents, can be found in entries
 in the `/etc/subuid` file which correspond to the specified user.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
@@ -475,7 +475,7 @@ suitable user name to use as the default setting for this option.
 **--userns-gid-map-group**=*group*
 
 Specifies that a GID mapping which should be used to set ownership, at the
-filesytem level, on the working container's contents, can be found in entries
+filesystem level, on the working container's contents, can be found in entries
 in the `/etc/subgid` file which correspond to the specified group.
 Commands run when handling `RUN` instructions will default to being run in
 their own user namespaces, configured using the UID and GID maps.
@@ -565,7 +565,7 @@ Use `df <source-dir>` to determine the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to determine propagation
 properties of source mount, if `findmnt` utility is not available, the source mount point
 can be determined by looking at the mount entry in `/proc/self/mountinfo`. Look
-at `optional fields` and see if any propagaion properties are specified.
+at `optional fields` and see if any propagation properties are specified.
 `shared:X` means the mount is `shared`, `master:X` means the mount is `slave` and if
 nothing is there that means the mount is `private`.
 

@@ -62,4 +62,4 @@ $ podman play kube demo.yml
 podman(1), podman-container(1), podman-pod(1), podman-generate-kube(1), podman-play(1)
 
 ## HISTORY
-Decemeber 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)
+December 2018, Originally compiled by Brent Baude (bbaude at redhat dot com)

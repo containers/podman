@@ -2,7 +2,7 @@
 
 The following list categorizes the known issues and irregularities with running Podman as a non-root user.  Although currently functional, there is still a number of work items that are under consideration to be added.  These proposed changes are in varying degrees of design and development.
 
-Contributors are more than welcomed to help with this work.  If you decide to carve off a piece and work on it, please create an issue in [GitHub](https://github.com/containers/libpod/issues), and assign it to yourself.  If you find other unexpected behaviour with rootless Podman and feel it’s warranted, please feel free to update this document.
+Contributors are more than welcomed to help with this work.  If you decide to carve off a piece and work on it, please create an issue in [GitHub](https://github.com/containers/libpod/issues), and assign it to yourself.  If you find other unexpected behavior with rootless Podman and feel it’s warranted, please feel free to update this document.
 
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
