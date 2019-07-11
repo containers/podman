@@ -419,7 +419,7 @@ special_testing_udica_task:
     timeout_in: 10m
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    udica_test_script: '$SCRIPT_BASE/idica_test.sh |& ${TIMESTAMP}'
+    udica_test_script: '$SCRIPT_BASE/udica_test.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
