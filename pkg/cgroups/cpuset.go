@@ -3,7 +3,6 @@ package cgroups
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -77,7 +76,7 @@ func (c *cpusetHandler) Create(ctr *CgroupControl) (bool, error) {
 
 // Destroy the cgroup
 func (c *cpusetHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(CPUset))
+	return rmDirRecursively(ctr.getCgroupv1Path(CPUset))
 }
 
 // Stat fills a metrics structure with usage stats for the controller
