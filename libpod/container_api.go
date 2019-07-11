@@ -115,7 +115,6 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	if err := c.prepareToStart(ctx, recursive); err != nil {
 		return nil, err
 	}
-
 	attachChan := make(chan error)
 
 	// We need to ensure that we don't return until start() fired in attach.

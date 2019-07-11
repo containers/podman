@@ -89,7 +89,7 @@ func makeAccessible(path string, uid, gid int) error {
 			continue
 		}
 		if st.Mode()&0111 != 0111 {
-			if err := os.Chmod(path, os.FileMode(st.Mode()|0111)); err != nil {
+			if err := os.Chmod(path, st.Mode()|0111); err != nil {
 				return err
 			}
 		}

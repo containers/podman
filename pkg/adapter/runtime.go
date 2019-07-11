@@ -332,10 +332,7 @@ func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfi
 
 // IsImageNotFound checks if the error indicates that no image was found.
 func IsImageNotFound(err error) bool {
-	if errors.Cause(err) == image.ErrNoSuchImage {
-		return true
-	}
-	return false
+	return errors.Cause(err) == image.ErrNoSuchImage
 }
 
 // HealthCheck is a wrapper to same named function in libpod

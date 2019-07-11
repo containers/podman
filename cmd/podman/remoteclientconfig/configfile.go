@@ -35,6 +35,7 @@ func (r *RemoteConfig) GetDefault() (*RemoteConnection, error) {
 		return nil, ErrNoDefinedConnections
 	}
 	for _, v := range r.Connections {
+		v := v
 		if len(r.Connections) == 1 {
 			// if there is only one defined connection, we assume it is
 			// the default whether tagged as such or not
@@ -54,6 +55,7 @@ func (r *RemoteConfig) GetRemoteConnection(name string) (*RemoteConnection, erro
 		return nil, ErrNoDefinedConnections
 	}
 	for k, v := range r.Connections {
+		v := v
 		if k == name {
 			return &v, nil
 		}

@@ -57,7 +57,7 @@ func podUnpauseCmd(c *cliconfig.PodUnpauseValues) error {
 	for _, p := range unpauseIDs {
 		fmt.Println(p)
 	}
-	if conErrors != nil && len(conErrors) > 0 {
+	if len(conErrors) > 0 {
 		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)

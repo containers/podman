@@ -91,24 +91,6 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to get a list of pods")
 	}
-	// First we need to get an initial pass of pod/ctr stats (these are not printed)
-	var podStats []*adapter.PodContainerStats
-	for _, p := range pods {
-		cons, err := p.AllContainersByID()
-		if err != nil {
-			return err
-		}
-		emptyStats := make(map[string]*libpod.ContainerStats)
-		// Iterate the pods container ids and make blank stats for them
-		for _, c := range cons {
-			emptyStats[c] = &libpod.ContainerStats{}
-		}
-		ps := adapter.PodContainerStats{
-			Pod:            p,
-			ContainerStats: emptyStats,
-		}
-		podStats = append(podStats, &ps)
-	}
 
 	// Create empty container stat results for our first pass
 	var previousPodStats []*adapter.PodContainerStats

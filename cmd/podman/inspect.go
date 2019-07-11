@@ -127,7 +127,7 @@ func inspectCmd(c *cliconfig.InspectValues) error {
 		out = formats.JSONStructArray{Output: inspectedObjects}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // func iterateInput iterates the images|containers the user has requested and returns the inspect data and error

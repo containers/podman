@@ -169,7 +169,6 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for UDP socket")
 			}
 			files = append(files, f)
-			break
 
 		case "tcp":
 			addr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", i.HostIP, i.HostPort))
@@ -186,13 +185,11 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 				return nil, errors.Wrapf(err, "cannot get file for TCP socket")
 			}
 			files = append(files, f)
-			break
 		case "sctp":
 			if !notifySCTP {
 				notifySCTP = true
 				logrus.Warnf("port reservation for SCTP is not supported")
 			}
-			break
 		default:
 			return nil, fmt.Errorf("unknown protocol %s", i.Protocol)
 

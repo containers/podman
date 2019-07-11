@@ -151,7 +151,6 @@ type iptablesBackend struct {
 	protos         map[iptables.Protocol]*iptables.IPTables
 	privChainName  string
 	adminChainName string
-	ifName         string
 }
 
 // iptablesBackend implements the FirewallBackend interface

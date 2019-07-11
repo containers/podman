@@ -686,8 +686,8 @@ func (c *Container) importCheckpoint(input string) (err error) {
 	}
 
 	// Make sure the newly created config.json exists on disk
-	g := generate.NewFromSpec(c.config.Spec)
-	if err = c.saveSpec(g.Spec()); err != nil {
+	g := generate.Generator{Config: c.config.Spec}
+	if err = c.saveSpec(g.Config); err != nil {
 		return errors.Wrap(err, "Saving imported container specification for restore failed")
 	}
 
@@ -814,7 +814,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Save the OCI spec to disk
-	if err := c.saveSpec(g.Spec()); err != nil {
+	if err := c.saveSpec(g.Config); err != nil {
 		return err
 	}
 

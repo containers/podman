@@ -4,7 +4,6 @@ package adapter
 
 import (
 	"context"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -35,7 +34,7 @@ func crImportFromJSON(filePath string, v interface{}) error {
 		return errors.Wrapf(err, "Failed to read container definition %s for restore", filePath)
 	}
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
-	if err = json.Unmarshal([]byte(content), v); err != nil {
+	if err = json.Unmarshal(content, v); err != nil {
 		return errors.Wrapf(err, "Failed to unmarshal container definition %s for restore", filePath)
 	}
 
@@ -106,9 +105,8 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 	ctrName := config.Name
 
 	// The code to load the images is copied from create.go
-	var writer io.Writer
 	// In create.go this only set if '--quiet' does not exist.
-	writer = os.Stderr
+	writer := os.Stderr
 	rtc, err := runtime.GetConfig()
 	if err != nil {
 		return nil, err

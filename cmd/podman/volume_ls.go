@@ -238,7 +238,7 @@ func generateVolLsOutput(volumes []*adapter.Volume, opts volumeLsOptions) error 
 		}
 		out = formats.StdoutTemplateArray{Output: volLsToGeneric(lsOutput, []volumeLsJSONParams{}), Template: opts.Format, Fields: lsOutput[0].volHeaderMap()}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // generateVolumeFilterFuncs returns the true if the volume matches the filter set, otherwise it returns false.

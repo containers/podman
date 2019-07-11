@@ -136,5 +136,5 @@ func diffCmd(c *cliconfig.DiffValues) error {
 	} else {
 		out = stdoutStruct{output: diffOutput}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }

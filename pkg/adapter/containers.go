@@ -69,7 +69,7 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopValues) ([]string, map[string]error, error) {
 	var timeout *uint
 	if cli.Flags().Changed("timeout") || cli.Flags().Changed("time") {
-		t := uint(cli.Timeout)
+		t := cli.Timeout
 		timeout = &t
 	}
 
@@ -342,7 +342,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
 			// This means the command did not exist
 			exitCode = 127
-			if strings.Index(err.Error(), "permission denied") > -1 {
+			if strings.Contains(err.Error(), "permission denied") {
 				exitCode = 126
 			}
 			return exitCode, err
@@ -405,7 +405,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		}
 		// This means the command did not exist
 		exitCode = 127
-		if strings.Index(err.Error(), "permission denied") > -1 {
+		if strings.Contains(err.Error(), "permission denied") {
 			exitCode = 126
 		}
 		if c.IsSet("rm") {
@@ -1057,7 +1057,7 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 	}
 	timeout := int(ctr.StopTimeout())
 	if c.StopTimeout >= 0 {
-		timeout = int(c.StopTimeout)
+		timeout = c.StopTimeout
 	}
 	name := ctr.ID()
 	if c.Name {
@@ -1153,9 +1153,7 @@ func (r *LocalRuntime) Exec(c *cliconfig.ExecValues, cmd []string) error {
 		for _, e := range entries {
 			i, err := strconv.Atoi(e.Name())
 			if err != nil {
-				if err != nil {
-					return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
-				}
+				return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
 			}
 			m[i] = true
 		}
