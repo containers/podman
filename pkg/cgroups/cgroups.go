@@ -328,6 +328,13 @@ func Load(path string) (*CgroupControl, error) {
 		systemd: false,
 	}
 	if !cgroup2 {
+		controllers, err := getAvailableControllers(handlers, false)
+		if err != nil {
+			return nil, err
+		}
+		control.additionalControllers = controllers
+	}
+	if !cgroup2 {
 		for name := range handlers {
 			p := control.getCgroupv1Path(name)
 			if _, err := os.Stat(p); err != nil {

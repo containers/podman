@@ -3,6 +3,8 @@ package integration
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -40,6 +42,21 @@ var _ = Describe("Podman pod rm", func() {
 		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+
+		// Also check that we don't leak cgroups
+		err := filepath.Walk("/sys/fs/cgroup", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				Expect(err).To(BeNil())
+			}
+			if strings.Contains(info.Name(), podid) {
+				return fmt.Errorf("leaking cgroup path %s", path)
+			}
+			return nil
+		})
+		Expect(err).To(BeNil())
 	})
 
 	It("podman pod rm latest pod", func() {
