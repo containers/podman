@@ -355,10 +355,39 @@ func (c *CgroupControl) Delete() error {
 	return c.DeleteByPath(c.path)
 }
 
+// rmDirRecursively delete recursively a cgroup directory.
+// It differs from os.RemoveAll as it doesn't attempt to unlink files.
+// On cgroupfs we are allowed only to rmdir empty directories.
+func rmDirRecursively(path string) error {
+	if err := os.Remove(path); err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	entries, err := ioutil.ReadDir(path)
+	if err != nil {
+		return errors.Wrapf(err, "read %s", path)
+	}
+	for _, i := range entries {
+		if i.IsDir() {
+			if err := rmDirRecursively(filepath.Join(path, i.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	if os.Remove(path); err != nil {
+		if !os.IsNotExist(err) {
+			return errors.Wrapf(err, "remove %s", path)
+		}
+	}
+	return nil
+}
+
 // DeleteByPath deletes the specified cgroup path
 func (c *CgroupControl) DeleteByPath(path string) error {
 	if c.systemd {
 		return systemdDestroy(path)
+	}
+	if c.cgroup2 {
+		return rmDirRecursively(filepath.Join(cgroupRoot, c.path))
 	}
 	var lastError error
 	for _, h := range handlers {
@@ -368,8 +397,11 @@ func (c *CgroupControl) DeleteByPath(path string) error {
 	}
 
 	for _, ctr := range c.additionalControllers {
+		if ctr.symlink {
+			continue
+		}
 		p := c.getCgroupv1Path(ctr.name)
-		if err := os.Remove(p); err != nil {
+		if err := rmDirRecursively(p); err != nil {
 			lastError = errors.Wrapf(err, "remove %s", p)
 		}
 	}

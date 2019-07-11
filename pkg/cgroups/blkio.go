@@ -37,7 +37,7 @@ func (c *blkioHandler) Create(ctr *CgroupControl) (bool, error) {
 
 // Destroy the cgroup
 func (c *blkioHandler) Destroy(ctr *CgroupControl) error {
-	return os.Remove(ctr.getCgroupv1Path(Blkio))
+	return rmDirRecursively(ctr.getCgroupv1Path(Blkio))
 }
 
 // Stat fills a metrics structure with usage stats for the controller
