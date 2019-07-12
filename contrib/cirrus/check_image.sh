@@ -36,4 +36,10 @@ do
         "$(systemctl list-unit-files --no-legend $REQ_UNIT)" = "$REQ_UNIT enabled" || let "RET+=1"
 done
 
+# Exits zero if any unit matching pattern is running
+UNIT_STATUS=$(systemctl is-active $EVIL_UNITS; echo $?)
+item_test "No interfering background units are active:" \
+    "$UNIT_STATUS" -ne "0" || let "RET+=1"
+
+echo "Total failed tests: $RET"
 exit $RET
