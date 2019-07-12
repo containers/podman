@@ -187,8 +187,12 @@ func createCgroupv2Path(path string) (Err error) {
 				}()
 			}
 		}
-		if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), resByte, 0755); err != nil {
-			return errors.Wrapf(err, "write %s", filepath.Join(current, "cgroup.subtree_control"))
+		// We enable the controllers for all the path components except the last one.  It is not allowed to add
+		// PIDs if there are already enabled controllers.
+		if i < len(elements[3:])-1 {
+			if err := ioutil.WriteFile(filepath.Join(current, "cgroup.subtree_control"), resByte, 0755); err != nil {
+				return errors.Wrapf(err, "write %s", filepath.Join(current, "cgroup.subtree_control"))
+			}
 		}
 	}
 	return nil
