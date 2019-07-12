@@ -14,7 +14,6 @@ Running such an analysis on libpod may look as follows:
 
 ```
 # 1) Build the podman binary with `-work -a`.
-
 [libpod]$ BUILDFLAGS="-work -a" make podman
 [...]
 WORK=/tmp/go-build794287815
@@ -51,7 +50,7 @@ Running such an analysis on libpod may look as follows:
 [...]
 
 # 2) Run the script with the binary as an argument
-[libpod]$ ./dependencies/nm-symbols-analysis.sh ./bin/podman | grep "containers/libpod/libpod" | head -n10
+[libpod]$ ./dependencies/analyses/nm-symbols-analysis.sh ./bin/podman | grep "containers/libpod/libpod" | head -n10
 299             github.com/containers/libpod/libpod.(*BoltState).AddContainer
 658             github.com/containers/libpod/libpod.(*BoltState).AddContainerToPod
 2120            github.com/containers/libpod/libpod.(*BoltState).AddPod
