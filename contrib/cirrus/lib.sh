@@ -323,8 +323,15 @@ install_test_configs(){
                            /etc/containers/registries.conf
 }
 
+# Remove all files (except conmon, for now) provided by the distro version of podman.
+# Except conmon, for now as it's expected to eventually be  packaged separately.
+# All VM cache-images used for testing include the distro podman because (1) it's
+# required for podman-in-podman testing and (2) it somewhat simplifies the task
+# of pulling in necessary prerequisites packages as the set can change over time.
+# For general CI testing however, calling this function makes sure the system
+# can only run the compiled source version.
 remove_packaged_podman_files(){
-    show_and_store_warning "Removing packaged podman files to prevent conflicts with source build and testing."
+    echo "Removing packaged podman files to prevent conflicts with source build and testing."
     req_env_var OS_RELEASE_ID
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then

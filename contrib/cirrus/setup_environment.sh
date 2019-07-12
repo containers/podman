@@ -52,7 +52,9 @@ install_test_configs
 make install.tools
 
 case "$SPECIALMODE" in
-    none) ;;  # Do the normal thing
+    none)
+        remove_packaged_podman_files  # we're building from source
+        ;;
     rootless)
         # Only do this once, even if ROOTLESS_USER (somehow) changes
         if ! grep -q 'ROOTLESS_USER' /etc/environment
@@ -65,9 +67,9 @@ case "$SPECIALMODE" in
                 tee -a /etc/environment) && eval "$X" && echo "$X"
             setup_rootless
         fi
+        remove_packaged_podman_files
         ;;
     in_podman)  # Assumed to be Fedora
-        dnf install -y podman
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
     windows) ;&  # for podman-remote building only

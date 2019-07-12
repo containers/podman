@@ -29,9 +29,9 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-30-libpod-5081463649730560"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5081463649730560"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5081463649730560"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-30-libpod-5744029755506688"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5744029755506688"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5744029755506688"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -472,6 +472,7 @@ verify_test_built_images_task:
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     check_image_script: '$SCRIPT_BASE/check_image.sh'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     always:
         <<: *standardlogs
