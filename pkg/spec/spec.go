@@ -80,23 +80,41 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
 	}
+	gid5Available := true
 	if isRootless {
 		nGids, err := getAvailableGids()
 		if err != nil {
 			return nil, err
 		}
-		if nGids < 5 {
-			// If we have no GID mappings, the gid=5 default option would fail, so drop it.
-			g.RemoveMount("/dev/pts")
-			devPts := spec.Mount{
-				Destination: "/dev/pts",
-				Type:        "devpts",
-				Source:      "devpts",
-				Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
-			}
-			g.AddMount(devPts)
-		}
+		gid5Available = nGids >= 5
 	}
+	// When using a different user namespace, check that the GID 5 is mapped inside
+	// the container.
+	if gid5Available && len(config.IDMappings.GIDMap) > 0 {
+		mappingFound := false
+		for _, r := range config.IDMappings.GIDMap {
+			if r.ContainerID <= 5 && 5 < r.ContainerID+r.Size {
+				mappingFound = true
+				break
+			}
+		}
+		if !mappingFound {
+			gid5Available = false
+		}
+
+	}
+	if !gid5Available {
+		// If we have no GID mappings, the gid=5 default option would fail, so drop it.
+		g.RemoveMount("/dev/pts")
+		devPts := spec.Mount{
+			Destination: "/dev/pts",
+			Type:        "devpts",
+			Source:      "devpts",
+			Options:     []string{"rprivate", "nosuid", "noexec", "newinstance", "ptmxmode=0666", "mode=0620"},
+		}
+		g.AddMount(devPts)
+	}
+
 	if inUserNS && config.IpcMode.IsHost() {
 		g.RemoveMount("/dev/mqueue")
 		devMqueue := spec.Mount{
