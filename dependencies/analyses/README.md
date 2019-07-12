@@ -71,15 +71,17 @@ Running the script can help identify sources of bloat and reveal potential candi
 Use the `dependency-tree.sh` script to figure out which package includes which packages.
 The output of the script has the format `package: dependency_1, dependency_2, ...`.
 Each line is followed by a blank line to make it easier to read.
-Note that the list of dependencies includes only the direct dependencies and not all transitive dependencies.
-The transitive dependencies of a given package can be examined by running `go list -f '{{ .Name }}: {{ join .Deps ", " }}' $PACKAGE` or by browsing through the output of `dependency-tree.sh`.
+The script generates two files:
+
+ - `direct-tree.txt` - listing direct dependencies
+ - `transitive-tree.txt` - listing direct and transitive dependencies
 
 Running such a dependency-tree analysis may look as follows:
 
 
 ```
-[libpod]$ ./dependencies/analyses/dependency-tree.sh github.com/containers/libpod > tree.txt
-[libpod]$ grep "^github.com/containers/libpod/pkg/registries" tree.txt
+[libpod]$ ./dependencies/analyses/dependency-tree.sh github.com/containers/libpod
+[libpod]$ grep "^github.com/containers/libpod/pkg/registries" direct-tree.txt
 github.com/containers/libpod/pkg/registries: github.com/containers/libpod/vendor/github.com/containers/image/pkg/sysregistriesv2, github.com/containers/libpod/vendor/github.com/containers/image/types, github.com/containers/libpod/pkg/rootless, github.com/containers/libpod/vendor/github.com/docker/distribution/reference, github.com/containers/libpod/vendor/github.com/pkg/errors, os, path/filepath, strings
 ```
 

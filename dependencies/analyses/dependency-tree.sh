@@ -10,4 +10,11 @@ DATA=$(go list $1/... \
 	| awk '{ printf "%s\n\n", $0 }' \
 	)
 
-echo "$DATA"
+echo "$DATA" > direct-tree.txt
+
+DATA=$(go list $1/... \
+	| xargs -d '\n' go list -f '{{ .ImportPath }}: {{ join .Deps ", " }}' \
+	| awk '{ printf "%s\n\n", $0 }' \
+	)
+
+echo "$DATA" > transitive-tree.txt
