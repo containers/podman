@@ -1,7 +1,7 @@
 % podman-mount(1)
 
 ## NAME
-podman\-mount - Mount the specifed working containers' root filesystem
+podman\-mount - Mount the specified working containers' root filesystem
 
 ## SYNOPSIS
 **podman mount** [*container* ...]

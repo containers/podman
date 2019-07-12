@@ -48,7 +48,7 @@ Valid placeholders for the Go template are listed below:
 | .BlockIO        | Block IO          |
 | .PIDS           | Number of PIDs    |
 
-When using a GO template, you may preceed the format with `table` to print headers.
+When using a GO template, you may precede the format with `table` to print headers.
 
 ## EXAMPLE
 

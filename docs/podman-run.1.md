@@ -252,13 +252,17 @@ You need to specify multi option commands in the form of a json string.
 
 Set environment variables
 
-This option allows you to specify arbitrary
-environment variables that are available for the process that will be launched
-inside of the container.
+This option allows you to specify arbitrary environment variables that are available for the process that will be launched inside of the container. If you specify a environment variable without a value, podman will check the host environment for a value or set the environment to "". If you specify a environment variable ending in --*--, podman will search the host environment for variables starting with the prefix and add them to the container.  If you want to add an environment variable with a ***** following it, then you need to set a value.
+
+See **Environment** note below for precedence.
+
+**--env-host**=*true|false*
+
+Use host environment inside of the container. See **Environment** note below for precedence.
 
 **--env-file**=*file*
 
-Read in a line delimited file of environment variables
+Read in a line delimited file of environment variables. See **Environment** note below for precedence.
 
 **--expose**=*port*
 
@@ -319,7 +323,7 @@ those.  This option is only needed when the host system must use a proxy but
 the container should not use any proxy.  Proxy environment variables specified
 for the container in any other way will override the values that would have
 been passed thru from the host.  (Other ways to specify the proxy for the
-container include passing the values with the `--env` flag, or hardcoding the
+container include passing the values with the `--env` flag, or hard coding the
 proxy environment at container build time.)
 
 For example, to disable passing these environment variables from host to
@@ -651,7 +655,7 @@ Security Options
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
-Note: Labelling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
+Note: Labeling can be disabled for all containers by setting label=false in the **libpod.conf** (`/etc/containers/libpod.conf`) file.
 
 **--shm-size**=*size*
 
@@ -1186,6 +1190,20 @@ Rootless podman works better if the fuse-overlayfs and slirp4netns packages are 
 The fuse-overlay package provides a userspace overlay storage driver, otherwise users need to use
 the vfs storage driver, which is diskspace expensive and does not perform well. slirp4netns is
 required for VPN, without it containers need to be run with the --net=host flag.
+
+## ENVIRONMENT
+
+Environment variables within containers can be set using multiple different options:  This section describes the precedence.
+
+Precedence Order:
+
+	   **--env-host** : Host environment of the process executing podman is added.
+
+	   Container image : Any environment variables specified in the container image.
+
+	   **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
+
+	   **--env** : Any environment variables specified will override previous settings.
 
 ## FILES
 

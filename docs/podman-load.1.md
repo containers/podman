@@ -8,7 +8,7 @@ podman\-load - Load an image from a container image archive into container stora
 
 ## DESCRIPTION
 **podman load** loads an image from either an **oci-archive** or **docker-archive** stored on the local machine into container storage. **podman load** reads from stdin by default or a file if the **input** option is set.
-You can also specify a name for the image if the archive does not contain a named reference, of if you want an additonal name for the local image.
+You can also specify a name for the image if the archive does not contain a named reference, of if you want an additional name for the local image.
 
 The **quiet** option suppresses the progress output when set.
 Note: `:` is a restricted character and cannot be part of the file name.

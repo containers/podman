@@ -7,7 +7,7 @@ podman-image-sign - Create a signature for an image
 **podman image sign** [*options*] *image* [*image* ...]
 
 ## DESCRIPTION
-**podmain image sign** will create a local signature for one or more local images that have
+**podman image sign** will create a local signature for one or more local images that have
 been pulled from a registry. The signature will be written to a directory
 derived from the registry configuration files in /etc/containers/registries.d. By default, the signature will be written into /var/lib/containers/sigstore directory.
 
@@ -39,8 +39,8 @@ docker:
   privateregistry.example.com:
     sigstore: file:///var/lib/containers/sigstore
 
-When signing an image preceeded with the registry name 'privateregistry.example.com',
-the signature will be written into subdirectories of
+When signing an image preceded with the registry name 'privateregistry.example.com',
+the signature will be written into sub-directories of
 /var/lib/containers/sigstore/privateregistry.example.com. The use of 'sigstore' also means
 the signature will be 'read' from that same location on a pull-related function.
 

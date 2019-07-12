@@ -376,7 +376,7 @@ author hold special privileges on the github repository.  Others can be used by 
   will cause Cirrus CI to ***NOT*** execute tests for the PR or after merge.  This
   is useful in only one instance:  Your changes are absolutely not exercised by
   any test.  For example, documentation changes.  ***IMPORTANT NOTE*** **Other
-  automation may interpret the lack of test results as "PASSED" and unintentionall
+  automation may interpret the lack of test results as "PASSED" and unintentional
   merge a PR.  Consider also using `/hold` in a comment, to add additional
   protection.**
 
