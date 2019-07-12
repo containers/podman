@@ -11,7 +11,6 @@ const remoteclient = false
 // Commands that the local client implements
 func getMainCommands() []*cobra.Command {
 	rootCommands := []*cobra.Command{
-		_cpCommand,
 		_playCommand,
 		_loginCommand,
 		_logoutCommand,

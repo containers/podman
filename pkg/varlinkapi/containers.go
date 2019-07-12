@@ -9,6 +9,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -22,8 +24,14 @@ import (
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
@@ -903,4 +911,289 @@ func (i *LibpodAPI) HealthCheckRun(call iopodman.VarlinkCall, nameOrID string) e
 		status = libpod.HealthCheckHealthy
 	}
 	return call.ReplyHealthCheckRun(status)
+}
+
+// CopyTo copies a file from local or reomte to a container
+func (i *LibpodAPI) CopyTo(call iopodman.VarlinkCall, src string, srcPath string, srcfMode int64, destPath string, extract bool, pause bool, ctrNameorId string) error {
+	ctr, err := i.Runtime.LookupContainer(ctrNameorId)
+
+	if err != nil {
+		return errors.Wrapf(err, "error getting container %s", ctrNameorId)
+	}
+	mountPoint, err := ctr.Mount()
+	if err != nil {
+		logrus.Debugf("mount container error %q", err)
+		return errors.Wrapf(err, "error getting mount point of container %s", ctrNameorId)
+	}
+	defer func() {
+		if err := ctr.Unmount(false); err != nil {
+			logrus.Errorf("unable to umount container '%s': %q", ctr.ID(), err)
+		}
+	}()
+
+	// We can't pause rootless containers.
+	if pause && rootless.IsRootless() {
+		state, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		if state == define.ContainerStateRunning {
+			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
+		}
+	}
+	if pause && !rootless.IsRootless() {
+		if err := ctr.Pause(); err != nil {
+			// An invalid state error is fine.
+			// The container isn't running or is already paused.
+			// TODO: We can potentially start the container while
+			// the copy is running, which still allows a race where
+			// malicious code could mess with the symlink.
+			if errors.Cause(err) != define.ErrCtrStateInvalid {
+				return err
+			}
+		} else if err == nil {
+			// Only add the defer if we actually paused
+			defer func() {
+				if err := ctr.Unpause(); err != nil {
+					logrus.Errorf("Error unpausing container after copying: %v", err)
+				}
+			}()
+		}
+	}
+
+	user, err := util.GetUser(mountPoint, ctr.User())
+	if err != nil {
+		return err
+	}
+	idMappingOpts, err := ctr.IDMappings()
+	if err != nil {
+		return errors.Wrapf(err, "error getting IDMappingOptions")
+	}
+	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(&destOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	untarPath := chrootarchive.UntarPathAndChown(&destOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	copyWithTar := chrootarchive.CopyWithTarAndChown(&destOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+
+	mode := os.FileMode(srcfMode)
+	srcIsDir := mode.IsDir()
+
+	cleanDestPath := filepath.Clean(destPath)
+
+	if filepath.IsAbs(cleanDestPath) {
+		cleanedPath, err := securejoin.SecureJoin(mountPoint, cleanDestPath)
+		if err != nil {
+			return err
+		}
+		cleanDestPath = cleanedPath
+
+	} else {
+		cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), cleanDestPath))
+		if err != nil {
+			return err
+		}
+		cleanDestPath = cleanedPath
+	}
+
+	cleanFilepath := filepath.Clean(srcPath)
+	if src == "local" {
+		destPath, err = CopyToLocal(cleanFilepath, cleanDestPath, srcPath, destPath, extract, copyFileWithTar, untarPath, copyWithTar)
+		if err != nil {
+			return err
+		}
+		return call.ReplyCopyTo(destPath)
+	}
+
+	// parse the combined filepath
+	// /tmp/varlink_send/filename/.
+	filename := filepath.Base(cleanFilepath)
+	tempFile := filepath.Clean(filepath.Dir(cleanFilepath))
+
+	destPath, err = util.CopyRemote(filename, srcPath, tempFile, destPath, cleanDestPath, srcIsDir, &destOwner, untarPath, copyFileWithTar, extract)
+	if err != nil {
+		return errors.Wrapf(err, "error copying %q to %q", tempFile, cleanDestPath)
+	}
+
+	err = call.ReplyCopyTo(destPath)
+	if err != nil {
+		logrus.Debug("error ReplyCopyTo", err)
+	}
+	return err
+}
+
+// CopyToLocal copy file from cleanSrcPath to cleanDestPath when the paths are from the same host
+func CopyToLocal(cleanSrcPath string, cleanDestPath string, srcPath string, destPath string, extract bool, copyFileWithTar, untarPath, copyWithTar func(src, dest string) error) (string, error) {
+	cleanSrcPath, err := filepath.EvalSymlinks(cleanSrcPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "error evaluating symlinks %q", cleanSrcPath)
+	}
+	cleanSrcPath, srcfi, err := util.GetPathInfo(cleanSrcPath)
+	if err != nil {
+		return "", err
+	}
+	destdir := cleanDestPath
+	if !srcfi.IsDir() {
+		destdir = filepath.Dir(cleanDestPath)
+	}
+	_, err = os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	destDirIsExist := (err == nil)
+	if err = os.MkdirAll(destdir, 0755); err != nil {
+		return "", errors.Wrapf(err, "error creating directory %q", destdir)
+	}
+	if srcfi.IsDir() {
+		logrus.Debugf("copying %q to %q", cleanSrcPath+string(os.PathSeparator)+"*", cleanDestPath+string(os.PathSeparator)+"*")
+		destPath = cleanDestPath
+		if destDirIsExist && !strings.HasSuffix(srcPath, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(cleanDestPath, filepath.Base(cleanSrcPath))
+		}
+		if err = copyWithTar(cleanSrcPath, destPath); err != nil {
+			logrus.Errorf("error copying %q to %q, error %q", cleanSrcPath, destPath, err)
+			return "", errors.Wrapf(err, "error copying %q to %q", cleanSrcPath, destPath)
+		}
+		return destPath, nil
+	}
+	if archive.IsArchivePath(cleanSrcPath) && extract {
+		if err := untarPath(cleanSrcPath, cleanDestPath); err != nil {
+			return "", errors.Wrapf(err, "error copying %q to %q", cleanSrcPath, cleanDestPath)
+		}
+		return cleanDestPath, nil
+	}
+	// copy a file or tarball
+	destfi, err := os.Stat(cleanDestPath)
+	if err != nil {
+		if !os.IsNotExist(err) || strings.HasSuffix(destPath, string(os.PathSeparator)) {
+			logrus.Debugf("error copying %s to remote %s : %q", cleanSrcPath, destPath, err)
+			return "", errors.Wrapf(err, "failed to get stat of dest path %s", cleanDestPath)
+		}
+	}
+	destPath = cleanDestPath
+	if destfi != nil && destfi.IsDir() {
+		destPath = filepath.Join(cleanDestPath, filepath.Base(cleanSrcPath))
+	}
+	err = copyFileWithTar(cleanSrcPath, destPath)
+	if err != nil {
+		logrus.Errorf("error copying file from %s to %s", cleanSrcPath, destPath)
+		return "", errors.Wrapf(err, "error copying to %s", destPath)
+	}
+	return destPath, nil
+}
+
+// CopyFrom copies a file from local container to local file system
+// returns the helper string containers source path used by CopyFromContainer if copy a file from remote container to local file system using podman remote
+func (i *LibpodAPI) CopyFrom(call iopodman.VarlinkCall, dest string, srcPath string, srcfMode int64, destPath string, extract bool, pause bool, ctrNameorId string) error {
+	ctr, err := i.Runtime.LookupContainer(ctrNameorId)
+
+	if err != nil {
+		return errors.Wrapf(err, "error getting container %s", ctrNameorId)
+	}
+
+	mountPoint, err := ctr.Mount()
+	if err != nil {
+		logrus.Errorf("unable to mount container '%s': %q", ctr.ID(), err)
+		return errors.Wrapf(err, "error getting mount point of container %s", ctrNameorId)
+	}
+	defer func() {
+		if err := ctr.Unmount(false); err != nil {
+			logrus.Errorf("unable to umount container '%s': %q", ctr.ID(), err)
+		}
+	}()
+
+	// We can't pause rootless containers.
+	if pause && rootless.IsRootless() {
+		state, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		if state == define.ContainerStateRunning {
+			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
+		}
+	}
+	if pause && !rootless.IsRootless() {
+		if err := ctr.Pause(); err != nil {
+			// An invalid state error is fine.
+			// The container isn't running or is already paused.
+			// TODO: We can potentially start the container while
+			// the copy is running, which still allows a race where
+			// malicious code could mess with the symlink.
+			if errors.Cause(err) != define.ErrCtrStateInvalid {
+				return err
+			}
+		} else if err == nil {
+			// Only add the defer if we actually paused
+			defer func() {
+				if err := ctr.Unpause(); err != nil {
+					logrus.Errorf("Error unpausing container after copying: %v", err)
+				}
+			}()
+		}
+	}
+
+	// combines source path with mount point
+	cleanSrcPath := filepath.Clean(srcPath)
+	if filepath.IsAbs(cleanSrcPath) {
+		cleanedPath, err := securejoin.SecureJoin(mountPoint, cleanSrcPath)
+		if err != nil {
+			return err
+		}
+		cleanSrcPath = cleanedPath
+	} else {
+		cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), cleanSrcPath))
+		if err != nil {
+			return err
+		}
+		cleanSrcPath = cleanedPath
+	}
+
+	user, err := util.GetUser(mountPoint, ctr.User())
+	if err != nil {
+		return err
+	}
+
+	idMappingOpts, err := ctr.IDMappings()
+	if err != nil {
+		return errors.Wrapf(err, "error getting IDMappingOptions")
+	}
+	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(&containerOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	untarPath := chrootarchive.UntarPathAndChown(&containerOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	copyWithTar := chrootarchive.CopyWithTarAndChown(&containerOwner, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+
+	if dest == "local" {
+		// resolve absolute destPath
+		cleanDestPath := filepath.Clean(destPath)
+		if !filepath.IsAbs(cleanDestPath) {
+			dir, err := os.Getwd()
+			if err != nil {
+				return errors.Wrapf(err, "err getting current working directory")
+			}
+			cleanDestPath = filepath.Join(dir, cleanDestPath)
+		}
+
+		destPath, err := CopyToLocal(cleanSrcPath, cleanDestPath, srcPath, destPath, extract, copyFileWithTar, untarPath, copyWithTar)
+		if err != nil {
+			return err
+		}
+		return call.ReplyCopyFrom(destPath)
+	}
+
+	// if dest is remote, tars up source file and returns the path of archive files
+	filename := filepath.Base(cleanSrcPath)
+	_, srcfi, err := util.GetPathInfo(cleanSrcPath)
+	if err != nil {
+		return err
+	}
+	// tars the source file up  and sends it to remote path tempFile
+	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
+	if err != nil {
+		return err
+	}
+	if err := utils.TarToFilesystem(cleanSrcPath, outputFile); err != nil {
+		return err
+	}
+	srcfModeStr := strconv.Itoa(int(srcfi.Mode()))
+	// combines the tempfile path with filename, filemode /tmp/varlink_tar_send/filename/filemode
+	cleanSrcPath = filepath.Join(outputFile.Name(), filename, srcfModeStr)
+	return call.ReplyCopyFrom(cleanSrcPath)
 }

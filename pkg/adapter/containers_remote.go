@@ -8,8 +8,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,7 +23,11 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/containers/libpod/utils"
+	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -1136,4 +1143,212 @@ func sendGenericError(ecChan chan int) {
 	if ecChan != nil {
 		ecChan <- define.ExecErrorCodeGeneric
 	}
+}
+
+func (r *LocalRuntime) parsePath(path string) (*Container, string) {
+	pathArr := strings.SplitN(path, ":", 2)
+	if len(pathArr) == 2 {
+		ctr, err := r.LookupContainer(pathArr[0])
+		if err == nil {
+			return ctr, pathArr[1]
+		}
+	}
+	return nil, path
+}
+
+func (r *LocalRuntime) CopyBetweenHostAndContainer(src string, dest string, extract, pause bool) error {
+
+	srcCtr, srcPath := r.parsePath(src)
+	destCtr, destPath := r.parsePath(dest)
+
+	if (srcCtr == nil && destCtr == nil) || (srcCtr != nil && destCtr != nil) {
+		return errors.Errorf("invalid arguments %s, %s you must use just one container", src, dest)
+	}
+
+	if len(srcPath) == 0 || len(destPath) == 0 {
+		return errors.Errorf("invalid arguments %s, %s you must specify paths", src, dest)
+	}
+	ctr := srcCtr
+	isFromHostToCtr := (ctr == nil)
+	if isFromHostToCtr {
+		ctr = destCtr
+	}
+
+	if isFromHostToCtr {
+
+		srcArr := strings.SplitN(src, ":", 2)
+		if len(srcArr) != 2 {
+			return errors.Errorf("must specify the location of source file, remote or local")
+		}
+		location := srcArr[0]
+		srcPath = srcArr[1]
+		if location == "" {
+			return errors.Errorf("must specify local or remote")
+		}
+
+		// copy between remote file system and remote container
+		if location == "local" {
+			reply, err := iopodman.CopyTo().Send(r.Conn, varlink.More, location, srcPath, 0600, destPath, extract, pause, ctr.ID())
+			if err != nil {
+				return errors.Wrapf(err, "varlink call CopyTo error copying from local %s to %s", srcPath, destPath)
+			}
+			_, _, err = reply()
+			if err != nil {
+				return errors.Wrapf(err, "error copy from %s to %s", srcPath, destPath)
+			}
+			return nil
+		}
+
+		// Copy files from local file system to remote container
+		err := r.CopyTo(srcPath, src, destPath, extract, pause, ctr.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error copying to the container %q", ctr.ID())
+		}
+		return nil
+	}
+
+	dstArr := strings.SplitN(dest, ":", 2)
+	if len(dstArr) != 2 {
+		return errors.Errorf("must specify the location of destination, remote or local")
+	}
+	location := dstArr[0]
+	destPath = dstArr[1]
+	if location == "" {
+		return errors.Errorf("must specify local or remote")
+	}
+	if location == "local" {
+		if strings.HasSuffix(src, "/.") {
+			srcPath = fmt.Sprintf("%s/.", srcPath)
+		}
+		reply, err := iopodman.CopyFrom().Send(r.Conn, varlink.Upgrade, location, srcPath, 0600, destPath, extract, pause, ctr.ID())
+		if err != nil {
+			return errors.Wrapf(err, "varlink call CopyFrom error")
+		}
+		_, _, err = reply()
+		if err != nil {
+			return errors.Wrapf(err, "error copy from %s to %s", srcPath, destPath)
+		}
+		return nil
+	}
+
+	err := r.CopyFromContainer(src, dest, srcPath, destPath, extract, pause, ctr)
+	if err != nil {
+		return errors.Wrapf(err, "error copying %s to remote %s, ", srcPath, destPath)
+	}
+	return err
+}
+
+// CopyTo calls the varlink api to copy files to remote container
+func (r *LocalRuntime) CopyTo(src string, srcFromInput string, destPath string, extract bool, pause bool, ctrNameorId string) error {
+	srcPath, err := filepath.EvalSymlinks(src)
+	if err != nil {
+		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
+	}
+	srcPath, srcfi, err := util.GetPathInfo(srcPath)
+	if err != nil {
+		return err
+	}
+
+	// tar up the source file and send it to remote path tempFile
+	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
+	if err != nil {
+		return err
+	}
+	if err := utils.TarToFilesystem(srcPath, outputFile); err != nil {
+		return err
+	}
+	tempFile, err := r.SendFileOverVarlink(outputFile.Name())
+	if err != nil {
+		return err
+	}
+	// conbine the tempFile path with the file name, use it as varlink api argument target filename
+	// /tmp/varlink_send/filename/.
+	pathSendToRemote := filepath.Join(tempFile, filepath.Base(srcPath))
+
+	if strings.HasSuffix(srcFromInput, "/.") {
+		pathSendToRemote = fmt.Sprintf("%s/.", pathSendToRemote)
+	} else if strings.HasSuffix(srcFromInput, string(os.PathSeparator)) {
+		pathSendToRemote = fmt.Sprintf("%s%s", pathSendToRemote, string(os.PathSeparator))
+	}
+
+	reply, err := iopodman.CopyTo().Send(r.Conn, varlink.More, "remote", pathSendToRemote, int64(srcfi.Mode()), destPath, extract, pause, ctrNameorId)
+	if err != nil {
+		return errors.Wrapf(err, "varlink call CopyTo error copying %s to remote %s", srcPath, destPath)
+	}
+	_, _, err = reply()
+	return err
+}
+
+// CopyFrom handles podman-remote cp to copy file from remote container to local file system
+// gets file from remote container and copies to local file system
+func (r *LocalRuntime) CopyFromContainer(srcFromInput string, destFromInput string, srcPath string, destPath string, extract, pause bool, ctr *Container) error {
+	hostOwner := idtools.IDPair{UID: os.Getuid(), GID: os.Getuid()}
+
+	archiver := archive.NewDefaultArchiver()
+	copyFileWithTar := archiver.CopyFileWithTar
+	untarPath := func(src, dst string) error {
+		srcArchive, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		defer srcArchive.Close()
+		return archiver.Untar(srcArchive, dst, &archive.TarOptions{NoLchown: true})
+	}
+
+	// resolve absolute destPath
+	if !filepath.IsAbs(destPath) {
+		dir, err := os.Getwd()
+		if err != nil {
+			return errors.Wrapf(err, "err getting current working directory")
+		}
+		destPath = filepath.Join(dir, destPath)
+	}
+
+	receivePath, err := r.CopyFrom(srcFromInput, destFromInput, srcPath, destPath, extract, pause, ctr)
+	if err != nil {
+		return errors.Wrapf(err, "error getting remote source filepath")
+	}
+
+	// parse receivePath path /tmp/varlink_tar_receivee/filename/filemode
+	filemodeStr := filepath.Base(filepath.Clean(receivePath))
+	tempFilename := strings.TrimSuffix(filepath.Clean(receivePath), filemodeStr)
+	filename := filepath.Base(filepath.Clean(tempFilename))
+	remoteTempFile := filepath.Dir(filepath.Clean(tempFilename))
+
+	filemode, err := strconv.Atoi(filemodeStr)
+	if err != nil {
+		return errors.Wrapf(err, "error convert filemode %s", filemodeStr)
+	}
+	// gets file using varlink api
+	receiveFile, err := ioutil.TempFile("", "varlink_tar_receive")
+	if err != nil {
+		return err
+	}
+	err = r.GetFileFromRemoteHost(remoteTempFile, receiveFile.Name(), false)
+	if err != nil {
+		return errors.Wrapf(err, "error receiving file %s from remote", remoteTempFile)
+	}
+
+	mode := os.FileMode(filemode)
+	srcIsDir := mode.IsDir()
+
+	logrus.Debugf("Copy files %s from container  to %s, ", receiveFile.Name(), destPath)
+	_, err = util.CopyRemote(filename, srcFromInput, receiveFile.Name(), destFromInput, destPath, srcIsDir, &hostOwner, untarPath, copyFileWithTar, extract)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// CopyFrom calls the varlink api
+func (r *LocalRuntime) CopyFrom(srcFromInput string, destFromInput string, srcPath string, destPath string, extract, pause bool, ctr *Container) (string, error) {
+	reply, err := iopodman.CopyFrom().Send(r.Conn, varlink.Upgrade, "remote", srcPath, 0600, destPath, extract, pause, ctr.ID())
+	if err != nil {
+		return "", err
+	}
+	receivePath, _, err := reply()
+	if err != nil {
+		return "", errors.Wrapf(err, "error receiving remote source filepath")
+	}
+	return receivePath, nil
 }

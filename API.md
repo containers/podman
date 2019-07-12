@@ -29,6 +29,10 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ContainerStateData(name: string) string](#ContainerStateData)
 
+[func CopyFrom(dest: string, srcPath: string, srcfMode: int, destPath: string, extract: bool, pause: bool, ctrNameorId: string) string](#CopyFrom)
+
+[func CopyTo(src: string, srcPath: string, srcfMode: int, destPath: string, extract: bool, pause: bool, ctrNameorId: string) string](#CopyTo)
+
 [func CreateContainer(create: Create) string](#CreateContainer)
 
 [func CreateFromCC(in: []string) string](#CreateFromCC)
@@ -414,6 +418,34 @@ ContainerRunlabel runs executes a command as described by a given container imag
 method ContainerStateData(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
 ContainerStateData returns a container's state config in string form.  This call is for
 development of Podman only and generally should not be used.
+### <a name="CopyFrom"></a>func CopyFrom
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method CopyFrom(dest: [string](https://godoc.org/builtin#string), srcPath: [string](https://godoc.org/builtin#string), srcfMode: [int](https://godoc.org/builtin#int), destPath: [string](https://godoc.org/builtin#string), extract: [bool](https://godoc.org/builtin#bool), pause: [bool](https://godoc.org/builtin#bool), ctrNameorId: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+CopyFrom copies a file from the srcPath inside the container to the destPath of local filesystem. ctrNameorId specifies the container name or ID
+If extract is true, it will extract the tar archive to the destPath. If pause is true, it will pause a running container when copying.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.CopyFrom '{"dest": "local", "srcPath": "/ctrf", "srcfMode": 0600, "destPath": "/home/qiwan/Documents/ctrfile", "extract": false, "pause": true, "ctrNameorId": "de3f"}'
+{
+  "path": [
+    "/home/qiwan/Documents/ctrfile"
+  ]
+}
+~~~
+### <a name="CopyTo"></a>func CopyTo
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method CopyTo(src: [string](https://godoc.org/builtin#string), srcPath: [string](https://godoc.org/builtin#string), srcfMode: [int](https://godoc.org/builtin#int), destPath: [string](https://godoc.org/builtin#string), extract: [bool](https://godoc.org/builtin#bool), pause: [bool](https://godoc.org/builtin#bool), ctrNameorId: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+CopyTo copies a file or folder from the srcPath to the destPath inside the container. ctrNameorId specifies the container name or ID
+If extract is true, it will extract the tar archive to the destPath. If pause is true, it will pause a running container when copying.
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.CopyTo '{"src": "local", "srcPath": "/home/qiwan/Documents/f1.tar", "srcfMode":0600, "destPath": "/archivef", "extract":true, "pause": true, "ctrNameorId": "de3f"}'
+{
+  "path": "/var/lib/containers/storage/overlay/e451e85006f6215f805b33257b2bea8dad60ab390af758060af0587f345bdfb2/merged/archivef"
+}
+~~~
 ### <a name="CreateContainer"></a>func CreateContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

@@ -1,7 +1,9 @@
 package util
 
 import (
+	"archive/tar"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -10,14 +12,18 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -439,4 +445,182 @@ func ExitCode(err error) int {
 	}
 
 	return 126
+}
+
+// GetPathInfo evaluates the symlink of path and returns the info
+func GetPathInfo(path string) (string, os.FileInfo, error) {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "error evaluating symlinks %q", path)
+	}
+	srcfi, err := os.Stat(path)
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "error reading path %q", path)
+	}
+	return path, srcfi, nil
+}
+
+// ConvertIDMap converts the idtools.IDMap to specs.LinuxIDMapping
+func ConvertIDMap(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxIDMapping) {
+	for _, idmap := range idMaps {
+		tempIDMap := specs.LinuxIDMapping{
+			ContainerID: uint32(idmap.ContainerID),
+			HostID:      uint32(idmap.HostID),
+			Size:        uint32(idmap.Size),
+		}
+		convertedIDMap = append(convertedIDMap, tempIDMap)
+	}
+	return convertedIDMap
+}
+
+// GetUser gets the user of the userspec from the mountPoint
+func GetUser(mountPoint string, userspec string) (specs.User, error) {
+	uid, gid, _, err := chrootuser.GetUser(mountPoint, userspec)
+	u := specs.User{
+		UID:      uid,
+		GID:      gid,
+		Username: userspec,
+	}
+	if !strings.Contains(userspec, ":") {
+		groups, err2 := chrootuser.GetAdditionalGroupsForUser(mountPoint, uint64(u.UID))
+		if err2 != nil {
+			if errors.Cause(err2) != chrootuser.ErrNoSuchUser && err == nil {
+				err = err2
+			}
+		} else {
+			u.AdditionalGids = groups
+		}
+
+	}
+	return u, err
+}
+
+// StreamFileToStdout streams a tar archive from srcPath to STDOUT
+func StreamFileToStdout(srcPath string, srcfi os.FileInfo) error {
+	if srcfi.IsDir() {
+		tw := tar.NewWriter(os.Stdout)
+		defer tw.Close()
+		err := filepath.Walk(srcPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil || !info.Mode().IsRegular() || path == srcPath {
+				return err
+			}
+			hdr, err := tar.FileInfoHeader(info, "")
+			if err != nil {
+				return err
+			}
+
+			if err = tw.WriteHeader(hdr); err != nil {
+				return err
+			}
+			fh, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer fh.Close()
+
+			_, err = io.Copy(tw, fh)
+			return err
+		})
+		if err != nil {
+			return errors.Wrapf(err, "error streaming directory %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	file, err := os.Open(srcPath)
+	if err != nil {
+		return errors.Wrapf(err, "error opening file %s", srcPath)
+	}
+	defer file.Close()
+	if !archive.IsArchivePath(srcPath) {
+		tw := tar.NewWriter(os.Stdout)
+		defer tw.Close()
+		hdr, err := tar.FileInfoHeader(srcfi, "")
+		if err != nil {
+			return err
+		}
+		err = tw.WriteHeader(hdr)
+		if err != nil {
+			return err
+		}
+		_, err = io.Copy(tw, file)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming archive %s to Stdout", srcPath)
+		}
+		return nil
+	}
+
+	_, err = io.Copy(os.Stdout, file)
+	if err != nil {
+		return errors.Wrapf(err, "error streaming file to Stdout")
+	}
+	return nil
+}
+
+// CopyRemote copies files(transferred by varlink) from srcFilePath to cleanDestPath.
+func CopyRemote(srcFilename string, srcFromInput string, srcFilePath string, destFromInput string, cleanDestPath string, srcIsDir bool, chownOpts *idtools.IDPair, untarPath, copyFileWithTar func(src, dest string) error, extract bool) (string, error) {
+	destdir := cleanDestPath
+	if !srcIsDir {
+		destdir = filepath.Dir(cleanDestPath)
+	}
+	_, err := os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	// needs destDirIsExist to generate destination path
+	destDirIsExist := (err == nil)
+
+	if err = os.MkdirAll(destdir, 0755); err != nil {
+		return "", errors.Wrapf(err, "error creating directory %q", destdir)
+	}
+
+	if srcIsDir {
+		destPath := cleanDestPath
+		if destDirIsExist && !strings.HasSuffix(srcFromInput, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(destPath, srcFilename)
+		}
+		if err := untarPath(srcFilePath, destPath); err != nil {
+			return "", errors.Wrapf(err, "error untarring %q to %q", srcFilePath, destPath)
+		}
+		return destPath, nil
+	}
+
+	// untar tempFile under os.TempDir() if the source is a file
+	tempTarball, err := os.Open(srcFilePath)
+	if err != nil {
+		return "", errors.Wrapf(err, "error opening temp file %s", srcFilePath)
+	}
+	defer tempTarball.Close()
+
+	err = utils.UntarToFileSystem(os.TempDir(), tempTarball, &archive.TarOptions{ChownOpts: chownOpts})
+	if err != nil {
+		return "", errors.Wrapf(err, "error untarring the temp file %s", srcFilePath)
+	}
+	srcFilePath = filepath.Join(os.TempDir(), srcFilename)
+
+	if archive.IsArchivePath(srcFilePath) && extract {
+		if err := untarPath(srcFilePath, cleanDestPath); err != nil {
+			return "", errors.Wrapf(err, "error copying %q to %q", srcFilePath, cleanDestPath)
+		}
+		return cleanDestPath, nil
+	}
+
+	// generates the destination path if source file is a single file or an archive
+	destfi, err := os.Stat(cleanDestPath)
+	if err != nil {
+		if !os.IsNotExist(err) || strings.HasSuffix(destFromInput, string(os.PathSeparator)) {
+			logrus.Debugf("error copying %s to remote %s : %q", srcFilePath, destFromInput, err)
+			return "", errors.Wrapf(err, "failed to get stat of dest path %s", cleanDestPath)
+		}
+	}
+	destPath := cleanDestPath
+	if destfi != nil && destfi.IsDir() {
+		destPath = filepath.Join(cleanDestPath, srcFilename)
+	}
+
+	err = copyFileWithTar(srcFilePath, destPath)
+	if err != nil {
+		return "", errors.Wrapf(err, "error copying to %s", destPath)
+	}
+	return destPath, nil
 }

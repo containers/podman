@@ -54,12 +54,12 @@ github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 # github.com/containers/buildah v1.11.3
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
-github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/formats
-github.com/containers/buildah/util
 github.com/containers/buildah/pkg/secrets
+github.com/containers/buildah/util
 github.com/containers/buildah/pkg/parse
+github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
 github.com/containers/buildah/docker
@@ -119,13 +119,13 @@ github.com/containers/psgo/internal/host
 # github.com/containers/storage v1.13.5
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
-github.com/containers/storage/pkg/chrootarchive
-github.com/containers/storage/pkg/idtools
 github.com/containers/storage/pkg/reexec
+github.com/containers/storage/pkg/idtools
 github.com/containers/storage/pkg/mount
 github.com/containers/storage/pkg/stringid
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/truncindex
+github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/parsers/kernel
 github.com/containers/storage/pkg/fileutils
 github.com/containers/storage/pkg/ioutils

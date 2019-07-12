@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -16,6 +17,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	utils "github.com/containers/buildah/util"
 	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -26,9 +28,16 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/systemdgen"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/psgo"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	digest "github.com/opencontainers/go-digest"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -1287,4 +1296,307 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		return "", err
 	}
 	return newImage.ID(), nil
+}
+
+// CopyBetweenHostAndContainer copies files/folder from path in src to path in dest
+func (r *LocalRuntime) CopyBetweenHostAndContainer(src string, dest string, extract, pause bool) error {
+
+	srcCtr, srcPath := r.ParsePath(src)
+	destCtr, destPath := r.ParsePath(dest)
+
+	if (srcCtr == nil && destCtr == nil) || (srcCtr != nil && destCtr != nil) {
+		return errors.Errorf("invalid arguments %s, %s you must use just one container", src, dest)
+	}
+
+	if len(srcPath) == 0 || len(destPath) == 0 {
+		return errors.Errorf("invalid arguments %s, %s you must specify paths", src, dest)
+	}
+	ctr := srcCtr
+	isFromHostToCtr := ctr == nil
+	if isFromHostToCtr {
+		ctr = destCtr
+	}
+
+	mountPoint, err := ctr.Mount()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err := ctr.Unmount(false); err != nil {
+			logrus.Errorf("unable to umount container '%s': %q", ctr.ID(), err)
+		}
+	}()
+	// We can't pause rootless containers.
+	if pause && rootless.IsRootless() {
+		state, err := ctr.State()
+		if err != nil {
+			return err
+		}
+		if state == define.ContainerStateRunning {
+			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
+		}
+	}
+
+	if pause && !rootless.IsRootless() {
+		if err := ctr.Pause(); err != nil {
+			// An invalid state error is fine.
+			// The container isn't running or is already paused.
+			// TODO: We can potentially start the container while
+			// the copy is running, which still allows a race where
+			// malicious code could mess with the symlink.
+			if errors.Cause(err) != define.ErrCtrStateInvalid {
+				return err
+			}
+		} else {
+			// Only add the defer if we actually paused
+			defer func() {
+				if err := ctr.Unpause(); err != nil {
+					logrus.Errorf("Error unpausing container after copying: %v", err)
+				}
+			}()
+		}
+	}
+	user, err := util.GetUser(mountPoint, ctr.User())
+	if err != nil {
+		return err
+	}
+	idMappingOpts, err := ctr.IDMappings()
+	if err != nil {
+		return errors.Wrapf(err, "error getting IDMappingOptions")
+	}
+	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	hostUID, hostGID, err := utils.GetHostIDs(util.ConvertIDMap(idMappingOpts.UIDMap), util.ConvertIDMap(idMappingOpts.GIDMap), user.UID, user.GID)
+	if err != nil {
+		return err
+	}
+
+	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
+
+	if isFromHostToCtr {
+		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol {
+			path, err := pathWithVolumeMount(ctr, r.Runtime, volDestName, volName, destPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting destination path from volume %s", volDestName)
+			}
+			destPath = path
+		} else if isBindMount, mount := isBindMountDestName(destPath, ctr); isBindMount {
+			path, err := pathWithBindMountSource(mount, destPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting destination path from bind mount %s", mount.Destination)
+			}
+			destPath = path
+		} else if filepath.IsAbs(destPath) {
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
+
+		} else {
+			ctrWorkDir, err := securejoin.SecureJoin(mountPoint, ctr.WorkingDir())
+			if err != nil {
+				return err
+			}
+			if err = idtools.MkdirAllAndChownNew(ctrWorkDir, 0755, hostOwner); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", destPath)
+			}
+			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), destPath))
+			if err != nil {
+				return err
+			}
+			destPath = cleanedPath
+		}
+	} else {
+		destOwner = idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
+		var err error
+		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol {
+			srcPath, err = pathWithVolumeMount(ctr, r.Runtime, volDestName, volName, srcPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source path from volume %s", volDestName)
+			}
+		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount {
+			srcPath, err = pathWithBindMountSource(mount, srcPath)
+			if err != nil {
+				return errors.Wrapf(err, "error getting source path from bind mount %s", mount.Destination)
+			}
+		} else if filepath.IsAbs(srcPath) {
+			srcPath, err = securejoin.SecureJoin(mountPoint, srcPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			srcPath, err = securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), srcPath))
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if !filepath.IsAbs(destPath) {
+		dir, err := os.Getwd()
+		if err != nil {
+			return errors.Wrapf(err, "err getting current working directory")
+		}
+		destPath = filepath.Join(dir, destPath)
+	}
+
+	if src == "-" {
+		srcPath = os.Stdin.Name()
+		extract = true
+	}
+	return r.Copy(srcPath, destPath, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
+}
+
+// ParsePath parses the input of cp command returns the path and the container
+func (r *LocalRuntime) ParsePath(path string) (*Container, string) {
+	pathArr := strings.SplitN(path, ":", 2)
+	if len(pathArr) == 2 {
+		ctr, err := r.Runtime.LookupContainer(pathArr[0])
+		if err == nil {
+			Container := Container{}
+			Container.Container = ctr
+			return &Container, pathArr[1]
+		}
+	}
+	return nil, path
+}
+
+// Copy copies fils/folder from src to destPath used by podman cp command.
+func (r *LocalRuntime) Copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
+	srcPath, err := filepath.EvalSymlinks(src)
+	if err != nil {
+		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
+	}
+
+	srcPath, srcfi, err := util.GetPathInfo(srcPath)
+	if err != nil {
+		return err
+	}
+
+	if dest == "-" && !isFromHostToCtr {
+		logrus.Debugf("streaming source file %s to STDOUT", srcPath)
+		err := util.StreamFileToStdout(srcPath, srcfi)
+		if err != nil {
+			return errors.Wrapf(err, "error streaming source file %s to STDOUT", srcPath)
+		}
+		return nil
+	}
+
+	destdir := destPath
+	if !srcfi.IsDir() {
+		destdir = filepath.Dir(destPath)
+	}
+	_, err = os.Stat(destdir)
+	if err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error checking directory %q", destdir)
+	}
+	destDirIsExist := err == nil
+	if err = os.MkdirAll(destdir, 0755); err != nil {
+		return errors.Wrapf(err, "error creating directory %q", destdir)
+	}
+
+	// return functions for copying items
+	copyFileWithTar := chrootarchive.CopyFileWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	copyWithTar := chrootarchive.CopyWithTarAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+	untarPath := chrootarchive.UntarPathAndChown(chownOpts, digest.Canonical.Digester().Hash(), idMappingOpts.UIDMap, idMappingOpts.GIDMap)
+
+	if srcfi.IsDir() {
+		logrus.Debugf("copying %q to %q", srcPath+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
+		if destDirIsExist && !strings.HasSuffix(src, fmt.Sprintf("%s.", string(os.PathSeparator))) {
+			destPath = filepath.Join(destPath, filepath.Base(srcPath))
+		}
+		if err = copyWithTar(srcPath, destPath); err != nil {
+			return errors.Wrapf(err, "error copying %q to %q", srcPath, dest)
+		}
+		return nil
+	}
+
+	if extract {
+		// We're extracting an archive into the destination directory.
+		logrus.Debugf("extracting contents of %q into %q", srcPath, destPath)
+		if err = untarPath(srcPath, destPath); err != nil {
+			return errors.Wrapf(err, "error extracting %q into %q", srcPath, destPath)
+		}
+		return nil
+	}
+
+	destfi, err := os.Stat(destPath)
+	if err != nil {
+		if !os.IsNotExist(err) || strings.HasSuffix(dest, string(os.PathSeparator)) {
+			return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
+		}
+	}
+	if destfi != nil && destfi.IsDir() {
+		destPath = filepath.Join(destPath, filepath.Base(srcPath))
+	}
+	logrus.Debugf("copying %q to %q", srcPath, destPath)
+	if err = copyFileWithTar(srcPath, destPath); err != nil {
+		return errors.Wrapf(err, "error copying %q to %q", srcPath, destPath)
+	}
+	return nil
+}
+
+func isVolumeDestName(path string, ctr *Container) (bool, string, string) {
+	separator := string(os.PathSeparator)
+	if filepath.IsAbs(path) {
+		path = strings.TrimPrefix(path, separator)
+	}
+	if path == "" {
+		return false, "", ""
+	}
+	for _, vol := range ctr.Config().NamedVolumes {
+		volNamePath := strings.TrimPrefix(vol.Dest, separator)
+		if matchVolumePath(path, volNamePath) {
+			return true, vol.Dest, vol.Name
+		}
+	}
+	return false, "", ""
+}
+
+// if SRCPATH or DESTPATH is from volume mount's destination -v or --mount type=volume, generates the path with volume mount point
+func pathWithVolumeMount(ctr *Container, runtime *libpod.Runtime, volDestName, volName, path string) (string, error) {
+	destVolume, err := runtime.GetVolume(volName)
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting volume destination %s", volName)
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(string(os.PathSeparator), path)
+	}
+	path, err = securejoin.SecureJoin(destVolume.MountPoint(), strings.TrimPrefix(path, volDestName))
+	return path, err
+}
+
+func isBindMountDestName(path string, ctr *Container) (bool, specs.Mount) {
+	separator := string(os.PathSeparator)
+	if filepath.IsAbs(path) {
+		path = strings.TrimPrefix(path, string(os.PathSeparator))
+	}
+	if path == "" {
+		return false, specs.Mount{}
+	}
+	for _, m := range ctr.Config().Spec.Mounts {
+		if m.Type != "bind" {
+			continue
+		}
+		mDest := strings.TrimPrefix(m.Destination, separator)
+		if matchVolumePath(path, mDest) {
+			return true, m
+		}
+	}
+	return false, specs.Mount{}
+}
+
+func matchVolumePath(path, target string) bool {
+	pathStr := filepath.Clean(path)
+	target = filepath.Clean(target)
+	for len(pathStr) > len(target) && strings.Contains(pathStr, string(os.PathSeparator)) {
+		pathStr = pathStr[:strings.LastIndex(pathStr, string(os.PathSeparator))]
+	}
+	return pathStr == target
+}
+
+func pathWithBindMountSource(m specs.Mount, path string) (string, error) {
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(string(os.PathSeparator), path)
+	}
+	return securejoin.SecureJoin(m.Source, strings.TrimPrefix(path, m.Destination))
 }
