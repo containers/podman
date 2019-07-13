@@ -750,21 +750,21 @@ USER mail`
 	})
 
 	It("podman run with bad healthcheck retries", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "foo", "--healthcheck-retries", "0", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "[\"foo\"]", "--healthcheck-retries", "0", ALPINE, "top"})
 		session.Wait()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("healthcheck-retries must be greater than 0"))
 	})
 
 	It("podman run with bad healthcheck timeout", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "foo", "--healthcheck-timeout", "0s", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "[\"foo\"]", "--healthcheck-timeout", "0s", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("healthcheck-timeout must be at least 1 second"))
 	})
 
 	It("podman run with bad healthcheck start-period", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "foo", "--healthcheck-start-period", "-1s", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--healthcheck-command", "[\"foo\"]", "--healthcheck-start-period", "-1s", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).ToNot(Equal(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("healthcheck-start-period must be 0 seconds or greater"))
