@@ -95,7 +95,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck should be starting", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "\"CMD-SHELL ls /foo || exit 1\"", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		inspect := podmanTest.InspectContainer("hc")
@@ -103,7 +103,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck failed checks in start-period should not change status", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-start-period", "2m", "--healthcheck-retries", "2", "--healthcheck-command", "\"CMD-SHELL ls /foo || exit 1\"", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-start-period", "2m", "--healthcheck-retries", "2", "--healthcheck-command", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -124,7 +124,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck failed checks must reach retries before unhealthy ", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "\"CMD-SHELL ls /foo || exit 1\"", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -145,7 +145,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck good check results in healthy even in start-period", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-start-period", "2m", "--healthcheck-retries", "2", "--healthcheck-command", "\"CMD-SHELL\" \"ls\" \"||\" \"exit\" \"1\"", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-start-period", "2m", "--healthcheck-retries", "2", "--healthcheck-command", "ls || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -158,7 +158,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman healthcheck single healthy result changes failed to healthy", func() {
-		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "\"CMD-SHELL\" \"ls\" \"/foo\" \"||\" \"exit\" \"1\"", ALPINE, "top"})
+		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", "--healthcheck-retries", "2", "--healthcheck-command", "ls /foo || exit 1", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
