@@ -4,7 +4,6 @@ package hooks
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -137,27 +136,4 @@ func (m *Manager) Hooks(config *rspec.Spec, annotations map[string]string, hasBi
 	}
 
 	return extensionStageHooks, nil
-}
-
-// remove remove a hook by name.
-func (m *Manager) remove(hook string) (ok bool) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	_, ok = m.hooks[hook]
-	if ok {
-		delete(m.hooks, hook)
-	}
-	return ok
-}
-
-// add adds a hook by path
-func (m *Manager) add(path string) (err error) {
-	m.lock.Lock()
-	defer m.lock.Unlock()
-	hook, err := Read(path, m.extensionStages)
-	if err != nil {
-		return err
-	}
-	m.hooks[filepath.Base(path)] = hook
-	return nil
 }
