@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
@@ -75,6 +76,16 @@ func createInit(c *cliconfig.PodmanCommand) error {
 
 	if c.IsSet("privileged") && c.IsSet("security-opt") {
 		logrus.Warn("setting security options with --privileged has no effect")
+	}
+
+	var setNet string
+	if c.IsSet("network") {
+		setNet = c.String("network")
+	} else if c.IsSet("net") {
+		setNet = c.String("net")
+	}
+	if (c.IsSet("dns") || c.IsSet("dns-opt") || c.IsSet("dns-search")) && (setNet == "none" || strings.HasPrefix(setNet, "container:")) {
+		return errors.Errorf("conflicting options: dns and the network mode.")
 	}
 
 	// Docker-compatibility: the "-h" flag for run/create is reserved for

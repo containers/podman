@@ -214,7 +214,7 @@ Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:
 
 **--dns**=*dns*
 
-Set custom DNS servers
+Set custom DNS servers. Invalid if using **--dns** and **--network** that is set to 'none' or 'container:<name|id>'.
 
 This option can be used to override the DNS
 configuration passed to the container. Typically this is necessary when the
@@ -226,11 +226,11 @@ The **/etc/resolv.conf** file in the image will be used without changes.
 
 **--dns-option**=*option*
 
-Set custom DNS options
+Set custom DNS options. Invalid if using **--dns-option** and **--network** that is set to 'none' or 'container:<name|id>'.
 
 **--dns-search**=*domain*
 
-Set custom DNS search domains (Use --dns-search=. if you don't wish to set the search domain)
+Set custom DNS search domains. Invalid if using **--dns-search** and **--network** that is set to 'none' or 'container:<name|id>'. (Use --dns-search=. if you don't wish to set the search domain)
 
 **--entrypoint**=*"command"* | *'["command", "arg1", ...]'*
 
@@ -499,7 +499,7 @@ This works for both background and foreground containers.
 
 **--network**, **--net**="*bridge*"
 
-Set the Network mode for the container
+Set the Network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
                 'bridge': create a network stack on the default bridge
                 'none': no networking
                 'container:<name|id>': reuse another container's network stack
