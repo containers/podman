@@ -26,7 +26,6 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
-	"github.com/google/shlex"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -788,9 +787,12 @@ func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig
 		return nil, errors.New("Must define a healthcheck command for all healthchecks")
 	}
 
-	cmd, err := shlex.Split(inCommand)
+	// first try to parse option value as JSON array of strings...
+	cmd := []string{}
+	err := json.Unmarshal([]byte(inCommand), &cmd)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse healthcheck command")
+		// ...otherwise pass it to "/bin/sh -c" inside the container
+		cmd = []string{"CMD-SHELL", inCommand}
 	}
 	hc := manifest.Schema2HealthConfig{
 		Test: cmd,
