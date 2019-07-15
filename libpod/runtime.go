@@ -854,39 +854,20 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
 	} else {
-		store, err = storage.GetStore(runtime.config.StorageConfig)
-		if err != nil {
+		if err := runtime.configureStore(); err != nil {
 			return err
 		}
-		err = nil
-
-		defer func() {
-			if err != nil && store != nil {
-				// Don't forcibly shut down
-				// We could be opening a store in use by another libpod
-				_, err2 := store.Shutdown(false)
-				if err2 != nil {
-					logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
-				}
-			}
-		}()
 	}
-
-	runtime.store = store
-	is.Transport.SetStore(store)
-
-	// Set up image runtime and store in runtime
-	ir := image.NewImageRuntimeFromStore(runtime.store)
-
-	runtime.imageRuntime = ir
-
-	// Setting signaturepolicypath
-	ir.SignaturePolicyPath = runtime.config.SignaturePolicyPath
-
-	// Set logfile path for events
-	ir.EventsLogFilePath = runtime.config.EventsLogFilePath
-	// Set logger type
-	ir.EventsLogger = runtime.config.EventsLogger
+	defer func() {
+		if err != nil && store != nil {
+			// Don't forcibly shut down
+			// We could be opening a store in use by another libpod
+			_, err2 := store.Shutdown(false)
+			if err2 != nil {
+				logrus.Errorf("Error removing store for partially-created runtime: %s", err2)
+			}
+		}
+	}()
 
 	// Setup the eventer
 	eventer, err := runtime.newEventer()
@@ -894,7 +875,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		return err
 	}
 	runtime.eventer = eventer
-	ir.Eventer = eventer
+	if runtime.imageRuntime != nil {
+		runtime.imageRuntime.Eventer = eventer
+	}
 
 	// Set up a storage service for creating container root filesystems from
 	// images
@@ -1125,6 +1108,13 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
+		// Ensure we have a store before refresh occurs
+		if runtime.store == nil {
+			if err := runtime.configureStore(); err != nil {
+				return err
+			}
+		}
+
 		if err2 := runtime.refresh(runtimeAliveFile); err2 != nil {
 			return err2
 		}
@@ -1330,7 +1320,29 @@ func (r *Runtime) generateName() (string, error) {
 	// The code should never reach here.
 }
 
-// ImageRuntime returns the imageruntime for image resolution
+// Configure store and image runtime
+func (r *Runtime) configureStore() error {
+	store, err := storage.GetStore(r.config.StorageConfig)
+	if err != nil {
+		return err
+	}
+
+	r.store = store
+	is.Transport.SetStore(store)
+
+	ir := image.NewImageRuntimeFromStore(r.store)
+	ir.SignaturePolicyPath = r.config.SignaturePolicyPath
+	ir.EventsLogFilePath = r.config.EventsLogFilePath
+	ir.EventsLogger = r.config.EventsLogger
+
+	r.imageRuntime = ir
+
+	return nil
+}
+
+// ImageRuntime returns the imageruntime for image operations.
+// If WithNoStore() was used, no image runtime will be available, and this
+// function will return nil.
 func (r *Runtime) ImageRuntime() *image.Runtime {
 	return r.imageRuntime
 }
