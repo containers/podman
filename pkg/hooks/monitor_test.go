@@ -226,7 +226,28 @@ func TestMonitorTwoDirGood(t *testing.T) {
 		assert.Equal(t, primaryInjected, config.Hooks) // masked by primary
 	})
 
-	t.Run("bad-primary-addition", func(t *testing.T) {
+	primaryPath2 := filepath.Join(primaryDir, "0a.json") //0a because it will be before a.json alphabetically
+
+	t.Run("bad-primary-new-addition", func(t *testing.T) {
+		err = ioutil.WriteFile(primaryPath2, []byte("{\"version\": \"-1\"}"), 0644)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		time.Sleep(100 * time.Millisecond) // wait for monitor to notice
+
+		config := &rspec.Spec{}
+		fmt.Println("expected: ", config.Hooks)
+		expected := primaryInjected // 0a.json is bad, a.json is still good
+		_, err = manager.Hooks(config, map[string]string{}, false)
+		fmt.Println("actual: ", config.Hooks)
+		if err != nil {
+			t.Fatal(err)
+		}
+		assert.Equal(t, expected, config.Hooks)
+	})
+
+	t.Run("bad-primary-same-addition", func(t *testing.T) {
 		err = ioutil.WriteFile(primaryPath, []byte("{\"version\": \"-1\"}"), 0644)
 		if err != nil {
 			t.Fatal(err)
@@ -235,7 +256,7 @@ func TestMonitorTwoDirGood(t *testing.T) {
 		time.Sleep(100 * time.Millisecond) // wait for monitor to notice
 
 		config := &rspec.Spec{}
-		expected := config.Hooks
+		expected := fallbackInjected
 		_, err = manager.Hooks(config, map[string]string{}, false)
 		if err != nil {
 			t.Fatal(err)
