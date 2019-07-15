@@ -268,6 +268,11 @@ type InspectContainerHostConfig struct {
 	// populated.
 	// TODO.
 	Cgroup string `json:"Cgroup"`
+	// Cgroups contains the container's CGroup mode.
+	// Allowed values are "default" (container is creating CGroups) and
+	// "disabled" (container is not creating CGroups).
+	// This is Libpod-specific and not included in `docker inspect`.
+	Cgroups string `json:"Cgroups"`
 	// Links is unused, and provided purely for Docker compatibility.
 	Links []string `json:"Links"`
 	// OOMScoreAdj is an adjustment that will be made to the container's OOM
@@ -958,6 +963,11 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	restartPolicy.Name = c.config.RestartPolicy
 	restartPolicy.MaximumRetryCount = c.config.RestartRetries
 	hostConfig.RestartPolicy = restartPolicy
+	if c.config.NoCgroups {
+		hostConfig.Cgroups = "disabled"
+	} else {
+		hostConfig.Cgroups = "default"
+	}
 
 	hostConfig.Dns = make([]string, 0, len(c.config.DNSServer))
 	for _, dns := range c.config.DNSServer {

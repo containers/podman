@@ -64,6 +64,7 @@ type CreateConfig struct {
 	CidFile            string
 	ConmonPidFile      string
 	Cgroupns           string
+	Cgroups            string
 	CgroupParent       string            // cgroup-parent
 	Command            []string          // Full command that will be used
 	UserCommand        []string          // User-entered command (or image CMD)
@@ -205,6 +206,9 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.Pod != "" {
 		logrus.Debugf("adding container to pod %s", c.Pod)
 		options = append(options, runtime.WithPod(pod))
+	}
+	if c.Cgroups == "disabled" {
+		options = append(options, libpod.WithNoCgroups())
 	}
 	if len(c.PortBindings) > 0 {
 		portBindings, err = c.CreatePortBindings()

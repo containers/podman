@@ -61,6 +61,10 @@ var (
 	// the user.
 	ErrDetach = utils.ErrDetach
 
+	// ErrNoCgroups indicates that the container does not have its own
+	// CGroup.
+	ErrNoCgroups = errors.New("this container does not have a cgroup")
+
 	// ErrRuntimeStopped indicates that the runtime has already been shut
 	// down and no further operations can be performed on it
 	ErrRuntimeStopped = errors.New("runtime has already been stopped")

@@ -45,6 +45,7 @@ case "$SPECIALMODE" in
         export OCI_RUNTIME=/usr/bin/crun
         make
         make install PREFIX=/usr ETCDIR=/etc
+        make install.config PREFIX=/usr
         make test-binaries
         make local${TESTSUITE}
         ;;
@@ -57,6 +58,7 @@ case "$SPECIALMODE" in
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc
+        make install.config PREFIX=/usr
         make test-binaries
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then

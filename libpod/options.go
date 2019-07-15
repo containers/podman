@@ -847,6 +847,10 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
 		}
 
+		if ctr.config.NoCgroups {
+			return errors.Wrapf(define.ErrInvalidArg, "container has disabled creation of CGroups, which is incompatible with sharing a PID namespace")
+		}
+
 		ctr.config.PIDNsCtr = nsCtr.ID()
 
 		return nil
@@ -1056,6 +1060,27 @@ func WithLogPath(path string) CtrCreateOption {
 	}
 }
 
+// WithNoCgroups disables the creation of CGroups for the new container.
+func WithNoCgroups() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		if ctr.config.CgroupParent != "" {
+			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups conflicts with CgroupParent")
+		}
+
+		if ctr.config.PIDNsCtr != "" {
+			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups requires a private PID namespace and cannot be used when PID namespace is shared with another container")
+		}
+
+		ctr.config.NoCgroups = true
+
+		return nil
+	}
+}
+
 // WithCgroupParent sets the Cgroup Parent of the new container.
 func WithCgroupParent(parent string) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1065,6 +1090,10 @@ func WithCgroupParent(parent string) CtrCreateOption {
 
 		if parent == "" {
 			return errors.Wrapf(define.ErrInvalidArg, "cgroup parent cannot be empty")
+		}
+
+		if ctr.config.NoCgroups {
+			return errors.Wrapf(define.ErrInvalidArg, "CgroupParent conflicts with NoCgroups")
 		}
 
 		ctr.config.CgroupParent = parent

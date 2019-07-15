@@ -87,6 +87,12 @@ Set the cgroup namespace mode for the container, by default **host** is used.
     **private**: create a new cgroup namespace.
     **ns:<PATH>**: join the namespace at the specified path.
 
+**--cgroups**=*mode*
+
+Determines whether the container will create CGroups.
+Valid values are *enabled* and *disabled*, which the default being *enabled*.
+The *disabled* option will force the container to not create CGroups, and thus conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**).
+
 **--cgroup-parent**=*cgroup*
 
 Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.

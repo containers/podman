@@ -263,7 +263,7 @@ func (r *OCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File
 func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
-	if r.cgroupManager == SystemdCgroupsManager {
+	if r.cgroupManager == SystemdCgroupsManager && !ctr.config.NoCgroups {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", ctr.ID())
@@ -306,6 +306,10 @@ func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath
 	}
 	if ociLogPath != "" {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLogPath))
+	}
+	if ctr.config.NoCgroups {
+		logrus.Debugf("Running with no CGroups")
+		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
 	return args
 }
@@ -355,6 +359,11 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *OCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
+	// If cgroup creation is disabled - just signal.
+	if ctr.config.NoCgroups {
+		return writeConmonPipeData(startFd)
+	}
+
 	cgroupParent := ctr.CgroupParent()
 	if r.cgroupManager == SystemdCgroupsManager {
 		unitName := createUnitName("libpod-conmon", ctr.ID())

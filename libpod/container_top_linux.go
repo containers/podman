@@ -15,6 +15,10 @@ import (
 // Top gathers statistics about the running processes in a container. It returns a
 // []string for output
 func (c *Container) Top(descriptors []string) ([]string, error) {
+	if c.config.NoCgroups {
+		return nil, errors.Wrapf(define.ErrNoCgroups, "cannot run top on container %s as it did not create a cgroup", c.ID())
+	}
+
 	conStat, err := c.State()
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to look up state for %s", c.ID())

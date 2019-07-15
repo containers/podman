@@ -375,7 +375,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	if err != nil {
 		return nil, err
 	}
-	if rootless.IsRootless() && !unified {
+	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
 		g.SetLinuxCgroupsPath("")
 	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
 		// When runc is set to use Systemd as a cgroup manager, it
