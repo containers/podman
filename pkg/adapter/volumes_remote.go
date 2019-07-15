@@ -29,5 +29,5 @@ func (v *Volume) MountPoint() string {
 
 // Scope returns the scope for an adapter.volume
 func (v *Volume) Scope() string {
-	return v.config.Scope
+	return "local"
 }

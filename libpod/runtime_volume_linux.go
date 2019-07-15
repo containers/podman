@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -42,14 +43,10 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if volume.config.Name == "" {
 		volume.config.Name = stringid.GenerateNonCryptoID()
 	}
-	// TODO: support for other volume drivers
 	if volume.config.Driver == "" {
 		volume.config.Driver = "local"
 	}
-	// TODO: determine when the scope is global and set it to that
-	if volume.config.Scope == "" {
-		volume.config.Scope = "local"
-	}
+	volume.config.CreatedTime = time.Now()
 
 	// Create the mountpoint of this volume
 	volPathRoot := filepath.Join(r.config.VolumePath, volume.config.Name)
