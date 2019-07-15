@@ -94,4 +94,22 @@ var _ = Describe("Podman run dns", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOutputContains("foobar")).To(BeTrue())
 	})
+
+	It("podman run mutually excludes --dns* and --network", func() {
+		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "container:ALPINE", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--dns-opt=1.2.3.4", "--network", "container:ALPINE", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--dns-search=foobar.com", "--network", "none", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "host", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+	})
 })
