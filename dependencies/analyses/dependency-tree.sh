@@ -5,16 +5,13 @@ if test "$#" -ne 1; then
 	exit 1
 fi
 
-DATA=$(go list $1/... \
+go list $1/... \
 	| xargs -d '\n' go list -f '{{ .ImportPath }}: {{ join .Imports ", " }}' \
 	| awk '{ printf "%s\n\n", $0 }' \
-	)
+	> direct-tree.tmp.$$ && mv -f direct-tree.tmp.$$ direct-tree.txt
 
-echo "$DATA" > direct-tree.txt
 
-DATA=$(go list $1/... \
+go list $1/... \
 	| xargs -d '\n' go list -f '{{ .ImportPath }}: {{ join .Deps ", " }}' \
 	| awk '{ printf "%s\n\n", $0 }' \
-	)
-
-echo "$DATA" > transitive-tree.txt
+	> transitive-tree.tmp.$$ && mv -f transitive-tree.tmp.$$ transitive-tree.txt
