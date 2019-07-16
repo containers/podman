@@ -48,6 +48,7 @@ func init() {
 	if err := rootCmd.PersistentFlags().MarkHidden("default-mounts-file"); err != nil {
 		logrus.Error("unable to mark default-mounts-file flag as hidden")
 	}
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", "", "Events backend to use")
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")
