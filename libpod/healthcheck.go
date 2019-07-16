@@ -107,15 +107,24 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 		capture       bytes.Buffer
 		inStartPeriod bool
 	)
-	hcStatus, err := checkHealthCheckCanBeRun(c)
-	if err != nil {
-		return hcStatus, err
-	}
 	hcCommand := c.HealthCheckConfig().Test
-	if len(hcCommand) > 0 && hcCommand[0] == "CMD-SHELL" {
-		newCommand = []string{"sh", "-c", strings.Join(hcCommand[1:], " ")}
-	} else {
+	if len(hcCommand) < 1 {
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+	}
+	switch hcCommand[0] {
+	case "", "NONE":
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
+	case "CMD":
+		newCommand = hcCommand[1:]
+	case "CMD-SHELL":
+		// TODO: SHELL command from image not available in Container - use Docker default
+		newCommand = []string{"/bin/sh", "-c", strings.Join(hcCommand[1:], " ")}
+	default:
+		// command supplied on command line - pass as-is
 		newCommand = hcCommand
+	}
+	if len(newCommand) < 1 || newCommand[0] == "" {
+		return HealthCheckNotDefined, errors.Errorf("container %s has no defined healthcheck", c.ID())
 	}
 	captureBuffer := bufio.NewWriter(&capture)
 	hcw := hcWriteCloser{

@@ -115,6 +115,30 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 					if err != nil {
 						return nil, nil, errors.Wrapf(err, "unable to get healthcheck for %s", c.InputArgs[0])
 					}
+
+					if healthCheck != nil {
+						hcCommand := healthCheck.Test
+						if len(hcCommand) < 1 || hcCommand[0] == "" || hcCommand[0] == "NONE" {
+							// disable health check
+							healthCheck = nil
+						} else {
+							// apply defaults if image doesn't override them
+							if healthCheck.Interval == 0 {
+								healthCheck.Interval = 30 * time.Second
+							}
+							if healthCheck.Timeout == 0 {
+								healthCheck.Timeout = 30 * time.Second
+							}
+							/* Docker default is 0s, so the following would be a no-op
+							if healthCheck.StartPeriod == 0 {
+								healthCheck.StartPeriod = 0 * time.Second
+							}
+							*/
+							if healthCheck.Retries == 0 {
+								healthCheck.Retries = 3
+							}
+						}
+					}
 				}
 			}
 		}
