@@ -58,6 +58,24 @@ const (
 	// If an annotation with this key is found in the OCI spec, it will be
 	// used in the output of Inspect().
 	InspectAnnotationInit = "io.podman.annotations.init"
+	// InspectAnnotationLabel is used by Inspect to identify containers with
+	// special SELinux-related settings. It is used to populate the output
+	// of the SecurityOpt setting.
+	// If an annotation with this key is found in the OCI spec, it will be
+	// used in the output of Inspect().
+	InspectAnnotationLabel = "io.podman.annotations.label"
+	// InspectAnnotationSeccomp is used by Inspect to identify containers
+	// with special Seccomp-related settings. It is used to populate the
+	// output of the SecurityOpt setting in Inspect.
+	// If an annotation with this key is found in the OCI spec, it will be
+	// used in the output of Inspect().
+	InspectAnnotationSeccomp = "io.podman.annotations.seccomp"
+	// InspectAnnotationApparmor is used by Inspect to identify containers
+	// with special Apparmor-related settings. It is used to populate the
+	// output of the SecurityOpt setting.
+	// If an annotation with this key is found in the OCI spec, it will be
+	// used in the output of Inspect().
+	InspectAnnotationApparmor = "io.podman.annotations.apparmor"
 
 	// InspectResponseTrue is a boolean True response for an inspect
 	// annotation.
@@ -275,7 +293,6 @@ type InspectContainerHostConfig struct {
 	ReadonlyRootfs bool `json:"ReadonlyRootfs"`
 	// SecurityOpt is a list of security-related options that are set in the
 	// container.
-	// TODO.
 	SecurityOpt []string `json:"SecurityOpt"`
 	// Tmpfs is a list of tmpfs filesystems that will be mounted into the
 	// container.
@@ -965,9 +982,13 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		hostConfig.GroupAdd = append(hostConfig.GroupAdd, group)
 	}
 
+	hostConfig.SecurityOpt = []string{}
 	if ctrSpec.Process != nil {
 		if ctrSpec.Process.OOMScoreAdj != nil {
 			hostConfig.OomScoreAdj = *ctrSpec.Process.OOMScoreAdj
+		}
+		if ctrSpec.Process.NoNewPrivileges {
+			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, "no-new-privileges")
 		}
 	}
 
@@ -994,6 +1015,15 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 		if ctrSpec.Annotations[InspectAnnotationInit] == InspectResponseTrue {
 			hostConfig.Init = true
+		}
+		if label, ok := ctrSpec.Annotations[InspectAnnotationLabel]; ok {
+			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("label=%s", label))
+		}
+		if seccomp, ok := ctrSpec.Annotations[InspectAnnotationSeccomp]; ok {
+			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("seccomp=%s", seccomp))
+		}
+		if apparmor, ok := ctrSpec.Annotations[InspectAnnotationApparmor]; ok {
+			hostConfig.SecurityOpt = append(hostConfig.SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
 		}
 	}
 
