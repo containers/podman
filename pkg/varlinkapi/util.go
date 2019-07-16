@@ -191,7 +191,7 @@ func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
 		Latest:    derefBool(inOpts.Latest),
 		NoTrunc:   derefBool(inOpts.NoTrunc),
 		Pod:       derefBool(inOpts.Pod),
-		Size:      true,
+		Size:      derefBool(inOpts.Size),
 		Sort:      derefString(inOpts.Sort),
 		Namespace: true,
 		Sync:      derefBool(inOpts.Sync),

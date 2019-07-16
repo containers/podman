@@ -493,6 +493,7 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 		NoTrunc: &c.NoTrunct,
 		Pod:     &c.Pod,
 		Quiet:   &c.Quiet,
+		Size:    &c.Size,
 		Sort:    &c.Sort,
 		Sync:    &c.Sync,
 	}

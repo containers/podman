@@ -1894,6 +1894,8 @@ pod [?bool](#?bool)
 
 quiet [?bool](#?bool)
 
+size [?bool](#?bool)
+
 sort [?string](#?string)
 
 sync [?bool](#?bool)
