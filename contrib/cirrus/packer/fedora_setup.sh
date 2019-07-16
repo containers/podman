@@ -76,6 +76,9 @@ ooe.sh sudo dnf install -y \
     xz \
     zip
 
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
+
 sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize

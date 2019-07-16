@@ -78,6 +78,9 @@ ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.
 # Unsafe env. vars for display
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
 
+# Names of systemd units which should never be running
+EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean"
+
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
@@ -348,6 +351,20 @@ remove_packaged_podman_files(){
         if [[ -d "$fullpath" ]] || [[ $(basename "$fullpath") == "conmon" ]] ; then continue; fi
         ooe.sh sudo rm -vf "$fullpath"
     done
+}
+
+systemd_banish(){
+    echo "Disabling periodic services that could destabilize testing:"
+    set +e  # Not all of these exist on every platform
+    for unit in $EVIL_UNITS
+    do
+        ooe.sh sudo systemctl stop $unit
+        ooe.sh sudo systemctl disable $unit
+        ooe.sh sudo systemctl disable $unit.timer
+        ooe.sh sudo systemctl mask $unit
+        ooe.sh sudo systemctl mask $unit.timer
+    done
+    set -e
 }
 
 _finalize(){
