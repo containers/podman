@@ -1812,10 +1812,10 @@ _podman_container_run() {
 			--health-interval
 			--health-retries
 			--health-timeout
+			--health-start-period
 		"
 		boolean_options="$boolean_options
 			--detach -d
-			--no-healthcheck
 			--rm
 			--sig-proxy=false
 		"

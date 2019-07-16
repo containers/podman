@@ -375,7 +375,7 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
-	podmanArgs = append(podmanArgs, "-dt", "-P", "--healthcheck-command", "curl http://localhost/", nginx)
+	podmanArgs = append(podmanArgs, "-dt", "-P", "--health-cmd", "curl http://localhost/", nginx)
 	session := p.Podman(podmanArgs)
 	session.WaitWithDefaultTimeout()
 	return session, session.OutputToString()
