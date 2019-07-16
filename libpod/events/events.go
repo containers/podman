@@ -23,6 +23,18 @@ func (et EventerType) String() string {
 	return "journald"
 }
 
+// IsValidEventer checks if the given string is a valid eventer type.
+func IsValidEventer(eventer string) bool {
+	switch eventer {
+	case LogFile.String():
+		return true
+	case Journald.String():
+		return true
+	default:
+		return false
+	}
+}
+
 // NewEvent creates a event struct and populates with
 // the given status and time.
 func NewEvent(status Status) Event {
