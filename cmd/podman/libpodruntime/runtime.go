@@ -118,6 +118,10 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 		options = append(options, libpod.WithNetworkCmdPath(c.GlobalFlags.NetworkCmdPath))
 	}
 
+	if c.Flags().Changed("events-backend") {
+		options = append(options, libpod.WithEventsLogger(c.GlobalFlags.EventsBackend))
+	}
+
 	if c.Flags().Changed("cgroup-manager") {
 		options = append(options, libpod.WithCgroupManager(c.GlobalFlags.CGroupManager))
 	} else {
