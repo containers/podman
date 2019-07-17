@@ -85,16 +85,27 @@ func getRuntime(runtime *libpod.Runtime) (*LocalRuntime, error) {
 
 // GetImages returns a slice of images in containerimages
 func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
+	return r.getImages(false)
+}
+
+// GetRWImages returns a slice of read/write images in containerimages
+func (r *LocalRuntime) GetRWImages() ([]*ContainerImage, error) {
+	return r.getImages(true)
+}
+
+func (r *LocalRuntime) getImages(rwOnly bool) ([]*ContainerImage, error) {
 	var containerImages []*ContainerImage
 	images, err := r.Runtime.ImageRuntime().GetImages()
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range images {
+		if rwOnly && i.IsReadOnly() {
+			continue
+		}
 		containerImages = append(containerImages, &ContainerImage{i})
 	}
 	return containerImages, nil
-
 }
 
 // NewImageFromLocal returns a containerimage representation of a image from local storage

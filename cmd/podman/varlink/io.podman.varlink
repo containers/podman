@@ -69,7 +69,8 @@ type Image (
   containers: int,
   labels: [string]string,
   isParent: bool,
-  topLayer: string
+  topLayer: string,
+  readOnly: bool
 )
 
 # ImageHistory describes the returned structure from ImageHistory.
