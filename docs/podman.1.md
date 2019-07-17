@@ -38,7 +38,7 @@ Path to where the cpu performance results should be written
 
 **--events-logger**=**type**
 
-Backend to use for storing events. Allowed values are **journald** and **file**.
+Backend to use for storing events. Allowed values are **file**, **journald**, and **null**.
 
 **--hooks-dir**=*path*
 
