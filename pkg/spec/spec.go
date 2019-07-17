@@ -20,12 +20,6 @@ import (
 
 const cpuPeriod = 100000
 
-type systemUlimit struct {
-	name string
-	max  uint64
-	cur  uint64
-}
-
 func getAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
 	if err != nil {
@@ -585,13 +579,7 @@ func addRlimits(config *CreateConfig, g *generate.Generator) error {
 			if len(config.Resources.Ulimit) != 1 {
 				return errors.New("ulimit can use host only once")
 			}
-			hostLimits, err := getHostRlimits()
-			if err != nil {
-				return err
-			}
-			for _, i := range hostLimits {
-				g.AddProcessRlimits(i.name, i.max, i.cur)
-			}
+			g.Config.Process.Rlimits = nil
 			break
 		}
 
