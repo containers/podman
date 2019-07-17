@@ -263,7 +263,7 @@ meta_task:
         cpu: 1
         memory: 1
 
-    env:
+    env: &meta_env_vars
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
@@ -276,6 +276,31 @@ meta_task:
         GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
         GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
         CIRRUS_CLONE_DEPTH: 1  # source not used
+
+    timeout_in: 10m
+
+    # Cirrus-CI ignores entrypoint defined in image
+    script: '/usr/local/bin/entrypoint.sh |& ${TIMESTAMP}'
+
+
+# Remove old and disused images based on labels set by meta_task
+image_prune_task:
+
+    # Do not run this frequently
+    only_if: $CIRRUS_BRANCH == 'master'
+
+    depends_on:
+        - "meta"
+
+    container:
+        image: "quay.io/libpod/imgprune:latest"  # see contrib/imgprune
+        cpu: 1
+        memory: 1
+
+    env:
+        <<: *meta_env_vars
+        GCPJSON: ENCRYPTED[4c11d8e09c904c30fc70eecb95c73dec0ddf19976f9b981a0f80f3f6599e8f990bcef93c253ac0277f200850d98528e7]
+        GCPNAME: ENCRYPTED[7f54557ba6e5a437f11283a53e71baec9ca546f48a9835538cc54d297f79968eb1337d4596a1025b14f9d1c5723fbd29]
 
     timeout_in: 10m
 
