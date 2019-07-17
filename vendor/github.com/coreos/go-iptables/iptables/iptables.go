@@ -73,6 +73,20 @@ type IPTables struct {
 	mode           string // the underlying iptables operating mode, e.g. nf_tables
 }
 
+// Stat represents a structured statistic entry.
+type Stat struct {
+	Packets     uint64     `json:"pkts"`
+	Bytes       uint64     `json:"bytes"`
+	Target      string     `json:"target"`
+	Protocol    string     `json:"prot"`
+	Opt         string     `json:"opt"`
+	Input       string     `json:"in"`
+	Output      string     `json:"out"`
+	Source      *net.IPNet `json:"source"`
+	Destination *net.IPNet `json:"destination"`
+	Options     string     `json:"options"`
+}
+
 // New creates a new IPTables.
 // For backwards compatibility, this always uses IPv4, i.e. "iptables".
 func New() (*IPTables, error) {
@@ -264,6 +278,63 @@ func (ipt *IPTables) Stats(table, chain string) ([][]string, error) {
 	return rows, nil
 }
 
+// ParseStat parses a single statistic row into a Stat struct. The input should
+// be a string slice that is returned from calling the Stat method.
+func (ipt *IPTables) ParseStat(stat []string) (parsed Stat, err error) {
+	// For forward-compatibility, expect at least 10 fields in the stat
+	if len(stat) < 10 {
+		return parsed, fmt.Errorf("stat contained fewer fields than expected")
+	}
+
+	// Convert the fields that are not plain strings
+	parsed.Packets, err = strconv.ParseUint(stat[0], 0, 64)
+	if err != nil {
+		return parsed, fmt.Errorf(err.Error(), "could not parse packets")
+	}
+	parsed.Bytes, err = strconv.ParseUint(stat[1], 0, 64)
+	if err != nil {
+		return parsed, fmt.Errorf(err.Error(), "could not parse bytes")
+	}
+	_, parsed.Source, err = net.ParseCIDR(stat[7])
+	if err != nil {
+		return parsed, fmt.Errorf(err.Error(), "could not parse source")
+	}
+	_, parsed.Destination, err = net.ParseCIDR(stat[8])
+	if err != nil {
+		return parsed, fmt.Errorf(err.Error(), "could not parse destination")
+	}
+
+	// Put the fields that are strings
+	parsed.Target = stat[2]
+	parsed.Protocol = stat[3]
+	parsed.Opt = stat[4]
+	parsed.Input = stat[5]
+	parsed.Output = stat[6]
+	parsed.Options = stat[9]
+
+	return parsed, nil
+}
+
+// StructuredStats returns statistics as structured data which may be further
+// parsed and marshaled.
+func (ipt *IPTables) StructuredStats(table, chain string) ([]Stat, error) {
+	rawStats, err := ipt.Stats(table, chain)
+	if err != nil {
+		return nil, err
+	}
+
+	structStats := []Stat{}
+	for _, rawStat := range rawStats {
+		stat, err := ipt.ParseStat(rawStat)
+		if err != nil {
+			return nil, err
+		}
+		structStats = append(structStats, stat)
+	}
+
+	return structStats, nil
+}
+
 func (ipt *IPTables) executeList(args []string) ([]string, error) {
 	var stdout bytes.Buffer
 	if err := ipt.runWithOutput(args, &stdout); err != nil {
@@ -302,17 +373,12 @@ func (ipt *IPTables) NewChain(table, chain string) error {
 	return ipt.run("-t", table, "-N", chain)
 }
 
+const existsErr = 1
+
 // ClearChain flushed (deletes all rules) in the specified table/chain.
 // If the chain does not exist, a new one will be created
 func (ipt *IPTables) ClearChain(table, chain string) error {
 	err := ipt.NewChain(table, chain)
-
-	// the exit code for "this table already exists" is different for
-	// different iptables modes
-	existsErr := 1
-	if ipt.mode == "nf_tables" {
-		existsErr = 4
-	}
 
 	eerr, eok := err.(*Error)
 	switch {

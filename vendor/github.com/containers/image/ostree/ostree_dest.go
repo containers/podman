@@ -1,4 +1,4 @@
-// +build !containers_image_ostree_stub
+// +build containers_image_ostree
 
 package ostree
 
@@ -218,7 +218,7 @@ func fixFiles(selinuxHnd *C.struct_selabel_handle, root string, dir string, user
 				defer C.free(unsafe.Pointer(fullpathC))
 				res, err = C.lsetfilecon_raw(fullpathC, context)
 				if int(res) < 0 {
-					return errors.Wrapf(err, "cannot setfilecon_raw %s", fullpath)
+					return errors.Wrapf(err, "cannot setfilecon_raw %s to %s", fullpath, C.GoString(context))
 				}
 			}
 		}

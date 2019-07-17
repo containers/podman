@@ -62,7 +62,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
-# github.com/containers/image v2.0.0+incompatible
+# github.com/containers/image v2.0.0+incompatible => github.com/vrothberg/image v0.0.0-20190716135752-69944bd81951
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive
@@ -144,7 +144,7 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
-# github.com/coreos/go-iptables v0.4.1
+# github.com/coreos/go-iptables v0.4.2-0.20190627140312-f1d0510cabcb
 github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/activation

@@ -491,14 +491,21 @@ func (s *storageImageDestination) TryReusingBlob(ctx context.Context, blobinfo t
 
 	// Does the blob correspond to a known DiffID which we already have available?
 	// Because we must return the size, which is unknown for unavailable compressed blobs, the returned BlobInfo refers to the
-	// uncompressed layer, and that can happen only if canSubstitute.
-	if canSubstitute {
+	// uncompressed layer, and that can happen only if canSubstitute, or if the incoming manifest already specifies the size.
+	if canSubstitute || blobinfo.Size != -1 {
 		if uncompressedDigest := cache.UncompressedDigest(blobinfo.Digest); uncompressedDigest != "" && uncompressedDigest != blobinfo.Digest {
 			layers, err := s.imageRef.transport.store.LayersByUncompressedDigest(uncompressedDigest)
 			if err != nil && errors.Cause(err) != storage.ErrLayerUnknown {
 				return false, types.BlobInfo{}, errors.Wrapf(err, `Error looking for layers with digest %q`, uncompressedDigest)
 			}
 			if len(layers) > 0 {
+				if blobinfo.Size != -1 {
+					s.blobDiffIDs[blobinfo.Digest] = layers[0].UncompressedDigest
+					return true, blobinfo, nil
+				}
+				if !canSubstitute {
+					return false, types.BlobInfo{}, fmt.Errorf("Internal error: canSubstitute was expected to be true for blobInfo %v", blobinfo)
+				}
 				s.blobDiffIDs[uncompressedDigest] = layers[0].UncompressedDigest
 				return true, types.BlobInfo{
 					Digest:    uncompressedDigest,
@@ -627,7 +634,7 @@ func (s *storageImageDestination) Commit(ctx context.Context) error {
 		if !ok {
 			// Try to find the layer with contents matching that blobsum.
 			layer := ""
-			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(blob.Digest)
+			layers, err2 := s.imageRef.transport.store.LayersByUncompressedDigest(diffID)
 			if err2 == nil && len(layers) > 0 {
 				layer = layers[0].ID
 			} else {

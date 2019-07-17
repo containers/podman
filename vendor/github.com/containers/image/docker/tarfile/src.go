@@ -15,24 +15,24 @@ import (
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/types"
-	"github.com/opencontainers/go-digest"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 )
 
 // Source is a partial implementation of types.ImageSource for reading from tarPath.
 type Source struct {
 	tarPath              string
-	removeTarPathOnClose bool      // Remove temp file on close if true
-	cacheDataLock        sync.Once // Atomic way to ensure that ensureCachedDataIsPresent is only invoked once
+	removeTarPathOnClose bool // Remove temp file on close if true
 	// The following data is only available after ensureCachedDataIsPresent() succeeds
-	cacheDataResult   error         // The return value of ensureCachedDataIsPresent, since it should be as safe to cache as the side effects
 	tarManifest       *ManifestItem // nil if not available yet.
 	configBytes       []byte
 	configDigest      digest.Digest
 	orderedDiffIDList []digest.Digest
 	knownLayers       map[digest.Digest]*layerInfo
 	// Other state
-	generatedManifest []byte // Private cache for GetManifest(), nil if not set yet.
+	generatedManifest []byte    // Private cache for GetManifest(), nil if not set yet.
+	cacheDataLock     sync.Once // Private state for ensureCachedDataIsPresent to make it concurrency-safe
+	cacheDataResult   error     // Private state for ensureCachedDataIsPresent
 }
 
 type layerInfo struct {
@@ -201,47 +201,50 @@ func (s *Source) readTarComponent(path string) ([]byte, error) {
 }
 
 // ensureCachedDataIsPresent loads data necessary for any of the public accessors.
+// It is safe to call this from multi-threaded code.
 func (s *Source) ensureCachedDataIsPresent() error {
 	s.cacheDataLock.Do(func() {
-		// Read and parse manifest.json
-		tarManifest, err := s.loadTarManifest()
-		if err != nil {
-			s.cacheDataResult = err
-			return
-		}
-
-		// Check to make sure length is 1
-		if len(tarManifest) != 1 {
-			s.cacheDataResult = errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(tarManifest))
-			return
-		}
-
-		// Read and parse config.
-		configBytes, err := s.readTarComponent(tarManifest[0].Config)
-		if err != nil {
-			s.cacheDataResult = err
-			return
-		}
-		var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
-		if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-			s.cacheDataResult = errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
-			return
-		}
-
-		knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
-		if err != nil {
-			s.cacheDataResult = err
-			return
-		}
-
-		// Success; commit.
-		s.tarManifest = &tarManifest[0]
-		s.configBytes = configBytes
-		s.configDigest = digest.FromBytes(configBytes)
-		s.orderedDiffIDList = parsedConfig.RootFS.DiffIDs
-		s.knownLayers = knownLayers
+		s.cacheDataResult = s.ensureCachedDataIsPresentPrivate()
 	})
 	return s.cacheDataResult
+}
+
+// ensureCachedDataIsPresentPrivate is a private implementation detail of ensureCachedDataIsPresent.
+// Call ensureCachedDataIsPresent instead.
+func (s *Source) ensureCachedDataIsPresentPrivate() error {
+	// Read and parse manifest.json
+	tarManifest, err := s.loadTarManifest()
+	if err != nil {
+		return err
+	}
+
+	// Check to make sure length is 1
+	if len(tarManifest) != 1 {
+		return errors.Errorf("Unexpected tar manifest.json: expected 1 item, got %d", len(tarManifest))
+	}
+
+	// Read and parse config.
+	configBytes, err := s.readTarComponent(tarManifest[0].Config)
+	if err != nil {
+		return err
+	}
+	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
+	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
+		return errors.Wrapf(err, "Error decoding tar config %s", tarManifest[0].Config)
+	}
+
+	knownLayers, err := s.prepareLayerData(&tarManifest[0], &parsedConfig)
+	if err != nil {
+		return err
+	}
+
+	// Success; commit.
+	s.tarManifest = &tarManifest[0]
+	s.configBytes = configBytes
+	s.configDigest = digest.FromBytes(configBytes)
+	s.orderedDiffIDList = parsedConfig.RootFS.DiffIDs
+	s.knownLayers = knownLayers
+	return nil
 }
 
 // loadTarManifest loads and decodes the manifest.json.

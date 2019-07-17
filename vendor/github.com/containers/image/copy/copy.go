@@ -597,15 +597,32 @@ func (c *copier) createProgressBar(pool *mpb.Progress, info types.BlobInfo, kind
 		prefix = prefix[:maxPrefixLen]
 	}
 
-	bar := pool.AddBar(info.Size,
-		mpb.BarClearOnComplete(),
-		mpb.PrependDecorators(
-			decor.Name(prefix),
-		),
-		mpb.AppendDecorators(
-			decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), " "+onComplete),
-		),
-	)
+	// If we don't know the size of the blob (size == -1), just display a
+	// spinner. Otherwise, display a proper progress bar.
+	var bar *mpb.Bar
+	if info.Size == -1 {
+		bar = pool.AddSpinner(info.Size,
+			mpb.SpinnerOnLeft,
+			mpb.BarClearOnComplete(),
+			mpb.SpinnerStyle([]string{".", "..", "...", "....", ""}),
+			mpb.PrependDecorators(
+				decor.Name(prefix),
+			),
+			mpb.AppendDecorators(
+				decor.OnComplete(decor.Name(""), " "+onComplete),
+			),
+		)
+	} else {
+		bar = pool.AddBar(info.Size,
+			mpb.BarClearOnComplete(),
+			mpb.PrependDecorators(
+				decor.Name(prefix),
+			),
+			mpb.AppendDecorators(
+				decor.OnComplete(decor.CountersKibiByte("%.1f / %.1f"), " "+onComplete),
+			),
+		)
+	}
 	if c.progressOutput == ioutil.Discard {
 		c.Printf("Copying %s %s\n", kind, info.Digest)
 	}
