@@ -46,6 +46,16 @@ func DanglingFilter(danglingImages bool) ResultFilter {
 	}
 }
 
+// ReadOnlyFilter allows you to filter images based on read/only and read/write
+func ReadOnlyFilter(readOnly bool) ResultFilter {
+	return func(i *adapter.ContainerImage) bool {
+		if readOnly {
+			return i.IsReadOnly()
+		}
+		return !i.IsReadOnly()
+	}
+}
+
 // LabelFilter allows you to filter by images labels key and/or value
 func LabelFilter(ctx context.Context, labelfilter string) ResultFilter {
 	// We need to handle both label=key and label=key=value

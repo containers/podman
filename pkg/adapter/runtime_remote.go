@@ -129,6 +129,7 @@ type remoteImage struct {
 	isParent    bool
 	Runtime     *LocalRuntime
 	TopLayer    string
+	ReadOnly    bool
 }
 
 // Container ...
@@ -169,12 +170,24 @@ type remoteVolume struct {
 
 // GetImages returns a slice of containerimages over a varlink connection
 func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
+	return r.getImages(false)
+}
+
+// GetRWImages returns a slice of read/write containerimages over a varlink connection
+func (r *LocalRuntime) GetRWImages() ([]*ContainerImage, error) {
+	return r.getImages(true)
+}
+
+func (r *LocalRuntime) getImages(rwOnly bool) ([]*ContainerImage, error) {
 	var newImages []*ContainerImage
 	images, err := iopodman.ListImages().Call(r.Conn)
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range images {
+		if rwOnly && i.ReadOnly {
+			continue
+		}
 		name := i.Id
 		if len(i.RepoTags) > 1 {
 			name = i.RepoTags[0]
@@ -207,6 +220,7 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 		isParent:    i.IsParent,
 		Runtime:     runtime,
 		TopLayer:    i.TopLayer,
+		ReadOnly:    i.ReadOnly,
 	}
 	return &ContainerImage{ri}, nil
 }
@@ -300,6 +314,11 @@ func (ci *ContainerImage) Names() []string {
 // Created returns the time the image was created
 func (ci *ContainerImage) Created() time.Time {
 	return ci.remoteImage.Created
+}
+
+// IsReadOnly returns whether the image is ReadOnly
+func (ci *ContainerImage) IsReadOnly() bool {
+	return ci.remoteImage.ReadOnly
 }
 
 // Size returns the size of the image

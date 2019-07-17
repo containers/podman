@@ -12,7 +12,7 @@ func (ir *Runtime) GetPruneImages(all bool) ([]*Image, error) {
 	var (
 		pruneImages []*Image
 	)
-	allImages, err := ir.GetImages()
+	allImages, err := ir.GetRWImages()
 	if err != nil {
 		return nil, err
 	}

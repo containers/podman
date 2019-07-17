@@ -23,6 +23,26 @@ Show image digests
 
 Filter output based on conditions provided
 
+  Filters:
+
+  **after==TIMESTRING**
+    Filter on images created after the given time.Time.
+
+  **before==TIMESTRING**
+    Filter on images created before the given time.Time.
+
+  **dangling=true|false**
+    Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the <none> tag, consume disk space and serve no active purpose.
+
+  **label**
+    Filter by images labels key and/or value.
+
+  **readonly=true|false**
+     Show only read only images or Read/Write images. The default is to show both.  Read/Only images can be configured by modifying the  "additionalimagestores" in the /etc/containers/storage.conf file.
+
+  **reference=**
+     Filter by image name, specified as regular expressions.
+
 **--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json'
@@ -94,31 +114,31 @@ REPOSITORY   TAG      IMAGE ID       CREATED       SIZE
 # podman images --format json
 [
     {
-        "id": "e3d42bcaf643097dd1bb0385658ae8cbe100a80f773555c44690d22c25d16b27",
-        "names": [
-            "docker.io/kubernetes/pause:latest"
-        ],
-        "digest": "sha256:0aecf73ff86844324847883f2e916d3f6984c5fae3c2f23e91d66f549fe7d423",
-        "created": "2014-07-19T07:02:32.267701596Z",
-        "size": 250665
+	"id": "e3d42bcaf643097dd1bb0385658ae8cbe100a80f773555c44690d22c25d16b27",
+	"names": [
+	    "docker.io/kubernetes/pause:latest"
+	],
+	"digest": "sha256:0aecf73ff86844324847883f2e916d3f6984c5fae3c2f23e91d66f549fe7d423",
+	"created": "2014-07-19T07:02:32.267701596Z",
+	"size": 250665
     },
     {
-        "id": "ebb91b73692bd27890685846412ae338d13552165eacf7fcd5f139bfa9c2d6d9",
-        "names": [
-            "\u003cnone\u003e"
-        ],
-        "digest": "sha256:ba7e4091d27e8114a205003ca6a768905c3395d961624a2c78873d9526461032",
-        "created": "2017-10-26T03:07:22.796184288Z",
-        "size": 27170520
+	"id": "ebb91b73692bd27890685846412ae338d13552165eacf7fcd5f139bfa9c2d6d9",
+	"names": [
+	    "\u003cnone\u003e"
+	],
+	"digest": "sha256:ba7e4091d27e8114a205003ca6a768905c3395d961624a2c78873d9526461032",
+	"created": "2017-10-26T03:07:22.796184288Z",
+	"size": 27170520
     },
     {
-        "id": "4526339ae51c3cdc97956a7a961c193c39dfc6bd9733b0d762a36c6881b5583a",
-        "names": [
-            "docker.io/library/ubuntu:latest"
-        ],
-        "digest": "sha256:193f7734ddd68e0fb24ba9af8c2b673aecb0227b026871f8e932dab45add7753",
-        "created": "2017-10-10T20:59:05.10196344Z",
-        "size": 126085200
+	"id": "4526339ae51c3cdc97956a7a961c193c39dfc6bd9733b0d762a36c6881b5583a",
+	"names": [
+	    "docker.io/library/ubuntu:latest"
+	],
+	"digest": "sha256:193f7734ddd68e0fb24ba9af8c2b673aecb0227b026871f8e932dab45add7753",
+	"created": "2017-10-10T20:59:05.10196344Z",
+	"size": 126085200
     }
 ]
 ```
@@ -148,7 +168,7 @@ docker.io/library/alpine   latest   3fd9065eaf02   5 months ago    4.41 MB
 ```
 
 ## SEE ALSO
-podman(1)
+podman(1), containers-storage.conf(5)
 
 ## HISTORY
 March 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

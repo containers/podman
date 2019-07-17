@@ -388,4 +388,20 @@ LABEL "com.example.vendor"="Example Vendor"
 		output = session.OutputToString()
 		Expect(output).To(Equal("[]"))
 	})
+
+	It("podman images --filter readonly", func() {
+		SkipIfRemote()
+		dockerfile := `FROM docker.io/library/alpine:latest
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
+		result := podmanTest.Podman([]string{"images", "-f", "readonly=true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result1 := podmanTest.Podman([]string{"images", "--filter", "readonly=false"})
+		result1.WaitWithDefaultTimeout()
+		Expect(result1.ExitCode()).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(Not(Equal(result1.OutputToStringArray())))
+	})
+
 })

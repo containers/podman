@@ -87,7 +87,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 
 	if removeAll {
 		var imagesToDelete []*adapter.ContainerImage
-		imagesToDelete, err = runtime.GetImages()
+		imagesToDelete, err = runtime.GetRWImages()
 		if err != nil {
 			return errors.Wrapf(err, "unable to query local images")
 		}
@@ -107,7 +107,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 				removeImage(i)
 			}
 			lastNumberofImages = len(imagesToDelete)
-			imagesToDelete, err = runtime.GetImages()
+			imagesToDelete, err = runtime.GetRWImages()
 			if err != nil {
 				return err
 			}
