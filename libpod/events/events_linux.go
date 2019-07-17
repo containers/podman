@@ -18,8 +18,10 @@ func NewEventer(options EventerOptions) (eventer Eventer, err error) {
 		}
 	case strings.ToUpper(LogFile.String()):
 		eventer = EventLogFile{options}
+	case strings.ToUpper(Null.String()):
+		eventer = NewNullEventer()
 	default:
-		return eventer, errors.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
+		return nil, errors.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
 	}
 	return eventer, nil
 }
