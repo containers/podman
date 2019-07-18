@@ -144,10 +144,11 @@ type PsOpts (
     last: ?int,
     latest: ?bool,
     noTrunc: ?bool,
-	pod: ?bool,
-	quiet: ?bool,
-	sort: ?string,
-	sync: ?bool
+    pod: ?bool,
+    quiet: ?bool,
+    size: ?bool,
+    sort: ?string,
+    sync: ?bool
 )
 
 type PsContainer (
