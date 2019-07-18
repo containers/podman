@@ -296,7 +296,11 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 		}, nil
 	case "name":
 		return func(c *libpod.Container) bool {
-			return strings.Contains(c.Name(), filterValue)
+			match, err := regexp.MatchString(filterValue, c.Name())
+			if err != nil {
+				return false
+			}
+			return match
 		}, nil
 	case "exited":
 		exitCode, err := strconv.ParseInt(filterValue, 10, 32)
