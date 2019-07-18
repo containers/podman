@@ -264,10 +264,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
 		// already adding them all.
-		if !rootless.IsRootless() {
-			if err := config.AddPrivilegedDevices(&g); err != nil {
-				return nil, err
-			}
+		if err := config.AddPrivilegedDevices(&g); err != nil {
+			return nil, err
 		}
 	} else {
 		for _, devicePath := range config.Devices {
