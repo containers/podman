@@ -676,7 +676,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	if imageData != nil && imageData.Config != nil {
 		containerConfig.Command = append(containerConfig.Command, imageData.Config.Entrypoint...)
 	}
-	if len(containerConfig.Command) != 0 {
+	if len(containerYAML.Command) != 0 {
 		containerConfig.Command = append(containerConfig.Command, containerYAML.Command...)
 	} else if imageData != nil && imageData.Config != nil {
 		containerConfig.Command = append(containerConfig.Command, imageData.Config.Cmd...)
