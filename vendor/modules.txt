@@ -62,7 +62,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
-# github.com/containers/image v2.0.0+incompatible
+# github.com/containers/image v2.0.1+incompatible
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive

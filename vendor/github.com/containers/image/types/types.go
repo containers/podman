@@ -398,6 +398,7 @@ type ImageInspectInfo struct {
 	Architecture  string
 	Os            string
 	Layers        []string
+	Env           []string
 }
 
 // DockerAuthConfig contains authorization information for connecting to a registry.

@@ -241,6 +241,7 @@ func (m *Schema2) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*t
 	}
 	if s2.Config != nil {
 		i.Labels = s2.Config.Labels
+		i.Env = s2.Config.Env
 	}
 	return i, nil
 }
