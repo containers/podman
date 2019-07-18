@@ -70,6 +70,8 @@ github.com/containers/buildah v1.9.0 h1:ktVRCGNoVfW8PlTuCKUeh+zGdqn1Nik80DSWvGX+
 github.com/containers/buildah v1.9.0/go.mod h1:1CsiLJvyU+h+wOjnqJJOWuJCVcMxZOr5HN/gHGdzJxY=
 github.com/containers/image v2.0.0+incompatible h1:FTr6Br7jlIKNCKMjSOMbAxKp2keQ0//jzJaYNTVhauk=
 github.com/containers/image v2.0.0+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
+github.com/containers/image v2.0.1+incompatible h1:w39mlElA/aSFZ6moFa5N+A4MWu9c8hgdMiMMYnH94Hs=
+github.com/containers/image v2.0.1+incompatible/go.mod h1:8Vtij257IWSanUQKe1tAeNOm2sRVkSqQTVQ1IlwI3+M=
 github.com/containers/psgo v1.3.0 h1:kDhiA4gNNyJ2qCzmOuBf6AmrF/Pp+6Jo98P68R7fB8I=
 github.com/containers/psgo v1.3.0/go.mod h1:7MELvPTW1fj6yMrwD9I1Iasx1vU+hKlRkHXAJ51sFtU=
 github.com/containers/psgo v1.3.1-0.20190626112706-fbef66e4ce92 h1:aVJs/Av0Yc9uNoWnIwmG+6Z+XozuRXFwvLwAOVmwlvI=

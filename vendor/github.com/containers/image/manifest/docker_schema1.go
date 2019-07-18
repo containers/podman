@@ -226,6 +226,7 @@ func (m *Schema1) Inspect(_ func(types.BlobInfo) ([]byte, error)) (*types.ImageI
 	}
 	if s1.Config != nil {
 		i.Labels = s1.Config.Labels
+		i.Env = s1.Config.Env
 	}
 	return i, nil
 }
