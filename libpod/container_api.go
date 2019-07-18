@@ -301,6 +301,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	if err != nil {
 		if exited {
 			// If the runtime exited, propagate the error we got from the process.
+			// We need to remove PID files to ensure no memory leaks
+			if err2 := os.Remove(pidFile); err2 != nil {
+				logrus.Errorf("Error removing exit file for container %s exec session %s: %v", c.ID(), sessionID, err2)
+			}
+
 			return err
 		}
 		return errors.Wrapf(err, "timed out waiting for runtime to create pidfile for exec session in container %s", c.ID())
@@ -308,6 +313,10 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	// Pidfile exists, read it
 	contents, err := ioutil.ReadFile(pidFile)
+	// We need to remove PID files to ensure no memory leaks
+	if err2 := os.Remove(pidFile); err2 != nil {
+		logrus.Errorf("Error removing exit file for container %s exec session %s: %v", c.ID(), sessionID, err2)
+	}
 	if err != nil {
 		// We don't know the PID of the exec session
 		// However, it may still be alive
