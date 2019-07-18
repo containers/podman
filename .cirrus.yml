@@ -13,7 +13,7 @@ env:
     ####
     #### Global variables used for all tasks
     ####
-    # Name of the ultimate destination branch for this build
+    # Name of the ultimate destination branch for this CI run, PR or post-merge.
     DEST_BRANCH: "master"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: "/var/tmp/go"
@@ -194,7 +194,6 @@ build_each_commit_task:
         - "vendor"
         - "varlink_api"
 
-    # $CIRRUS_BASE_BRANCH is only set when testing a PR
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
@@ -210,9 +209,10 @@ build_each_commit_task:
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_each_commit_script:
-        - 'source $SCRIPT_BASE/lib.sh'
-        - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
-        - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$CIRRUS_BASE_BRANCH |& ${TIMESTAMP}'
+        # set -x by default, no need to spew contents of lib.sh
+        - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
+        - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $DEST_BRANCH |& ${TIMESTAMP}'
+        - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
@@ -225,7 +225,6 @@ build_without_cgo_task:
         - "vendor"
         - "varlink_api"
 
-    # $CIRRUS_BASE_BRANCH is only set when testing a PR
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
