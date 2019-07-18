@@ -4,6 +4,7 @@ package apparmor
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -102,6 +103,18 @@ func InstallDefault(name string) error {
 
 	pipe.Close()
 	return cmd.Wait()
+}
+
+// DefaultContent returns the default profile content as byte slice. The
+// profile is named as the provided `name`. The function errors if the profile
+// generation fails.
+func DefaultContent(name string) ([]byte, error) {
+	p := profileData{Name: name}
+	var bytes bytes.Buffer
+	if err := p.generateDefault(&bytes); err != nil {
+		return nil, err
+	}
+	return bytes.Bytes(), nil
 }
 
 // IsLoaded checks if a profile with the given name has been loaded into the
