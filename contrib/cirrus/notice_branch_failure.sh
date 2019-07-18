@@ -12,7 +12,7 @@ NOR="$(echo -n -e '\x0f')"
 if [[ "$CIRRUS_BRANCH" = "$DEST_BRANCH" ]]
 then
     BURL="https://cirrus-ci.com/build/$CIRRUS_BUILD_ID"
-    ircmsg "${RED}[Action Recommended]: ${NOR}Post-merge testing on ${RED}$CIRRUS_BRANCH failed${NOR} in $CIRRUS_TASK_NAME on $(OS_RELEASE_ID)-$(OS_RELEASE_VER): $BURL.  Please investigate, and re-run if appropriate."
+    ircmsg "${RED}[Action Recommended]: ${NOR}Post-merge testing on ${RED}$CIRRUS_BRANCH failed${NOR} in $CIRRUS_TASK_NAME on ${OS_RELEASE_ID}-${OS_RELEASE_VER}: $BURL.  Please investigate, and re-run if appropriate."
 fi
 
 # This script assumed to be executed on failure
