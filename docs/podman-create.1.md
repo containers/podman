@@ -63,6 +63,14 @@ Add Linux capabilities
 
 Drop Linux capabilities
 
+**--cgroupns**=*mode*
+
+Set the cgroup namespace mode for the container, by default **host** is used.
+    **host**: use the host's cgroup namespace inside the container.
+    **container:<NAME|ID>**: join the namespace of the specified container.
+    **private**: create a new cgroup namespace.
+    **ns:<PATH>**: join the namespace at the specified path.
+
 **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the container will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.

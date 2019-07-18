@@ -51,6 +51,15 @@ var _ = Describe("Podman run ns", func() {
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
 
+	It("podman run --cgroup private test", func() {
+		session := podmanTest.Podman([]string{"run", "--cgroupns=private", fedoraMinimal, "cat", "/proc/self/cgroup"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		output := session.OutputToString()
+		Expect(output).ToNot(ContainSubstring("slice"))
+	})
+
 	It("podman run ipcns test", func() {
 		setup := SystemExec("ls", []string{"--inode", "-d", "/dev/shm"})
 		Expect(setup.ExitCode()).To(Equal(0))

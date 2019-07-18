@@ -130,6 +130,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Drop capabilities from the container",
 	)
 	createFlags.String(
+		"cgroupns", "host",
+		"cgroup namespace to use",
+	)
+	createFlags.String(
 		"cgroup-parent", "",
 		"Optional parent cgroup for the container",
 	)
