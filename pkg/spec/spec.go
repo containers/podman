@@ -418,6 +418,62 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
+	// Add annotations
+	if configSpec.Annotations == nil {
+		configSpec.Annotations = make(map[string]string)
+	}
+
+	if config.CidFile != "" {
+		configSpec.Annotations[libpod.InspectAnnotationCIDFile] = config.CidFile
+	}
+
+	if config.Rm {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationAutoremove] = libpod.InspectResponseFalse
+	}
+
+	if len(config.VolumesFrom) > 0 {
+		configSpec.Annotations[libpod.InspectAnnotationVolumesFrom] = strings.Join(config.VolumesFrom, ",")
+	}
+
+	if config.Privileged {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPrivileged] = libpod.InspectResponseFalse
+	}
+
+	if config.PublishAll {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationPublishAll] = libpod.InspectResponseFalse
+	}
+
+	if config.Init {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseTrue
+	} else {
+		configSpec.Annotations[libpod.InspectAnnotationInit] = libpod.InspectResponseFalse
+	}
+
+	for _, opt := range config.SecurityOpts {
+		// Split on both : and =
+		splitOpt := strings.Split(opt, "=")
+		if len(splitOpt) == 1 {
+			splitOpt = strings.Split(opt, ":")
+		}
+		if len(splitOpt) < 2 {
+			continue
+		}
+		switch splitOpt[0] {
+		case "label":
+			configSpec.Annotations[libpod.InspectAnnotationLabel] = splitOpt[1]
+		case "seccomp":
+			configSpec.Annotations[libpod.InspectAnnotationSeccomp] = splitOpt[1]
+		case "apparmor":
+			configSpec.Annotations[libpod.InspectAnnotationApparmor] = splitOpt[1]
+		}
+	}
+
 	return configSpec, nil
 }
 

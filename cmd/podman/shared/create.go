@@ -651,6 +651,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		ImageVolumeType:   c.String("image-volume"),
 		CapAdd:            c.StringSlice("cap-add"),
 		CapDrop:           c.StringSlice("cap-drop"),
+		CidFile:           c.String("cidfile"),
 		CgroupParent:      c.String("cgroup-parent"),
 		Command:           command,
 		Detach:            c.Bool("detach"),
@@ -764,14 +765,6 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 
 	ctr, err := r.NewContainer(ctx, runtimeSpec, options...)
 	if err != nil {
-		return nil, err
-	}
-
-	createConfigJSON, err := json.Marshal(createConfig)
-	if err != nil {
-		return nil, err
-	}
-	if err := ctr.AddArtifact("create-config", createConfigJSON); err != nil {
 		return nil, err
 	}
 	return ctr, nil

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -461,8 +462,21 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, cgroupParent string, res
 			return errors.Wrapf(define.ErrInternal, "container create failed")
 		}
 		ctr.state.PID = ss.si.Pid
-		if cmd.Process != nil {
-			ctr.state.ConmonPID = cmd.Process.Pid
+		// Let's try reading the Conmon pid at the same time.
+		if ctr.config.ConmonPidFile != "" {
+			contents, err := ioutil.ReadFile(ctr.config.ConmonPidFile)
+			if err != nil {
+				logrus.Warnf("Error reading Conmon pidfile for container %s: %v", ctr.ID(), err)
+			} else {
+				// Convert it to an int
+				conmonPID, err := strconv.Atoi(string(contents))
+				if err != nil {
+					logrus.Warnf("Error decoding Conmon PID %q for container %s: %v", string(contents), ctr.ID(), err)
+				} else {
+					ctr.state.ConmonPID = conmonPID
+					logrus.Infof("Got Conmon PID as %d", conmonPID)
+				}
+			}
 		}
 	case <-time.After(ContainerCreateTimeout):
 		return errors.Wrapf(define.ErrInternal, "container creation timeout")
