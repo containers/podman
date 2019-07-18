@@ -78,10 +78,12 @@ Copyright 2009-2012 Canonical Ltd.
 	}
 }
 
-func TestInstallDefault(t *testing.T) {
-	profile := "libpod-default-testing"
-	aapath := "/sys/kernel/security/apparmor/"
+const (
+	aapath  = "/sys/kernel/security/apparmor/"
+	profile = "libpod-default-testing"
+)
 
+func TestInstallDefault(t *testing.T) {
 	if _, err := os.Stat(aapath); err != nil {
 		t.Skip("AppArmor isn't available in this environment")
 	}
@@ -126,4 +128,13 @@ func TestInstallDefault(t *testing.T) {
 		t.Fatalf("Couldn't remove AppArmor profile '%s': %v", profile, err)
 	}
 	checkLoaded(false)
+}
+
+func TestDefaultContent(t *testing.T) {
+	if _, err := os.Stat(aapath); err != nil {
+		t.Skip("AppArmor isn't available in this environment")
+	}
+	if err := DefaultContent(profile); err != nil {
+		t.Fatalf("Couldn't retrieve default AppArmor profile content '%s': %v", profile, err)
+	}
 }
