@@ -332,4 +332,30 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToStringArray()[0]).To(Equal(fullCid))
 	})
+
+	It("podman ps filter name regexp", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "test1", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		fullCid := session.OutputToString()
+
+		session2 := podmanTest.Podman([]string{"run", "-d", "--name", "test11", ALPINE, "top"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc", "--filter", "name=test1"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		output := result.OutputToStringArray()
+		Expect(len(output)).To(Equal(2))
+
+		result = podmanTest.Podman([]string{"ps", "-aq", "--no-trunc", "--filter", "name=test1$"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		output = result.OutputToStringArray()
+		Expect(len(output)).To(Equal(1))
+		Expect(output[0]).To(Equal(fullCid))
+	})
 })
