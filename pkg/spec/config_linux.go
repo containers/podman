@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -118,8 +119,44 @@ func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
 		return err
 	}
 	g.ClearLinuxDevices()
-	for _, d := range hostDevices {
-		g.AddDevice(Device(d))
+
+	if rootless.IsRootless() {
+		mounts := make(map[string]interface{})
+		for _, m := range g.Mounts() {
+			mounts[m.Destination] = true
+		}
+		newMounts := []spec.Mount{}
+		for _, d := range hostDevices {
+			devMnt := spec.Mount{
+				Destination: d.Path,
+				Type:        TypeBind,
+				Source:      d.Path,
+				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
+			}
+			if d.Path == "/dev/ptmx" || strings.HasPrefix(d.Path, "/dev/tty") {
+				continue
+			}
+			if _, found := mounts[d.Path]; found {
+				continue
+			}
+			st, err := os.Stat(d.Path)
+			if err != nil {
+				if err == unix.EPERM {
+					continue
+				}
+				return errors.Wrapf(err, "stat %s", d.Path)
+			}
+			// Skip devices that the user has not access to.
+			if st.Mode()&0007 == 0 {
+				continue
+			}
+			newMounts = append(newMounts, devMnt)
+		}
+		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
+	} else {
+		for _, d := range hostDevices {
+			g.AddDevice(Device(d))
+		}
 	}
 
 	// Add resources device - need to clear the existing one first.
