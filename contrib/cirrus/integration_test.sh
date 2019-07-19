@@ -36,6 +36,13 @@ case "$SPECIALMODE" in
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
                 -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
         ;;
+    cgroupv2)
+        make
+        make install PREFIX=/usr ETCDIR=/etc
+        make test-binaries
+        echo "WARNING: Integration tests not yet ready for cgroups V2"
+        #TODO: make local${TESTSUITE}
+        ;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc
@@ -52,5 +59,5 @@ case "$SPECIALMODE" in
         warn '' "No $SPECIALMODE remote client integration tests configured"
         ;;
     *)
-        die 110 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
+        die 110 "Unsupported \$SPECIALMODE: $SPECIALMODE"
 esac

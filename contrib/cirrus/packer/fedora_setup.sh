@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE
+req_env_var SCRIPT_BASE PACKER_BUILDER_NAME GOSRC
 
 install_ooe
 
@@ -84,6 +84,17 @@ ooe.sh sudo dnf install -y \
 systemd_banish
 
 sudo /tmp/libpod/hack/install_catatonit.sh
+
+# Same script is used for several related contexts
+case "$PACKER_BUILDER_NAME" in
+    xfedora*)
+        echo "Configuring CGroups v2 enabled on next boot"
+        sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
+        ;&  # continue to next matching item
+    *)
+        echo "Finalizing $PACKER_BUILDER_NAME VM image"
+        ;;
+esac
 
 rh_finalize
 

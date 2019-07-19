@@ -48,6 +48,10 @@ builders:
       source_image: '{{user `FEDORA_BASE_IMAGE`}}'
 
     - <<: *gce_hosted_image
+      name: 'xfedora-30'
+      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+
+    - <<: *gce_hosted_image
       name: 'fedora-29'
       source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
 
@@ -60,6 +64,7 @@ provisioners:
     - type: 'shell'
       script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
       environment_vars:
+          - 'PACKER_BUILDER_NAME={{build_name}}'
           - 'GOSRC=/tmp/libpod'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
 

@@ -15,6 +15,9 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
+
 echo "Updating/configuring package repositories."
 $LILTO $SUDOAPTGET update
 $LILTO $SUDOAPTGET install software-properties-common
@@ -99,9 +102,6 @@ ooe.sh sudo update-grub
 
 sudo /tmp/libpod/hack/install_catatonit.sh
 ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
-
-# Ensure there are no disruptive periodic services enabled by default in image
-systemd_banish
 
 ubuntu_finalize
 

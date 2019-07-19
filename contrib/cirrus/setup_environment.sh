@@ -62,8 +62,11 @@ install_test_configs
 make install.tools
 
 case "$SPECIALMODE" in
-    none)
+    cgroupv2)
         remove_packaged_podman_files  # we're building from source
+        ;;
+    none)
+        remove_packaged_podman_files
         ;;
     rootless)
         # Only do this once, even if ROOTLESS_USER (somehow) changes
@@ -85,5 +88,5 @@ case "$SPECIALMODE" in
     windows) ;&  # for podman-remote building only
     darwin) ;;
     *)
-        die 111 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
+        die 111 "Unsupported \$SPECIALMODE: $SPECIALMODE"
 esac
