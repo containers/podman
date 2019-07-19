@@ -65,6 +65,8 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec simple command using latest", func() {
+		// the remote client doesn't use latest
+		SkipIfRemote()
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -75,27 +77,37 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec environment test", func() {
+		// passing environment variables is not supported in the remote client
+		SkipIfRemote()
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "-l", "--env", "FOO=BAR", "printenv", "FOO"})
+		session := podmanTest.Podman([]string{"exec", "--env", "FOO=BAR", "test1", "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString("BAR")
 		Expect(match).Should(BeTrue())
 
-		session = podmanTest.Podman([]string{"exec", "-l", "--env", "PATH=/bin", "printenv", "PATH"})
+		session = podmanTest.Podman([]string{"exec", "--env", "PATH=/bin", "test1", "printenv", "PATH"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ = session.GrepString("/bin")
 		Expect(match).Should(BeTrue())
+	})
+
+	It("podman exec os.Setenv env", func() {
+		// remote doesn't properly interpret os.Setenv
+		SkipIfRemote()
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
 
 		os.Setenv("FOO", "BAR")
-		session = podmanTest.Podman([]string{"exec", "-l", "--env", "FOO", "printenv", "FOO"})
+		session := podmanTest.Podman([]string{"exec", "--env", "FOO", "test1", "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		match, _ = session.GrepString("BAR")
+		match, _ := session.GrepString("BAR")
 		Expect(match).Should(BeTrue())
 		os.Unsetenv("FOO")
 
@@ -141,13 +153,13 @@ var _ = Describe("Podman exec", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "-l", "--workdir", "/tmp", "pwd"})
+		session := podmanTest.Podman([]string{"exec", "--workdir", "/tmp", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString("/tmp")
 		Expect(match).Should(BeTrue())
 
-		session = podmanTest.Podman([]string{"exec", "-l", "-w", "/tmp", "pwd"})
+		session = podmanTest.Podman([]string{"exec", "-w", "/tmp", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ = session.GrepString("/tmp")
@@ -159,11 +171,11 @@ var _ = Describe("Podman exec", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "-l", "--workdir", "/missing", "pwd"})
+		session := podmanTest.Podman([]string{"exec", "--workdir", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
 
-		session = podmanTest.Podman([]string{"exec", "-l", "-w", "/missing", "pwd"})
+		session = podmanTest.Podman([]string{"exec", "-w", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
 	})

@@ -1054,15 +1054,14 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	if err != nil {
 		return ec, errors.Wrapf(err, "Exec operation failed for %s", cli.InputArgs)
 	}
-
 	ecChan := make(chan int, 1)
 	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, inputStream, os.Stdout, oldTermState, resize, ecChan)
 
 	select {
-		case err = <-errChan:
-			break
-		case ec = <-ecChan:
-			break
+	case ec = <-ecChan:
+		break
+	case err = <-errChan:
+		break
 	}
 
 	return ec, err

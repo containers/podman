@@ -800,51 +800,46 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	call.ReplyExecContainer()
 
 	resizeChan := make(chan remotecommand.TerminalSize)
-	errChan := make(chan error)
 
 	reader, writer, _, pipeWriter, streams := setupStreams(call)
 	//reader, _, _, pipeWriter, streams := setupStreams(call)
-	ecChan := make(chan uint32, 1)
+	type ExitCodeError struct {
+		ExitCode uint32
+		Error    error
+	}
+	ecErrChan := make(chan ExitCodeError, 1)
 
 	go func() {
-		fmt.Printf("ExecContainer Start Reader\n")
 		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan, nil); err != nil {
-			//fmt.Printf("ExecContainer Reader err %s, %s\n", err.Error(), errors.Cause(err).Error())
-			errChan <- errors.Wrapf(err, "error")
+			ecErrChan <- ExitCodeError{
+				125, //TODO FIXME magic number, define package?
+				err,
+			}
 		}
 	}()
 
-	fmt.Printf("ExecContainer Start ctr.Exec\n")
-	// TODO detach keys and resize
-	// TODO add handling for exit code
-	// TODO capture exit code and return to main thread
+	// TODO FIXME detach keys
 	go func() {
 		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, "")
 		if err != nil {
 			logrus.Errorf("ExecContainer Exec err %s, %s\n", err.Error(), errors.Cause(err).Error())
-			errChan <-err
 		}
-		ecChan <-uint32(ec)
-
+		ecErrChan <- ExitCodeError{
+			uint32(ec),
+			err,
+		}
 	}()
 
-	ec := uint32(125)
-	var execErr error
-	select {
-		case execErr = <-errChan:
-			fmt.Println(execErr.Error())
-		case ec = <-ecChan:
-			fmt.Println("found", ec)
-	}
+	ecErr := <-ecErrChan
 
-	// TODO FIXME prevent all of vthese conversions
-	if err = virtwriter.HangUp(writer, int(ec)); err != nil {
+	// TODO FIXME prevent all of these conversions
+	if err = virtwriter.HangUp(writer, int(ecErr.ExitCode)); err != nil {
 		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
 	}
-	defer fmt.Println("Succeeded in exec'ing")
+
 	if err := call.Writer.Flush(); err != nil {
 		logrus.Errorf("Exec Container err: %s", err.Error())
 	}
 
-	return execErr
+	return ecErr.Error
 }
