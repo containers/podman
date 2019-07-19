@@ -113,7 +113,7 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 			if output != nil {
 				_, err := io.CopyN(output, r, messageSize)
 				if err != nil {
-						return errors.Wrapf(err, "issue stdout")
+					return errors.Wrapf(err, "issue stdout")
 				}
 			}
 		case ToStderr:
@@ -121,14 +121,14 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 				_, err := io.CopyN(errput, r, messageSize)
 				if err != nil {
 					return err
-						return errors.Wrapf(err, "issue stderr")
+					return errors.Wrapf(err, "issue stderr")
 				}
 			}
 		case ToStdin:
 			if input != nil {
 				_, err := io.CopyN(input, r, messageSize)
 				if err != nil {
-						return errors.Wrapf(err, "issue stdin")
+					return errors.Wrapf(err, "issue stdin")
 				}
 			}
 		case TerminalResize:
@@ -159,7 +159,7 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 			}
 			if execEcChan != nil {
 				ecInt := binary.BigEndian.Uint32(out)
-				execEcChan <-int(ecInt)
+				execEcChan <- int(ecInt)
 			}
 			return nil
 
@@ -175,8 +175,7 @@ func HangUp(writer *bufio.Writer, ec int) (err error) {
 	n := 0
 	msg := make([]byte, 4)
 
-	binary.LittleEndian.PutUint32(msg, uint32(ec))
-
+	binary.BigEndian.PutUint32(msg, uint32(ec))
 
 	writeQuit := NewVirtWriteCloser(writer, Quit)
 	if n, err = writeQuit.Write(msg); err != nil {
