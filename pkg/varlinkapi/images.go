@@ -69,6 +69,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			Containers:  int64(len(containers)),
 			Labels:      labels,
 			IsParent:    isParent,
+			ReadOnly:    image.IsReadOnly(),
 		}
 		imageList = append(imageList, i)
 	}
@@ -98,6 +99,8 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 		return err
 	}
 
+	fmt.Println("DAN isReadOnly %d", newImage.IsReadOnly())
+
 	il := iopodman.Image{
 		Id:          newImage.ID(),
 		ParentId:    newImage.Parent,
@@ -109,6 +112,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 		Containers:  int64(len(containers)),
 		Labels:      labels,
 		TopLayer:    newImage.TopLayer(),
+		ReadOnly:    newImage.IsReadOnly(),
 	}
 	return call.ReplyGetImage(il)
 }

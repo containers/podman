@@ -1592,6 +1592,8 @@ labels [map[string]](#map[string])
 isParent [bool](https://godoc.org/builtin#bool)
 
 topLayer [string](https://godoc.org/builtin#string)
+
+readOnly [bool](https://godoc.org/builtin#bool)
 ### <a name="ImageHistory"></a>type ImageHistory
 
 ImageHistory describes the returned structure from ImageHistory.

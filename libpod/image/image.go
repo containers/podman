@@ -54,7 +54,6 @@ type Image struct {
 	inspect.ImageResult
 	inspectInfo *types.ImageInspectInfo
 	InputName   string
-	Local       bool
 	//runtime   *libpod.Runtime
 	image        *storage.Image
 	imageruntime *Runtime
@@ -119,7 +118,6 @@ func setStore(options storage.StoreOptions) (storage.Store, error) {
 func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
 	image := Image{
 		InputName:    img.ID,
-		Local:        true,
 		imageruntime: ir,
 		image:        img,
 	}
@@ -132,7 +130,6 @@ func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
 func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 	image := Image{
 		InputName:    name,
-		Local:        true,
 		imageruntime: ir,
 	}
 	localImage, err := image.getLocalImage()
@@ -153,13 +150,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	// We don't know if the image is local or not ... check local first
 	newImage := Image{
 		InputName:    name,
-		Local:        false,
 		imageruntime: ir,
 	}
 	if !forcePull {
 		localImage, err := newImage.getLocalImage()
 		if err == nil {
-			newImage.Local = true
 			newImage.image = localImage
 			return &newImage, nil
 		}
@@ -199,7 +194,6 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	for _, name := range imageNames {
 		newImage := Image{
 			InputName:    name,
-			Local:        true,
 			imageruntime: ir,
 		}
 		img, err := newImage.getLocalImage()
@@ -297,6 +291,11 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 // ID returns the image ID as a string
 func (i *Image) ID() string {
 	return i.image.ID
+}
+
+// IsReadOnly returns whether the image ID comes from a local store
+func (i *Image) IsReadOnly() bool {
+	return i.image.ReadOnly
 }
 
 // Digest returns the image's digest
@@ -439,12 +438,25 @@ func (ir *Runtime) getImage(image string) (*Image, error) {
 
 // GetImages retrieves all images present in storage
 func (ir *Runtime) GetImages() ([]*Image, error) {
+	return ir.getImages(false)
+}
+
+// GetRWImages retrieves all read/write images present in storage
+func (ir *Runtime) GetRWImages() ([]*Image, error) {
+	return ir.getImages(true)
+}
+
+// getImages retrieves all images present in storage
+func (ir *Runtime) getImages(rwOnly bool) ([]*Image, error) {
 	var newImages []*Image
 	images, err := ir.store.Images()
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range images {
+		if rwOnly && i.ReadOnly {
+			continue
+		}
 		// iterating over these, be careful to not iterate on the literal
 		// pointer.
 		image := i

@@ -30,14 +30,16 @@ type imagesTemplateParams struct {
 	Created     string
 	CreatedTime time.Time
 	Size        string
+	ReadOnly    bool
 }
 
 type imagesJSONParams struct {
-	ID      string        `json:"id"`
-	Name    []string      `json:"names"`
-	Digest  digest.Digest `json:"digest"`
-	Created time.Time     `json:"created"`
-	Size    *uint64       `json:"size"`
+	ID       string        `json:"id"`
+	Name     []string      `json:"names"`
+	Digest   digest.Digest `json:"digest"`
+	Created  time.Time     `json:"created"`
+	Size     *uint64       `json:"size"`
+	ReadOnly bool          `json:"readonly"`
 }
 
 type imagesOptions struct {
@@ -49,6 +51,7 @@ type imagesOptions struct {
 	outputformat string
 	sort         string
 	all          bool
+	useReadOnly  bool
 }
 
 // Type declaration and functions for sorting the images output
@@ -175,6 +178,13 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		return errors.Wrapf(err, "unable to get images")
 	}
 
+	for _, image := range images {
+		if image.IsReadOnly() {
+			opts.outputformat += "{{.ReadOnly}}\t"
+			break
+		}
+	}
+
 	var filteredImages []*adapter.ContainerImage
 	//filter the images
 	if len(c.Filter) > 0 || len(c.InputArgs) == 1 {
@@ -282,6 +292,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					CreatedTime: createdTime,
 					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
 					Size:        sizeStr,
+					ReadOnly:    img.IsReadOnly(),
 				}
 				imagesOutput = append(imagesOutput, params)
 				if opts.quiet { // Show only one image ID when quiet
@@ -305,11 +316,12 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 			size = nil
 		}
 		params := imagesJSONParams{
-			ID:      img.ID(),
-			Name:    img.Names(),
-			Digest:  img.Digest(),
-			Created: img.Created(),
-			Size:    size,
+			ID:       img.ID(),
+			Name:     img.Names(),
+			Digest:   img.Digest(),
+			Created:  img.Created(),
+			Size:     size,
+			ReadOnly: img.IsReadOnly(),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
@@ -351,6 +363,11 @@ func GenImageOutputMap() map[string]string {
 		if value == "ID" {
 			value = "Image" + value
 		}
+
+		if value == "ReadOnly" {
+			values[key] = "R/O"
+			continue
+		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
@@ -378,6 +395,12 @@ func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []s
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, imagefilters.CreatedAfterFilter(after.Created()))
+		case "readonly":
+			readonly, err := strconv.ParseBool(splitFilter[1])
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid filter readonly=%s", splitFilter[1])
+			}
+			filterFuncs = append(filterFuncs, imagefilters.ReadOnlyFilter(readonly))
 		case "dangling":
 			danglingImages, err := strconv.ParseBool(splitFilter[1])
 			if err != nil {
