@@ -45,6 +45,7 @@ func init() {
 	flags.BoolVar(&restoreCommand.TcpEstablished, "tcp-established", false, "Restore a container with established TCP connections")
 	flags.StringVarP(&restoreCommand.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
 	flags.StringVarP(&restoreCommand.Name, "name", "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
+	flags.BoolVar(&restoreCommand.IgnoreRootfs, "ignore-rootfs", false, "Do not apply root file-system changes when importing from exported checkpoint")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -60,8 +61,12 @@ func restoreCmd(c *cliconfig.RestoreValues, cmd *cobra.Command) error {
 	}
 	defer runtime.DeferredShutdown(false)
 
+	if c.Import == "" && c.IgnoreRootfs {
+		return errors.Errorf("--ignore-rootfs can only be used with --import")
+	}
+
 	if c.Import == "" && c.Name != "" {
-		return errors.Errorf("--name can only used with --import")
+		return errors.Errorf("--name can only be used with --import")
 	}
 
 	if c.Name != "" && c.TcpEstablished {

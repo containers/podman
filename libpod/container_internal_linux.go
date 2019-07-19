@@ -510,21 +510,44 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 	return nil
 }
 
-func (c *Container) exportCheckpoint(dest string) (err error) {
+func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) (err error) {
 	if (len(c.config.NamedVolumes) > 0) || (len(c.Dependencies()) > 0) {
 		return errors.Errorf("Cannot export checkpoints of containers with named volumes or dependencies")
 	}
 	logrus.Debugf("Exporting checkpoint image of container %q to %q", c.ID(), dest)
+
+	includeFiles := []string{
+		"checkpoint",
+		"artifacts",
+		"ctr.log",
+		"config.dump",
+		"spec.dump",
+		"network.status"}
+
+	// Get root file-system changes included in the checkpoint archive
+	rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
+	if !ignoreRootfs {
+		rootfsDiffFile, err := os.Create(rootfsDiffPath)
+		if err != nil {
+			return errors.Wrapf(err, "error creating root file-system diff file %q", rootfsDiffPath)
+		}
+		tarStream, err := c.runtime.GetDiffTarStream("", c.ID())
+		if err != nil {
+			return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
+		}
+		_, err = io.Copy(rootfsDiffFile, tarStream)
+		if err != nil {
+			return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
+		}
+		tarStream.Close()
+		rootfsDiffFile.Close()
+		includeFiles = append(includeFiles, "rootfs-diff.tar")
+	}
+
 	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
 		Compression:      archive.Gzip,
 		IncludeSourceDir: true,
-		IncludeFiles: []string{
-			"checkpoint",
-			"artifacts",
-			"ctr.log",
-			"config.dump",
-			"spec.dump",
-			"network.status"},
+		IncludeFiles:     includeFiles,
 	})
 
 	if err != nil {
@@ -545,6 +568,8 @@ func (c *Container) exportCheckpoint(dest string) (err error) {
 	if err != nil {
 		return err
 	}
+
+	os.Remove(rootfsDiffPath)
 
 	return nil
 }
@@ -605,7 +630,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	}
 
 	if options.TargetFile != "" {
-		if err = c.exportCheckpoint(options.TargetFile); err != nil {
+		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs); err != nil {
 			return err
 		}
 	}
@@ -792,6 +817,23 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	if err := c.saveSpec(g.Spec()); err != nil {
 		return err
 	}
+
+	// Before actually restarting the container, apply the root file-system changes
+	if !options.IgnoreRootfs {
+		rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
+		if _, err := os.Stat(rootfsDiffPath); err == nil {
+			// Only do this if a rootfs-diff.tar actually exists
+			rootfsDiffFile, err := os.Open(rootfsDiffPath)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to open root file-system diff file %s", rootfsDiffPath)
+			}
+			if err := c.runtime.ApplyDiffTarStream(c.ID(), rootfsDiffFile); err != nil {
+				return errors.Wrapf(err, "Failed to apply root file-system diff file %s", rootfsDiffPath)
+			}
+			rootfsDiffFile.Close()
+		}
+	}
+
 	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
 		return err
 	}
@@ -809,7 +851,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
 		}
-		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status"}
+		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status", "rootfs-diff.tar"}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			err = os.Remove(file)

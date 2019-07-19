@@ -60,6 +60,13 @@ address to the container it was using before checkpointing as each IP address ca
 be used once and the restored container will have another IP address. This also means
 that **--name, -n** cannot be used in combination with **--tcp-established**.
 
+**--ignore-rootfs**
+
+This is only available in combination with **--import, -i**. If a container is restored
+from a checkpoint tar.gz file it is possible that it also contains all root file-system
+changes. With **--ignore-rootfs** it is possible to explicitly disable applying these
+root file-system changes to the restored container.
+
 ## EXAMPLE
 
 podman container restore mywebserver

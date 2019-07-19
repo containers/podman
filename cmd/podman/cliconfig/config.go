@@ -92,6 +92,7 @@ type CheckpointValues struct {
 	All            bool
 	Latest         bool
 	Export         string
+	IgnoreRootfs   bool
 }
 
 type CommitValues struct {
@@ -433,6 +434,7 @@ type RestoreValues struct {
 	TcpEstablished bool
 	Import         string
 	Name           string
+	IgnoreRootfs   bool
 }
 
 type RmValues struct {
