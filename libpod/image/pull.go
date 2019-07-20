@@ -240,6 +240,12 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	return ir.doPullImage(ctx, sc, *goal, writer, signingOptions, dockerOptions, nil)
 }
 
+func cleanErrorMessage(err error) string {
+	errMessage := strings.TrimPrefix(errors.Cause(err).Error(), "errors:\n")
+	errMessage = strings.Split(errMessage, "\n")[0]
+	return fmt.Sprintf("  %s\n", errMessage)
+}
+
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
 func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "doPullImage")
@@ -281,9 +287,9 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		_, err = cp.Image(ctx, policyContext, imageInfo.dstRef, imageInfo.srcRef, copyOptions)
 		if err != nil {
 			pullErrors = multierror.Append(pullErrors, err)
-			logrus.Errorf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
+			logrus.Debugf("Error pulling image ref %s: %v", imageInfo.srcRef.StringWithinTransport(), err)
 			if writer != nil {
-				_, _ = io.WriteString(writer, "Failed\n")
+				_, _ = io.WriteString(writer, cleanErrorMessage(err))
 			}
 		} else {
 			if !goal.pullAllPairs {
