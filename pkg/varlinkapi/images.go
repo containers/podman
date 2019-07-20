@@ -99,8 +99,6 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 		return err
 	}
 
-	fmt.Println("DAN isReadOnly %d", newImage.IsReadOnly())
-
 	il := iopodman.Image{
 		Id:          newImage.ID(),
 		ParentId:    newImage.Parent,
