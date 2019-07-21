@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -43,13 +44,24 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			setField = true
 		}
 
+		if config.GraphDriverName != "" {
+			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
+			rt.configuredFrom.storageGraphDriverSet = true
+			setField = true
+
+			if !rt.configuredFrom.libpodTmpDirSet {
+				rt.config.TmpDir = genTmpDir(config.GraphDriverName)
+			}
+
+		}
+
 		if config.GraphRoot != "" {
 			rt.config.StorageConfig.GraphRoot = config.GraphRoot
 			rt.configuredFrom.storageGraphRootSet = true
 
 			// Also set libpod static dir, so we are a subdirectory
 			// of the c/storage store by default
-			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
+			rt.config.StaticDir = filepath.Join(config.GraphRoot, fmt.Sprintf("%s-libpod", rt.config.StorageConfig.GraphDriverName))
 			rt.configuredFrom.libpodStaticDirSet = true
 
 			// Also set libpod volume path, so we are a subdirectory
@@ -57,12 +69,6 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
 			rt.configuredFrom.volPathSet = true
 
-			setField = true
-		}
-
-		if config.GraphDriverName != "" {
-			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-			rt.configuredFrom.storageGraphDriverSet = true
 			setField = true
 		}
 

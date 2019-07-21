@@ -185,11 +185,11 @@ type RuntimeConfig struct {
 	InitPath string `toml:"init_path"`
 	// StaticDir is the path to a persistent directory to store container
 	// files
-	StaticDir string `toml:"static_dir"`
+	StaticDir string `toml:"-"`
 	// TmpDir is the path to a temporary directory to store per-boot
 	// container files
 	// Must be stored in a tmpfs
-	TmpDir string `toml:"tmp_dir"`
+	TmpDir string `toml:"-"`
 	// MaxLogSize is the maximum size of container logfiles
 	MaxLogSize int64 `toml:"max_log_size,omitempty"`
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime
@@ -314,7 +314,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		InitPath:              define.DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
+		StaticDir:             filepath.Join(storeOpts.GraphRoot, fmt.Sprintf("%s-libpod", storeOpts.GraphDriverName)),
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -384,7 +384,7 @@ func SetXdgDirs() error {
 	return nil
 }
 
-func getDefaultTmpDir() (string, error) {
+func getDefaultTmpDir(driverName string) (string, error) {
 	if !rootless.IsRootless() {
 		return "/var/run/libpod", nil
 	}
@@ -393,7 +393,7 @@ func getDefaultTmpDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, fmt.Sprintf("%s-libpod", driverName))
 
 	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {
@@ -496,12 +496,6 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	runtime.config = new(RuntimeConfig)
 	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
-	// Copy the default configuration
-	tmpDir, err := getDefaultTmpDir()
-	if err != nil {
-		return nil, err
-	}
-
 	defRunConf, err := defaultRuntimeConfig()
 	if err != nil {
 		return nil, err
@@ -509,14 +503,21 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	if err := JSONDeepCopy(defRunConf, runtime.config); err != nil {
 		return nil, errors.Wrapf(err, "error copying runtime default config")
 	}
-	runtime.config.TmpDir = tmpDir
 
 	storageConf, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving storage config")
 	}
+	// Copy the default configuration
+	tmpDir, err := getDefaultTmpDir(storageConf.GraphDriverName)
+	if err != nil {
+		return nil, err
+	}
+
+	runtime.config.TmpDir = tmpDir
+
 	runtime.config.StorageConfig = storageConf
-	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
+	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, fmt.Sprintf("%s-libpod", storageConf.GraphDriverName))
 	runtime.config.VolumePath = filepath.Join(storageConf.GraphRoot, "volumes")
 
 	configPath, err := getConfigPath()
@@ -959,6 +960,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
 	}
 
+	if rootless.IsRootless() && !runtime.configuredFrom.libpodTmpDirSet {
+
+		rootlessRuntimeDir, err := util.GetRootlessRuntimeDir()
+		if err != nil {
+			return err
+		}
+		runtime.config.TmpDir = filepath.Join(rootlessRuntimeDir, fmt.Sprintf("%s-libpod", runtime.config.StorageConfig.GraphDriverName))
+	}
+
 	// Create the tmpDir
 	if err := os.MkdirAll(runtime.config.TmpDir, 0751); err != nil {
 		// The directory is allowed to exist
@@ -1356,6 +1366,11 @@ func (r *Runtime) Info() ([]define.InfoData, error) {
 	registries["blocked"] = breg
 	info = append(info, define.InfoData{Type: "registries", Data: registries})
 	return info, nil
+}
+
+// genTmpDir generate the tmpdir path
+func genTmpDir(driverName string) string {
+	return filepath.Join("/var/run", fmt.Sprintf("%s-libpod", driverName))
 }
 
 // generateName generates a unique name for a container or pod.
