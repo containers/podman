@@ -1017,7 +1017,6 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 
 	// Check if we are attached to a terminal. If we are, generate resize
 	// events, and set the terminal to raw mode
-	// TODO FIXME tty
 	if haveTerminal && cli.Tty {
 		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
 		if err != nil {
@@ -1038,6 +1037,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 		User:       &cli.User,
 		Workdir:    &cli.Workdir,
 		Env:        &envs,
+		DetachKeys: &cli.DetachKeys,
 	}
 
 	inputStream := os.Stdin
