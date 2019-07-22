@@ -782,6 +782,9 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 			fmt.Sprintf("exec requires a running container, %s is %s", ctr.ID(), state.String()))
 	}
 
+	// ACK the client upgrade request
+	call.ReplyExecContainer()
+
 	envs := []string{}
 	if opts.Env != nil {
 		envs = *opts.Env
@@ -796,8 +799,11 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	if opts.Workdir != nil {
 		workDir = *opts.Workdir
 	}
-	// ACK the client upgrade request
-	call.ReplyExecContainer()
+
+	var detachKeys string
+	if opts.DetachKeys != nil {
+		detachKeys = *opts.DetachKeys
+	}
 
 	resizeChan := make(chan remotecommand.TerminalSize)
 
@@ -818,11 +824,10 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 		}
 	}()
 
-	// TODO FIXME detach keys
 	go func() {
-		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, "")
+		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, detachKeys)
 		if err != nil {
-			logrus.Errorf("ExecContainer Exec err %s, %s\n", err.Error(), errors.Cause(err).Error())
+			logrus.Errorf(err.Error())
 		}
 		ecErrChan <- ExitCodeError{
 			uint32(ec),

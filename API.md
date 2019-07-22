@@ -1591,6 +1591,8 @@ user [?string](#?string)
 workdir [?string](#?string)
 
 env [?[]string](#?[]string)
+
+detachKeys [?string](#?string)
 ### <a name="Image"></a>type Image
 
 

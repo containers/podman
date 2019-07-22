@@ -77,8 +77,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec environment test", func() {
-		// passing environment variables is not supported in the remote client
-		SkipIfRemote()
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -110,8 +108,8 @@ var _ = Describe("Podman exec", func() {
 		match, _ := session.GrepString("BAR")
 		Expect(match).Should(BeTrue())
 		os.Unsetenv("FOO")
-
 	})
+
 	It("podman exec exit code", func() {
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
