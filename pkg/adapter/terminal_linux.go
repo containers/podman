@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/ssh/terminal"
@@ -107,26 +106,4 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 	}
 
 	return nil
-}
-
-func handleTerminalAttach(ctx context.Context, resize chan remotecommand.TerminalSize) (context.CancelFunc, *term.State, error) {
-	logrus.Debugf("Handling terminal attach")
-
-	subCtx, cancel := context.WithCancel(ctx)
-
-	resizeTty(subCtx, resize)
-
-	oldTermState, err := term.SaveState(os.Stdin.Fd())
-	if err != nil {
-		// allow caller to not have to do any cleaning up if we error here
-		cancel()
-		return nil, nil, errors.Wrapf(err, "unable to save terminal state")
-	}
-
-	logrus.SetFormatter(&RawTtyFormatter{})
-	if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
-		return cancel, nil, err
-	}
-
-	return cancel, oldTermState, nil
 }

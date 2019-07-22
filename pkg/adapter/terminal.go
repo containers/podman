@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/docker/pkg/term"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -75,4 +76,26 @@ func (f *RawTtyFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	}
 
 	return bytes, err
+}
+
+func handleTerminalAttach(ctx context.Context, resize chan remotecommand.TerminalSize) (context.CancelFunc, *term.State, error) {
+	logrus.Debugf("Handling terminal attach")
+
+	subCtx, cancel := context.WithCancel(ctx)
+
+	resizeTty(subCtx, resize)
+
+	oldTermState, err := term.SaveState(os.Stdin.Fd())
+	if err != nil {
+		// allow caller to not have to do any cleaning up if we error here
+		cancel()
+		return nil, nil, errors.Wrapf(err, "unable to save terminal state")
+	}
+
+	logrus.SetFormatter(&RawTtyFormatter{})
+	if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
+		return cancel, nil, err
+	}
+
+	return cancel, oldTermState, nil
 }
