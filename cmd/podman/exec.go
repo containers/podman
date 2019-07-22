@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -70,11 +69,5 @@ func execCmd(c *cliconfig.ExecValues) error {
 	defer runtime.DeferredShutdown(false)
 
 	exitCode, err = runtime.ExecContainer(getContext(), c)
-	if errors.Cause(err) == define.ErrOCIRuntimePermissionDenied {
-		exitCode = 126
-	}
-	if errors.Cause(err) == define.ErrOCIRuntimeNotFound {
-		exitCode = 127
-	}
 	return err
 }

@@ -1000,7 +1000,14 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	return ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
+	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
+	if errors.Cause(err) == define.ErrOCIRuntimePermissionDenied {
+		ec = 126
+	}
+	if errors.Cause(err) == define.ErrOCIRuntimeNotFound {
+		ec = 127
+	}
+	return ec, err
 }
 
 // Prune removes stopped containers
