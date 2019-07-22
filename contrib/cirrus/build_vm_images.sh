@@ -32,7 +32,7 @@ for base_image_var in $BASE_IMAGE_VARS
 do
     # See entrypoint.sh in contrib/imgts and contrib/imgprune
     # These updates can take a while, run them in the background, check later
-    gcloud compute images update "$image" \
+    gcloud compute images update \
         --update-labels=last-used=$(date +%s) \
         --update-labels=build-id=$CIRRUS_BUILD_ID \
         --update-labels=repo-ref=$CIRRUS_CHANGE_IN_REPO \
