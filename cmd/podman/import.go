@@ -6,6 +6,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
+	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -69,8 +70,11 @@ func importCmd(c *cliconfig.ImportValues) error {
 		return errors.Errorf("too many arguments. Usage TARBALL [REFERENCE]")
 	}
 
-	if err := parse.ValidateFileName(source); err != nil {
-		return err
+	errFileName := parse.ValidateFileName(source)
+	errURL := parse.ValidURL(source)
+
+	if errFileName != nil && errURL != nil {
+		return multierror.Append(errFileName, errURL)
 	}
 
 	quiet := c.Quiet

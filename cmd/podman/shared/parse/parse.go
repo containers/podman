@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -159,6 +160,15 @@ func parseEnvFile(env map[string]string, filename string) error {
 func ValidateFileName(filename string) error {
 	if strings.Contains(filename, ":") {
 		return errors.Errorf("invalid filename (should not contain ':') %q", filename)
+	}
+	return nil
+}
+
+// ValidURL checks a string urlStr is a url or not
+func ValidURL(urlStr string) error {
+	_, err := url.ParseRequestURI(urlStr)
+	if err != nil {
+		return errors.Wrapf(err, "invalid url path: %q", urlStr)
 	}
 	return nil
 }
