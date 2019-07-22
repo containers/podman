@@ -51,7 +51,6 @@ type imagesOptions struct {
 	outputformat string
 	sort         string
 	all          bool
-	useReadOnly  bool
 }
 
 // Type declaration and functions for sorting the images output

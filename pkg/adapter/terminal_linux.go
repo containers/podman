@@ -16,7 +16,7 @@ import (
 // StartAttachCtr starts and (if required) attaches to a container
 // if you change the signature of this function from os.File to io.Writer, it will trigger a downstream
 // error. we may need to just lint disable this one.
-func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool, recursive bool) error {
+func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, stdin *os.File, detachKeys string, sigProxy bool, startContainer bool, recursive bool) error { //nolint-interfacer
 	resize := make(chan remotecommand.TerminalSize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))

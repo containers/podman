@@ -103,7 +103,7 @@ gating_task:
         # N/B: entrypoint.sh resets $GOSRC (same as make clean)
         - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh validate |& ${TIMESTAMP}'
-        - '/usr/local/bin/entrypoint.sh lint |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh golangci-lint |& ${TIMESTAMP}'
 
     # This task builds Podman with different buildtags to ensure the build does
     # not break.  It also verifies all sub-commands have man pages.
