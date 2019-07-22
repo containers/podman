@@ -252,7 +252,7 @@ A proper description of setting up CNI networking is given in the [`cni` README]
 Using the CNI plugins from above, a more basic network config is achieved with:
 
 ```bash
-mkdir -p /etc/cni/net.d
+sudo mkdir -p /etc/cni/net.d
 curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/99-loopback.conf
 ```
 
