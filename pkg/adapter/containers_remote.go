@@ -997,7 +997,7 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecValues) (int, error) {
 	var (
 		oldTermState *term.State
-		ec           int = 125
+		ec           int = define.ExecErrorCodeGeneric
 	)
 	// default invalid command exit code
 	// Validate given environment variables

@@ -812,7 +812,7 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	go func() {
 		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan, nil); err != nil {
 			ecErrChan <- ExitCodeError{
-				125, //TODO FIXME magic number, define package?
+				define.ExecErrorCodeGeneric,
 				err,
 			}
 		}
@@ -833,7 +833,15 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	ecErr := <-ecErrChan
 
 	// TODO FIXME prevent all of these conversions
-	if err = virtwriter.HangUp(writer, int(ecErr.ExitCode)); err != nil {
+	exitCode := int(ecErr.ExitCode)
+	if errors.Cause(ecErr.Error) == define.ErrOCIRuntimePermissionDenied {
+		exitCode = define.ExecErrorCodeCannotInvoke
+	}
+	if errors.Cause(ecErr.Error) == define.ErrOCIRuntimeNotFound {
+		exitCode = define.ExecErrorCodeNotFound
+	}
+
+	if err = virtwriter.HangUp(writer, exitCode); err != nil {
 		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
 	}
 
