@@ -18,7 +18,7 @@ require (
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
 	github.com/containers/buildah v1.9.0
-	github.com/containers/image v2.0.0+incompatible
+	github.com/containers/image v2.0.1+incompatible
 	github.com/containers/psgo v1.3.1
 	github.com/containers/storage v1.12.13
 	github.com/coreos/bbolt v1.3.3 // indirect

@@ -1,4 +1,4 @@
-// +build !containers_image_ostree_stub
+// +build containers_image_ostree
 
 package ostree
 

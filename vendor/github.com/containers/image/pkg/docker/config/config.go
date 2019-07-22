@@ -56,6 +56,7 @@ func SetAuthentication(sys *types.SystemContext, registry, username, password st
 // If an entry is not found empty strings are returned for the username and password
 func GetAuthentication(sys *types.SystemContext, registry string) (string, string, error) {
 	if sys != nil && sys.DockerAuthConfig != nil {
+		logrus.Debug("Returning credentials from DockerAuthConfig")
 		return sys.DockerAuthConfig.Username, sys.DockerAuthConfig.Password, nil
 	}
 
@@ -76,12 +77,15 @@ func GetAuthentication(sys *types.SystemContext, registry string) (string, strin
 		legacyFormat := path == dockerLegacyPath
 		username, password, err := findAuthentication(registry, path, legacyFormat)
 		if err != nil {
+			logrus.Debugf("Credentials not found")
 			return "", "", err
 		}
 		if username != "" && password != "" {
+			logrus.Debugf("Returning credentials from %s", path)
 			return username, password, nil
 		}
 	}
+	logrus.Debugf("Credentials not found")
 	return "", "", nil
 }
 
