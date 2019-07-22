@@ -39,8 +39,8 @@ func FindDeviceNodes() (map[string]string, error) {
 		if !ok {
 			return errors.Errorf("Could not convert stat output for use")
 		}
-		major := uint64(sysstat.Rdev / 256)
-		minor := uint64(sysstat.Rdev % 256)
+		major := sysstat.Rdev / 256
+		minor := sysstat.Rdev % 256
 
 		nodes[fmt.Sprintf("%d:%d", major, minor)] = path
 

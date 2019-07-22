@@ -963,24 +963,16 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	}
 
 	hostConfig.DnsOptions = make([]string, 0, len(c.config.DNSOption))
-	for _, opt := range c.config.DNSOption {
-		hostConfig.DnsOptions = append(hostConfig.DnsOptions, opt)
-	}
+	hostConfig.DnsOptions = append(hostConfig.DnsOptions, c.config.DNSOption...)
 
 	hostConfig.DnsSearch = make([]string, 0, len(c.config.DNSSearch))
-	for _, search := range c.config.DNSSearch {
-		hostConfig.DnsSearch = append(hostConfig.DnsSearch, search)
-	}
+	hostConfig.DnsSearch = append(hostConfig.DnsSearch, c.config.DNSSearch...)
 
 	hostConfig.ExtraHosts = make([]string, 0, len(c.config.HostAdd))
-	for _, host := range c.config.HostAdd {
-		hostConfig.ExtraHosts = append(hostConfig.ExtraHosts, host)
-	}
+	hostConfig.ExtraHosts = append(hostConfig.ExtraHosts, c.config.HostAdd...)
 
 	hostConfig.GroupAdd = make([]string, 0, len(c.config.Groups))
-	for _, group := range c.config.Groups {
-		hostConfig.GroupAdd = append(hostConfig.GroupAdd, group)
-	}
+	hostConfig.GroupAdd = append(hostConfig.GroupAdd, c.config.Groups...)
 
 	hostConfig.SecurityOpt = []string{}
 	if ctrSpec.Process != nil {

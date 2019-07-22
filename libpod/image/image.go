@@ -38,26 +38,19 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// imageConversions is used to cache image "cast" types
-type imageConversions struct {
-	imgRef   types.Image
-	storeRef types.ImageReference
-}
-
 // Image is the primary struct for dealing with images
 // It is still very much a work in progress
 type Image struct {
 	// Adding these two structs for now but will cull when we near
 	// completion of this library.
-	imageConversions
+	imgRef   types.Image
+	storeRef types.ImageReference
 	inspect.ImageData
 	inspect.ImageResult
-	inspectInfo *types.ImageInspectInfo
-	InputName   string
-	//runtime   *libpod.Runtime
+	inspectInfo  *types.ImageInspectInfo
+	InputName    string
 	image        *storage.Image
 	imageruntime *Runtime
-	repotagsMap  map[string][]string
 }
 
 // Runtime contains the store
