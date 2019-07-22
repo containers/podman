@@ -171,11 +171,11 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 }
 
 // HangUp sends message to peer to close connection
-func HangUp(writer *bufio.Writer, ec int) (err error) {
+func HangUp(writer *bufio.Writer, ec uint32) (err error) {
 	n := 0
 	msg := make([]byte, 4)
 
-	binary.BigEndian.PutUint32(msg, uint32(ec))
+	binary.BigEndian.PutUint32(msg, ec)
 
 	writeQuit := NewVirtWriteCloser(writer, Quit)
 	if n, err = writeQuit.Write(msg); err != nil {
