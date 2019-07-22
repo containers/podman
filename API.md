@@ -41,6 +41,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Diff(name: string) DiffInfo](#Diff)
 
+[func ExecContainer(opts: ExecOpts) ](#ExecContainer)
+
 [func ExportContainer(name: string, path: string) string](#ExportContainer)
 
 [func ExportImage(name: string, destination: string, compress: bool, tags: []string) string](#ExportImage)
@@ -202,6 +204,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type DiffInfo](#DiffInfo)
 
 [type Event](#Event)
+
+[type ExecOpts](#ExecOpts)
 
 [type Image](#Image)
 
@@ -439,6 +443,11 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteUnusedImages
 
 method Diff(name: [string](https://godoc.org/builtin#string)) [DiffInfo](#DiffInfo)</div>
 Diff returns a diff between libpod objects
+### <a name="ExecContainer"></a>func ExecContainer
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ExecContainer(opts: [ExecOpts](#ExecOpts)) </div>
+ExecContainer executes a command in the given container.
 ### <a name="ExportContainer"></a>func ExportContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1565,6 +1574,23 @@ status [string](https://godoc.org/builtin#string)
 time [string](https://godoc.org/builtin#string)
 
 type [string](https://godoc.org/builtin#string)
+### <a name="ExecOpts"></a>type ExecOpts
+
+
+
+name [string](https://godoc.org/builtin#string)
+
+tty [bool](https://godoc.org/builtin#bool)
+
+privileged [bool](https://godoc.org/builtin#bool)
+
+cmd [[]string](#[]string)
+
+user [?string](#?string)
+
+workdir [?string](#?string)
+
+env [?[]string](#?[]string)
 ### <a name="Image"></a>type Image
 
 

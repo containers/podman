@@ -834,7 +834,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
-	if err := c.ociRuntime.createContainer(c, c.config.CgroupParent, &options); err != nil {
+	if err := c.ociRuntime.createContainer(c, &options); err != nil {
 		return err
 	}
 

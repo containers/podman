@@ -924,11 +924,83 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	}()
 
 	cmd := append([]string{"ps"}, args...)
-	if err := c.Exec(false, false, []string{}, cmd, "", "", streams, 0); err != nil {
+	ec, err := c.Exec(false, false, []string{}, cmd, "", "", streams, 0, nil, "")
+	if err != nil {
 		return nil, err
+	} else if ec != 0 {
+		return nil, errors.Errorf("Runtime failed with exit status: %d and output: %s", ec, strings.Join(psOutput, " "))
 	}
 
 	return psOutput, nil
+}
+
+// ExecContainer executes a command in the container
+func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecValues) (int, error) {
+	var (
+		ctr *Container
+		err error
+		cmd []string
+	)
+	// default invalid command exit code
+	ec := 125
+
+	if cli.Latest {
+		if ctr, err = r.GetLatestContainer(); err != nil {
+			return ec, err
+		}
+		cmd = cli.InputArgs[0:]
+	} else {
+		if ctr, err = r.LookupContainer(cli.InputArgs[0]); err != nil {
+			return ec, err
+		}
+		cmd = cli.InputArgs[1:]
+	}
+
+	if cli.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return ec, errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				return ec, errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+			}
+			m[i] = true
+		}
+
+		for i := 3; i < 3+cli.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return ec, errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+	}
+
+	// Validate given environment variables
+	env := map[string]string{}
+	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
+		return ec, errors.Wrapf(err, "unable to process environment variables")
+	}
+
+	// Build env slice of key=value strings for Exec
+	envs := []string{}
+	for k, v := range env {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	if cli.Interactive {
+		streams.InputStream = os.Stdin
+		streams.AttachInput = true
+	}
+	streams.AttachOutput = true
+	streams.AttachError = true
+
+	return ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
 }
 
 // Prune removes stopped containers
@@ -1128,60 +1200,4 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		return "", err
 	}
 	return newImage.ID(), nil
-}
-
-// Exec a command in a container
-func (r *LocalRuntime) Exec(c *cliconfig.ExecValues, cmd []string) error {
-	var ctr *Container
-	var err error
-
-	if c.Latest {
-		ctr, err = r.GetLatestContainer()
-	} else {
-		ctr, err = r.LookupContainer(c.InputArgs[0])
-	}
-	if err != nil {
-		return errors.Wrapf(err, "unable to exec into %s", c.InputArgs[0])
-	}
-
-	if c.PreserveFDs > 0 {
-		entries, err := ioutil.ReadDir("/proc/self/fd")
-		if err != nil {
-			return errors.Wrapf(err, "unable to read /proc/self/fd")
-		}
-		m := make(map[int]bool)
-		for _, e := range entries {
-			i, err := strconv.Atoi(e.Name())
-			if err != nil {
-				return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
-			}
-			m[i] = true
-		}
-		for i := 3; i < 3+c.PreserveFDs; i++ {
-			if _, found := m[i]; !found {
-				return errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
-			}
-		}
-	}
-
-	// ENVIRONMENT VARIABLES
-	env := map[string]string{}
-
-	if err := parse.ReadKVStrings(env, []string{}, c.Env); err != nil {
-		return errors.Wrapf(err, "unable to process environment variables")
-	}
-	envs := []string{}
-	for k, v := range env {
-		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	streams := new(libpod.AttachStreams)
-	streams.OutputStream = os.Stdout
-	streams.ErrorStream = os.Stderr
-	streams.InputStream = os.Stdin
-	streams.AttachOutput = true
-	streams.AttachError = true
-	streams.AttachInput = true
-
-	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
 }

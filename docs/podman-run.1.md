@@ -366,9 +366,7 @@ Path to the container-init binary.
 
 **--interactive**, **-i**=*true|false*
 
-Keep STDIN open even if not attached. The default is *false*.
-
-When set to true, keep stdin open even if not attached. The default is false.
+When set to true, keep stdin open even if not attached. The default is *false*.
 
 **--ip6**=*ip*
 

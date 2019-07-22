@@ -1234,6 +1234,7 @@ _podman_diff() {
 
 _podman_exec() {
     local options_with_args="
+    --detach-keys
     -e
     --env
     --user
