@@ -126,13 +126,9 @@ func validateIOpsDevice(val string) (*throttleDevice, error) { //nolint
 	if err != nil {
 		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>. Number must be a positive integer", val)
 	}
-	if rate < 0 {
-		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>. Number must be a positive integer", val)
-	}
-
 	return &throttleDevice{
 		path: split[0],
-		rate: uint64(rate),
+		rate: rate,
 	}, nil
 }
 

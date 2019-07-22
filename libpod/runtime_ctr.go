@@ -432,20 +432,12 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		// from the state elsewhere
 		if !removePod {
 			if err := r.state.RemoveContainerFromPod(pod, c); err != nil {
-				if cleanupErr == nil {
-					cleanupErr = err
-				} else {
-					logrus.Errorf("removing container from pod: %v", err)
-				}
+				cleanupErr = err
 			}
 		}
 	} else {
 		if err := r.state.RemoveContainer(c); err != nil {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("removing container: %v", err)
-			}
+			cleanupErr = err
 		}
 	}
 

@@ -155,7 +155,7 @@ func createCgroupv2Path(path string) (Err error) {
 	if err != nil {
 		return errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
 	}
-	if !filepath.HasPrefix(path, "/sys/fs/cgroup") {
+	if !strings.HasPrefix(path, "/sys/fs/cgroup/") {
 		return fmt.Errorf("invalid cgroup path %s", path)
 	}
 
@@ -274,12 +274,6 @@ func readFileAsUint64(path string) (uint64, error) {
 	return ret, nil
 }
 
-func (c *CgroupControl) writePidToTasks(pid int, name string) error {
-	path := filepath.Join(c.getCgroupv1Path(name), "tasks")
-	payload := []byte(fmt.Sprintf("%d", pid))
-	return ioutil.WriteFile(path, payload, 0644)
-}
-
 // New creates a new cgroup control
 func New(path string, resources *spec.LinuxResources) (*CgroupControl, error) {
 	cgroup2, err := IsCgroup2UnifiedMode()
@@ -384,7 +378,7 @@ func rmDirRecursively(path string) error {
 			}
 		}
 	}
-	if os.Remove(path); err != nil {
+	if err := os.Remove(path); err != nil {
 		if !os.IsNotExist(err) {
 			return errors.Wrapf(err, "remove %s", path)
 		}

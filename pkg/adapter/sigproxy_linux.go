@@ -33,6 +33,4 @@ func ProxySignals(ctr *libpod.Container) {
 			}
 		}
 	}()
-
-	return
 }

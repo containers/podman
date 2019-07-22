@@ -111,10 +111,8 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 	args := []string{path, fmt.Sprintf("%d", pid)}
 	args = appendTriplet(args, 0, hostID, 1)
-	if mappings != nil {
-		for _, i := range mappings {
-			args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
-		}
+	for _, i := range mappings {
+		args = appendTriplet(args, i.ContainerID+1, i.HostID, i.Size)
 	}
 	cmd := exec.Cmd{
 		Path: path,
@@ -442,7 +440,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		return false, -1, errors.Wrapf(err, "write to sync pipe")
 	}
 
-	b := make([]byte, 1, 1)
+	b := make([]byte, 1)
 	_, err = w.Read(b)
 	if err != nil {
 		return false, -1, errors.Wrapf(err, "read from sync pipe")

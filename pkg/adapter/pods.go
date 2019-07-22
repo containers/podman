@@ -155,7 +155,7 @@ func (r *LocalRuntime) StopPods(ctx context.Context, cli *cliconfig.PodStopValue
 
 	for _, p := range pods {
 		stopped := true
-		conErrs, stopErr := p.StopWithTimeout(ctx, true, int(timeout))
+		conErrs, stopErr := p.StopWithTimeout(ctx, true, timeout)
 		if stopErr != nil {
 			errs = append(errs, stopErr)
 			stopped = false
@@ -532,7 +532,6 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
 					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
-				break
 			case v1.HostPathFileOrCreate:
 				if _, err := os.Stat(hostPath.Path); os.IsNotExist(err) {
 					f, err := os.OpenFile(hostPath.Path, os.O_RDONLY|os.O_CREATE, createFilePermission)
@@ -547,7 +546,6 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
 					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
-				break
 			case v1.HostPathDirectory:
 			case v1.HostPathFile:
 			case v1.HostPathUnset:

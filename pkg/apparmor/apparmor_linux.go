@@ -92,16 +92,24 @@ func InstallDefault(name string) error {
 		return err
 	}
 	if err := cmd.Start(); err != nil {
-		pipe.Close()
+		if pipeErr := pipe.Close(); pipeErr != nil {
+			logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+		}
 		return err
 	}
 	if err := p.generateDefault(pipe); err != nil {
-		pipe.Close()
-		cmd.Wait()
+		if pipeErr := pipe.Close(); pipeErr != nil {
+			logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+		}
+		if cmdErr := cmd.Wait(); cmdErr != nil {
+			logrus.Errorf("unable to wait for apparmor command: %q", cmdErr)
+		}
 		return err
 	}
 
-	pipe.Close()
+	if pipeErr := pipe.Close(); pipeErr != nil {
+		logrus.Errorf("unable to close apparmor pipe: %q", pipeErr)
+	}
 	return cmd.Wait()
 }
 

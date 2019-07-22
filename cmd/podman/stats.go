@@ -200,7 +200,7 @@ func outputStats(stats []*libpod.ContainerStats, format string) error {
 		}
 		out = formats.StdoutTemplateArray{Output: statsToGeneric(outputStats, []statsOutputParams{}), Template: format, Fields: mapOfHeaders}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func genStatsFormat(format string) string {

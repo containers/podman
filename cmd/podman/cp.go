@@ -122,7 +122,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			if errors.Cause(err) != define.ErrCtrStateInvalid {
 				return err
 			}
-		} else if err == nil {
+		} else {
 			// Only add the defer if we actually paused
 			defer func() {
 				if err := ctr.Unpause(); err != nil {
@@ -486,10 +486,7 @@ func matchVolumePath(path, target string) bool {
 	for len(pathStr) > len(target) && strings.Contains(pathStr, string(os.PathSeparator)) {
 		pathStr = pathStr[:strings.LastIndex(pathStr, string(os.PathSeparator))]
 	}
-	if pathStr == target {
-		return true
-	}
-	return false
+	return pathStr == target
 }
 
 func pathWithBindMountSource(m specs.Mount, path string) (string, error) {

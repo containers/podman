@@ -1264,6 +1264,7 @@ func (c *Container) postDeleteHooks(ctx context.Context) (err error) {
 				return err
 			}
 			for i, hook := range extensionHooks {
+				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
@@ -1513,7 +1514,7 @@ func (c *Container) prepareCheckpointExport() (err error) {
 		logrus.Debugf("generating spec for container %q failed with %v", c.ID(), err)
 		return err
 	}
-	if err := c.writeJSONFile(g.Spec(), "spec.dump"); err != nil {
+	if err := c.writeJSONFile(g.Config, "spec.dump"); err != nil {
 		return err
 	}
 

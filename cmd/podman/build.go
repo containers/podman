@@ -313,7 +313,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 // the urfavecli Tail method for args
 func Tail(a []string) []string {
 	if len(a) >= 2 {
-		return []string(a)[1:]
+		return a[1:]
 	}
 	return []string{}
 }
