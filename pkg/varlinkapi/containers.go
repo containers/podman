@@ -808,7 +808,7 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	resizeChan := make(chan remotecommand.TerminalSize)
 
 	reader, writer, _, pipeWriter, streams := setupStreams(call)
-	//reader, _, _, pipeWriter, streams := setupStreams(call)
+
 	type ExitCodeError struct {
 		ExitCode uint32
 		Error    error
@@ -837,8 +837,7 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 
 	ecErr := <-ecErrChan
 
-	// TODO FIXME prevent all of these conversions
-	exitCode := int(ecErr.ExitCode)
+	exitCode := ecErr.ExitCode
 	if errors.Cause(ecErr.Error) == define.ErrOCIRuntimePermissionDenied {
 		exitCode = define.ExecErrorCodeCannotInvoke
 	}
