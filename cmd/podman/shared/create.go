@@ -83,7 +83,13 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		} else {
 			return nil, nil, errors.Errorf("error, no input arguments were provided")
 		}
-		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(c.String("authfile")), writer, nil, image.SigningOptions{}, false, nil)
+
+		pullType, err := util.ValidatePullType(c.String("pull"))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(c.String("authfile")), writer, nil, image.SigningOptions{}, nil, pullType)
 		if err != nil {
 			return nil, nil, err
 		}

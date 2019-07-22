@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/errorhandling"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -112,7 +113,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 		return nil, err
 	}
 
-	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, false, nil)
+	_, err = runtime.ImageRuntime().New(ctx, config.RootfsImageName, rtc.SignaturePolicyPath, "", writer, nil, image.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		return nil, err
 	}

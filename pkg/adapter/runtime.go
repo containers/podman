@@ -24,6 +24,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
 	"k8s.io/api/core/v1"
@@ -132,8 +133,8 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 }
 
 // New calls into local storage to look for an image in local storage or to pull it
-func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
-	img, err := r.Runtime.ImageRuntime().New(ctx, name, signaturePolicyPath, authfile, writer, dockeroptions, signingoptions, forcePull, label)
+func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, label *string, pullType util.PullType) (*ContainerImage, error) {
+	img, err := r.Runtime.ImageRuntime().New(ctx, name, signaturePolicyPath, authfile, writer, dockeroptions, signingoptions, label, pullType)
 	if err != nil {
 		return nil, err
 	}

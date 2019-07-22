@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/trust"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -113,7 +114,7 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return err
 		}
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, false, nil)
+		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}

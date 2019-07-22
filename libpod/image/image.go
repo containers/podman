@@ -135,7 +135,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 
 // New creates a new image object where the image could be local
 // or remote
-func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, forcePull bool, label *string) (*Image, error) {
+func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *DockerRegistryOptions, signingoptions SigningOptions, label *string, pullType util.PullType) (*Image, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "newImage")
 	span.SetTag("type", "runtime")
 	defer span.Finish()
@@ -145,11 +145,13 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		InputName:    name,
 		imageruntime: ir,
 	}
-	if !forcePull {
+	if pullType != util.PullImageAlways {
 		localImage, err := newImage.getLocalImage()
 		if err == nil {
 			newImage.image = localImage
 			return &newImage, nil
+		} else if pullType == util.PullImageNever {
+			return nil, err
 		}
 	}
 

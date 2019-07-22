@@ -347,6 +347,7 @@ type Create (
     privileged: ?bool,
     publish: ?[]string,
     publishAll: ?bool,
+    pull: ?string,
     quiet: ?bool,
     readonly: ?bool,
     readonlytmpfs: ?bool,

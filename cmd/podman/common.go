@@ -388,6 +388,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"publish-all", "P", false,
 		"Publish all exposed ports to random ports on the host interface",
 	)
+	createFlags.String(
+		"pull", "missing",
+		`Pull image before creating ("always"|"missing"|"never") (default "missing")`,
+	)
 	createFlags.BoolP(
 		"quiet", "q", false,
 		"Suppress output information when pulling images",

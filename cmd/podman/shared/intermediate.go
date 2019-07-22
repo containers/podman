@@ -436,6 +436,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["privileged"] = newCRBool(c, "privileged")
 	m["publish"] = newCRStringSlice(c, "publish")
 	m["publish-all"] = newCRBool(c, "publish-all")
+	m["pull"] = newCRString(c, "pull")
 	m["quiet"] = newCRBool(c, "quiet")
 	m["read-only"] = newCRBool(c, "read-only")
 	m["read-only-tmpfs"] = newCRBool(c, "read-only-tmpfs")

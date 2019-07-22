@@ -25,6 +25,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
@@ -265,7 +266,7 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 }
 
 // New calls into local storage to look for an image in local storage or to pull it
-func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
+func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, label *string, pullType util.PullType) (*ContainerImage, error) {
 	var iid string
 	if label != nil {
 		return nil, errors.New("the remote client function does not support checking a remote image for a label")
