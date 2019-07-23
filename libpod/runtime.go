@@ -879,14 +879,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		runtime.imageRuntime.Eventer = eventer
 	}
 
-	// Set up a storage service for creating container root filesystems from
-	// images
-	storageService, err := getStorageService(runtime.store)
-	if err != nil {
-		return err
-	}
-	runtime.storageService = storageService
-
 	// Set up containers/image
 	runtime.imageContext = &types.SystemContext{
 		SignaturePolicyPath: runtime.config.SignaturePolicyPath,
@@ -1329,6 +1321,14 @@ func (r *Runtime) configureStore() error {
 
 	r.store = store
 	is.Transport.SetStore(store)
+
+	// Set up a storage service for creating container root filesystems from
+	// images
+	storageService, err := getStorageService(r.store)
+	if err != nil {
+		return err
+	}
+	r.storageService = storageService
 
 	ir := image.NewImageRuntimeFromStore(r.store)
 	ir.SignaturePolicyPath = r.config.SignaturePolicyPath
