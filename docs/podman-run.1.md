@@ -646,6 +646,9 @@ If specified, the first argument refers to an exploded container on the file sys
 This is useful to run a container without requiring any image management, the rootfs
 of the container is assumed to be managed externally.
 
+Note: On `SELinux` systems, the rootfs needs the correct label, which is by default
+`unconfined_u:object_r:container_file_t`.
+
 **--security-opt**=*option*
 
 Security Options
