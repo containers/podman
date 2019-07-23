@@ -62,17 +62,6 @@ URI="gs://packer-import${POST_MERGE_BUCKET_SUFFIX}/manifest${BUILT_IMAGE_SUFFIX}
 gsutil cp packer-manifest.json "$URI"
 
 # Ensure any background 'gcloud compute images update' processes finish
-set +e  # need 'wait' exit code to avoid race
-while [[ -n "$(jobs)" ]]
-do
-    wait -n
-    RET=$?
-    if [[ "$RET" -eq "127" ]] || \   # Avoid TOCTOU race w/ jobs + wait
-       [[ "$RET" -eq "0" ]]
-    then
-        continue
-    fi
-    die $RET "Required base-image metadata update failed"
-done
+wait  # CentOS has no -n option :(
 
 echo "Finished. A JSON manifest of produced images is available at $URI"
