@@ -1057,12 +1057,8 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	ecChan := make(chan int, 1)
 	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, inputStream, os.Stdout, oldTermState, resize, ecChan)
 
-	select {
-	case ec = <-ecChan:
-		break
-	case err = <-errChan:
-		break
-	}
+	ec = <-ecChan
+	err = <-errChan
 
 	return ec, err
 }
@@ -1095,13 +1091,15 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 		}
 	}()
 
-	// Takes stdinput and sends it over the wire after being encoded
-	go func() {
-		if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
-			defer restoreTerminal(oldTermState)
-			errChan <- err
-		}
+	if stdin != nil {
+		// Takes stdinput and sends it over the wire after being encoded
+		go func() {
+			if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
+				defer restoreTerminal(oldTermState)
+				errChan <- err
+			}
 
-	}()
+		}()
+	}
 	return errChan
 }
