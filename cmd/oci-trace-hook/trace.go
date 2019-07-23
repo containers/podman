@@ -21,11 +21,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// event
+// event struct used to read the perf_buffer
 type event struct {
-	Pid uint32
-	ID  uint32
-	// Inum    uint
+	Pid     uint32
+	ID      uint32
 	Command [16]byte
 }
 
