@@ -47,7 +47,7 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.9.0
+# github.com/containers/buildah v1.9.2
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser
@@ -218,7 +218,7 @@ github.com/docker/go-connections/sockets
 github.com/docker/go-metrics
 # github.com/docker/go-units v0.4.0
 github.com/docker/go-units
-# github.com/docker/libnetwork v0.8.0-dev.2.0.20180608203834-19279f049241
+# github.com/docker/libnetwork v0.8.0-dev.2.0.20190625141545-5a177b73e316
 github.com/docker/libnetwork/resolvconf
 github.com/docker/libnetwork/types
 github.com/docker/libnetwork/resolvconf/dns
@@ -269,7 +269,7 @@ github.com/ijc/Gotty
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
-# github.com/ishidawataru/sctp v0.0.0-20180213033435-07191f837fed
+# github.com/ishidawataru/sctp v0.0.0-20180918013207-6e2cb1366111
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
@@ -344,14 +344,14 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.1
 github.com/opencontainers/image-spec/specs-go/v1
 github.com/opencontainers/image-spec/specs-go
-# github.com/opencontainers/runc v1.0.0-rc6
+# github.com/opencontainers/runc v1.0.0-rc8
 github.com/opencontainers/runc/libcontainer/user
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/system
-# github.com/opencontainers/runtime-spec v0.0.0-20181111125026-1722abf79c2f
+# github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.0
 github.com/opencontainers/runtime-tools/generate
@@ -457,7 +457,7 @@ github.com/vbauerster/mpb/internal
 # github.com/vishvananda/netlink v1.0.0
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
-# github.com/vishvananda/netns v0.0.0-20180720170159-13995c7128cc
+# github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f
 github.com/vishvananda/netns
 # github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f
 github.com/xeipuuv/gojsonpointer

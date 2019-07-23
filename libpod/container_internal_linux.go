@@ -185,11 +185,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	// If network namespace was requested, add it now
 	if c.config.CreateNetNS {
 		if c.config.PostConfigureNetNS {
-			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, ""); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), ""); err != nil {
 				return nil, err
 			}
 		} else {
-			if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
 				return nil, err
 			}
 		}
@@ -310,7 +310,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 	if c.config.PIDNsCtr != "" {
-		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, string(spec.PIDNamespace)); err != nil {
+		if err := c.addNamespaceContainer(&g, PIDNS, c.config.PIDNsCtr, spec.PIDNamespace); err != nil {
 			return nil, err
 		}
 	}
@@ -340,7 +340,7 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
 
 	for _, i := range c.config.Spec.Linux.Namespaces {
-		if string(i.Type) == spec.UTSNamespace {
+		if i.Type == spec.UTSNamespace {
 			hostname := c.Hostname()
 			g.SetHostname(hostname)
 			g.AddProcessEnv("HOSTNAME", hostname)
@@ -496,7 +496,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 }
 
 // Add an existing container's namespace to the spec
-func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS string) error {
+func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr string, specNS spec.LinuxNamespaceType) error {
 	nsCtr, err := c.runtime.state.Container(ctr)
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving dependency %s of container %s from state", ctr, c.ID())
@@ -508,7 +508,7 @@ func (c *Container) addNamespaceContainer(g *generate.Generator, ns LinuxNS, ctr
 		return err
 	}
 
-	if err := g.AddOrReplaceLinuxNamespace(specNS, nsPath); err != nil {
+	if err := g.AddOrReplaceLinuxNamespace(string(specNS), nsPath); err != nil {
 		return err
 	}
 
@@ -787,7 +787,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// We want to have the same network namespace as before.
 	if c.config.CreateNetNS {
-		if err := g.AddOrReplaceLinuxNamespace(spec.NetworkNamespace, c.state.NetNS.Path()); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.NetworkNamespace), c.state.NetNS.Path()); err != nil {
 			return err
 		}
 	}

@@ -136,7 +136,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 			continue
 		}
 		middle := ""
-		if prefix, ok := RegistryDefaultPathPrefix[registry]; ok && strings.IndexRune(name, '/') == -1 {
+		if prefix, ok := RegistryDefaultPathPrefix[registry]; ok && !strings.ContainsRune(name, '/') {
 			middle = prefix
 		}
 		candidate := path.Join(registry, middle, name)

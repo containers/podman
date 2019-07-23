@@ -118,7 +118,9 @@ func GetNameSpaceFlags(flags *NameSpaceResults) pflag.FlagSet {
 	fs.StringVar(&flags.Network, string(specs.NetworkNamespace), "", "'container', `path` of network namespace to join, or 'host'")
 	// TODO How do we alias net and network?
 	fs.StringVar(&flags.Network, "net", "", "'container', `path` of network namespace to join, or 'host'")
-	fs.MarkHidden("net")
+	if err := fs.MarkHidden("net"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringVar(&flags.CNIConfigDir, "cni-config-dir", util.DefaultCNIConfigDir, "`directory` of CNI configuration files")
 	fs.StringVar(&flags.CNIPlugInPath, "cni-plugin-path", util.DefaultCNIPluginPath, "`path` of CNI network plugins")
 	fs.StringVar(&flags.PID, string(specs.PIDNamespace), "", "container, `path` of PID namespace to join, or 'host'")
@@ -172,7 +174,9 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs := pflag.FlagSet{}
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
 	fs.StringVar(&flags.BlobCache, "blob-cache", "", "assume image blobs in the specified directory will be available for pushing")
-	fs.MarkHidden("blob-cache")
+	if err := fs.MarkHidden("blob-cache"); err != nil {
+		panic(fmt.Sprintf("error marking net flag as hidden: %v", err))
+	}
 	fs.StringSliceVar(&flags.CapAdd, "cap-add", []string{}, "add the specified capability when running (default [])")
 	fs.StringSliceVar(&flags.CapDrop, "cap-drop", []string{}, "drop the specified capability when running (default [])")
 	fs.StringVar(&flags.CgroupParent, "cgroup-parent", "", "optional parent cgroup for the container")

@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -105,21 +106,23 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	return "", "", errors.Errorf("unreachable code reached")
 }
 
-func dedupeStringSlice(slice []string) []string {
-	done := make([]string, 0, len(slice))
-	m := make(map[string]struct{})
-	for _, s := range slice {
-		if _, present := m[s]; !present {
-			m[s] = struct{}{}
-			done = append(done, s)
-		}
-	}
-	return done
-}
-
 // InitReexec is a wrapper for buildah.InitReexec().  It should be called at
 // the start of main(), and if it returns true, main() should return
 // immediately.
 func InitReexec() bool {
 	return buildah.InitReexec()
+}
+
+func convertMounts(mounts []Mount) []specs.Mount {
+	specmounts := []specs.Mount{}
+	for _, m := range mounts {
+		s := specs.Mount{
+			Destination: m.Destination,
+			Type:        m.Type,
+			Source:      m.Source,
+			Options:     m.Options,
+		}
+		specmounts = append(specmounts, s)
+	}
+	return specmounts
 }

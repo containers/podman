@@ -107,4 +107,24 @@ lstat /home/myusername/~: no such file or directory
 
   * Replace `~` with `$HOME` or the fully specified directory `/home/myusername`.
     * `$ sudo buildah push alpine oci:${HOME}/myalpine:latest`
+
+
+---
+### 5) Rootless buildah bud fails EPERM on NFS:
+
+NFS enforces file creation on different UIDs on the server side and does not understand User Namespace.
+When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.
+NFS is also a problem for the file locks when the storage is on it.
+
+#### Symptom
+```console
+$ buildah bud .
+ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+```
+
+#### Solution
+Choose one of the following:
+  * Setup containers/storage in a different directory, not on an NFS share.
+  * Otherwise just run buildah as root, via `sudo buildah`
 ---

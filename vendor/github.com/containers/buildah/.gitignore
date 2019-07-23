@@ -2,3 +2,4 @@ docs/buildah*.1
 /buildah
 /imgtype
 /build/
+tests/tools/build

@@ -209,7 +209,7 @@ func getSymbolicLink(path string) (string, error) {
 		}
 		// if isSymlink is true, check if resolvedPath is potentially another symlink
 		// keep doing this till resolvedPath is not a symlink and isSymlink is false
-		for isSymlink == true {
+		for isSymlink {
 			// Need to keep track of number of symlinks resolved
 			// Will also return an error if the symlink points to itself as that will exceed maxSymlinksResolved
 			if symLinksResolved >= maxSymlinksResolved {
