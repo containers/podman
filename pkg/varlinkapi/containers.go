@@ -837,15 +837,9 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 
 	ecErr := <-ecErrChan
 
-	exitCode := ecErr.ExitCode
-	if errors.Cause(ecErr.Error) == define.ErrOCIRuntimePermissionDenied {
-		exitCode = define.ExecErrorCodeCannotInvoke
-	}
-	if errors.Cause(ecErr.Error) == define.ErrOCIRuntimeNotFound {
-		exitCode = define.ExecErrorCodeNotFound
-	}
+	exitCode := define.TranslateExecErrorToExitCode(int(ecErr.ExitCode), ecErr.Error)
 
-	if err = virtwriter.HangUp(writer, exitCode); err != nil {
+	if err = virtwriter.HangUp(writer, uint32(exitCode)); err != nil {
 		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
 	}
 
