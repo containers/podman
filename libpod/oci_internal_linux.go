@@ -19,6 +19,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
@@ -44,14 +45,14 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Containe
 	if err != nil {
 		return errors.Wrapf(err, "error creating socket pair")
 	}
-	defer parentSyncPipe.Close()
+	defer errorhandling.CloseQuiet(parentSyncPipe)
 
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
 		return errors.Wrapf(err, "error creating socket pair for start pipe")
 	}
 
-	defer parentStartPipe.Close()
+	defer errorhandling.CloseQuiet(parentStartPipe)
 
 	var ociLog string
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
@@ -273,7 +274,7 @@ func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath
 		logDriver = JournaldLogging
 	case JSONLogging:
 		fallthrough
-	default:
+	default: //nolint-stylecheck
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())
 		fallthrough
@@ -336,7 +337,9 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 	err = cmd.Start()
 	// Ignore error returned from SetProcessLabel("") call,
 	// can't recover.
-	label.SetProcessLabel("")
+	if labelErr := label.SetProcessLabel(""); labelErr != nil {
+		logrus.Errorf("unable to set process label: %q", err)
+	}
 	runtime.UnlockOSThread()
 	return err
 }
