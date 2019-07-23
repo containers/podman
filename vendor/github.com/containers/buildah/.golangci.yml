@@ -1,0 +1,44 @@
+---
+run:
+  build-tags:
+    - apparmor
+    - ostree
+    - seccomp
+    - selinux
+  concurrency: 6
+  deadline: 5m
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dupl
+    - errcheck
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - misspell
+    - nakedret
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    # - gochecknoglobals
+    # - gochecknoinits
+    # - goconst
+    # - gocritic
+    # - gocyclo
+    # - golint
+    # - gosec
+    # - interfacer
+    # - lll
+    # - maligned
+    # - prealloc
+    # - scopelint

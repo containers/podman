@@ -175,7 +175,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	if !(contains(volumes, "/etc/resolv.conf") || (len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none")) {
-		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions)
+		resolvFile, err := b.addNetworkConfig(path, "/etc/resolv.conf", rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, namespaceOptions)
 		if err != nil {
 			return err
 		}
@@ -217,7 +217,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		if options.NoPivot {
 			moreCreateArgs = append(moreCreateArgs, "--no-pivot")
 		}
-		if err := setupRootlessSpecChanges(spec, path, rootUID, rootGID, b.CommonBuildOpts.ShmSize); err != nil {
+		if err := setupRootlessSpecChanges(spec, path, b.CommonBuildOpts.ShmSize); err != nil {
 			return err
 		}
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, configureNetworks, moreCreateArgs, spec, mountPoint, path, Package+"-"+filepath.Base(path))
@@ -411,10 +411,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of files we need to bind into the container.
-	bindFileMounts, err := runSetupBoundFiles(bundlePath, bindFiles)
-	if err != nil {
-		return err
-	}
+	bindFileMounts := runSetupBoundFiles(bundlePath, bindFiles)
 
 	// After this point we need to know the per-container persistent storage directory.
 	cdir, err := b.store.ContainerDirectory(b.ContainerID)
@@ -462,7 +459,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 }
 
 // addNetworkConfig copies files from host and sets them up to bind mount into container
-func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string) (string, error) {
+func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDPair, dnsServers, dnsSearch, dnsOptions []string, namespaceOptions NamespaceOptions) (string, error) {
 	stat, err := os.Stat(hostPath)
 	if err != nil {
 		return "", errors.Wrapf(err, "error statting %q for container %q", hostPath, b.ContainerID)
@@ -479,6 +476,16 @@ func (b *Builder) addNetworkConfig(rdir, hostPath string, chownOpts *idtools.IDP
 	if len(dnsSearch) > 0 {
 		search = dnsSearch
 	}
+
+	if b.Isolation == IsolationOCIRootless {
+		ns := namespaceOptions.Find(string(specs.NetworkNamespace))
+		if ns != nil && !ns.Host && ns.Path == "" {
+			// if we are using slirp4netns, also add the built-in DNS server.
+			logrus.Debugf("adding slirp4netns 10.0.2.3 built-in DNS server")
+			nameservers = append([]string{"10.0.2.3"}, nameservers...)
+		}
+	}
+
 	if len(dnsServers) != 0 {
 		dns, err := getDNSIP(dnsServers)
 		if err != nil {
@@ -589,7 +596,7 @@ func setupTerminal(g *generate.Generator, terminalPolicy TerminalPolicy, termina
 	}
 }
 
-func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, rootPath, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
+func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork bool, configureNetworks, moreCreateArgs []string, spec *specs.Spec, bundlePath, containerName string) (wstatus unix.WaitStatus, err error) {
 	// Lock the caller to a single OS-level thread.
 	runtime.LockOSThread()
 
@@ -944,8 +951,8 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	}
 
 	return func() {
-		cmd.Process.Kill()
-		cmd.Wait()
+		cmd.Process.Kill() // nolint:errcheck
+		cmd.Wait()         // nolint:errcheck
 	}, nil
 }
 
@@ -1131,17 +1138,17 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 		if err := setNonblock(rfd, readDesc[rfd], true); err != nil {
 			return
 		}
-		setNonblock(wfd, writeDesc[wfd], false)
+		setNonblock(wfd, writeDesc[wfd], false) // nolint:errcheck
 	}
 
 	if copyPipes {
-		setNonblock(stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true)
+		setNonblock(stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) // nolint:errcheck
 	}
 
-	runCopyStdioPassData(stdio, copyPipes, stdioPipe, copyConsole, consoleListener, finishCopy, finishedCopy, spec, relayMap, relayBuffer, readDesc, writeDesc)
+	runCopyStdioPassData(copyPipes, stdioPipe, finishCopy, relayMap, relayBuffer, readDesc, writeDesc)
 }
 
-func runCopyStdioPassData(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copyConsole bool, consoleListener *net.UnixListener, finishCopy []int, finishedCopy chan struct{}, spec *specs.Spec, relayMap map[int]int, relayBuffer map[int]*bytes.Buffer, readDesc map[int]string, writeDesc map[int]string) {
+func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, relayMap map[int]int, relayBuffer map[int]*bytes.Buffer, readDesc map[int]string, writeDesc map[int]string) {
 	closeStdin := false
 
 	// Pass data back and forth.
@@ -1383,7 +1390,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Run the container, start to finish.
-	status, err := runUsingRuntime(options.Isolation, options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.RootPath, options.BundlePath, options.ContainerName)
+	status, err := runUsingRuntime(options.Isolation, options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.BundlePath, options.ContainerName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)
@@ -1439,7 +1446,7 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 
 	// If we've got mappings, we're going to have to create a user namespace.
 	if len(idmapOptions.UIDMap) > 0 || len(idmapOptions.GIDMap) > 0 || configureUserns {
-		if err := g.AddOrReplaceLinuxNamespace(specs.UserNamespace, ""); err != nil {
+		if err := g.AddOrReplaceLinuxNamespace(string(specs.UserNamespace), ""); err != nil {
 			return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.UserNamespace))
 		}
 		hostUidmap, hostGidmap, err := unshare.GetHostIDMappings("")
@@ -1463,17 +1470,17 @@ func setupNamespaces(g *generate.Generator, namespaceOptions NamespaceOptions, i
 			}
 		}
 		if !specifiedNetwork {
-			if err := g.AddOrReplaceLinuxNamespace(specs.NetworkNamespace, ""); err != nil {
+			if err := g.AddOrReplaceLinuxNamespace(string(specs.NetworkNamespace), ""); err != nil {
 				return false, nil, false, errors.Wrapf(err, "error adding new %q namespace for run", string(specs.NetworkNamespace))
 			}
 			configureNetwork = (policy != NetworkDisabled)
 		}
 	} else {
-		if err := g.RemoveLinuxNamespace(specs.UserNamespace); err != nil {
+		if err := g.RemoveLinuxNamespace(string(specs.UserNamespace)); err != nil {
 			return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.UserNamespace))
 		}
 		if !specifiedNetwork {
-			if err := g.RemoveLinuxNamespace(specs.NetworkNamespace); err != nil {
+			if err := g.RemoveLinuxNamespace(string(specs.NetworkNamespace)); err != nil {
 				return false, nil, false, errors.Wrapf(err, "error removing %q namespace for run", string(specs.NetworkNamespace))
 			}
 		}
@@ -1544,7 +1551,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options RunOptions)
 	return configureNetwork, configureNetworks, nil
 }
 
-func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts []specs.Mount, err error) {
+func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts []specs.Mount) {
 	for dest, src := range bindFiles {
 		options := []string{"rbind"}
 		if strings.HasPrefix(src, bundlePath) {
@@ -1557,7 +1564,7 @@ func runSetupBoundFiles(bundlePath string, bindFiles map[string]string) (mounts 
 			Options:     options,
 		})
 	}
-	return mounts, nil
+	return mounts
 }
 
 func addRlimits(ulimit []string, g *generate.Generator) error {
@@ -1598,7 +1605,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		return nil, errors.Wrapf(err, "error cleaning up overlay content for %s", b.ContainerID)
 	}
 
-	parseMount := func(host, container string, options []string) (specs.Mount, error) {
+	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
 		var foundrw, foundro, foundz, foundZ, foundO bool
 		var rootProp string
 		for _, opt := range options {
@@ -1641,18 +1648,22 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if rootProp == "" {
 			options = append(options, "private")
 		}
+		if mountType != "tmpfs" {
+			mountType = "bind"
+			options = append(options, "rbind")
+		}
 		return specs.Mount{
 			Destination: container,
-			Type:        "bind",
+			Type:        mountType,
 			Source:      host,
-			Options:     append(options, "rbind"),
+			Options:     options,
 		}, nil
 	}
 
 	// Bind mount volumes specified for this particular Run() invocation
 	for _, i := range optionMounts {
 		logrus.Debugf("setting up mounted volume at %q", i.Destination)
-		mount, err := parseMount(i.Source, i.Destination, i.Options)
+		mount, err := parseMount(i.Type, i.Source, i.Destination, i.Options)
 		if err != nil {
 			return nil, err
 		}
@@ -1666,7 +1677,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			options = strings.Split(spliti[2], ",")
 		}
 		options = append(options, "rbind")
-		mount, err := parseMount(spliti[0], spliti[1], options)
+		mount, err := parseMount("bind", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}
@@ -1878,7 +1889,7 @@ func (b *Builder) configureEnvironment(g *generate.Generator, options RunOptions
 	}
 }
 
-func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, rootUID, rootGID uint32, shmSize string) error {
+func setupRootlessSpecChanges(spec *specs.Spec, bundleDir string, shmSize string) error {
 	spec.Hostname = ""
 	spec.Process.User.AdditionalGids = nil
 	spec.Linux.Resources = nil

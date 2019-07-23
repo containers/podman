@@ -1,3 +1,5 @@
+export GO111MODULE=off
+
 SELINUXTAG := $(shell ./selinux_tag.sh)
 STORAGETAGS := $(shell ./btrfs_tag.sh) $(shell ./btrfs_installed_tag.sh) $(shell ./libdm_tag.sh) $(shell ./ostree_tag.sh)
 SECURITYTAGS ?= seccomp $(SELINUXTAG)
@@ -13,10 +15,10 @@ GO110 := 1.10
 GOVERSION := $(findstring $(GO110),$(shell go version))
 GIT_COMMIT ?= $(if $(shell git rev-parse --short HEAD),$(shell git rev-parse --short HEAD),$(error "git failed"))
 BUILD_INFO := $(if $(shell date +%s),$(shell date +%s),$(error "date failed"))
-CNI_COMMIT := $(if $(shell sed -e '\,github.com/containernetworking/cni, !d' -e 's,.* ,,g' vendor.conf),$(shell sed -e '\,github.com/containernetworking/cni, !d' -e 's,.* ,,g' vendor.conf),$(error "sed failed"))
 STATIC_STORAGETAGS = "containers_image_ostree_stub containers_image_openpgp exclude_graphdriver_devicemapper $(STORAGE_TAGS)"
 
-RUNC_COMMIT := 2c632d1a2de0192c3f18a2542ccb6f30a8719b1f
+CNI_COMMIT := $(shell sed -n 's;\tgithub.com/containernetworking/cni \([^ \n]*\).*$\;\1;p' go.mod)
+RUNC_COMMIT := $(shell sed -n 's;\tgithub.com/opencontainers/runc \([^ \n]*\).*$\;\1;p' go.mod)
 LIBSECCOMP_COMMIT := release-2.3
 
 EXTRALDFLAGS :=
@@ -47,7 +49,7 @@ clean:
 	$(MAKE) -C docs clean
 
 .PHONY: docs
-docs: ## build the docs on the host
+docs: install.tools ## build the docs on the host
 	$(MAKE) -C docs
 
 # For vendoring to work right, the checkout directory must be such that our top
@@ -62,7 +64,7 @@ deps: gopath
 	env GOPATH=$(shell cd ../../../.. ; pwd) vndr
 
 .PHONY: validate
-validate:
+validate: install.tools
 	# Run gofmt on version 1.11 and higher
 ifneq ($(GO110),$(GOVERSION))
 	@./tests/validate/gofmt.sh
@@ -70,15 +72,10 @@ endif
 	@./tests/validate/whitespace.sh
 	@./tests/validate/govet.sh
 	@./tests/validate/git-validation.sh
-	@./tests/validate/gometalinter.sh . cmd/buildah
 
 .PHONY: install.tools
 install.tools:
-	$(GO) get -u $(BUILDFLAGS) github.com/cpuguy83/go-md2man
-	$(GO) get -u $(BUILDFLAGS) github.com/vbatts/git-validation
-	$(GO) get -u $(BUILDFLAGS) github.com/onsi/ginkgo/ginkgo
-	$(GO) get -u $(BUILDFLAGS) gopkg.in/alecthomas/gometalinter.v1
-	$(GOPATH)/bin/gometalinter.v1 -i
+	make -C tests/tools
 
 .PHONY: runc
 runc: gopath
@@ -119,8 +116,8 @@ install.runc:
 	install -m 755 ../../opencontainers/runc/runc $(DESTDIR)/$(BINDIR)/
 
 .PHONY: test-integration
-test-integration:
-	ginkgo -v tests/e2e/.
+test-integration: install.tools
+	./tests/tools/ginkgo $(BUILDFLAGS) -v tests/e2e/.
 	cd tests; ./test_runner.sh
 
 tests/testreport/testreport: tests/testreport/testreport.go
@@ -133,11 +130,13 @@ test-unit: tests/testreport/testreport
 	mkdir -p $$tmp/root $$tmp/runroot; \
 	$(GO) test -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" ./cmd/buildah -args -root $$tmp/root -runroot $$tmp/runroot -storage-driver vfs -signature-policy $(shell pwd)/tests/policy.json -registries-conf $(shell pwd)/tests/registries.conf
 
-.PHONY: .install.vndr
-.install.vndr:
-	$(GO) get -u github.com/LK4D4/vndr
-
 .PHONY: vendor
-vendor: vendor.conf .install.vndr
-	$(GOPATH)/bin/vndr \
-		-whitelist "github.com/onsi/gomega"
+vendor:
+	export GO111MODULE=on \
+		$(GO) mod tidy && \
+		$(GO) mod vendor && \
+		$(GO) mod verify
+
+.PHONY: lint
+lint: install.tools
+	./tests/tools/build/golangci-lint run

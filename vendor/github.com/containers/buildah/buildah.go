@@ -15,7 +15,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +26,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.9.0"
+	Version = "1.9.2"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -119,6 +119,9 @@ type Builder struct {
 	// FromImageID is the ID of the source image which was used to create
 	// the container, if one was used.  It should not be modified.
 	FromImageID string `json:"image-id"`
+	// FromImageDigest is the digest of the source image which was used to
+	// create the container, if one was used.  It should not be modified.
+	FromImageDigest string `json:"image-digest"`
 	// Config is the source image's configuration.  It should not be
 	// modified.
 	Config []byte `json:"config,omitempty"`
@@ -200,6 +203,7 @@ type BuilderInfo struct {
 	Type                  string
 	FromImage             string
 	FromImageID           string
+	FromImageDigest       string
 	Config                string
 	Manifest              string
 	Container             string
@@ -243,6 +247,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		Type:                  b.Type,
 		FromImage:             b.FromImage,
 		FromImageID:           b.FromImageID,
+		FromImageDigest:       b.FromImageDigest,
 		Config:                string(b.Config),
 		Manifest:              string(b.Manifest),
 		Container:             b.Container,

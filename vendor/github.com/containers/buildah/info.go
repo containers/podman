@@ -27,10 +27,7 @@ type InfoData struct {
 func Info(store storage.Store) ([]InfoData, error) {
 	info := []InfoData{}
 	// get host information
-	hostInfo, err := hostInfo()
-	if err != nil {
-		logrus.Error(err, "error getting host info")
-	}
+	hostInfo := hostInfo()
 	info = append(info, InfoData{Type: "host", Data: hostInfo})
 
 	// get store information
@@ -42,7 +39,7 @@ func Info(store storage.Store) ([]InfoData, error) {
 	return info, nil
 }
 
-func hostInfo() (map[string]interface{}, error) {
+func hostInfo() map[string]interface{} {
 	info := map[string]interface{}{}
 	info["os"] = runtime.GOOS
 	info["arch"] = runtime.GOARCH
@@ -115,8 +112,7 @@ func hostInfo() (map[string]interface{}, error) {
 	}
 	info["hostname"] = host
 
-	return info, nil
-
+	return info
 }
 
 // top-level "store" info

@@ -118,11 +118,18 @@ commit automatically with `git commit -s`.
 
 ## Communications
 
-For general questions, or discussions, please use the
+For general questions or discussions, please use the
 IRC group on `irc.freenode.net` called `buildah`
 that has been setup.
 
-For discussions around issues/bugs and features, you can use the github
+### For discussions around issues/bugs and features:
+
+#### Buildah Mailing List
+
+You can join the Buildah mailing list by sending an email to `buildah-join@lists.buildah.io` with the word `subscribe` in the subject.  You can also go to this [page](https://lists.podman.io/admin/lists/buildah.lists.buildah.io/), then scroll down to the bottom of the page and enter your email and optionally name, then click on the "Subscribe" buton.
+
+#### GitHub
+You can also use the github
 [issues](https://github.com/containers/buildah/issues)
 and
 [PRs](https://github.com/containers/buildah/pulls)

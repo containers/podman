@@ -38,7 +38,9 @@ type Process struct {
 	// User specifies user information for the process.
 	User User `json:"user"`
 	// Args specifies the binary and arguments for the application to execute.
-	Args []string `json:"args"`
+	Args []string `json:"args,omitempty"`
+	// CommandLine specifies the full command line for the application to execute on Windows.
+	CommandLine string `json:"commandLine,omitempty" platform:"windows"`
 	// Env populates the process environment for the process.
 	Env []string `json:"env,omitempty"`
 	// Cwd is the current working directory for the process and must be
@@ -181,17 +183,17 @@ const (
 	// PIDNamespace for isolating process IDs
 	PIDNamespace LinuxNamespaceType = "pid"
 	// NetworkNamespace for isolating network devices, stacks, ports, etc
-	NetworkNamespace = "network"
+	NetworkNamespace LinuxNamespaceType = "network"
 	// MountNamespace for isolating mount points
-	MountNamespace = "mount"
+	MountNamespace LinuxNamespaceType = "mount"
 	// IPCNamespace for isolating System V IPC, POSIX message queues
-	IPCNamespace = "ipc"
+	IPCNamespace LinuxNamespaceType = "ipc"
 	// UTSNamespace for isolating hostname and NIS domain name
-	UTSNamespace = "uts"
+	UTSNamespace LinuxNamespaceType = "uts"
 	// UserNamespace for isolating user and group IDs
-	UserNamespace = "user"
+	UserNamespace LinuxNamespaceType = "user"
 	// CgroupNamespace for isolating cgroup hierarchies
-	CgroupNamespace = "cgroup"
+	CgroupNamespace LinuxNamespaceType = "cgroup"
 )
 
 // LinuxIDMapping specifies UID/GID mappings
@@ -217,6 +219,7 @@ type POSIXRlimit struct {
 // LinuxHugepageLimit structure corresponds to limiting kernel hugepages
 type LinuxHugepageLimit struct {
 	// Pagesize is the hugepage size
+	// Format: "<size><unit-prefix>B' (e.g. 64KB, 2MB, 1GB, etc.)
 	Pagesize string `json:"pageSize"`
 	// Limit is the limit of "hugepagesize" hugetlb usage
 	Limit uint64 `json:"limit"`
