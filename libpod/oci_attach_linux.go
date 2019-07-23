@@ -188,7 +188,9 @@ func setupStdioChannels(streams *AttachStreams, conn *net.UnixConn, detachKeys [
 		var err error
 		if streams.AttachInput {
 			_, err = utils.CopyDetachable(conn, streams.InputStream, detachKeys)
-			conn.CloseWrite()
+			if connErr := conn.CloseWrite(); connErr != nil {
+				logrus.Errorf("unable to close conn: %q", connErr)
+			}
 		}
 		stdinDone <- err
 	}()

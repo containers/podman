@@ -27,7 +27,11 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged b
 			return -1, err
 		}
 		defer cancel()
-		defer restoreTerminal(oldTermState)
+		defer func() {
+			if err := restoreTerminal(oldTermState); err != nil {
+				logrus.Errorf("unable to restore terminal: %q", err)
+			}
+		}()
 	}
 	return ctr.Exec(tty, privileged, env, cmd, user, workDir, streams, preserveFDs, resize, detachKeys)
 }
@@ -121,7 +125,7 @@ func handleTerminalAttach(ctx context.Context, resize chan remotecommand.Termina
 
 	logrus.SetFormatter(&RawTtyFormatter{})
 	if _, err := term.SetRawTerminal(os.Stdin.Fd()); err != nil {
-		return nil, nil, err
+		return cancel, nil, err
 	}
 
 	return cancel, oldTermState, nil
