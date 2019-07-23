@@ -113,7 +113,7 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 			if output != nil {
 				_, err := io.CopyN(output, r, messageSize)
 				if err != nil {
-					return errors.Wrapf(err, "issue stdout")
+					return err
 				}
 			}
 		case ToStderr:
@@ -121,14 +121,13 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 				_, err := io.CopyN(errput, r, messageSize)
 				if err != nil {
 					return err
-					return errors.Wrapf(err, "issue stderr")
 				}
 			}
 		case ToStdin:
 			if input != nil {
 				_, err := io.CopyN(input, r, messageSize)
 				if err != nil {
-					return errors.Wrapf(err, "issue stdin")
+					return err
 				}
 			}
 		case TerminalResize:
@@ -138,13 +137,13 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 					_, err = io.ReadFull(r, out)
 
 					if err != nil {
-						return errors.Wrapf(err, "issue resizing")
+						return err
 					}
 				}
 				// Resize events come over in bytes, need to be reserialized
 				resizeEvent := remotecommand.TerminalSize{}
 				if err := json.Unmarshal(out, &resizeEvent); err != nil {
-					return errors.Wrapf(err, "issue resizing")
+					return err
 				}
 				resize <- resizeEvent
 			}
@@ -154,7 +153,7 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 				_, err = io.ReadFull(r, out)
 
 				if err != nil {
-					return errors.Wrapf(err, "issue quitting")
+					return err
 				}
 			}
 			if execEcChan != nil {

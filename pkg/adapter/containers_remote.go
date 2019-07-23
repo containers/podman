@@ -735,7 +735,6 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 		term.SetRawTerminal(os.Stdin.Fd())
 	}
 
-	// TODO add detach keys support
 	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
 	if err != nil {
 		restoreTerminal(oldTermState)
