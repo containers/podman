@@ -136,6 +136,9 @@ lint: .gopathok varlink_generate ## Execute the source code linter
 	@echo "checking lint"
 	@./.tool/lint
 
+golangci-lint: .gopathok varlink_generate .install.golangci-lint
+	$(GOBIN)/golangci-lint run --tests=false
+
 gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
 	git diff --exit-code
@@ -360,7 +363,7 @@ uninstall:
 	GIT_CHECK_EXCLUDE="./vendor" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo ## Install needed tools
+install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
@@ -384,6 +387,11 @@ endef
 		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
 		$(GO) install github.com/alecthomas/gometalinter; \
 		$(GOBIN)/gometalinter --install; \
+	fi
+
+.install.golangci-lint: .gopathok
+	if [ ! -x "$(GOBIN)/golangci-lint" ]; then \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.17.1; \
 	fi
 
 .install.md2man: .gopathok
@@ -444,6 +452,7 @@ vendor:
 	gofmt \
 	help \
 	install \
+	golangci-lint \
 	lint \
 	pause \
 	uninstall \

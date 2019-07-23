@@ -308,16 +308,6 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	return runtime.Build(getContext(), c, options, dockerfiles)
 }
 
-// Tail returns a string slice after the first element unless there are
-// not enough elements, then it returns an empty slice.  This is to replace
-// the urfavecli Tail method for args
-func Tail(a []string) []string {
-	if len(a) >= 2 {
-		return a[1:]
-	}
-	return []string{}
-}
-
 // useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"
 // otherwise it returns true
 func useLayers() string {
