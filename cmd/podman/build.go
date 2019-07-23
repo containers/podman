@@ -101,6 +101,10 @@ func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
 				Name: string(specs.NetworkNamespace),
 				Host: true,
 			})
+		} else if c.Network == "container" {
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+			})
 		} else if c.Network[0] == '/' {
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
