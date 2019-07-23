@@ -1073,6 +1073,7 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 		// Read from the wire and direct to stdout or stderr
 		err := virtwriter.Reader(reader, stdout, os.Stderr, nil, nil, ecChan)
 		defer restoreTerminal(oldTermState)
+		sendGenericError(ecChan)
 		errChan <- err
 	}()
 
@@ -1081,11 +1082,13 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 			b, err := json.Marshal(termResize)
 			if err != nil {
 				defer restoreTerminal(oldTermState)
+				sendGenericError(ecChan)
 				errChan <- err
 			}
 			_, err = varlinkResizeWriter.Write(b)
 			if err != nil {
 				defer restoreTerminal(oldTermState)
+				sendGenericError(ecChan)
 				errChan <- err
 			}
 		}
@@ -1096,10 +1099,17 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 		go func() {
 			if _, err := io.Copy(varlinkStdinWriter, stdin); err != nil {
 				defer restoreTerminal(oldTermState)
+				sendGenericError(ecChan)
 				errChan <- err
 			}
 
 		}()
 	}
 	return errChan
+}
+
+func sendGenericError(ecChan chan int) {
+	if ecChan != nil {
+		ecChan <- define.ExecErrorCodeGeneric
+	}
 }
