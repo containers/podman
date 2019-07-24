@@ -358,11 +358,14 @@ systemd_banish(){
     set +e  # Not all of these exist on every platform
     for unit in $EVIL_UNITS
     do
-        ooe.sh sudo systemctl stop $unit
-        ooe.sh sudo systemctl disable $unit
-        ooe.sh sudo systemctl disable $unit.timer
-        ooe.sh sudo systemctl mask $unit
-        ooe.sh sudo systemctl mask $unit.timer
+        echo "Banishing $unit (ignoring errors)"
+        (
+            sudo systemctl stop $unit
+            sudo systemctl disable $unit
+            sudo systemctl disable $unit.timer
+            sudo systemctl mask $unit
+            sudo systemctl mask $unit.timer
+        ) &> /dev/null
     done
     set -e
 }
