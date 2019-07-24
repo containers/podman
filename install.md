@@ -318,11 +318,19 @@ To add build tags to the make option the `BUILDTAGS` variable must be set, for e
 make BUILDTAGS='seccomp apparmor'
 ```
 
-| Build Tag | Feature                            | Dependency  |
-|-----------|------------------------------------|-------------|
-| seccomp   | syscall filtering                  | libseccomp  |
-| selinux   | selinux process and mount labeling | libselinux  |
-| apparmor  | apparmor profile support           | libapparmor |
+| Build Tag                        | Feature                            | Dependency           |
+|----------------------------------|------------------------------------|----------------------|
+| apparmor                         | apparmor support                   | libapparmor          |
+| exclude_graphdriver_btrfs        | exclude btrfs                      | libbtrfs             |
+| exclude_graphdriver_devicemapper | exclude device-mapper              | libdm                |
+| libdm_no_deferred_remove         | exclude deferred removal in libdm  | libdm                |
+| ostree                           | ostree support (requires selinux)  | ostree-1, libselinux |
+| containers_image_ostree_stub     | exclude ostree                     |                      |
+| seccomp                          | syscall filtering                  | libseccomp           |
+| selinux                          | selinux process and mount labeling |                      |
+| systemd                          | journald logging                   | libsystemd           |
+
+Note that Podman does not officially support device-mapper. Thus, the `exclude_graphdriver_devicemapper` tag is mandatory.
 
 ### Vendoring - Dependency Management
 
