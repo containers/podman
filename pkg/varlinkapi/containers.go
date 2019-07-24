@@ -782,6 +782,9 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 			fmt.Sprintf("exec requires a running container, %s is %s", ctr.ID(), state.String()))
 	}
 
+	// ACK the client upgrade request
+	call.ReplyExecContainer()
+
 	envs := []string{}
 	if opts.Env != nil {
 		envs = *opts.Env
@@ -797,44 +800,52 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 		workDir = *opts.Workdir
 	}
 
+	var detachKeys string
+	if opts.DetachKeys != nil {
+		detachKeys = *opts.DetachKeys
+	}
+
 	resizeChan := make(chan remotecommand.TerminalSize)
-	errChan := make(chan error)
 
 	reader, writer, _, pipeWriter, streams := setupStreams(call)
 
-	go func() {
-		fmt.Printf("ExecContainer Start Reader\n")
-		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan); err != nil {
-			fmt.Printf("ExecContainer Reader err %s, %s\n", err.Error(), errors.Cause(err).Error())
-			errChan <- err
-		}
-	}()
-
-	// Debugging...
-	time.Sleep(5 * time.Second)
-
-	go func() {
-		fmt.Printf("ExecContainer Start ctr.Exec\n")
-		// TODO detach keys and resize
-		// TODO add handling for exit code
-		// TODO capture exit code and return to main thread
-		_, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, nil, "")
-		if err != nil {
-			fmt.Printf("ExecContainer Exec err %s, %s\n", err.Error(), errors.Cause(err).Error())
-			errChan <- errors.Wrapf(err, "ExecContainer failed for container %s", ctr.ID())
-		}
-	}()
-
-	execErr := <-errChan
-
-	if execErr != nil && errors.Cause(execErr) != io.EOF {
-		fmt.Printf("ExecContainer err: %s\n", execErr.Error())
-		return call.ReplyErrorOccurred(execErr.Error())
+	type ExitCodeError struct {
+		ExitCode uint32
+		Error    error
 	}
+	ecErrChan := make(chan ExitCodeError, 1)
 
-	if err = virtwriter.HangUp(writer); err != nil {
-		fmt.Printf("ExecContainer hangup err: %s\n", err.Error())
+	go func() {
+		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan, nil); err != nil {
+			ecErrChan <- ExitCodeError{
+				define.ExecErrorCodeGeneric,
+				err,
+			}
+		}
+	}()
+
+	go func() {
+		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, detachKeys)
+		if err != nil {
+			logrus.Errorf(err.Error())
+		}
+		ecErrChan <- ExitCodeError{
+			uint32(ec),
+			err,
+		}
+	}()
+
+	ecErr := <-ecErrChan
+
+	exitCode := define.TranslateExecErrorToExitCode(int(ecErr.ExitCode), ecErr.Error)
+
+	if err = virtwriter.HangUp(writer, uint32(exitCode)); err != nil {
 		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
 	}
-	return call.Writer.Flush()
+
+	if err := call.Writer.Flush(); err != nil {
+		logrus.Errorf("Exec Container err: %s", err.Error())
+	}
+
+	return ecErr.Error
 }

@@ -514,7 +514,9 @@ type ExecOpts(
     # workdir to run command in container
     workdir: ?string,
     # slice of keyword=value environment variables
-    env: ?[]string
+    env: ?[]string,
+    # string of detach keys
+    detachKeys: ?string
 )
 
 # GetVersion returns version and build information of the podman service

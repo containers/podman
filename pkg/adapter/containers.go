@@ -1000,7 +1000,8 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	return ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
+	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
+	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
 // Prune removes stopped containers

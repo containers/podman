@@ -18,11 +18,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const (
-	defaultExecExitCode             = 125
-	defaultExecExitCodeCannotInvoke = 126
-)
-
 // Init creates a container in the OCI runtime
 func (c *Container) Init(ctx context.Context) (err error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "containerInit")
@@ -234,7 +229,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return defaultExecExitCodeCannotInvoke, err
+			return define.ExecErrorCodeCannotInvoke, err
 		}
 	}
 
@@ -242,7 +237,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	// TODO can probably relax this once we track exec sessions
 	if conState != define.ContainerStateRunning {
-		return defaultExecExitCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
+		return define.ExecErrorCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 
 	if privileged || c.config.Privileged {
@@ -269,7 +264,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	logrus.Debugf("Creating new exec session in container %s with session id %s", c.ID(), sessionID)
 	if err := c.createExecBundle(sessionID); err != nil {
-		return defaultExecExitCodeCannotInvoke, err
+		return define.ExecErrorCodeCannotInvoke, err
 	}
 
 	defer func() {
@@ -281,7 +276,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 
 	pid, attachChan, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, user, sessionID, streams, preserveFDs, resize, detachKeys)
 	if err != nil {
-		ec := defaultExecExitCode
+		ec := define.ExecErrorCodeGeneric
 		// Conmon will pass a non-zero exit code from the runtime as a pid here.
 		// we differentiate a pid with an exit code by sending it as negative, so reverse
 		// that change and return the exit code the runtime failed with.
@@ -303,7 +298,7 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 	if err := c.save(); err != nil {
 		// Now we have a PID but we can't save it in the DB
 		// TODO handle this better
-		return defaultExecExitCode, errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
+		return define.ExecErrorCodeGeneric, errors.Wrapf(err, "error saving exec sessions %s for container %s", sessionID, c.ID())
 	}
 	c.newContainerEvent(events.Exec)
 	logrus.Debugf("Successfully started exec session %s in container %s", sessionID, c.ID())

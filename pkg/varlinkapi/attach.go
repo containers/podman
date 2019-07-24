@@ -68,7 +68,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	reader, writer, _, pw, streams := setupStreams(call)
 
 	go func() {
-		if err := virtwriter.Reader(reader, nil, nil, pw, resize); err != nil {
+		if err := virtwriter.Reader(reader, nil, nil, pw, resize, nil); err != nil {
 			errChan <- err
 		}
 	}()
@@ -83,7 +83,7 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 		logrus.Error(finalErr)
 	}
 
-	if err = virtwriter.HangUp(writer); err != nil {
+	if err = virtwriter.HangUp(writer, 0); err != nil {
 		logrus.Errorf("Failed to HANG-UP attach to %s: %s", ctr.ID(), err.Error())
 	}
 	return call.Writer.Flush()
