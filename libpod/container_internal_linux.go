@@ -318,6 +318,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err := c.addNamespaceContainer(&g, UserNS, c.config.UserNsCtr, spec.UserNamespace); err != nil {
 			return nil, err
 		}
+		if len(g.Config.Linux.UIDMappings) == 0 {
+			// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
+			g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
+			g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
+		}
 	}
 	if c.config.UTSNsCtr != "" {
 		if err := c.addNamespaceContainer(&g, UTSNS, c.config.UTSNsCtr, spec.UTSNamespace); err != nil {

@@ -85,4 +85,19 @@ var _ = Describe("Podman UserNS support", func() {
 		ok, _ := session.GrepString(uid)
 		Expect(ok).To(BeTrue())
 	})
+
+	It("podman --userns=container:CTR", func() {
+		ctrName := "userns-ctr"
+		session := podmanTest.Podman([]string{"run", "-d", "--uidmap=0:0:1", "--uidmap=1:1:4998", "--name", ctrName, "alpine", "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// runc has an issue and we also need to join the IPC namespace.
+		session = podmanTest.Podman([]string{"run", "--rm", "--userns=container:" + ctrName, "--ipc=container:" + ctrName, "alpine", "cat", "/proc/self/uid_map"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		ok, _ := session.GrepString("4998")
+		Expect(ok).To(BeTrue())
+	})
 })

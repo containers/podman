@@ -46,7 +46,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	canMountSys := true
 
 	isRootless := rootless.IsRootless()
-	inUserNS := isRootless || (len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0) && !config.UsernsMode.IsHost()
+	hasUserns := config.UsernsMode.IsContainer() || config.UsernsMode.IsNS() || len(config.IDMappings.UIDMap) > 0 || len(config.IDMappings.GIDMap) > 0
+	inUserNS := isRootless || (hasUserns && !config.UsernsMode.IsHost())
 
 	if inUserNS && config.NetMode.IsHost() {
 		canMountSys = false
@@ -554,7 +555,6 @@ func addUserNS(config *CreateConfig, g *generate.Generator) error {
 		if err := g.AddOrReplaceLinuxNamespace(spec.UserNamespace, NS(string(config.UsernsMode))); err != nil {
 			return err
 		}
-
 		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
 		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
 		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
