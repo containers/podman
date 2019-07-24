@@ -32,7 +32,7 @@ const (
 	cmdTruncLength = 17
 )
 
-// PsOptions describes the struct being formed for ps
+// PsOptions describes the struct being formed for ps.
 type PsOptions struct {
 	All       bool
 	Format    string
@@ -47,8 +47,8 @@ type PsOptions struct {
 	Sync      bool
 }
 
-// BatchContainerStruct is the return obkect from BatchContainer and contains
-// container related information
+// BatchContainerStruct is the return object from BatchContainer and contains
+// container related information.
 type BatchContainerStruct struct {
 	ConConfig   *libpod.ContainerConfig
 	ConState    define.ContainerStatus
@@ -61,7 +61,7 @@ type BatchContainerStruct struct {
 }
 
 // PsContainerOutput is the struct being returned from a parallel
-// Batch operation
+// batch operation.
 type PsContainerOutput struct {
 	ID        string
 	Image     string
@@ -90,7 +90,7 @@ type PsContainerOutput struct {
 	Mounts    string
 }
 
-// Namespace describes output for ps namespace
+// Namespace describes output for ps namespace.
 type Namespace struct {
 	PID    string `json:"pid,omitempty"`
 	Cgroup string `json:"cgroup,omitempty"`
@@ -103,14 +103,14 @@ type Namespace struct {
 }
 
 // ContainerSize holds the size of the container's root filesystem and top
-// read-write layer
+// read-write layer.
 type ContainerSize struct {
 	RootFsSize int64 `json:"rootFsSize"`
 	RwSize     int64 `json:"rwSize"`
 }
 
 // NewBatchContainer runs a batch process under one lock to get container information and only
-// be called in PBatch
+// be called in PBatch.
 func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput, error) {
 	var (
 		conState  define.ContainerStatus
@@ -257,15 +257,15 @@ type workerInput struct {
 	job          int
 }
 
-// worker is a "threaded" worker that takes jobs from the channel "queue"
+// worker is a "threaded" worker that takes jobs from the channel "queue".
 func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results chan<- PsContainerOutput, errors chan<- error) {
 	for j := range jobs {
 		r, err := j.parallelFunc()
-		// If we find an error, we return just the error
+		// If we find an error, we return just the error.
 		if err != nil {
 			errors <- err
 		} else {
-			// Return the result
+			// Return the result.
 			results <- r
 		}
 		wg.Done()
@@ -398,7 +398,7 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
 
-// GetPsContainerOutput returns a slice of containers specifically for ps output
+// GetPsContainerOutput returns a slice of containers specifically for ps output.
 func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, maxWorkers int) ([]PsContainerOutput, error) {
 	var (
 		filterFuncs      []libpod.ContainerFilter
@@ -419,21 +419,21 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 		}
 	}
 	if !opts.Latest {
-		// Get all containers
+		// Get all containers.
 		containers, err := r.GetContainers(filterFuncs...)
 		if err != nil {
 			return nil, err
 		}
 
-		// We only want the last few containers
+		// We only want the last few containers.
 		if opts.Last > 0 && opts.Last <= len(containers) {
 			return nil, errors.Errorf("--last not yet supported")
 		} else {
 			outputContainers = containers
 		}
 	} else {
-		// Get just the latest container
-		// Ignore filters
+		// Get just the latest container.
+		// Ignore filters.
 		latestCtr, err := r.GetLatestContainer()
 		if err != nil {
 			return nil, err
@@ -446,8 +446,8 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 	return pss, nil
 }
 
-// PBatch is performs batch operations on a container in parallel. It spawns the number of workers
-// relative to the the number of parallel operations desired.
+// PBatch performs batch operations on a container in parallel. It spawns the
+// number of workers relative to the number of parallel operations desired.
 func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsContainerOutput {
 	var (
 		wg        sync.WaitGroup
@@ -455,7 +455,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 	)
 
 	// If the number of containers in question is less than the number of
-	// proposed parallel operations, we shouldnt spawn so many workers
+	// proposed parallel operations, we shouldnt spawn so many workers.
 	if workers > len(containers) {
 		workers = len(containers)
 	}
@@ -464,12 +464,12 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 	results := make(chan PsContainerOutput, len(containers))
 	batchErrors := make(chan error, len(containers))
 
-	// Create the workers
+	// Create the workers.
 	for w := 1; w <= workers; w++ {
 		go worker(&wg, jobs, results, batchErrors)
 	}
 
-	// Add jobs to the workers
+	// Add jobs to the workers.
 	for i, j := range containers {
 		j := j
 		wg.Add(1)
@@ -504,7 +504,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 	return psResults
 }
 
-// BatchContainer is used in ps to reduce performance hits by "batching"
+// BatchContainerOp is used in ps to reduce performance hits by "batching"
 // locks.
 func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStruct, error) {
 	var (
@@ -582,7 +582,7 @@ func BatchContainerOp(ctr *libpod.Container, opts PsOptions) (BatchContainerStru
 	}, nil
 }
 
-// GetNamespaces returns a populated namespace struct
+// GetNamespaces returns a populated namespace struct.
 func GetNamespaces(pid int) *Namespace {
 	ctrPID := strconv.Itoa(pid)
 	cgroup, _ := getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
@@ -613,7 +613,7 @@ func getNamespaceInfo(path string) (string, error) {
 	return getStrFromSquareBrackets(val), nil
 }
 
-// getStrFromSquareBrackets gets the string inside [] from a string
+// getStrFromSquareBrackets gets the string inside [] from a string.
 func getStrFromSquareBrackets(cmd string) string {
 	reg, err := regexp.Compile(`.*\[|\].*`)
 	if err != nil {
@@ -639,8 +639,8 @@ func comparePorts(i, j ocicni.PortMapping) bool {
 	return i.Protocol < j.Protocol
 }
 
-// returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
-// e.g 0.0.0.0:1000-1006->1000-1006/tcp
+// formatGroup returns the group as <IP:startPort:lastPort->startPort:lastPort/Proto>
+// e.g 0.0.0.0:1000-1006->1000-1006/tcp.
 func formatGroup(key string, start, last int32) string {
 	parts := strings.Split(key, "/")
 	groupType := parts[0]
@@ -660,7 +660,7 @@ func formatGroup(key string, start, last int32) string {
 }
 
 // portsToString converts the ports used to a string of the from "port1, port2"
-// also groups continuous list of ports in readable format.
+// and also groups continuous list of ports in readable format.
 func portsToString(ports []ocicni.PortMapping) string {
 	type portGroup struct {
 		first int32
@@ -675,7 +675,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 		return comparePorts(ports[i], ports[j])
 	})
 
-	// portGroupMap is used for grouping continuous ports
+	// portGroupMap is used for grouping continuous ports.
 	portGroupMap := make(map[string]*portGroup)
 	var groupKeyList []string
 
@@ -685,7 +685,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		// if hostPort and containerPort are not same, consider as individual port.
+		// If hostPort and containerPort are not same, consider as individual port.
 		if v.ContainerPort != v.HostPort {
 			portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
 			continue
@@ -696,7 +696,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 		portgroup, ok := portGroupMap[portMapKey]
 		if !ok {
 			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
-			// this list is required to travese portGroupMap
+			// This list is required to travese portGroupMap.
 			groupKeyList = append(groupKeyList, portMapKey)
 			continue
 		}
@@ -706,7 +706,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 			continue
 		}
 	}
-	// for each portMapKey, format group list and appned to output string
+	// For each portMapKey, format group list and appned to output string.
 	for _, portKey := range groupKeyList {
 		group := portGroupMap[portKey]
 		portDisplay = append(portDisplay, formatGroup(portKey, group.first, group.last))
@@ -715,7 +715,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 }
 
 // GetRunlabel is a helper function for runlabel; it gets the image if needed and begins the
-// construction of the runlabel output and environment variables
+// construction of the runlabel output and environment variables.
 func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtime *libpod.Runtime, pull bool, inputCreds string, dockerRegistryOptions image.DockerRegistryOptions, authfile string, signaturePolicyPath string, output io.Writer) (string, string, error) {
 	var (
 		newImage  *image.Image
@@ -750,9 +750,9 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 	return runLabel, imageName, err
 }
 
-// GenerateRunlabelCommand generates the command that will eventually be execucted by podman
+// GenerateRunlabelCommand generates the command that will eventually be execucted by podman.
 func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]string, extraArgs []string, globalOpts string) ([]string, []string, error) {
-	// If no name is provided, we use the image's basename instead
+	// If no name is provided, we use the image's basename instead.
 	if name == "" {
 		baseName, err := image.GetImageBaseName(imageName)
 		if err != nil {
@@ -760,7 +760,7 @@ func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]s
 		}
 		name = baseName
 	}
-	// The user provided extra arguments that need to be tacked onto the label's command
+	// The user provided extra arguments that need to be tacked onto the label's command.
 	if len(extraArgs) > 0 {
 		runLabel = fmt.Sprintf("%s %s", runLabel, strings.Join(extraArgs, " "))
 	}
@@ -782,7 +782,7 @@ func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]s
 		case "OPT3":
 			return envmap["OPT3"]
 		case "PWD":
-			// I would prefer to use os.getenv but it appears PWD is not in the os env list
+			// I would prefer to use os.getenv but it appears PWD is not in the os env list.
 			d, err := os.Getwd()
 			if err != nil {
 				logrus.Error("unable to determine current working directory")
@@ -819,7 +819,7 @@ func GenerateKube(name string, service bool, r *libpod.Runtime) (*v1.Pod, *v1.Se
 		servicePorts []v1.ServicePort
 		serviceYAML  v1.Service
 	)
-	// Get the container in question
+	// Get the container in question.
 	container, err = r.LookupContainer(name)
 	if err != nil {
 		pod, err = r.LookupPod(name)
