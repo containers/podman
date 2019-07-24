@@ -785,6 +785,7 @@ Without this argument the command will be run as root in the container.
 
 **--userns**=host
 **--userns**=keep-id
+**--userns**=container:container
 **--userns**=ns:my_namespace
 
 Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value means user namespaces are disabled.
@@ -792,6 +793,7 @@ Set the user namespace mode for the container.  It defaults to the **PODMAN_USER
 - `host`: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
 - `keep-id`: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
 - `ns`: run the container in the given existing user namespace.
+- `container`: join the user namespace of the specified container.
 
 This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 

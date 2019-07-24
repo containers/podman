@@ -76,27 +76,50 @@ func (n UsernsMode) IsKeepID() bool {
 
 // IsPrivate indicates whether the container uses the a private userns.
 func (n UsernsMode) IsPrivate() bool {
-	return !(n.IsHost())
+	return !(n.IsHost() || n.IsContainer())
 }
 
 // Valid indicates whether the userns is valid.
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", "host", "keep-id":
+	case "", "host", "keep-id", "ns":
+	case "container":
+		if len(parts) != 2 || parts[1] == "" {
+			return false
+		}
 	default:
 		return false
 	}
 	return true
 }
 
+// IsNS indicates a userns namespace passed in by path (ns:<path>)
+func (n UsernsMode) IsNS() bool {
+	return strings.HasPrefix(string(n), "ns:")
+}
+
+// NS gets the path associated with a ns:<path> userns ns
+func (n UsernsMode) NS() string {
+	parts := strings.SplitN(string(n), ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
 // IsContainer indicates whether container uses a container userns.
 func (n UsernsMode) IsContainer() bool {
-	return false
+	parts := strings.SplitN(string(n), ":", 2)
+	return len(parts) > 1 && parts[0] == "container"
 }
 
 // Container is the id of the container which network this container is connected to.
 func (n UsernsMode) Container() string {
+	parts := strings.SplitN(string(n), ":", 2)
+	if len(parts) > 1 {
+		return parts[1]
+	}
 	return ""
 }
 

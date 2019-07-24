@@ -847,6 +847,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		}
 
 		ctr.config.UserNsCtr = nsCtr.ID()
+		ctr.config.IDMappings = nsCtr.config.IDMappings
 
 		return nil
 	}
