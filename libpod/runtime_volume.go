@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"context"
-	"strings"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -72,7 +71,7 @@ func (r *Runtime) RemoveVolumes(ctx context.Context, volumes []string, all, forc
 	return deletedVols, nil
 }
 
-// GetVolume retrieves a volume by its name
+// GetVolume retrieves a volume given its full name.
 func (r *Runtime) GetVolume(name string) (*Volume, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
@@ -82,20 +81,11 @@ func (r *Runtime) GetVolume(name string) (*Volume, error) {
 	}
 
 	vol, err := r.state.Volume(name)
-	if err == nil {
-		return vol, err
-	}
-
-	vols, err := r.GetAllVolumes()
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range vols {
-		if strings.HasPrefix(v.Name(), name) {
-			return v, nil
-		}
-	}
-	return nil, errors.Errorf("unable to find volume %s", name)
+
+	return vol, nil
 }
 
 // HasVolume checks to see if a volume with the given name exists
