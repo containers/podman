@@ -535,6 +535,9 @@ success_task:
 
 release_task:
 
+    # Never do this when building images
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
     # TODO: Uncomment both to not affect pass/fail status of entire job?
     # allow_failures: $CI == "true"
     # skip_notifications: $CI == "true"
