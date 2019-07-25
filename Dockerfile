@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y \
     libnl-3-dev \
     libostree-dev \
     libprotobuf-dev \
-    libprotobuf-c0-dev \
+    libprotobuf-c-dev \
     libseccomp2 \
     libseccomp-dev \
     libtool \
