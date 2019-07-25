@@ -588,8 +588,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		annotations[splitAnnotation[0]] = splitAnnotation[1]
 	}
 
-	if c.IsSet("genseccomp") {
-		annotations["io.podman.trace-syscall"] = c.String("genseccomp")
+	if c.IsSet("generate-seccomp") {
+		annotations["io.podman.trace-syscall"] = c.String("generate-seccomp")
 	}
 
 	// WORKING DIRECTORY

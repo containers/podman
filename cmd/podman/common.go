@@ -503,7 +503,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Working directory inside the container",
 	)
 	createFlags.String(
-		"genseccomp", "", "Generate a seccomp profile for the container",
+		"generate-seccomp", "", "Generate a seccomp profile for the container",
 	)
 }
 

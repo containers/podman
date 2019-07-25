@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -83,7 +84,11 @@ func main() {
 
 	terminate := flag.Bool("t", false, "send SIGINT to floating process")
 	runBPF := flag.Int("r", 0, "-r [PID] run the BPF function and attach to the pid")
-	fileName := flag.String("f", "profile.json", "path of the file to save the seccomp profile")
+	defaultProfilePath, err := filepath.Abs("./profile.json")
+	if err != nil {
+		logrus.Error(err)
+	}
+	fileName := flag.String("f", defaultProfilePath, "path of the file to save the seccomp profile")
 
 	flag.Parse()
 
@@ -186,7 +191,8 @@ func runBPFSource(pid int, fileName string) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
-	rsc := false // Reached Seccomp syscall
+	rsc := false   // Reached Seccomp syscall
+	rexec := false // Reached the execve from runc
 	go func() {
 		var e event
 		for {
@@ -203,8 +209,11 @@ func runBPFSource(pid int, fileName string) error {
 			if name == "seccomp" {
 				rsc = true
 				continue
+			} else if name == "execve" {
+				rexec = true
+				continue
 			}
-			if rsc {
+			if rsc && rexec {
 				syscalls[name]++
 			}
 		}

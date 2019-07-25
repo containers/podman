@@ -18,6 +18,8 @@ BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
+HOOK_BIN_DIR ?= /usr/libexec/oci/hooks.d/
+HOOK_DIR ?= /usr/share/containers/oci/hooks.d
 ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
@@ -499,15 +501,12 @@ endef
 	fi
 
 
-HOOK_BIN_DIR ?= /usr/libexec/oci/hooks.d/
-HOOK_DIR ?= /usr/share/containers/oci/hooks.d
-
 install.oci-trace-hook:
 	install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR)
 	install ${SELINUXOPT} -d -m 755 $(HOOK_DIR)
 	install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook
-	cp cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR)
-	cp cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR)
+	install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR)
+	install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR)
 
 oci-trace-hook:
 	$(GO) build -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook
