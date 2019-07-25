@@ -589,7 +589,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	if c.IsSet("generate-seccomp") {
-		annotations["io.podman.trace-syscall"] = c.String("generate-seccomp")
+		profilePath, err := filepath.Abs(c.String("generate-seccomp"))
+		if err != nil {
+			logrus.Error(err)
+		}
+		annotations["io.podman.trace-syscall"] = profilePath
 	}
 
 	// WORKING DIRECTORY

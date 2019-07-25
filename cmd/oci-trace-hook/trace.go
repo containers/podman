@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
+	"syscall"
 
 	"github.com/docker/docker/api/types"
 	bpf "github.com/iovisor/gobpf/bcc"
@@ -22,7 +22,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// event struct used to read the perf_buffer
+// event struct used to read the perf_buffer, reference
 type event struct {
 	Pid     uint32
 	ID      uint32
@@ -42,6 +42,7 @@ const source string = `
 BPF_HASH(parent_namespace, u64, unsigned int);
 BPF_PERF_OUTPUT(events);
 
+// data_t
 struct data_t
 {
     u32 pid;
@@ -84,6 +85,7 @@ func main() {
 
 	terminate := flag.Bool("t", false, "send SIGINT to floating process")
 	runBPF := flag.Int("r", 0, "-r [PID] run the BPF function and attach to the pid")
+
 	defaultProfilePath, err := filepath.Abs("./profile.json")
 	if err != nil {
 		logrus.Error(err)
@@ -92,7 +94,11 @@ func main() {
 
 	flag.Parse()
 
-	logfile, err := os.OpenFile("logfile", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	logfilePath, err := filepath.Abs("./logfile")
+	if err != nil {
+		logrus.Error(err)
+	}
+	logfile, err := os.OpenFile(logfilePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		logrus.Errorf("error opening file: %v", err)
 	}
@@ -141,11 +147,17 @@ func startFloatingProcess() error {
 		// Sys: sysproc,
 	}
 	if pid > 0 {
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, syscall.SIGUSR1)
+
 		process, err := os.StartProcess("/usr/libexec/oci/hooks.d/oci-trace-hook", []string{"/usr/libexec/oci/hooks.d/trace", "-r", strconv.Itoa(pid), "-f", fileName}, attr)
 		if err != nil {
 			return fmt.Errorf("cannot launch process err: %q", err.Error())
 		}
-		time.Sleep(2 * time.Second) // Waits 2 seconds to compile using clang and llvm
+
+		// time.Sleep(2 * time.Second) // Waits 2 seconds to compile using clang and llvm
+		<-sig
+
 		processPID := process.Pid
 		f, err := os.Create("pid")
 		if err != nil {
@@ -157,6 +169,7 @@ func startFloatingProcess() error {
 		if err != nil {
 			return fmt.Errorf("cannot detach process err:%q", err.Error())
 		}
+
 	} else {
 		return fmt.Errorf("container not running")
 	}
@@ -165,6 +178,13 @@ func startFloatingProcess() error {
 
 // run the BPF source and attach it to raw_syscalls:sys_enter tracepoint
 func runBPFSource(pid int, fileName string) error {
+	ppid := os.Getppid()
+	parentProcess, err := os.FindProcess(ppid)
+
+	if err != nil {
+		return fmt.Errorf("cannot find the parent process pid %d : %q", ppid, err)
+	}
+
 	logrus.Println("Running floating process PID to attach:", pid)
 	syscalls := make(calls, 303)
 	src := strings.Replace(source, "$PARENT_PID", strconv.Itoa(pid), -1)
@@ -182,6 +202,12 @@ func runBPFSource(pid int, fileName string) error {
 		return fmt.Errorf("unable to load tracepoint err:%q", err.Error())
 	}
 
+	// send a signal to the parent process to signify the compilation has been completed
+	err = parentProcess.Signal(syscall.SIGUSR1)
+	if err != nil {
+		return err
+	}
+
 	table := bpf.NewTable(m.TableId("events"), m)
 	channel := make(chan []byte)
 	perfMap, err := bpf.InitPerfMap(table, channel)
@@ -191,8 +217,8 @@ func runBPFSource(pid int, fileName string) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
-	rsc := false   // Reached Seccomp syscall
-	rexec := false // Reached the execve from runc
+	rsc := false  // Reached Seccomp syscall
+	rexec := true // Reached the execve from runc
 	go func() {
 		var e event
 		for {
@@ -211,7 +237,6 @@ func runBPFSource(pid int, fileName string) error {
 				continue
 			} else if name == "execve" {
 				rexec = true
-				continue
 			}
 			if rsc && rexec {
 				syscalls[name]++
@@ -240,7 +265,10 @@ func sendSIGINT() error {
 	Spid := string(f)
 
 	pid, _ := strconv.Atoi(Spid)
-	p, _ := os.FindProcess(pid)
+	p, err := os.FindProcess(pid)
+	if err != nil {
+		return fmt.Errorf("cannot find process with PID %d \nerror msg: %q", pid, err.Error())
+	}
 	p.Signal(os.Interrupt)
 	return nil
 }
