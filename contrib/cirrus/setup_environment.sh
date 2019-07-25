@@ -34,7 +34,14 @@ done
 #       (see docs).
 cd "${GOSRC}/"
 case "${OS_REL_VER}" in
-    ubuntu-18) ;;
+    ubuntu-18)
+        CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
+        if dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
+        then
+            echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
+            ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
+        fi
+        ;;
     fedora-30) ;;
     fedora-29) ;;
     centos-7)  # Current VM is an image-builder-image no local podman/testing
