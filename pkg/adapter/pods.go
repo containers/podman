@@ -492,14 +492,28 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	if err != nil {
 		return nil, err
 	}
+	hasUserns := false
+	if podInfraID != "" {
+		podCtr, err := r.GetContainer(podInfraID)
+		if err != nil {
+			return nil, err
+		}
+		mappings, err := podCtr.IDMappings()
+		if err != nil {
+			return nil, err
+		}
+		hasUserns = len(mappings.UIDMap) > 0
+	}
 
 	namespaces := map[string]string{
 		// Disabled during code review per mheon
 		//"pid":  fmt.Sprintf("container:%s", podInfraID),
-		"net":  fmt.Sprintf("container:%s", podInfraID),
-		"user": fmt.Sprintf("container:%s", podInfraID),
-		"ipc":  fmt.Sprintf("container:%s", podInfraID),
-		"uts":  fmt.Sprintf("container:%s", podInfraID),
+		"net": fmt.Sprintf("container:%s", podInfraID),
+		"ipc": fmt.Sprintf("container:%s", podInfraID),
+		"uts": fmt.Sprintf("container:%s", podInfraID),
+	}
+	if hasUserns {
+		namespaces["user"] = fmt.Sprintf("container:%s", podInfraID)
 	}
 	if !c.Quiet {
 		writer = os.Stderr
