@@ -1298,7 +1298,10 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 	if err != nil {
 		return "", err
 	}
-	return ociv1Img.History[0].Comment, nil
+	if len(ociv1Img.History) > 0 {
+		return ociv1Img.History[0].Comment, nil
+	}
+	return "", nil
 }
 
 // Save writes a container image to the filesystem
