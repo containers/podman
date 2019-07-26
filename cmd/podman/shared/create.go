@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/errorhandling"
 	"io"
 	"os"
 	"path/filepath"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
@@ -77,7 +77,11 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			writer = os.Stderr
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, c.InputArgs[0], rtc.SignaturePolicyPath, GetAuthFile(""), writer, nil, image.SigningOptions{}, false, nil)
+		name := ""
+		if len(c.InputArgs) != 0 {
+			name = c.InputArgs[0]
+		}
+		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(""), writer, nil, image.SigningOptions{}, false, nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -681,7 +685,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		DNSServers:        c.StringSlice("dns"),
 		Entrypoint:        entrypoint,
 		Env:               env,
-		//ExposedPorts:   ports,
+		// ExposedPorts:   ports,
 		GroupAdd:    c.StringSlice("group-add"),
 		Hostname:    c.String("hostname"),
 		HostAdd:     c.StringSlice("add-host"),
@@ -693,16 +697,16 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Image:       imageName,
 		ImageID:     imageID,
 		Interactive: c.Bool("interactive"),
-		//IP6Address:     c.String("ipv6"), // Not implemented yet - needs CNI support for static v6
+		// IP6Address:     c.String("ipv6"), // Not implemented yet - needs CNI support for static v6
 		IPAddress: c.String("ip"),
 		Labels:    labels,
-		//LinkLocalIP:    c.StringSlice("link-local-ip"), // Not implemented yet
+		// LinkLocalIP:    c.StringSlice("link-local-ip"), // Not implemented yet
 		LogDriver:    logDriver,
 		LogDriverOpt: c.StringSlice("log-opt"),
 		MacAddress:   c.String("mac-address"),
 		Name:         c.String("name"),
 		Network:      network,
-		//NetworkAlias:   c.StringSlice("network-alias"), // Not implemented - does this make sense in Podman?
+		// NetworkAlias:   c.StringSlice("network-alias"), // Not implemented - does this make sense in Podman?
 		IpcMode:        ipcMode,
 		NetMode:        netMode,
 		UtsMode:        utsMode,
