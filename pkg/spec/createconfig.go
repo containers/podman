@@ -266,7 +266,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		}
 		options = append(options, libpod.WithNetNSFrom(connectedCtr))
 	} else if !c.NetMode.IsHost() && !c.NetMode.IsNone() {
-		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0) && !c.UsernsMode.IsHost()
+		hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
+		postConfigureNetNS := c.NetMode.IsSlirp4netns() || (hasUserns && !c.UsernsMode.IsHost())
 		options = append(options, libpod.WithNetNS(portBindings, postConfigureNetNS, string(c.NetMode), networks))
 	}
 
@@ -285,6 +286,26 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 			return nil, errors.Wrapf(err, "container %q not found", c.CgroupMode.Container())
 		}
 		options = append(options, libpod.WithCgroupNSFrom(connectedCtr))
+	}
+
+	if c.UsernsMode.IsNS() {
+		ns := c.UsernsMode.NS()
+		if ns == "" {
+			return nil, errors.Errorf("invalid empty user-defined user namespace")
+		}
+		_, err := os.Stat(ns)
+		if err != nil {
+			return nil, err
+		}
+		options = append(options, libpod.WithIDMappings(*c.IDMappings))
+	} else if c.UsernsMode.IsContainer() {
+		connectedCtr, err := runtime.LookupContainer(c.UsernsMode.Container())
+		if err != nil {
+			return nil, errors.Wrapf(err, "container %q not found", c.UsernsMode.Container())
+		}
+		options = append(options, libpod.WithUserNSFrom(connectedCtr))
+	} else {
+		options = append(options, libpod.WithIDMappings(*c.IDMappings))
 	}
 
 	if c.PidMode.IsContainer() {
@@ -379,7 +400,6 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))
 	options = append(options, libpod.WithGroups(c.GroupAdd))
-	options = append(options, libpod.WithIDMappings(*c.IDMappings))
 	if c.Rootfs != "" {
 		options = append(options, libpod.WithRootFS(c.Rootfs))
 	}

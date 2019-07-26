@@ -282,13 +282,26 @@ func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[
 	if err != nil {
 		return namespaces, err
 	}
+	hasUserns := false
+	if podInfraID != "" {
+		podCtr, err := runtime.GetContainer(podInfraID)
+		if err != nil {
+			return namespaces, err
+		}
+		mappings, err := podCtr.IDMappings()
+		if err != nil {
+			return namespaces, err
+		}
+		hasUserns = len(mappings.UIDMap) > 0
+	}
+
 	if (namespaces["pid"] == cc.Pod) || (!c.IsSet("pid") && pod.SharesPID()) {
 		namespaces["pid"] = fmt.Sprintf("container:%s", podInfraID)
 	}
 	if (namespaces["net"] == cc.Pod) || (!c.IsSet("net") && !c.IsSet("network") && pod.SharesNet()) {
 		namespaces["net"] = fmt.Sprintf("container:%s", podInfraID)
 	}
-	if (namespaces["user"] == cc.Pod) || (!c.IsSet("user") && pod.SharesUser()) {
+	if hasUserns && (namespaces["user"] == cc.Pod) || (!c.IsSet("user") && pod.SharesUser()) {
 		namespaces["user"] = fmt.Sprintf("container:%s", podInfraID)
 	}
 	if (namespaces["ipc"] == cc.Pod) || (!c.IsSet("ipc") && pod.SharesIPC()) {
