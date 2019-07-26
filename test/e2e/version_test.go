@@ -4,6 +4,7 @@ import (
 	"os"
 
 	. "github.com/containers/libpod/test/utils"
+	"github.com/containers/libpod/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -37,6 +38,26 @@ var _ = Describe("Podman version", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">", 2))
+		ok, _ := session.GrepString(version.Version)
+		Expect(ok).To(BeTrue())
+	})
+
+	It("podman -v", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"-v"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString(version.Version)
+		Expect(ok).To(BeTrue())
+	})
+
+	It("podman --version", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"--version"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		ok, _ := session.GrepString(version.Version)
+		Expect(ok).To(BeTrue())
 	})
 
 	It("podman version --format json", func() {
