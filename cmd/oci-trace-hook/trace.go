@@ -22,15 +22,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// event struct used to read the perf_buffer, reference
-type event struct {
-	Pid     uint32
-	ID      uint32
-	Command [16]byte
-}
+// #include <linux/types.h>
+// typedef struct
+// {
+// 	  __u32 Pid;
+// 	  __u32 Id;
+//     char Comm[16];
+// } syscall_data;
+import "C"
 
-type calls map[string]int
-
+// the source is a bpf program compiled at runtime. Some macro's like
+// BPF_HASH and BPF_PERF_OUTPUT are expanded during compilation
+// by bcc. $PARENT_PID get's replaced before compilation with the PID of the container
+// Complete documentation is available at
+// https://github.com/iovisor/bcc/blob/master/docs/reference_guide.md
 const source string = `
 #include <linux/bpf.h>
 #include <linux/nsproxy.h>
@@ -39,33 +44,47 @@ const source string = `
 #include <linux/sched.h>
 #include <linux/tracepoint.h>
 
+// BPF_HASH used to store the PID namespace of the parent PID
+// of the processes inside the container.
 BPF_HASH(parent_namespace, u64, unsigned int);
+
+// Opens a custom BPF table to push data to user space via perf ring buffer
 BPF_PERF_OUTPUT(events);
 
-// data_t
-struct data_t
+// data_t used to store the data received from the event
+struct syscall_data
 {
-    u32 pid;
-    u32 id;
-    char comm[16];
+	// PID of the process
+	u32 Pid;
+	// syscall number
+	u32 Id;
+	// command which is making the syscall
+    char Comm[16];
 };
 
+// enter_trace : function is attached to the kernel tracepoint raw_syscalls:sys_enter it is
+// called whenever a syscall is made. The function stores the pid_namespace (task->nsproxy->pid_ns_for_children->ns.inum) of the PID which
+// starts the container in the BPF_HASH called parent_namespace.
+// The data of the syscall made by the process with the same pid_namespace as the parent_namespace is pushed to
+// userspace using perf ring buffer
+
+// specification of args from sys/kernel/debug/tracing/events/raw_syscalls/sys_enter/format
 int enter_trace(struct tracepoint__raw_syscalls__sys_enter *args)
 {
-    struct data_t data = {};
+    struct syscall_data data = {};
     u64 key = 0;
     unsigned int zero = 0;
     struct task_struct *task;
 
-    data.pid = bpf_get_current_pid_tgid();
-    data.id = (int)args->id;
-    bpf_get_current_comm(&data.comm, sizeof(data.comm));
+    data.Pid = bpf_get_current_pid_tgid();
+    data.Id = (int)args->id;
+    bpf_get_current_comm(&data.Comm, sizeof(data.Comm));
 
     task = (struct task_struct *)bpf_get_current_task();
     struct nsproxy *ns = task->nsproxy;
     unsigned int inum = ns->pid_ns_for_children->ns.inum;
 
-    if (data.pid == $PARENT_PID)
+    if (data.Pid == $PARENT_PID)
     {
         parent_namespace.update(&key, &inum);
     }
@@ -85,16 +104,17 @@ func main() {
 
 	terminate := flag.Bool("t", false, "send SIGINT to floating process")
 	runBPF := flag.Int("r", 0, "-r [PID] run the BPF function and attach to the pid")
+	fileName := flag.String("f", "", "path of the file to save the seccomp profile")
 
-	defaultProfilePath, err := filepath.Abs("./profile.json")
+	start := flag.Bool("s", false, "Start the hook which would execute a process to trace syscalls made by the container")
+	flag.Parse()
+
+	profilePath, err := filepath.Abs(*fileName)
 	if err != nil {
 		logrus.Error(err)
 	}
-	fileName := flag.String("f", defaultProfilePath, "path of the file to save the seccomp profile")
 
-	flag.Parse()
-
-	logfilePath, err := filepath.Abs("./logfile")
+	logfilePath, err := filepath.Abs("log")
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -102,30 +122,31 @@ func main() {
 	if err != nil {
 		logrus.Errorf("error opening file: %v", err)
 	}
+
 	defer logfile.Close()
 	formatter := new(logrus.TextFormatter)
 	formatter.FullTimestamp = true
 	logrus.SetFormatter(formatter)
 	logrus.SetOutput(logfile)
+
 	if *runBPF > 0 {
-		if err := runBPFSource(*runBPF, *fileName); err != nil {
+		logrus.Println("Filepath : ", profilePath)
+		if err := runBPFSource(*runBPF, profilePath); err != nil {
 			logrus.Error(err)
 		}
 	} else if *terminate {
 		if err := sendSIGINT(); err != nil {
 			logrus.Error(err)
 		}
-	} else {
+	} else if *start {
 		if err := startFloatingProcess(); err != nil {
 			logrus.Error(err)
 		}
 	}
-
 }
 
 // Start a process which runs the BPF source and detach the process
 func startFloatingProcess() error {
-	logrus.Println("Starting the floating process")
 	var s spec.State
 	reader := bufio.NewReader(os.Stdin)
 	decoder := json.NewDecoder(reader)
@@ -135,7 +156,6 @@ func startFloatingProcess() error {
 	}
 	pid := s.Pid
 	fileName := s.Annotations["io.podman.trace-syscall"]
-	//sysproc := &syscall.SysProcAttr{Noctty: true}
 	attr := &os.ProcAttr{
 		Dir: ".",
 		Env: os.Environ(),
@@ -144,7 +164,6 @@ func startFloatingProcess() error {
 			nil,
 			nil,
 		},
-		// Sys: sysproc,
 	}
 	if pid > 0 {
 		sig := make(chan os.Signal, 1)
@@ -155,7 +174,6 @@ func startFloatingProcess() error {
 			return fmt.Errorf("cannot launch process err: %q", err.Error())
 		}
 
-		// time.Sleep(2 * time.Second) // Waits 2 seconds to compile using clang and llvm
 		<-sig
 
 		processPID := process.Pid
@@ -177,7 +195,8 @@ func startFloatingProcess() error {
 }
 
 // run the BPF source and attach it to raw_syscalls:sys_enter tracepoint
-func runBPFSource(pid int, fileName string) error {
+func runBPFSource(pid int, profilePath string) error {
+
 	ppid := os.Getppid()
 	parentProcess, err := os.FindProcess(ppid)
 
@@ -186,7 +205,7 @@ func runBPFSource(pid int, fileName string) error {
 	}
 
 	logrus.Println("Running floating process PID to attach:", pid)
-	syscalls := make(calls, 303)
+	syscalls := make(map[string]int, 303)
 	src := strings.Replace(source, "$PARENT_PID", strconv.Itoa(pid), -1)
 	m := bpf.NewModule(src, []string{})
 	defer m.Close()
@@ -220,7 +239,7 @@ func runBPFSource(pid int, fileName string) error {
 	rsc := false  // Reached Seccomp syscall
 	rexec := true // Reached the execve from runc
 	go func() {
-		var e event
+		e := C.syscall_data{}
 		for {
 			data := <-channel
 			err := binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &e)
@@ -228,9 +247,9 @@ func runBPFSource(pid int, fileName string) error {
 				logrus.Errorf("failed to decode received data '%s': %s\n", data, err)
 				continue
 			}
-			name, err := getName(e.ID)
+			name, err := getName(uint32(e.Id))
 			if err != nil {
-				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.ID, name)
+				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.Id, name)
 			}
 			if name == "seccomp" {
 				rsc = true
@@ -248,7 +267,7 @@ func runBPFSource(pid int, fileName string) error {
 	<-sig
 	logrus.Println("PerfMap Stop")
 	perfMap.Stop()
-	if err := generateProfile(syscalls, fileName); err != nil {
+	if err := generateProfile(syscalls, profilePath); err != nil {
 		return err
 	}
 	return nil
@@ -274,7 +293,7 @@ func sendSIGINT() error {
 }
 
 // generate the seccomp profile from the syscalls provided
-func generateProfile(c calls, fileName string) error {
+func generateProfile(c map[string]int, fileName string) error {
 	s := types.Seccomp{}
 	var names []string
 	for s, t := range c {
