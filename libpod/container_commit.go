@@ -19,7 +19,7 @@ import (
 // ContainerCommitOptions is a struct used to commit a container to an image
 // It uses buildah's CommitOptions as a base. Long-term we might wish to
 // add these to the buildah struct once buildah is more integrated with
-//libpod
+// libpod
 type ContainerCommitOptions struct {
 	buildah.CommitOptions
 	Pause          bool
@@ -177,6 +177,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 					return nil, errors.Errorf("invalid env variable %q: not defined in your environment", name)
 				}
 			} else {
+				name = change[0]
 				val = strings.Join(change[1:], " ")
 			}
 			if !isEnvCleared { // Multiple values are valid, only clear once.
