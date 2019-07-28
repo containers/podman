@@ -44,7 +44,7 @@
 | [podman-logout(1)](/docs/podman-logout.1.md)                             | Logout of a container registry                                             |
 | [podman-logs(1)](/docs/podman-logs.1.md)                                 | Display the logs of a container                                            |
 | [podman-mount(1)](/docs/podman-mount.1.md)                               | Mount a working container's root filesystem                                |
-| [podman-pause(1)](/docs/podman-pause.1.md)                               | Pause one or more running containers                                       | [![...](/docs/play.png)](https://asciinema.org/a/141292)                    |
+| [podman-pause(1)](/docs/podman-pause.1.md)                               | Pause one or more running containers                                       | [![...](/docs/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_pause_unpause.sh) |
 | [podman-play(1)](/docs/podman-play.1.md)                                 | Play pods and containers based on a structured input file                  |
 | [podman-pod(1)](/docs/podman-pod.1.md)                                   | Simple management tool for groups of containers, called pods               |
 | [podman-pod-create(1)](/docs/podman-pod-create.1.md)                     | Create a new pod                                                           |
@@ -76,7 +76,7 @@
 | [podman-tag(1)](/docs/podman-tag.1.md)                                   | Add an additional name to a local image                                    | [![...](/docs/play.png)](https://asciinema.org/a/133803)                    |
 | [podman-top(1)](/docs/podman-top.1.md)                                   | Display the running processes of a container                               |
 | [podman-umount(1)](/docs/podman-umount.1.md)                             | Unmount a working container's root filesystem                              |
-| [podman-unpause(1)](/docs/podman-unpause.1.md)                           | Unpause one or more running containers                                     | [![...](/docs/play.png)](https://asciinema.org/a/141292)                    |
+| [podman-unpause(1)](/docs/podman-unpause.1.md)                           | Unpause one or more running containers                                     | [![...](/docs/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_pause_unpause.sh) |
 | [podman-unshare(1)](/docs/podman-unshare.1.md)                           | Run a command inside of a modified user namespace.                         |
 | [podman-varlink(1)](/docs/podman-varlink.1.md)                           | Run the varlink backend                                                    |
 | [podman-version(1)](/docs/podman-version.1.md)                           | Display the version information                                            |
