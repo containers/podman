@@ -220,7 +220,7 @@ func runBPFSource(pid int, profilePath string) error {
 		return fmt.Errorf("unable to load tracepoint err:%q", err.Error())
 	}
 
-	// send a signal to the parent process to signify the compilation has been completed
+	// send a signal to the parent process to indicate the compilation has been completed
 	err = parentProcess.Signal(syscall.SIGUSR1)
 	if err != nil {
 		return err
@@ -235,8 +235,8 @@ func runBPFSource(pid int, profilePath string) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
-	rsc := false  // Reached Seccomp syscall
-	rexec := true // Reached the execve from runc
+	rsc := false   // Reached Seccomp syscall
+	rexec := false // Reached the execve from runc
 	go func() {
 		e := C.syscall_data{}
 		for {
