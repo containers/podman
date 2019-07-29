@@ -23,7 +23,6 @@ env:
     CIRRUS_SHELL: "/bin/bash"
     # Save a little typing (path relative to $CIRRUS_WORKING_DIR)
     SCRIPT_BASE: "./contrib/cirrus"
-    CIRRUS_CLONE_DEPTH: 50
     # Command to prefix output lines with timing information
     # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
     TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
@@ -206,7 +205,7 @@ build_each_commit_task:
     build_each_commit_script:
         # set -x by default, no need to spew contents of lib.sh
         - 'source $SCRIPT_BASE/lib.sh &> /dev/null'
-        - 'git fetch --depth $CIRRUS_CLONE_DEPTH origin $DEST_BRANCH |& ${TIMESTAMP}'
+        - 'git fetch --depth 50 origin $DEST_BRANCH |& ${TIMESTAMP}'
         - 'make build-all-new-commits GIT_BASE_BRANCH=origin/$DEST_BRANCH |& ${TIMESTAMP}'
 
     on_failure:
@@ -269,7 +268,6 @@ meta_task:
         GCPJSON: ENCRYPTED[950d9c64ad78f7b1f0c7e499b42dc058d2b23aa67e38b315e68f557f2aba0bf83068d4734f7b1e1bdd22deabe99629df]
         GCPNAME: ENCRYPTED[b05d469a0dba8cb479cb00cc7c1f6747c91d17622fba260a986b976aa6c817d4077eacffd4613d6d5f23afc4084fab1d]
         GCPPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
-        CIRRUS_CLONE_DEPTH: 1  # source not used
 
     timeout_in: 10m
 
@@ -550,7 +548,6 @@ release_task:
     timeout_in: 30m
 
     env:
-        CIRRUS_CLONE_DEPTH: 1  # source is not used, only Makefile
         GCPJSON: ENCRYPTED[789d8f7e9a5972ce350fd8e60f1032ccbf4a35c3938b604774b711aad280e12c21faf10e25af1e0ba33597ffb9e39e46]
         GCPNAME: ENCRYPTED[417d50488a4bd197bcc925ba6574de5823b97e68db1a17e3a5fde4bcf26576987345e75f8d9ea1c15a156b4612c072a1]
         GCPROJECT: ENCRYPTED[7c80e728e046b1c76147afd156a32c1c57d4a1ac1eab93b7e68e718c61ca8564fc61fef815952b8ae0a64e7034b8fe4f]
