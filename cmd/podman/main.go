@@ -91,7 +91,7 @@ func init() {
 	rootCmd.Version = version.Version
 	// Override default --help information of `--version` global flag
 	var dummyVersion bool
-	rootCmd.PersistentFlags().BoolVar(&dummyVersion, "version", false, "Version for podman")
+	rootCmd.Flags().BoolVarP(&dummyVersion, "version", "v", false, "Version of podman")
 	rootCmd.AddCommand(mainCommands...)
 	rootCmd.AddCommand(getMainCommands()...)
 }
