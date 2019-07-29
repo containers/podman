@@ -80,6 +80,8 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		name := ""
 		if len(c.InputArgs) != 0 {
 			name = c.InputArgs[0]
+		} else {
+			return nil, nil, errors.Errorf("error, no input arguments were provided")
 		}
 		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(""), writer, nil, image.SigningOptions{}, false, nil)
 		if err != nil {
