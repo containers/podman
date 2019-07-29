@@ -3,12 +3,9 @@
 package integration
 
 import (
-	"math/rand"
 	"net"
 	"os"
 	"os/exec"
-	"strconv"
-	"time"
 
 	"github.com/containers/libpod/pkg/criu"
 	. "github.com/containers/libpod/test/utils"
@@ -17,12 +14,8 @@ import (
 )
 
 func getRunString(input []string) []string {
-	// To avoid IP collisions of initialize random seed for random IP addresses
-	rand.Seed(time.Now().UnixNano())
-	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
-	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
 	// CRIU does not work with seccomp correctly on RHEL7 : seccomp=unconfined
-	runString := []string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", "--ip", "10.88." + ip3 + "." + ip4}
+	runString := []string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", "--ip", GetRandomIPAddress()}
 	return append(runString, input...)
 }
 
