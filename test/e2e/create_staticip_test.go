@@ -60,7 +60,8 @@ var _ = Describe("Podman create with --ip flag", func() {
 	})
 
 	It("Podman create with specified static IP has correct IP", func() {
-		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", "10.88.64.128", ALPINE, "ip", "addr"})
+		ip := GetRandomIPAddress()
+		result := podmanTest.Podman([]string{"create", "--name", "test", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
@@ -71,14 +72,15 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result = podmanTest.Podman([]string{"logs", "test"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(result.OutputToString()).To(ContainSubstring("10.88.64.128/16"))
+		Expect(result.OutputToString()).To(ContainSubstring(ip + "/16"))
 	})
 
 	It("Podman create two containers with the same IP", func() {
-		result := podmanTest.Podman([]string{"create", "--name", "test1", "--ip", "10.88.64.128", ALPINE, "sleep", "999"})
+		ip := GetRandomIPAddress()
+		result := podmanTest.Podman([]string{"create", "--name", "test1", "--ip", ip, ALPINE, "sleep", "999"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		result = podmanTest.Podman([]string{"create", "--name", "test2", "--ip", "10.88.64.128", ALPINE, "ip", "addr"})
+		result = podmanTest.Podman([]string{"create", "--name", "test2", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		result = podmanTest.Podman([]string{"start", "test1"})
