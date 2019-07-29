@@ -114,7 +114,7 @@ func main() {
 		logrus.Error(err)
 	}
 
-	logfilePath, err := filepath.Abs("log")
+	logfilePath, err := filepath.Abs("trace-log")
 	if err != nil {
 		logrus.Error(err)
 	}
@@ -128,7 +128,6 @@ func main() {
 	formatter.FullTimestamp = true
 	logrus.SetFormatter(formatter)
 	logrus.SetOutput(logfile)
-
 	if *runBPF > 0 {
 		logrus.Println("Filepath : ", profilePath)
 		if err := runBPFSource(*runBPF, profilePath); err != nil {
@@ -177,7 +176,7 @@ func startFloatingProcess() error {
 		<-sig
 
 		processPID := process.Pid
-		f, err := os.Create("pid")
+		f, err := os.Create("pidfile")
 		if err != nil {
 			return fmt.Errorf("cannot write pid to file err:%q", err.Error())
 		}
@@ -275,7 +274,7 @@ func runBPFSource(pid int, profilePath string) error {
 
 // send SIGINT to the floating process reading the perfbuffer
 func sendSIGINT() error {
-	f, err := ioutil.ReadFile("pid")
+	f, err := ioutil.ReadFile("pidfile")
 
 	if err != nil {
 		return err
