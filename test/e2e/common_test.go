@@ -4,10 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -337,6 +339,18 @@ func GetPortLock(port string) storage.Locker {
 	}
 	lock.Lock()
 	return lock
+}
+
+// GetRandomIPAddress returns a random IP address to avoid IP
+// collisions during parallel tests
+func GetRandomIPAddress() string {
+	// To avoid IP collisions of initialize random seed for random IP addresses
+	rand.Seed(time.Now().UnixNano())
+	// Add GinkgoParallelNode() on top of the IP address
+	// in case of the same random seed
+	ip3 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	ip4 := strconv.Itoa(rand.Intn(230) + GinkgoParallelNode())
+	return "10.88." + ip3 + "." + ip4
 }
 
 // RunTopContainer runs a simple container in the background that
