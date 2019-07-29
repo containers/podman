@@ -260,9 +260,9 @@ You need to specify multi option commands in the form of a json string.
 
 Set environment variables
 
-This option allows you to specify arbitrary environment variables that are available for the process that will be launched inside of the container. If you specify a environment variable without a value, podman will check the host environment for a value or set the environment to "". If you specify a environment variable ending in --*--, podman will search the host environment for variables starting with the prefix and add them to the container.  If you want to add an environment variable with a ***** following it, then you need to set a value.
+This option allows arbitrary environment variables that are available for the process to be launched inside of the container.  If an environment variable is specified without a value, Podman will check the host environment for a value and set the variable only if it is set on the host.  If an environment variable ending in __*__ is specified, Podman will search the host environment for variables starting with the prefix and will add those variables to the container.  If an environment variable with a trailing ***** is specified, then a value must be supplied.
 
-See **Environment** note below for precedence.
+See [**Environment**](#environment) note below for precedence and examples.
 
 **--env-host**=*true|false*
 
@@ -1218,6 +1218,17 @@ Precedence Order:
 	   **--env-file** : Any environment variables specified via env-files.  If multiple files specified, then they override each other in order of entry.
 
 	   **--env** : Any environment variables specified will override previous settings.
+
+Run containers and set the environment ending with a __*__ and a *****
+
+```
+$ export ENV1=a
+$ $ podman run --env ENV* alpine printenv ENV1
+a
+
+$ podman run --env ENV*****=b alpine printenv ENV*****
+b
+```
 
 ## FILES
 
