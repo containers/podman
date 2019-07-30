@@ -22,14 +22,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// #include <linux/types.h>
-// typedef struct
-// {
-// 	  __u32 Pid;
-// 	  __u32 Id;
-//     char Comm[16];
-// } syscall_data;
-import "C"
+// event : read data from the perf ring buffer from the
+type event struct {
+	// PID of the process making the syscall
+	Pid uint32
+	// syscall number of the syscall
+	ID uint32
+	// Command which makes the syscall
+	Command [16]byte
+}
 
 // the source is a bpf program compiled at runtime. Some macro's like
 // BPF_HASH and BPF_PERF_OUTPUT are expanded during compilation
@@ -55,11 +56,11 @@ BPF_PERF_OUTPUT(events);
 struct syscall_data
 {
 	// PID of the process
-	u32 Pid;
+	u32 pid;
 	// syscall number
-	u32 Id;
+	u32 id;
 	// command which is making the syscall
-    char Comm[16];
+    char comm[16];
 };
 
 // enter_trace : function is attached to the kernel tracepoint raw_syscalls:sys_enter it is
@@ -76,15 +77,15 @@ int enter_trace(struct tracepoint__raw_syscalls__sys_enter *args)
     unsigned int zero = 0;
     struct task_struct *task;
 
-    data.Pid = bpf_get_current_pid_tgid();
-    data.Id = (int)args->id;
-    bpf_get_current_comm(&data.Comm, sizeof(data.Comm));
+    data.pid = bpf_get_current_pid_tgid();
+    data.id = (int)args->id;
+    bpf_get_current_comm(&data.comm, sizeof(data.comm));
 
     task = (struct task_struct *)bpf_get_current_task();
     struct nsproxy *ns = task->nsproxy;
     unsigned int inum = ns->pid_ns_for_children->ns.inum;
 
-    if (data.Pid == $PARENT_PID)
+    if (data.pid == $PARENT_PID)
     {
         parent_namespace.update(&key, &inum);
     }
@@ -235,10 +236,9 @@ func runBPFSource(pid int, profilePath string) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
-	rsc := false   // Reached Seccomp syscall
-	rexec := false // Reached the execve from runc
+	rsc := false // Reached Seccomp syscall
 	go func() {
-		e := C.syscall_data{}
+		var e event
 		for {
 			data := <-channel
 			err := binary.Read(bytes.NewBuffer(data), binary.LittleEndian, &e)
@@ -246,17 +246,15 @@ func runBPFSource(pid int, profilePath string) error {
 				logrus.Errorf("failed to decode received data '%s': %s\n", data, err)
 				continue
 			}
-			name, err := getName(uint32(e.Id))
+			name, err := getName(uint32(e.ID))
 			if err != nil {
-				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.Id, name)
+				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.ID, name)
 			}
 			if name == "seccomp" {
 				rsc = true
 				continue
-			} else if name == "execve" {
-				rexec = true
 			}
-			if rsc && rexec {
+			if rsc {
 				syscalls[name]++
 			}
 		}
@@ -303,7 +301,7 @@ func generateProfile(c map[string]int, fileName string) error {
 	s.DefaultAction = types.ActErrno
 
 	s.Syscalls = []*types.Syscall{
-		&types.Syscall{
+		{
 			Action: types.ActAllow,
 			Names:  names,
 			Args:   []*types.Arg{},
