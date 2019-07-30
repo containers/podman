@@ -293,6 +293,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 				"/sbin/runc",
 				"/bin/runc",
 				"/usr/lib/cri-o-runc/sbin/runc",
+				"/run/current-system/sw/bin/runc",
 			},
 		},
 		ConmonPath: []string{
@@ -302,6 +303,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 			"/usr/sbin/conmon",
 			"/usr/local/bin/conmon",
 			"/usr/local/sbin/conmon",
+			"/run/current-system/sw/bin/conmon",
 		},
 		ConmonEnvVars: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
