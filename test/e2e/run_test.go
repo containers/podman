@@ -213,6 +213,11 @@ var _ = Describe("Podman run", func() {
 		Expect(match).Should(BeTrue())
 		os.Unsetenv("FOO")
 
+		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
+		session.WaitWithDefaultTimeout()
+		Expect(len(session.OutputToString())).To(Equal(0))
+		Expect(session.ExitCode()).To(Equal(1))
+
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

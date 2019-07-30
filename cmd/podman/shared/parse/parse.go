@@ -126,8 +126,9 @@ func parseEnv(env map[string]string, line string) error {
 			}
 		} else {
 			// if only a pass-through variable is given, clean it up.
-			val, _ := os.LookupEnv(name)
-			env[name] = val
+			if val, ok := os.LookupEnv(name); ok {
+				env[name] = val
+			}
 		}
 	}
 	return nil
