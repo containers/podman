@@ -223,7 +223,7 @@ When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.con
 ## Rootless mode
 Podman can also be used as non-root user.  When podman runs in rootless mode, a user namespace is automatically created for the user, defined in /etc/subuid and /etc/subgid.
 
-Containers created by a non-root user are not visible to other users and are not seen or managed by podman running as root.
+Containers created by a non-root user are not visible to other users and are not seen or managed by Podman running as root.
 
 It is required to have multiple uids/gids set for an user.  Be sure the user is present in the files `/etc/subuid` and `/etc/subgid`.
 
@@ -243,6 +243,14 @@ See the `subuid(5)` and `subgid(5)` man pages for more information.
 Images are pulled under `XDG_DATA_HOME` when specified, otherwise in the home directory of the user under `.local/share/containers/storage`.
 
 Currently the slirp4netns package is required to be installed to create a network device, otherwise rootless containers need to run in the network namespace of the host.
+
+### **NOTE:** Unsupported file systems in rootless mode
+
+The Overlay file system (OverlayFS) is not supported in rootless mode.  The fuse-overlayfs package is a tool that provides the functionality of OverlayFS in user namespace that allows mounting file systems in rootless environments.  It is recommended to install the fuse-overlayfs package and to enable it by adding `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in the `~/.config/containers/storage.conf` file.
+
+The Network File System (NFS) and other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are not supported when running in rootless mode as these file systems do not understand user namespace.  However, rootless Podman can make use of an NFS Homedir by modifying the `~/.config/containers/storage.conf` to have the `graphroot` option point to a directory stored on local (Non NFS) storage.
+
+For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/libpod/blob/master/troubleshooting.md).
 
 ## SEE ALSO
 `containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
