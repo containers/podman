@@ -86,7 +86,8 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 		return cgroupLimit
 	}
 
-	physicalLimit := si.Totalram
+	//nolint:unconvert
+	physicalLimit := uint64(si.Totalram)
 	if cgroupLimit > physicalLimit {
 		return physicalLimit
 	}
