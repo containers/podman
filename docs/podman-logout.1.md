@@ -7,10 +7,11 @@ podman\-logout - Logout of a container registry
 **podman logout** [*options*] *registry*
 
 ## DESCRIPTION
-**podman logout** logs out of a specified registry server by deleting the cached credentials
-stored in the **auth.json** file. The path of the authentication file can be overridden by the user by setting the **authfile** flag.
+**podman logout** logs out of a specified registry server by deleting the cached credentials stored in the kernel keyring.
+If the system does not support kernel keyring or the authorization state is not found there, Podman will check the authentication file.
+The path of the authentication file can be overridden by the user by setting the **authfile** flag.
 The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
-All the cached credentials can be removed by setting the **all** flag.
+All the authentication file cached credentials can be removed by setting the **all** flag.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -22,10 +23,11 @@ All the cached credentials can be removed by setting the **all** flag.
 
 **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+Path of the authentication file. By default, the authentication storage is the kernel keyring. If the system does not support kernel keyring, Podman will use the authentication file.
+Default is ${XDG_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
+If the authorization state is not found there, $HOME/.docker/config.json is checked, which is set using `docker login`. (Not available for remote commands)
 
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+Note: The default path of the authentication file can also be overridden by setting the REGISTRY_AUTH_FILE environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--all**, **-a**
 

@@ -53,7 +53,7 @@ func init() {
 	flags.BoolVar(&loginCommand.StdinPassword, "password-stdin", false, "Take the password from stdin")
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&loginCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&loginCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file or 'nokeyring'. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
 		flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	}
@@ -71,7 +71,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 	server := registryFromFullName(scrubServer(args[0]))
 
-	sc := image.GetSystemContext("", c.Authfile, false)
+	sc := image.GetSystemContext("", shared.GetAuthFile(c.Authfile), false)
 	if c.Flag("tls-verify").Changed {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}

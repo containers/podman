@@ -10,8 +10,13 @@ podman\-login - Login to a container registry
 **podman login** logs into a specified registry server with the correct username
 and password. **podman login** reads in the username and password from STDIN.
 The username and password can also be set using the **username** and **password** flags.
-The path of the authentication file can be specified by the user by setting the **authfile**
-flag. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
+The authentication storage can be set by the **authfile** option.
+By default, the authentication storage is the kernel keyring. If the system does not
+support kernel keyring, Podman will use the authentication file.
+The path of the authentication file can be specified by the user by setting the **authfile** option
+or REGISTRY\_AUTH\_FILE environment variable. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
+If the **authfile** is set to "nokeyring", Podman will use the default authentication path or the
+file set by REGISTRY\_AUTH\_FILE environment variable.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -35,10 +40,9 @@ Username for registry
 
 **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+Path of the authentication file or "nokeyring". By default, the authentication storage is the kernel keyring. If the system does not support kernel keyring, Podman will use the authentication file.  If **authfile** is set to "nokeyring", Podman will use the default authentication file ${XDG_\RUNTIME\_DIR}/containers/auth.json or the value of REGISTRY\_AUTH\_FILE environment variable (Not available for remote commands)
 
-Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
-environment variable. `export REGISTRY_AUTH_FILE=path`
+Note: The default path of the authentication file can also be overridden by setting the REGISTRY_AUTH_FILE environment variable. `export REGISTRY_AUTH_FILE=path`
 
 **--get-login**
 

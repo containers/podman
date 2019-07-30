@@ -9,19 +9,26 @@ import (
 	"github.com/google/shlex"
 )
 
+func dontUseKeyring(authfile string) bool {
+	return strings.ToLower(authfile) == "nokeyring"
+}
+
+// GetAuthFile returns the path to the file that stores the credentials
 func GetAuthFile(authfile string) string {
-	if authfile != "" {
-		return authfile
+	if authfile == "" || dontUseKeyring(authfile) {
+		authfileEnv := os.Getenv("REGISTRY_AUTH_FILE")
+		if authfileEnv != "" && !dontUseKeyring(authfileEnv) {
+			return authfileEnv
+		}
+
+		if dontUseKeyring(authfileEnv) || dontUseKeyring(authfile) {
+			runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
+			if runtimeDir != "" {
+				return filepath.Join(runtimeDir, "containers/auth.json")
+			}
+		}
 	}
-	authfile = os.Getenv("REGISTRY_AUTH_FILE")
-	if authfile != "" {
-		return authfile
-	}
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir != "" {
-		return filepath.Join(runtimeDir, "containers/auth.json")
-	}
-	return ""
+	return authfile
 }
 
 func substituteCommand(cmd string) (string, error) {
