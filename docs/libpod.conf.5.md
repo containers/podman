@@ -16,10 +16,10 @@ libpod to manage containers.
   Default OCI runtime to use if nothing is specified in **runtimes**
 
 **runtimes**
-  For each OCI runtime, specify a list of paths to look for.  The first one found is used.
+  For each OCI runtime, specify a list of paths to look for.  The first one found is used. If the paths are empty or no valid path was found, then the `$PATH` environment variable will be used as the fallback.
 
 **conmon_path**=""
-  Paths to search for the Conmon container manager binary
+  Paths to search for the conmon container manager binary. If the paths are empty or no valid path was found, then the `$PATH` environment variable will be used as the fallback.
 
 **conmon_env_vars**=""
   Environment variables to pass into Conmon

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
 	"path/filepath"
 	"strings"
@@ -740,8 +741,19 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		foundConmon = true
 		runtime.conmonPath = path
+		logrus.Debugf("using conmon: %q", path)
 		break
 	}
+
+	// Search the $PATH as last fallback
+	if !foundConmon {
+		if conmon, err := exec.LookPath("conmon"); err == nil {
+			foundConmon = true
+			runtime.conmonPath = conmon
+			logrus.Debugf("using conmon from $PATH: %q", conmon)
+		}
+	}
+
 	if !foundConmon {
 		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
@@ -938,10 +950,6 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
-		if len(paths) == 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "must provide at least 1 path to OCI runtime %s", name)
-		}
-
 		supportsJSON := false
 		for _, r := range runtime.config.RuntimeSupportsJSON {
 			if r == name {
