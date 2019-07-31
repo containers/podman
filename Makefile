@@ -232,6 +232,7 @@ localunit: test/goecho/goecho varlink_generate
 		--succinct
 	$(MAKE) -C contrib/cirrus/packer test
 	./contrib/cirrus/lib.sh.t
+	./contrib/cirrus/cirrus_yaml_test.py
 
 ginkgo:
 	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/.
