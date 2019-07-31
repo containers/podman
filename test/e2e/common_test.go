@@ -111,10 +111,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	}
 
 	for _, image := range CACHE_IMAGES {
-		if err := podman.CreateArtifact(image); err != nil {
-			fmt.Printf("%q\n", err)
-			os.Exit(1)
-		}
+		podman.createArtifact(image)
 	}
 
 	// If running localized tests, the cache dir is created and populated. if the
@@ -287,25 +284,26 @@ func (p *PodmanTestIntegration) RestoreAllArtifacts() error {
 	return nil
 }
 
-// CreateArtifact creates a cached image in the artifact dir
-func (p *PodmanTestIntegration) CreateArtifact(image string) error {
+// createArtifact creates a cached image in the artifact dir
+func (p *PodmanTestIntegration) createArtifact(image string) {
 	if os.Getenv("NO_TEST_CACHE") != "" {
-		return nil
+		return
 	}
-	fmt.Printf("Caching %s...", image)
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	fmt.Printf("Caching %s at %s...", image, destName)
 	if _, err := os.Stat(destName); os.IsNotExist(err) {
 		pull := p.PodmanNoCache([]string{"pull", image})
 		pull.Wait(90)
+		Expect(pull.ExitCode()).To(Equal(0))
 
 		save := p.PodmanNoCache([]string{"save", "-o", destName, image})
 		save.Wait(90)
+		Expect(save.ExitCode()).To(Equal(0))
 		fmt.Printf("\n")
 	} else {
 		fmt.Printf(" already exists.\n")
 	}
-	return nil
 }
 
 // InspectImageJSON takes the session output of an inspect
@@ -322,6 +320,7 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []libpod.InspectCo
 	cmd := []string{"inspect", name}
 	session := p.Podman(cmd)
 	session.WaitWithDefaultTimeout()
+	Expect(session.ExitCode()).To(Equal(0))
 	return session.InspectContainerToJSON()
 }
 
