@@ -187,7 +187,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		c.state.State == define.ContainerStateExited {
 		return define.ErrCtrStopped
 	}
-	defer c.newContainerEvent(events.Stop)
+
 	return c.stop(timeout)
 }
 
