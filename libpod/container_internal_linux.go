@@ -475,30 +475,48 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 		g.AddMount(tmpfsMnt)
 	}
 
-	// rootless containers have no write access to /sys/fs/cgroup, so don't
-	// add any mount into the container.
-	if !rootless.IsRootless() {
-		cgroupPath, err := c.CGroupPath()
-		if err != nil {
-			return err
-		}
-		sourcePath := filepath.Join("/sys/fs/cgroup/systemd", cgroupPath)
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return err
+	}
 
+	g.RemoveMount("/sys/fs/cgroup")
+
+	if unified {
+		sourcePath := filepath.Join("/sys/fs/cgroup")
 		systemdMnt := spec.Mount{
-			Destination: "/sys/fs/cgroup/systemd",
+			Destination: "/sys/fs/cgroup",
 			Type:        "bind",
 			Source:      sourcePath,
-			Options:     []string{"bind", "private"},
+			Options:     []string{"bind", "private", "rw"},
 		}
 		g.AddMount(systemdMnt)
 	} else {
-		systemdMnt := spec.Mount{
-			Destination: "/sys/fs/cgroup/systemd",
-			Type:        "bind",
-			Source:      "/sys/fs/cgroup/systemd",
-			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+		// rootless containers have no write access to /sys/fs/cgroup, so don't
+		// add any mount into the container.
+		if !rootless.IsRootless() {
+			cgroupPath, err := c.CGroupPath()
+			if err != nil {
+				return err
+			}
+			sourcePath := filepath.Join("/sys/fs/cgroup", cgroupPath)
+
+			systemdMnt := spec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "bind",
+				Source:      sourcePath,
+				Options:     []string{"bind", "private"},
+			}
+			g.AddMount(systemdMnt)
+		} else {
+			systemdMnt := spec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "bind",
+				Source:      "/sys/fs/cgroup",
+				Options:     []string{"bind", "nodev", "noexec", "nosuid"},
+			}
+			g.AddMount(systemdMnt)
 		}
-		g.AddMount(systemdMnt)
 	}
 
 	return nil
