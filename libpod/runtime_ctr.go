@@ -394,13 +394,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == config2.ContainerStateRunning {
-		if err := c.ociRuntime.stopContainer(c, c.StopTimeout()); err != nil {
+		if err := c.stop(c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
-		}
-
-		// Need to update container state to make sure we know it's stopped
-		if err := c.waitForExitFileAndSync(); err != nil {
-			return err
 		}
 	}
 
