@@ -93,7 +93,7 @@ elif [[ "$(basename $0)" == "uncache_release_archives.sh" ]]
 then
     req_env_var CIRRUS_BUILD_ID CI_NODE_TOTAL GCPJSON GCPNAME GCPROJECT
     [[ "${CI_NODE_INDEX}" -eq  "$[CI_NODE_TOTAL-1]" ]] || \
-        die 8 "The release task must be executed last to guarantee archive cache is complete"
+        die 0 "WARNING: This task depends on cache data from other tasks, otherwise it is a no-op."
 
     if [[ -n "$CIRRUS_PR" ]]
     then

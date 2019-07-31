@@ -504,13 +504,14 @@ success_task:
     only_if: $CIRRUS_BRANCH != $DEST_BRANCH
 
     # ignores any dependent task conditions, include everything except 'release'
-    depends_on: &alltasks
+    depends_on:
         - "gating"
         - "vendor"
         - "varlink_api"
         - "build_each_commit"
         - "build_without_cgo"
         - "meta"
+        - "image_prune"
         - "testing"
         - "special_testing_rootless"
         - "special_testing_in_podman"
@@ -540,7 +541,22 @@ release_task:
     # allow_failures: $CI == "true"
     # skip_notifications: $CI == "true"
 
-    depends_on: *alltasks
+    # Must include everything (YAML anchor/alias cannot be used here)
+    depends_on:
+        - "gating"
+        - "vendor"
+        - "varlink_api"
+        - "build_each_commit"
+        - "build_without_cgo"
+        - "meta"
+        - "image_prune"
+        - "testing"
+        - "special_testing_rootless"
+        - "special_testing_in_podman"
+        - "special_testing_cross"
+        - "test_build_cache_images"
+        - "verify_test_built_images"
+        - "success"
 
     gce_instance:
         image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
