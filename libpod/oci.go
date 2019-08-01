@@ -106,8 +106,19 @@ func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *R
 		}
 		foundPath = true
 		runtime.path = path
+		logrus.Debugf("using runtime %q", path)
 		break
 	}
+
+	// Search the $PATH as last fallback
+	if !foundPath {
+		if foundRuntime, err := exec.LookPath(name); err == nil {
+			foundPath = true
+			runtime.path = foundRuntime
+			logrus.Debugf("using runtime %q from $PATH: %q", name, foundRuntime)
+		}
+	}
+
 	if !foundPath {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "no valid executable found for OCI runtime %s", name)
 	}
