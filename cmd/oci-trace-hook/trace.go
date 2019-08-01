@@ -22,11 +22,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// event : read data from the perf ring buffer from the
+// event struct used to read data from the perf ring buffer from the
 type event struct {
 	// PID of the process making the syscall
 	Pid uint32
-	// syscall number of the syscall
+	// syscall number
 	ID uint32
 	// Command which makes the syscall
 	Command [16]byte
@@ -57,7 +57,7 @@ struct syscall_data
 {
 	// PID of the process
 	u32 pid;
-	// syscall number
+	// the syscall number
 	u32 id;
 	// command which is making the syscall
     char comm[16];
@@ -236,7 +236,7 @@ func runBPFSource(pid int, profilePath string) error {
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)
-	rsc := false // Reached Seccomp syscall
+	reachedPRCTL := false // Reached PRCTL syscall
 	go func() {
 		var e event
 		for {
@@ -250,11 +250,11 @@ func runBPFSource(pid int, profilePath string) error {
 			if err != nil {
 				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.ID, name)
 			}
-			if name == "seccomp" {
-				rsc = true
-				continue
+			// syscalls are not recorded until prctl() is called
+			if name == "prctl" {
+				reachedPRCTL = true
 			}
-			if rsc {
+			if reachedPRCTL {
 				syscalls[name]++
 			}
 		}

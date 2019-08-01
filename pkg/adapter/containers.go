@@ -322,6 +322,9 @@ func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateV
 
 // Run a libpod container
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
+	if c.IsSet("rm") && c.IsSet("generate-seccomp") {
+		return exitCode, errors.Errorf("cannot use rm with generate-seccomp")
+	}
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, false)
 
 	ctr, createConfig, err := shared.CreateContainer(ctx, &results, r.Runtime)
