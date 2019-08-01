@@ -145,7 +145,7 @@ var _ = Describe("Podman rmi", func() {
 
 		session = podmanTest.PodmanNoCache([]string{"rmi", "-f", untaggedImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session.ExitCode()).To(Equal(2))
 	})
 
 	It("podman rmi image that is created from another named imaged", func() {

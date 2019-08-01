@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"syscall"
 
+	"github.com/containers/libpod/libpod/define"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,4 +25,15 @@ func outputError(err error) {
 		}
 		fmt.Fprintln(os.Stderr, "Error:", err.Error())
 	}
+}
+
+func setExitCode(err error) int {
+	cause := errors.Cause(err)
+	switch cause {
+	case define.ErrNoSuchCtr:
+		return 1
+	case define.ErrCtrStateInvalid:
+		return 2
+	}
+	return exitCode
 }
