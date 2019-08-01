@@ -53,6 +53,8 @@ type Eventer interface {
 	Write(event Event) error
 	// Read an event from the backend
 	Read(options ReadOptions) error
+	// String returns the type of event logger
+	String() string
 }
 
 // ReadOptions describe the attributes needed to read event logs

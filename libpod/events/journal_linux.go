@@ -146,3 +146,8 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 	}
 	return &newEvent, nil
 }
+
+// String returns a string representation of the logger
+func (e EventJournalD) String() string {
+	return Journald.String()
+}
