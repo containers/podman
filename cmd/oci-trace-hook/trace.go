@@ -16,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/docker/docker/api/types"
-	bpf "github.com/iovisor/gobpf/bcc"
+	"github.com/iovisor/gobpf/bcc"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	seccomp "github.com/seccomp/libseccomp-golang"
 	"github.com/sirupsen/logrus"
@@ -207,7 +207,7 @@ func runBPFSource(pid int, profilePath string) error {
 	logrus.Println("Running floating process PID to attach:", pid)
 	syscalls := make(map[string]int, 303)
 	src := strings.Replace(source, "$PARENT_PID", strconv.Itoa(pid), -1)
-	m := bpf.NewModule(src, []string{})
+	m := bcc.NewModule(src, []string{})
 	defer m.Close()
 
 	tracepoint, err := m.LoadTracepoint("enter_trace")
@@ -227,9 +227,9 @@ func runBPFSource(pid int, profilePath string) error {
 		return err
 	}
 
-	table := bpf.NewTable(m.TableId("events"), m)
+	table := bcc.NewTable(m.TableId("events"), m)
 	channel := make(chan []byte)
-	perfMap, err := bpf.InitPerfMap(table, channel)
+	perfMap, err := bcc.InitPerfMap(table, channel)
 	if err != nil {
 		return fmt.Errorf("unable to init perf map err:%q", err.Error())
 	}
