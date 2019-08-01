@@ -11,8 +11,8 @@ podman\-search - Search a registry for an image
 The user can specify which registry to search by prefixing the registry in the search term
 (example **registry.fedoraproject.org/fedora**), default is the registries in the
 **registries.search** table in the config file - **/etc/containers/registries.conf**.
-The number of results can be limited using the **--limit** flag. If more than one registry
-is being searched, the limit will be applied to each registry. The output can be filtered
+The default number of results is 25. The number of results can be limited using the **--limit** flag.
+If more than one registry is being searched, the limit will be applied to each registry. The output can be filtered
 using the **--filter** flag. To get all available images in a registry without a specific
 search term, the user can just enter the registry name with a trailing "/" (example **registry.fedoraproject.org/**).
 Note, searching without a search term will only work for registries that implement the v2 API.

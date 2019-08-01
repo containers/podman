@@ -162,8 +162,11 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 	if len(results) < limit {
 		limit = len(results)
 	}
-	if options.Limit != 0 && options.Limit < len(results) {
-		limit = options.Limit
+	if options.Limit != 0 {
+		limit = len(results)
+		if options.Limit < len(results) {
+			limit = options.Limit
+		}
 	}
 
 	paramsArr := []SearchResult{}
