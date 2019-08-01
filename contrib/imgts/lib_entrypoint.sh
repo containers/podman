@@ -35,10 +35,15 @@ req_env_var() {
 
 gcloud_init() {
     set +xe
-    TMPF=$(mktemp -p '' .$(uuidgen)XXXX)
-    trap "rm -f $TMPF" EXIT
-    echo "$GCPJSON" > $TMPF  && \
-    $GCLOUD auth activate-service-account --project "$GCPPROJECT" --key-file=$TMPF || \
+    if [[ -n "$1" ]] && [[ -r "$1" ]]
+    then
+        TMPF="$1"
+    else
+        TMPF=$(mktemp -p '' .$(uuidgen)_XXXX.json)
+        trap "rm -f $TMPF &> /dev/null" EXIT
+        echo "$GCPJSON" > $TMPF
+    fi
+    $GCLOUD auth activate-service-account --project="$GCPPROJECT" --key-file="$TMPF" || \
         die 5 FATAL auth
-    rm -f $TMPF
+    rm -f $TMPF &> /dev/null || true  # ignore any read-only error
 }

@@ -16,10 +16,6 @@ case "$SPECIALMODE" in
     none)
         make
         ;;
-    windows) ;&
-    darwin)
-        make podman-remote-$SPECIALMODE
-        ;;
     *)
         die 109 "Unsupported \$SPECIAL_MODE: $SPECIALMODE"
 esac
