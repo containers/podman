@@ -102,7 +102,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		return nil, errors.Wrapf(err, "error getting hostname")
 	}
 	info["hostname"] = host
-
+	info["eventlogger"] = r.eventer.String()
 	return info, nil
 }
 

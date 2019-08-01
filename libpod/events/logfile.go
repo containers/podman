@@ -71,3 +71,8 @@ func (e EventLogFile) Read(options ReadOptions) error {
 	close(options.EventChannel)
 	return nil
 }
+
+// String returns a string representation of the logger
+func (e EventLogFile) String() string {
+	return LogFile.String()
+}

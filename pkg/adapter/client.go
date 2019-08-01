@@ -16,7 +16,7 @@ var remoteEndpoint *Endpoint
 
 func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 	remoteConfigConnections, err := remoteclientconfig.ReadRemoteConfig(r.config)
-	if errors.Cause(err) != remoteclientconfig.ErrNoConfigationFile {
+	if err != nil && errors.Cause(err) != remoteclientconfig.ErrNoConfigationFile {
 		return nil, err
 	}
 	// If the user defines an env variable for podman_varlink_bridge
@@ -68,7 +68,6 @@ func (r RemoteRuntime) Connect() (*varlink.Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	switch ep.Type {
 	case DirectConnection:
 		return varlink.NewConnection(ep.Connection)

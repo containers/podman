@@ -61,6 +61,7 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Kernel:          host["kernel"].(string),
 		Os:              host["os"].(string),
 		Uptime:          host["uptime"].(string),
+		Eventlogger:     host["eventlogger"].(string),
 	}
 	podmanInfo.Host = infoHost
 	store := info[1].Data

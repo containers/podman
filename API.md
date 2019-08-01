@@ -1721,6 +1721,8 @@ kernel [string](https://godoc.org/builtin#string)
 os [string](https://godoc.org/builtin#string)
 
 uptime [string](https://godoc.org/builtin#string)
+
+eventlogger [string](https://godoc.org/builtin#string)
 ### <a name="InfoPodmanBinary"></a>type InfoPodmanBinary
 
 InfoPodman provides details on the podman binary

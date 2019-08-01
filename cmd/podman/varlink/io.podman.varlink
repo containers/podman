@@ -228,7 +228,8 @@ type InfoHost (
     hostname: string,
     kernel: string,
     os: string,
-    uptime: string
+    uptime: string,
+    eventlogger: string
 )
 
 # InfoGraphStatus describes the detailed status of the storage driver
