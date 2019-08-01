@@ -85,7 +85,9 @@ ooe.sh sudo dnf install -y \
     vim \
     which \
     xz \
-    zip
+    zip \
+    bcc-devel \
+    kernel-headers
 
 
 # Ensure there are no disruptive periodic services enabled by default in image

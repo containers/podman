@@ -103,7 +103,9 @@ $BIGTO $SUDOAPTGET install \
     unzip \
     vim \
     xz-utils \
-    zip
+    zip \
+    bcc \
+    linux-headers-$(uname -r)
 
 if [[ "$OS_RELEASE_VER" -ge "19" ]]
 then

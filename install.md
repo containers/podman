@@ -117,7 +117,9 @@ sudo yum install -y \
   ostree-devel \
   pkgconfig \
   runc \
-  containers-common
+  containers-common \
+  bcc-devel \
+  kernel-headers
 ```
 
 Debian, Ubuntu, and related distributions:
@@ -143,7 +145,9 @@ sudo apt-get install \
   libsystemd-dev \
   pkg-config \
   runc \
-  uidmap
+  uidmap \
+  bcc \
+  linux-headers-$(uname -r)
 ```
 
 On Manjaro (and maybe other Linux distributions):
@@ -318,7 +322,7 @@ make BUILDTAGS='seccomp apparmor'
 ```
 
 | Build Tag                        | Feature                            | Dependency           |
-|----------------------------------|------------------------------------|----------------------|
+| -------------------------------- | ---------------------------------- | -------------------- |
 | apparmor                         | apparmor support                   | libapparmor          |
 | exclude_graphdriver_btrfs        | exclude btrfs                      | libbtrfs             |
 | exclude_graphdriver_devicemapper | exclude device-mapper              | libdm                |
