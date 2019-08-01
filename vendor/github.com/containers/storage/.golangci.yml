@@ -1,0 +1,41 @@
+---
+run:
+  build-tags:
+    - ostree
+  concurrency: 6
+  deadline: 5m
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - depguard
+    - gofmt
+    - interfacer
+    - typecheck
+    # - deadcode
+    # - dupl
+    # - errcheck
+    # - gochecknoglobals
+    # - gochecknoinits
+    # - goconst
+    # - gocritic
+    # - gocyclo
+    # - goimports
+    # - golint
+    # - gosec
+    # - gosimple
+    # - govet
+    # - ineffassign
+    # - lll
+    # - maligned
+    # - misspell
+    # - nakedret
+    # - prealloc
+    # - scopelint
+    # - staticcheck
+    # - structcheck
+    # - stylecheck
+    # - unconvert
+    # - unparam
+    # - unused
+    # - varcheck

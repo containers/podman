@@ -2,15 +2,20 @@ package vfs
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/storage/drivers"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ostree"
+	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -26,36 +31,42 @@ func init() {
 // This sets the home directory for the driver and returns NaiveDiffDriver.
 func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 	d := &Driver{
+		name:       "vfs",
 		homes:      []string{home},
 		idMappings: idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 	}
+
 	rootIDs := d.idMappings.RootPair()
 	if err := idtools.MkdirAllAndChown(home, 0700, rootIDs); err != nil {
 		return nil, err
 	}
 	for _, option := range options.DriverOptions {
-		if strings.HasPrefix(option, "vfs.imagestore=") {
-			d.homes = append(d.homes, strings.Split(option[15:], ",")...)
-			continue
+
+		key, val, err := parsers.ParseKeyValueOpt(option)
+		if err != nil {
+			return nil, err
 		}
-		if strings.HasPrefix(option, ".imagestore=") {
-			d.homes = append(d.homes, strings.Split(option[12:], ",")...)
+		key = strings.ToLower(key)
+		switch key {
+		case "vfs.imagestore", ".imagestore":
+			d.homes = append(d.homes, strings.Split(val, ",")...)
 			continue
-		}
-		if strings.HasPrefix(option, "vfs.ostree_repo=") {
+		case "vfs.ostree_repo", ".ostree_repo":
 			if !ostree.OstreeSupport() {
 				return nil, fmt.Errorf("vfs: ostree_repo specified but support for ostree is missing")
 			}
-			d.ostreeRepo = option[16:]
-		}
-		if strings.HasPrefix(option, ".ostree_repo=") {
-			if !ostree.OstreeSupport() {
-				return nil, fmt.Errorf("vfs: ostree_repo specified but support for ostree is missing")
-			}
-			d.ostreeRepo = option[13:]
-		}
-		if strings.HasPrefix(option, "vfs.mountopt=") {
+			d.ostreeRepo = val
+		case "vfs.mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")
+		case "vfs.ignore_chown_errors":
+			logrus.Debugf("vfs: ignore_chown_errors=%s", val)
+			var err error
+			d.ignoreChownErrors, err = strconv.ParseBool(val)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, fmt.Errorf("vfs driver does not support %s options", key)
 		}
 	}
 	if d.ostreeRepo != "" {
@@ -67,7 +78,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			return nil, err
 		}
 	}
-	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil
+	d.updater = graphdriver.NewNaiveLayerIDMapUpdater(d)
+	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, d.updater)
+
+	return d, nil
 }
 
 // Driver holds information about the driver, home directory of the driver.
@@ -75,9 +89,13 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 // In order to support layering, files are copied from the parent layer into the new layer. There is no copy-on-write support.
 // Driver must be wrapped in NaiveDiffDriver to be used as a graphdriver.Driver
 type Driver struct {
-	homes      []string
-	idMappings *idtools.IDMappings
-	ostreeRepo string
+	name              string
+	homes             []string
+	idMappings        *idtools.IDMappings
+	ostreeRepo        string
+	ignoreChownErrors bool
+	naiveDiff         graphdriver.DiffDriver
+	updater           graphdriver.LayerIDMapUpdater
 }
 
 func (d *Driver) String() string {
@@ -107,6 +125,14 @@ func (d *Driver) CreateFromTemplate(id, template string, templateIDMappings *idt
 	return d.Create(id, template, opts)
 }
 
+// ApplyDiff applies the new layer into a root
+func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
+	if d.ignoreChownErrors {
+		options.IgnoreChownErrors = d.ignoreChownErrors
+	}
+	return d.naiveDiff.ApplyDiff(id, parent, options)
+}
+
 // CreateReadWrite creates a layer that is writable for use as a container
 // file system.
 func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts) error {
@@ -118,7 +144,7 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	return d.create(id, parent, opts, true)
 }
 
-func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool) error {
+func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool) (retErr error) {
 	if opts != nil && len(opts.StorageOpt) != 0 {
 		return fmt.Errorf("--storage-opt is not supported for vfs")
 	}
@@ -133,6 +159,13 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0700, rootIDs); err != nil {
 		return err
 	}
+
+	defer func() {
+		if retErr != nil {
+			os.RemoveAll(dir)
+		}
+	}()
+
 	if parent != "" {
 		st, err := system.Stat(d.dir(parent))
 		if err != nil {
@@ -223,4 +256,34 @@ func (d *Driver) AdditionalImageStores() []string {
 		return d.homes[1:]
 	}
 	return nil
+}
+
+// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
+func (d *Driver) SupportsShifting() bool {
+	return d.updater.SupportsShifting()
+}
+
+// UpdateLayerIDMap updates ID mappings in a from matching the ones specified
+// by toContainer to those specified by toHost.
+func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMappings, mountLabel string) error {
+	return d.updater.UpdateLayerIDMap(id, toContainer, toHost, mountLabel)
+}
+
+// Changes produces a list of changes between the specified layer
+// and its parent layer. If parent is "", then all changes will be ADD changes.
+func (d *Driver) Changes(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) ([]archive.Change, error) {
+	return d.naiveDiff.Changes(id, idMappings, parent, parentMappings, mountLabel)
+}
+
+// Diff produces an archive of the changes between the specified
+// layer and its parent layer which may be "".
+func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (io.ReadCloser, error) {
+	return d.naiveDiff.Diff(id, idMappings, parent, parentMappings, mountLabel)
+}
+
+// DiffSize calculates the changes between the specified id
+// and its parent and returns the size in bytes of the changes
+// relative to its base filesystem directory.
+func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
+	return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
 }

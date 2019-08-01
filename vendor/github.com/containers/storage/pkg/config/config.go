@@ -73,6 +73,9 @@ type OptionsConfig struct {
 	RemapUIDs string `toml:"remap-uids"`
 	// RemapGIDs is a list of default GID mappings to use for layers.
 	RemapGIDs string `toml:"remap-gids"`
+	// IgnoreChownErrors is a flag for whether chown errors should be
+	// ignored when building an image.
+	IgnoreChownErrors string `toml:"ignore_chown_errors"`
 
 	// RemapUser is the name of one or more entries in /etc/subuid which
 	// should be used to set up default UID mappings.

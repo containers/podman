@@ -3,8 +3,6 @@ github.com/Azure/go-ansiterm/winterm
 github.com/Azure/go-ansiterm
 # github.com/BurntSushi/toml v0.3.1
 github.com/BurntSushi/toml
-# github.com/DataDog/zstd v1.4.0
-github.com/DataDog/zstd
 # github.com/Microsoft/go-winio v0.4.12
 github.com/Microsoft/go-winio
 github.com/Microsoft/go-winio/archive/tar
@@ -105,7 +103,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.13
+# github.com/containers/storage v1.12.16
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
@@ -124,8 +122,10 @@ github.com/containers/storage/drivers
 github.com/containers/storage/drivers/register
 github.com/containers/storage/pkg/config
 github.com/containers/storage/pkg/directory
+github.com/containers/storage/pkg/lockfile
 github.com/containers/storage/pkg/parsers
 github.com/containers/storage/pkg/stringutils
+github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/longpath
 github.com/containers/storage/pkg/promise
 github.com/containers/storage/drivers/aufs
@@ -273,8 +273,13 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.7.1
+# github.com/klauspost/compress v1.7.2
+github.com/klauspost/compress/zstd
 github.com/klauspost/compress/flate
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd/internal/xxhash
+github.com/klauspost/compress/fse
 # github.com/klauspost/cpuid v1.2.1
 github.com/klauspost/cpuid
 # github.com/klauspost/pgzip v1.2.1
@@ -373,7 +378,7 @@ github.com/openshift/imagebuilder/strslice
 github.com/opentracing/opentracing-go
 github.com/opentracing/opentracing-go/log
 github.com/opentracing/opentracing-go/ext
-# github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf
+# github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
 # github.com/pkg/errors v0.8.1
@@ -474,7 +479,7 @@ golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/cast5
 golang.org/x/crypto/openpgp/elgamal
-# golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+# golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 golang.org/x/net/context
 golang.org/x/net/http2
 golang.org/x/net/html/charset
@@ -491,7 +496,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
+# golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry

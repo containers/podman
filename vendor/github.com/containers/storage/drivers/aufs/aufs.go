@@ -550,13 +550,13 @@ func (a *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 // ApplyDiff extracts the changeset from the given diff into the
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
-func (a *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent, mountLabel string, diff io.Reader) (size int64, err error) {
+func (a *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.ApplyDiff(id, idMappings, parent, mountLabel, diff)
+		return a.naiveDiff.ApplyDiff(id, parent, options)
 	}
 
 	// AUFS doesn't need the parent id to apply the diff if it is the direct parent.
-	if err = a.applyDiff(id, idMappings, diff); err != nil {
+	if err = a.applyDiff(id, options.Mappings, options.Diff); err != nil {
 		return
 	}
 

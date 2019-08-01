@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.40.0 // indirect
 	github.com/Azure/go-autorest v12.1.0+incompatible // indirect
 	github.com/BurntSushi/toml v0.3.1
-	github.com/Microsoft/hcsshim v0.8.6 // indirect
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
@@ -18,7 +17,7 @@ require (
 	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v2.0.1+incompatible
 	github.com/containers/psgo v1.3.1
-	github.com/containers/storage v1.12.13
+	github.com/containers/storage v1.12.16
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-iptables v0.4.1
@@ -57,13 +56,10 @@ require (
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.6
 	github.com/kisielk/errcheck v1.2.0 // indirect
-	github.com/klauspost/compress v1.7.1 // indirect
-	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
 	github.com/mailru/easyjson v0.0.0-20190620125010-da37f6c1e481 // indirect
 	github.com/mattn/go-isatty v0.0.8 // indirect
-	github.com/mattn/go-shellwords v1.0.5 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/munnerz/goautoneg v0.0.0-20190414153302-2ae31c8b6b30 // indirect
 	github.com/onsi/ginkgo v1.8.0
@@ -75,12 +71,10 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.2.2
 	github.com/opentracing/opentracing-go v1.1.0
-	github.com/ostreedev/ostree-go v0.0.0-20181213164143-d0388bd827cf // indirect
 	github.com/pelletier/go-toml v1.4.0 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.3.0
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7 // indirect
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/rogpeppe/fastuuid v1.1.0 // indirect
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
@@ -92,13 +86,11 @@ require (
 	github.com/spf13/viper v1.4.0 // indirect
 	github.com/stretchr/testify v1.3.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
-	github.com/tchap/go-patricia v2.3.0+incompatible // indirect
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 // indirect
 	github.com/ugorji/go v1.1.5-pre // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
-	github.com/vbatts/tar-split v0.11.1 // indirect
 	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
@@ -108,9 +100,8 @@ require (
 	golang.org/x/exp v0.0.0-20190510132918-efd6b22b2522 // indirect
 	golang.org/x/image v0.0.0-20190622003408-7e034cad6442 // indirect
 	golang.org/x/mobile v0.0.0-20190607214518-6fa95d984e88 // indirect
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190624142023-c5567b49c5d0
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	golang.org/x/tools v0.0.0-20190624190245-7f2218787638 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect

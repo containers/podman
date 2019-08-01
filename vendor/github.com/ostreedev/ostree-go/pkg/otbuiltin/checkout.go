@@ -93,6 +93,9 @@ func processOneCheckout(crepo *C.OstreeRepo, resolvedCommit *C.char, destination
 	if opts.Union {
 		repoCheckoutAtOptions.overwrite_mode = C.OSTREE_REPO_CHECKOUT_OVERWRITE_UNION_FILES
 	}
+	if opts.RequireHardlinks {
+		repoCheckoutAtOptions.no_copy_fallback = C.TRUE
+	}
 
 	// Checkout commit to destination
 	if !glib.GoBool(glib.GBoolean(C.ostree_repo_checkout_at(crepo, &repoCheckoutAtOptions, C._at_fdcwd(), cdest, resolvedCommit, nil, &cerr))) {
