@@ -74,7 +74,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents bool) []stri
 
 	eventsType := "file"
 	if noEvents {
-		eventsType = "null"
+		eventsType = "none"
 	}
 
 	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
