@@ -901,7 +901,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		for _, l := range append([]ROLayerStore{rlstore}, rlstores...) {
 			lstore := l
 			if lstore != rlstore {
-				lstore.Lock()
+				lstore.RLock()
 				defer lstore.Unlock()
 				if modified, err := lstore.Modified(); modified || err != nil {
 					if err = lstore.Load(); err != nil {
@@ -980,7 +980,11 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 		var ilayer *Layer
 		for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 			store := s
-			store.Lock()
+			if store == lstore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1044,7 +1048,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 	for _, s := range allStores {
 		store := s
 		if store != rlstore {
-			store.Lock()
+			store.RLock()
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1180,7 +1184,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		var cimage *Image
 		for _, s := range append([]ROImageStore{istore}, istores...) {
 			store := s
-			store.Lock()
+			if store == istore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -3348,6 +3356,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	}
 	if config.Storage.Options.MountProgram != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mount_program=%s", config.Storage.Driver, config.Storage.Options.MountProgram))
+	}
+	if config.Storage.Options.IgnoreChownErrors != "" {
+		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ignore_chown_errors=%s", config.Storage.Driver, config.Storage.Options.IgnoreChownErrors))
 	}
 	if config.Storage.Options.MountOpt != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.MountOpt))

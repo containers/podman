@@ -71,6 +71,19 @@ testing_task:
         failure_ubuntu_audit_log_script: '${_UAUDITCMD} || true'
         failure_journal_log_script: '${_JOURNALCMD} || true'
 
+lint_task:
+    env:
+        CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
+    container:
+        image: golang:1.12
+    modules_cache:
+        fingerprint_script: cat go.sum
+        folder: $GOPATH/pkg/mod
+    build_script: |
+      echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
+      apt-get update
+      apt-get install -y libbtrfs-dev libostree-dev libdevmapper-dev
+    test_script: make lint
 
 # Update metadata on VM images referenced by this repository state
 meta_task:
@@ -94,3 +107,12 @@ meta_task:
         CIRRUS_CLONE_DEPTH: 1  # source not used
 
     script: '/usr/local/bin/entrypoint.sh |& ${_TIMESTAMP}'
+
+vendor_task:
+    container:
+        image: golang:1.12
+    modules_cache:
+        fingerprint_script: cat go.sum
+        folder: $GOPATH/pkg/mod
+    build_script: make vendor
+    test_script: hack/tree_status.sh

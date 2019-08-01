@@ -338,7 +338,7 @@ func newROImageStore(dir string) (ROImageStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	lockfile.Lock()
+	lockfile.RLock()
 	defer lockfile.Unlock()
 	istore := imageStore{
 		lockfile: lockfile,
