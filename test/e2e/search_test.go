@@ -118,10 +118,20 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search limit flag", func() {
-		search := podmanTest.Podman([]string{"search", "--limit", "3", "docker.io/alpine"})
+		search := podmanTest.Podman([]string{"search", "docker.io/alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(Equal(26))
+
+		search = podmanTest.Podman([]string{"search", "--limit", "3", "docker.io/alpine"})
 		search.WaitWithDefaultTimeout()
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(Equal(4))
+
+		search = podmanTest.Podman([]string{"search", "--limit", "30", "docker.io/alpine"})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Equal(0))
+		Expect(len(search.OutputToStringArray())).To(Equal(31))
 	})
 
 	It("podman search with filter stars", func() {
