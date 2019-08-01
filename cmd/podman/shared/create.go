@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/pkg/errorhandling"
-
 	"github.com/containers/image/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
@@ -588,12 +586,14 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		annotations[splitAnnotation[0]] = splitAnnotation[1]
 	}
 
-	if c.IsSet("generate-seccomp") {
-		profilePath, err := filepath.Abs(c.String("generate-seccomp"))
-		if err != nil {
-			logrus.Error(err)
+	if annotations["io.podman.trace-syscall"] != "" {
+		if !filepath.IsAbs(annotations["io.podman.trace-syscall"]) {
+			return nil, errors.Errorf("Invalid Path, Please enter an absolute path")
 		}
-		annotations["io.podman.trace-syscall"] = profilePath
+
+		if c.IsSet("rm") {
+			return nil, errors.Errorf("cannot use --rm while generating a SECCOMP profile")
+		}
 	}
 
 	// WORKING DIRECTORY
