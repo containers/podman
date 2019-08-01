@@ -99,7 +99,7 @@ libpod to manage containers.
   a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 **events_logger**=""
-  Default method to use when logging events. Valid values are "file", "journald", and "null".
+  Default method to use when logging events. Valid values are "file", "journald", and "none".
 
 **detach_keys**=""
   Keys sequence used for detaching a container

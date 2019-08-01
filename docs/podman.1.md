@@ -36,9 +36,9 @@ Note: CGroup manager is not supported in rootless mode when using CGroups Versio
 
 Path to where the cpu performance results should be written
 
-**--events-logger**=**type**
+**--events-logger**=*type*
 
-Backend to use for storing events. Allowed values are **file**, **journald**, and **null**.
+Backend to use for storing events. Allowed values are **file**, **journald**, and **none**.
 
 **--hooks-dir**=*path*
 

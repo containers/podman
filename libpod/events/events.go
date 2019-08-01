@@ -22,7 +22,7 @@ func (et EventerType) String() string {
 	case Journald:
 		return "journald"
 	case Null:
-		return "null"
+		return "none"
 	default:
 		return "invalid"
 	}
