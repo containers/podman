@@ -46,6 +46,7 @@ func init() {
 	flags.StringVarP(&restoreCommand.Import, "import", "i", "", "Restore from exported checkpoint archive (tar.gz)")
 	flags.StringVarP(&restoreCommand.Name, "name", "n", "", "Specify new name for container restored from exported checkpoint (only works with --import)")
 	flags.BoolVar(&restoreCommand.IgnoreRootfs, "ignore-rootfs", false, "Do not apply root file-system changes when importing from exported checkpoint")
+	flags.BoolVar(&restoreCommand.IgnoreStaticIP, "ignore-static-ip", false, "Ignore IP address set via --static-ip")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
