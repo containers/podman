@@ -1,15 +1,18 @@
 package storage
 
 import (
+	"archive/tar"
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 
 	drivers "github.com/containers/storage/drivers"
@@ -18,6 +21,7 @@ import (
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/system"
+	"github.com/containers/storage/pkg/tarlog"
 	"github.com/containers/storage/pkg/truncindex"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
@@ -95,6 +99,12 @@ type Layer struct {
 	// CompressionType is the type of compression which we detected on the blob
 	// that was last passed to ApplyDiff() or Put().
 	CompressionType archive.Compression `json:"compression,omitempty"`
+
+	// UIDs and GIDs are lists of UIDs and GIDs used in the layer.  This
+	// field is only populated (i.e., will only contain one or more
+	// entries) if the layer was created using ApplyDiff() or Put().
+	UIDs []uint32 `json:"uidset,omitempty"`
+	GIDs []uint32 `json:"gidset,omitempty"`
 
 	// Flags is arbitrary data about the layer.
 	Flags map[string]interface{} `json:"flags,omitempty"`
@@ -298,7 +308,7 @@ func (r *layerStore) Load() error {
 	names := make(map[string]*Layer)
 	compressedsums := make(map[digest.Digest][]string)
 	uncompressedsums := make(map[digest.Digest][]string)
-	if r.lockfile.IsReadWrite() {
+	if r.IsReadWrite() {
 		label.ClearLabels()
 	}
 	if err = json.Unmarshal(data, &layers); len(data) == 0 || err == nil {
@@ -377,6 +387,19 @@ func (r *layerStore) loadMounts() error {
 	}
 	layerMounts := []layerMountPoint{}
 	if err = json.Unmarshal(data, &layerMounts); len(data) == 0 || err == nil {
+		// Clear all of our mount information.  If another process
+		// unmounted something, it (along with its zero count) won't
+		// have been encoded into the version of mountpoints.json that
+		// we're loading, so our count could fall out of sync with it
+		// if we don't, and if we subsequently change something else,
+		// we'd pass that error along to other process that reloaded
+		// the data after we saved it.
+		for _, layer := range r.layers {
+			layer.MountPoint = ""
+			layer.MountCount = 0
+		}
+		// All of the non-zero count values will have been encoded, so
+		// we reset the still-mounted ones based on the contents.
 		for _, mount := range layerMounts {
 			if mount.MountPoint != "" {
 				if layer, ok := r.lookup(mount.ID); ok {
@@ -488,7 +511,7 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (ROL
 	if err != nil {
 		return nil, err
 	}
-	lockfile.Lock()
+	lockfile.RLock()
 	defer lockfile.Unlock()
 	rlstore := layerStore{
 		lockfile:       lockfile,
@@ -1236,15 +1259,32 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	}
 	uncompressedDigest := digest.Canonical.Digester()
 	uncompressedCounter := ioutils.NewWriteCounter(uncompressedDigest.Hash())
-	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, uncompressedCounter), metadata, storage.NewDiscardFilePutter())
+	uidLog := make(map[uint32]struct{})
+	gidLog := make(map[uint32]struct{})
+	idLogger, err := tarlog.NewLogger(func(h *tar.Header) {
+		if !strings.HasPrefix(path.Base(h.Name), archive.WhiteoutPrefix) {
+			uidLog[uint32(h.Uid)] = struct{}{}
+			gidLog[uint32(h.Gid)] = struct{}{}
+		}
+	})
 	if err != nil {
 		return -1, err
 	}
-	size, err = r.driver.ApplyDiff(layer.ID, r.layerMappings(layer), layer.Parent, layer.MountLabel, payload)
+	payload, err := asm.NewInputTarStream(io.TeeReader(uncompressed, io.MultiWriter(uncompressedCounter, idLogger)), metadata, storage.NewDiscardFilePutter())
+	if err != nil {
+		return -1, err
+	}
+	options := drivers.ApplyDiffOpts{
+		Diff:       payload,
+		Mappings:   r.layerMappings(layer),
+		MountLabel: layer.MountLabel,
+	}
+	size, err = r.driver.ApplyDiff(layer.ID, layer.Parent, options)
 	if err != nil {
 		return -1, err
 	}
 	compressor.Close()
+	idLogger.Close()
 	if err == nil {
 		if err := os.MkdirAll(filepath.Dir(r.tspath(layer.ID)), 0700); err != nil {
 			return -1, err
@@ -1279,6 +1319,20 @@ func (r *layerStore) ApplyDiff(to string, diff io.Reader) (size int64, err error
 	layer.UncompressedDigest = uncompressedDigest.Digest()
 	layer.UncompressedSize = uncompressedCounter.Count
 	layer.CompressionType = compression
+	layer.UIDs = make([]uint32, 0, len(uidLog))
+	for uid := range uidLog {
+		layer.UIDs = append(layer.UIDs, uid)
+	}
+	sort.Slice(layer.UIDs, func(i, j int) bool {
+		return layer.UIDs[i] < layer.UIDs[j]
+	})
+	layer.GIDs = make([]uint32, 0, len(gidLog))
+	for gid := range gidLog {
+		layer.GIDs = append(layer.GIDs, gid)
+	}
+	sort.Slice(layer.GIDs, func(i, j int) bool {
+		return layer.GIDs[i] < layer.GIDs[j]
+	})
 
 	err = r.Save()
 
