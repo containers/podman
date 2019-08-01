@@ -422,7 +422,7 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 	// an added cap
 	for _, capability := range containerCaps {
 		if !util.StringInSlice(capability, defaultCaps) {
-			if _, ok := dedupAdd[string(capability)]; !ok {
+			if _, ok := dedupAdd[capability]; !ok {
 				add = append(add, v1.Capability(capability))
 				dedupAdd[capability] = true
 			}
