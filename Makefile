@@ -81,13 +81,12 @@ LIBSECCOMP_COMMIT := release-2.3
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
 
-RELEASE_VERSION ?= $(shell git fetch --tags && git describe HEAD 2> /dev/null)
-RELEASE_NUMBER ?= $(shell echo $(RELEASE_VERSION) | sed 's/-.*//')
-RELEASE_DIST ?= $(shell ( source /etc/os-release; echo $$ID ))
-RELEASE_DIST_VER ?= $(shell ( source /etc/os-release; echo $$VERSION_ID | cut -d '.' -f 1))
-RELEASE_ARCH ?= $(shell go env GOARCH 2> /dev/null)
-RELEASE_BASENAME := $(shell basename $(PROJECT))
-
+RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
+RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER)
+RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
+RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
+RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
+RELEASE_BASENAME := $(shell hack/get_release_info.sh BASENAME)
 
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
@@ -164,11 +163,9 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
-podman-remote-darwin: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote OSX environment
-	CGO_ENABLED=0 GOOS=darwin $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@ $(PROJECT)/cmd/podman
-
-podman-remote-windows: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman for a remote windows environment
-	CGO_ENABLED=0 GOOS=windows $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@.exe $(PROJECT)/cmd/podman
+podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
+	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
+	CGO_ENABLED=0 GOOS=$* $(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "remoteclient containers_image_openpgp exclude_graphdriver_devicemapper" -o bin/$@$(BINSFX) $(PROJECT)/cmd/podman
 
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross local compilation
 
@@ -182,8 +179,9 @@ clean: ## Clean artifacts
 	rm -rf \
 		.gopathok \
 		_output \
-		podman*.zip \
-		podman*.tar.gz \
+		release.txt
+		$(wildcard podman-remote*.zip) \
+		$(wildcard podman*.tar.gz) \
 		bin \
 		build \
 		docs/remote \
@@ -300,23 +298,6 @@ vagrant-check:
 
 binaries: varlink_generate podman podman-remote  ## Build podman
 
-# Zip archives are supported on all platforms + allows embedding metadata
-podman.zip: binaries docs
-	$(eval TMPDIR := $(shell mktemp -d -p '' $@_XXXX))
-	test -n "$(TMPDIR)"
-	$(MAKE) install "DESTDIR=$(TMPDIR)" "PREFIX=$(TMPDIR)/usr"
-	# Encoded RELEASE_INFO format depended upon by CI tooling
-	# X-RELEASE-INFO format depended upon by CI tooling
-	cd "$(TMPDIR)" && echo \
-		"X-RELEASE-INFO: $(RELEASE_BASENAME) $(RELEASE_VERSION) $(RELEASE_DIST) $(RELEASE_DIST_VER) $(RELEASE_ARCH)" | \
-		zip --recurse-paths --archive-comment "$(CURDIR)/$@" "./"
-	-rm -rf "$(TMPDIR)"
-
-podman-remote-%.zip: podman-remote-%
-	# Don't label darwin/windows cros-compiles with local distribution & version
-	echo "X-RELEASE-INFO: podman-remote $(RELEASE_VERSION) $* cc $(RELEASE_ARCH)" | \
-        zip --archive-comment "$(CURDIR)/$@" ./bin/$<*
-
 install.catatonit:
 	./hack/install_catatonit.sh
 
@@ -333,19 +314,58 @@ docs: $(MANPAGES) ## Generate documentation
 install-podman-remote-docs: docs
 	@(cd docs; ./podman-remote.sh ./remote)
 
+# When publishing releases include critical build-time details
+.PHONY: release.txt
+release.txt:
+	# X-RELEASE-INFO format depended upon by automated tooling
+	echo -n "X-RELEASE-INFO:" > "$@"
+	for field in "$(RELEASE_BASENAME)" "$(RELEASE_VERSION)" \
+		         "$(RELEASE_DIST)" "$(RELEASE_DIST_VER)" "$(RELEASE_ARCH)"; do \
+		echo -n " $$field"; done >> "$@"
+	echo "" >> "$@"
 
-brew-pkg: install-podman-remote-docs podman-remote-darwin
-	@mkdir -p ./brew
-	@cp ./bin/podman-remote-darwin ./brew/podman
-	@cp -r ./docs/remote ./brew/docs/
-	@cp docs/podman-remote.1 ./brew/docs/podman.1
-	@cp docs/podman-remote.conf.5 ./brew/docs/podman-remote.conf.5
-	@sed -i 's/podman\\*-remote/podman/g' ./brew/docs/podman.1
-	@sed -i 's/Podman\\*-remote/Podman\ for\ Mac/g' ./brew/docs/podman.1
-	@sed -i 's/podman\.conf/podman\-remote\.conf/g' ./brew/docs/podman.1
-	@sed -i 's/A\ remote\ CLI\ for\ Podman\:\ //g' ./brew/docs/podman.1
-	tar -czvf podman-${RELEASE_NUMBER}.tar.gz ./brew
-	@rm -rf ./brew
+podman-$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
+	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
+	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
+	mkdir -p "$(TMPDIR)/$(SUBDIR)"
+	$(MAKE) install.bin install.man install.cni install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
+	# release.txt location and content depended upon by automated tooling
+	cp release.txt "$(TMPDIR)/"
+	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./release.txt" "./$(SUBDIR)"
+	-rm -rf "$(TMPDIR)"
+
+# Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
+podman-remote-$(RELEASE_NUMBER)-%.zip:
+	$(MAKE) podman-remote-$* install-podman-remote-docs release.txt \
+		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
+		RELEASE_DIST=$* RELEASE_DIST_VER="-"
+	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
+	$(eval SUBDIR := podman-$(RELEASE_VERSION))
+	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
+	mkdir -p "$(TMPDIR)/$(SUBDIR)"
+	# release.txt location and content depended upon by automated tooling
+	cp release.txt "$(TMPDIR)/"
+	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
+	cp -r ./docs/remote "$(TMPDIR)/$(SUBDIR)/docs/"
+	$(eval DOCFILE := $(TMPDIR)/$(SUBDIR)/docs/podman.1)
+	cp docs/podman-remote.1 "$(DOCFILE)"
+	sed -i 's/podman\\*-remote/podman/g' "$(DOCFILE)"
+	sed -i 's/Podman\\*-remote/Podman\ for\ $*/g' "$(DOCFILE)"
+	sed -i 's/podman\.conf/podman\-remote\.conf/g' "$(DOCFILE)"
+	sed -i 's/A\ remote\ CLI\ for\ Podman\:\ //g' "$(DOCFILE)"
+	cd "$(TMPDIR)" && \
+		zip --recurse-paths "$(CURDIR)/$@" "./release.txt" "./"
+	-rm -rf "$(TMPDIR)"
+
+.PHONY: podman-release
+podman-release:
+	rm -f release.txt
+	$(MAKE) podman-$(RELEASE_NUMBER).tar.gz
+
+.PHONY: podman-remote-%-release
+podman-remote-%-release:
+	rm -f release.txt
+	$(MAKE) podman-remote-$(RELEASE_NUMBER)-$*.zip
 
 docker-docs: docs
 	(cd docs; ./dckrman.sh *.1)

@@ -8,14 +8,9 @@ popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`
 * [Latest Version: 1.4.4](https://github.com/containers/libpod/releases/latest)
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/libpod/libpod?status.svg)](https://godoc.org/github.com/containers/libpod/libpod)
-* Latest, automatic binary release downloads:
-  * Master Branch:
-    * [Fedora 30](https://storage.cloud.google.com/libpod-master-releases/libpod-master-fedora-30-amd64.zip)
-    * [Fedora 29](https://storage.cloud.google.com/libpod-master-releases/libpod-master-fedora-29-amd64.zip)
-    * [Ubuntu 18](https://storage.cloud.google.com/libpod-master-releases/libpod-master-ubuntu-18-amd64.zip)
-    * [Ubuntu 19](https://storage.cloud.google.com/libpod-master-releases/libpod-master-ubuntu-19-amd64.zip)
-    * [Windows Client](https://storage.cloud.google.com/libpod-master-releases/podman-remote-master-windows-cc-amd64.zip)
-    * [MacOS Client](https://storage.cloud.google.com/libpod-master-releases/podman-remote-master-darwin-cc-amd64.zip)
+* Automated continuous release downloads (including remote-client):
+  * Master Branch: [https://storage.cloud.google.com/libpod-master-releases/](https://storage.cloud.google.com/libpod-master-releases/)
+  * Pull-requests: [https://storage.cloud.google.com/libpod-pr-releases/](https://storage.cloud.google.com/libpod-pr-releases/)
 
 ## Overview and scope
 

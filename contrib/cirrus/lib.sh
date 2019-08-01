@@ -64,6 +64,8 @@ export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
+# Image for uploading releases
+UPLDREL_IMAGE="quay.io/libpod/upldrel:latest"
 
 # Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND="noninteractive"
@@ -76,7 +78,7 @@ BIGTO="timeout_attempt_delay_command 300s 5 30s"
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
 # Unsafe env. vars for display
-SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(^GC[EP]..+)|(SSH)'
+SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
 
 # Names of systemd units which should never be running
 EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean"
