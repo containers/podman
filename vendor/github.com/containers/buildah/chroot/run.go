@@ -507,7 +507,9 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 		return 1, err
 	}
 	defer func() {
-		undoIntermediates()
+		if undoErr := undoIntermediates(); undoErr != nil {
+			logrus.Debugf("error cleaning up intermediate mount NS: %v", err)
+		}
 	}()
 
 	// Bind mount in our filesystems.
@@ -516,7 +518,9 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 		return 1, err
 	}
 	defer func() {
-		undoChroots()
+		if undoErr := undoChroots(); undoErr != nil {
+			logrus.Debugf("error cleaning up intermediate chroot bind mounts: %v", err)
+		}
 	}()
 
 	// Create a pipe for passing configuration down to the next process.
@@ -565,7 +569,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	cmd.UnshareFlags = syscall.CLONE_NEWUTS | syscall.CLONE_NEWNS
 	requestedUserNS := false
 	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type == specs.LinuxNamespaceType(specs.UserNamespace) {
+		if ns.Type == specs.UserNamespace {
 			requestedUserNS = true
 		}
 	}
@@ -979,6 +983,21 @@ func makeReadOnly(mntpoint string, flags uintptr) error {
 	return nil
 }
 
+func isDevNull(dev os.FileInfo) bool {
+	if dev.Mode()&os.ModeCharDevice != 0 {
+		stat, _ := dev.Sys().(*syscall.Stat_t)
+		nullStat := syscall.Stat_t{}
+		if err := syscall.Stat(os.DevNull, &nullStat); err != nil {
+			logrus.Warnf("unable to stat /dev/null: %v", err)
+			return false
+		}
+		if stat.Rdev == nullStat.Rdev {
+			return true
+		}
+	}
+	return false
+}
+
 // setupChrootBindMounts actually bind mounts things under the rootfs, and returns a
 // callback that will clean up its work.
 func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func() error, err error) {
@@ -1259,11 +1278,6 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err != nil {
 			target = t
 		}
-		// Get some info about the null device.
-		nullinfo, err := os.Stat(os.DevNull)
-		if err != nil {
-			return undoBinds, errors.Wrapf(err, "error examining %q for masking in mount namespace", os.DevNull)
-		}
 		// Get some info about the target.
 		targetinfo, err := os.Stat(target)
 		if err != nil {
@@ -1281,12 +1295,11 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 			isReadOnly := statfs.Flags&unix.MS_RDONLY != 0
 			// Check if any of the IDs we're mapping could read it.
-			isAccessible := true
 			var stat unix.Stat_t
 			if err = unix.Stat(target, &stat); err != nil {
 				return undoBinds, errors.Wrapf(err, "error checking permissions on directory %q", target)
 			}
-			isAccessible = false
+			isAccessible := false
 			if stat.Mode&unix.S_IROTH|unix.S_IXOTH != 0 {
 				isAccessible = true
 			}
@@ -1352,8 +1365,8 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				}
 			}
 		} else {
-			// The target's not a directory, so bind mount os.DevNull over it, unless it's already os.DevNull.
-			if !os.SameFile(nullinfo, targetinfo) {
+			// If the target's is not a directory or os.DevNull, bind mount os.DevNull over it.
+			if isDevNull(targetinfo) {
 				if err = unix.Mount(os.DevNull, target, "", uintptr(syscall.MS_BIND|syscall.MS_RDONLY|syscall.MS_PRIVATE), ""); err != nil {
 					return undoBinds, errors.Wrapf(err, "error masking non-directory %q in mount namespace", target)
 				}

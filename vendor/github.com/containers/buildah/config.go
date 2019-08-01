@@ -565,7 +565,7 @@ func (b *Builder) SetHealthcheck(config *docker.HealthConfig) {
 }
 
 // AddPrependedEmptyLayer adds an item to the history that we'll create when
-// commiting the image, after any history we inherit from the base image, but
+// committing the image, after any history we inherit from the base image, but
 // before the history item that we'll use to describe the new layer that we're
 // adding.
 func (b *Builder) AddPrependedEmptyLayer(created *time.Time, createdBy, author, comment string) {
@@ -589,7 +589,7 @@ func (b *Builder) ClearPrependedEmptyLayers() {
 }
 
 // AddAppendedEmptyLayer adds an item to the history that we'll create when
-// commiting the image, after the history item that we'll use to describe the
+// committing the image, after the history item that we'll use to describe the
 // new layer that we're adding.
 func (b *Builder) AddAppendedEmptyLayer(created *time.Time, createdBy, author, comment string) {
 	if created != nil {

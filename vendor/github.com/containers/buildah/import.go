@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/buildah/docker"
 	"github.com/containers/buildah/util"
+	"github.com/containers/image/manifest"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
@@ -47,6 +48,13 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		}
 	}
 
+	imageDigest := ""
+	if manifestBytes, _, err := src.Manifest(ctx); err == nil {
+		if manifestDigest, err := manifest.Digest(manifestBytes); err == nil {
+			imageDigest = manifestDigest.String()
+		}
+	}
+
 	defaultNamespaceOptions, err := DefaultNamespaceOptions()
 	if err != nil {
 		return nil, err
@@ -57,6 +65,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		Type:             containerType,
 		FromImage:        imageName,
 		FromImageID:      imageID,
+		FromImageDigest:  imageDigest,
 		Container:        containerName,
 		ContainerID:      containerID,
 		ImageAnnotations: map[string]string{},

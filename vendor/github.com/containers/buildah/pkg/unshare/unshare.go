@@ -128,7 +128,9 @@ func (c *Cmd) Start() error {
 	// Read the child's PID from the pipe.
 	pidString := ""
 	b := new(bytes.Buffer)
-	io.Copy(b, pidRead)
+	if _, err := io.Copy(b, pidRead); err != nil {
+		return errors.Wrapf(err, "error reading child PID")
+	}
 	pidString = b.String()
 	pid, err := strconv.Atoi(pidString)
 	if err != nil {
@@ -457,32 +459,38 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 
 	// Finish up.
 	logrus.Debugf("running %+v with environment %+v, UID map %+v, and GID map %+v", cmd.Cmd.Args, os.Environ(), cmd.UidMappings, cmd.GidMappings)
-	ExecRunnable(cmd)
+	ExecRunnable(cmd, nil)
 }
 
 // ExecRunnable runs the specified unshare command, captures its exit status,
 // and exits with the same status.
-func ExecRunnable(cmd Runnable) {
+func ExecRunnable(cmd Runnable, cleanup func()) {
+	exit := func(status int) {
+		if cleanup != nil {
+			cleanup()
+		}
+		os.Exit(status)
+	}
 	if err := cmd.Run(); err != nil {
 		if exitError, ok := errors.Cause(err).(*exec.ExitError); ok {
 			if exitError.ProcessState.Exited() {
 				if waitStatus, ok := exitError.ProcessState.Sys().(syscall.WaitStatus); ok {
 					if waitStatus.Exited() {
 						logrus.Errorf("%v", exitError)
-						os.Exit(waitStatus.ExitStatus())
+						exit(waitStatus.ExitStatus())
 					}
 					if waitStatus.Signaled() {
 						logrus.Errorf("%v", exitError)
-						os.Exit(int(waitStatus.Signal()) + 128)
+						exit(int(waitStatus.Signal()) + 128)
 					}
 				}
 			}
 		}
 		logrus.Errorf("%v", err)
 		logrus.Errorf("(unable to determine exit status)")
-		os.Exit(1)
+		exit(1)
 	}
-	os.Exit(0)
+	exit(0)
 }
 
 // getHostIDMappings reads mappings from the named node under /proc.

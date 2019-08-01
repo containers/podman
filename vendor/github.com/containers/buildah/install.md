@@ -274,16 +274,7 @@ The build steps on Debian are otherwise the same as Ubuntu, above.
 
 ## Vendoring - Dependency Management
 
-This project is using [vndr](https://github.com/LK4D4/vndr) for managing dependencies, which is a tedious and error-prone task. Doing it manually is likely to cause inconsistencies between the `./vendor` directory (i.e., the downloaded dependencies), the source code that imports those dependencies and the `vendor.conf` configuration file that describes which packages in which version (e.g., a release or git commit) are a dependency.
-
-To ease updating dependencies, we provide the `make vendor` target, which fetches all dependencies mentioned in `vendor.conf`.  `make vendor` whitelists certain packages to prevent the `vndr` tool from removing packages that the test suite (see `./test`) imports.
-
-The CI of this project makes sure that each pull request leaves a clean vendor state behind by first running the aforementioned `make vendor` followed by running `./hack/tree_status.sh` which checks if any file in the git tree has changed.
-
-### Vendor Troubleshooting
-
-If the CI is complaining about a pull request leaving behind an unclean state, it is very likely right about it. Make sure to run `make vendor` and add all the changes to the commit. Also make sure that your local git tree does not include files not under version control that may reference other go packages. If some dependencies are removed but they should not, for instance, because the CI is needing them, then whitelist those dependencies in the `make vendor` target of the Makefile.  Whitelisting a package will instruct `vndr` to not remove if during its cleanup phase.
-sd
+This project is using [go modules](https://github.com/golang/go/wiki/Modules) for dependency management.  If the CI is complaining about a pull request leaving behind an unclean state, it is very likely right about it.  After changing dependencies, make sure to run `make vendor` to synchronize the code with the go module and repopulate the `./vendor` directory.
 
 ## Configuration files
 
@@ -383,3 +374,14 @@ cat /etc/containers/policy.json
 	}
 }
 ```
+
+## Vendoring
+
+Buildah uses Go Modules for vendoring purposes.  If you need to update or add a vendored package into Buildah, please follow this proceedure:
+ * Enter into your sandbox `src/github.com/containers/buildah` and ensure that he GOPATH variable is set to the directory prior as noted above.
+ * `export GO111MODULE=on`
+ * Assuming you want to 'bump' the `github.com/containers/storage` package to version 1.12.13, use this command: `go get github.com/containers/storage@v1.12.13`
+ * `make vendor`
+ * `make`
+ * `make install`
+ * Then add any updated or added files with `git add` then do a `git commit` and create a PR.

@@ -161,7 +161,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	}
 
 	hostNetwork := buildah.NamespaceOption{
-		Name: specs.NetworkNamespace,
+		Name: string(specs.NetworkNamespace),
 		Host: true,
 	}
 

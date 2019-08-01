@@ -99,7 +99,7 @@ func (p PortBinding) HostAddr() (net.Addr, error) {
 	case TCP:
 		return &net.TCPAddr{IP: p.HostIP, Port: int(p.HostPort)}, nil
 	case SCTP:
-		return &sctp.SCTPAddr{IP: []net.IP{p.HostIP}, Port: int(p.HostPort)}, nil
+		return &sctp.SCTPAddr{IPAddrs: []net.IPAddr{{IP: p.HostIP}}, Port: int(p.HostPort)}, nil
 	default:
 		return nil, ErrInvalidProtocolBinding(p.Proto.String())
 	}
@@ -113,7 +113,7 @@ func (p PortBinding) ContainerAddr() (net.Addr, error) {
 	case TCP:
 		return &net.TCPAddr{IP: p.IP, Port: int(p.Port)}, nil
 	case SCTP:
-		return &sctp.SCTPAddr{IP: []net.IP{p.IP}, Port: int(p.Port)}, nil
+		return &sctp.SCTPAddr{IPAddrs: []net.IPAddr{{IP: p.IP}}, Port: int(p.Port)}, nil
 	default:
 		return nil, ErrInvalidProtocolBinding(p.Proto.String())
 	}
@@ -145,7 +145,12 @@ func (p *PortBinding) String() string {
 	return ret
 }
 
-// FromString reads the PortBinding structure from string
+// FromString reads the PortBinding structure from string s.
+// String s is a triple of "protocol/containerIP:port/hostIP:port"
+// containerIP and hostIP can be in dotted decimal ("192.0.2.1") or IPv6 ("2001:db8::68") form.
+// Zoned addresses ("169.254.0.23%eth0" or "fe80::1ff:fe23:4567:890a%eth0") are not supported.
+// If string s is incorrectly formatted or the IP addresses or ports cannot be parsed, FromString
+// returns an error.
 func (p *PortBinding) FromString(s string) error {
 	ps := strings.Split(s, "/")
 	if len(ps) != 3 {
@@ -167,21 +172,19 @@ func (p *PortBinding) FromString(s string) error {
 }
 
 func parseIPPort(s string) (net.IP, uint16, error) {
-	pp := strings.Split(s, ":")
-	if len(pp) != 2 {
-		return nil, 0, BadRequestErrorf("invalid format: %s", s)
-	}
-
-	var ip net.IP
-	if pp[0] != "" {
-		if ip = net.ParseIP(pp[0]); ip == nil {
-			return nil, 0, BadRequestErrorf("invalid ip: %s", pp[0])
-		}
-	}
-
-	port, err := strconv.ParseUint(pp[1], 10, 16)
+	hoststr, portstr, err := net.SplitHostPort(s)
 	if err != nil {
-		return nil, 0, BadRequestErrorf("invalid port: %s", pp[1])
+		return nil, 0, err
+	}
+
+	ip := net.ParseIP(hoststr)
+	if ip == nil {
+		return nil, 0, BadRequestErrorf("invalid ip: %s", hoststr)
+	}
+
+	port, err := strconv.ParseUint(portstr, 10, 16)
+	if err != nil {
+		return nil, 0, BadRequestErrorf("invalid port: %s", portstr)
 	}
 
 	return ip, uint16(port), nil
@@ -329,6 +332,8 @@ func CompareIPNet(a, b *net.IPNet) bool {
 }
 
 // GetMinimalIP returns the address in its shortest form
+// If ip contains an IPv4-mapped IPv6 address, the 4-octet form of the IPv4 address will be returned.
+// Otherwise ip is returned unchanged.
 func GetMinimalIP(ip net.IP) net.IP {
 	if ip != nil && ip.To4() != nil {
 		return ip.To4()

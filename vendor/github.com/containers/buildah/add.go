@@ -278,7 +278,7 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 					return errors.Wrapf(err, "error creating directory %q", dest)
 				}
 				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
-				if excludes == nil {
+				if excludes == nil || !excludes.Exclusions() {
 					if err = copyWithTar(esrc, dest); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
 					}
@@ -310,7 +310,7 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 						return addHelperDirectory(esrc, path, filepath.Join(dest, fpath), info, hostOwner, times)
 					}
 					if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-						return addHelperSymlink(path, filepath.Join(dest, fpath), info, hostOwner, times)
+						return addHelperSymlink(path, filepath.Join(dest, fpath), hostOwner, times)
 					}
 					if !info.Mode().IsRegular() {
 						return errors.Errorf("error copying %q to %q: source is not a regular file; file mode is %s", path, dest, info.Mode())
@@ -368,7 +368,7 @@ func addHelperDirectory(esrc, path, dest string, info os.FileInfo, hostOwner idt
 	return nil
 }
 
-func addHelperSymlink(src, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
+func addHelperSymlink(src, dest string, hostOwner idtools.IDPair, times []syscall.Timespec) error {
 	linkContents, err := os.Readlink(src)
 	if err != nil {
 		return errors.Wrapf(err, "error reading contents of symbolic link at %q", src)

@@ -45,11 +45,20 @@ before_install:
     - sudo apt-get -qq install software-properties-common
     - sudo add-apt-repository -y ppa:duggan/bats
     - sudo apt-get update
-    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath
+    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev
     - sudo apt-get -qq update
     - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
     - mkdir /home/travis/auth
     - sudo mkdir -p /var/lib/containers/storage/overlay
+    - >
+      OSTREE_VERSION=v2019.2;
+      git clone https://github.com/ostreedev/ostree &&
+      pushd ostree &&
+      git checkout $OSTREE_VERSION &&
+      ./autogen.sh --prefix=/usr &&
+      sudo make -j4 install &&
+      popd &&
+      sudo rm -rf ostree
 install:
     #  Let's create a self signed certificate and get it in the right places
     - hostname
@@ -85,8 +94,9 @@ script:
     - docker ps --all
     - docker images
     - docker rmi localhost:5000/my-alpine
-    # Setting up  Docker Registry is complete, let's do Buildah testing! 
-    - make install.tools install.libseccomp.sudo all runc validate SECURITYTAGS="apparmor seccomp"
+    # Setting up  Docker Registry is complete, let's do Buildah testing!
+    - make install.tools -j4
+    - make install.libseccomp.sudo all runc validate lint SECURITYTAGS="apparmor seccomp"
     - go test -c -tags "apparmor seccomp `./btrfs_tag.sh` `./libdm_tag.sh` `./ostree_tag.sh` `./selinux_tag.sh`" ./cmd/buildah
     - tmp=`mktemp -d`; mkdir $tmp/root $tmp/runroot; sudo PATH="$PATH" ./buildah.test -test.v --root $tmp/root --runroot $tmp/runroot --storage-driver vfs --signature-policy `pwd`/tests/policy.json --registries-conf `pwd`/tests/registries.conf
     - cd tests; sudo PATH="$PATH" ./test_runner.sh
