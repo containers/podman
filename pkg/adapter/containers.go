@@ -565,6 +565,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 		TargetFile:     c.Import,
 		Name:           c.Name,
 		IgnoreRootfs:   c.IgnoreRootfs,
+		IgnoreStaticIP: c.IgnoreStaticIP,
 	}
 
 	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {

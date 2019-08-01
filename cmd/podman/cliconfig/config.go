@@ -436,6 +436,7 @@ type RestoreValues struct {
 	Import         string
 	Name           string
 	IgnoreRootfs   bool
+	IgnoreStaticIP bool
 }
 
 type RmValues struct {

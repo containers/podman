@@ -743,6 +743,14 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
+	// If a container is restored multiple times from an exported checkpoint with
+	// the help of '--import --name', the restore will fail if during 'podman run'
+	// a static container IP was set with '--ip'. The user can tell the restore
+	// process to ignore the static IP with '--ignore-static-ip'
+	if options.IgnoreStaticIP {
+		c.config.StaticIP = nil
+	}
+
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
 	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
@@ -752,7 +760,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// TODO: This implicit restoring with or without IP depending on an
 	//       unrelated restore parameter (--name) does not seem like the
 	//       best solution.
-	if err == nil && options.Name == "" {
+	if err == nil && options.Name == "" && !options.IgnoreStaticIP {
 		// The file with the network.status does exist. Let's restore the
 		// container with the same IP address as during checkpointing.
 		defer networkStatusFile.Close()

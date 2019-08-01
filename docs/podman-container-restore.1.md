@@ -67,6 +67,15 @@ from a checkpoint tar.gz file it is possible that it also contains all root file
 changes. With **--ignore-rootfs** it is possible to explicitly disable applying these
 root file-system changes to the restored container.
 
+**--ignore-static-ip**
+
+If the container was started with **--ip** the restored container also tries to use that
+IP address and restore fails if that IP address is already in use. This can happen, if
+a container is restored multiple times from an exported checkpoint with **--name, -n**.
+
+Using **--ignore-static-ip** tells Podman to ignore the IP address if it was configured
+with **--ip** during container creation.
+
 ## EXAMPLE
 
 podman container restore mywebserver
