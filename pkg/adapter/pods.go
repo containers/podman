@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -570,7 +571,7 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 			}
 		}
 
-		if err := createconfig.ValidateVolumeHostDir(hostPath.Path); err != nil {
+		if err := parse.ValidateVolumeHostDir(hostPath.Path); err != nil {
 			return nil, errors.Wrapf(err, "Error in parsing HostPath in YAML")
 		}
 		volumes[volume.Name] = hostPath.Path
@@ -728,7 +729,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		if !exists {
 			return nil, errors.Errorf("Volume mount %s specified for container but not configured in volumes", volume.Name)
 		}
-		if err := createconfig.ValidateVolumeCtrDir(volume.MountPath); err != nil {
+		if err := parse.ValidateVolumeCtrDir(volume.MountPath); err != nil {
 			return nil, errors.Wrapf(err, "error in parsing MountPath")
 		}
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", hostPath, volume.MountPath))
