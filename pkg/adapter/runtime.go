@@ -5,13 +5,10 @@ package adapter
 import (
 	"bufio"
 	"context"
-	"github.com/containers/libpod/libpod/define"
 	"io"
 	"io/ioutil"
 	"os"
 	"text/template"
-
-	"github.com/containers/libpod/cmd/podman/shared"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
@@ -20,7 +17,9 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
@@ -209,7 +208,7 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 }
 
 // InspectVolumes returns a slice of volumes based on an arg list or --all
-func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*libpod.InspectVolumeData, error) {
 	var (
 		volumes []*libpod.Volume
 		err     error
@@ -229,7 +228,17 @@ func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeIn
 	if err != nil {
 		return nil, err
 	}
-	return libpodVolumeToVolume(volumes), nil
+
+	inspectVols := make([]*libpod.InspectVolumeData, 0, len(volumes))
+	for _, vol := range volumes {
+		inspectOut, err := vol.Inspect()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error inspecting volume %s", vol.Name())
+		}
+		inspectVols = append(inspectVols, inspectOut)
+	}
+
+	return inspectVols, nil
 }
 
 // Volumes returns a slice of localruntime volumes
