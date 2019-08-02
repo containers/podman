@@ -30,7 +30,7 @@ var (
 			}
 			return nil
 		},
-		Example: `podman generate kube ctrID
+		Example: `podman generate systemd ctrID
 `,
 	}
 )
