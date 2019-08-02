@@ -133,7 +133,9 @@ function run_podman() {
 
     # stdout is only emitted upon error; this echo is to help a debugger
     echo "\$ $PODMAN $*"
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@"
+    # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
+    # if podman crashes unexpectedly without cleaning up subprocesses.
+    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
