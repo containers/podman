@@ -789,9 +789,10 @@ USER mail`
 		match, _ := session.GrepString("1.2.3.4")
 		Expect(match).Should(BeTrue())
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--http-proxy=false", ALPINE, "printenv", "http_proxy"})
+		session = podmanTest.Podman([]string{"run", "--http-proxy=false", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(1))
+		Expect(session.OutputToString()).To(Equal(""))
 		os.Unsetenv("http_proxy")
 	})
 

@@ -30,13 +30,20 @@ func SkipIfRootless() {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, false)
+	podmanSession := p.PodmanBase(args, false, false)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanNoCache calls podman with out adding the imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true)
+	podmanSession := p.PodmanBase(args, true, false)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+// PodmanNoEvents calls the Podman command without an imagecache and without an
+// events backend. It is used mostly for caching and uncaching images.
+func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, true, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -135,7 +142,7 @@ func (p *PodmanTestIntegration) StopVarlink() {
 }
 
 //MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents bool) []string {
 	return args
 }
 
@@ -156,7 +163,7 @@ func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
 	p.CrioRoot = p.ImageCacheDir
-	restore := p.PodmanNoCache([]string{"load", "-q", "-i", destName})
+	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
 	restore.WaitWithDefaultTimeout()
 	return nil
 }

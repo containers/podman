@@ -36,6 +36,10 @@ Note: CGroup manager is not supported in rootless mode when using CGroups Versio
 
 Path to where the cpu performance results should be written
 
+**--events-logger**=*type*
+
+Backend to use for storing events. Allowed values are **file**, **journald**, and **none**.
+
 **--hooks-dir**=*path*
 
 Each `*.json` file in the path configures a hook for Podman containers.  For more details on the syntax of the JSON files and the semantics of hook injection, see `oci-hooks(5)`.  Podman and libpod currently support both the 1.0.0 and 0.1.0 hook schemas, although the 0.1.0 schema is deprecated.

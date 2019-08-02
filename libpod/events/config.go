@@ -14,6 +14,8 @@ const (
 	LogFile EventerType = iota
 	// Journald indicates journald should be used to log events
 	Journald EventerType = iota
+	// Null is a no-op events logger. It does not read or write events.
+	Null EventerType = iota
 )
 
 // Event describes the attributes of a libpod event
