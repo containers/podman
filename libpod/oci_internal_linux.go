@@ -278,6 +278,10 @@ func (r *OCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())
 		fallthrough
+	case "":
+		// to get here, either a user would specify `--log-driver ""`, or this came from another place in libpod
+		// since the former case is obscure, and the latter case isn't an error, let's silently fallthrough
+		fallthrough
 	case KubernetesLogging:
 		logDriver = fmt.Sprintf("%s:%s", KubernetesLogging, logPath)
 	}
