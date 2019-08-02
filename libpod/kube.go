@@ -406,18 +406,26 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 		drop []v1.Capability
 		add  []v1.Capability
 	)
+	dedupDrop := make(map[string]bool)
+	dedupAdd := make(map[string]bool)
 	// Find caps in the defaultCaps but not in the container's
 	// those indicate a dropped cap
 	for _, capability := range defaultCaps {
 		if !util.StringInSlice(capability, containerCaps) {
-			drop = append(drop, v1.Capability(capability))
+			if _, ok := dedupDrop[capability]; !ok {
+				drop = append(drop, v1.Capability(capability))
+				dedupDrop[capability] = true
+			}
 		}
 	}
 	// Find caps in the container but not in the defaults; those indicate
 	// an added cap
 	for _, capability := range containerCaps {
 		if !util.StringInSlice(capability, defaultCaps) {
-			add = append(add, v1.Capability(capability))
+			if _, ok := dedupAdd[capability]; !ok {
+				add = append(add, v1.Capability(capability))
+				dedupAdd[capability] = true
+			}
 		}
 	}
 

@@ -25,7 +25,9 @@ spec:
 {{ with .Containers }}
   {{ range . }}
   - command:
-    - {{ .Cmd }}
+    {{ range .Cmd }}
+    - {{.}}
+    {{ end }}
     env:
     - name: PATH
       value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -39,7 +41,21 @@ spec:
     resources: {}
     securityContext:
       allowPrivilegeEscalation: true
-      capabilities: {}
+      {{ if .Caps }}
+      capabilities:
+        {{ with .CapAdd }}
+        add:
+          {{ range . }}
+          - {{.}}
+          {{ end }}
+        {{ end }}
+        {{ with .CapDrop }}
+        drop:
+          {{ range . }}
+          - {{.}}
+          {{ end }}
+        {{ end }}
+      {{ end }}
       privileged: false
       readOnlyRootFilesystem: false
     workingDir: /
@@ -54,9 +70,12 @@ type Pod struct {
 }
 
 type Container struct {
-	Cmd   string
-	Image string
-	Name  string
+	Cmd     []string
+	Image   string
+	Name    string
+	Caps    bool
+	CapAdd  []string
+	CapDrop []string
 }
 
 func generateKubeYaml(ctrs []Container, fileName string) error {
@@ -104,8 +123,8 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube test correct command", func() {
 		ctrName := "testCtr"
-		ctrCmd := "top"
-		testContainer := Container{ctrCmd, ALPINE, ctrName}
+		ctrCmd := []string{"top"}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml([]Container{testContainer}, tempFile)
@@ -118,6 +137,46 @@ var _ = Describe("Podman generate kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ctrName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
-		Expect(inspect.OutputToString()).To(ContainSubstring(ctrCmd))
+		Expect(inspect.OutputToString()).To(ContainSubstring(ctrCmd[0]))
+	})
+
+	It("podman play kube cap add", func() {
+		ctrName := "testCtr"
+		ctrCmd := []string{"cat", "/proc/self/status"}
+		capAdd := "CAP_SYS_ADMIN"
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, []string{capAdd}, nil}
+		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+
+		err := generateKubeYaml([]Container{testContainer}, tempFile)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", tempFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(capAdd))
+	})
+
+	It("podman play kube cap add", func() {
+		ctrName := "testCtr"
+		ctrCmd := []string{"cat", "/proc/self/status"}
+		capDrop := "CAP_SYS_ADMIN"
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, []string{capDrop}, nil}
+		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+
+		err := generateKubeYaml([]Container{testContainer}, tempFile)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", tempFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring(capDrop))
 	})
 })

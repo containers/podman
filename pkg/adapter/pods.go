@@ -683,6 +683,15 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
 			containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
 		}
+
+	}
+	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
+		for _, capability := range caps.Add {
+			containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
+		}
+		for _, capability := range caps.Drop {
+			containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
+		}
 	}
 
 	containerConfig.Command = []string{}
