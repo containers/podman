@@ -37,7 +37,7 @@ var _ = Describe("Podman generate profile", func() {
 		f := CurrentGinkgoTestDescription()
 		processTestResult(f)
 	})
-	FIt("podman generate-seccomp generates profile that works ", func() {
+	It("podman generate-seccomp generates profile that works ", func() {
 		tmpfile, _ := ioutil.TempFile("", "generate-seccomp.*.json")
 		fileName := tmpfile.Name()
 
@@ -54,7 +54,7 @@ var _ = Describe("Podman generate profile", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
-	FIt("podman generate-seccomp should fail to run syscalls not present in the profile", func() {
+	It("podman generate-seccomp should fail to run syscalls not present in the profile", func() {
 		tmpfile, _ := ioutil.TempFile("", "generate-seccomp.*.json")
 		fileName := tmpfile.Name()
 
@@ -71,7 +71,7 @@ var _ = Describe("Podman generate profile", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).ToNot(Equal(0))
 	})
-	FIt("podman generate-seccomp should generate the same seccomp profile for identical containers", func() {
+	It("podman generate-seccomp should generate the same seccomp profile for identical containers", func() {
 		tmpfile, _ := ioutil.TempFile("", "generate-seccomp.*.json")
 		profilePath1 := tmpfile.Name()
 
