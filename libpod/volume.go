@@ -40,7 +40,7 @@ func (v *Volume) Driver() string {
 
 // Scope retrieves the volume's scope.
 // Libpod does not implement volume scoping, and this is provided solely for
-// Docker compatability. It returns only "local".
+// Docker compatibility. It returns only "local".
 func (v *Volume) Scope() string {
 	return "local"
 }

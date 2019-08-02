@@ -19,7 +19,7 @@ type InspectVolumeData struct {
 	// CreatedAt is the date and time the volume was created at. This is not
 	// stored for older Libpod volumes; if so, it will be omitted.
 	CreatedAt time.Time `json:"CreatedAt,omitempty"`
-	// Status is presently unused and provided only for Docker compatability.
+	// Status is presently unused and provided only for Docker compatibility.
 	// In the future it will be used to return information on the volume's
 	// current state.
 	Status map[string]string `json:"Status,omitempty"`
@@ -27,7 +27,7 @@ type InspectVolumeData struct {
 	// can be passed during volume creation to provide information for third
 	// party tools.
 	Labels map[string]string `json:"Labels"`
-	// Scope is unused and provided solely for Docker compatability. It is
+	// Scope is unused and provided solely for Docker compatibility. It is
 	// unconditionally set to "local".
 	Scope string `json:"Scope"`
 	// Options is a set of options that were used when creating the volume.
