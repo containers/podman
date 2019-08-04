@@ -26,7 +26,7 @@ func GetRootlessRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			tmpDir := filepath.Join("/run", "user", uid)
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {
-				logrus.Errorf("unable to make temp dir %s", tmpDir)
+				logrus.Debugf("unable to make temp dir %s", tmpDir)
 			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
@@ -36,7 +36,7 @@ func GetRootlessRuntimeDir() (string, error) {
 		if runtimeDir == "" {
 			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
 			if err := os.MkdirAll(tmpDir, 0700); err != nil {
-				logrus.Errorf("unable to make temp dir %s", tmpDir)
+				logrus.Debugf("unable to make temp dir %s", tmpDir)
 			}
 			st, err := os.Stat(tmpDir)
 			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
