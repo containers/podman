@@ -198,6 +198,8 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 
 	if call.WantsMore() {
 		call.Continues = true
+	} else {
+		return call.ReplyErrorOccurred("endpoint requires a more connection")
 	}
 
 	var newPathDockerFiles []string
@@ -642,6 +644,7 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 	defer close(c)
 
 	go func() {
+		var foundError bool
 		if strings.HasPrefix(name, dockerarchive.Transport.Name()+":") {
 			srcRef, err := alltransports.ParseImageName(name)
 			if err != nil {
@@ -649,6 +652,7 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 			}
 			newImage, err := i.Runtime.ImageRuntime().LoadFromArchiveReference(getContext(), srcRef, "", output)
 			if err != nil {
+				foundError = true
 				c <- errors.Wrapf(err, "error pulling image from %q", name)
 			} else {
 				imageID = newImage[0].ID()
@@ -656,12 +660,15 @@ func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
 		} else {
 			newImage, err := i.Runtime.ImageRuntime().New(getContext(), name, "", "", output, &dockerRegistryOptions, so, false, nil)
 			if err != nil {
+				foundError = true
 				c <- errors.Wrapf(err, "unable to pull %s", name)
 			} else {
 				imageID = newImage.ID()
 			}
 		}
-		c <- nil
+		if !foundError {
+			c <- nil
+		}
 	}()
 
 	var log []string
