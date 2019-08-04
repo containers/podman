@@ -52,7 +52,7 @@ const (
 var (
 	// InstallPrefix is the prefix where podman will be installed.
 	// It can be overridden at build time.
-	installPrefix = "/usr/local"
+	installPrefix = "/usr"
 	// EtcDir is the sysconfdir where podman should look for system config files.
 	// It can be overridden at build time.
 	etcDir = "/etc"
