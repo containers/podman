@@ -460,11 +460,11 @@ func getImageVerboseDiskUsage(ctx context.Context, images []*image.Image, images
 		}
 		var repo string
 		var tag string
-		if len(img.Names()) == 0 {
-			repo = "<none>"
-			tag = "<none>"
+		var repotags []string
+		if len(img.Names()) != 0 {
+			repotags = []string{img.Names()[0]}
 		}
-		repopairs, err := image.ReposToMap([]string{img.Names()[0]})
+		repopairs, err := image.ReposToMap(repotags)
 		if err != nil {
 			logrus.Errorf("error finding tag/digest for %s", img.ID())
 		}
