@@ -322,7 +322,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				return nil, fmt.Errorf("overlay: ostree_repo specified but support for ostree is missing")
 			}
 			o.ostreeRepo = val
-		case "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
+		case ".ignore_chown_errors", "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
 			logrus.Debugf("overlay: ignore_chown_errors=%s", val)
 			o.ignoreChownErrors, err = strconv.ParseBool(val)
 			if err != nil {
@@ -840,7 +840,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		return "", err
 	}
 
-	diffDir := path.Join(dir, "diff")
 	lowers, err := ioutil.ReadFile(path.Join(dir, lowerFile))
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
@@ -922,6 +921,11 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		return "", err
 	}
 
+	diffDir := path.Join(dir, "diff")
+	if err := idtools.MkdirAs(diffDir, 0755, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
 	mergedDir := path.Join(dir, "merged")
 	// Create the driver merged dir
 	if err := idtools.MkdirAs(mergedDir, 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
@@ -993,11 +997,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	logrus.Debugf("overlay: mount_data=%s", mountData)
 	if err := mountFunc("overlay", mountTarget, "overlay", uintptr(flags), data); err != nil {
 		return "", fmt.Errorf("error creating overlay mount to %s: %v", mountTarget, err)
-	}
-
-	// chown "workdir/work" to the remapped root UID/GID. Overlay fs inside a
-	if err := os.Chown(path.Join(workDir, "work"), rootUID, rootGID); err != nil {
-		return "", err
 	}
 
 	return mergedDir, nil

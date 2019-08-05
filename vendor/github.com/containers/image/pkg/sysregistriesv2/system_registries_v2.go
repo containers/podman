@@ -303,9 +303,8 @@ func (config *V2RegistriesConf) postProcess() error {
 	return nil
 }
 
-// getConfigPath returns the system-registries config path if specified.
-// Otherwise, systemRegistriesConfPath is returned.
-func getConfigPath(ctx *types.SystemContext) string {
+// ConfigPath returns the path to the system-wide registry configuration file.
+func ConfigPath(ctx *types.SystemContext) string {
 	confPath := systemRegistriesConfPath
 	if ctx != nil {
 		if ctx.SystemRegistriesConfPath != "" {
@@ -336,14 +335,27 @@ func InvalidateCache() {
 
 // getConfig returns the config object corresponding to ctx, loading it if it is not yet cached.
 func getConfig(ctx *types.SystemContext) (*V2RegistriesConf, error) {
-	configPath := getConfigPath(ctx)
+	configPath := ConfigPath(ctx)
+
+	configMutex.Lock()
+	// if the config has already been loaded, return the cached registries
+	if config, inCache := configCache[configPath]; inCache {
+		configMutex.Unlock()
+		return config, nil
+	}
+	configMutex.Unlock()
+
+	return TryUpdatingCache(ctx)
+}
+
+// TryUpdatingCache loads the configuration from the provided `SystemContext`
+// without using the internal cache. On success, the loaded configuration will
+// be added into the internal registry cache.
+func TryUpdatingCache(ctx *types.SystemContext) (*V2RegistriesConf, error) {
+	configPath := ConfigPath(ctx)
 
 	configMutex.Lock()
 	defer configMutex.Unlock()
-	// if the config has already been loaded, return the cached registries
-	if config, inCache := configCache[configPath]; inCache {
-		return config, nil
-	}
 
 	// load the config
 	config, err := loadRegistryConf(configPath)

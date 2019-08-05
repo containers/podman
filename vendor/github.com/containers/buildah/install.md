@@ -378,7 +378,7 @@ cat /etc/containers/policy.json
 ## Vendoring
 
 Buildah uses Go Modules for vendoring purposes.  If you need to update or add a vendored package into Buildah, please follow this proceedure:
- * Enter into your sandbox `src/github.com/containers/buildah` and ensure that he GOPATH variable is set to the directory prior as noted above.
+ * Enter into your sandbox `src/github.com/containers/buildah` and ensure that the GOPATH variable is set to the directory prior as noted above.
  * `export GO111MODULE=on`
  * Assuming you want to 'bump' the `github.com/containers/storage` package to version 1.12.13, use this command: `go get github.com/containers/storage@v1.12.13`
  * `make vendor`

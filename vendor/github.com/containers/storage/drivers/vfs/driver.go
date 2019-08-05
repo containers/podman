@@ -58,7 +58,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			d.ostreeRepo = val
 		case "vfs.mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")
-		case "vfs.ignore_chown_errors":
+		case ".ignore_chown_errors", "vfs.ignore_chown_errors":
 			logrus.Debugf("vfs: ignore_chown_errors=%s", val)
 			var err error
 			d.ignoreChownErrors, err = strconv.ParseBool(val)

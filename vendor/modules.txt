@@ -45,7 +45,7 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.9.2
+# github.com/containers/buildah v1.10.0
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser
@@ -60,7 +60,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
-# github.com/containers/image v2.0.1+incompatible
+# github.com/containers/image v3.0.1+incompatible
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive
@@ -79,12 +79,12 @@ github.com/containers/image/tarball
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/image
 github.com/containers/image/oci/layout
-github.com/containers/image/pkg/sysregistries
 github.com/containers/image/directory/explicitfilepath
 github.com/containers/image/docker/policyconfiguration
 github.com/containers/image/pkg/blobinfocache/none
 github.com/containers/image/pkg/tlsclientconfig
 github.com/containers/image/pkg/strslice
+github.com/containers/image/pkg/keyctl
 github.com/containers/image/version
 github.com/containers/image/docker/daemon
 github.com/containers/image/openshift
@@ -103,7 +103,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.16
+# github.com/containers/storage v1.13.0
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
@@ -389,6 +389,8 @@ github.com/pkg/profile
 github.com/pmezard/go-difflib/difflib
 # github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7
 github.com/pquerna/ffjson/fflib/v1
+github.com/pquerna/ffjson/inception
+github.com/pquerna/ffjson/shared
 github.com/pquerna/ffjson/fflib/v1/internal
 # github.com/prometheus/client_golang v1.0.0
 github.com/prometheus/client_golang/prometheus
@@ -451,9 +453,9 @@ github.com/varlink/go/varlink
 github.com/varlink/go/cmd/varlink-go-interface-generator
 github.com/varlink/go/varlink/idl
 # github.com/vbatts/tar-split v0.11.1
+github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-github.com/vbatts/tar-split/archive/tar
 # github.com/vbauerster/mpb v3.4.0+incompatible
 github.com/vbauerster/mpb
 github.com/vbauerster/mpb/decor
