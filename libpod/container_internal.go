@@ -1152,8 +1152,26 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 	c.newContainerEvent(events.Restart)
 
 	if c.state.State == define.ContainerStateRunning {
+		conmonPID := c.state.ConmonPID
 		if err := c.stop(timeout); err != nil {
 			return err
+		}
+		// Old versions of conmon have a bug where they create the exit file before
+		// closing open file descriptors causing a race condition when restarting
+		// containers with open ports since we cannot bind the ports as they're not
+		// yet closed by conmon.
+		//
+		// Killing the old conmon PID is ~okay since it forces the FDs of old conmons
+		// to be closed, while it's a NOP for newer versions which should have
+		// exited already.
+		if conmonPID != 0 {
+			// Ignore errors from FindProcess() as conmon could already have exited.
+			p, err := os.FindProcess(conmonPID)
+			if p != nil && err == nil {
+				if err = p.Kill(); err != nil {
+					logrus.Debugf("error killing conmon process: %v", err)
+				}
+			}
 		}
 	}
 	defer func() {
