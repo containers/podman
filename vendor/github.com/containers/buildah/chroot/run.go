@@ -205,13 +205,13 @@ func runUsingChrootMain() {
 	}
 
 	// Prepare to shuttle stdio back and forth.
-	rootUid32, rootGid32, err := util.GetHostRootIDs(options.Spec)
+	rootUID32, rootGID32, err := util.GetHostRootIDs(options.Spec)
 	if err != nil {
 		logrus.Errorf("error determining ownership for container stdio")
 		os.Exit(1)
 	}
-	rootUid := int(rootUid32)
-	rootGid := int(rootGid32)
+	rootUID := int(rootUID32)
+	rootGID := int(rootGID32)
 	relays := make(map[int]int)
 	closeOnceRunning := []*os.File{}
 	var ctty *os.File
@@ -288,7 +288,7 @@ func runUsingChrootMain() {
 		// Open an *os.File object that we can pass to our child.
 		ctty = os.NewFile(ptyFd, "/dev/tty")
 		// Set ownership for the PTY.
-		if err = ctty.Chown(rootUid, rootGid); err != nil {
+		if err = ctty.Chown(rootUID, rootGID); err != nil {
 			var cttyInfo unix.Stat_t
 			err2 := unix.Fstat(int(ptyFd), &cttyInfo)
 			from := ""
@@ -297,7 +297,7 @@ func runUsingChrootMain() {
 				op = "changing"
 				from = fmt.Sprintf("from %d/%d ", cttyInfo.Uid, cttyInfo.Gid)
 			}
-			logrus.Warnf("error %s ownership of container PTY %sto %d/%d: %v", op, from, rootUid, rootGid, err)
+			logrus.Warnf("error %s ownership of container PTY %sto %d/%d: %v", op, from, rootUID, rootGID, err)
 		}
 		// Set permissions on the PTY.
 		if err = ctty.Chmod(0620); err != nil {
@@ -336,15 +336,15 @@ func runUsingChrootMain() {
 		fdDesc[unix.Stdout] = "stdout"
 		fdDesc[unix.Stderr] = "stderr"
 		// Set ownership for the pipes.
-		if err = stdinRead.Chown(rootUid, rootGid); err != nil {
+		if err = stdinRead.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stdin pipe: %v", err)
 			os.Exit(1)
 		}
-		if err = stdoutWrite.Chown(rootUid, rootGid); err != nil {
+		if err = stdoutWrite.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stdout pipe: %v", err)
 			os.Exit(1)
 		}
-		if err = stderrWrite.Chown(rootUid, rootGid); err != nil {
+		if err = stderrWrite.Chown(rootUID, rootGID); err != nil {
 			logrus.Errorf("error setting ownership of container stderr pipe: %v", err)
 			os.Exit(1)
 		}

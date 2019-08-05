@@ -14,7 +14,6 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah"
-	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/go-units"
@@ -104,7 +103,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
 	}
 	volumes, _ := c.Flags().GetStringSlice("volume")
-	if err := ParseVolumes(volumes); err != nil {
+	if err := Volumes(volumes); err != nil {
 		return nil, err
 	}
 	cpuPeriod, _ := c.Flags().GetUint64("cpu-period")
@@ -179,8 +178,8 @@ func parseSecurityOpts(securityOpts []string, commonOpts *buildah.CommonBuildOpt
 	return nil
 }
 
-// ParseVolume parses the input of --volume
-func ParseVolume(volume string) (specs.Mount, error) {
+// Volume parses the input of --volume
+func Volume(volume string) (specs.Mount, error) {
 	mount := specs.Mount{}
 	arr := strings.SplitN(volume, ":", 3)
 	if len(arr) < 2 {
@@ -207,13 +206,13 @@ func ParseVolume(volume string) (specs.Mount, error) {
 	return mount, nil
 }
 
-// ParseVolumes validates the host and container paths passed in to the --volume flag
-func ParseVolumes(volumes []string) error {
+// Volumes validates the host and container paths passed in to the --volume flag
+func Volumes(volumes []string) error {
 	if len(volumes) == 0 {
 		return nil
 	}
 	for _, volume := range volumes {
-		if _, err := ParseVolume(volume); err != nil {
+		if _, err := Volume(volume); err != nil {
 			return err
 		}
 	}
@@ -224,7 +223,7 @@ func getVolumeMounts(volumes []string) (map[string]specs.Mount, error) {
 	finalVolumeMounts := make(map[string]specs.Mount)
 
 	for _, volume := range volumes {
-		volumeMount, err := ParseVolume(volume)
+		volumeMount, err := Volume(volume)
 		if err != nil {
 			return nil, err
 		}
@@ -473,9 +472,6 @@ func ValidateVolumeOpts(options []string) ([]string, error) {
 			}
 			foundRWRO++
 		case "z", "Z", "O":
-			if opt == "O" && unshare.IsRootless() {
-				return nil, errors.Errorf("invalid options %q, overlay mounts not supported in rootless mode", strings.Join(options, ", "))
-			}
 			if foundLabelChange > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", strings.Join(options, ", "))
 			}

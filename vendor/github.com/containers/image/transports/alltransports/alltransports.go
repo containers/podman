@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	// register all known transports
-	// NOTE: Make sure docs/policy.json.md is updated when adding or updating
+	// NOTE: Make sure docs/containers-policy.json.5.md is updated when adding or updating
 	// a transport.
 	_ "github.com/containers/image/directory"
 	_ "github.com/containers/image/docker"

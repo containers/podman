@@ -1,3 +1,19 @@
+- Changelog for v1.10.0 (2019-08-02)
+  * vendor github.com/containers/image@v3.0.0
+  * Remove GO111MODULE in favor of `-mod=vendor`
+  * Vendor in containers/storage v1.12.16
+  * Add '-' minus syntax for removal of config values
+  * tests: enable overlay tests for rootless
+  * rootless, overlay: use fuse-overlayfs
+  * vendor github.com/containers/image@v2.0.1
+  * Added '-' syntax to remove volume config option
+  * delete `successfully pushed` message
+  * Add golint linter and apply fixes
+  * vendor github.com/containers/storage@v1.12.15
+  * Change wait to sleep in buildahimage readme
+  * Handle ReadOnly images when deleting images
+  * Add support for listing read/only images
+
 - Changelog for v1.9.2 (2019-07-19)
   * from/import: record the base image's digest, if it has one
   * Fix CNI version retrieval to not require network connection

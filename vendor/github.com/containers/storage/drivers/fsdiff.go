@@ -82,6 +82,7 @@ func (gdw *NaiveDiffDriver) Diff(id string, idMappings *idtools.IDMappings, pare
 		}), nil
 	}
 
+	options.Options = append(options.Options, "ro")
 	parentFs, err := driver.Get(parent, options)
 	if err != nil {
 		return nil, err
