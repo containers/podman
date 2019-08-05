@@ -194,7 +194,7 @@ build_each_commit_task:
         - "varlink_api"
 
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
-    only_if: $CIRRUS_BRANCH != 'master' &&
+    only_if: $CIRRUS_BRANCH != 'v1.4.2-stable' &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
@@ -350,7 +350,7 @@ special_testing_in_podman_task:
 test_build_cache_images_task:
 
     only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_BRANCH != 'v1.4.2-stable' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
@@ -379,7 +379,7 @@ test_build_cache_images_task:
 verify_test_built_images_task:
 
     only_if: >-
-        $CIRRUS_BRANCH != 'master' &&
+        $CIRRUS_BRANCH != 'v1.4.2-stable' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
 
@@ -419,7 +419,7 @@ build_cache_images_task:
     # Only produce new cache-images after a PR merge, and if a magic string
     # is present in the most recent ___commit-message___.
     only_if: >-
-        $CIRRUS_BRANCH == 'master' &&
+        $CIRRUS_BRANCH == 'v1.4.2-stable' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*REBUILD\s*IMAGES\s*\*\*\*.*'
 
     # Require tests to pass first.
@@ -464,7 +464,7 @@ build_cache_images_task:
 # Post message to IRC if everything passed
 success_task:
 
-    only_if: $CIRRUS_BRANCH != 'master'
+    only_if: $CIRRUS_BRANCH != 'v1.4.2-stable'
 
     depends_on:  # ignores any dependent task conditions
         - "gating"
