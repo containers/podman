@@ -9,6 +9,7 @@ import (
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/opencontainers/selinux/go-selinux"
 )
 
 var _ = Describe("Podman systemd", func() {
@@ -21,6 +22,9 @@ var _ = Describe("Podman systemd", func() {
 
 	BeforeEach(func() {
 		SkipIfRootless()
+		if os.Getenv("SKIP_USERNS") != "" {
+			Skip("Skip userns tests.")
+		}
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -52,6 +56,13 @@ WantedBy=multi-user.target
 			Skip("Skip userns tests.")
 		}
 
+		mode := selinux.EnforceMode()
+		if mode != selinux.Enforcing {
+			err := selinux.SetEnforceMode(selinux.Enforcing)
+			Expect(err).To(BeNil())
+			defer selinux.SetEnforceMode(mode)
+		}
+
 		sys_file := ioutil.WriteFile("/etc/systemd/system/redis.service", []byte(systemd_unit_file), 0644)
 		Expect(sys_file).To(BeNil())
 		defer func() {
@@ -76,5 +87,13 @@ WantedBy=multi-user.target
 
 		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
+
+		cleanup := SystemExec("bash", []string{"-c", "systemctl stop redis && systemctl disable redis"})
+		cleanup.WaitWithDefaultTimeout()
+		Expect(cleanup.ExitCode()).To(Equal(0))
+		os.Remove("/etc/systemd/system/redis.service")
+		sys_clean := SystemExec("bash", []string{"-c", "systemctl daemon-reload"})
+		sys_clean.WaitWithDefaultTimeout()
+		Expect(sys_clean.ExitCode()).To(Equal(0))
 	})
 })
