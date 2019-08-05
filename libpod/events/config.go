@@ -22,13 +22,13 @@ const (
 type Event struct {
 	// ContainerExitCode is for storing the exit code of a container which can
 	// be used for "internal" event notification
-	ContainerExitCode int
+	ContainerExitCode int `json:",omitempty"`
 	// ID can be for the container, image, volume, etc
-	ID string
+	ID string `json:",omitempty"`
 	// Image used where applicable
-	Image string
+	Image string `json:",omitempty"`
 	// Name where applicable
-	Name string
+	Name string `json:",omitempty"`
 	// Status describes the event that occurred
 	Status Status
 	// Time the event occurred
