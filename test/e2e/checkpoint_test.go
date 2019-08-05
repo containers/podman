@@ -364,8 +364,8 @@ var _ = Describe("Podman checkpoint", func() {
 	// This test does the same steps which are necessary for migrating
 	// a container from one host to another
 	It("podman checkpoint container with export (migration)", func() {
-		// CRIU does not work with seccomp correctly on RHEL7
-		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "seccomp=unconfined", "-d", ALPINE, "top"})
+		localRunString := getRunString([]string{"--rm", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
@@ -377,13 +377,7 @@ var _ = Describe("Podman checkpoint", func() {
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
-
-		// Remove all containers to simulate migration
-		result = podmanTest.Podman([]string{"rm", "-fa"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
 		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
@@ -392,8 +386,12 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
-		// Restore container a second time with different name
-		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName, "-n", "restore_again"})
+		// Restore container a second time with different name.
+		// Using '--ignore-static-ip' as for parallel test runs
+		// each containers gets a random IP address via '--ip'.
+		// '--ignore-static-ip' tells the restore to use the next
+		// available IP address.
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName, "-n", "restore_again", "--ignore-static-ip"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
@@ -404,6 +402,7 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
