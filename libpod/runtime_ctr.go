@@ -52,6 +52,8 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	if err != nil {
 		return nil, errors.Wrapf(err, "error initializing container variables")
 	}
+	// For an imported checkpoint no one has ever set the StartedTime. Set it now.
+	ctr.state.StartedTime = time.Now()
 	return r.setupContainer(ctx, ctr)
 }
 
