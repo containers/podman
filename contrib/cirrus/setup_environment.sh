@@ -44,11 +44,15 @@ case "${OS_REL_VER}" in
         ;;
     fedora-30) ;&  # continue to next item
     fedora-29)
+	# All SELinux distros need this for systemd-in-a-container
+	setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
         ;;
     centos-7)  # Current VM is an image-builder-image no local podman/testing
-        echo "No further setup required for VM image building"
+	echo "No further setup required for VM image building"
+	# All SELinux distros need this for systemd-in-a-container
+	setsebool container_manage_cgroup true
         exit 0
         ;;
     *) bad_os_id_ver ;;
