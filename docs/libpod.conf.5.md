@@ -96,7 +96,7 @@ libpod to manage containers.
   a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 **events_logger**=""
-  Default method to use when logging events. Valid values are "journald" and "file".
+  Default method to use when logging events. Valid values are "file", "journald", and "none".
 
 ## FILES
   `/usr/share/containers/libpod.conf`, default libpod configuration path

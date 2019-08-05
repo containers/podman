@@ -44,7 +44,7 @@ func (*Logger) Log(cmd []string) {
 // Init returns a new ZFS driver.
 // It takes base mount path and an array of options which are represented as key value pairs.
 // Each option is in the for key=value. 'zfs.fsname' is expected to be a valid key in the options.
-func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+func Init(base string, opt graphdriver.Options) (graphdriver.Driver, error) {
 	var err error
 
 	logger := logrus.WithField("storage-driver", "zfs")
@@ -61,7 +61,7 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 	}
 	defer file.Close()
 
-	options, err := parseOptions(opt)
+	options, err := parseOptions(opt.DriverOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 		return nil, fmt.Errorf("BUG: zfs get all -t filesystem -rHp '%s' should contain '%s'", options.fsName, options.fsName)
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
+	rootUID, rootGID, err := idtools.GetRootUIDGID(opt.UIDMaps, opt.GIDMaps)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get root uid/guid: %v", err)
 	}
@@ -115,8 +115,8 @@ func Init(base string, opt []string, uidMaps, gidMaps []idtools.IDMap) (graphdri
 		dataset:          rootDataset,
 		options:          options,
 		filesystemsCache: filesystemsCache,
-		uidMaps:          uidMaps,
-		gidMaps:          gidMaps,
+		uidMaps:          opt.UIDMaps,
+		gidMaps:          opt.GIDMaps,
 		ctr:              graphdriver.NewRefCounter(graphdriver.NewDefaultChecker()),
 	}
 	return graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d)), nil

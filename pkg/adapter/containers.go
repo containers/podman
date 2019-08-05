@@ -7,9 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,6 +19,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"github.com/containers/libpod/pkg/systemdgen"
@@ -404,18 +403,13 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 
 	if ecode, err := ctr.Wait(); err != nil {
 		if errors.Cause(err) == libpod.ErrNoSuchCtr {
-			// The container may have been removed
-			// Go looking for an exit file
-			config, err := r.Runtime.GetConfig()
-			if err != nil {
-				return exitCode, err
-			}
-			ctrExitCode, err := ReadExitFile(config.TmpDir, ctr.ID())
+			// Check events
+			event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
 				exitCode = 127
 			} else {
-				exitCode = ctrExitCode
+				exitCode = event.ContainerExitCode
 			}
 		}
 	} else {
@@ -426,31 +420,6 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		if err := r.Runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
 			logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
 		}
-	}
-
-	return exitCode, nil
-}
-
-// ReadExitFile reads a container's exit file
-func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
-	exitFile := filepath.Join(runtimeTmp, "exits", fmt.Sprintf("%s-old", ctrID))
-
-	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
-
-	// Check if it exists
-	if _, err := os.Stat(exitFile); err != nil {
-		return 0, errors.Wrapf(err, "error getting exit file for container %s", ctrID)
-	}
-
-	// File exists, read it in and convert to int
-	statusStr, err := ioutil.ReadFile(exitFile)
-	if err != nil {
-		return 0, errors.Wrapf(err, "error reading exit file for container %s", ctrID)
-	}
-
-	exitCode, err := strconv.Atoi(string(statusStr))
-	if err != nil {
-		return 0, errors.Wrapf(err, "error parsing exit code for container %s", ctrID)
 	}
 
 	return exitCode, nil
@@ -627,18 +596,13 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 
 			if ecode, err := ctr.Wait(); err != nil {
 				if errors.Cause(err) == libpod.ErrNoSuchCtr {
-					// The container may have been removed
-					// Go looking for an exit file
-					rtc, err := r.GetConfig()
-					if err != nil {
-						return 0, err
-					}
-					ctrExitCode, err := ReadExitFile(rtc.TmpDir, ctr.ID())
+					// Check events
+					event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
 					if err != nil {
 						logrus.Errorf("Cannot get exit code: %v", err)
 						exitCode = 127
 					} else {
-						exitCode = ctrExitCode
+						exitCode = event.ContainerExitCode
 					}
 				}
 			} else {

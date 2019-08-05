@@ -35,6 +35,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", "", "Path of the configuration directory for CNI networks")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", "", "Path to default mounts file")
 	rootCmd.PersistentFlags().MarkHidden("defaults-mount-file")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", "", "Events backend to use")
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")

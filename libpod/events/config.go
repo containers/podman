@@ -2,6 +2,8 @@ package events
 
 import (
 	"time"
+
+	"github.com/pkg/errors"
 )
 
 // EventerType ...
@@ -12,6 +14,8 @@ const (
 	LogFile EventerType = iota
 	// Journald indicates journald should be used to log events
 	Journald EventerType = iota
+	// Null is a no-op events logger. It does not read or write events.
+	Null EventerType = iota
 )
 
 // Event describes the attributes of a libpod event
@@ -158,3 +162,12 @@ const (
 
 // EventFilter for filtering events
 type EventFilter func(*Event) bool
+
+var (
+	// ErrEventTypeBlank indicates the event log found something done by podman
+	// but it isnt likely an event
+	ErrEventTypeBlank = errors.New("event type blank")
+
+	// ErrEventNotFound indicates that the event was not found in the event log
+	ErrEventNotFound = errors.New("unable to find event")
+)

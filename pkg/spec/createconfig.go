@@ -165,6 +165,9 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	for _, opt := range config.StorageConfig.GraphDriverOptions {
 		command = append(command, []string{"--storage-opt", opt}...)
 	}
+	if config.EventsLogger != "" {
+		command = append(command, []string{"--events-backend", config.EventsLogger}...)
+	}
 
 	if c.Syslog {
 		command = append(command, "--syslog", "true")
