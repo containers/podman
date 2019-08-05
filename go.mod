@@ -117,3 +117,5 @@ require (
 	k8s.io/kube-openapi v0.0.0-20190603182131-db7b694dc208 // indirect
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
+
+replace github.com/containers/storage => github.com/vrothberg/storage v0.0.0-20190805065727-2a5fafc7a584

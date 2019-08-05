@@ -103,7 +103,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.12.16
+# github.com/containers/storage v1.12.16 => github.com/vrothberg/storage v0.0.0-20190805065727-2a5fafc7a584
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
@@ -451,9 +451,9 @@ github.com/varlink/go/varlink
 github.com/varlink/go/cmd/varlink-go-interface-generator
 github.com/varlink/go/varlink/idl
 # github.com/vbatts/tar-split v0.11.1
+github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-github.com/vbatts/tar-split/archive/tar
 # github.com/vbauerster/mpb v3.4.0+incompatible
 github.com/vbauerster/mpb
 github.com/vbauerster/mpb/decor
