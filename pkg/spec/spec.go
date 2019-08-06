@@ -174,10 +174,20 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	hostname := config.Hostname
-	if hostname == "" && (config.NetMode.IsHost() || config.UtsMode.IsHost()) {
-		hostname, err = os.Hostname()
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to retrieve hostname")
+	if hostname == "" {
+		if utsCtrID := config.UtsMode.Container(); utsCtrID != "" {
+			utsCtr, err := runtime.GetContainer(utsCtrID)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to retrieve hostname from dependency container %s", utsCtrID)
+			}
+			hostname = utsCtr.Hostname()
+		} else if config.NetMode.IsHost() || config.UtsMode.IsHost() {
+			hostname, err = os.Hostname()
+			if err != nil {
+				return nil, errors.Wrap(err, "unable to retrieve hostname of the host")
+			}
+		} else {
+			logrus.Debug("No hostname set; container's hostname will default to runtime default")
 		}
 	}
 	g.RemoveHostname()
@@ -605,6 +615,9 @@ func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 	}
 	if utsMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.UTSNamespace))
+	}
+	if utsMode.IsContainer() {
+		logrus.Debug("using container utsmode")
 	}
 	return nil
 }
