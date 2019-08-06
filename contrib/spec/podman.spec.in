@@ -443,9 +443,6 @@ done
 sort -u -o devel.file-list devel.file-list
 %endif
 
-# Ensure buildroot is deleted
-rm -rf %{buildroot}
-
 %check
 %if 0%{?with_check} && 0%{?with_unit_test} && 0%{?with_devel}
 %if ! 0%{?with_bundled}

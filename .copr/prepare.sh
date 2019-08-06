@@ -22,6 +22,8 @@ sed "s,#COMMIT#,${COMMIT},;
      s,#COMMITDATE#,${COMMIT_DATE}," \
          contrib/spec/podman.spec.in > contrib/spec/podman.spec
 
+cp contrib/spec/.rpmmacros ~/.
+
 if [ ${OS_TEST} -eq 0 ]; then
     sed -i "s/${BR}/${NEWBR}/g" contrib/spec/podman.spec
 fi
