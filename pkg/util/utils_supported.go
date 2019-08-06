@@ -65,6 +65,38 @@ func GetRootlessRuntimeDir() (string, error) {
 	return rootlessRuntimeDir, nil
 }
 
+// GetRootlessConfigHomeDir returns the config home directory when running as non root
+func GetRootlessConfigHomeDir() (string, error) {
+	var rootlessConfigHomeDirError error
+
+	rootlessConfigHomeDirOnce.Do(func() {
+		cfgHomeDir := os.Getenv("XDG_CONFIG_HOME")
+		if cfgHomeDir == "" {
+			home := os.Getenv("HOME")
+			resolvedHome, err := filepath.EvalSymlinks(home)
+			if err != nil {
+				rootlessConfigHomeDirError = errors.Wrapf(err, "cannot resolve %s", home)
+				return
+			}
+			tmpDir := filepath.Join(resolvedHome, ".config")
+			if err := os.MkdirAll(tmpDir, 0755); err != nil {
+				logrus.Errorf("unable to make temp dir %s", tmpDir)
+			}
+			st, err := os.Stat(tmpDir)
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0755 {
+				cfgHomeDir = tmpDir
+			}
+		}
+		rootlessConfigHomeDir = cfgHomeDir
+	})
+
+	if rootlessConfigHomeDirError != nil {
+		return "", rootlessConfigHomeDirError
+	}
+
+	return rootlessConfigHomeDir, nil
+}
+
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
 // the pause process
 func GetRootlessPauseProcessPidPath() (string, error) {

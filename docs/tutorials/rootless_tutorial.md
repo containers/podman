@@ -76,7 +76,9 @@ Once the Administrator has completed the setup on the machine and then the confi
 
 ### User Configuration Files.
 
-The Podman configuration files for root reside in /etc/containers.  In the rootless environment they reside in ${HOME}/.config/containers and are owned by each individual user.  The user can modify these files as they wish.
+The Podman configuration files for root reside in /usr/share/containers with overrides in /etc/containers.  In the rootless environment they reside in ${XDG\_CONFIG\_HOME}/containers and are owned by each individual user.  The user can modify these files as they wish.
+
+The default authorization file used by the `podman login` and `podman logout` commands reside in ${XDG\_RUNTIME\_DIR}/containers/auth.json.
 
 ## More information
 

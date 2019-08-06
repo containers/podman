@@ -239,8 +239,10 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 }
 
 var (
-	rootlessRuntimeDirOnce sync.Once
-	rootlessRuntimeDir     string
+	rootlessConfigHomeDirOnce sync.Once
+	rootlessConfigHomeDir     string
+	rootlessRuntimeDirOnce    sync.Once
+	rootlessRuntimeDir        string
 )
 
 type tomlOptionsConfig struct {

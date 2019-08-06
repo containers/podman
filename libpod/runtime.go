@@ -328,16 +328,19 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	}, nil
 }
 
-// SetXdgRuntimeDir ensures the XDG_RUNTIME_DIR env variable is set
-// containers/image uses XDG_RUNTIME_DIR to locate the auth file.
-// It internally calls EnableLinger() so that the user's processes are not
+// SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
+// containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
+// use for the libpod.conf configuration file.
+// SetXdgDirs internally calls EnableLinger() so that the user's processes are not
 // killed once the session is terminated.  EnableLinger() also attempts to
 // get the runtime directory when XDG_RUNTIME_DIR is not specified.
-func SetXdgRuntimeDir() error {
+// This function should only be called when running rootless.
+func SetXdgDirs() error {
 	if !rootless.IsRootless() {
 		return nil
 	}
 
+	// Setup XDG_RUNTIME_DIR
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 
 	runtimeDirLinger, err := rootless.EnableLinger()
@@ -364,6 +367,16 @@ func SetXdgRuntimeDir() error {
 	}
 	if err := os.Setenv("XDG_RUNTIME_DIR", runtimeDir); err != nil {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
+	}
+
+	// Setup XDG_CONFIG_HOME
+	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
+		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
+			return err
+		}
+		if err = os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+		}
 	}
 	return nil
 }

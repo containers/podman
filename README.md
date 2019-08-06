@@ -41,6 +41,8 @@ If you run Podman as your user and mount in `/etc/passwd` from the host, you sti
 Almost all normal Podman functionality is available, though there are some [shortcomings](https://github.com/containers/libpod/blob/master/rootless.md).
 Any recent Podman release should be able to run rootless without any additional configuration, though your operating system may require some additional configuration detailed in the [install guide](https://github.com/containers/libpod/blob/master/install.md).
 
+A little configuration by an administrator is required before rootless Podman can be used, the necessary setup is documented [here](https://github.com/containers/libpod/blob/master/docs/tutorials/rootless_tutorial.md).
+
 ## Out of scope
 
 * Specializing in signing and pushing images to various storage backends.
@@ -100,6 +102,9 @@ Tutorials on using Podman.
 
 **[Remote Client](remote_client.md)**
 A brief how-to on using the Podman remote-client.
+
+**[Basic Setup and Use of Podman in a Rootless environment](https://github.com/containers/libpod/blob/master/docs/tutorials/rootless_tutorial.md)
+A tutorial showing the setup and configuration necessary to run Rootless Podman.
 
 **[Release Notes](RELEASE_NOTES.md)**
 Release notes for recent Podman versions

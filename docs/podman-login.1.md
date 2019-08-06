@@ -11,7 +11,7 @@ podman\-login - Login to a container registry
 and password. **podman login** reads in the username and password from STDIN.
 The username and password can also be set using the **username** and **password** flags.
 The path of the authentication file can be specified by the user by setting the **authfile**
-flag. The default path used is **${XDG\_RUNTIME_DIR}/containers/auth.json**.
+flag. The default path used is **${XDG\_RUNTIME\_DIR}/containers/auth.json**.
 
 **podman [GLOBAL OPTIONS]**
 
@@ -35,7 +35,7 @@ Username for registry
 
 **--authfile**=*path*
 
-Path of the authentication file. Default is ${XDG_\RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
+Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json (Not available for remote commands)
 
 Note: You can also override the default path of the authentication file by setting the REGISTRY\_AUTH\_FILE
 environment variable. `export REGISTRY_AUTH_FILE=path`

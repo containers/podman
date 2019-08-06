@@ -8,7 +8,8 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/docker/docker/pkg/homedir"
+	"github.com/containers/libpod/pkg/util"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -31,9 +32,19 @@ func init() {
 }
 
 func setSyslog() error {
+	var err error
+	cfgHomeDir := os.Getenv("XDG_CONFIG_HOME")
+	if cfgHomeDir == "" {
+		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
+			return err
+		}
+		if err = os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
+		}
+	}
+	path := filepath.Join(cfgHomeDir, "containers")
+
 	// Log to file if not using syslog
-	homeDir := homedir.Get()
-	path := filepath.Join(homeDir, ".config", "containers")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		if err := os.MkdirAll(path, 0750); err != nil {
