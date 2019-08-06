@@ -45,13 +45,13 @@ echo ${PKGS[*]}
 $pkg_manager install -y ${PKGS[*]}
 
 make -f .copr/Makefile
-rpmbuild --rebuild podman-*.src.rpm
+rpmbuild --macros=spec/.rpmamacros --rebuild podman-*.src.rpm
 
 # Test to make sure the install of the binary works
-$pkg_manager -y install ~/rpmbuild/RPMS/x86_64/podman-*.x86_64.rpm
+$pkg_manager -y install $(pwd)/RPMS/x86_64/podman-*.x86_64.rpm
 
 
 # If we built python/varlink packages, we should test their installs too
 if [ $pkg_manager == "/usr/bin/dnf" ]; then
-    $pkg_manager -y install ~/rpmbuild/RPMS/noarch/python*
+   $pkg_manager -y install $(pwd)/RPMS/noarch/python*
 fi

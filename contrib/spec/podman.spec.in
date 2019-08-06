@@ -4,12 +4,6 @@
 %global with_check 0
 %global with_unit_test 0
 
-%if 0%{?fedora} >= 28
-%bcond_without varlink
-%else
-%bcond_with varlink
-%endif
-
 %if 0%{?with_debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0

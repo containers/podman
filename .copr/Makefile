@@ -10,12 +10,12 @@ srpm:
 	sh $(current_dir)/prepare.sh
 	#cp $(current_dir)/../contrib/spec/.rpmmacros ~/.
 	#rpmbuild -bs -D "dist %{nil}" -D "_sourcedir build/" -D "_srcrpmdir $(outdir)" -D "_topdir $(topdir)" --nodeps contrib/spec/podman.spec
-	rpmbuild -bs --macros=$(current_dir)/../contrib/spec/.rpmmacros --nodeps contrib/spec/podman.spec
-
+	rpmbuild --macros=contrib/spec/.rpmmacros -bs --nodeps contrib/spec/podman.spec
 
 build_binary:
 	#mkdir -p $(topdir)
 	#rpmbuild --rebuild -D "_rpmdir $(outdir)" -D "_topdir $(topdir)" $(outdir)/podman-*.git$(SHORT_COMMIT).src.rpm
+	rpmbuild --rebuild --macros=contrib/spec/.rpmmacros SRPMS/podman-*.git$(SHORT_COMMIT).src.rpm
 
 clean:
 	rm -fr rpms
