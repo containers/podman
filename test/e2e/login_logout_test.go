@@ -127,6 +127,10 @@ var _ = Describe("Podman login and logout", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		session = podmanTest.Podman([]string{"run", "--authfile", authFile, testImg})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
 		session = podmanTest.Podman([]string{"logout", "--authfile", authFile, server})
 	})
 
