@@ -410,13 +410,42 @@ func getBindMount(args []string) (spec.Mount, error) {
 
 	setSource := false
 	setDest := false
+	setRORW := false
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
 		case "bind-nonrecursive":
 			newMount.Options = append(newMount.Options, "bind")
-		case "ro", "nosuid", "nodev", "noexec":
+		case "ro", "rw":
+			if setRORW {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'ro' or 'rw' options more than once")
+			}
+			setRORW = true
+			// Can be formatted as one of:
+			// ro
+			// ro=[true|false]
+			// rw
+			// rw=[true|false]
+			if len(kv) == 1 {
+				newMount.Options = append(newMount.Options, kv[0])
+			} else if len(kv) == 2 {
+				switch strings.ToLower(kv[1]) {
+				case "true":
+					newMount.Options = append(newMount.Options, kv[0])
+				case "false":
+					// Set the opposite only for rw
+					// ro's opposite is the default
+					if kv[0] == "rw" {
+						newMount.Options = append(newMount.Options, "ro")
+					}
+				default:
+					return newMount, errors.Wrapf(optionArgError, "%s must be set to true or false, instead received %q", kv[0], kv[1])
+				}
+			} else {
+				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
+			}
+		case "nosuid", "nodev", "noexec":
 			// TODO: detect duplication of these options.
 			// (Is this necessary?)
 			newMount.Options = append(newMount.Options, kv[0])

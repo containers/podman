@@ -136,4 +136,22 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run with mount flag and boolean options", func() {
+		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
+		os.Mkdir(mountPath, 0755)
+		session := podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test,ro=false", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test,ro=true", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("/run/test ro"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", fmt.Sprintf("type=bind,src=%s,target=/run/test,ro=true,rw=false", mountPath), ALPINE, "grep", "/run/test", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })
