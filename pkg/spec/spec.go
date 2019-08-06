@@ -551,8 +551,8 @@ func addPidNS(config *CreateConfig, g *generate.Generator) error {
 	if pidMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.PIDNamespace))
 	}
-	if pidMode.IsContainer() {
-		logrus.Debug("using container pidmode")
+	if pidCtr := pidMode.Container(); pidCtr != "" {
+		logrus.Debugf("using container %s pidmode", pidCtr)
 	}
 	if IsPod(string(pidMode)) {
 		logrus.Debug("using pod pidmode")
@@ -589,8 +589,8 @@ func addNetNS(config *CreateConfig, g *generate.Generator) error {
 	} else if netMode.IsBridge() {
 		logrus.Debug("Using bridge netmode")
 		return nil
-	} else if netMode.IsContainer() {
-		logrus.Debug("Using container netmode")
+	} else if netCtr := netMode.Container(); netCtr != "" {
+		logrus.Debugf("using container %s netmode", netCtr)
 		return nil
 	} else if IsNS(string(netMode)) {
 		logrus.Debug("Using ns netmode")
@@ -616,8 +616,8 @@ func addUTSNS(config *CreateConfig, g *generate.Generator) error {
 	if utsMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.UTSNamespace))
 	}
-	if utsMode.IsContainer() {
-		logrus.Debug("using container utsmode")
+	if utsCtr := utsMode.Container(); utsCtr != "" {
+		logrus.Debugf("using container %s utsmode", utsCtr)
 	}
 	return nil
 }
@@ -630,8 +630,8 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 	if ipcMode.IsHost() {
 		return g.RemoveLinuxNamespace(string(spec.IPCNamespace))
 	}
-	if ipcMode.IsContainer() {
-		logrus.Debug("Using container ipcmode")
+	if ipcCtr := ipcMode.Container(); ipcCtr != "" {
+		logrus.Debugf("Using container %s ipcmode", ipcCtr)
 	}
 
 	return nil
@@ -648,8 +648,8 @@ func addCgroupNS(config *CreateConfig, g *generate.Generator) error {
 	if cgroupMode.IsPrivate() {
 		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), "")
 	}
-	if cgroupMode.IsContainer() {
-		logrus.Debug("Using container cgroup mode")
+	if cgCtr := cgroupMode.Container(); cgCtr != "" {
+		logrus.Debugf("Using container %s cgroup mode", cgCtr)
 	}
 	return nil
 }
