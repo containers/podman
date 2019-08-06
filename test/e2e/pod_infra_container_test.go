@@ -383,4 +383,24 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run hostname is shared", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		// verify we can add a host to the infra's /etc/hosts
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "hostname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		hostname := session.OutputToString()
+
+		infraName := podID[:12] + "-infra"
+		// verify we can see the other hosts of infra's /etc/hosts
+		session = podmanTest.Podman([]string{"inspect", infraName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
+	})
 })
