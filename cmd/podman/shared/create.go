@@ -588,6 +588,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		workDir = data.Config.WorkingDir
 	}
 
+	userCommand := []string{}
 	entrypoint := configureEntrypoint(c, data)
 	// Build the command
 	// If we have an entry point, it goes first
@@ -597,9 +598,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if len(inputCommand) > 0 {
 		// User command overrides data CMD
 		command = append(command, inputCommand...)
+		userCommand = append(userCommand, inputCommand...)
 	} else if data != nil && len(data.Config.Cmd) > 0 && !c.IsSet("entrypoint") {
 		// If not user command, add CMD
 		command = append(command, data.Config.Cmd...)
+		userCommand = append(userCommand, data.Config.Cmd...)
 	}
 
 	if data != nil && len(command) == 0 {
@@ -680,6 +683,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Cgroupns:          c.String("cgroupns"),
 		CgroupParent:      c.String("cgroup-parent"),
 		Command:           command,
+		UserCommand:       userCommand,
 		Detach:            c.Bool("detach"),
 		Devices:           c.StringSlice("device"),
 		DNSOpt:            c.StringSlice("dns-opt"),
