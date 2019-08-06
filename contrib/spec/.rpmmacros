@@ -1,3 +1,13 @@
+%_topdir %(echo $(pwd))
+
+%_sourcedir     %{_topdir}
+%_specdir       %{_sourcedir}
+%_rpmdir        %{_topdir}/RPMS
+%_srcrpmdir     %{_topdir}/SRPMS
+%_builddir      %{_topdir}/BUILD
+%_tmppath       %(echo ${TMPDIR:-/var/tmp})
+%_buildroot     %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
 %__arch_install_post \
     [ "%{buildarch}" = "noarch" ] || QA_CHECK_RPATHS=0 ; \
     case "${QA_CHECK_RPATHS:-}" in [1yY]*) /usr/lib/rpm/check-rpaths ;; esac \
