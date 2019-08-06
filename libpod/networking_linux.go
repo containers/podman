@@ -103,6 +103,9 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 // Create and configure a new network namespace for a container
 func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result, err error) {
+	if rootless.IsRootless() {
+		return nil, nil, errors.New("cannot configure a new network namespace in rootless mode, only --network=slirp4netns is supported")
+	}
 	ctrNS, err := netns.NewNS()
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating network namespace for container %s", ctr.ID())
@@ -120,10 +123,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
-	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() {
-		networkStatus, err = r.configureNetNS(ctr, ctrNS)
-	}
+	networkStatus, err := r.configureNetNS(ctr, ctrNS)
 	return ctrNS, networkStatus, err
 }
 
@@ -151,6 +151,9 @@ func checkSlirpFlags(path string) (bool, bool, error) {
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
+	defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+
 	path := r.config.NetworkCmdPath
 
 	if path == "" {
@@ -174,7 +177,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 
 	cmdArgs := []string{}
 	if havePortMapping {
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
+		cmdArgs = append(cmdArgs, "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID))
 	}
 	dhp, mtu, err := checkSlirpFlags(path)
 	if err != nil {
@@ -186,27 +189,13 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if mtu {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
 	}
-
-	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4")
-	if !ctr.config.PostConfigureNetNS {
-		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-		if err != nil {
-			return errors.Wrapf(err, "failed to create rootless network sync pipe")
-		}
-		cmdArgs = append(cmdArgs, "--netns-type=path", ctr.state.NetNS.Path(), "tap0")
-	} else {
-		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
-		cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
-	}
+	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
 
 	cmd := exec.Command(path, cmdArgs...)
-	logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
+
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
 	}
-
-	// Leak one end of the pipe in slirp4netns, the other will be sent to conmon
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
 	if err := cmd.Start(); err != nil {
@@ -421,25 +410,22 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		}
 	}
 
-	logrus.Debugf("Tearing down network namespace for container %s", ctr.ID())
+	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
-	// rootless containers do not use the CNI plugin
-	if !rootless.IsRootless() {
-		var requestedIP net.IP
-		if ctr.requestedIP != nil {
-			requestedIP = ctr.requestedIP
-			// cancel request for a specific IP in case the container is reused later
-			ctr.requestedIP = nil
-		} else {
-			requestedIP = ctr.config.StaticIP
-		}
+	var requestedIP net.IP
+	if ctr.requestedIP != nil {
+		requestedIP = ctr.requestedIP
+		// cancel request for a specific IP in case the container is reused later
+		ctr.requestedIP = nil
+	} else {
+		requestedIP = ctr.config.StaticIP
+	}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
 
-		// The network may have already been torn down, so don't fail here, just log
-		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
-			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
-		}
+	// The network may have already been torn down, so don't fail here, just log
+	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
+		return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())
 	}
 
 	// First unmount the namespace

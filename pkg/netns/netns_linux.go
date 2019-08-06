@@ -23,42 +23,23 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
-// get NSRunDir returns the dir of where to create the netNS. When running
-// rootless, it needs to be at a location writable by user.
-func getNSRunDir() (string, error) {
-	if rootless.IsRootless() {
-		rootlessDir, err := util.GetRootlessRuntimeDir()
-		if err != nil {
-			return "", err
-		}
-		return filepath.Join(rootlessDir, "netns"), nil
-	}
-	return "/var/run/netns", nil
-}
+const nsRunDir = "/var/run/netns"
 
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
 
-	nsRunDir, err := getNSRunDir()
-	if err != nil {
-		return nil, err
-	}
-
 	b := make([]byte, 16)
-	_, err = rand.Reader.Read(b)
+	_, err := rand.Reader.Read(b)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate random netns name: %v", err)
 	}
@@ -146,7 +127,7 @@ func NewNS() (ns.NetNS, error) {
 		// Put this thread back to the orig ns, since it might get reused (pre go1.10)
 		defer func() {
 			if err := origNS.Set(); err != nil {
-				logrus.Warnf("unable to set namespace: %q", err)
+				logrus.Errorf("unable to set namespace: %q", err)
 			}
 		}()
 
@@ -169,11 +150,6 @@ func NewNS() (ns.NetNS, error) {
 
 // UnmountNS unmounts the NS held by the netns object
 func UnmountNS(ns ns.NetNS) error {
-	nsRunDir, err := getNSRunDir()
-	if err != nil {
-		return err
-	}
-
 	nsPath := ns.Path()
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if strings.HasPrefix(nsPath, nsRunDir) {
