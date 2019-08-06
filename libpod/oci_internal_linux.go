@@ -130,16 +130,10 @@ func (r *OCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Containe
 	}
 
 	if ctr.config.NetMode.IsSlirp4netns() {
-		if ctr.config.PostConfigureNetNS {
-			ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
-			if err != nil {
-				return errors.Wrapf(err, "failed to create rootless network sync pipe")
-			}
-		} else {
-			defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
-			defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create rootless network sync pipe")
 		}
-
 		// Leak one end in conmon, the other one will be leaked into slirp4netns
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
 	}

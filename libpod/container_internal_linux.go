@@ -63,12 +63,12 @@ func (c *Container) unmountSHM(mount string) error {
 // namespaces
 func (c *Container) prepare() (err error) {
 	var (
-		wg                                                sync.WaitGroup
-		netNS                                             ns.NetNS
-		networkStatus                                     []*cnitypes.Result
-		createNetNSErr, mountStorageErr, rootlessSetupErr error
-		mountPoint                                        string
-		tmpStateLock                                      sync.Mutex
+		wg                              sync.WaitGroup
+		netNS                           ns.NetNS
+		networkStatus                   []*cnitypes.Result
+		createNetNSErr, mountStorageErr error
+		mountPoint                      string
+		tmpStateLock                    sync.Mutex
 	)
 
 	wg.Add(2)
@@ -86,11 +86,6 @@ func (c *Container) prepare() (err error) {
 			if createNetNSErr == nil {
 				c.state.NetNS = netNS
 				c.state.NetworkStatus = networkStatus
-			}
-
-			// Setup rootless networking, requires c.state.NetNS to be set
-			if rootless.IsRootless() {
-				rootlessSetupErr = c.runtime.setupRootlessNetNS(c)
 			}
 		}
 	}()
@@ -135,10 +130,6 @@ func (c *Container) prepare() (err error) {
 	}
 	if mountStorageErr != nil {
 		return mountStorageErr
-	}
-
-	if rootlessSetupErr != nil {
-		return rootlessSetupErr
 	}
 
 	// Save the container

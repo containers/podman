@@ -405,14 +405,6 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		stopSignal = uint(syscall.SIGTERM)
 	}
 
-	defer func() {
-		// cleanup container networking
-		err = ctr.cleanupNetwork()
-		if err != nil {
-			logrus.Errorf("Error cleaning up container: %s network: %v", ctr.ID(), err)
-		}
-	}()
-
 	if timeout > 0 {
 		if err := r.killContainer(ctr, stopSignal); err != nil {
 			// Is the container gone?
