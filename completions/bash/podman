@@ -1911,6 +1911,7 @@ _podman_rm() {
 	-h
 	--latest
 	-l
+	--storage
 	--volumes
 	-v
     "

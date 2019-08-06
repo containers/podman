@@ -24,6 +24,13 @@ Remove all containers.  Can be used in conjunction with -f as well.
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
 to run containers such as CRI-O, the last started container could be from either of those methods.
 
+**--storage**
+
+Remove the container from the storage library only.
+This is only possible with containers that are not present in libpod (cannot be seen by `podman ps`).
+It is used to remove containers from `podman build` and `buildah`, and orphan containers which were only partially removed by `podman rm`.
+The storage option conflicts with the **--all**, **--latest**, and **--volumes** options.
+
 **--volumes, -v**
 
 Remove the volumes associated with the container. (Not yet implemented)

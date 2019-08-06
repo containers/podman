@@ -21,6 +21,10 @@ var (
 		},
 		LatestFlag,
 		cli.BoolFlag{
+			Name:  "storage",
+			Usage: "Remove container from storage library",
+		},
+		cli.BoolFlag{
 			Name:  "volumes, v",
 			Usage: "Remove the volumes associated with the container (Not implemented yet)",
 		},
@@ -60,6 +64,25 @@ func rmCmd(c *cli.Context) error {
 
 	if err := checkAllAndLatest(c); err != nil {
 		return err
+	}
+
+	// Storage conflicts with --all/--latest/--volumes
+	if c.Bool("storage") {
+		if c.Bool("all") || c.Bool("latest") || c.Bool("volumes") {
+			return errors.Errorf("--storage conflicts with --volumes, --all, and --latest")
+		}
+
+		var lastErr error
+		for _, ctr := range c.Args() {
+			if err := runtime.RemoveStorageContainer(ctr, c.Bool("force")); err != nil {
+				if lastErr != nil {
+					logrus.Errorf("Error removing container %s from storage: %v", ctr, lastErr)
+				}
+				lastErr = err
+			}
+			fmt.Printf("%s\n", ctr)
+		}
+		return lastErr
 	}
 
 	delContainers, err := getAllOrLatestContainers(c, runtime, -1, "all")
