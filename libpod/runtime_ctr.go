@@ -54,6 +54,14 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	}
 	// For an imported checkpoint no one has ever set the StartedTime. Set it now.
 	ctr.state.StartedTime = time.Now()
+
+	// If the path to ConmonPidFile starts with the default value (RunRoot), then
+	// the user has not specified '--conmon-pidfile' during run or create (probably).
+	// In that case reset ConmonPidFile to be set to the default value later.
+	if strings.HasPrefix(ctr.config.ConmonPidFile, r.config.StorageConfig.RunRoot) {
+		ctr.config.ConmonPidFile = ""
+	}
+
 	return r.setupContainer(ctx, ctr)
 }
 
