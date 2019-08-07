@@ -457,6 +457,11 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
             }
 
           r = TEMP_FAILURE_RETRY (write (p[1], "0", 1));
+          if (r < 0)
+            {
+              fprintf (stderr, "cannot write to pipe: %s\n", strerror (errno));
+              _exit (EXIT_FAILURE);
+            }
           close (p[1]);
 
           _exit (EXIT_SUCCESS);
@@ -811,6 +816,11 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
     }
 
   ret = TEMP_FAILURE_RETRY (write (ready, "0", 1));
+  if (ret < 0)
+  {
+	  fprintf (stderr, "cannot write to ready pipe: %s\n", strerror (errno));
+	  _exit (EXIT_FAILURE);
+  }
   close (ready);
 
   if (sigprocmask (SIG_SETMASK, &oldsigset, NULL) < 0)
