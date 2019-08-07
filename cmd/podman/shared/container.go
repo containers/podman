@@ -660,7 +660,7 @@ func formatGroup(key string, start, last int32) string {
 }
 
 // portsToString converts the ports used to a string of the from "port1, port2"
-// and also groups continuous list of ports in readable format.
+// and also groups a continuous list of ports into a readable format.
 func portsToString(ports []ocicni.PortMapping) string {
 	type portGroup struct {
 		first int32
@@ -750,7 +750,7 @@ func GetRunlabel(label string, runlabelImage string, ctx context.Context, runtim
 	return runLabel, imageName, err
 }
 
-// GenerateRunlabelCommand generates the command that will eventually be execucted by podman.
+// GenerateRunlabelCommand generates the command that will eventually be execucted by Podman.
 func GenerateRunlabelCommand(runLabel, imageName, name string, opts map[string]string, extraArgs []string, globalOpts string) ([]string, []string, error) {
 	// If no name is provided, we use the image's basename instead.
 	if name == "" {
@@ -809,7 +809,7 @@ func envSliceToMap(env []string) map[string]string {
 	return m
 }
 
-// GenerateKube generates kubernetes yaml based on a pod or container
+// GenerateKube generates kubernetes yaml based on a pod or container.
 func GenerateKube(name string, service bool, r *libpod.Runtime) (*v1.Pod, *v1.Service, error) {
 	var (
 		pod          *libpod.Pod
