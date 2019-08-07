@@ -28,7 +28,7 @@ env:
     TIMESTAMP: "awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk"
 
     ####
-    #### Cache-image names to test with
+    #### Cache-image names to test with (double-quotes around names are critical)
     ###
     _BUILT_IMAGE_SUFFIX: "libpod-5751722641719296"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
