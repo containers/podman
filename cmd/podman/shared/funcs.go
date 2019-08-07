@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/google/shlex"
 )
 
@@ -21,7 +22,10 @@ func GetAuthFile(authfile string) string {
 	if runtimeDir != "" {
 		return filepath.Join(runtimeDir, "containers/auth.json")
 	}
-	return ""
+	if !rootless.IsRootless() {
+		return fmt.Sprintf("/run/containers/%d/auth.json", rootless.GetRootlessUID())
+	}
+	return fmt.Sprintf("/run/user/%d/containers/auth.json", rootless.GetRootlessUID())
 }
 
 func substituteCommand(cmd string) (string, error) {
