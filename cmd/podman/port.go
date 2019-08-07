@@ -48,8 +48,8 @@ func init() {
 
 func portCmd(c *cliconfig.PortValues) error {
 	var (
-		userProto, containerName string
-		userPort                 int
+		userProto string
+		userPort  int
 	)
 	args := c.InputArgs
 
@@ -106,6 +106,7 @@ func portCmd(c *cliconfig.PortValues) error {
 		if err != nil {
 			return err
 		}
+		var found bool
 		// Iterate mappings
 		for _, v := range portmappings {
 			hostIP := v.HostIP
@@ -125,11 +126,13 @@ func portCmd(c *cliconfig.PortValues) error {
 			if v.ContainerPort == int32(userPort) {
 				if userProto == "" || userProto == v.Protocol {
 					fmt.Printf("%s:%d\n", hostIP, v.HostPort)
+					found = true
 					break
 				}
-			} else {
-				return errors.Errorf("No public port '%d' published for %s", userPort, containerName)
 			}
+		}
+		if !found && port != "" {
+			return errors.Errorf("failed to find published port '%d'", userPort)
 		}
 	}
 
