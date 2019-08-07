@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -68,6 +69,12 @@ func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime,
 		cmd:    c.GlobalFlags,
 	}
 	configPath := remoteclientconfig.GetConfigFilePath()
+	// Check if the basedir for configPath exists and if not, create it.
+	if _, err := os.Stat(filepath.Dir(configPath)); os.IsNotExist(err) {
+		if mkdirErr := os.MkdirAll(filepath.Dir(configPath), 0750); mkdirErr != nil {
+			return nil, mkdirErr
+		}
+	}
 	if len(c.GlobalFlags.RemoteConfigFilePath) > 0 {
 		configPath = c.GlobalFlags.RemoteConfigFilePath
 		customConfig = true

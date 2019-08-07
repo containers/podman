@@ -1,4 +1,5 @@
 // +build !remoteclient
+// +build linux
 
 package main
 
