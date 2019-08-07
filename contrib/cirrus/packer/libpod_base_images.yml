@@ -12,6 +12,10 @@ variables:
     # Required for output from qemu builders
     TTYDEV:
 
+    # Ubuntu releases are mearly copied to this project for control purposes
+    UBUNTU_BASE_IMAGE:
+    PRIOR_UBUNTU_BASE_IMAGE:
+
     # Latest Fedora release
     FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-Base-30-1.2.x86_64.qcow2"
     FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-30-1.2-x86_64-CHECKSUM"
@@ -78,29 +82,52 @@ builders:
       ssh_username: 'root'
 
     - <<: *nested_virt
-      name: 'prior_fedora'
+      name: 'prior-fedora'
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
+    - &imgcopy
+      name: 'ubuntu'
+      type: 'googlecompute'
+      image_name: '{{user `UBUNTU_BASE_IMAGE`}}'
+      image_family: '{{build_name}}-base'
+      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      source_image_project_id: 'ubuntu-os-cloud'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      zone: 'us-central1-a'
+      disk_size: 20
+      communicator: 'none'
+
+    - <<: *imgcopy
+      name: 'prior-ubuntu'
+      image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
+      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+
 provisioners:
     - type: 'shell'
+      only: ['fedora', 'prior-fedora']
       inline:
         - 'mkdir -p /tmp/libpod/{{user `SCRIPT_BASE`}}'
         - 'mkdir -p /tmp/libpod/{{user `PACKER_BASE`}}'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/.cirrus.yml'
       destination: '/tmp/libpod/.cirrus.yml'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/{{user `SCRIPT_BASE`}}/'
       destination: '/tmp/libpod/{{user `SCRIPT_BASE`}}/'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/'
       destination: '/tmp/libpod/{{user `PACKER_BASE`}}/'
 
     - &shell_script
+      only: ['fedora', 'prior-fedora']
       type: 'shell'
       inline:
         - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
@@ -121,7 +148,7 @@ provisioners:
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'prior_fedora']
+        only: ['fedora', 'prior-fedora']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -134,10 +161,10 @@ post-processors:
         gcs_object_name: '{{build_name}}-{{user `TIMESTAMP`}}.tar.gz'
         image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
-        image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
+        image_family: '{{build_name}}-base'
       - <<: *gcp_import
-        only: ['prior_fedora']
+        only: ['prior-fedora']
         image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
-        image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'
+        image_family: '{{build_name}}-base'
       - type: 'manifest'

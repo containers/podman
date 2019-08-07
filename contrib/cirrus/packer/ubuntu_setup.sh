@@ -20,18 +20,25 @@ systemd_banish
 
 echo "Updating/configuring package repositories."
 $LILTO $SUDOAPTGET update
-$LILTO $SUDOAPTGET install software-properties-common
-$LILTO $SUDOAPTADD ppa:longsleep/golang-backports
-$LILTO $SUDOAPTADD ppa:projectatomic/ppa
-$LILTO $SUDOAPTADD ppa:criu/ppa
 
 echo "Upgrading all packages"
-$LILTO $SUDOAPTGET update
 $BIGTO $SUDOAPTGET upgrade
+
+echo "Adding PPAs"
+$LILTO $SUDOAPTGET install software-properties-common
+$LILTO $SUDOAPTADD ppa:projectatomic/ppa
+$LILTO $SUDOAPTADD ppa:criu/ppa
+if [[ "$OS_RELEASE_VER" -eq "18" ]]
+then
+    $LILTO $SUDOAPTADD ppa:longsleep/golang-backports
+fi
+
+$LILTO $SUDOAPTGET update
 
 echo "Installing general testing and system dependencies"
 $BIGTO $SUDOAPTGET install \
     apparmor \
+    aufs-tools \
     autoconf \
     automake \
     bats \
@@ -46,6 +53,7 @@ $BIGTO $SUDOAPTGET install \
     e2fslibs-dev \
     emacs-nox \
     gawk \
+    gcc \
     gettext \
     go-md2man \
     golang \
@@ -58,6 +66,7 @@ $BIGTO $SUDOAPTGET install \
     libdevmapper-dev \
     libdevmapper1.02.1 \
     libfuse-dev \
+    libfuse2 \
     libglib2.0-dev \
     libgpgme11-dev \
     liblzma-dev \
@@ -66,7 +75,7 @@ $BIGTO $SUDOAPTGET install \
     libnl-3-dev \
     libostree-dev \
     libvarlink \
-    libprotobuf-c0-dev \
+    libprotobuf-c-dev \
     libprotobuf-dev \
     libseccomp-dev \
     libseccomp2 \
@@ -74,6 +83,7 @@ $BIGTO $SUDOAPTGET install \
     libtool \
     libudev-dev \
     lsof \
+    make \
     netcat \
     pkg-config \
     podman \
@@ -87,19 +97,28 @@ $BIGTO $SUDOAPTGET install \
     python3-psutil \
     python3-pytoml \
     python3-setuptools \
-    slirp4netns \
     skopeo \
+    slirp4netns \
     socat \
     unzip \
     vim \
     xz-utils \
     zip
 
-echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
-SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
-ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
-ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
-ooe.sh sudo update-grub
+if [[ "$OS_RELEASE_VER" -ge "19" ]]
+then
+    echo "Installing Ubuntu > 18 packages"
+    $LILTO $SUDOAPTGET install fuse3 libfuse3-dev libbtrfs-dev
+fi
+
+if [[ "$OS_RELEASE_VER" -eq "18" ]]
+then
+    echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
+    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
+    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
+    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
+    ooe.sh sudo update-grub
+fi
 
 sudo /tmp/libpod/hack/install_catatonit.sh
 ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo

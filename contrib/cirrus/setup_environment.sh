@@ -33,8 +33,8 @@ done
 #       contrib/cirrus/packer/*_setup.sh to be incorporated into VM cache-images
 #       (see docs).
 cd "${GOSRC}/"
-case "${OS_REL_VER}" in
-    ubuntu-18)
+case "${OS_RELEASE_ID}" in
+    ubuntu)
         CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
         if dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
         then
@@ -42,18 +42,11 @@ case "${OS_REL_VER}" in
             ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
         fi
         ;;
-    fedora-30) ;&  # continue to next item
-    fedora-29)
-	# All SELinux distros need this for systemd-in-a-container
-	setsebool container_manage_cgroup true
+    fedora)
+        # All SELinux distros need this for systemd-in-a-container
+        setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
-        ;;
-    centos-7)  # Current VM is an image-builder-image no local podman/testing
-	echo "No further setup required for VM image building"
-	# All SELinux distros need this for systemd-in-a-container
-	setsebool container_manage_cgroup true
-        exit 0
         ;;
     *) bad_os_id_ver ;;
 esac
