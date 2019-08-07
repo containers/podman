@@ -30,11 +30,12 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5751722641719296"
+    _BUILT_IMAGE_SUFFIX: "libpod-5664838702858240"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
     SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -269,6 +270,7 @@ meta_task:
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${SPECIAL_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
+            ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
@@ -326,6 +328,7 @@ testing_task:
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
@@ -530,6 +533,8 @@ test_building_snap_task:
     depends_on:
         - "gating"
 
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
     container:
         image: yakshaveinc/snapcraft:core18
     snapcraft_script:
@@ -542,8 +547,7 @@ test_build_cache_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     depends_on:
         - "gating"
@@ -563,10 +567,7 @@ test_build_cache_images_task:
             - devstorage.full_control
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
-    df_script: '${DFCMD}'
-    journalctl_b_script: 'journalctl -b'
 
     on_failure:
         failed_df_script: '${DFCMD}'
@@ -578,8 +579,7 @@ verify_test_built_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*SYSTEM\s*TEST\s*\*\*\*.*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
 
     depends_on:
@@ -601,6 +601,7 @@ verify_test_built_images_task:
             PACKER_BUILDER_NAME: "fedora-30"
             PACKER_BUILDER_NAME: "xfedora-30"
             PACKER_BUILDER_NAME: "ubuntu-18"
+            PACKER_BUILDER_NAME: "ubuntu-19"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
@@ -616,13 +617,14 @@ verify_test_built_images_task:
             $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
     build_release_script: >-
         [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
+            $SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}
     system_test_script: >-
         [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
             $SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}
 
     always:
         <<: *standardlogs
+
 
 # Post message to IRC if everything passed PR testing
 success_task:

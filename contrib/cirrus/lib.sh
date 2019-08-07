@@ -52,13 +52,14 @@ CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
 # Vars. for image-building
-PACKER_VER="1.3.5"
+PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,xfedora-30,fedora-29}"
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-30,xfedora-30,fedora-29}"
 # Google-maintained base-image names
-export UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
+export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
+export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
