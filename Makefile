@@ -253,10 +253,34 @@ remoteintegration: varlink_generate test-binaries ginkgo-remote
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then PODMAN=./bin/podman bats test/system/; else echo "Skipping localsystem: 'timeout -v' unavailable'"; fi
+	if timeout -v 1 true; then PODMAN=./bin/podman bats test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
 
 remotesystem:
-	@echo "remotesystem - unimplemented"
+	# Wipe existing config, database, and cache: start with clean slate.
+	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
+	# Start varlink server using tmp socket; loop-wait for it;
+	# test podman-remote; kill server, clean up tmp socket file.
+	# varlink server spews copious unhelpful output; ignore it.
+	rc=0;\
+	if timeout -v 1 true; then \
+		SOCK_FILE=$(shell mktemp --dry-run --tmpdir io.podman.XXXXXX);\
+		export PODMAN_VARLINK_ADDRESS=unix:$$SOCK_FILE; \
+		./bin/podman varlink --timeout=0 $$PODMAN_VARLINK_ADDRESS &>/dev/null & \
+		retry=5;\
+		while [[ $$retry -ge 0 ]]; do\
+			echo Waiting for varlink server...;\
+			sleep 1;\
+			./bin/podman-remote info &>/dev/null && break;\
+			retry=$$(expr $$retry - 1);\
+		done;\
+		env PODMAN=./bin/podman-remote bats test/system/ ;\
+		rc=$$?;\
+		kill %1;\
+		rm -f $$SOCK_FILE;\
+	else \
+		echo "Skipping $@: 'timeout -v' unavailable'";\
+	fi;\
+	exit $$rc
 
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system

@@ -216,26 +216,31 @@ function wait_for_ready {
 ###############################################################################
 # BEGIN miscellaneous tools
 
+# Shortcuts for common needs:
+function is_rootless() {
+    [ "$(id -u)" -ne 0 ]
+}
+
+function is_remote() {
+    [[ "$PODMAN" =~ -remote ]]
+}
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################
 function skip_if_rootless() {
-    if [ "$(id -u)" -eq 0 ]; then
-        return
+    if is_rootless; then
+        skip "${1:-not applicable under rootless podman}"
     fi
-
-    skip "${1:-not applicable under rootless podman}"
 }
 
 ####################
 #  skip_if_remote  #  ...with an optional message
 ####################
 function skip_if_remote() {
-    if [[ ! "$PODMAN" =~ -remote ]]; then
-        return
+    if is_remote; then
+        skip "${1:-test does not work with podman-remote}"
     fi
-
-    skip "${1:-test does not work with podman-remote}"
 }
 
 #########################

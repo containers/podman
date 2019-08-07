@@ -6,10 +6,8 @@
 load helpers
 
 @test "podman build - basic test" {
-    if [[ "$PODMAN" =~ -remote ]]; then
-        if [ "$(id -u)" -ne 0 ]; then
-            skip "unreliable with podman-remote and rootless; #2972"
-        fi
+    if is_remote && is_rootless; then
+        skip "unreliable with podman-remote and rootless; #2972"
     fi
 
     rand_filename=$(random_string 20)

@@ -3,6 +3,8 @@
 load helpers
 
 @test "podman pod top - containers in different PID namespaces" {
+    skip_if_remote "podman-pod does not work with podman-remote"
+
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )
     no_infra='--infra=false'
