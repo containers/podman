@@ -140,7 +140,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	if err != nil {
 		return errors.Wrapf(err, "error getting IDMappingOptions")
 	}
-	containerOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
 	hostUID, hostGID, err := util.GetHostIDs(convertIDMap(idMappingOpts.UIDMap), convertIDMap(idMappingOpts.GIDMap), user.UID, user.GID)
 	if err != nil {
 		return err
@@ -183,6 +183,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			destPath = cleanedPath
 		}
 	} else {
+		destOwner = idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
 		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol {
 			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, srcPath)
 			if err != nil {
@@ -230,7 +231,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			src = os.Stdin.Name()
 			extract = true
 		}
-		err := copy(src, destPath, dest, idMappingOpts, &containerOwner, extract, isFromHostToCtr)
+		err := copy(src, destPath, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
 		if lastError != nil {
 			logrus.Error(lastError)
 		}
