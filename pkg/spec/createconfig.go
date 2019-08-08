@@ -64,8 +64,9 @@ type CreateConfig struct {
 	CidFile            string
 	ConmonPidFile      string
 	Cgroupns           string
-	CgroupParent       string // cgroup-parent
-	Command            []string
+	CgroupParent       string            // cgroup-parent
+	Command            []string          // Full command that will be used
+	UserCommand        []string          // User-entered command (or image CMD)
 	Detach             bool              // detach
 	Devices            []string          // device
 	DNSOpt             []string          //dns-opt
@@ -230,8 +231,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithNamedVolumes(namedVolumes))
 	}
 
-	if len(c.Command) != 0 {
-		options = append(options, libpod.WithCommand(c.Command))
+	if len(c.UserCommand) != 0 {
+		options = append(options, libpod.WithCommand(c.UserCommand))
 	}
 
 	// Add entrypoint unconditionally

@@ -218,4 +218,17 @@ var _ = Describe("Podman create", func() {
 		match, _ := check.GrepString("foobar")
 		Expect(match).To(BeTrue())
 	})
+
+	It("podman run entrypoint and cmd test", func() {
+		name := "test101"
+		create := podmanTest.Podman([]string{"create", "--name", name, redis})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		ctrJSON := podmanTest.InspectContainer(name)
+		Expect(len(ctrJSON)).To(Equal(1))
+		Expect(len(ctrJSON[0].Config.Cmd)).To(Equal(1))
+		Expect(ctrJSON[0].Config.Cmd[0]).To(Equal("redis-server"))
+		Expect(ctrJSON[0].Config.Entrypoint).To(Equal("docker-entrypoint.sh"))
+	})
 })
