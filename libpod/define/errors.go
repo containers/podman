@@ -107,4 +107,8 @@ var (
 	// ErrOCIRuntimeNotFound indicates the OCI runtime attempted to invoke a command
 	// that was not found
 	ErrOCIRuntimeNotFound = errors.New("OCI runtime command not found error")
+
+	// ErrConmonOutdated indicates the version of conmon found (whether via the configuration or $PATH)
+	// is out of date for the current podman version
+	ErrConmonOutdated = errors.New("outdated conmon version")
 )

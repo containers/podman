@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -8,6 +9,8 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -739,17 +742,54 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	return manager, nil
 }
 
+// probeConmon calls conmon --version and verifies it is a new enough version for
+// the runtime expectations podman currently has
+func probeConmon(conmonBinary string) error {
+	cmd := exec.Command(conmonBinary, "--version")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
+
+	matches := r.FindStringSubmatch(out.String())
+	if len(matches) != 4 {
+		return errors.Wrapf(err, "conmon version changed format")
+	}
+	major, err := strconv.Atoi(matches[1])
+	if err != nil || major < 1 {
+		return define.ErrConmonOutdated
+	}
+	// conmon used to be shipped with CRI-O, and was versioned along with it.
+	// even though the conmon that came with crio-1.9 to crio-1.15 has a higher
+	// version number than conmon 1.0.0, 1.0.0 is newer, so we need this check
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil || minor > 9 {
+		return define.ErrConmonOutdated
+	}
+
+	return nil
+}
+
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Find a working conmon binary
 	foundConmon := false
+	foundOutdatedConmon := false
 	for _, path := range runtime.config.ConmonPath {
 		stat, err := os.Stat(path)
 		if err != nil {
 			continue
 		}
 		if stat.IsDir() {
+			continue
+		}
+		if err := probeConmon(path); err != nil {
+			logrus.Warnf("conmon at %s invalid: %v", path, err)
+			foundOutdatedConmon = true
 			continue
 		}
 		foundConmon = true
@@ -761,13 +801,21 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Search the $PATH as last fallback
 	if !foundConmon {
 		if conmon, err := exec.LookPath("conmon"); err == nil {
-			foundConmon = true
-			runtime.conmonPath = conmon
-			logrus.Debugf("using conmon from $PATH: %q", conmon)
+			if err := probeConmon(conmon); err != nil {
+				logrus.Warnf("conmon at %s is invalid: %v", conmon, err)
+				foundOutdatedConmon = true
+			} else {
+				foundConmon = true
+				runtime.conmonPath = conmon
+				logrus.Debugf("using conmon from $PATH: %q", conmon)
+			}
 		}
 	}
 
 	if !foundConmon {
+		if foundOutdatedConmon {
+			return errors.Wrapf(define.ErrConmonOutdated, "please update to v1.0.0 or later")
+		}
 		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
 			runtime.config.ConmonPath)
