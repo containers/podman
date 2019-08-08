@@ -629,6 +629,9 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// Validate domains are good
 	for _, dom := range c.StringSlice("dns-search") {
+		if dom == "." {
+			continue
+		}
 		if _, err := parse.ValidateDomain(dom); err != nil {
 			return nil, err
 		}
