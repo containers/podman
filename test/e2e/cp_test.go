@@ -209,4 +209,40 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
+
+	It("podman cp from ctr chown ", func() {
+		setup := podmanTest.RunTopContainer("testctr")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "testctr", "adduser", "-S", "testuser"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", "-u", "testuser", "testctr", "touch", "testfile"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "testctr:testfile", "testfile1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// owner of the file copied to local machine is not testuser
+		cmd := exec.Command("ls", "-l", "testfile1")
+		cmdRet, err := cmd.Output()
+		Expect(err).To(BeNil())
+		Expect(strings.Contains(string(cmdRet), "testuser")).To(BeFalse())
+
+		session = podmanTest.Podman([]string{"cp", "testfile1", "testctr:testfile2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// owner of the file copied to a container is the root user
+		session = podmanTest.Podman([]string{"exec", "-it", "testctr", "ls", "-l", "testfile2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("root"))
+
+		os.Remove("testfile1")
+	})
 })
