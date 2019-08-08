@@ -10,6 +10,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 )
 
@@ -296,9 +297,19 @@ func checkChownErr(err error, name string, uid, gid int) error {
 }
 
 func SafeChown(name string, uid, gid int) error {
+	if stat, statErr := system.Stat(name); statErr == nil {
+		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
+			return nil
+		}
+	}
 	return checkChownErr(os.Chown(name, uid, gid), name, uid, gid)
 }
 
 func SafeLchown(name string, uid, gid int) error {
+	if stat, statErr := system.Lstat(name); statErr == nil {
+		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
+			return nil
+		}
+	}
 	return checkChownErr(os.Lchown(name, uid, gid), name, uid, gid)
 }

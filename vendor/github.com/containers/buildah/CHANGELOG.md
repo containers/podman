@@ -2,6 +2,111 @@
 
 # Changelog
 
+## v1.10.0 (2019-08-02)
+    vendor github.com/containers/image@v3.0.0
+    Remove GO111MODULE in favor of `-mod=vendor`
+    Vendor in containers/storage v1.12.16
+    Add '-' minus syntax for removal of config values
+    tests: enable overlay tests for rootless
+    rootless, overlay: use fuse-overlayfs
+    vendor github.com/containers/image@v2.0.1
+    Added '-' syntax to remove volume config option
+    delete `successfully pushed` message
+    Add golint linter and apply fixes
+    vendor github.com/containers/storage@v1.12.15
+    Change wait to sleep in buildahimage readme
+    Handle ReadOnly images when deleting images
+    Add support for listing read/only images
+
+## v1.9.2 (2019-07-19)
+    from/import: record the base image's digest, if it has one
+    Fix CNI version retrieval to not require network connection
+    Add misspell linter and apply fixes
+    Add goimports linter and apply fixes
+    Add stylecheck linter and apply fixes
+    Add unconvert linter and apply fixes
+    image: make sure we don't try to use zstd compression
+    run.bats: skip the "z" flag when testing --mount
+    Update to runc v1.0.0-rc8
+    Update to match updated runtime-tools API
+    bump github.com/opencontainers/runtime-tools to v0.9.0
+    Build e2e tests using the proper build tags
+    Add unparam linter and apply fixes
+    Run: correct a typo in the --cap-add help text
+    unshare: add a --mount flag
+    fix push check image name is not empty
+    Bump to v1.9.2-dev
+
+## v1.9.1 (2019-07-12)
+    add: fix slow copy with no excludes
+    Add errcheck linter and fix missing error check
+    Improve tests/tools/Makefile parallelism and abstraction
+    Fix response body not closed resource leak
+    Switch to golangci-lint
+    Add gomod instructions and mailing list links
+    On Masked path, check if /dev/null already mounted before mounting
+    Update to containers/storage v1.12.13
+    Refactor code in package imagebuildah
+    Add rootless podman with NFS issue in documentation
+    Add --mount  for buildah run
+    import method ValidateVolumeOpts from libpod
+    Fix typo
+    Makefile: set GO111MODULE=off
+    rootless: add the built-in slirp DNS server
+    Update docker/libnetwork to get rid of outdated sctp package
+    Update buildah-login.md
+    migrate to go modules
+    install.md: mention go modules
+    tests/tools: go module for test binaries
+    fix --volume splits comma delimited option
+    Add bud test for RUN with a priv'd command
+    vendor logrus v1.4.2
+    pkg/cli: panic when flags can't be hidden
+    pkg/unshare: check all errors
+    pull: check error during report write
+    run_linux.go: ignore unchecked errors
+    conformance test: catch copy error
+    chroot/run_test.go: export funcs to actually be executed
+    tests/imgtype: ignore error when shutting down the store
+    testreport: check json error
+    bind/util.go: remove unused func
+    rm chroot/util.go
+    imagebuildah: remove unused `dedupeStringSlice`
+    StageExecutor: EnsureContainerPath: catch error from SecureJoin()
+    imagebuildah/build.go: return <expr> instead of branching
+    rmi: avoid redundant branching
+    conformance tests: nilness: allocate map
+    imagebuildah/build.go: avoid redundant `filepath.Join()`
+    imagebuildah/build.go: avoid redundant `os.Stat()`
+    imagebuildah: omit comparison to bool
+    fix "ineffectual assignment" lint errors
+    docker: ignore "repeats json tag" lint error
+    pkg/unshare: use `...` instead of iterating a slice
+    conformance: bud test: use raw strings for regexes
+    conformance suite: remove unused func/var
+    buildah test suite: remove unused vars/funcs
+    testreport: fix golangci-lint errors
+    util: remove redundant `return` statement
+    chroot: only log clean-up errors
+    images_test: ignore golangci-lint error
+    blobcache: log error when draining the pipe
+    imagebuildah: check errors in deferred calls
+    chroot: fix error handling in deferred funcs
+    cmd: check all errors
+    chroot/run_test.go: check errors
+    chroot/run.go: check errors in deferred calls
+    imagebuildah.Executor: remove unused onbuild field
+    docker/types.go: remove unused struct fields
+    util: use strings.ContainsRune instead of index check
+    Cirrus: Initial implementation
+    Bump to v1.9.1-dev
+
+## v1.9.0 (2019-06-15)
+    buildah-run: fix-out-of-range panic (2)
+    Bump back to v1.9.0-dev
+
+
+
 ## v1.8.4 (2019-06-13)
     Update containers/image to v2.0.0
     run: fix hang with run and --isolation=chroot
@@ -32,49 +137,49 @@
     Cleanup Overlay Mounts content
 
 ## v1.8.3 (2019-06-04)
-  * Add support for file secret mounts
-  * Add ability to skip secrets in mounts file
-  * allow 32bit builds
-  * fix tutorial instructions
-  * imagebuilder: pass the right contextDir to Add()
-  * add: use fileutils.PatternMatcher for .dockerignore
-  * bud.bats: add another .dockerignore test
-  * unshare: fallback to single usermapping
-  * addHelperSymlink: clear the destination on os.IsExist errors
-  * bud.bats: test replacing symbolic links
-  * imagebuildah: fix handling of destinations that end with '/'
-  * bud.bats: test COPY with a final "/" in the destination
-  * linux: add check for sysctl before using it
-  * unshare: set _CONTAINERS_ROOTLESS_GID
-  * Rework buildahimamges
-  * build context: support https git repos
-  * Add a test for ENV special chars behaviour
-  * Check in new Dockerfiles
-  * Apply custom SHELL during build time
-  * config: expand variables only at the command line
-  * SetEnv: we only need to expand v once
-  * Add default /root if empty on chroot iso
-  * Add support for Overlay volumes into the container.
-  * Export buildah validate volume functions so it can share code with libpod
-  * Bump baseline test to F30
-  * Fix rootless handling of /dev/shm size
-  * Avoid fmt.Printf() in the library
-  * imagebuildah: tighten cache checking back up
-  * Handle WORKDIR with dangling target
-  * Default Authfile to proper path
-  * Make buildah run --isolation follow BUILDAH_ISOLATION environment
-  * Vendor in latest containers/storage and containers/image
-  * getParent/getChildren: handle layerless images
-  * imagebuildah: recognize cache images for layerless images
-  * bud.bats: test scratch images with --layers caching
-  * Get CHANGELOG.md updates
-  * Add some symlinks to test our .dockerignore logic
-  * imagebuildah: addHelper: handle symbolic links
-  * commit/push: use an everything-allowed policy
-  * Correct manpage formatting in files section
-  * Remove must be root statement from buildah doc
-  * Change image names to stable, testing and upstream
-  * Bump back to v1.9.0-dev
+    Add support for file secret mounts
+    Add ability to skip secrets in mounts file
+    allow 32bit builds
+    fix tutorial instructions
+    imagebuilder: pass the right contextDir to Add()
+    add: use fileutils.PatternMatcher for .dockerignore
+    bud.bats: add another .dockerignore test
+    unshare: fallback to single usermapping
+    addHelperSymlink: clear the destination on os.IsExist errors
+    bud.bats: test replacing symbolic links
+    imagebuildah: fix handling of destinations that end with '/'
+    bud.bats: test COPY with a final "/" in the destination
+    linux: add check for sysctl before using it
+    unshare: set _CONTAINERS_ROOTLESS_GID
+    Rework buildahimamges
+    build context: support https git repos
+    Add a test for ENV special chars behaviour
+    Check in new Dockerfiles
+    Apply custom SHELL during build time
+    config: expand variables only at the command line
+    SetEnv: we only need to expand v once
+    Add default /root if empty on chroot iso
+    Add support for Overlay volumes into the container.
+    Export buildah validate volume functions so it can share code with libpod
+    Bump baseline test to F30
+    Fix rootless handling of /dev/shm size
+    Avoid fmt.Printf() in the library
+    imagebuildah: tighten cache checking back up
+    Handle WORKDIR with dangling target
+    Default Authfile to proper path
+    Make buildah run --isolation follow BUILDAH_ISOLATION environment
+    Vendor in latest containers/storage and containers/image
+    getParent/getChildren: handle layerless images
+    imagebuildah: recognize cache images for layerless images
+    bud.bats: test scratch images with --layers caching
+    Get CHANGELOG.md updates
+    Add some symlinks to test our .dockerignore logic
+    imagebuildah: addHelper: handle symbolic links
+    commit/push: use an everything-allowed policy
+    Correct manpage formatting in files section
+    Remove must be root statement from buildah doc
+    Change image names to stable, testing and upstream
+    Bump back to v1.9.0-dev
 
 ## v1.8.2 (2019-05-02)
     Vendor Storage 1.12.6

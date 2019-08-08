@@ -254,6 +254,9 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 		return nil, errors.Wrapf(err, "error loading registries")
 	}
 	if reg != nil {
+		if reg.Blocked {
+			return nil, fmt.Errorf("registry %s is blocked in %s", reg.Prefix, sysregistriesv2.ConfigPath(sys))
+		}
 		skipVerify = reg.Insecure
 	}
 	tlsClientConfig.InsecureSkipVerify = skipVerify
@@ -523,11 +526,7 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge, 
 		authReq.SetBasicAuth(c.username, c.password)
 	}
 	logrus.Debugf("%s %s", authReq.Method, authReq.URL.String())
-	tr := tlsclientconfig.NewTransport()
-	// TODO(runcom): insecure for now to contact the external token service
-	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	client := &http.Client{Transport: tr}
-	res, err := client.Do(authReq)
+	res, err := c.client.Do(authReq)
 	if err != nil {
 		return nil, err
 	}

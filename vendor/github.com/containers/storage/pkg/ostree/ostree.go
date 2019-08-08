@@ -1,4 +1,4 @@
-// +build ostree
+// +build ostree,cgo
 
 package ostree
 

@@ -322,7 +322,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				return nil, fmt.Errorf("overlay: ostree_repo specified but support for ostree is missing")
 			}
 			o.ostreeRepo = val
-		case "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
+		case ".ignore_chown_errors", "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
 			logrus.Debugf("overlay: ignore_chown_errors=%s", val)
 			o.ignoreChownErrors, err = strconv.ParseBool(val)
 			if err != nil {
@@ -839,8 +839,17 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	if _, err := os.Stat(dir); err != nil {
 		return "", err
 	}
+	readWrite := true
+	// fuse-overlayfs doesn't support working without an upperdir.
+	if d.options.mountProgram == "" {
+		for _, o := range options.Options {
+			if o == "ro" {
+				readWrite = false
+				break
+			}
+		}
+	}
 
-	diffDir := path.Join(dir, "diff")
 	lowers, err := ioutil.ReadFile(path.Join(dir, lowerFile))
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
@@ -911,15 +920,31 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	// If the lowers list is still empty, use an empty lower so that we can still force an
 	// SELinux context for the mount.
+
+	// if we are doing a readOnly mount, and there is only one lower
+	// We should just return the lower directory, no reason to mount.
+	if !readWrite {
+		if len(absLowers) == 0 {
+			return path.Join(dir, "empty"), nil
+		}
+		if len(absLowers) == 1 {
+			return absLowers[0], nil
+		}
+	}
 	if len(absLowers) == 0 {
 		absLowers = append(absLowers, path.Join(dir, "empty"))
 		relLowers = append(relLowers, path.Join(id, "empty"))
 	}
-
 	// user namespace requires this to move a directory from lower to upper.
 	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
 	if err != nil {
 		return "", err
+	}
+	diffDir := path.Join(dir, "diff")
+	if readWrite {
+		if err := idtools.MkdirAllAs(diffDir, 0755, rootUID, rootGID); err != nil && !os.IsExist(err) {
+			return "", err
+		}
 	}
 
 	mergedDir := path.Join(dir, "merged")
@@ -940,8 +965,12 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}()
 
-	workDir := path.Join(dir, "work")
-	opts := fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, workDir)
+	var opts string
+	if readWrite {
+		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(absLowers, ":"), diffDir, path.Join(dir, "work"))
+	} else {
+		opts = fmt.Sprintf("lowerdir=%s", strings.Join(absLowers, ":"))
+	}
 	if len(options.Options) > 0 {
 		opts = fmt.Sprintf("%s,%s", strings.Join(options.Options, ","), opts)
 	} else if d.options.mountOptions != "" {
@@ -979,7 +1008,12 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	} else if len(mountData) > pageSize {
 		//FIXME: We need to figure out to get this to work with additional stores
-		opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), path.Join(id, "diff"), path.Join(id, "work"))
+		if readWrite {
+			diffDir := path.Join(id, "diff")
+			opts = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s", strings.Join(relLowers, ":"), diffDir, path.Join(id, "work"))
+		} else {
+			opts = fmt.Sprintf("lowerdir=%s", strings.Join(absLowers, ":"))
+		}
 		mountData = label.FormatMountLabel(opts, options.MountLabel)
 		if len(mountData) > pageSize {
 			return "", fmt.Errorf("cannot mount layer, mount label too large %d", len(mountData))
@@ -993,11 +1027,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	logrus.Debugf("overlay: mount_data=%s", mountData)
 	if err := mountFunc("overlay", mountTarget, "overlay", uintptr(flags), data); err != nil {
 		return "", fmt.Errorf("error creating overlay mount to %s: %v", mountTarget, err)
-	}
-
-	// chown "workdir/work" to the remapped root UID/GID. Overlay fs inside a
-	if err := os.Chown(path.Join(workDir, "work"), rootUID, rootGID); err != nil {
-		return "", err
 	}
 
 	return mergedDir, nil
@@ -1018,7 +1047,7 @@ func (d *Driver) Put(id string) error {
 	if _, err := ioutil.ReadFile(path.Join(dir, lowerFile)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil {
+	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
 		logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
 	}
 

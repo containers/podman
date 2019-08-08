@@ -422,6 +422,16 @@ func (b *Builder) Volumes() []string {
 	return nil
 }
 
+// CheckVolume returns True if the location exists in the image's list of locations
+// which should be mounted from outside of the container when a container
+// based on an image built from this container is run
+
+func (b *Builder) CheckVolume(v string) bool {
+	_, OCIv1Volume := b.OCIv1.Config.Volumes[v]
+	_, DockerVolume := b.Docker.Config.Volumes[v]
+	return OCIv1Volume || DockerVolume
+}
+
 // AddVolume adds a location to the image's list of locations which should be
 // mounted from outside of the container when a container based on an image
 // built from this container is run.

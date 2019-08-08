@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/manifest"
-	"github.com/containers/image/pkg/sysregistries"
+	"github.com/containers/image/pkg/sysregistriesv2"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -186,7 +186,7 @@ func resolveImage(ctx context.Context, systemContext *types.SystemContext, store
 		return nil, "", nil, fmt.Errorf("internal error: %d candidates (%#v) vs. %d failures (%#v)", len(candidates), candidates, len(failures), failures)
 	}
 
-	registriesConfPath := sysregistries.RegistriesConfPath(systemContext)
+	registriesConfPath := sysregistriesv2.ConfigPath(systemContext)
 	switch len(failures) {
 	case 0:
 		if searchRegistriesWereUsedButEmpty {

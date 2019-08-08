@@ -414,8 +414,8 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 	}
 }
 
-func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
-	return s.destination.HasThreadSafePutBlob()
+func (d *blobCacheDestination) HasThreadSafePutBlob() bool {
+	return d.destination.HasThreadSafePutBlob()
 }
 
 func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
