@@ -13,11 +13,11 @@ require (
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.9.2
+	github.com/containers/buildah v1.10.1
 	github.com/containers/conmon v0.3.0 // indirect
-	github.com/containers/image v2.0.1+incompatible
+	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/psgo v1.3.1
-	github.com/containers/storage v1.12.16
+	github.com/containers/storage v1.13.1
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-iptables v0.4.1
@@ -91,7 +91,6 @@ require (
 	github.com/ugorji/go v1.1.5-pre // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
-	github.com/vbauerster/mpb v3.4.0+incompatible // indirect
 	github.com/vishvananda/netlink v1.0.0
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect

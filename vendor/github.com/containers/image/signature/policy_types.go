@@ -6,7 +6,7 @@
 
 package signature
 
-// NOTE: Keep this in sync with docs/policy.json.md!
+// NOTE: Keep this in sync with docs/containers-policy.json.5.md!
 
 // Policy defines requirements for considering a signature, or an image, valid.
 type Policy struct {

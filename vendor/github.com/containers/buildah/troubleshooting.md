@@ -112,9 +112,7 @@ lstat /home/myusername/~: no such file or directory
 ---
 ### 5) Rootless buildah bud fails EPERM on NFS:
 
-NFS enforces file creation on different UIDs on the server side and does not understand User Namespace.
-When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.
-NFS is also a problem for the file locks when the storage is on it.
+NFS enforces file creation on different UIDs on the server side and does not understand user namespace, which rootless Podman requires.  When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.  NFS is also a problem for the file locks when the storage is on it.  Other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are also not supported when running in rootless mode as these file systems do not understand user namespace.
 
 #### Symptom
 ```console
@@ -127,4 +125,34 @@ error creating build container: Error committing the finished image: error addin
 Choose one of the following:
   * Setup containers/storage in a different directory, not on an NFS share.
   * Otherwise just run buildah as root, via `sudo buildah`
+---
+### 6) Rootless buildah bud fails when using OverlayFS:
+
+The Overlay file system (OverlayFS) requires the ability to call the `mknod` command when creating whiteout files
+when extracting an image.  However, a rootless user does not have the privileges to use `mknod` in this capacity.
+
+#### Symptom
+```console
+buildah bud --storage-driver overlay .
+STEP 1: FROM docker.io/ubuntu:xenial
+Getting image source signatures
+Copying blob edf72af6d627 done
+Copying blob 3e4f86211d23 done
+Copying blob 8d3eac894db4 done
+Copying blob f7277927d38a done
+Copying config 5e13f8dd4c done
+Writing manifest to image destination
+Storing signatures
+Error: error creating build container: Error committing the finished image: error adding layer with blob "sha256:8d3eac894db4dc4154377ad28643dfe6625ff0e54bcfa63e0d04921f1a8ef7f8": Error processing tar file(exit status 1): operation not permitted
+$ buildah bud .
+ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+```
+
+#### Solution
+Choose one of the following:
+  * Complete the build operation as a privileged user.
+  * Install and configure fuse-overlayfs.
+    * Install the fuse-overlayfs package for your Linux Distribution.
+    * Add `mount_program = "/usr/bin/fuse-overlayfs` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
 ---

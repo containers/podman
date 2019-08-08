@@ -27,10 +27,16 @@ PACKAGE := github.com/containers/storage
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN := $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 EPOCH_TEST_COMMIT := 0418ebf59f9e1f564831c0ba9378b7f8e40a1c73
-NATIVETAGS := exclude_graphdriver_devicemapper exclude_graphdriver_btrfs exclude_graphdriver_overlay
+NATIVETAGS :=
 AUTOTAGS := $(shell ./hack/btrfs_tag.sh) $(shell ./hack/libdm_tag.sh) $(shell ./hack/ostree_tag.sh)
 BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
-GO := go
+GO ?= go
+
+GO_BUILD=$(GO) build
+# Go module support: set `-mod=vendor` to use the vendored sources
+ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
+	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+endif
 
 RUNINVM := vagrant/runinvm.sh
 FFJSON := tests/tools/build/ffjson
@@ -43,7 +49,7 @@ clean: ## remove all built files
 sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.go pkg/*/*.go pkg/*/*/*.go) layers_ffjson.go images_ffjson.go containers_ffjson.go pkg/archive/archive_ffjson.go
 
 containers-storage: $(sources) ## build using gc on the host
-	$(GO) build -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
+	$(GO_BUILD) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
 layers_ffjson.go: layers.go
 	$(RM) $@
@@ -64,15 +70,15 @@ pkg/archive/archive_ffjson.go: pkg/archive/archive.go
 binary local-binary: containers-storage
 
 local-gccgo: ## build using gccgo on the host
-	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO) build -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
+	GCCGO=$(PWD)/hack/gccgo-wrapper.sh $(GO_BUILD) -compiler gccgo $(BUILDFLAGS) -o containers-storage.gccgo ./cmd/containers-storage
 
 local-cross: ## cross build the binaries for arm, darwin, and\nfreebsd
 	@for target in linux/amd64 linux/386 linux/arm linux/arm64 linux/ppc64 linux/ppc64le darwin/amd64 windows/amd64 ; do \
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
-		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
-		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
+		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO_BUILD) -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
+		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO_BUILD) -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
 	done
 
 cross: ## cross build the binaries for arm, darwin, and\nfreebsd using VMs

@@ -59,9 +59,15 @@ func (s *ostreeImageSource) Close() error {
 	return nil
 }
 
-func (s *ostreeImageSource) getLayerSize(blob string) (int64, error) {
+func (s *ostreeImageSource) getBlobUncompressedSize(blob string, isCompressed bool) (int64, error) {
+	var metadataKey string
+	if isCompressed {
+		metadataKey = "docker.uncompressed_size"
+	} else {
+		metadataKey = "docker.size"
+	}
 	b := fmt.Sprintf("ociimage/%s", blob)
-	found, data, err := readMetadata(s.repo, b, "docker.size")
+	found, data, err := readMetadata(s.repo, b, metadataKey)
 	if err != nil || !found {
 		return 0, err
 	}
@@ -275,8 +281,8 @@ func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 		}
 
 	}
-	compressedBlob, found := s.compressed[info.Digest]
-	if found {
+	compressedBlob, isCompressed := s.compressed[info.Digest]
+	if isCompressed {
 		blob = compressedBlob.Hex()
 	}
 	branch := fmt.Sprintf("ociimage/%s", blob)
@@ -289,7 +295,7 @@ func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 		s.repo = repo
 	}
 
-	layerSize, err := s.getLayerSize(blob)
+	layerSize, err := s.getBlobUncompressedSize(blob, isCompressed)
 	if err != nil {
 		return nil, 0, err
 	}
