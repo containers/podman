@@ -627,6 +627,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
 	}
 
+	// Check for explicit dns-search domain of ''
+	if c.Changed("dns-search") && len(c.StringSlice("dns-search")) == 0 {
+		return nil, errors.Errorf("'' is not a valid domain")
+	}
+
 	// Validate domains are good
 	for _, dom := range c.StringSlice("dns-search") {
 		if dom == "." {
