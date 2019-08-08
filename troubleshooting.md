@@ -298,7 +298,33 @@ tells SELinux to apply the labels to the actual content.
 Now all new content created in these directories will automatically be created
 with the correct label.
 
-### 12) Running Podman inside a container causes container crashes and inconsistent states
+### 12) Anonymous image pull fails with 'invalid username/password'
+
+Pulling an anonymous image that doesn't require authentication can result in an
+`invalid username/password` error.
+
+#### Symptom
+
+If you pull an anonymous image, one that should not require credentials, you can receive
+and `invalid username/password` error if you have credentials established in the
+authentication file for the target container registry that are no longer valid.
+
+```
+podman run -it --rm docker://docker.io/library/alpine:latest ls
+Trying to pull docker://docker.io/library/alpine:latest...ERRO[0000] Error pulling image ref //alpine:latest: Error determining manifest MIME type for docker://alpine:latest: unable to retrieve auth token: invalid username/password
+Failed
+Error: unable to pull docker://docker.io/library/alpine:latest: unable to pull image: Error determining manifest MIME type for docker://alpine:latest: unable to retrieve auth token: invalid username/password
+```
+
+This can happen if the authentication file is modified 'by hand' or if the credentials
+are established locally and then the password is updated later in the container registry.
+
+#### Solution
+
+Depending upon which container tool was used to establish the credentials, use `podman logout`
+or `docker logout` to remove the credentials from the authentication file.
+
+### 13) Running Podman inside a container causes container crashes and inconsistent states
 
 Running Podman in a container and forwarding some, but not all, of the required host directories can cause inconsistent container behavior.
 
@@ -316,7 +342,7 @@ This can cause Podman to reset container states and lose track of running contai
 
 For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.
 
-### 13) Rootless 'podman build' fails EPERM on NFS:
+### 14) Rootless 'podman build' fails EPERM on NFS:
 
 NFS enforces file creation on different UIDs on the server side and does not understand user namespace, which rootless Podman requires.
 When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.
@@ -336,7 +362,7 @@ Choose one of the following:
     * Edit `~/.config/containers/libpod.conf` and point the `volume_path` option to that local directory.
   * Otherwise just run podman as root, via `sudo podman`
 
-### 14) Rootless 'podman build' fails when using OverlayFS:
+### 15) Rootless 'podman build' fails when using OverlayFS:
 
 The Overlay file system (OverlayFS) requires the ability to call the `mknod` command when creating whiteout files
 when extracting an image.  However, a rootless user does not have the privileges to use `mknod` in this capacity.
