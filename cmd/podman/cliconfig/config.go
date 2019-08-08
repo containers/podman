@@ -1,6 +1,8 @@
 package cliconfig
 
 import (
+	"net"
+
 	"github.com/spf13/cobra"
 )
 
@@ -257,6 +259,17 @@ type MountValues struct {
 	Format  string
 	NoTrunc bool
 	Latest  bool
+}
+
+type NetworkCreateValues struct {
+	PodmanCommand
+	Driver     string
+	Gateway    net.IP
+	Internal   bool
+	IPamDriver string
+	IPRange    net.IPNet
+	IPV6       bool
+	Network    net.IPNet
 }
 
 type NetworkListValues struct {

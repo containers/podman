@@ -952,6 +952,7 @@ _podman_network() {
 	-h
 	"
      subcommands="
+     create
 	 inspect
 	 ls
 	 rm
@@ -968,6 +969,27 @@ _podman_network() {
      esac
 }
 
+_podman_network_create() {
+    local options_with_args="
+    -d
+    --driver
+    --gateway
+    --ip-range
+    --subnet
+     "
+    local boolean_options="
+	--help
+	-h
+	--internal
+    "
+    _complete_ "$options_with_args" "$boolean_options"
+
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
 _podman_network_inspect() {
     local options_with_args="
      "
@@ -1002,7 +1024,7 @@ _podman_network_ls() {
     esac
 }
 
-_podman_network_ls() {
+_podman_network_rm() {
     local options_with_args="
      "
     local boolean_options="

@@ -12,7 +12,7 @@ Displays a list of existing podman networks. This command is not available for r
 ## OPTIONS
 **--quiet**, **-q**
 
-The `quiet` options will restrict the output to only the network names
+The `quiet` option will restrict the output to only the network names
 
 ## EXAMPLE
 

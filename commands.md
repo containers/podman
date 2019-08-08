@@ -45,6 +45,7 @@
 | [podman-logs(1)](/docs/podman-logs.1.md)                                 | Display the logs of a container                                            |
 | [podman-mount(1)](/docs/podman-mount.1.md)                               | Mount a working container's root filesystem                                |
 | [podman-network(1)](/docs/podman-network.1.md)                           | Manage Podman CNI networks             |
+| [podman-network-create(1)](/docs/podman-network-create.1.md)             | Create a CNI network             |
 | [podman-network-inspect(1)](/docs/podman-network-inspect.1.md)           | Inspect one or more Podman networks             |
 | [podman-network-ls(1)](/docs/podman-network-ls.1.md)                     | Display a summary of Podman networks             |
 | [podman-network-rm(1)](/docs/podman-network-rm.1.md)                     | Remove one or more Podman networks             |
