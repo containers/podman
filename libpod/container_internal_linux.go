@@ -1082,9 +1082,8 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 	if len(c.config.DNSServer) > 0 {
 		// We store DNS servers as net.IP, so need to convert to string
-		nameservers = []string{}
 		for _, server := range c.config.DNSServer {
-			nameservers = append(nameservers, server.String())
+			nameservers = append([]string{server.String()}, nameservers...)
 		}
 	}
 
