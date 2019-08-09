@@ -168,6 +168,15 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+**--disable-compression, -D**
+
+Don't compress filesystem layers when building the image unless it is required
+by the location where the image is being written.  This is the default setting,
+because image layers are compressed automatically when they are pushed to
+registries, and images being written to local storage would only need to be
+decompressed again to be stored.  Compression can be forced in all cases by
+specifying **--disable-compression=false**.
+
 **--disable-content-trust**
 
 This is a Docker specific option to disable image verification to a Docker
@@ -177,6 +186,10 @@ solely for scripting compatibility.
 **--dns**=*dns*
 
 Set custom DNS servers
+
+This option can be used to override the DNS configuration passed to the container. Typically this is necessary when the host DNS configuration is invalid for the container (e.g., 127.0.0.1). When this is the case the `--dns` flag is necessary for every run.
+
+The special value **none** can be specified to disable creation of /etc/resolv.conf in the container by Podman. The /etc/resolv.conf file in the image will be used without changes.
 
 **--dns-option**=*option*
 
@@ -259,6 +272,12 @@ environment variable. `export BUILDAH_LAYERS=true`
 Log output which would be sent to standard output and standard error to the
 specified file instead of to standard output and standard error.
 
+**--loglevel** *number*
+
+Adjust the logging level up or down.  Valid option values range from -2 to 3,
+with 3 being roughly equivalent to using the global *--debug* option, and
+values below 0 omitting even error messages which accompany fatal errors.
+
 **--memory**, **-m**=*LIMIT*
 Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
 
@@ -300,6 +319,12 @@ that a new PID namespace should be created, or it can be "host" to indicate
 that the PID namespace in which `podman` itself is being run should be reused,
 or it can be the path to a PID namespace which is already in use by another
 process.
+
+**--platform**="Linux"
+
+This option has no effect on the build. Other container engines use this option
+to control the execution platform for the build (e.g., Windows, Linux) which is
+not required for Buildah as it supports only Linux.
 
 **--pull**
 
