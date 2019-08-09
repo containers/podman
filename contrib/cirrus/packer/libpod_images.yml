@@ -2,11 +2,6 @@
 
 # All of these are required
 variables:
-    # Names of GCE Base images to start from, in .cirrus.yml
-    UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
-    FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
-    PRIOR_FEDORA_BASE_IMAGE: '{{env `PRIOR_FEDORA_BASE_IMAGE`}}'
-
     BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
     GOSRC: '{{env `GOSRC`}}'
     PACKER_BASE: '{{env `PACKER_BASE`}}'
