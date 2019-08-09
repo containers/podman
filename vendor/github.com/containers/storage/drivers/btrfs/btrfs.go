@@ -645,7 +645,15 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if len(options.Options) > 0 {
+	switch len(options.Options) {
+	case 0:
+	case 1:
+		if options.Options[0] == "ro" {
+			// ignore "ro" option
+			break
+		}
+		fallthrough
+	default:
 		return "", fmt.Errorf("btrfs driver does not support mount options")
 	}
 
