@@ -365,7 +365,7 @@ github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
-# github.com/opencontainers/selinux v1.2.2
+# github.com/opencontainers/selinux v1.3.0
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/go-selinux
 # github.com/openshift/imagebuilder v1.1.0
