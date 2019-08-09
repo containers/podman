@@ -41,6 +41,13 @@ var _ = Describe("Podman run dns", func() {
 		session.LineInOuputStartsWith("search foobar.com")
 	})
 
+	It("podman run remove all search domain", func() {
+		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
+	})
+
 	It("podman run add bad dns server", func() {
 		session := podmanTest.Podman([]string{"run", "--dns=foobar", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
