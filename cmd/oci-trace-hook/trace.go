@@ -16,7 +16,7 @@ import (
 	"syscall"
 
 	"github.com/docker/docker/api/types"
-	"github.com/iovisor/gobpf/bcc"
+	"github.com/iovisor/gobpf/bcc" //nolint
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	seccomp "github.com/seccomp/libseccomp-golang"
 	"github.com/sirupsen/logrus"
