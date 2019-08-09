@@ -4,6 +4,8 @@ set -eo pipefail
 
 source $(dirname $0)/lib.sh
 
+EVIL_UNITS="$($CIRRUS_WORKING_DIR/$PACKER_BASE/systemd_banish.sh --list)"
+
 req_env_var PACKER_BUILDER_NAME TEST_REMOTE_CLIENT EVIL_UNITS OS_RELEASE_ID
 
 NFAILS=0

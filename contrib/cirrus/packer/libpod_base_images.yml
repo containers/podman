@@ -95,6 +95,7 @@ builders:
       source_image_project_id: 'ubuntu-os-cloud'
       project_id: '{{user `GCP_PROJECT_ID`}}'
       account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      startup_script_file: "systemd_banish.sh"
       zone: 'us-central1-a'
       disk_size: 20
       communicator: 'none'
@@ -102,7 +103,7 @@ builders:
     - <<: *imgcopy
       name: 'prior-ubuntu'
       image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
-      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
 
 provisioners:
     - type: 'shell'
@@ -130,21 +131,14 @@ provisioners:
       only: ['fedora', 'prior-fedora']
       type: 'shell'
       inline:
-        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
-        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh pre'
-      expect_disconnect: true  # Allow this to reboot the VM
+        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/*.sh'
+        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
+      expect_disconnect: true  # Allow this to reboot the VM if needed
       environment_vars:
           - 'TIMESTAMP={{user `TIMESTAMP`}}'
           - 'GOSRC=/tmp/libpod'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
           - 'PACKER_BASE={{user `PACKER_BASE`}}'
-
-    - <<: *shell_script
-      inline: ['{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh']
-      expect_disconnect: false
-      pause_before: '10s'
-      inline:
-        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh post'
 
 post-processors:
     - - type: "compress"
