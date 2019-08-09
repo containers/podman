@@ -20,8 +20,6 @@ If the container image has a LABEL INSTALL instruction like the following:
 If the container image does not have the desired label, an error message will be displayed along with a non-zero
 return code.  If the image is not found in local storage, Podman will attempt to pull it first.
 
-Note: Podman will always ensure that `podman` is the first argument of the command being executed.
-
 **LABEL**
 The label name specified via the command.
 
