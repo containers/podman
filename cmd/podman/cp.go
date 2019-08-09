@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/mount"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -101,6 +102,91 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		}
 	}()
 
+	user, err := getUser(mountPoint, ctr.User())
+	if err != nil {
+		return errors.Wrapf(err, "error getting container user")
+	}
+	idMappingOpts, err := ctr.IDMappings()
+	if err != nil {
+		return errors.Wrapf(err, "error getting IDMappingOptions")
+	}
+	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
+	hostUID, hostGID, err := util.GetHostIDs(convertIDMap(idMappingOpts.UIDMap), convertIDMap(idMappingOpts.GIDMap), user.UID, user.GID)
+	if err != nil {
+		return errors.Wrapf(err, "error getting host IDs")
+	}
+
+	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
+
+	for _, v := range ctr.NamedVolumes() {
+		volume, err := runtime.GetVolume(v.Name)
+		if err != nil {
+			return err
+		}
+		target := filepath.Join(mountPoint, v.Dest)
+		if _, err = os.Stat(target); !os.IsNotExist(err) {
+			mounted, err := mount.Mounted(target)
+			if err != nil {
+				return errors.Wrapf(err, "error checking volume %q mounted", target)
+			}
+			if mounted {
+				continue
+			}
+		}
+		if err = idtools.MkdirAllAndChownNew(target, 0755, hostOwner); err != nil {
+			return errors.Wrapf(err, "error creating directory %q", target)
+		}
+		err = mount.Mount(volume.MountPoint(), target, "bind", strings.Join(v.Options, ","))
+		if err != nil {
+			return err
+		}
+		defer func(target string, vName string) {
+			state, err := ctr.State()
+			if err != nil {
+				logrus.Errorf("unable to check status of container '%s': %q", ctr.ID(), err)
+			}
+			if state == define.ContainerStateRunning {
+				return
+			}
+			if err := mount.Unmount(target); err != nil {
+				logrus.Errorf("unable to unmount volume '%s': %q", vName, err)
+			}
+		}(target, v.Name)
+	}
+
+	for _, mnt := range ctr.Spec().Mounts {
+		if mnt.Type != "bind" {
+			continue
+		}
+		target := filepath.Join(mountPoint, mnt.Destination)
+		mounted, err := mount.Mounted(target)
+		if err != nil {
+			return errors.Wrapf(err, "error checking %q mounted ", target)
+		}
+		if mounted {
+			continue
+		}
+		if err = idtools.MkdirAllAndChownNew(target, 0755, hostOwner); err != nil {
+			return errors.Wrapf(err, "error creating directory %q", target)
+		}
+		err = mount.Mount(mnt.Source, target, "bind", strings.Join(mnt.Options, ","))
+		if err != nil {
+			return err
+		}
+		defer func(target, mDest string) {
+			state, err := ctr.State()
+			if err != nil {
+				logrus.Errorf("unable to check status of container '%s': %q", ctr.ID(), err)
+			}
+			if state == define.ContainerStateRunning {
+				return
+			}
+			if err := mount.Unmount(target); err != nil {
+				logrus.Errorf("unable to unmount bind mount '%s': %q", mDest, err)
+			}
+		}(target, mnt.Destination)
+	}
+
 	// We can't pause rootless containers.
 	if pause && rootless.IsRootless() {
 		state, err := ctr.State()
@@ -132,36 +218,8 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		}
 	}
 
-	user, err := getUser(mountPoint, ctr.User())
-	if err != nil {
-		return err
-	}
-	idMappingOpts, err := ctr.IDMappings()
-	if err != nil {
-		return errors.Wrapf(err, "error getting IDMappingOptions")
-	}
-	destOwner := idtools.IDPair{UID: int(user.UID), GID: int(user.GID)}
-	hostUID, hostGID, err := util.GetHostIDs(convertIDMap(idMappingOpts.UIDMap), convertIDMap(idMappingOpts.GIDMap), user.UID, user.GID)
-	if err != nil {
-		return err
-	}
-
-	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
-
 	if isFromHostToCtr {
-		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol {
-			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, destPath)
-			if err != nil {
-				return errors.Wrapf(err, "error getting destination path from volume %s", volDestName)
-			}
-			destPath = path
-		} else if isBindMount, mount := isBindMountDestName(destPath, ctr); isBindMount {
-			path, err := pathWithBindMountSource(mount, destPath)
-			if err != nil {
-				return errors.Wrapf(err, "error getting destination path from bind mount %s", mount.Destination)
-			}
-			destPath = path
-		} else if filepath.IsAbs(destPath) {
+		if filepath.IsAbs(destPath) {
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
 			if err != nil {
 				return err
@@ -183,19 +241,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		}
 	} else {
 		destOwner = idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
-		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol {
-			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, srcPath)
-			if err != nil {
-				return errors.Wrapf(err, "error getting source path from volume %s", volDestName)
-			}
-			srcPath = path
-		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount {
-			path, err := pathWithBindMountSource(mount, srcPath)
-			if err != nil {
-				return errors.Wrapf(err, "error getting source path from bind moutn %s", mount.Destination)
-			}
-			srcPath = path
-		} else if filepath.IsAbs(srcPath) {
+		if filepath.IsAbs(srcPath) {
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, srcPath)
 			if err != nil {
 				return err
@@ -414,72 +460,6 @@ func streamFileToStdout(srcPath string, srcfi os.FileInfo) error {
 		return errors.Wrapf(err, "error streaming file to Stdout")
 	}
 	return nil
-}
-
-func isVolumeDestName(path string, ctr *libpod.Container) (bool, string, string) {
-	separator := string(os.PathSeparator)
-	if filepath.IsAbs(path) {
-		path = strings.TrimPrefix(path, separator)
-	}
-	if path == "" {
-		return false, "", ""
-	}
-	for _, vol := range ctr.Config().NamedVolumes {
-		volNamePath := strings.TrimPrefix(vol.Dest, separator)
-		if matchVolumePath(path, volNamePath) {
-			return true, vol.Dest, vol.Name
-		}
-	}
-	return false, "", ""
-}
-
-// if SRCPATH or DESTPATH is from volume mount's destination -v or --mount type=volume, generates the path with volume mount point
-func pathWithVolumeMount(ctr *libpod.Container, runtime *libpod.Runtime, volDestName, volName, path string) (string, error) {
-	destVolume, err := runtime.GetVolume(volName)
-	if err != nil {
-		return "", errors.Wrapf(err, "error getting volume destination %s", volName)
-	}
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(string(os.PathSeparator), path)
-	}
-	path, err = securejoin.SecureJoin(destVolume.MountPoint(), strings.TrimPrefix(path, volDestName))
-	return path, err
-}
-
-func isBindMountDestName(path string, ctr *libpod.Container) (bool, specs.Mount) {
-	separator := string(os.PathSeparator)
-	if filepath.IsAbs(path) {
-		path = strings.TrimPrefix(path, string(os.PathSeparator))
-	}
-	if path == "" {
-		return false, specs.Mount{}
-	}
-	for _, m := range ctr.Config().Spec.Mounts {
-		if m.Type != "bind" {
-			continue
-		}
-		mDest := strings.TrimPrefix(m.Destination, separator)
-		if matchVolumePath(path, mDest) {
-			return true, m
-		}
-	}
-	return false, specs.Mount{}
-}
-
-func matchVolumePath(path, target string) bool {
-	pathStr := filepath.Clean(path)
-	target = filepath.Clean(target)
-	for len(pathStr) > len(target) && strings.Contains(pathStr, string(os.PathSeparator)) {
-		pathStr = pathStr[:strings.LastIndex(pathStr, string(os.PathSeparator))]
-	}
-	return pathStr == target
-}
-
-func pathWithBindMountSource(m specs.Mount, path string) (string, error) {
-	if !filepath.IsAbs(path) {
-		path = filepath.Join(string(os.PathSeparator), path)
-	}
-	return securejoin.SecureJoin(m.Source, strings.TrimPrefix(path, m.Destination))
 }
 
 func copyPause() bool {

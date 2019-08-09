@@ -120,8 +120,8 @@ github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/idtools
-github.com/containers/storage/pkg/reexec
 github.com/containers/storage/pkg/mount
+github.com/containers/storage/pkg/reexec
 github.com/containers/storage/pkg/stringid
 github.com/containers/storage/pkg/system
 github.com/containers/storage/pkg/truncindex

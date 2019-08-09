@@ -229,8 +229,26 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		err = os.Mkdir("data", os.ModePerm)
+		if err != nil {
+			os.Exit(1)
+		}
+		createFile := SystemExec("touch", []string{"./data/cp_vol3"})
+		createFile.WaitWithDefaultTimeout()
+
+		session = podmanTest.Podman([]string{"cp", "data", "container1" + ":/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "container1:/data/cp_vol3", "cp_vol4"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
 		os.Remove("cp_vol")
 		os.Remove("cp_vol2")
+		os.Remove("cp_vol4")
+		os.RemoveAll("data")
+
 	})
 
 	It("podman cp from ctr chown ", func() {
