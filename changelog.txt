@@ -1,3 +1,251 @@
+- Changelog for v1.5.0 (2019-08-09)
+  * vendor github.com/containers/storage@v1.13.2
+  * Improve dns-search validation, empty domains now return an error
+  * fix create&run getting --authfile from cli
+  * Add release notes for v1.5.0
+  * Touch up build man page
+  * podman-container-runlabel(1): drop note
+  * make rmi messages more compatible with docker
+  * Add conmon probe to runtime construction
+  * fix copy change file owner if cp from container
+  * Vendor Buildah 1.10.1
+  * Allow the passing of '.' to --dns-search
+  * add make to make installs
+  * namespaces: fix Container() call
+  * Add a test for verifying ENTRYPOINT and CMD
+  * fix port early return
+  * Allow --ro=[true|false] with mount flag
+  * refer to container whose namespace we share
+  * add test to verify hostname is shared in a pod
+  * Properly share UTS namespaces in a pod
+  * When populating CMD, do not include Entrypoint
+  * systemd library conflict with seektail and addmatch
+  * pod top test: reenable
+  * cgroup: fix regression when running systemd
+  * Add invalid credentials fix to docs
+  * Revert "rootless: Rearrange setup of rootless containers"
+  * restore: correctly set StartedTime
+  * container stop: kill conmon
+  * honor libpod.conf in /usr/share/containers
+  * fix system df crashes on unnamed images
+  * Don't log errors to the screen when XDG_RUNTIME_DIR is not set
+  * various fixes for varlink endpoints
+  * add eventlogger to info
+  * Add handling for empty LogDriver
+  * Add rootless NFS and OverlayFS warnings to docs
+  * podman events format json
+  * add godoc link to readme
+  * restore: added --ignore-static-ip option
+  * System tests: resolve hang in rawhide rootless
+  * fix search output limit
+  * Add capability functionality to play kube
+  * Use "none" instead of "null" for the null eventer
+  * Deduplicate capabilities in generate kube
+  * Fix typo
+  * Pass on events-backend config to cleanup processes
+  * Print Pod ID in `podman inspect` output
+  * go build: use `-mod=vendor` for go >= 1.11.x
+  * Use buildah/pkg/parse volume parsing rather then internal version
+  * github.com/containers/storage v1.12.13
+  * Add new exit codes to rm & rmi for running containers & dependencies
+  * Add runtime and conmon path discovery
+  * systemd, cgroupsv2: not bind mount /sys/fs/cgroup/systemd
+  * Ensure we generate a 'stopped' event on force-remove
+  * Fix Dockerfile - a dependency's name was changed
+  * System events are valid, don't error on them
+  * Do not use an events backend when restoring images
+  * Expose Null eventer and allow its use in the Podman CLI
+  * Force tests to use file backend for events
+  * Add a flag to set events logger type
+  * Fix test suite
+  * Retrieve exit codes for containers via events
+  * podman: fix memleak caused by renaming and not deleting  the exit file
+  * Cirrus: Fix release dependencies
+  * Cirrus: Fix re-run of release task into no-op.
+  * e2e test: check exit codes for pull, save, inspect
+  * rootless: Rearrange setup of rootless containers
+  * Add comment to describe postConfigureNetNS
+  * Vendor in buildah 1.9.2
+  * Build fix for 32-bit systems.
+  * Set -env variables as appropriate
+  * Touch up input argument error on create
+  * Update libpod.conf to be NixOS friendly
+  * Allow info test to work with usernames w/dash
+  * Touch up XDG, add rootless links
+  * Fix the syntax in the podman export documentation example
+  * fix `podman -v` regression
+  * Move random IP code for tests from checkpoint to common
+  * Fix commit --changes env=X=Y
+  * Update pause/unpause video links and demo
+  * Cirrus: Remove fixed clone depth
+  * podman: support --userns=ns|container
+  * pods: do not to join a userns if there is not any
+  * Documenation & build automation for remote darwin
+  * Cirrus: Bypass release during image-building
+  * Use systemd cgroups for Ubuntu
+  * Cirrus: Ubuntu: Set + Test for $RUNC_BINARY
+  * Cirrus: Simplify evil-unit check in image
+  * Cirrus: Silence systemd-banish noise
+  * Cirrus: Fix image build metadata update
+  * Cirrus: Fix missing -n on CentOS
+  * Cirrus: Remove disused COMMIT variables
+  * Improved hooks monitoring
+  * Fix possible runtime panic if image history len is zero
+  * When retrieving volumes, only use exact names
+  * fix import not ignoring url path
+  * Document SELinux label requirements for the rootfs argument
+  * Fixes issue #3577.
+  * refactor to reduce duplicated error parsing
+  * remove debug prints
+  * Re-add int64 casts for ctime
+  * fix build --network=container
+  * Fix a segfault on Podman no-store commands with refresh
+  * always send generic error in case io fails
+  * only use stdin if specified
+  * buffer errChan
+  * move handleTerminalAttach to generic build
+  * remove unnecessary conversions
+  * add detach keys support for remote
+  * move editing of exitCode to runtime
+  * Update e2e tests for remote exec
+  * Finish up remote exec implementation
+  * golangci-lint cleanup
+  * install.md: mention all build tags
+  * golangci-lint phase 4
+  * Change wait to sleep in podmanimage readme
+  * bump cirrus images to get new conmon
+  * Implement conmon exec
+  * bump conmon to 1.0.0-rc2
+  * Cirrus: Temp. workaround missing imgprune image
+  * vendor github.com/containers/image@v2.0.1
+  * golangci-lint round #3
+  * Remove debug message
+  * Cleanup Pull Message
+  * Cirrus: Fix post-merge env. var. not set.
+  * mkdir -p /etc/cni/net.d requires sudo
+  * Add support for listing read/only and read/write images
+  * support podman ps filter regular expressions
+  * rootless: add rw devices with --privileged
+  * Cirrus: Minor scripting typo fix
+  * fix --dns* and --network not set to host conflict
+  * podman-remote make --size optional in ps
+  * Remove exec PID files after use to prevent memory leaks
+  * Add DefaultContent API to retrieve apparmor profile content
+  * libpod: support for cgroup namespace
+  * Make GOPATH-related symlinking more precise
+  * Populate inspect with security-opt settings
+  * Properly retrieve Conmon PID
+  * Move the HostConfig portion of Inspect inside libpod
+  * Fix play kube command
+  * spec: rework --ulimit host
+  * Cirrus: Add image-test for locked dpkg
+  * Cirrus: Use images w/o periodic svcs
+  * Cirrus: Disable most periodic services/timers
+  * dependency/analyses: simplify scripts
+  * dependency-tree analysis: direct and transitive
+  * analyses: README: consistent code examples
+  * analyses: README: fix typos
+  * analyses: add dependency-tree.sh
+  * analyses: add README.md
+  * hack/analyses -> dependencies/analyses
+  * hack/analyses/go-archive-analysis.sh: fix sorting
+  * add hack/analyses/nm-symbols-analysis.sh
+  * analyse package sizes
+  * Completion: complete "--health-start-period" in bash
+  * Make the healthcheck flags compatible with Docker CLI
+  * healthcheck: reject empty commands
+  * create: ignore check if image has HEALTHCHECK NONE
+  * create: apply defaults on image healthcheck options
+  * healthcheck: improve command list parser
+  * Completion: --no-healthcheck is not an option
+  * Cirrus: Abstract destination branch refs.
+  * Cirrus: Print images that should be pruned
+  * create: improve parser for --healthcheck-command
+  * Improves STD output/readability in combination with debug output.
+  * Fix the double replySendFile()
+  * Cirrus: Update to freshly built cache-images
+  * Cirrus: Execute system-tests during image-validation
+  * Cirrus: Fix missing removal of packaged podman
+  * cgroupsv2: do not enable controllers for the last component
+  * spec: fix userns with less than 5 gids
+  * Fix spelling mistakes in man pages and other docs
+  * Add glob parsing for --env flag
+  * Add support for -env-host
+  * cgroups: fix a leak when using cgroupfs
+  * cgroups: attempt a recursive rmdir
+  * Fix a bug where ctrs could not be removed from pods
+  * golangci-lint pass number 2
+  * Add tests for --ignore-rootfs checkpoint/restore option
+  * Add --ignore-rootfs option for checkpoint/restore
+  * Fix typo in checkpoint/restore related texts
+  * Include root file-system changes in container migration
+  * Add function to get a filtered tarstream diff
+  * Correctly set FinishedTime for checkpointed container
+  * first pass of corrections for golangci-lint
+  * Cirrus: Fix #3543: Failure in 'release' task
+  * fix bug convert volume host path to absolute
+  * Cirrus: Fix 473d06045 / enable build_without_cgo
+  * account for varlink calls that dont use more
+  * runtime: drop spurious message log
+  * Ensure we have a valid store when we refresh
+  * cgroups: skip not existing cpuacct files
+  * cgroups: support creating cgroupsv2 paths
+  * make localsystem: wipe all user config state
+  * podman: create and run honors auth file location
+  * healthcheck: support rootless mode
+  * Use random IP addresses during checkpoint/restore tests
+  * Fix podman-remote usage message to display `podman-remote` instead of `podman`
+  * rootless.md: Include GPFS as a parallel filesystem
+  * speed up rootless tests
+  * podman: add --ulimit host
+  * docs: fix --healthcheck-command option
+  * code cleanup
+  * fix integration flake tests
+  * CONTRIBUTING.md: fix project paths
+  * get last container event
+  * Do not hardcode podman binary location in generate systemd.
+  * Move skipping systemd tests to early setup.
+  * Reload systemd daemon on creation of units location dir in tests.
+  * Add debug information to "generate systemd" test.
+  * Use default conmon pidfile location for root containers.
+  * Use conmon pidfile in generated systemd unit as PIDFile.
+  * Cirrus: Automate releasing of tested binaries
+  * trivial cleanups from golang
+  * ps should use nostore when possible
+  * libpod: discerne partial IDs between containers and pods
+  * Added instruction to enable the user namespaces permanenty in Manjaro
+  * Addressed code review comments
+  * Updated install.md for Manjaro Linux
+  * Vendor latest OCICNI version
+  * Bump current version in README
+  * Wipe PID and ConmonPID in state after container stops
+  * Store Conmon's PID in our state and display in inspect
+  * Restart failed containers in tests
+  * Improve parsing of mounts
+  * Add test for generate kube with volumes
+  * Bump gitvalidation epoch
+  * Bump to v1.4.5-dev
+  * Fix rootless detection error for pause & unpause
+  * Deduplicate volumes
+  * cirrus: add test for compiling without cgo
+  * lock: new lock type "file"
+  * runtime: allow to specify the lock mechanism
+  * lock: disable without cgo
+  * spec: move cgo stuff to their own file
+  * rootless: allow to build without cgo
+  * attach: move cgo bits to a different file
+  * vendor: update containers/psgo
+  * Update the testing documentation with system tests.
+  * Pass along volumes to pod yaml
+  * Configure container volumes for generate kube
+  * configure runtime without store
+  * Add RUN priv'd test for build
+  * Cirrus: Use packaged dependencies
+  * Add exec after checkpoint/restore test
+  * Provide correct SELinux mount-label for restored container
+  * Track if a container is restored from an exported checkpoint
+  * libpod/container_internal: Make all errors loading explicitly configured hook dirs fatal
+
 - Changelog for v1.4.4 (2019-07-02)
   * Fix release notes
   * Ensure locks are freed when ctr/pod creation fails
