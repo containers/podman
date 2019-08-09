@@ -3,7 +3,7 @@
   <br />
 </h1>
 
-<p align="center"><b>This is the snap for <a href="https://podman.io/">podman</a></b>, <i>“Managing Pods, Containers, and Container Images in Multiple Formats (Docker, OCI, ...).”</i>. It works on Ubuntu, Fedora, Debian, and other major Linux
+<p align="center"><b>This is the snap for <a href="https://podman.io/">podman</a></b>, <i>“Managing Pods, Containers, and Container Images in Multiple Formats (Docker, OCI, ...).”</i>. It works on Ubuntu, Fedora, Debian, RHEL, SUSE, and other major Linux
 distributions.</p>
 
 <!-- Uncomment and modify this when you are provided a build status badge
