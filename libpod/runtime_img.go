@@ -28,6 +28,7 @@ import (
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
 func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (string, error) {
+	var returnMessage string
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -93,7 +94,11 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 			err = errStorage
 		}
 	}
-	return img.ID(), err
+	for _, name := range img.Names() {
+		returnMessage = returnMessage + fmt.Sprintf("Untagged: %s\n", name)
+	}
+	returnMessage = returnMessage + fmt.Sprintf("Deleted: %s", img.ID())
+	return returnMessage, err
 }
 
 // Remove containers that are in storage rather than Podman.
