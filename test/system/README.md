@@ -28,6 +28,8 @@ on failure.
 
 * `skip_if_rootless` - if rootless, skip this test with a helpful message.
 
+* `skip_if_remote` - like the above, but skip if testing `podman-remote`
+
 * `random_string` - returns a pseudorandom alphanumeric string
 
 Test files are of the form `NNN-name.bats` where NNN is a three-digit
