@@ -375,23 +375,28 @@ var _ = Describe("Podman checkpoint", func() {
 		result := podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
 		result.WaitWithDefaultTimeout()
 
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 
-		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		// Restore container the first time with different name.
+		// Using '--ignore-static-ip' as for parallel test runs
+		// each containers gets a random IP address via '--ip'.
+		// '--ignore-static-ip' tells the restore to use the next
+		// available IP address.
+		// First restore the container with a new name/ID to make
+		// sure nothing in the restored container depends on the
+		// original container.
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName, "-n", "restore_again", "--ignore-static-ip"})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
 
-		// Restore container a second time with different name.
-		// Using '--ignore-static-ip' as for parallel test runs
-		// each containers gets a random IP address via '--ip'.
-		// '--ignore-static-ip' tells the restore to use the next
-		// available IP address.
-		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName, "-n", "restore_again", "--ignore-static-ip"})
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
 		result.WaitWithDefaultTimeout()
 
 		Expect(result.ExitCode()).To(Equal(0))
