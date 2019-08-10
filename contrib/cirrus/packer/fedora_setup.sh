@@ -17,6 +17,10 @@ trap "sudo rm -rf $GOPATH" EXIT
 
 ooe.sh sudo dnf update -y
 
+echo "Enabling updates-testing repository"
+ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
+ooe.sh sudo dnf config-manager --set-enabled updates-testing
+
 echo "Installing general build/test dependencies"
 ooe.sh sudo dnf install -y \
     atomic-registries \
