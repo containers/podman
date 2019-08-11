@@ -137,7 +137,7 @@ get_cmd_line_args (pid_t pid)
         {
           allocated += 512;
           char *tmp = realloc (buffer, allocated);
-          if (buffer == NULL)
+          if (tmp == NULL)
             {
               free (buffer);
               return NULL;
