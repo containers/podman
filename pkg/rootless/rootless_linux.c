@@ -276,7 +276,7 @@ static void __attribute__((constructor)) init()
           return;
         }
 
-      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf)));
+      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof (buf) - 1));
       close (fd);
       if (r < 0)
         {
