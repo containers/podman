@@ -43,6 +43,12 @@ case "$SPECIALMODE" in
         echo "WARNING: Integration tests not yet ready for cgroups V2"
         #TODO: make local${TESTSUITE}
         ;;
+    endpoint)
+        make
+        make install PREFIX=/usr ETCDIR=/etc
+        make test-binaries
+        make endpoint
+        ;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc

@@ -503,6 +503,28 @@ special_testing_cgroupv2_task:
     always:
         <<: *standardlogs
 
+special_testing_endpoint_task:
+
+    depends_on:
+        - "gating"
+        - "varlink_api"
+        - "vendor"
+
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    env:
+        SPECIALMODE: 'endpoint'  # See docs
+
+    timeout_in: 20m
+
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
+
+    always:
+        <<: *standardlogs
 
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
@@ -608,6 +630,7 @@ success_task:
         - "special_testing_in_podman"
         - "special_testing_cgroupv2"
         - "special_testing_cross"
+        - "special_testing_endpoint"
         - "test_build_cache_images"
         - "verify_test_built_images"
 
@@ -648,6 +671,7 @@ release_task:
         - "special_testing_in_podman"
         - "special_testing_cgroupv2"
         - "special_testing_cross"
+        - "special_testing_endpoint"
         - "test_build_cache_images"
         - "verify_test_built_images"
         - "success"
