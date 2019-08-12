@@ -1,8 +1,12 @@
 package image
 
 import (
+	"fmt"
+
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
+
+	podmanVersion "github.com/containers/libpod/version"
 )
 
 // DockerRegistryOptions encapsulates settings that affect how we connect or
@@ -36,6 +40,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		sc.SignaturePolicyPath = parent.SignaturePolicyPath
 		sc.AuthFilePath = parent.AuthFilePath
 		sc.DirForceCompress = parent.DirForceCompress
+		sc.DockerRegistryUserAgent = parent.DockerRegistryUserAgent
 	}
 	return sc
 }
@@ -48,5 +53,7 @@ func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bo
 	}
 	sc.AuthFilePath = authFilePath
 	sc.DirForceCompress = forceCompress
+	sc.DockerRegistryUserAgent = fmt.Sprintf("libpod/%s", podmanVersion.Version)
+
 	return sc
 }
