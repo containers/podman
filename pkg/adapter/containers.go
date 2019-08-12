@@ -342,7 +342,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
 			// This means the command did not exist
 			exitCode = 127
-			if strings.Contains(err.Error(), "permission denied") {
+			if strings.Contains(err.Error(), "permission denied") || strings.Contains(err.Error(), "file not found") {
 				exitCode = 126
 			}
 			return exitCode, err
