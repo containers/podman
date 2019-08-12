@@ -274,6 +274,8 @@ type runtimeConfiguredFrom struct {
 	runtimePath           bool
 	cniPluginDir          bool
 	noPivotRoot           bool
+	runtimeSupportsJSON   bool
+	ociRuntime            bool
 }
 
 func defaultRuntimeConfig() (RuntimeConfig, error) {
@@ -593,6 +595,12 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		if tmpConfig.NoPivotRoot {
 			runtime.configuredFrom.noPivotRoot = true
 		}
+		if tmpConfig.RuntimeSupportsJSON != nil {
+			runtime.configuredFrom.runtimeSupportsJSON = true
+		}
+		if tmpConfig.OCIRuntime != "" {
+			runtime.configuredFrom.ociRuntime = true
+		}
 
 		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
 			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
@@ -633,6 +641,13 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			if !runtime.configuredFrom.noPivotRoot {
 				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
 			}
+			if !runtime.configuredFrom.runtimeSupportsJSON {
+				runtime.config.RuntimeSupportsJSON = tmpConfig.RuntimeSupportsJSON
+			}
+			if !runtime.configuredFrom.ociRuntime {
+				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
+			}
+
 			break
 		}
 	}
