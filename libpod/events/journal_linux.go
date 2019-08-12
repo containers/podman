@@ -43,7 +43,9 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_IMAGE"] = ee.Image
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
-		m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		if ee.ContainerExitCode != 0 {
+			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
