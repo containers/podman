@@ -238,11 +238,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 // Conflicts are resolved simply - the last container specified wins.
 // Container names may be suffixed by mount options after a colon.
 func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]spec.Mount, map[string]*libpod.ContainerNamedVolume, error) {
-	// TODO: This can probably be disabled now
-	if os.Geteuid() != 0 {
-		return nil, nil, nil
-	}
-
 	// Both of these are maps of mount destination to mount type.
 	// We ensure that each destination is only mounted to once in this way.
 	finalMounts := make(map[string]spec.Mount)
