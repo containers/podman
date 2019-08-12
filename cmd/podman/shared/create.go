@@ -55,7 +55,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		rootfs = c.InputArgs[0]
 	}
 
-	if c.IsSet("cidfile") && os.Geteuid() == 0 {
+	if c.IsSet("cidfile") {
 		cidFile, err = util.OpenExclusiveFile(c.String("cidfile"))
 		if err != nil && os.IsExist(err) {
 			return nil, nil, errors.Errorf("container id file exists. Ensure another container is not using it or delete %s", c.String("cidfile"))
@@ -70,8 +70,8 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	imageName := ""
 	var data *inspect.ImageData = nil
 
-	// Set the storage if we are running as euid == 0 and there is no rootfs specified
-	if rootfs == "" && os.Geteuid() == 0 {
+	// Set the storage if there is no rootfs specified
+	if rootfs == "" {
 		var writer io.Writer
 		if !c.Bool("quiet") {
 			writer = os.Stderr
