@@ -23,10 +23,7 @@ item_test 'Minimum available memory' $MEM_FREE -ge $MIN_MEM_MB || let "NFAILS+=1
 item_test "remove_packaged_podman_files() did it's job" -z "$(type -P podman)" || let "NFAILS+=1"
 
 # Integration Tests require varlink in Fedora
-if [[ "$OS_RELEASE_ID" == "fedora" ]]
-then
-    item_test "The varlink executable is present" -x "$(type -P varlink)" || let "NFAILS+=1"
-fi
+item_test "The varlink executable is present" -x "$(type -P varlink)" || let "NFAILS+=1"
 
 MIN_ZIP_VER='3.0'
 VER_RE='.+([[:digit:]]+\.[[:digit:]]+).+'
