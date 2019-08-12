@@ -44,6 +44,11 @@ case "${OS_REL_VER}" in
         ;;
     fedora-30) ;&  # continue to next item
     fedora-29)
+        # There is no crun package on Fedora29
+        if test "${OS_REL_VER}" != "fedora-29"; then
+            yum install -y crun
+        fi
+
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
         ;;
