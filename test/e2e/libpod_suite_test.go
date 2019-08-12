@@ -21,6 +21,13 @@ func SkipIfRootless() {
 	}
 }
 
+func SkipIfNotRunc() {
+	runtime := os.Getenv("OCI_RUNTIME")
+	if runtime != "" && filepath.Base(runtime) != "runc" {
+		ginkgo.Skip("Not using runc as runtime")
+	}
+}
+
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
 	podmanSession := p.PodmanBase(args, false, false)

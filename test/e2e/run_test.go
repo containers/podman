@@ -353,6 +353,8 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run notify_socket", func() {
 		SkipIfRemote()
+		SkipIfNotRunc()
+
 		host := GetHostDistributionInfo()
 		if host.Distribution != "rhel" && host.Distribution != "centos" && host.Distribution != "fedora" {
 			Skip("this test requires a working runc")
@@ -563,6 +565,7 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run exit code on failure to exec", func() {
+		SkipIfNotRunc()
 		session := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(126))
