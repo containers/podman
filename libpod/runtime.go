@@ -365,7 +365,7 @@ func SetXdgDirs() error {
 
 	if runtimeDir == "" {
 		var err error
-		runtimeDir, err = util.GetRootlessRuntimeDir()
+		runtimeDir, err = util.GetRuntimeDir()
 		if err != nil {
 			return err
 		}
@@ -391,11 +391,11 @@ func getDefaultTmpDir() (string, error) {
 		return "/var/run/libpod", nil
 	}
 
-	rootlessRuntimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
-	libpodRuntimeDir := filepath.Join(rootlessRuntimeDir, "libpod")
+	libpodRuntimeDir := filepath.Join(runtimeDir, "libpod")
 
 	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
 		if !os.IsExist(err) {

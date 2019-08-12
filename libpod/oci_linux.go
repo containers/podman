@@ -208,7 +208,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		}
 	}()
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return -1, nil, err
 	}
@@ -437,7 +437,7 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 		args = []string{"kill", "--all", ctr.ID(), "KILL"}
 	}
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (r *OCIRuntime) execStopContainer(ctr *Container, timeout uint) error {
 	if len(execSessions) == 0 {
 		return nil
 	}
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}

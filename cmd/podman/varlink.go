@@ -53,7 +53,7 @@ func init() {
 func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	varlinkURI := adapter.DefaultAddress
 	if rootless.IsRootless() {
-		xdg, err := util.GetRootlessRuntimeDir()
+		xdg, err := util.GetRuntimeDir()
 		if err != nil {
 			return err
 		}
