@@ -15,6 +15,8 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -53,9 +55,14 @@ func init() {
 }
 
 func podStatsCmd(c *cliconfig.PodStatsValues) error {
-
-	if os.Geteuid() != 0 {
-		return errors.New("stats is not supported in rootless mode")
+	if rootless.IsRootless() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if !unified {
+			return errors.New("stats is not supported in rootless mode without cgroups v2")
+		}
 	}
 
 	format := c.Format

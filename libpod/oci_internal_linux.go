@@ -352,31 +352,29 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *OCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
 	cgroupParent := ctr.CgroupParent()
-	if os.Geteuid() == 0 {
-		if r.cgroupManager == SystemdCgroupsManager {
-			unitName := createUnitName("libpod-conmon", ctr.ID())
+	if r.cgroupManager == SystemdCgroupsManager {
+		unitName := createUnitName("libpod-conmon", ctr.ID())
 
-			realCgroupParent := cgroupParent
-			splitParent := strings.Split(cgroupParent, "/")
-			if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
-				realCgroupParent = splitParent[len(splitParent)-1]
-			}
+		realCgroupParent := cgroupParent
+		splitParent := strings.Split(cgroupParent, "/")
+		if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
+			realCgroupParent = splitParent[len(splitParent)-1]
+		}
 
-			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
-			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
-				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-			}
+		logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
+		if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
+			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+		}
+	} else {
+		cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
+		control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
+		if err != nil {
+			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 		} else {
-			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
-			if err != nil {
+			// we need to remove this defer and delete the cgroup once conmon exits
+			// maybe need a conmon monitor?
+			if err := control.AddPid(cmd.Process.Pid); err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else {
-				// we need to remove this defer and delete the cgroup once conmon exits
-				// maybe need a conmon monitor?
-				if err := control.AddPid(cmd.Process.Pid); err != nil {
-					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-				}
 			}
 		}
 	}

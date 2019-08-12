@@ -78,7 +78,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	if !c.Infra && c.Flag("share").Changed && c.Share != "none" && c.Share != "" {
 		return errors.Errorf("You cannot share kernel namespaces on the pod level without an infra container")
 	}
-	if c.Flag("pod-id-file").Changed && os.Geteuid() == 0 {
+	if c.Flag("pod-id-file").Changed {
 		podIdFile, err = util.OpenExclusiveFile(c.PodIDFile)
 		if err != nil && os.IsExist(err) {
 			return errors.Errorf("pod id file exists. Ensure another pod is not using it or delete %s", c.PodIDFile)
