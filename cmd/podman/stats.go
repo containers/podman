@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -13,6 +12,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -66,8 +67,14 @@ func init() {
 }
 
 func statsCmd(c *cliconfig.StatsValues) error {
-	if os.Geteuid() != 0 {
-		return errors.New("stats is not supported for rootless containers")
+	if rootless.IsRootless() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if !unified {
+			return errors.New("stats is not supported in rootless mode without cgroups v2")
+		}
 	}
 
 	all := c.All
