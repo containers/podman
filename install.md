@@ -26,6 +26,14 @@ Built-in, no need to install
 sudo emerge app-emulation/libpod
 ```
 
+#### [MacOS](https://www.apple.com/macos)
+
+Using [Homebrew](https://brew.sh/):
+
+```bash
+brew cask install podman
+```
+
 #### [openSUSE](https://www.opensuse.org)
 
 ```bash
