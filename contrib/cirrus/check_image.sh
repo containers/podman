@@ -4,6 +4,8 @@ set -eo pipefail
 
 source $(dirname $0)/lib.sh
 
+req_env_var PACKER_BUILDER_NAME TEST_REMOTE_CLIENT EVIL_UNITS OS_RELEASE_ID
+
 NFAILS=0
 echo "Validating VM image"
 
@@ -48,6 +50,17 @@ then
     SAMESAME=$(diff --brief /usr/lib/cri-o-runc/sbin/runc /usr/bin/runc &> /dev/null; echo $?)
     item_test "On ubuntu /usr/bin/runc is /usr/lib/cri-o-runc/sbin/runc" "$SAMESAME" -eq "0" || let "NFAILS+=1"
 fi
+
+echo "Checking items specific to ${PACKER_BUILDER_NAME}${BUILT_IMAGE_SUFFIX}"
+case "$PACKER_BUILDER_NAME" in
+    xfedora*)
+        echo "Kernel Command-line: $(cat /proc/cmdline)"
+        item_test \
+            "On ${PACKER_BUILDER_NAME} images, the /sys/fs/cgroup/unified directory does NOT exist" \
+            "!" "-d" "/sys/fs/cgroup/unified" || let "NFAILS+=1"
+        ;;
+    *) echo "No vm-image specific items to check"
+esac
 
 echo "Total failed tests: $NFAILS"
 exit $NFAILS

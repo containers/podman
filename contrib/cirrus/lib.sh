@@ -55,9 +55,9 @@ PACKER_VER="1.3.5"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,fedora-29}"
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,xfedora-30,fedora-29}"
 # Google-maintained base-image names
-export UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
+export UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"

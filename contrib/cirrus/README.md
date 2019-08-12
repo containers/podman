@@ -69,6 +69,13 @@ Confirm that cross-compile of podman-remote functions for both `windows`
 and `darwin` targets.
 
 
+### ``special_testing_cgroupv2`` Task
+
+Use the latest Fedora release with the required kernel options pre-set for
+exercising cgroups v2 with podman integration tests.  Also depends on
+having `SPECIALMODE` set to 'cgroupv2`
+
+
 ### ``test_build_cache_images_task`` Task
 
 Modifying the contents of cache-images is tested by making changes to
@@ -266,5 +273,6 @@ values follows:
               and utilized for testing.
 * `in_podman`: Causes testing to occur within a container executed by
                podman on the host.
+* `cgroupv2`: The kernel on this VM was prepared with options to enable v2 cgroups
 * `windows`: See **darwin**
 * `darwin`: Signals the ``special_testing_cross`` task to cross-compile the remote client.
