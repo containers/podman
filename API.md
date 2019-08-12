@@ -265,6 +265,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [error ErrCtrStopped](#ErrCtrStopped)
 
+[error ErrRequiresCgroupsV2ForRootless](#ErrRequiresCgroupsV2ForRootless)
+
 [error ErrorOccurred](#ErrorOccurred)
 
 [error ImageNotFound](#ImageNotFound)
@@ -2006,6 +2008,9 @@ ContainerNotFound means the container could not be found by the provided name or
 ### <a name="ErrCtrStopped"></a>type ErrCtrStopped
 
 Container is already stopped
+### <a name="ErrRequiresCgroupsV2ForRootless"></a>type ErrRequiresCgroupsV2ForRootless
+
+This function requires CGroupsV2 to run in rootless mode.
 ### <a name="ErrorOccurred"></a>type ErrorOccurred
 
 ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message

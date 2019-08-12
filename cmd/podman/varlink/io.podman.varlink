@@ -1277,3 +1277,6 @@ error WantsMoreRequired (reason: string)
 
 # Container is already stopped
 error ErrCtrStopped (id: string)
+
+# This function requires CGroupsV2 to run in rootless mode.
+error ErrRequiresCgroupsV2ForRootless(reason: string)
