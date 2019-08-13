@@ -538,7 +538,7 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 			return nil
 		}
 		// Restart container if it's not running
-		ps := p.Podman([]string{"ps", "--no-trunc", "--q", "--filter", fmt.Sprintf("id=%s", cid)})
+		ps := p.Podman([]string{"ps", "--no-trunc", "--quiet", "--filter", fmt.Sprintf("id=%s", cid)})
 		ps.WaitWithDefaultTimeout()
 		if ps.ExitCode() == 0 {
 			if !strings.Contains(ps.OutputToString(), cid) {
