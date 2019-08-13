@@ -715,7 +715,7 @@ $ podman run -d --tmpfs /tmp:rw,size=787448k,mode=1777 my_image
 This command mounts a `tmpfs` at `/tmp` within the container.  The supported mount
 options are the same as the Linux default `mount` flags. If you do not specify
 any options, the systems uses the following options:
-`rw,noexec,nosuid,nodev,size=65536k`.
+`rw,noexec,nosuid,nodev`.
 
 **--tty**, **-t**=*true|false*
 

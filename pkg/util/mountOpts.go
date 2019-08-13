@@ -92,9 +92,6 @@ func ProcessTmpfsOptions(options []string) ([]string, error) {
 	if !foundWrite {
 		baseOpts = append(baseOpts, "rw")
 	}
-	if !foundSize {
-		baseOpts = append(baseOpts, "size=65536k")
-	}
 	if !foundProp {
 		baseOpts = append(baseOpts, "rprivate")
 	}

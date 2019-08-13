@@ -168,14 +168,14 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		"/run":     false,
 	}
 	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
-		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup", "size=65536k"}
+		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
 		for dest := range readonlyTmpfs {
 			if _, ok := baseMounts[dest]; ok {
 				continue
 			}
 			localOpts := options
 			if dest == "/run" {
-				localOpts = append(localOpts, "noexec")
+				localOpts = append(localOpts, "noexec", "size=65536k")
 			}
 			baseMounts[dest] = spec.Mount{
 				Destination: dest,
