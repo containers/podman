@@ -4,6 +4,7 @@ package hooks
 import (
 	"context"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -56,7 +57,7 @@ func New(ctx context.Context, directories []string, extensionStages []string) (m
 
 	for _, dir := range directories {
 		err = ReadDir(dir, manager.extensionStages, manager.hooks)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return nil, err
 		}
 	}
