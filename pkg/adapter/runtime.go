@@ -288,7 +288,11 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	options.CommonBuildOpts = commonOpts
 	options.SystemContext = systemContext
 
-	options.Runtime = r.GetOCIRuntimePath()
+	if c.GlobalFlags.Runtime != "" {
+		options.Runtime = c.GlobalFlags.Runtime
+	} else {
+		options.Runtime = r.GetOCIRuntimePath()
+	}
 
 	if c.Quiet {
 		options.ReportWriter = ioutil.Discard
