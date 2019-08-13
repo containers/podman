@@ -35,3 +35,11 @@ parts:
      - libseccomp-dev
      - libselinux1-dev
      - pkg-config
+    stage-packages:
+     - libarchive13
+     - libassuan0
+     - libgpgme11
+     - libicu60
+     - libostree-1-1
+     - libsoup2.4-1
+     - libxml2
