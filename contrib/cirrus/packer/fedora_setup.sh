@@ -53,6 +53,7 @@ ooe.sh sudo dnf install -y \
     libseccomp \
     libseccomp-devel \
     libselinux-devel \
+    libvarlink-util \
     lsof \
     make \
     nmap-ncat \
