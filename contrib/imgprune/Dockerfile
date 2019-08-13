@@ -1,4 +1,4 @@
-FROM libpod/imgts:latest
+FROM quay.io/libpod/imgts:latest
 
 RUN yum -y update && \
     yum clean all

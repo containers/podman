@@ -289,7 +289,7 @@ image_prune_task:
         - "meta"
 
     container:
-        image: "quay.io/cevich/imgprune:latest"  # see contrib/imgprune
+        image: "quay.io/libpod/imgprune:latest"  # see contrib/imgprune
         cpu: 1
         memory: 1
 
