@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -25,6 +26,17 @@ var _ = Describe("Podman pause", func() {
 		if err != nil {
 			os.Exit(1)
 		}
+
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if cgroupsv2 {
+			_, err := os.Stat("/sys/fs/cgroup/cgroup.freeze")
+			if err != nil {
+				Skip("freezer controller not available on the current kernel")
+			}
+		}
+
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
 		podmanTest.SeedImages()
