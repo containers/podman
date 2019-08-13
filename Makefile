@@ -20,6 +20,7 @@ SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
 ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
+USERSYSTEMDDIR ?= ${PREFIX}/lib/systemd/user
 BUILDFLAGS ?=
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
@@ -396,9 +397,11 @@ install.docker: docker-docs
 	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.systemd:
-	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
+	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
+	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${USERSYSTEMDDIR}/io.podman.service
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:

@@ -389,6 +389,7 @@ popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
+install -dp %{buildroot}%{_usr}/lib/systemd/user
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
         install.remote \
@@ -487,6 +488,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.podman.service
 %{_unitdir}/io.podman.socket
+%{_usr}/lib/systemd/user/io.podman.service
+%{_usr}/lib/systemd/user/io.podman.socket
 %{_usr}/lib/tmpfiles.d/%{name}.conf
 
 %if 0%{?with_devel}
