@@ -335,6 +335,7 @@ brew-pkg: install-podman-remote-docs podman-remote-darwin
 	@cp ./bin/podman-remote-darwin ./brew/podman
 	@cp -r ./docs/remote ./brew/docs/
 	@cp docs/podman-remote.1 ./brew/docs/podman.1
+	@cp docs/podman-remote.conf.5 ./brew/docs/podman-remote.conf.5
 	@sed -i 's/podman\\*-remote/podman/g' ./brew/docs/podman.1
 	@sed -i 's/Podman\\*-remote/Podman\ for\ Mac/g' ./brew/docs/podman.1
 	@sed -i 's/podman\.conf/podman\-remote\.conf/g' ./brew/docs/podman.1
