@@ -16,14 +16,30 @@ type containerNode struct {
 	dependedOn []*containerNode
 }
 
-type containerGraph struct {
+// ContainerGraph is a dependency graph based on a set of containers.
+type ContainerGraph struct {
 	nodes              map[string]*containerNode
 	noDepNodes         []*containerNode
 	notDependedOnNodes map[string]*containerNode
 }
 
-func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
-	graph := new(containerGraph)
+// DependencyMap returns the dependency graph as map with the key being a
+// container and the value being the containers the key depends on.
+func (cg *ContainerGraph) DependencyMap() (dependencies map[*Container][]*Container) {
+	dependencies = make(map[*Container][]*Container)
+	for _, node := range cg.nodes {
+		dependsOn := make([]*Container, len(node.dependsOn))
+		for i, d := range node.dependsOn {
+			dependsOn[i] = d.container
+		}
+		dependencies[node.container] = dependsOn
+	}
+	return dependencies
+}
+
+// BuildContainerGraph builds a dependency graph based on the container slice.
+func BuildContainerGraph(ctrs []*Container) (*ContainerGraph, error) {
+	graph := new(ContainerGraph)
 	graph.nodes = make(map[string]*containerNode)
 	graph.notDependedOnNodes = make(map[string]*containerNode)
 
@@ -78,7 +94,7 @@ func buildContainerGraph(ctrs []*Container) (*containerGraph, error) {
 // Detect cycles in a container graph using Tarjan's strongly connected
 // components algorithm
 // Return true if a cycle is found, false otherwise
-func detectCycles(graph *containerGraph) (bool, error) {
+func detectCycles(graph *ContainerGraph) (bool, error) {
 	type nodeInfo struct {
 		index   int
 		lowLink int

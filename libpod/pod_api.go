@@ -37,7 +37,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
@@ -289,7 +289,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}

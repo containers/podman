@@ -1094,28 +1094,145 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 	return portContainers, nil
 }
 
-// GenerateSystemd creates a unit file for a container
-func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
-	ctr, err := r.Runtime.LookupContainer(c.InputArgs[0])
-	if err != nil {
-		return "", err
+// generateServiceName generates the container name and the service name for systemd service.
+func generateServiceName(c *cliconfig.GenerateSystemdValues, ctr *libpod.Container, pod *libpod.Pod) (string, string) {
+	var kind, name, ctrName string
+	if pod == nil {
+		kind = "container"
+		name = ctr.ID()
+		if c.Name {
+			name = ctr.Name()
+		}
+		ctrName = name
+	} else {
+		kind = "pod"
+		name = pod.ID()
+		ctrName = ctr.ID()
+		if c.Name {
+			name = pod.Name()
+			ctrName = ctr.Name()
+		}
 	}
+	return ctrName, fmt.Sprintf("%s-%s", kind, name)
+}
+
+// generateSystemdgenContainerInfo is a helper to generate a
+// systemdgen.ContainerInfo for `GenerateSystemd`.
+func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSystemdValues, nameOrID string, pod *libpod.Pod) (*systemdgen.ContainerInfo, bool, error) {
+	ctr, err := r.Runtime.LookupContainer(nameOrID)
+	if err != nil {
+		return nil, false, err
+	}
+
 	timeout := int(ctr.StopTimeout())
 	if c.StopTimeout >= 0 {
 		timeout = c.StopTimeout
-	}
-	name := ctr.ID()
-	if c.Name {
-		name = ctr.Name()
 	}
 
 	config := ctr.Config()
 	conmonPidFile := config.ConmonPidFile
 	if conmonPidFile == "" {
-		return "", errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
+		return nil, true, errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
 	}
 
-	return systemdgen.CreateSystemdUnitAsString(name, ctr.ID(), c.RestartPolicy, conmonPidFile, timeout)
+	name, serviceName := generateServiceName(c, ctr, pod)
+	info := &systemdgen.ContainerInfo{
+		ServiceName:       serviceName,
+		ContainerName:     name,
+		RestartPolicy:     c.RestartPolicy,
+		PIDFile:           conmonPidFile,
+		StopTimeout:       timeout,
+		GenerateTimestamp: true,
+	}
+
+	return info, true, nil
+}
+
+// GenerateSystemd creates a unit file for a container or pod.
+func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
+	// First assume it's a container.
+	if info, found, err := r.generateSystemdgenContainerInfo(c, c.InputArgs[0], nil); found && err != nil {
+		return "", err
+	} else if found && err == nil {
+		return systemdgen.CreateContainerSystemdUnit(info, c.Files)
+	}
+
+	// We're either having a pod or garbage.
+	pod, err := r.Runtime.LookupPod(c.InputArgs[0])
+	if err != nil {
+		return "", err
+	}
+
+	// Error out if the pod has no infra container, which we require to be the
+	// main service.
+	if !pod.HasInfraContainer() {
+		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
+	}
+
+	// Generate a systemdgen.ContainerInfo for the infra container. This
+	// ContainerInfo acts as the main service of the pod.
+	infraID, err := pod.InfraContainerID()
+	if err != nil {
+		return "", nil
+	}
+	podInfo, _, err := r.generateSystemdgenContainerInfo(c, infraID, pod)
+	if err != nil {
+		return "", nil
+	}
+
+	// Compute the container-dependency graph for the Pod.
+	containers, err := pod.AllContainers()
+	if err != nil {
+		return "", err
+	}
+	if len(containers) == 0 {
+		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
+	}
+	graph, err := libpod.BuildContainerGraph(containers)
+	if err != nil {
+		return "", err
+	}
+
+	// Traverse the dependency graph and create systemdgen.ContainerInfo's for
+	// each container.
+	containerInfos := []*systemdgen.ContainerInfo{podInfo}
+	for ctr, dependencies := range graph.DependencyMap() {
+		// Skip the infra container as we already generated it.
+		if ctr.ID() == infraID {
+			continue
+		}
+		ctrInfo, _, err := r.generateSystemdgenContainerInfo(c, ctr.ID(), nil)
+		if err != nil {
+			return "", err
+		}
+		// Now add the container's dependencies and at the container as a
+		// required service of the infra container.
+		for _, dep := range dependencies {
+			if dep.ID() == infraID {
+				ctrInfo.BoundToServices = append(ctrInfo.BoundToServices, podInfo.ServiceName)
+			} else {
+				_, serviceName := generateServiceName(c, dep, nil)
+				ctrInfo.BoundToServices = append(ctrInfo.BoundToServices, serviceName)
+			}
+		}
+		podInfo.RequiredServices = append(podInfo.RequiredServices, ctrInfo.ServiceName)
+		containerInfos = append(containerInfos, ctrInfo)
+	}
+
+	// Now generate the systemd service for all containers.
+	builder := strings.Builder{}
+	for i, info := range containerInfos {
+		if i > 0 {
+			builder.WriteByte('\n')
+		}
+		out, err := systemdgen.CreateContainerSystemdUnit(info, c.Files)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(out)
+	}
+
+	return builder.String(), nil
 }
 
 // GetNamespaces returns namespace information about a container for PS
