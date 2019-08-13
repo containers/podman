@@ -38,6 +38,10 @@ func GetDriverData(store cstorage.Store, layerID string) (*Data, error) {
 	if err != nil {
 		return nil, err
 	}
+	if mountTimes, err := store.Mounted(layerID); mountTimes == 0 || err != nil {
+		delete(metaData, "MergedDir")
+	}
+
 	return &Data{
 		Name: name,
 		Data: metaData,
