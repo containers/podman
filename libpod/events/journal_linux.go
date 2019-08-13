@@ -4,6 +4,7 @@ package events
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/coreos/go-systemd/journal"
@@ -42,6 +43,9 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_IMAGE"] = ee.Image
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
+		if ee.ContainerExitCode != 0 {
+			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
@@ -150,6 +154,14 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 	case Container, Pod:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Image = entry.Fields["PODMAN_IMAGE"]
+		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
+			intCode, err := strconv.Atoi(code)
+			if err != nil {
+				logrus.Errorf("Error parsing event exit code %s", code)
+			} else {
+				newEvent.ContainerExitCode = intCode
+			}
+		}
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 	}
