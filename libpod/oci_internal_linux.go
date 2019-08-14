@@ -449,6 +449,15 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
+			if ociLog != "" {
+				ociLogData, err := ioutil.ReadFile(ociLog)
+				if err == nil {
+					var ociErr ociError
+					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
+						return -1, getOCIRuntimeError(ociErr.Msg)
+					}
+				}
+			}
 			return -1, errors.Wrapf(ss.err, "error reading container (probably exited) json message")
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
