@@ -179,8 +179,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec cannot be invoked", func() {
-		SkipIfNotRunc()
-
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
@@ -191,8 +189,6 @@ var _ = Describe("Podman exec", func() {
 	})
 
 	It("podman exec command not found", func() {
-		SkipIfNotRunc()
-
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
