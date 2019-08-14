@@ -48,6 +48,9 @@ func makeSystemdCgroup(path string) error {
 		return err
 	}
 
+	if rootless.IsRootless() {
+		return controller.CreateSystemdUserUnit(path, rootless.GetRootlessUID())
+	}
 	return controller.CreateSystemdUnit(path)
 }
 
@@ -56,6 +59,14 @@ func deleteSystemdCgroup(path string) error {
 	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
 		return err
+	}
+	if rootless.IsRootless() {
+		conn, err := cgroups.GetUserConnection(rootless.GetRootlessUID())
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		return controller.DeleteByPathConn(path, conn)
 	}
 
 	return controller.DeleteByPath(path)
