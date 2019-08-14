@@ -9,13 +9,7 @@ import (
 	"github.com/godbus/dbus"
 )
 
-func systemdCreate(path string) error {
-	c, err := systemdDbus.New()
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-
+func systemdCreate(path string, c *systemdDbus.Conn) error {
 	slice, name := filepath.Split(path)
 	slice = strings.TrimSuffix(slice, "/")
 
@@ -43,7 +37,7 @@ func systemdCreate(path string) error {
 		}
 
 		ch := make(chan string)
-		_, err = c.StartTransientUnit(name, "replace", properties, ch)
+		_, err := c.StartTransientUnit(name, "replace", properties, ch)
 		if err != nil {
 			lastError = err
 			continue
@@ -55,7 +49,7 @@ func systemdCreate(path string) error {
 }
 
 /*
-   systemdDestroy is copied from containerd/cgroups/systemd.go file, that
+   systemdDestroyConn is copied from containerd/cgroups/systemd.go file, that
    has the following license:
 
    Copyright The containerd Authors.
@@ -72,18 +66,11 @@ func systemdCreate(path string) error {
    See the License for the specific language governing permissions and
    limitations under the License.
 */
-
-func systemdDestroy(path string) error {
-	c, err := systemdDbus.New()
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-
+func systemdDestroyConn(path string, c *systemdDbus.Conn) error {
 	name := filepath.Base(path)
 
 	ch := make(chan string)
-	_, err = c.StopUnit(name, "replace", ch)
+	_, err := c.StopUnit(name, "replace", ch)
 	if err != nil {
 		return err
 	}
