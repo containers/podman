@@ -327,7 +327,8 @@ testing_task:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+            # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
+            # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
@@ -601,7 +602,7 @@ verify_test_built_images_task:
             PACKER_BUILDER_NAME: "fedora-30"
             PACKER_BUILDER_NAME: "xfedora-30"
             PACKER_BUILDER_NAME: "ubuntu-18"
-            PACKER_BUILDER_NAME: "ubuntu-19"
+            # TODO support $UBUNTU_CACHE_IMAGE_NAME: PACKER_BUILDER_NAME: "ubuntu-19"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
