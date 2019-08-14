@@ -60,6 +60,7 @@ type OCIRuntime struct {
 	noPivot       bool
 	reservePorts  bool
 	supportsJSON  bool
+	sdNotify      bool
 }
 
 // ociError is used to parse the OCI runtime JSON log.  It is not part of the
@@ -87,6 +88,7 @@ func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *R
 	runtime.logSizeMax = runtimeCfg.MaxLogSize
 	runtime.noPivot = runtimeCfg.NoPivotRoot
 	runtime.reservePorts = runtimeCfg.EnablePortReservation
+	runtime.sdNotify = runtimeCfg.SDNotify
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.

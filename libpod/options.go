@@ -482,6 +482,15 @@ func WithEventsLogger(logger string) RuntimeOption {
 	}
 }
 
+// WithEnableSDNotify sets a runtime option so we know whether to disable socket/FD
+// listening
+func WithEnableSDNotify() RuntimeOption {
+	return func(rt *Runtime) error {
+		rt.config.SDNotify = true
+		return nil
+	}
+}
+
 // Container Creation Options
 
 // WithShmDir sets the directory that should be mounted on /dev/shm.

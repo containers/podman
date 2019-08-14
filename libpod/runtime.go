@@ -252,6 +252,10 @@ type RuntimeConfig struct {
 	EventsLogFilePath string `toml:"-events_logfile_path"`
 	//DetachKeys is the sequence of keys used to detach a container
 	DetachKeys string `toml:"detach_keys"`
+
+	// SDNotify tells Libpod to allow containers to notify the host
+	// systemd of readiness using the SD_NOTIFY mechanism
+	SDNotify bool
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help

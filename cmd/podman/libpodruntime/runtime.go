@@ -15,25 +15,30 @@ import (
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
 func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, true, false)
+	return getRuntime(ctx, c, false, true, false, true)
+}
+
+// GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
+func GetRuntimeDisableFDs(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, false, false, false)
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, true, false, false)
+	return getRuntime(ctx, c, true, false, false, true)
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, false)
+	return getRuntime(ctx, c, false, false, false, true)
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options
 func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, true)
+	return getRuntime(ctx, c, false, false, true, true)
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore bool) (*libpod.Runtime, error) {
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -164,6 +169,10 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 	if infraCommandFlag != nil && infraImageFlag.Changed {
 		infraCommand, _ := c.Flags().GetString("infra-command")
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
+	}
+
+	if withFDS {
+		options = append(options, libpod.WithEnableSDNotify())
 	}
 	if c.Flags().Changed("config") {
 		return libpod.NewRuntimeFromConfig(ctx, c.GlobalFlags.Config, options...)
