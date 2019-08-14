@@ -707,6 +707,8 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		return nil, errors.Errorf("No command specified in container YAML or as CMD or ENTRYPOINT in this image for %s", containerConfig.Name)
 	}
 
+	containerConfig.UserCommand = containerConfig.Command
+
 	containerConfig.StopSignal = 15
 
 	// If the user does not pass in ID mappings, just set to basics

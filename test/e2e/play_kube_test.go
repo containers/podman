@@ -140,6 +140,30 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(ctrCmd[0]))
 	})
 
+	It("podman play kube test correct output", func() {
+		ctrName := "testCtr"
+		ctrCmd := []string{"echo", "hello"}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
+		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+
+		err := generateKubeYaml([]Container{testContainer}, tempFile)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", tempFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		logs := podmanTest.Podman([]string{"logs", ctrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("hello"))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName, "--format", "'{{ .Config.Cmd }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("hello"))
+	})
+
 	It("podman play kube cap add", func() {
 		ctrName := "testCtr"
 		ctrCmd := []string{"cat", "/proc/self/status"}
