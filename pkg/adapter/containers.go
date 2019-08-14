@@ -410,7 +410,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		}
 		if c.IsSet("rm") {
 			if deleteError := r.Runtime.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
-				logrus.Errorf("unable to remove container %s after failing to start and attach to it", ctr.ID())
+				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
 		return exitCode, err
