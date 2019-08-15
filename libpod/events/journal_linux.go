@@ -73,6 +73,11 @@ func (e EventJournalD) Read(options ReadOptions) error {
 		if err := j.SeekTail(); err != nil {
 			return errors.Wrap(err, "failed to seek end of journal")
 		}
+	} else {
+		podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
+		if err := j.AddMatch(podmanJournal.String()); err != nil {
+			return errors.Wrap(err, "failed to add filter for event log")
+		}
 	}
 	// the api requires a next|prev before getting a cursor
 	if _, err := j.Next(); err != nil {
