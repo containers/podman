@@ -30,6 +30,9 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 		return nil, err
 	}
 
+	// Set Pod hostname as Pod name
+	g.Config.Hostname = p.config.Name
+
 	isRootless := rootless.IsRootless()
 
 	entryCmd := []string{r.config.InfraCommand}
