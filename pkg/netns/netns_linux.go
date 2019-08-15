@@ -138,6 +138,13 @@ func NewNS() (ns.NetNS, error) {
 		if err != nil {
 			err = fmt.Errorf("failed to bind mount ns at %s: %v", nsPath, err)
 		}
+
+		// mount sysfs so the process running in the container can see the
+		// correct /sys/class/net entries
+		err = unix.Mount("sysfs", "/sys", "sysfs", unix.MS_RDONLY, "")
+		if err != nil {
+			err = fmt.Errorf("failed to mount sysfs: %v", err)
+		}
 	})()
 	wg.Wait()
 
