@@ -16,7 +16,7 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/drivers/overlayutils"
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/pkg/archive"
@@ -558,6 +558,10 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 	if err != nil {
 		return err
 	}
+	// Make the link directory if it does not exist
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return err
+	}
 	if err := idtools.MkdirAllAs(path.Dir(dir), 0700, rootUID, rootGID); err != nil {
 		return err
 	}
@@ -761,6 +765,48 @@ func (d *Driver) Remove(id string) error {
 	return nil
 }
 
+// recreateSymlinks goes through the driver's home directory and checks if the diff directory
+// under each layer has a symlink created for it under the linkDir. If the symlink does not
+// exist, it creates them
+func (d *Driver) recreateSymlinks() error {
+	// List all the directories under the home directory
+	dirs, err := ioutil.ReadDir(d.home)
+	if err != nil {
+		return fmt.Errorf("error reading driver home directory %q: %v", d.home, err)
+	}
+	// This makes the link directory if it doesn't exist
+	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
+	if err != nil {
+		return err
+	}
+	if err := idtools.MkdirAllAs(path.Join(d.home, linkDir), 0700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		return err
+	}
+	for _, dir := range dirs {
+		// Skip over the linkDir and anything that is not a directory
+		if dir.Name() == linkDir || !dir.Mode().IsDir() {
+			continue
+		}
+		// Read the "link" file under each layer to get the name of the symlink
+		data, err := ioutil.ReadFile(path.Join(d.dir(dir.Name()), "link"))
+		if err != nil {
+			return fmt.Errorf("error reading name of symlink for %q: %v", dir, err)
+		}
+		linkPath := path.Join(d.home, linkDir, strings.Trim(string(data), "\n"))
+		// Check if the symlink exists, and if it doesn't create it again with the name we
+		// got from the "link" file
+		_, err = os.Stat(linkPath)
+		if err != nil && os.IsNotExist(err) {
+			if err := os.Symlink(path.Join("..", dir.Name(), "diff"), linkPath); err != nil {
+				return err
+			}
+		} else if err != nil {
+			return fmt.Errorf("error trying to stat %q: %v", linkPath, err)
+		}
+	}
+	return nil
+}
+
 // Get creates and mounts the required file system for the given id and returns the mount path.
 func (d *Driver) Get(id string, options graphdriver.MountOpts) (_ string, retErr error) {
 	return d.get(id, false, options)
@@ -816,7 +862,16 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				}
 				lower = ""
 			}
-			if lower == "" {
+			// if it is a "not found" error, that means the symlinks were lost in a sudden reboot
+			// so call the recreateSymlinks function to go through all the layer dirs and recreate
+			// the symlinks with the name from their respective "link" files
+			if lower == "" && os.IsNotExist(err) {
+				logrus.Warnf("Can't stat lower layer %q because it does not exist. Going through storage to recreate the missing symlinks.", newpath)
+				if err := d.recreateSymlinks(); err != nil {
+					return "", fmt.Errorf("error recreating the missing symlinks: %v", err)
+				}
+				lower = newpath
+			} else if lower == "" {
 				return "", fmt.Errorf("Can't stat lower layer %q: %v", newpath, err)
 			}
 		} else {
