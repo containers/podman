@@ -348,7 +348,7 @@ testing_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
 
-# Test crun on last Fedora
+# Test crun only on latest Fedora
 testing_crun_task:
 
     depends_on:
@@ -361,20 +361,14 @@ testing_crun_task:
     # Only test build cache-images, if that's what's requested
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
-    gce_instance:
-        matrix:
-            # Images are generated separately, from build_images_task (below)
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-
     timeout_in: 120m
 
     env:
         ADD_SECOND_PARTITION: true
         OCI_RUNTIME: "/usr/bin/crun"
-        matrix:
-            TEST_REMOTE_CLIENT: false
 
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    install_crun_script: 'dnf install -y crun'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
@@ -385,11 +379,8 @@ testing_crun_task:
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
-    always: &crunstandardlogs
-        ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
-        df_script: '$SCRIPT_BASE/logcollector.sh df'
-        audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
-        journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+    always:
+        <<: *standardlogs
 
 
 # This task executes tests under unique environments/conditions
