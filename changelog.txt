@@ -1,3 +1,51 @@
+- Changelog for v1.5.1 (2019-08-15)
+  * Add release notes for v1.5.1
+  * Set Pod hostname as Pod name
+  * tests for exit status on podman run --rm
+  * performance fix for podman events with large journalds
+  * pkg/cgroups: use DBUS session when rootless
+  * Fix play kube command in pod yaml
+  * removMergeDir from inspect result if not mounted
+  * Running Podman with a nonexistent hooks dir is nonfatal
+  * Cirrus: Install varlink on Ubuntu
+  * Cirrus: Install varlink on Fedora
+  * Add missing stage-packages in snapcraft.yaml.
+  * Add RHEL and SUSE to snap doc
+  * start groundwork for adding snap
+  * Add user systemd service and socket
+  * Small optimization - only store exit code when nonzero
+  * Fix container exit code with Journald backend
+  * Revert "Cirrus: Temp. workaround missing imgprune image"
+  * Homebrew installation in install.md
+  * varlink endpoint for containerstats requires root
+  * Adjust get_ci_vm.sh for substitution
+  * Cirrus: Add verification for cgroupv2 image
+  * Cirrus: Add experimental fedora VM image & test
+  * image: add user agent to Docker registry options
+  * Cirrus: Minor, use newer Ubuntu base image
+  * tests: disable some tests currently failing when not using runc
+  * containers: look also for 'file not found' in the error message
+  * cirrus: add tests with crun on Fedora 30
+  * rootless: cherry-pick runtime from the system configuration
+  * cirrus: install crun
+  * cmd: drop check for euid==0
+  * storage: drop unused geteuid check
+  * cmd, stats: fix check for rootless mode
+  * oci: drop check for euid==0
+  * build: use the configured runtime
+  * Adjust read count so that a newline can be added afterwards
+  * Fix incorrect use of realloc()
+  * Bump gitvalidation epoch
+  * Bump to v1.5.1-dev
+  * Fix a couple of errors descovered by coverity
+  * Test that restored container does not depend on the original container
+  * Fix up ConmonPidFile after restore
+  * Cirrus: Enable updates-testing repo for Fedora
+  * enable windows remote client
+  * implement 'make remotesystem'
+  * Squish a few tpyo nits in container.go doc
+  * Cirrus: Add Second partition for storage testing
+
 - Changelog for v1.5.0 (2019-08-09)
   * vendor github.com/containers/storage@v1.13.2
   * Improve dns-search validation, empty domains now return an error
