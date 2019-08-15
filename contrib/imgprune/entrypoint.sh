@@ -6,27 +6,49 @@ source /usr/local/bin/lib_entrypoint.sh
 
 req_env_var GCPJSON GCPNAME GCPPROJECT IMGNAMES
 
+BASE_IMAGES=""
+# When executing under Cirrus-CI, have access to current source
+if [[ "$CI" == "true" ]] && [[ -r "$CIRRUS_WORKING_DIR/$SCRIPT_BASE" ]]
+then
+    # Avoid importing anything that might conflict
+    eval "$(egrep -sh '^export .+BASE_IMAGE=' < $CIRRUS_WORKING_DIR/$SCRIPT_BASE/lib.sh)"
+    BASE_IMAGES="$UBUNTU_BASE_IMAGE $PRIOR_UBUNTU_BASE_IMAGE $FEDORA_BASE_IMAGE $PRIOR_FEDORA_BASE_IMAGE"
+else
+    # metadata labeling may have broken for some reason in the future
+    echo "Warning: Running outside of Cirrus-CI, very minor-risk of base-image deletion."
+fi
+
 gcloud_init
 
 # For safety's sake + limit nr background processes
-PRUNE_LIMIT=10
+PRUNE_LIMIT=5
 THEFUTURE=$(date --date='+1 hour' +%s)
-TOO_OLD='90 days ago'
+TOO_OLD='30 days ago'
 THRESHOLD=$(date --date="$TOO_OLD" +%s)
 # Format Ref: https://cloud.google.com/sdk/gcloud/reference/topic/formats
 FORMAT='value[quote](name,selfLink,creationTimestamp,labels)'
 PROJRE="/v1/projects/$GCPPROJECT/global/"
-BASE_IMAGE_RE='cloud-base'
-RECENTLY=$(date --date='30 days ago' --iso-8601=date)
-EXCLUDE="$IMGNAMES $IMAGE_BUILDER_CACHE_IMAGE_NAME" # whitespace separated values
+RECENTLY=$(date --date='3 days ago' --iso-8601=date)
 # Filter Ref: https://cloud.google.com/sdk/gcloud/reference/topic/filters
-FILTER="selfLink~$PROJRE AND creationTimestamp<$RECENTLY AND NOT name=($EXCLUDE)"
+FILTER="selfLink~$PROJRE AND creationTimestamp<$RECENTLY AND NOT name=($IMGNAMES $BASE_IMAGES)"
 TODELETE=$(mktemp -p '' todelete.XXXXXX)
+IMGCOUNT=$(mktemp -p '' imgcount.XXXXXX)
 
-echo "Searching images for pruning candidates older than $TOO_OLD ($THRESHOLD):"
+# Search-loop runs in a sub-process, must store count in file
+echo "0" > "$IMGCOUNT"
+count_image() {
+    local count
+    count=$(<"$IMGCOUNT")
+    let 'count+=1'
+    echo "$count" > "$IMGCOUNT"
+}
+
+echo "Using filter: $FILTER"
+echo "Searching images for pruning candidates older than $TOO_OLD ($(date --date="$TOO_OLD" --iso-8601=date)):"
 $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
     while read name selfLink creationTimestamp labels
     do
+        count_image
         created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
         last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
         markmsgpfx="Marking $name (created $created_ymd) for deletion"
@@ -52,16 +74,29 @@ $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
             echo "$name" >> $TODELETE
             continue
         fi
-
-        echo "NOT $markmsgpfx: last used on $last_used_ymd)"
     done
 
-echo "Pruning up to $PRUNE_LIMIT images that were marked for deletion:"
-for image_name in $(tail -$PRUNE_LIMIT $TODELETE | sort --random-sort)
+COUNT=$(<"$IMGCOUNT")
+echo "########################################################################"
+echo "Deleting up to $PRUNE_LIMIT images marked ($(wc -l < $TODELETE)) of all searched ($COUNT):"
+
+# Require a minimum number of images to exist
+NEED="$[$PRUNE_LIMIT*2]"
+if [[ "$COUNT" -lt "$NEED" ]]
+then
+    die 0 Safety-net Insufficient images \($COUNT\) to process deletions \($NEED\)
+    exit 0
+fi
+
+for image_name in $(sort --random-sort $TODELETE | tail -$PRUNE_LIMIT)
 do
-    # This can take quite some time (minutes), run in parallel disconnected from terminal
-    echo "TODO: Would have: $GCLOUD compute images delete $image_name &"
-    sleep "$[1+RANDOM/1000]s" &  # Simlate background operation
+    if echo "$IMGNAMES $BASE_IMAGES" | grep -q "$image_name"
+    then
+        # double-verify in-use images were filtered out in search loop above
+        die 8 FATAL ATTEMPT TO DELETE IN-USE IMAGE \'$image_name\' - THIS SHOULD NEVER HAPPEN
+    fi
+    echo "Deleting $image_name in parallel..."
+    $GCLOUD compute images delete $image_name &
 done
 
 wait || true  # Nothing to delete: No background jobs
