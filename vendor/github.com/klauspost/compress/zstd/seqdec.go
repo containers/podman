@@ -89,6 +89,10 @@ func (s *sequenceDecs) initialize(br *bitReader, hist *history, literals, out []
 // decode sequences from the stream with the provided history.
 func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 	startSize := len(s.out)
+	// Grab full sizes tables, to avoid bounds checks.
+	llTable, mlTable, ofTable := s.litLengths.fse.dt[:maxTablesize], s.matchLengths.fse.dt[:maxTablesize], s.offsets.fse.dt[:maxTablesize]
+	llState, mlState, ofState := s.litLengths.state.state, s.matchLengths.state.state, s.offsets.state.state
+
 	for i := seqs - 1; i >= 0; i-- {
 		if br.overread() {
 			printf("reading sequence %d, exceeded available data\n", seqs-i)
@@ -96,10 +100,10 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 		}
 		var litLen, matchOff, matchLen int
 		if br.off > 4+((maxOffsetBits+16+16)>>3) {
-			litLen, matchOff, matchLen = s.nextFast(br)
+			litLen, matchOff, matchLen = s.nextFast(br, llState, mlState, ofState)
 			br.fillFast()
 		} else {
-			litLen, matchOff, matchLen = s.next(br)
+			litLen, matchOff, matchLen = s.next(br, llState, mlState, ofState)
 			br.fill()
 		}
 
@@ -175,30 +179,25 @@ func (s *sequenceDecs) decode(seqs int, br *bitReader, hist []byte) error {
 			// This is the last sequence, so we shouldn't update state.
 			break
 		}
-		if true {
-			// Manually inlined, ~ 5-20% faster
-			// Update all 3 states at once. Approx 20% faster.
-			a, b, c := s.litLengths.state.state, s.matchLengths.state.state, s.offsets.state.state
 
-			nBits := a.nbBits + b.nbBits + c.nbBits
-			if nBits == 0 {
-				s.litLengths.state.state = s.litLengths.state.dt[a.newState]
-				s.matchLengths.state.state = s.matchLengths.state.dt[b.newState]
-				s.offsets.state.state = s.offsets.state.dt[c.newState]
-			} else {
-				bits := br.getBitsFast(nBits)
-				lowBits := uint16(bits >> ((c.nbBits + b.nbBits) & 31))
-				s.litLengths.state.state = s.litLengths.state.dt[a.newState+lowBits]
-
-				lowBits = uint16(bits >> (c.nbBits & 31))
-				lowBits &= bitMask[b.nbBits&15]
-				s.matchLengths.state.state = s.matchLengths.state.dt[b.newState+lowBits]
-
-				lowBits = uint16(bits) & bitMask[c.nbBits&15]
-				s.offsets.state.state = s.offsets.state.dt[c.newState+lowBits]
-			}
+		// Manually inlined, ~ 5-20% faster
+		// Update all 3 states at once. Approx 20% faster.
+		nBits := llState.nbBits() + mlState.nbBits() + ofState.nbBits()
+		if nBits == 0 {
+			llState = llTable[llState.newState()&maxTableMask]
+			mlState = mlTable[mlState.newState()&maxTableMask]
+			ofState = ofTable[ofState.newState()&maxTableMask]
 		} else {
-			s.updateAlt(br)
+			bits := br.getBitsFast(nBits)
+			lowBits := uint16(bits >> ((ofState.nbBits() + mlState.nbBits()) & 31))
+			llState = llTable[(llState.newState()+lowBits)&maxTableMask]
+
+			lowBits = uint16(bits >> (ofState.nbBits() & 31))
+			lowBits &= bitMask[mlState.nbBits()&15]
+			mlState = mlTable[(mlState.newState()+lowBits)&maxTableMask]
+
+			lowBits = uint16(bits) & bitMask[ofState.nbBits()&15]
+			ofState = ofTable[(ofState.newState()+lowBits)&maxTableMask]
 		}
 	}
 
@@ -230,55 +229,49 @@ func (s *sequenceDecs) updateAlt(br *bitReader) {
 	// Update all 3 states at once. Approx 20% faster.
 	a, b, c := s.litLengths.state.state, s.matchLengths.state.state, s.offsets.state.state
 
-	nBits := a.nbBits + b.nbBits + c.nbBits
+	nBits := a.nbBits() + b.nbBits() + c.nbBits()
 	if nBits == 0 {
-		s.litLengths.state.state = s.litLengths.state.dt[a.newState]
-		s.matchLengths.state.state = s.matchLengths.state.dt[b.newState]
-		s.offsets.state.state = s.offsets.state.dt[c.newState]
+		s.litLengths.state.state = s.litLengths.state.dt[a.newState()]
+		s.matchLengths.state.state = s.matchLengths.state.dt[b.newState()]
+		s.offsets.state.state = s.offsets.state.dt[c.newState()]
 		return
 	}
 	bits := br.getBitsFast(nBits)
-	lowBits := uint16(bits >> ((c.nbBits + b.nbBits) & 31))
-	s.litLengths.state.state = s.litLengths.state.dt[a.newState+lowBits]
+	lowBits := uint16(bits >> ((c.nbBits() + b.nbBits()) & 31))
+	s.litLengths.state.state = s.litLengths.state.dt[a.newState()+lowBits]
 
-	lowBits = uint16(bits >> (c.nbBits & 31))
-	lowBits &= bitMask[b.nbBits&15]
-	s.matchLengths.state.state = s.matchLengths.state.dt[b.newState+lowBits]
+	lowBits = uint16(bits >> (c.nbBits() & 31))
+	lowBits &= bitMask[b.nbBits()&15]
+	s.matchLengths.state.state = s.matchLengths.state.dt[b.newState()+lowBits]
 
-	lowBits = uint16(bits) & bitMask[c.nbBits&15]
-	s.offsets.state.state = s.offsets.state.dt[c.newState+lowBits]
+	lowBits = uint16(bits) & bitMask[c.nbBits()&15]
+	s.offsets.state.state = s.offsets.state.dt[c.newState()+lowBits]
 }
 
 // nextFast will return new states when there are at least 4 unused bytes left on the stream when done.
-func (s *sequenceDecs) nextFast(br *bitReader) (ll, mo, ml int) {
+func (s *sequenceDecs) nextFast(br *bitReader, llState, mlState, ofState decSymbol) (ll, mo, ml int) {
 	// Final will not read from stream.
-	ll, llB := s.litLengths.state.final()
-	ml, mlB := s.matchLengths.state.final()
-	mo, moB := s.offsets.state.final()
+	ll, llB := llState.final()
+	ml, mlB := mlState.final()
+	mo, moB := ofState.final()
 
 	// extra bits are stored in reverse order.
 	br.fillFast()
-	if s.maxBits <= 32 {
-		mo += br.getBits(moB)
-		ml += br.getBits(mlB)
-		ll += br.getBits(llB)
-	} else {
-		mo += br.getBits(moB)
+	mo += br.getBits(moB)
+	if s.maxBits > 32 {
 		br.fillFast()
-		// matchlength+literal length, max 32 bits
-		ml += br.getBits(mlB)
-		ll += br.getBits(llB)
 	}
+	ml += br.getBits(mlB)
+	ll += br.getBits(llB)
 
-	// mo = s.adjustOffset(mo, ll, moB)
-	// Inlined for rather big speedup
 	if moB > 1 {
 		s.prevOffset[2] = s.prevOffset[1]
 		s.prevOffset[1] = s.prevOffset[0]
 		s.prevOffset[0] = mo
 		return
 	}
-
+	// mo = s.adjustOffset(mo, ll, moB)
+	// Inlined for rather big speedup
 	if ll == 0 {
 		// There is an exception though, when current sequence's literals_length = 0.
 		// In this case, repeated offsets are shifted by one, so an offset_value of 1 means Repeated_Offset2,
@@ -312,11 +305,11 @@ func (s *sequenceDecs) nextFast(br *bitReader) (ll, mo, ml int) {
 	return
 }
 
-func (s *sequenceDecs) next(br *bitReader) (ll, mo, ml int) {
+func (s *sequenceDecs) next(br *bitReader, llState, mlState, ofState decSymbol) (ll, mo, ml int) {
 	// Final will not read from stream.
-	ll, llB := s.litLengths.state.final()
-	ml, mlB := s.matchLengths.state.final()
-	mo, moB := s.offsets.state.final()
+	ll, llB := llState.final()
+	ml, mlB := mlState.final()
+	mo, moB := ofState.final()
 
 	// extra bits are stored in reverse order.
 	br.fill()

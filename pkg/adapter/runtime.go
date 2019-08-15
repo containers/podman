@@ -288,6 +288,9 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	}
 
 	systemContext.AuthFilePath = authfile
+	if authfile == "" {
+		systemContext.AuthEnableKeyring = true
+	}
 	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command)
 	if err != nil {
 		return err

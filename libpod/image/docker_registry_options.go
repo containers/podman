@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/types"
-
 	podmanVersion "github.com/containers/libpod/version"
 )
 
@@ -39,6 +38,7 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 	if parent != nil {
 		sc.SignaturePolicyPath = parent.SignaturePolicyPath
 		sc.AuthFilePath = parent.AuthFilePath
+		sc.AuthEnableKeyring = parent.AuthEnableKeyring
 		sc.DirForceCompress = parent.DirForceCompress
 		sc.DockerRegistryUserAgent = parent.DockerRegistryUserAgent
 	}
@@ -54,6 +54,8 @@ func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bo
 	sc.AuthFilePath = authFilePath
 	sc.DirForceCompress = forceCompress
 	sc.DockerRegistryUserAgent = fmt.Sprintf("libpod/%s", podmanVersion.Version)
-
+	if authFilePath == "" {
+		sc.AuthEnableKeyring = true
+	}
 	return sc
 }

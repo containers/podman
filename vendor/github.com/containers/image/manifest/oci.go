@@ -2,12 +2,15 @@ package manifest
 
 import (
 	"encoding/json"
+	"fmt"
 
+	"github.com/containers/image/pkg/compression"
 	"github.com/containers/image/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // BlobInfoFromOCI1Descriptor returns a types.BlobInfo based on the input OCI1 descriptor.
@@ -27,11 +30,30 @@ type OCI1 struct {
 	imgspecv1.Manifest
 }
 
+// SupportedOCI1MediaType checks if the specified string is a supported OCI1 media type.
+func SupportedOCI1MediaType(m string) error {
+	switch m {
+	case imgspecv1.MediaTypeDescriptor, imgspecv1.MediaTypeImageConfig, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerGzip, imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableGzip, imgspecv1.MediaTypeImageLayerNonDistributableZstd, imgspecv1.MediaTypeImageLayerZstd, imgspecv1.MediaTypeImageManifest, imgspecv1.MediaTypeLayoutHeader:
+		return nil
+	default:
+		return fmt.Errorf("unsupported OCIv1 media type: %q", m)
+	}
+}
+
 // OCI1FromManifest creates an OCI1 manifest instance from a manifest blob.
 func OCI1FromManifest(manifest []byte) (*OCI1, error) {
 	oci1 := OCI1{}
 	if err := json.Unmarshal(manifest, &oci1); err != nil {
 		return nil, err
+	}
+	// Check manifest's and layers' media types.
+	if err := SupportedOCI1MediaType(oci1.Config.MediaType); err != nil {
+		return nil, err
+	}
+	for _, layer := range oci1.Layers {
+		if err := SupportedOCI1MediaType(layer.MediaType); err != nil {
+			return nil, err
+		}
 	}
 	return &oci1, nil
 }
@@ -81,7 +103,64 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	original := m.Layers
 	m.Layers = make([]imgspecv1.Descriptor, len(layerInfos))
 	for i, info := range layerInfos {
-		m.Layers[i].MediaType = original[i].MediaType
+		// First make sure we support the media type of the original layer.
+		if err := SupportedOCI1MediaType(original[i].MediaType); err != nil {
+			return fmt.Errorf("Error preparing updated manifest: unknown media type of original layer: %q", original[i].MediaType)
+		}
+
+		// Set the correct media types based on the specified compression
+		// operation, the desired compression algorithm AND the original media
+		// type.
+		switch info.CompressionOperation {
+		case types.PreserveOriginal:
+			// Keep the original media type.
+			m.Layers[i].MediaType = original[i].MediaType
+
+		case types.Decompress:
+			// Decompress the original media type and check if it was
+			// non-distributable one or not.
+			switch original[i].MediaType {
+			case imgspecv1.MediaTypeImageLayerNonDistributableGzip, imgspecv1.MediaTypeImageLayerNonDistributableZstd:
+				m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerNonDistributable
+			default:
+				m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayer
+			}
+
+		case types.Compress:
+			if info.CompressionAlgorithm == nil {
+				logrus.Debugf("Error preparing updated manifest: blob %q was compressed but does not specify by which algorithm: falling back to use the original blob", info.Digest)
+				m.Layers[i].MediaType = original[i].MediaType
+				break
+			}
+			// Compress the original media type and set the new one based on
+			// that type (distributable or not) and the specified compression
+			// algorithm. Throw an error if the algorithm is not supported.
+			switch info.CompressionAlgorithm.Name() {
+			case compression.Gzip.Name():
+				switch original[i].MediaType {
+				case imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableZstd:
+					m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerNonDistributableGzip
+
+				default:
+					m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerGzip
+				}
+
+			case compression.Zstd.Name():
+				switch original[i].MediaType {
+				case imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableGzip:
+					m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerNonDistributableZstd
+
+				default:
+					m.Layers[i].MediaType = imgspecv1.MediaTypeImageLayerZstd
+				}
+
+			default:
+				return fmt.Errorf("Error preparing updated manifest: unknown compression algorithm %q for layer %q", info.CompressionAlgorithm.Name(), info.Digest)
+			}
+
+		default:
+			return fmt.Errorf("Error preparing updated manifest: unknown compression operation (%d) for layer %q", info.CompressionOperation, info.Digest)
+		}
 		m.Layers[i].Digest = info.Digest
 		m.Layers[i].Size = info.Size
 		m.Layers[i].Annotations = info.Annotations

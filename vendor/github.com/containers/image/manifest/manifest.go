@@ -12,7 +12,7 @@ import (
 
 // FIXME: Should we just use docker/distribution and docker/docker implementations directly?
 
-// FIXME(runcom, mitr): should we havea mediatype pkg??
+// FIXME(runcom, mitr): should we have a mediatype pkg??
 const (
 	// DockerV2Schema1MediaType MIME type represents Docker manifest schema 1
 	DockerV2Schema1MediaType = "application/vnd.docker.distribution.manifest.v1+json"
@@ -24,11 +24,25 @@ const (
 	DockerV2Schema2ConfigMediaType = "application/vnd.docker.container.image.v1+json"
 	// DockerV2Schema2LayerMediaType is the MIME type used for schema 2 layers.
 	DockerV2Schema2LayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
+	// DockerV2SchemaLayerMediaTypeUncompressed is the mediaType used for uncompressed layers.
+	DockerV2SchemaLayerMediaTypeUncompressed = "application/vnd.docker.image.rootfs.diff.tar"
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
 	DockerV2ListMediaType = "application/vnd.docker.distribution.manifest.list.v2+json"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
-	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
+	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar"
+	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzippped schema 2 foreign layers.
+	DockerV2Schema2ForeignLayerMediaTypeGzip = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
 )
+
+// SupportedSchema2MediaType checks if the specified string is a supported Docker v2s2 media type.
+func SupportedSchema2MediaType(m string) error {
+	switch m {
+	case DockerV2ListMediaType, DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType, DockerV2Schema2ConfigMediaType, DockerV2Schema2ForeignLayerMediaType, DockerV2Schema2ForeignLayerMediaTypeGzip, DockerV2Schema2LayerMediaType, DockerV2Schema2MediaType, DockerV2SchemaLayerMediaTypeUncompressed:
+		return nil
+	default:
+		return fmt.Errorf("unsupported docker v2s2 media type: %q", m)
+	}
+}
 
 // DefaultRequestedManifestMIMETypes is a list of MIME types a types.ImageSource
 // should request from the backend unless directed otherwise.

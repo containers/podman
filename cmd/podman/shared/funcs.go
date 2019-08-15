@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/util"
 	"github.com/google/shlex"
 )
 
@@ -18,10 +17,6 @@ func GetAuthFile(authfile string) string {
 	authfile = os.Getenv("REGISTRY_AUTH_FILE")
 	if authfile != "" {
 		return authfile
-	}
-
-	if runtimeDir, err := util.GetRuntimeDir(); err == nil {
-		return filepath.Join(runtimeDir, "auth.json")
 	}
 	return ""
 }

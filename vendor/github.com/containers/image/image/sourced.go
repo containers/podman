@@ -5,6 +5,7 @@ package image
 
 import (
 	"context"
+
 	"github.com/containers/image/types"
 )
 
