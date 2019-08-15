@@ -67,7 +67,7 @@ env:
 # Default VM to use unless set or modified by task
 gce_instance:
     image_project: "libpod-218412"
-    zone: "us-central1-a"  # Required by Cirrus for the time being
+    zone: "us-central1-f"  # Required by Cirrus for the time being
     cpu: 2
     memory: "4Gb"
     disk: 200
@@ -195,12 +195,8 @@ build_each_commit_task:
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -226,12 +222,8 @@ build_without_cgo_task:
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -519,11 +511,7 @@ test_build_cache_images_task:
     auto_cancellation: $CI != "true"
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"
         cpu: 4
-        memory: "4Gb"
-        disk: 200
         image_name: "${IMAGE_BUILDER_CACHE_IMAGE_NAME}"
         scopes:  # required for image building
             - compute
