@@ -1,5 +1,8 @@
 FROM golang:1.12
 
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD \
+    && echo "deb https://repo.iovisor.org/apt/bionic bionic main" | tee /etc/apt/sources.list.d/iovisor.list
+
 RUN apt-get update && apt-get install -y \
     apparmor \
     autoconf \
@@ -34,12 +37,14 @@ RUN apt-get update && apt-get install -y \
     libdevmapper-dev \
     libgpgme11-dev \
     liblzma-dev \
+    libtinfo5 \
     netcat \
     socat \
     lsof \
     xz-utils \
     unzip \
     python3-yaml \
+    libbcc \
     --no-install-recommends \
     && apt-get clean
 

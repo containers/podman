@@ -32,6 +32,8 @@ if [[ "$OS_RELEASE_VER" -eq "18" ]]
 then
     $LILTO $SUDOAPTADD ppa:longsleep/golang-backports
 fi
+sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
+sudo echo "deb https://repo.iovisor.org/apt/$(lsb_release -cs) $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/iovisor.list
 
 $LILTO $SUDOAPTGET update
 
@@ -104,7 +106,7 @@ $BIGTO $SUDOAPTGET install \
     vim \
     xz-utils \
     zip \
-    bcc \
+    libbcc \
     linux-headers-$(uname -r)
 
 if [[ "$OS_RELEASE_VER" -ge "19" ]]
