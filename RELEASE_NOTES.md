@@ -1,5 +1,23 @@
 # Release Notes
 
+## 1.5.1
+### Features
+- The hostname of pods is now set to the pod's name
+
+### Bugfixes
+- Fixed a bug where `podman run` and `podman create` did not honor the `--authfile` option ([#3730](https://github.com/containers/libpod/issues/3730))
+- Fixed a bug where containers restored with `podman container restore --import` would incorrectly duplicate the Conmon PID file of the original container
+- Fixed a bug where `podman build` ignored the default OCI runtime configured in `libpod.conf`
+- Fixed a bug where `podman run --rm` (or force-removing any running container with `podman rm --force`) were not retrieving the correct exit code ([#3795](https://github.com/containers/libpod/issues/3795))
+- Fixed a bug where Podman would exit with an error if any configured hooks directory was not present
+- Fixed a bug where `podman inspect` and `podman commit` would not use the correct `CMD` for containers run with `podman play kube`
+- Fixed a bug created pods when using rootless Podman and CGroups V2 ([#3801](https://github.com/containers/libpod/issues/3801))
+- Fixed a bug where the `podman events` command with the `--since` or `--until` options could take a very long time to complete
+
+### Misc
+- Rootless Podman will now inherit OCI runtime configuration from the root configuration ([#3781](https://github.com/containers/libpod/issues/3781))
+- Podman now properly sets a user agent while contacting registries ([#3788](https://github.com/containers/libpod/issues/3788))
+
 ## 1.5.0
 ### Features
 - Podman containers can now join the user namespaces of other containers with `--userns=container:$ID`, or a user namespace at an arbitary path with `--userns=ns:$PATH`
