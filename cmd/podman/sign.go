@@ -46,7 +46,7 @@ func init() {
 	flags := signCommand.Flags()
 	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")
 	flags.StringVar(&signCommand.SignBy, "sign-by", "", "Name of the signing key")
-
+	flags.StringVar(&signCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 }
 
 // SignatureStoreDir defines default directory to store signatures
@@ -76,6 +76,13 @@ func signCmd(c *cliconfig.SignValues) error {
 		}
 	}
 
+	sc := runtime.SystemContext()
+	sc.DockerCertPath = c.CertDir
+
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerCertPath: c.CertDir,
+	}
+
 	mech, err := signature.NewGPGSigningMechanism()
 	if err != nil {
 		return errors.Wrap(err, "error initializing GPG")
@@ -85,7 +92,7 @@ func signCmd(c *cliconfig.SignValues) error {
 		return errors.Wrap(err, "signing is not supported")
 	}
 
-	systemRegistriesDirPath := trust.RegistriesDirPath(runtime.SystemContext())
+	systemRegistriesDirPath := trust.RegistriesDirPath(sc)
 	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
 		return errors.Wrapf(err, "error reading registry configuration")
@@ -96,9 +103,13 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image name")
 		}
-		rawSource, err := srcRef.NewImageSource(getContext(), runtime.SystemContext())
+		rawSource, err := srcRef.NewImageSource(getContext(), sc)
 		if err != nil {
 			return errors.Wrapf(err, "error getting image source")
+		}
+		err = rawSource.Close()
+		if err != nil {
+			logrus.Errorf("unable to close new image source %q", err)
 		}
 		manifest, _, err := rawSource.GetManifest(getContext(), nil)
 		if err != nil {
@@ -114,7 +125,7 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return err
 		}
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
+		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, &dockerRegistryOptions, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}

@@ -12,14 +12,23 @@ been pulled from a registry. The signature will be written to a directory
 derived from the registry configuration files in /etc/containers/registries.d. By default, the signature will be written into /var/lib/containers/sigstore directory.
 
 ## OPTIONS
+
 **--help**, **-h**
-  Print usage statement.
+
+Print usage statement.
+
+**--cert-dir**=*path*
+
+Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--directory**, **-d**=*dir*
-  Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
+
+Store the signatures in the specified directory.  Default: /var/lib/containers/sigstore
 
 **--sign-by**=*identity*
-  Override the default identity of the signature.
+
+Override the default identity of the signature.
 
 ## EXAMPLES
 Sign the busybox image with the identify of foo@bar.com with a user's keyring and save the signature in /tmp/signatures/.

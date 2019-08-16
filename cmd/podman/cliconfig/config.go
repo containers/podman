@@ -506,6 +506,7 @@ type SignValues struct {
 	PodmanCommand
 	Directory string
 	SignBy    string
+	CertDir   string
 }
 
 type StartValues struct {
