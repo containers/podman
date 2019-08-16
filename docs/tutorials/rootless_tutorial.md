@@ -22,6 +22,8 @@ The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package pr
 
 When using Podman in a rootless environment, it is recommended to use fuse-overlayfs rather than the VFS file system.  Installing the fuse3-devel package gives Podman the dependencies it needs to install, build and use fuse-overlayfs in a rootless environment for you.  The fuse-overlayfs project is also available from [GitHub](https://github.com/containers/fuse-overlayfs).  This especially needs to be checked on Ubuntu distributions as fuse-overlayfs is not generally installed by default.
 
+If podman is installed before fuse-overlayfs, it may be necessary to change the `driver` option under `[storage]` to `"overlay"`.
+
 ### Enable user namespaces (on RHEL7 machines)
 
 The number of user namespaces that are allowed on the system is specified in the file `/proc/sys/user/max_user_namespaces`.  On most Linux platforms this is preset by default and no adjustment is necessary.  However on RHEL7 machines a user with root privileges may need to set that to a reasonable value by using this command:  `sysctl user.max_user_namespaces=15000`.
