@@ -93,8 +93,8 @@ gating_task:
 
     timeout_in: 20m
 
-    networking_script:  # Don't bother going further if something is down
-        - 'while read host port; do nc -zv -w 13 $host $port || exit 1; done < ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt'
+    # Don't bother going further if something is down
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
 
     gate_script:
         # N/B: entrypoint.sh resets $GOSRC (same as make clean)
@@ -331,6 +331,7 @@ testing_task:
             TEST_REMOTE_CLIENT: true
             TEST_REMOTE_CLIENT: false
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
@@ -374,6 +375,7 @@ testing_crun_task:
         matrix:
             TEST_REMOTE_CLIENT: false
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
@@ -413,6 +415,7 @@ special_testing_rootless_task:
 
     timeout_in: 60m
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
@@ -441,6 +444,7 @@ special_testing_in_podman_task:
 
     timeout_in: 60m
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
 
@@ -467,6 +471,7 @@ special_testing_cross_task:
 
     timeout_in: 20m
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     cache_release_archive_script: '$SCRIPT_BASE/cache_release_archive.sh |& ${TIMESTAMP}'
 
@@ -494,6 +499,7 @@ special_testing_cgroupv2_task:
 
     timeout_in: 20m
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
 
@@ -529,7 +535,8 @@ test_build_cache_images_task:
             - compute
             - devstorage.full_control
 
-    environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
+    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
     df_script: '${DFCMD}'
     journalctl_b_script: 'journalctl -b'
@@ -568,6 +575,7 @@ verify_test_built_images_task:
             PACKER_BUILDER_NAME: "xfedora-30"
             PACKER_BUILDER_NAME: "ubuntu-18"
 
+    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     # Verify expectations once per image
     check_image_script: >-
