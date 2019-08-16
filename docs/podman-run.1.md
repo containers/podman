@@ -475,6 +475,8 @@ Current supported mount TYPES are bind, and tmpfs.
 
        type=bind,source=/path/on/host,destination=/path/in/container
 
+       type=bind,source=volume-name,destination=/path/in/container
+
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 
        Common Options:
@@ -821,18 +823,22 @@ Set the UTS mode for the container
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
-**--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
+**--volume**, **-v**[=*[HOST-DIR-OR-VOUME-NAME:CONTAINER-DIR[:OPTIONS]]*]
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman
-container. The `OPTIONS` are a comma delimited list and can be:
+container. Similarly, `-v VOLUME-NAME:/CONTAINER-DIR` will mount the volume
+in the host to the container. If no such named volume exists, podman will
+create one.
+
+ The `OPTIONS` are a comma delimited list and can be:
 
 * [`rw`|`ro`]
 * [`z`|`Z`]
 * [`[r]shared`|`[r]slave`|`[r]private`]
 
-The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
-must be an absolute path as well. podman bind-mounts the `HOST-DIR` to the
+The `/CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `/HOST-DIR`
+must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
 path you specify. For example, if you supply the `/foo` value, podman creates a bind-mount.
 
 You can specify multiple  **-v** options to mount one or more mounts to a
@@ -1092,17 +1098,25 @@ $ podman run -p 8080:80 -d -i -t fedora/httpd
 
 To mount a host directory as a container volume, specify the absolute path to
 the directory and the absolute path for the container directory separated by a
-colon:
+colon. If the source is a named volume maintained by podman, it's recommended to
+use it's name rather than the path to the volume. Otherwise the volume will be
+considered as an orphan and wiped if you execute `podman volume prune`:
 
 ```
 $ podman run -v /var/db:/data1 -i -t fedora bash
+
+$ podman run -v data:/data2 -i -t fedora bash
 ```
 
 Using --mount flags, To mount a host directory as a container folder, specify
-the absolute path to the directory and the absolute path for the container
-directory:
+the absolute path to the directory or the volume name, and the absolute path
+within the container directory:
 
+````
 $ podman run --mount type=bind,src=/var/db,target=/data1 busybox sh
+
+$ podman run --mount type=bind,src=volume-name,target=/data1 busybox sh
+````
 
 When using SELinux, be aware that the host has no knowledge of container SELinux
 policy. Therefore, in the above example, if SELinux policy is enforced, the
@@ -1178,7 +1192,7 @@ $ podman run --sysctl net.ipv4.ip_forward=1 someimage
 
 Note:
 
-Not all sysctls are namespaced. podman does not support changing sysctls
+Not all sysctls are namespaced. Podman does not support changing sysctls
 inside of a container that also modify the host system. As the kernel
 evolves we expect to see more sysctls become namespaced.
 
