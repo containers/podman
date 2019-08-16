@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/mrunalp/fileutils"
@@ -263,9 +264,15 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1024"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--oom-kill-disable=true", fedoraMinimal, "echo", "memory-hog"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if !cgroupsv2 {
+			// --oom-kill-disable not supported on cgroups v2.
+			session = podmanTest.Podman([]string{"run", "--rm", "--oom-kill-disable=true", fedoraMinimal, "echo", "memory-hog"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+		}
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--oom-score-adj=100", fedoraMinimal, "cat", "/proc/self/oom_score_adj"})
 		session.WaitWithDefaultTimeout()
@@ -310,18 +317,43 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run blkio-weight test", func() {
 		SkipIfRootless()
-		if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
-			Skip("Kernel does not support blkio.weight")
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if !cgroupsv2 {
+			if _, err := os.Stat("/sys/fs/cgroup/blkio/blkio.weight"); os.IsNotExist(err) {
+				Skip("Kernel does not support blkio.weight")
+			}
 		}
-		session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(ContainSubstring("15"))
+
+		if cgroupsv2 {
+			// convert linearly from [10-1000] to [1-10000]
+			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.bfq.weight"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(ContainSubstring("51"))
+		} else {
+			session := podmanTest.Podman([]string{"run", "--rm", "--blkio-weight=15", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.weight"})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(0))
+			Expect(session.OutputToString()).To(ContainSubstring("15"))
+		}
 	})
 
 	It("podman run device-read-bps test", func() {
 		SkipIfRootless()
-		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
+
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		var session *PodmanSessionIntegration
+
+		if cgroupsv2 {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
+		} else {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_bps_device"})
+		}
+
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1048576"))
@@ -329,7 +361,17 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run device-write-bps test", func() {
 		SkipIfRootless()
-		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device"})
+
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		var session *PodmanSessionIntegration
+
+		if cgroupsv2 {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
+		} else {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-bps=/dev/zero:1mb", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_bps_device"})
+		}
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("1048576"))
@@ -337,7 +379,18 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run device-read-iops test", func() {
 		SkipIfRootless()
-		session := podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device"})
+
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		var session *PodmanSessionIntegration
+
+		if cgroupsv2 {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
+		} else {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-read-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.read_iops_device"})
+		}
+
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("100"))
@@ -345,7 +398,18 @@ var _ = Describe("Podman run", func() {
 
 	It("podman run device-write-iops test", func() {
 		SkipIfRootless()
-		session := podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device"})
+
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		var session *PodmanSessionIntegration
+
+		if cgroupsv2 {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "sh", "-c", "cat /sys/fs/cgroup/$(sed -e 's|0::||' < /proc/self/cgroup)/io.max"})
+		} else {
+			session = podmanTest.Podman([]string{"run", "--rm", "--device-write-iops=/dev/zero:100", ALPINE, "cat", "/sys/fs/cgroup/blkio/blkio.throttle.write_iops_device"})
+		}
+
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("100"))
