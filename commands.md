@@ -44,6 +44,10 @@
 | [podman-logout(1)](/docs/podman-logout.1.md)                             | Logout of a container registry                                             |
 | [podman-logs(1)](/docs/podman-logs.1.md)                                 | Display the logs of a container                                            |
 | [podman-mount(1)](/docs/podman-mount.1.md)                               | Mount a working container's root filesystem                                |
+| [podman-network(1)](/docs/podman-network.1.md)                           | Manage Podman CNI networks             |
+| [podman-network-inspect(1)](/docs/podman-network-inspect.1.md)           | Inspect one or more Podman networks             |
+| [podman-network-ls(1)](/docs/podman-network-ls.1.md)                     | Display a summary of Podman networks             |
+| [podman-network-rm(1)](/docs/podman-network-rm.1.md)                     | Remove one or more Podman networks             |
 | [podman-pause(1)](/docs/podman-pause.1.md)                               | Pause one or more running containers                                       | [![...](/docs/play.png)](https://podman.io/asciinema/podman/pause_unpause/)        | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_pause_unpause.sh) |
 | [podman-play(1)](/docs/podman-play.1.md)                                 | Play pods and containers based on a structured input file                  |
 | [podman-pod(1)](/docs/podman-pod.1.md)                                   | Simple management tool for groups of containers, called pods               |
