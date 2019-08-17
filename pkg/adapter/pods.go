@@ -19,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/ghodss/yaml"
@@ -578,7 +579,7 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	}
 
 	for _, container := range podYAML.Spec.Containers {
-		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, false, nil)
+		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageMissing)
 		if err != nil {
 			return nil, err
 		}

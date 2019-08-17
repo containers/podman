@@ -231,4 +231,14 @@ var _ = Describe("Podman create", func() {
 		Expect(ctrJSON[0].Config.Cmd[0]).To(Equal("redis-server"))
 		Expect(ctrJSON[0].Config.Entrypoint).To(Equal("docker-entrypoint.sh"))
 	})
+
+	It("podman create --pull", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull", "never", "--name=foo", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+	})
 })

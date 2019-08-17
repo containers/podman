@@ -601,6 +601,15 @@ When using -P, podman will bind any exposed port to a random port on the host
 within an *ephemeral port range* defined by `/proc/sys/net/ipv4/ip_local_port_range`.
 To find the mapping between the host ports and the exposed ports, use `podman port`.
 
+**--pull**=*missing*
+
+Pull image before running ("always"|"missing"|"never") (default "missing").
+       'missing': default value, attempt to pull the latest image from the registries listed in registries.conf if a local image does not exist.Raise an error if the image is not in any listed registry and is not present locally.
+       'always': Pull the image from the first registry it is found in as listed in  registries.conf. Raise an error if not found in the registries, even if the image is present locally.
+       'never': do not pull the image from the registry, use only the local version. Raise an error if the image is not present locally.
+
+Defaults to *missing*.
+
 **--quiet**, **-q**
 
 Suppress output information when pulling images

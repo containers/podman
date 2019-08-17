@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -111,7 +112,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, define.ErrRuntimeStopped
 	}
 
-	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, false, nil)
+	newImage, err := r.ImageRuntime().New(ctx, r.config.InfraImage, "", "", nil, nil, image.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		return nil, err
 	}

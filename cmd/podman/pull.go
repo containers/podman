@@ -150,7 +150,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	// See https://bugzilla.redhat.com/show_bug.cgi?id=1701922 for background
 	// information.
 	if !c.Bool("all-tags") {
-		newImage, err := runtime.New(getContext(), imgArg, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
+		newImage, err := runtime.New(getContext(), imgArg, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %q", imgArg)
 		}
@@ -188,7 +188,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	var foundIDs []string
 	foundImage := true
 	for _, name := range names {
-		newImage, err := runtime.New(getContext(), name, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, true, nil)
+		newImage, err := runtime.New(getContext(), name, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageAlways)
 		if err != nil {
 			logrus.Errorf("error pulling image %q", name)
 			foundImage = false

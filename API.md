@@ -1503,6 +1503,8 @@ publish [?[]string](#?[]string)
 
 publishAll [?bool](#?bool)
 
+pull [?string](#?string)
+
 quiet [?bool](#?bool)
 
 readonly [?bool](#?bool)
