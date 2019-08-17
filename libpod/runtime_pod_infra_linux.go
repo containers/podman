@@ -30,8 +30,8 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 		return nil, err
 	}
 
-	// Set Pod hostname as Pod name
-	g.Config.Hostname = p.config.Name
+	// Set Pod hostname
+	g.Config.Hostname = p.config.Hostname
 
 	isRootless := rootless.IsRootless()
 

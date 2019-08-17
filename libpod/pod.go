@@ -36,6 +36,8 @@ type PodConfig struct {
 	// Namespace the pod is in
 	Namespace string `json:"namespace,omitempty"`
 
+	Hostname string `json:"hostname,omitempty"`
+
 	// Labels contains labels applied to the pod
 	Labels map[string]string `json:"labels"`
 	// CgroupParent contains the pod's CGroup parent

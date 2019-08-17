@@ -1488,6 +1488,24 @@ func WithPodName(name string) PodCreateOption {
 	}
 }
 
+// WithPodHostname sets the hostname of the pod.
+func WithPodHostname(hostname string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		// Check the hostname against a regex
+		if !nameRegex.MatchString(hostname) {
+			return regexError
+		}
+
+		pod.config.Hostname = hostname
+
+		return nil
+	}
+}
+
 // WithPodLabels sets the labels of a pod.
 func WithPodLabels(labels map[string]string) PodCreateOption {
 	return func(pod *Pod) error {
