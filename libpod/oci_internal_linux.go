@@ -247,10 +247,14 @@ func (r *OCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*os.File
 	if notify, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		env = append(env, fmt.Sprintf("NOTIFY_SOCKET=%s", notify))
 	}
-	if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
-		env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
-		fds := activation.Files(false)
-		extraFiles = append(extraFiles, fds...)
+	if !r.sdNotify {
+		if listenfds, ok := os.LookupEnv("LISTEN_FDS"); ok {
+			env = append(env, fmt.Sprintf("LISTEN_FDS=%s", listenfds), "LISTEN_PID=1")
+			fds := activation.Files(false)
+			extraFiles = append(extraFiles, fds...)
+		}
+	} else {
+		logrus.Debug("disabling SD notify")
 	}
 	return env, extraFiles, nil
 }
