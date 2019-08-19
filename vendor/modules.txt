@@ -75,10 +75,10 @@ github.com/containers/image/storage
 github.com/containers/image/copy
 github.com/containers/image/docker/reference
 github.com/containers/image/docker/tarfile
+github.com/containers/image/oci/layout
 github.com/containers/image/tarball
 github.com/containers/image/pkg/sysregistriesv2
 github.com/containers/image/image
-github.com/containers/image/oci/layout
 github.com/containers/image/directory/explicitfilepath
 github.com/containers/image/docker/policyconfiguration
 github.com/containers/image/pkg/blobinfocache/none

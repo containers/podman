@@ -13,6 +13,7 @@ import (
 	dockerarchive "github.com/containers/image/docker/archive"
 	"github.com/containers/image/docker/tarfile"
 	ociarchive "github.com/containers/image/oci/archive"
+	oci "github.com/containers/image/oci/layout"
 	is "github.com/containers/image/storage"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/transports/alltransports"
@@ -37,6 +38,9 @@ var (
 	DirTransport = directory.Transport.Name()
 	// DockerTransport is the transport for docker registries
 	DockerTransport = docker.Transport.Name()
+	// OCIDirTransport is the transport for pushing and pulling
+	// images to and from a directory containing an OCI image
+	OCIDirTransport = oci.Transport.Name()
 	// AtomicTransport is the transport for atomic registries
 	AtomicTransport = "atomic"
 	// DefaultTransport is a prefix that we apply to an image name
@@ -189,17 +193,26 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		return ir.getSinglePullRefPairGoal(srcRef, dest)
 
 	case DirTransport:
-		path := srcRef.StringWithinTransport()
-		image := path
-		if image[:1] == "/" {
-			// Set localhost as the registry so docker.io isn't prepended, and the path becomes the repository
-			image = DefaultLocalRegistry + image
-		}
+		image := toLocalImageName(srcRef.StringWithinTransport())
+		return ir.getSinglePullRefPairGoal(srcRef, image)
+
+	case OCIDirTransport:
+		split := strings.SplitN(srcRef.StringWithinTransport(), ":", 2)
+		image := toLocalImageName(split[0])
 		return ir.getSinglePullRefPairGoal(srcRef, image)
 
 	default:
 		return ir.getSinglePullRefPairGoal(srcRef, imgName)
 	}
+}
+
+// toLocalImageName converts an image name into a 'localhost/' prefixed one
+func toLocalImageName(imageName string) string {
+	return fmt.Sprintf(
+		"%s/%s",
+		DefaultLocalRegistry,
+		strings.TrimLeft(imageName, "/"),
+	)
 }
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
