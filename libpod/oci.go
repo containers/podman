@@ -213,7 +213,7 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) error {
 	exitFile := ctr.exitFilePath()
 
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -336,7 +336,7 @@ func (r *OCIRuntime) updateContainerStatus(ctr *Container, useRuntime bool) erro
 // Sets time the container was started, but does not save it.
 func (r *OCIRuntime) startContainer(ctr *Container) error {
 	// TODO: streams should probably *not* be our STDIN/OUT/ERR - redirect to buffers?
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -356,7 +356,7 @@ func (r *OCIRuntime) startContainer(ctr *Container) error {
 // killContainer sends the given signal to the given container
 func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -370,7 +370,7 @@ func (r *OCIRuntime) killContainer(ctr *Container, signal uint) error {
 
 // deleteContainer deletes a container from the OCI runtime
 func (r *OCIRuntime) deleteContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -380,7 +380,7 @@ func (r *OCIRuntime) deleteContainer(ctr *Container) error {
 
 // pauseContainer pauses the given container
 func (r *OCIRuntime) pauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}
@@ -390,7 +390,7 @@ func (r *OCIRuntime) pauseContainer(ctr *Container) error {
 
 // unpauseContainer unpauses the given container
 func (r *OCIRuntime) unpauseContainer(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
+	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
 	}

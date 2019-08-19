@@ -16,8 +16,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
+// GetRuntimeDir returns the runtime directory
+func GetRuntimeDir() (string, error) {
 	var rootlessRuntimeDirError error
 
 	rootlessRuntimeDirOnce.Do(func() {
@@ -100,7 +100,7 @@ func GetRootlessConfigHomeDir() (string, error) {
 // GetRootlessPauseProcessPidPath returns the path to the file that holds the pid for
 // the pause process
 func GetRootlessPauseProcessPidPath() (string, error) {
-	runtimeDir, err := GetRootlessRuntimeDir()
+	runtimeDir, err := GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
