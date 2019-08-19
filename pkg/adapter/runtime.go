@@ -210,7 +210,7 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 }
 
 // InspectVolumes returns a slice of volumes based on an arg list or --all
-func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*libpod.InspectVolumeData, error) {
 	var (
 		volumes []*libpod.Volume
 		err     error
@@ -230,7 +230,17 @@ func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeIn
 	if err != nil {
 		return nil, err
 	}
-	return libpodVolumeToVolume(volumes), nil
+
+	inspectVols := make([]*libpod.InspectVolumeData, 0, len(volumes))
+	for _, vol := range volumes {
+		inspectOut, err := vol.Inspect()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error inspecting volume %s", vol.Name())
+		}
+		inspectVols = append(inspectVols, inspectOut)
+	}
+
+	return inspectVols, nil
 }
 
 // Volumes returns a slice of localruntime volumes

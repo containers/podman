@@ -1981,8 +1981,6 @@ mountPoint [string](https://godoc.org/builtin#string)
 driver [string](https://godoc.org/builtin#string)
 
 options [map[string]](#map[string])
-
-scope [string](https://godoc.org/builtin#string)
 ### <a name="VolumeCreateOpts"></a>type VolumeCreateOpts
 
 

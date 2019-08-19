@@ -38,7 +38,6 @@ func init() {
 	flags.StringVar(&volumeCreateCommand.Driver, "driver", "", "Specify volume driver name (default local)")
 	flags.StringSliceVarP(&volumeCreateCommand.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")
 	flags.StringSliceVarP(&volumeCreateCommand.Opt, "opt", "o", []string{}, "Set driver specific options (default [])")
-
 }
 
 func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {

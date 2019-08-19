@@ -669,7 +669,6 @@ func varlinkVolumeToVolume(r *LocalRuntime, volumes []iopodman.Volume) []*Volume
 			MountPoint: v.MountPoint,
 			Driver:     v.Driver,
 			Options:    v.Options,
-			Scope:      v.Scope,
 		}
 		n := remoteVolume{
 			Runtime: r,

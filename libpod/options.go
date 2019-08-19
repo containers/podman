@@ -1371,6 +1371,17 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 	}
 }
 
+// WithHealthCheck adds the healthcheck to the container config
+func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthCheckConfig = healthCheck
+		return nil
+	}
+}
+
 // Volume Creation Options
 
 // WithVolumeName sets the name of the volume.
@@ -1390,6 +1401,19 @@ func WithVolumeName(name string) VolumeCreateOption {
 	}
 }
 
+// WithVolumeDriver sets the volume's driver.
+// It is presently not implemented, but will be supported in a future Podman
+// release.
+func WithVolumeDriver(driver string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		return define.ErrNotImplemented
+	}
+}
+
 // WithVolumeLabels sets the labels of the volume.
 func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 	return func(volume *Volume) error {
@@ -1401,19 +1425,6 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 		for key, value := range labels {
 			volume.config.Labels[key] = value
 		}
-
-		return nil
-	}
-}
-
-// WithVolumeDriver sets the driver of the volume.
-func WithVolumeDriver(driver string) VolumeCreateOption {
-	return func(volume *Volume) error {
-		if volume.valid {
-			return define.ErrVolumeFinalized
-		}
-
-		volume.config.Driver = driver
 
 		return nil
 	}
@@ -1697,17 +1708,6 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 		pod.config.InfraContainer.PortBindings = bindings
-		return nil
-	}
-}
-
-// WithHealthCheck adds the healthcheck to the container config
-func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
-	return func(ctr *Container) error {
-		if ctr.valid {
-			return define.ErrCtrFinalized
-		}
-		ctr.config.HealthCheckConfig = healthCheck
 		return nil
 	}
 }

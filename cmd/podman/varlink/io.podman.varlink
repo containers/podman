@@ -7,8 +7,7 @@ type Volume (
   labels: [string]string,
   mountPoint: string,
   driver: string,
-  options: [string]string,
-  scope: string
+  options: [string]string
 )
 
 type NotImplemented (

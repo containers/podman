@@ -68,7 +68,6 @@ func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all boo
 			MountPoint: v.MountPoint(),
 			Name:       v.Name(),
 			Options:    v.Options(),
-			Scope:      v.Scope(),
 		}
 		volumes = append(volumes, newVol)
 	}
