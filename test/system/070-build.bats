@@ -22,12 +22,24 @@ RUN apk add nginx
 RUN echo $rand_content > /$rand_filename
 EOF
 
-    run_podman build -t build_test --format=docker $tmpdir
+    # The 'apk' command can take a long time to fetch files; bump timeout
+    PODMAN_TIMEOUT=240 run_podman build -t build_test --format=docker $tmpdir
     is "$output" ".*STEP 4: COMMIT" "COMMIT seen in log"
 
     run_podman run --rm build_test cat /$rand_filename
     is "$output"   "$rand_content"   "reading generated file in image"
 
-    run_podman rmi build_test
+    run_podman rmi -f build_test
 }
+
+function teardown() {
+    # A timeout or other error in 'build' can leave behind stale images
+    # that podman can't even see and which will cascade into subsequent
+    # test failures. Try a last-ditch force-rm in cleanup, ignoring errors.
+    run_podman '?' rm -a -f
+    run_podman '?' rmi -f build_test
+
+    basic_teardown
+}
+
 # vim: filetype=sh
