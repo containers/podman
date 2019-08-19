@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -392,6 +393,14 @@ func SetExecLabel(label string) error {
 	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/exec", syscall.Gettid()), label)
 }
 
+/*
+SetTaskLabel sets the SELinux label for the current thread, or an error. 
+This requires the dyntransition permission.
+*/
+func SetTaskLabel(label string) error {
+	return writeCon(fmt.Sprintf("/proc/self/task/%d/attr/current", syscall.Gettid()), label)
+}
+
 // SetSocketLabel takes a process label and tells the kernel to assign the
 // label to the next socket that gets created
 func SetSocketLabel(label string) error {
@@ -401,6 +410,11 @@ func SetSocketLabel(label string) error {
 // SocketLabel retrieves the current socket label setting
 func SocketLabel() (string, error) {
 	return readCon(fmt.Sprintf("/proc/self/task/%d/attr/sockcreate", syscall.Gettid()))
+}
+
+// PeerLabel retrieves the label of the client on the other side of a socket
+func PeerLabel(fd uintptr) (string, error) {
+	return unix.GetsockoptString(int(fd), syscall.SOL_SOCKET, syscall.SO_PEERSEC)
 }
 
 // SetKeyLabel takes a process label and tells the kernel to assign the

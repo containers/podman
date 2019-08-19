@@ -375,18 +375,18 @@ to podman build, the option given would be `--runtime-flag log-format=json`.
 
 Security Options
 
-  "label=user:USER"   : Set the label user for the container
-  "label=role:ROLE"   : Set the label role for the container
-  "label=type:TYPE"   : Set the label type for the container
-  "label=level:LEVEL" : Set the label level for the container
-  "label=disable"     : Turn off label confinement for the container
-  "no-new-privileges" : Not supported
+- `apparmor=unconfined` : Turn off apparmor confinement for the container
+- `apparmor=your-profile` : Set the apparmor confinement profile for the container
 
-  "seccomp=unconfined" : Turn off seccomp confinement for the container
-  "seccomp=profile.json :  White listed syscalls seccomp Json file to be used as a seccomp filter
+- `label=user:USER`     : Set the label user for the container processes
+- `label=role:ROLE`     : Set the label role for the container processes
+- `label=type:TYPE`     : Set the label process type for the container processes
+- `label=level:LEVEL`   : Set the label level for the container processes
+- `label=filetype:TYPE` : Set the label file type for the container files
+- `label=disable`       : Turn off label separation for the container
 
-  "apparmor=unconfined" : Turn off apparmor confinement for the container
-  "apparmor=your-profile" : Set the apparmor confinement profile for the container
+- `seccomp=unconfined` : Turn off seccomp confinement for the container
+- `seccomp=profile.json` :  White listed syscalls seccomp Json file to be used as a seccomp filter
 
 **--shm-size**=*size*
 

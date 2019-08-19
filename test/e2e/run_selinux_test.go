@@ -153,4 +153,16 @@ var _ = Describe("Podman run", func() {
 		Expect(match).Should(BeTrue())
 	})
 
+	It("podman run selinux file type setup test", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", fedoraMinimal, "ls", "-Z", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("container_var_lib_t")
+		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(127))
+	})
+
 })
