@@ -41,6 +41,10 @@ func init() {
 }
 
 func runCmd(c *cliconfig.RunValues) error {
+	if c.PodmanCommand.IsSet("pod") && c.PodmanCommand.IsSet("hostname") {
+		return errors.New("only one of --pod or --hostname can be specified")
+	}
+
 	if !remote && c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
 		defer span.Finish()
