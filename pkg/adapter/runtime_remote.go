@@ -21,7 +21,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -812,7 +812,7 @@ func IsImageNotFound(err error) bool {
 
 // HealthCheck executes a container's healthcheck over a varlink connection
 func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (string, error) {
-	return "", define.ErrNotImplemented
+	return iopodman.HealthCheckRun().Call(r.Conn, c.InputArgs[0])
 }
 
 // Events monitors libpod/podman events over a varlink connection

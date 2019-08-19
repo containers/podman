@@ -16,11 +16,12 @@ var healthcheckCommand = cliconfig.PodmanCommand{
 }
 
 // Commands that are universally implemented
-var healthcheckCommands []*cobra.Command
+var healthcheckCommands = []*cobra.Command{
+	_healthcheckrunCommand,
+}
 
 func init() {
 	healthcheckCommand.AddCommand(healthcheckCommands...)
-	healthcheckCommand.AddCommand(getHealthcheckSubCommands()...)
 	healthcheckCommand.SetUsageTemplate(UsageTemplate())
 	rootCmd.AddCommand(healthcheckCommand.Command)
 }
