@@ -87,6 +87,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GetVolumes(args: []string, all: bool) Volume](#GetVolumes)
 
+[func HealthCheckRun(nameOrID: string) string](#HealthCheckRun)
+
 [func HistoryImage(name: string) ImageHistory](#HistoryImage)
 
 [func ImageExists(name: string) int](#ImageExists)
@@ -681,6 +683,12 @@ GetVersion returns version and build information of the podman service
 
 method GetVolumes(args: [[]string](#[]string), all: [bool](https://godoc.org/builtin#bool)) [Volume](#Volume)</div>
 GetVolumes gets slice of the volumes on a remote host
+### <a name="HealthCheckRun"></a>func HealthCheckRun
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method HealthCheckRun(nameOrID: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+HealthCheckRun executes defined container's healthcheck command
+and returns the container's health status.
 ### <a name="HistoryImage"></a>func HistoryImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

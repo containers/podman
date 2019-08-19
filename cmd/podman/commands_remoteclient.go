@@ -47,8 +47,3 @@ func getTrustSubCommands() []*cobra.Command {
 func getSystemSubCommands() []*cobra.Command {
 	return []*cobra.Command{}
 }
-
-// Commands that the remoteclient implements
-func getHealthcheckSubCommands() []*cobra.Command {
-	return []*cobra.Command{}
-}

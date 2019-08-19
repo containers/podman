@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
@@ -863,4 +863,17 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	}
 
 	return ecErr.Error
+}
+
+//HealthCheckRun executes defined container's healthcheck command and returns the container's health status.
+func (i *LibpodAPI) HealthCheckRun(call iopodman.VarlinkCall, nameOrID string) error {
+	hcStatus, err := i.Runtime.HealthCheck(nameOrID)
+	if err != nil && hcStatus != libpod.HealthCheckFailure {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	status := libpod.HealthCheckUnhealthy
+	if hcStatus == libpod.HealthCheckSuccess {
+		status = libpod.HealthCheckHealthy
+	}
+	return call.ReplyHealthCheckRun(status)
 }

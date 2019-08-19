@@ -71,10 +71,3 @@ func getSystemSubCommands() []*cobra.Command {
 		_migrateCommand,
 	}
 }
-
-// Commands that the local client implements
-func getHealthcheckSubCommands() []*cobra.Command {
-	return []*cobra.Command{
-		_healthcheckrunCommand,
-	}
-}
