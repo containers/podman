@@ -300,6 +300,7 @@ type PodCreateValues struct {
 	LabelFile    []string
 	Labels       []string
 	Name         string
+	Hostname     string
 	PodIDFile    string
 	Publish      []string
 	Share        string

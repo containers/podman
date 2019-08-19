@@ -52,6 +52,10 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		pod.config.Name = name
 	}
 
+	if pod.config.Hostname == "" {
+		pod.config.Hostname = pod.config.Name
+	}
+
 	// Allocate a lock for the pod
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {

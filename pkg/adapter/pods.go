@@ -256,6 +256,10 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 		options = append(options, libpod.WithPodName(cli.Name))
 	}
 
+	if cli.Flag("hostname").Changed {
+		options = append(options, libpod.WithPodHostname(cli.Hostname))
+	}
+
 	if cli.Infra {
 		options = append(options, libpod.WithInfraContainer())
 		nsOptions, err := shared.GetNamespaceOptions(strings.Split(cli.Share, ","))
@@ -475,6 +479,12 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	podOptions = append(podOptions, libpod.WithInfraContainer())
 	podOptions = append(podOptions, libpod.WithPodName(podName))
 	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
+
+	hostname := podYAML.Spec.Hostname
+	if hostname == "" {
+		hostname = podName
+	}
+	podOptions = append(podOptions, libpod.WithPodHostname(hostname))
 
 	nsOptions, err := shared.GetNamespaceOptions(strings.Split(shared.DefaultKernelNamespaces, ","))
 	if err != nil {
