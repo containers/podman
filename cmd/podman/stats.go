@@ -134,8 +134,12 @@ func statsCmd(c *cliconfig.StatsValues) error {
 		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
 			// when doing "all", dont worry about containers that are not running
-			if c.All && errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
+			cause := errors.Cause(err)
+			if c.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
 				continue
+			}
+			if cause == cgroups.ErrCgroupV1Rootless {
+				err = cause
 			}
 			return err
 		}
