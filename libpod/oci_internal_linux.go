@@ -449,6 +449,15 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
+			if ociLog != "" {
+				ociLogData, err := ioutil.ReadFile(ociLog)
+				if err == nil {
+					var ociErr ociError
+					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
+						return -1, getOCIRuntimeError(ociErr.Msg)
+					}
+				}
+			}
 			return -1, errors.Wrapf(ss.err, "error reading container (probably exited) json message")
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
@@ -476,10 +485,11 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 }
 
 func getOCIRuntimeError(runtimeMsg string) error {
-	if match, _ := regexp.MatchString(".*permission denied.*", runtimeMsg); match {
+	r := strings.ToLower(runtimeMsg)
+	if match, _ := regexp.MatchString(".*permission denied.*|.*operation not permitted.*", r); match {
 		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s", strings.Trim(runtimeMsg, "\n"))
 	}
-	if match, _ := regexp.MatchString(".*executable file not found in.*", runtimeMsg); match {
+	if match, _ := regexp.MatchString(".*executable file not found in.*|.*no such file or directory.*", r); match {
 		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(runtimeMsg, "\n"))
 	}
 	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))

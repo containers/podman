@@ -101,8 +101,6 @@ var _ = Describe("Podman start", func() {
 	})
 
 	It("podman failed to start with --rm should delete the container", func() {
-		SkipIfNotRunc()
-
 		session := podmanTest.Podman([]string{"create", "-it", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -116,8 +114,6 @@ var _ = Describe("Podman start", func() {
 	})
 
 	It("podman failed to start without --rm should NOT delete the container", func() {
-		SkipIfNotRunc()
-
 		session := podmanTest.Podman([]string{"create", "-it", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))

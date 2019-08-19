@@ -371,6 +371,8 @@ testing_crun_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     install_crun_script: 'dnf install -y crun'
+    # FIXME: use the package once all the fixes are in a release
+    override_crun_script: 'setenforce 0; yum builddep -y crun && (git clone --depth=1 https://github.com/containers/crun && cd crun && ./autogen.sh && ./configure --prefix=/usr && make -j4 && make install) && rm -rf crun'
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
