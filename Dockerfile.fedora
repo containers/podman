@@ -30,7 +30,7 @@ RUN dnf -y install btrfs-progs-devel \
               iptables && dnf clean all
 
 # Install CNI plugins
-ENV CNI_COMMIT 412b6d31280682bb4fab4446f113c22ff1886554
+ENV CNI_COMMIT 485be65581341430f9106a194a98f0f2412245fb
 RUN set -x \
        && export GOPATH="$(mktemp -d)" \
        && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
