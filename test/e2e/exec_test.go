@@ -146,6 +146,25 @@ var _ = Describe("Podman exec", func() {
 		Expect(session2.OutputToString()).To(Equal(testUser))
 	})
 
+	It("podman exec with user from run", func() {
+		testUser := "guest"
+		setup := podmanTest.Podman([]string{"run", "--user", testUser, "-d", ALPINE, "top"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		ctrID := setup.OutputToString()
+
+		session := podmanTest.Podman([]string{"exec", ctrID, "whoami"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(testUser))
+
+		overrideUser := "root"
+		session = podmanTest.Podman([]string{"exec", "--user", overrideUser, ctrID, "whoami"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(overrideUser))
+	})
+
 	It("podman exec simple working directory test", func() {
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
