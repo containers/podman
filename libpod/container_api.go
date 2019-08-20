@@ -274,6 +274,11 @@ func (c *Container) Exec(tty, privileged bool, env, cmd []string, user, workDir 
 		}
 	}()
 
+	// if the user is empty, we should inherit the user that the container is currently running with
+	if user == "" {
+		user = c.config.User
+	}
+
 	pid, attachChan, err := c.ociRuntime.execContainer(c, cmd, capList, env, tty, workDir, user, sessionID, streams, preserveFDs, resize, detachKeys)
 	if err != nil {
 		ec := define.ExecErrorCodeGeneric
