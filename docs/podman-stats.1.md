@@ -9,6 +9,10 @@ podman\-stats - Display a live stream of 1 or more containers' resource usage st
 ## DESCRIPTION
 Display a live stream of one or more containers' resource usage statistics
 
+Note:  Podman stats will not work in rootless environments that use CGroups V1.
+Podman stats relies on CGroup information for statistics, and CGroup v1 is not
+supported for rootless use cases.
+
 ## OPTIONS
 
 **--all**, **-a**
@@ -69,14 +73,14 @@ a9f807ffaacd   frosty_hodgkin   --      3.092MB / 16.7GB    0.02%   -- / --   --
 # podman stats --no-stream --format=json a9f80
 [
     {
-        "id": "a9f807ffaacd",
-        "name": "frosty_hodgkin",
-        "cpu_percent": "--",
-        "mem_usage": "3.092MB / 16.7GB",
-        "mem_percent": "0.02%",
-        "netio": "-- / --",
-        "blocki": "-- / --",
-        "pids": "2"
+	"id": "a9f807ffaacd",
+	"name": "frosty_hodgkin",
+	"cpu_percent": "--",
+	"mem_usage": "3.092MB / 16.7GB",
+	"mem_percent": "0.02%",
+	"netio": "-- / --",
+	"blocki": "-- / --",
+	"pids": "2"
     }
 ]
 ```

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -19,7 +20,9 @@ import (
 
 var (
 	// ErrCgroupDeleted means the cgroup was deleted
-	ErrCgroupDeleted = errors.New("cgroups: cgroup deleted")
+	ErrCgroupDeleted = errors.New("cgroup deleted")
+	// ErrCgroupV1Rootless means the cgroup v1 were attempted to be used in rootless environmen
+	ErrCgroupV1Rootless = errors.New("no support for CGroups V1 in rootless environments")
 )
 
 // CgroupControl controls a cgroup hierarchy
@@ -339,6 +342,9 @@ func Load(path string) (*CgroupControl, error) {
 			p := control.getCgroupv1Path(name)
 			if _, err := os.Stat(p); err != nil {
 				if os.IsNotExist(err) {
+					if rootless.IsRootless() {
+						return nil, ErrCgroupV1Rootless
+					}
 					// compatible with the error code
 					// used by containerd/cgroups
 					return nil, ErrCgroupDeleted
