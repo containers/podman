@@ -698,8 +698,8 @@ method PauseContainer(name: string) -> (container: string)
 method UnpauseContainer(name: string) -> (container: string)
 
 # Attach takes the name or ID of a container and sets up the ability to remotely attach to its console. The start
-# bool is whether you wish to start the container in question first.
-method Attach(name: string, detachKeys: string, start: bool) -> ()
+# bool is whether you wish to start the container in question first, exitCode is the default exitCode to return on error.
+method Attach(name: string, detachKeys: string, start: bool, exitCode: int) -> ()
 
 method AttachControl(name: string) -> ()
 

@@ -453,7 +453,7 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 }
 
 // Attach ...
-func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) error {
+func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues, exitCode int) (int, error) {
 	var (
 		ctr *libpod.Container
 		err error
@@ -466,15 +466,15 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	}
 
 	if err != nil {
-		return errors.Wrapf(err, "unable to exec into %s", c.InputArgs[0])
+		return exitCode, errors.Wrapf(err, "unable to exec into %s", c.InputArgs[0])
 	}
 
 	conState, err := ctr.State()
 	if err != nil {
-		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
+		return exitCode, errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
 	}
 	if conState != define.ContainerStateRunning {
-		return errors.Errorf("you can only attach to running containers")
+		return exitCode, errors.Errorf("you can only attach to running containers")
 	}
 
 	inputStream := os.Stdin
@@ -483,9 +483,9 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	}
 	// If the container is in a pod, also set to recursively start dependencies
 	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
-		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
+		return exitCode, errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
-	return nil
+	return 0, nil
 }
 
 // Checkpoint one or more containers

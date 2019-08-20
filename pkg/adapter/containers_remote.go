@@ -464,19 +464,19 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 	if err != nil {
-		return 0, err
+		return exitCode, err
 	}
 	if c.Bool("detach") {
 		_, err := iopodman.StartContainer().Call(r.Conn, cid)
 		fmt.Println(cid)
-		return 0, err
+		return exitCode, err
 	}
-	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"))
+	ec, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"), exitCode)
 	if err != nil {
-		return 0, err
+		ec = exitCode
 	}
-	finalError := <-errChan
-	return 0, finalError
+	return ec, err
+
 }
 
 func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
@@ -557,26 +557,23 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 }
 
 // Attach to a remote terminal
-func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) error {
+func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues, exitCode int) (int, error) {
 	ctr, err := r.LookupContainer(c.InputArgs[0])
 	if err != nil {
-		return nil
+		return exitCode, nil
 	}
 	if ctr.state.State != define.ContainerStateRunning {
-		return errors.New("you can only attach to running containers")
+		return exitCode, errors.New("you can only attach to running containers")
 	}
 	inputStream := os.Stdin
 	if c.NoStdin {
 		inputStream, err = os.Open(os.DevNull)
 		if err != nil {
-			return err
+			return exitCode, err
 		}
 	}
-	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys)
-	if err != nil {
-		return err
-	}
-	return <-errChan
+	ec, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys, exitCode)
+	return ec, err
 }
 
 // Checkpoint one or more containers
@@ -686,12 +683,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 	}
 	// start.go makes sure that if attach, there can be only one ctr
 	if c.Attach {
-		errChan, err := r.attach(ctx, inputStream, os.Stdout, containerIDs[0], true, c.DetachKeys)
-		if err != nil {
-			return exitCode, nil
-		}
-		err = <-errChan
-		return 0, err
+		return r.attach(ctx, inputStream, os.Stdout, containerIDs[0], true, c.DetachKeys, exitCode)
 	}
 
 	// TODO the notion of starting a pod container and its deps still needs to be worked through
@@ -710,13 +702,13 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 	return exitCode, finalErr
 }
 
-func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan error, error) {
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string, exitCode int) (int, error) {
 	var (
 		oldTermState *term.State
 	)
 	spec, err := r.Spec(cid)
 	if err != nil {
-		return nil, err
+		return exitCode, err
 	}
 	resize := make(chan remotecommand.TerminalSize, 5)
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
@@ -726,7 +718,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 	if haveTerminal && spec.Process.Terminal {
 		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
 		if err != nil {
-			return nil, err
+			return exitCode, err
 		}
 		defer cancel()
 		defer restoreTerminal(oldTermState)
@@ -735,22 +727,26 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 		term.SetRawTerminal(os.Stdin.Fd())
 	}
 
-	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
+	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start, int64(exitCode))
+
 	if err != nil {
 		restoreTerminal(oldTermState)
-		return nil, err
+		return exitCode, err
 	}
 
 	// See if the server accepts the upgraded connection or returns an error
 	_, err = reply()
-
 	if err != nil {
 		restoreTerminal(oldTermState)
-		return nil, err
+		return exitCode, err
 	}
 
-	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, stdin, stdout, oldTermState, resize, nil)
-	return errChan, nil
+	ecChan := make(chan int, 1)
+	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, stdin, stdout, oldTermState, resize, ecChan)
+	exitCode = <-ecChan
+	err = <-errChan
+
+	return exitCode, err
 }
 
 // PauseContainers pauses container(s) based on CLI inputs.
@@ -1053,6 +1049,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	if err != nil {
 		return ec, errors.Wrapf(err, "Exec operation failed for %s", cli.InputArgs)
 	}
+
 	ecChan := make(chan int, 1)
 	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, inputStream, os.Stdout, oldTermState, resize, ecChan)
 

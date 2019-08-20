@@ -52,5 +52,6 @@ func attachCmd(c *cliconfig.AttachValues) error {
 		return errors.Wrapf(err, "error creating runtime")
 	}
 	defer runtime.DeferredShutdown(false)
-	return runtime.Attach(getContext(), c)
+	exitCode, err = runtime.Attach(getContext(), c, exitCode)
+	return err
 }
