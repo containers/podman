@@ -21,7 +21,6 @@ import (
 	"github.com/containers/image/signature"
 	"github.com/containers/image/transports"
 	"github.com/containers/image/types"
-	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -42,6 +41,9 @@ type digestingReader struct {
 // maxParallelDownloads is used to limit the maxmimum number of parallel
 // downloads.  Let's follow Firefox by limiting it to 6.
 var maxParallelDownloads = 6
+
+// compressionBufferSize is the buffer size used to compress a blob
+var compressionBufferSize = 1048576
 
 // newDigestingReader returns an io.Reader implementation with contents of source, which will eventually return a non-EOF error
 // or set validationSucceeded/validationFailed to true if the source stream does/does not match expectedDigest.
@@ -86,14 +88,16 @@ func (d *digestingReader) Read(p []byte) (int, error) {
 // copier allows us to keep track of diffID values for blobs, and other
 // data shared across one or more images in a possible manifest list.
 type copier struct {
-	dest             types.ImageDestination
-	rawSource        types.ImageSource
-	reportWriter     io.Writer
-	progressOutput   io.Writer
-	progressInterval time.Duration
-	progress         chan types.ProgressProperties
-	blobInfoCache    types.BlobInfoCache
-	copyInParallel   bool
+	dest              types.ImageDestination
+	rawSource         types.ImageSource
+	reportWriter      io.Writer
+	progressOutput    io.Writer
+	progressInterval  time.Duration
+	progress          chan types.ProgressProperties
+	blobInfoCache     types.BlobInfoCache
+	copyInParallel    bool
+	compressionFormat compression.Algorithm
+	compressionLevel  *int
 }
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
@@ -166,6 +170,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		progressOutput = ioutil.Discard
 	}
 	copyInParallel := dest.HasThreadSafePutBlob() && rawSource.HasThreadSafeGetBlob()
+
 	c := &copier{
 		dest:             dest,
 		rawSource:        rawSource,
@@ -178,6 +183,20 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		// For now, use DestinationCtx (because blob reuse changes the behavior of the destination side more); eventually
 		// we might want to add a separate CommonCtx — or would that be too confusing?
 		blobInfoCache: blobinfocache.DefaultCache(options.DestinationCtx),
+	}
+	// Default to using gzip compression unless specified otherwise.
+	if options.DestinationCtx == nil || options.DestinationCtx.CompressionFormat == nil {
+		algo, err := compression.AlgorithmByName("gzip")
+		if err != nil {
+			return nil, err
+		}
+		c.compressionFormat = algo
+	} else {
+		c.compressionFormat = *options.DestinationCtx.CompressionFormat
+	}
+	if options.DestinationCtx != nil {
+		// Note that the compressionLevel can be nil.
+		c.compressionLevel = options.DestinationCtx.CompressionLevel
 	}
 
 	unparsedToplevel := image.UnparsedInstance(rawSource, nil)
@@ -805,7 +824,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 
 	// === Detect compression of the input stream.
 	// This requires us to “peek ahead” into the stream to read the initial part, which requires us to chain through another io.Reader returned by DetectCompression.
-	decompressor, destStream, err := compression.DetectCompression(destStream) // We could skip this in some cases, but let's keep the code path uniform
+	compressionFormat, decompressor, destStream, err := compression.DetectCompressionFormat(destStream) // We could skip this in some cases, but let's keep the code path uniform
 	if err != nil {
 		return types.BlobInfo{}, errors.Wrapf(err, "Error reading blob %s", srcInfo.Digest)
 	}
@@ -819,6 +838,8 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		originalLayerReader = destStream
 	}
 
+	desiredCompressionFormat := c.compressionFormat
+
 	// === Deal with layer compression/decompression if necessary
 	var inputInfo types.BlobInfo
 	var compressionOperation types.LayerCompression
@@ -831,7 +852,27 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		// If this fails while writing data, it will do pipeWriter.CloseWithError(); if it fails otherwise,
 		// e.g. because we have exited and due to pipeReader.Close() above further writing to the pipe has failed,
 		// we don’t care.
-		go compressGoroutine(pipeWriter, destStream) // Closes pipeWriter
+		go c.compressGoroutine(pipeWriter, destStream, desiredCompressionFormat) // Closes pipeWriter
+		destStream = pipeReader
+		inputInfo.Digest = ""
+		inputInfo.Size = -1
+	} else if canModifyBlob && c.dest.DesiredLayerCompression() == types.Compress && isCompressed && desiredCompressionFormat.Name() != compressionFormat.Name() {
+		// When the blob is compressed, but the desired format is different, it first needs to be decompressed and finally
+		// re-compressed using the desired format.
+		logrus.Debugf("Blob will be converted")
+
+		compressionOperation = types.PreserveOriginal
+		s, err := decompressor(destStream)
+		if err != nil {
+			return types.BlobInfo{}, err
+		}
+		defer s.Close()
+
+		pipeReader, pipeWriter := io.Pipe()
+		defer pipeReader.Close()
+
+		go c.compressGoroutine(pipeWriter, s, desiredCompressionFormat) // Closes pipeWriter
+
 		destStream = pipeReader
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
@@ -847,6 +888,7 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 		inputInfo.Digest = ""
 		inputInfo.Size = -1
 	} else {
+		// PreserveOriginal might also need to recompress the original blob if the desired compression format is different.
 		logrus.Debugf("Using original blob without modification")
 		compressionOperation = types.PreserveOriginal
 		inputInfo = srcInfo
@@ -907,14 +949,19 @@ func (c *copier) copyBlobFromStream(ctx context.Context, srcStream io.Reader, sr
 }
 
 // compressGoroutine reads all input from src and writes its compressed equivalent to dest.
-func compressGoroutine(dest *io.PipeWriter, src io.Reader) {
+func (c *copier) compressGoroutine(dest *io.PipeWriter, src io.Reader, compressionFormat compression.Algorithm) {
 	err := errors.New("Internal error: unexpected panic in compressGoroutine")
 	defer func() { // Note that this is not the same as {defer dest.CloseWithError(err)}; we need err to be evaluated lazily.
 		dest.CloseWithError(err) // CloseWithError(nil) is equivalent to Close()
 	}()
 
-	zipper := pgzip.NewWriter(dest)
-	defer zipper.Close()
+	compressor, err := compression.CompressStream(dest, compressionFormat, c.compressionLevel)
+	if err != nil {
+		return
+	}
+	defer compressor.Close()
 
-	_, err = io.Copy(zipper, src) // Sets err to nil, i.e. causes dest.Close()
+	buf := make([]byte, compressionBufferSize)
+
+	_, err = io.CopyBuffer(compressor, src, buf) // Sets err to nil, i.e. causes dest.Close()
 }

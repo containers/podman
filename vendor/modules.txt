@@ -60,7 +60,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
-# github.com/containers/image v3.0.2+incompatible
+# github.com/containers/image v3.0.2+incompatible => github.com/QiWang19/image v0.0.0-20190823164615-55d40423d88f
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive
@@ -89,10 +89,10 @@ github.com/containers/image/version
 github.com/containers/image/docker/daemon
 github.com/containers/image/openshift
 github.com/containers/image/ostree
+github.com/containers/image/pkg/compression
 github.com/containers/image/internal/tmpdir
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/blobinfocache
-github.com/containers/image/pkg/compression
 github.com/containers/image/pkg/blobinfocache/boltdb
 github.com/containers/image/pkg/blobinfocache/memory
 github.com/containers/image/pkg/blobinfocache/internal/prioritize

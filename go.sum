@@ -30,6 +30,16 @@ github.com/PuerkitoBio/purell v1.0.0/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbt
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20160726150825-5bd2802263f2/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
+github.com/QiWang19/image v0.0.0-20190820155639-cacda0d3194a h1:9VJKg/Y6Tulp6Jj0gcfiYtwkQQQBI3K/iNXkhQq2czQ=
+github.com/QiWang19/image v0.0.0-20190820155639-cacda0d3194a/go.mod h1:zPTH3Ua2RjW88FkIxVoEowJ9y1/GZxi/lHaE+w8nEHA=
+github.com/QiWang19/image v0.0.0-20190820163857-96fd44143c1f h1:N1ja9el2q1B6iXsWeGid7dQD8raYSTaJ2Lm2W3uo0Vg=
+github.com/QiWang19/image v0.0.0-20190820163857-96fd44143c1f/go.mod h1:zPTH3Ua2RjW88FkIxVoEowJ9y1/GZxi/lHaE+w8nEHA=
+github.com/QiWang19/image v0.0.0-20190821135219-a0a9de846d87 h1:rBI3WRuqszVeKQXyMHKQKrXL+IsWNyYrQooYMaCbNx8=
+github.com/QiWang19/image v0.0.0-20190821135219-a0a9de846d87/go.mod h1:zPTH3Ua2RjW88FkIxVoEowJ9y1/GZxi/lHaE+w8nEHA=
+github.com/QiWang19/image v0.0.0-20190821182102-53206a8ceffc h1:73gIAoUHKSWq6dcJIiwcMF0nbiyKynoUACGeK0wZku0=
+github.com/QiWang19/image v0.0.0-20190821182102-53206a8ceffc/go.mod h1:zPTH3Ua2RjW88FkIxVoEowJ9y1/GZxi/lHaE+w8nEHA=
+github.com/QiWang19/image v0.0.0-20190823164615-55d40423d88f h1:khx1FWdwhJhhXT73Ls6z8SDpuxgNo3SAYQstwjeesKU=
+github.com/QiWang19/image v0.0.0-20190823164615-55d40423d88f/go.mod h1:zPTH3Ua2RjW88FkIxVoEowJ9y1/GZxi/lHaE+w8nEHA=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=

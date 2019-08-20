@@ -3,10 +3,15 @@ package config
 import (
 	"fmt"
 	"strings"
+	"unsafe"
 
 	"github.com/containers/image/pkg/keyctl"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
+
+const keyDescribePrefix = "container-registry-login:"
 
 func getAuthFromKernelKeyring(registry string) (string, string, error) {
 	userkeyring, err := keyctl.UserKeyring()
@@ -39,6 +44,34 @@ func deleteAuthFromKernelKeyring(registry string) error {
 		return err
 	}
 	return key.Unlink()
+}
+
+func removeAllAuthFromKernelKeyring() error {
+	keyIDs, err := readUserKeyring()
+	if err != nil {
+		return err
+	}
+
+	for _, kID := range keyIDs {
+		keyAttr, err := unix.KeyctlString(unix.KEYCTL_DESCRIBE, int(kID))
+		if err != nil {
+			return err
+		}
+		// split string "type;uid;gid;perm;description"
+		keyAttrs := strings.SplitN(keyAttr, ";", 5)
+		if len(keyAttrs) < 5 {
+			return errors.Errorf("Key attributes of %d are not avaliable", kID)
+		}
+		keyDescribe := keyAttrs[4]
+		if strings.HasPrefix(keyDescribe, keyDescribePrefix) {
+			_, err := unix.KeyctlInt(unix.KEYCTL_UNLINK, int(kID), int(unix.KEY_SPEC_USER_KEYRING), 0, 0)
+			if err != nil {
+				return errors.Wrapf(err, "error unlinking key %d", kID)
+			}
+			logrus.Debugf("unlink key %d:%s", kID, keyAttr)
+		}
+	}
+	return nil
 }
 
 func setAuthToKernelKeyring(registry, username, password string) error {
@@ -75,5 +108,46 @@ func setAuthToKernelKeyring(registry, username, password string) error {
 }
 
 func genDescription(registry string) string {
-	return fmt.Sprintf("container-registry-login:%s", registry)
+	return fmt.Sprintf("%s%s", keyDescribePrefix, registry)
+}
+
+// readUserKeyring reads user keyring and returns slice of key id(key_serial_t) representing the IDs of all the keys that are linked to it
+func readUserKeyring() ([]int32, error) {
+	var (
+		b        []byte
+		err      error
+		sizeRead int
+	)
+
+	krSize := 4
+	size := krSize
+	b = make([]byte, size)
+	sizeRead = size + 1
+	for sizeRead > size {
+		r1, err := unix.KeyctlBuffer(unix.KEYCTL_READ, unix.KEY_SPEC_USER_KEYRING, b, size)
+		if err != nil {
+			return nil, err
+		}
+
+		if sizeRead = int(r1); sizeRead > size {
+			b = make([]byte, sizeRead)
+			size = sizeRead
+			sizeRead = size + 1
+		} else {
+			krSize = sizeRead
+		}
+	}
+
+	keyIDs := getKeyIDsFromByte(b[:krSize])
+	return keyIDs, err
+}
+
+func getKeyIDsFromByte(byteKeyIDs []byte) []int32 {
+	idSize := 4
+	var keyIDs []int32
+	for idx := 0; idx+idSize <= len(byteKeyIDs); idx = idx + idSize {
+		tempID := *(*int32)(unsafe.Pointer(&byteKeyIDs[idx]))
+		keyIDs = append(keyIDs, tempID)
+	}
+	return keyIDs
 }
