@@ -17,7 +17,6 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/libpod/pkg/errorhandling"
-	"github.com/containers/libpod/pkg/firewall"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -84,18 +83,6 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
 		}
 		networkStatus = append(networkStatus, resultCurrent)
-	}
-
-	// Add firewall rules to ensure the container has network access.
-	// Will not be necessary once CNI firewall plugin merges upstream.
-	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range networkStatus {
-		firewallConf := &firewall.FirewallNetConf{
-			PrevResult: netStatus,
-		}
-		if err := r.firewallBackend.Add(firewallConf); err != nil {
-			return nil, errors.Wrapf(err, "error adding firewall rules for container %s", ctr.ID())
-		}
 	}
 
 	return networkStatus, nil
@@ -390,24 +377,10 @@ func (r *Runtime) closeNetNS(ctr *Container) error {
 }
 
 // Tear down a network namespace, undoing all state associated with it.
-// The CNI firewall rules will be removed, the namespace will be unmounted,
-// and the file descriptor associated with it closed.
 func (r *Runtime) teardownNetNS(ctr *Container) error {
 	if ctr.state.NetNS == nil {
 		// The container has no network namespace, we're set
 		return nil
-	}
-
-	// Remove firewall rules we added on configuring the container.
-	// Will not be necessary once CNI firewall plugin merges upstream.
-	// https://github.com/containernetworking/plugins/pull/75
-	for _, netStatus := range ctr.state.NetworkStatus {
-		firewallConf := &firewall.FirewallNetConf{
-			PrevResult: netStatus,
-		}
-		if err := r.firewallBackend.Del(firewallConf); err != nil {
-			return errors.Wrapf(err, "error removing firewall rules for container %s", ctr.ID())
-		}
 	}
 
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())

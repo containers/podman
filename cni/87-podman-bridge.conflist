@@ -1,5 +1,5 @@
 {
-    "cniVersion": "0.3.0",
+    "cniVersion": "0.4.0",
     "name": "podman",
     "plugins": [
       {
@@ -20,6 +20,10 @@
         "capabilities": {
           "portMappings": true
         }
+      },
+      {
+        "type": "firewall",
+	"backend": "iptables"
       }
     ]
 }
