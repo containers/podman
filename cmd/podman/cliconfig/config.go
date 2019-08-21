@@ -423,6 +423,7 @@ type PushValues struct {
 	CertDir          string
 	Compress         bool
 	Creds            string
+	Digestfile       string
 	Format           string
 	Quiet            bool
 	RemoveSignatures bool

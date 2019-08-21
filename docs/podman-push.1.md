@@ -61,12 +61,16 @@ value can be entered.  The password is entered without echo.
 **--cert-dir**=*path*
 
 Use certificates at *path* (\*.crt, \*.cert, \*.key) to connect to the registry.
-Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands) (Not available for remote commands)
+Default certificates directory is _/etc/containers/certs.d_. (Not available for remote commands)
 
 **--compress**
 
 Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type, compressed or uncompressed, as source)
 Note: This flag can only be set when using the **dir** transport
+
+**--digestfile** *Digestfile*
+
+After copying the image, write the digest of the resulting image to the file.  (Not available for remote commands)
 
 **--format**, **-f**=*format*
 
@@ -93,19 +97,23 @@ TLS verification will be used unless the target registry is listed as an insecur
 
 ## EXAMPLE
 
-This example extracts the imageID image to a local directory in docker format.
+This example pushes the image specified by the imageID to a local directory in docker format.
 
  `# podman push imageID dir:/path/to/image`
 
-This example extracts the imageID image to a local directory in oci format.
+This example pushes the image specified by the imageID to a local directory in oci format.
 
  `# podman push imageID oci-archive:/path/to/layout:image:tag`
 
-This example extracts the imageID image to a container registry named registry.example.com
+This example pushes the image specified by the imageID to a container registry named registry.example.com
 
  `# podman push imageID docker://registry.example.com/repository:tag`
 
-This example extracts the imageID image and puts into the local docker container store
+This example pushes the image specified by the imageID to a container registry named registry.example.com and saves the digest in the specified digestfile.
+
+ `# podman push --digestfile=/tmp/mydigest imageID docker://registry.example.com/repository:tag`
+
+This example pushes the image specified by the imageID and puts it into the local docker container store
 
  `# podman push imageID docker-daemon:image:tag`
 

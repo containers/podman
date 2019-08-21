@@ -201,12 +201,12 @@ func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmV
 }
 
 // Push is a wrapper to push an image to a registry
-func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, digestfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 	newImage, err := r.ImageRuntime().NewFromLocal(srcName)
 	if err != nil {
 		return err
 	}
-	return newImage.PushImageToHeuristicDestination(ctx, destination, manifestMIMEType, authfile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, nil)
+	return newImage.PushImageToHeuristicDestination(ctx, destination, manifestMIMEType, authfile, digestfile, signaturePolicyPath, writer, forceCompress, signingOptions, dockerRegistryOptions, nil)
 }
 
 // InspectVolumes returns a slice of volumes based on an arg list or --all

@@ -353,7 +353,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 	output := bytes.NewBuffer([]byte{})
 	c := make(chan error)
 	go func() {
-		err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", "", output, compress, so, &dockerRegistryOptions, nil)
+		err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", "", "", output, compress, so, &dockerRegistryOptions, nil)
 		c <- err
 		close(c)
 	}()
@@ -615,7 +615,7 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 		return err
 	}
 
-	if err := newImage.PushImageToHeuristicDestination(getContext(), destination, "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, additionalTags); err != nil {
+	if err := newImage.PushImageToHeuristicDestination(getContext(), destination, "", "", "", "", nil, compress, image.SigningOptions{}, &image.DockerRegistryOptions{}, additionalTags); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyExportImage(newImage.ID())

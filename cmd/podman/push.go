@@ -51,6 +51,7 @@ func init() {
 	pushCommand.SetUsageTemplate(UsageTemplate())
 	flags := pushCommand.Flags()
 	flags.StringVar(&pushCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.StringVar(&pushCommand.Digestfile, "digestfile", "", "After copying the image, write the digest of the resulting image to the file")
 	flags.StringVarP(&pushCommand.Format, "format", "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)")
 	flags.BoolVarP(&pushCommand.Quiet, "quiet", "q", false, "Don't output progress information when pushing images")
 	flags.BoolVar(&pushCommand.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
@@ -143,5 +144,5 @@ func pushCmd(c *cliconfig.PushValues) error {
 		SignBy:           signBy,
 	}
 
-	return runtime.Push(getContext(), srcName, destName, manifestType, c.Authfile, c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
+	return runtime.Push(getContext(), srcName, destName, manifestType, c.Authfile, c.String("digestfile"), c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
 }

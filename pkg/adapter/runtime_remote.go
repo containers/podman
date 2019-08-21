@@ -619,7 +619,7 @@ func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmV
 	return iopodman.VolumeRemove().Call(r.Conn, rmOpts)
 }
 
-func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, digestfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 
 	reply, err := iopodman.PushImage().Send(r.Conn, varlink.More, srcName, destination, forceCompress, manifestMIMEType, signingOptions.RemoveSignatures, signingOptions.SignBy)
 	if err != nil {

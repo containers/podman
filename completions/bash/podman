@@ -1758,6 +1758,7 @@ _podman_mount() {
 _podman_push() {
     local boolean_options="
 	--compress
+	--digestflag
 	--help
 	-h
 	--quiet
