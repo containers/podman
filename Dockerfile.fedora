@@ -27,36 +27,24 @@ RUN dnf -y install btrfs-progs-devel \
               xz \
               slirp4netns \
               container-selinux \
+              containernetworking-plugins \
               iptables && dnf clean all
-
-# Install CNI plugins
-ENV CNI_COMMIT 485be65581341430f9106a194a98f0f2412245fb
-ENV
-RUN set -x \
-       && export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
-       && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
-       && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
-       && ./build_linux.sh \
-       && mkdir -p /usr/libexec/cni \
-       && cp bin/* /usr/libexec/cni \
-       && rm -rf "$GOPATH"
 
 # Install ginkgo
 RUN set -x \
-       && export GOPATH=/go \
+       && export GOPATH=/go GOCACHE="$(mktemp -d)" \
        && go get -u github.com/onsi/ginkgo/ginkgo \
        && install -D -m 755 "$GOPATH"/bin/ginkgo /usr/bin/
 
 # Install gomega
 RUN set -x \
-       && export GOPATH=/go \
+       && export GOPATH=/go GOCACHE="$(mktemp -d)" \
        && go get github.com/onsi/gomega/...
 
 # Install conmon
 ENV CONMON_COMMIT 6f3572558b97bc60dd8f8c7f0807748e6ce2c440
 RUN set -x \
-	&& export GOPATH="$(mktemp -d)" \
+	&& export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
 	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
 	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
