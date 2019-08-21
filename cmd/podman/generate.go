@@ -18,11 +18,14 @@ var (
 	//	Commands that are universally implemented
 	generateCommands = []*cobra.Command{
 		_containerKubeCommand,
-		_containerSystemdCommand,
 	}
 )
 
 func init() {
+	// Systemd-service generation is not supported for remote-clients.
+	if !remoteclient {
+		generateCommands = append(generateCommands, _containerSystemdCommand)
+	}
 	generateCommand.Command = _generateCommand
 	generateCommand.AddCommand(generateCommands...)
 	generateCommand.SetUsageTemplate(UsageTemplate())

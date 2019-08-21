@@ -11,6 +11,7 @@ podman-generate-systemd- Generate Systemd Unit file
 command will dynamically create the unit file and output it to stdout where it can be piped by the user
 to a file.  The options can be used to influence the results of the output as well.
 
+Note that this command is not supported for the remote client.
 
 ## OPTIONS:
 

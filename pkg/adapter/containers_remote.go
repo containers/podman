@@ -951,7 +951,7 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 
 // GenerateSystemd creates a systemd until for a container
 func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
-	return iopodman.GenerateSystemd().Call(r.Conn, c.InputArgs[0], c.RestartPolicy, int64(c.StopTimeout), c.Name)
+	return "", errors.New("systemd generation not supported for remote clients")
 }
 
 // GetNamespaces returns namespace information about a container for PS
