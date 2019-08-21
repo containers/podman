@@ -55,7 +55,6 @@ var (
 		_commitCommand,
 		_containerExistsCommand,
 		_contInspectSubCommand,
-		_cpCommand,
 		_diffCommand,
 		_execCommand,
 		_exportCommand,

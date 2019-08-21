@@ -114,7 +114,7 @@ func (f GenericCLIResults) findResult(flag string) GenericCLIResult {
 	if ok {
 		return val
 	}
-	logrus.Errorf("unable to find flag %s", flag)
+	logrus.Debugf("unable to find flag %s", flag)
 	return nil
 }
 
@@ -366,12 +366,10 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["add-host"] = newCRStringSlice(c, "add-host")
 	m["annotation"] = newCRStringSlice(c, "annotation")
 	m["attach"] = newCRStringSlice(c, "attach")
-	m["authfile"] = newCRString(c, "authfile")
 	m["blkio-weight"] = newCRString(c, "blkio-weight")
 	m["blkio-weight-device"] = newCRStringSlice(c, "blkio-weight-device")
 	m["cap-add"] = newCRStringSlice(c, "cap-add")
 	m["cap-drop"] = newCRStringSlice(c, "cap-drop")
-	m["cgroupns"] = newCRString(c, "cgroupns")
 	m["cgroup-parent"] = newCRString(c, "cgroup-parent")
 	m["cidfile"] = newCRString(c, "cidfile")
 	m["conmon-pidfile"] = newCRString(c, "conmon-pidfile")
@@ -395,7 +393,6 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["dns-search"] = newCRStringSlice(c, "dns-search")
 	m["entrypoint"] = newCRString(c, "entrypoint")
 	m["env"] = newCRStringArray(c, "env")
-	m["env-host"] = newCRBool(c, "env-host")
 	m["env-file"] = newCRStringSlice(c, "env-file")
 	m["expose"] = newCRStringSlice(c, "expose")
 	m["gidmap"] = newCRStringSlice(c, "gidmap")
@@ -407,7 +404,6 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["healthcheck-start-period"] = newCRString(c, "health-start-period")
 	m["healthcheck-timeout"] = newCRString(c, "health-timeout")
 	m["hostname"] = newCRString(c, "hostname")
-	m["http-proxy"] = newCRBool(c, "http-proxy")
 	m["image-volume"] = newCRString(c, "image-volume")
 	m["init"] = newCRBool(c, "init")
 	m["init-path"] = newCRString(c, "init-path")
@@ -465,6 +461,10 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["workdir"] = newCRString(c, "workdir")
 	// global flag
 	if !remote {
+		m["authfile"] = newCRString(c, "authfile")
+		m["cgroupns"] = newCRString(c, "cgroupns")
+		m["env-host"] = newCRBool(c, "env-host")
+		m["http-proxy"] = newCRBool(c, "http-proxy")
 		m["trace"] = newCRBool(c, "trace")
 		m["syslog"] = newCRBool(c, "syslog")
 	}
