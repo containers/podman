@@ -160,22 +160,16 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	}
 
 	// If requested, add tmpfs filesystems for read-only containers.
-	// Need to keep track of which we created, so we don't modify options
-	// for them later...
-	readonlyTmpfs := map[string]bool{
-		"/tmp":     false,
-		"/var/tmp": false,
-		"/run":     false,
-	}
 	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
-		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
-		for dest := range readonlyTmpfs {
+		readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
+		options := []string{"rw", "rprivate", "exec", "nosuid", "nodev", "tmpcopyup"}
+		for _, dest := range readonlyTmpfs {
 			if _, ok := baseMounts[dest]; ok {
 				continue
 			}
 			localOpts := options
 			if dest == "/run" {
-				localOpts = append(localOpts, "noexec", "size=65536k")
+				localOpts = append(localOpts, "dev", "suid", "noexec", "size=65536k")
 			}
 			baseMounts[dest] = spec.Mount{
 				Destination: dest,
@@ -183,7 +177,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 				Source:      "tmpfs",
 				Options:     localOpts,
 			}
-			readonlyTmpfs[dest] = true
 		}
 	}
 
@@ -205,8 +198,8 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 		// All user-added tmpfs mounts need their options processed.
 		// Exception: mounts added by the ReadOnlyTmpfs option, which
 		// contain several exceptions to normal options rules.
-		if mount.Type == TypeTmpfs && !readonlyTmpfs[mount.Destination] {
-			opts, err := util.ProcessTmpfsOptions(mount.Options)
+		if mount.Type == TypeTmpfs {
+			opts, err := util.ProcessOptions(mount.Options, true)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -225,9 +218,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	for _, volume := range baseVolumes {
 		finalVolumes = append(finalVolumes, volume)
 	}
-
-	logrus.Debugf("Got mounts: %v", finalMounts)
-	logrus.Debugf("Got volumes: %v", finalVolumes)
 
 	return finalMounts, finalVolumes, nil
 }
@@ -250,14 +240,17 @@ func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]
 			splitVol = strings.SplitN(vol, ":", 2)
 		)
 		if len(splitVol) == 2 {
-			if strings.Contains(splitVol[1], "Z") ||
-				strings.Contains(splitVol[1], "private") ||
-				strings.Contains(splitVol[1], "slave") ||
-				strings.Contains(splitVol[1], "shared") {
-				return nil, nil, errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z", splitVol[1])
+			splitOpts := strings.Split(splitVol[1], ",")
+			for _, checkOpt := range splitOpts {
+				switch checkOpt {
+				case "z", "ro", "rw":
+					// Do nothing, these are valid options
+				default:
+					return nil, nil, errors.Errorf("invalid options %q, can only specify 'ro', 'rw', and 'z'", splitVol[1])
+				}
 			}
 
-			if options, err = parse.ValidateVolumeOpts(strings.Split(splitVol[1], ",")); err != nil {
+			if options, err = parse.ValidateVolumeOpts(splitOpts); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -403,9 +396,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 		Type: TypeBind,
 	}
 
-	setSource := false
-	setDest := false
-	setRORW := false
+	var setSource, setDest, setRORW, setSuid, setDev, setExec bool
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
@@ -440,9 +431,23 @@ func getBindMount(args []string) (spec.Mount, error) {
 			} else {
 				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
 			}
-		case "nosuid", "nodev", "noexec":
-			// TODO: detect duplication of these options.
-			// (Is this necessary?)
+		case "nosuid", "suid":
+			if setSuid {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'nosuid' and 'suid' options more than once")
+			}
+			setSuid = true
+			newMount.Options = append(newMount.Options, kv[0])
+		case "nodev", "dev":
+			if setDev {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'nodev' and 'dev' options more than once")
+			}
+			setDev = true
+			newMount.Options = append(newMount.Options, kv[0])
+		case "noexec", "exec":
+			if setExec {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'noexec' and 'exec' options more than once")
+			}
+			setExec = true
 			newMount.Options = append(newMount.Options, kv[0])
 		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
 			newMount.Options = append(newMount.Options, kv[0])
@@ -497,12 +502,34 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 		Source: TypeTmpfs,
 	}
 
-	setDest := false
+	var setDest, setRORW, setSuid, setDev, setExec bool
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
-		case "ro", "nosuid", "nodev", "noexec":
+		case "ro", "rw":
+			if setRORW {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'ro' and 'rw' options more than once")
+			}
+			setRORW = true
+			newMount.Options = append(newMount.Options, kv[0])
+		case "nosuid", "suid":
+			if setSuid {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'nosuid' and 'suid' options more than once")
+			}
+			setSuid = true
+			newMount.Options = append(newMount.Options, kv[0])
+		case "nodev", "dev":
+			if setDev {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'nodev' and 'dev' options more than once")
+			}
+			setDev = true
+			newMount.Options = append(newMount.Options, kv[0])
+		case "noexec", "exec":
+			if setExec {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'noexec' and 'exec' options more than once")
+			}
+			setExec = true
 			newMount.Options = append(newMount.Options, kv[0])
 		case "tmpfs-mode":
 			if len(kv) == 1 {
@@ -543,14 +570,34 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 	newVolume := new(libpod.ContainerNamedVolume)
 
-	setSource := false
-	setDest := false
+	var setSource, setDest, setRORW, setSuid, setDev, setExec bool
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
-		case "ro", "nosuid", "nodev", "noexec":
-			// TODO: detect duplication of these options
+		case "ro", "rw":
+			if setRORW {
+				return nil, errors.Wrapf(optionArgError, "cannot pass 'ro' and 'rw' options more than once")
+			}
+			setRORW = true
+			newVolume.Options = append(newVolume.Options, kv[0])
+		case "nosuid", "suid":
+			if setSuid {
+				return nil, errors.Wrapf(optionArgError, "cannot pass 'nosuid' and 'suid' options more than once")
+			}
+			setSuid = true
+			newVolume.Options = append(newVolume.Options, kv[0])
+		case "nodev", "dev":
+			if setDev {
+				return nil, errors.Wrapf(optionArgError, "cannot pass 'nodev' and 'dev' options more than once")
+			}
+			setDev = true
+			newVolume.Options = append(newVolume.Options, kv[0])
+		case "noexec", "exec":
+			if setExec {
+				return nil, errors.Wrapf(optionArgError, "cannot pass 'noexec' and 'exec' options more than once")
+			}
+			setExec = true
 			newVolume.Options = append(newVolume.Options, kv[0])
 		case "volume-label":
 			return nil, errors.Errorf("the --volume-label option is not presently implemented")
@@ -692,6 +739,9 @@ func (config *CreateConfig) getTmpfsMounts() (map[string]spec.Mount, error) {
 		var options []string
 		spliti := strings.Split(i, ":")
 		destPath := spliti[0]
+		if err := parse.ValidateVolumeCtrDir(spliti[0]); err != nil {
+			return nil, err
+		}
 		if len(spliti) > 1 {
 			options = strings.Split(spliti[1], ",")
 		}
@@ -775,16 +825,25 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 }
 
 // Ensure mount options on all mounts are correct
-func initFSMounts(inputMounts []spec.Mount) []spec.Mount {
+func initFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 	var mounts []spec.Mount
 	for _, m := range inputMounts {
 		if m.Type == TypeBind {
-			m.Options = util.ProcessOptions(m.Options)
+			opts, err := util.ProcessOptions(m.Options, false)
+			if err != nil {
+				return nil, err
+			}
+			m.Options = opts
 		}
 		if m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev" {
-			m.Options = append(m.Options, "tmpcopyup")
+			opts, err := util.ProcessOptions(m.Options, true)
+			if err != nil {
+				return nil, err
+			}
+			m.Options = opts
 		}
+
 		mounts = append(mounts, m)
 	}
-	return mounts
+	return mounts, nil
 }

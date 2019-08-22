@@ -13,88 +13,101 @@ var (
 	ErrDupeMntOption = errors.Errorf("duplicate option passed")
 )
 
-// ProcessOptions parses the options for a bind mount and ensures that they are
-// sensible and follow convention.
-func ProcessOptions(options []string) []string {
+// ProcessOptions parses the options for a bind or tmpfs mount and ensures that
+// they are sensible and follow convention. The isTmpfs variable controls
+// whether extra, tmpfs-specific options will be allowed.
+func ProcessOptions(options []string, isTmpfs bool) ([]string, error) {
 	var (
-		foundbind, foundrw, foundro bool
-		rootProp                    string
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind bool
 	)
 
-	for _, opt := range options {
-		switch opt {
-		case "bind", "rbind":
-			foundbind = true
-		case "ro":
-			foundro = true
-		case "rw":
-			foundrw = true
-		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
-			rootProp = opt
-		}
-	}
-	if !foundbind {
-		options = append(options, "rbind")
-	}
-	if !foundrw && !foundro {
-		options = append(options, "rw")
-	}
-	if rootProp == "" {
-		options = append(options, "rprivate")
-	}
-	return options
-}
-
-// ProcessTmpfsOptions parses the options for a tmpfs mountpoint and ensures
-// that they are sensible and follow convention.
-func ProcessTmpfsOptions(options []string) ([]string, error) {
-	var (
-		foundWrite, foundSize, foundProp, foundMode bool
-	)
-
-	baseOpts := []string{"noexec", "nosuid", "nodev"}
 	for _, opt := range options {
 		// Some options have parameters - size, mode
 		splitOpt := strings.SplitN(opt, "=", 2)
 		switch splitOpt[0] {
+		case "exec", "noexec":
+			if foundExec {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'noexec' and 'exec' can be used")
+			}
+			foundExec = true
+		case "suid", "nosuid":
+			if foundSuid {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'nosuid' and 'suid' can be used")
+			}
+			foundSuid = true
+		case "nodev", "dev":
+			if foundDev {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'nodev' and 'dev' can be used")
+			}
+			foundDev = true
 		case "rw", "ro":
 			if foundWrite {
-				return nil, errors.Wrapf(ErrDupeMntOption, "only one of rw and ro can be used")
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rw' and 'ro' can be used")
 			}
 			foundWrite = true
-			baseOpts = append(baseOpts, opt)
 		case "private", "rprivate", "slave", "rslave", "shared", "rshared":
 			if foundProp {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one root propagation mode can be used")
 			}
 			foundProp = true
-			baseOpts = append(baseOpts, opt)
 		case "size":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'size' option is only allowed with tmpfs mounts")
+			}
 			if foundSize {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one tmpfs size can be specified")
 			}
 			foundSize = true
-			baseOpts = append(baseOpts, opt)
 		case "mode":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'mode' option is only allowed with tmpfs mounts")
+			}
 			if foundMode {
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one tmpfs mode can be specified")
 			}
 			foundMode = true
-			baseOpts = append(baseOpts, opt)
-		case "noexec", "nodev", "nosuid":
-			// Do nothing. We always include these even if they are
-			// not explicitly requested.
+		case "tmpcopyup":
+			if !isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'tmpcopyup' option is only allowed with tmpfs mounts")
+			}
+			if foundCopyUp {
+				return nil, errors.Wrapf(ErrDupeMntOption, "the 'tmpcopyup' option can only be set once")
+			}
+			foundCopyUp = true
+		case "bind", "rbind":
+			if isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'bind' and 'rbind' options are not allowed with tmpfs mounts")
+			}
+			if foundBind {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rbind' and 'bind' can be used")
+			}
+			foundBind = true
 		default:
-			return nil, errors.Wrapf(ErrBadMntOption, "unknown tmpfs option %q", opt)
+			return nil, errors.Wrapf(ErrBadMntOption, "unknown mount option %q", opt)
 		}
 	}
 
 	if !foundWrite {
-		baseOpts = append(baseOpts, "rw")
+		options = append(options, "rw")
 	}
 	if !foundProp {
-		baseOpts = append(baseOpts, "rprivate")
+		options = append(options, "rprivate")
+	}
+	if !foundExec {
+		options = append(options, "noexec")
+	}
+	if !foundSuid {
+		options = append(options, "nosuid")
+	}
+	if !foundDev {
+		options = append(options, "nodev")
+	}
+	if isTmpfs && !foundCopyUp {
+		options = append(options, "tmpcopyup")
+	}
+	if !isTmpfs && !foundBind {
+		options = append(options, "rbind")
 	}
 
-	return baseOpts, nil
+	return options, nil
 }

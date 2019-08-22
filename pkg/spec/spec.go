@@ -368,7 +368,11 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// BIND MOUNTS
 	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	configSpec.Mounts = initFSMounts(configSpec.Mounts)
+	finalMounts, err := initFSMounts(configSpec.Mounts)
+	if err != nil {
+		return nil, err
+	}
+	configSpec.Mounts = finalMounts
 
 	// BLOCK IO
 	blkio, err := config.CreateBlockIO()
@@ -391,43 +395,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if !cgroup2 {
 			// Force the resources block to be empty instead of having default values.
 			configSpec.Linux.Resources = &spec.LinuxResources{}
-		}
-	}
-
-	// Make sure that the bind mounts keep options like nosuid, noexec, nodev.
-	mounts, err := pmount.GetMounts()
-	if err != nil {
-		return nil, err
-	}
-	for i := range configSpec.Mounts {
-		m := &configSpec.Mounts[i]
-		isBind := false
-		for _, o := range m.Options {
-			if o == "bind" || o == "rbind" {
-				isBind = true
-				break
-			}
-		}
-		if !isBind {
-			continue
-		}
-		mount, err := findMount(m.Source, mounts)
-		if err != nil {
-			return nil, err
-		}
-		if mount == nil {
-			continue
-		}
-	next_option:
-		for _, o := range strings.Split(mount.Opts, ",") {
-			if o == "nosuid" || o == "noexec" || o == "nodev" {
-				for _, e := range m.Options {
-					if e == o {
-						continue next_option
-					}
-				}
-				m.Options = append(m.Options, o)
-			}
 		}
 	}
 
