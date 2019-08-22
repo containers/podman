@@ -46,7 +46,7 @@ The format of this file is USERNAME:UID:RANGE
 
 This means the user johndoe is allocated UIDS 100000-165535 as well as their standard UID in the /etc/passwd file.  NOTE: this is not currently supported with network installs.  These files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
 
-If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the `[podman system migrate](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md)` command which will stop all the containers for the user and will kill the pause process.
+If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the pause process.
 
 Rather than updating the files directly, the usermod program can be used to assign UIDs and GIDs to a user.
 
