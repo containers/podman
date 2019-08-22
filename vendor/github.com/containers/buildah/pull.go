@@ -102,19 +102,11 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		}
 	case directory.Transport.Name():
 		// supports pull from a directory
-		name = srcRef.StringWithinTransport()
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(srcRef.StringWithinTransport())
 	case oci.Transport.Name():
 		// supports pull from a directory
 		split := strings.SplitN(srcRef.StringWithinTransport(), ":", 2)
-		name = split[0]
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(split[0])
 	default:
 		ref := srcRef.DockerReference()
 		if ref == nil {
@@ -286,4 +278,9 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 		return "", errors.Wrapf(err, "error getting config info from image %q", transports.ImageName(src))
 	}
 	return "@" + digest.Hex(), nil
+}
+
+// toLocalImageName converts an image name into a 'localhost/' prefixed one
+func toLocalImageName(imageName string) string {
+	return "localhost/" + strings.TrimLeft(imageName, "/")
 }

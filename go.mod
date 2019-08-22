@@ -13,7 +13,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.10.1
+	github.com/containers/buildah v1.8.4-0.20190821140209-376e52ee0142
 	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/psgo v1.3.1

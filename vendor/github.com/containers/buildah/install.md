@@ -385,3 +385,14 @@ Buildah uses Go Modules for vendoring purposes.  If you need to update or add a 
  * `make`
  * `make install`
  * Then add any updated or added files with `git add` then do a `git commit` and create a PR.
+
+### Vendor from your own fork
+
+If you wish to vendor in your personal fork to try changes out (assuming containers/storage in the below example):
+
+ * `go mod edit -replace github.com/containers/storage=github.com/{mygithub_username}/storage@YOUR_BRANCH`
+ * `make vendor`
+
+To revert
+ * `go mod edit -dropreplace github.com/containers/storage`
+ * `make vendor`

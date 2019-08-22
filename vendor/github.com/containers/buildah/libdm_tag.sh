@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 tmpdir="$PWD/tmp.$RANDOM"
 mkdir -p "$tmpdir"
 trap 'rm -fr "$tmpdir"' EXIT

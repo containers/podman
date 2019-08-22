@@ -55,7 +55,8 @@ into other tools.
 
 Podman specializes in all of the commands and functions that help you to maintain and modify
 OCI images, such as pulling and tagging.  It also allows you to create, run, and maintain those containers
-created from those images.
+created from those images.  For building container images via Dockerfiles, Podman uses Buildah's
+golang API and can be installed independently from Buildah.
 
 A major difference between Podman and Buildah is their concept of a container.  Podman
 allows users to create "traditional containers" where the intent of these containers is
@@ -76,7 +77,7 @@ From [`./examples/lighttpd.sh`](examples/lighttpd.sh):
 
 ```bash
 $ cat > lighttpd.sh <<"EOF"
-#!/bin/bash -x
+#!/usr/bin/env bash -x
 
 ctr1=$(buildah from "${1:-fedora}")
 

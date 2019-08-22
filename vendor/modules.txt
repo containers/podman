@@ -45,7 +45,7 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.10.1
+# github.com/containers/buildah v1.8.4-0.20190821140209-376e52ee0142
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser

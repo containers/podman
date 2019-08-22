@@ -343,7 +343,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	net := namespaceOptions.Find(string(specs.NetworkNamespace))
 	hostNetwork := net == nil || net.Host
 	user := namespaceOptions.Find(string(specs.UserNamespace))
-	hostUser := user == nil || user.Host
+	hostUser := (user == nil || user.Host) && !unshare.IsRootless()
 
 	// Copy mounts from the generated list.
 	mountCgroups := true
@@ -431,7 +431,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
-	copyWithTar := b.copyWithTar(nil, nil, nil)
+	copyWithTar := b.copyWithTar(nil, nil, nil, false)
 	builtins, err := runSetupBuiltinVolumes(b.MountLabel, mountPoint, cdir, copyWithTar, builtinVolumes, int(rootUID), int(rootGID))
 	if err != nil {
 		return err

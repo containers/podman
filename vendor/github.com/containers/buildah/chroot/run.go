@@ -1181,6 +1181,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		switch m.Type {
 		case "bind":
 			// Do the bind mount.
+			logrus.Debugf("bind mounting %q on %q", m.Destination, filepath.Join(spec.Root.Path, m.Destination))
 			if err := unix.Mount(m.Source, target, "", requestFlags, ""); err != nil {
 				return undoBinds, errors.Wrapf(err, "error bind mounting %q from host to %q in mount namespace (%q)", m.Source, m.Destination, target)
 			}
@@ -1366,7 +1367,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		} else {
 			// If the target's is not a directory or os.DevNull, bind mount os.DevNull over it.
-			if isDevNull(targetinfo) {
+			if !isDevNull(targetinfo) {
 				if err = unix.Mount(os.DevNull, target, "", uintptr(syscall.MS_BIND|syscall.MS_RDONLY|syscall.MS_PRIVATE), ""); err != nil {
 					return undoBinds, errors.Wrapf(err, "error masking non-directory %q in mount namespace", target)
 				}
