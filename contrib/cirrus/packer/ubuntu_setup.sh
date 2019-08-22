@@ -33,7 +33,8 @@ then
     $LILTO $SUDOAPTADD ppa:longsleep/golang-backports
 fi
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
-sudo echo "deb https://repo.iovisor.org/apt/$(lsb_release -cs) $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/iovisor.list
+# The repository isn't available for ubnutu 19 but the binaries work perfectly
+sudo echo "deb https://repo.iovisor.org/apt/bionic bionic main" | sudo tee /etc/apt/sources.list.d/iovisor.list
 
 $LILTO $SUDOAPTGET update
 
@@ -44,6 +45,7 @@ $BIGTO $SUDOAPTGET install \
     autoconf \
     automake \
     bats \
+    bcc-tools \
     bison \
     btrfs-tools \
     build-essential \
@@ -106,7 +108,6 @@ $BIGTO $SUDOAPTGET install \
     vim \
     xz-utils \
     zip \
-    libbcc \
     linux-headers-$(uname -r)
 
 if [[ "$OS_RELEASE_VER" -ge "19" ]]

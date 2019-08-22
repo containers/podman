@@ -23,6 +23,9 @@ var _ = Describe("Podman generate profile", func() {
 
 	BeforeEach(func() {
 		SkipIfRootless()
+		if _, err := os.Stat("/usr/share/containers/oci/hooks.d/oci-trace-hook-run.json"); err != nil {
+			Skip("oci-trace-hook not installed, please install the hook")
+		}
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
@@ -48,6 +51,7 @@ var _ = Describe("Podman generate profile", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		// FIXME: The test doesn't wait for the file to be created so we have to pause for 2 seconds
 		time.Sleep(time.Second * 2)
 
 		result := podmanTest.Podman([]string{"run", "--security-opt", "seccomp=" + fileName, ALPINE, "ls"})
@@ -65,6 +69,7 @@ var _ = Describe("Podman generate profile", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
+		// FIXME: The test doesn't wait for the file to be created so we have to pause for 2 seconds
 		time.Sleep(time.Second * 2)
 
 		result := podmanTest.Podman([]string{"run", "--security-opt", "seccomp=" + fileName, ALPINE, "ls"})
@@ -92,6 +97,7 @@ var _ = Describe("Podman generate profile", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
+		// FIXME: The test doesn't wait for the file to be created so we have to pause for 2 seconds
 		time.Sleep(time.Second * 2)
 
 		profileJSON1, _ := ioutil.ReadFile(profilePath1)

@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     apparmor \
     autoconf \
     automake \
+    bcc-tools \
     bison \
     build-essential \
     curl \
@@ -44,7 +45,6 @@ RUN apt-get update && apt-get install -y \
     xz-utils \
     unzip \
     python3-yaml \
-    libbcc \
     --no-install-recommends \
     && apt-get clean
 

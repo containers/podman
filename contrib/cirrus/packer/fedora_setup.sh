@@ -27,6 +27,7 @@ ooe.sh sudo dnf install -y \
     autoconf \
     automake \
     bats \
+    bcc-devel \
     bridge-utils \
     btrfs-progs-devel \
     bzip2 \
@@ -85,9 +86,7 @@ ooe.sh sudo dnf install -y \
     vim \
     which \
     xz \
-    zip \
-    bcc-devel \
-    kernel-headers
+    zip
 
 
 # Ensure there are no disruptive periodic services enabled by default in image

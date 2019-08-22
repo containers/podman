@@ -502,14 +502,18 @@ endef
 
 
 install.oci-trace-hook:
-	install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR)
-	install ${SELINUXOPT} -d -m 755 $(HOOK_DIR)
-	install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook
-	install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR)
-	install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR)
+	if pkg-config libbcc 2> /dev/null ; then \
+		install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR); \
+		install ${SELINUXOPT} -d -m 755 $(HOOK_DIR) ; \
+		install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook ; \
+		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR) ; \
+		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR) ; \
+	fi
 
 oci-trace-hook:
-	$(GO) build -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook
+	if pkg-config libbcc 2> /dev/null ; then \
+		$(GO) build -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook ; \
+	fi
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
 varlink_api_generate: .gopathok API.md
