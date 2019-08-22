@@ -195,16 +195,6 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(baseMounts))
 	for _, mount := range baseMounts {
-		// All user-added tmpfs mounts need their options processed.
-		// Exception: mounts added by the ReadOnlyTmpfs option, which
-		// contain several exceptions to normal options rules.
-		if mount.Type == TypeTmpfs {
-			opts, err := util.ProcessOptions(mount.Options, true)
-			if err != nil {
-				return nil, nil, err
-			}
-			mount.Options = opts
-		}
 		if mount.Type == TypeBind {
 			absSrc, err := filepath.Abs(mount.Source)
 			if err != nil {
