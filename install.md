@@ -190,11 +190,14 @@ To build, use the following (running `make` can take a while):
 git clone https://github.com/ostreedev/ostree ~/ostree
 cd ~/ostree
 git submodule update --init
-# for Fedora, CentOS, RHEL
-sudo yum install -y automake bison e2fsprogs-devel fuse-devel libtool xz-devel zlib-devel
-# for Debian, Ubuntu etc.
-sudo apt-get install -y automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libtool zlib1g
 
+# for Fedora, CentOS, RHEL
+sudo yum install -y automake bison e2fsprogs-devel fuse-devel gpgme-devel libseccomp-devel libtool systemd-devel xz-devel zlib-devel
+
+# for Debian, Ubuntu etc.
+sudo apt-get install -y automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libseccomp-dev libsystemd-dev libtool zlib1g
+
+# for all distributions
 ./autogen.sh --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc
 # remove --nonet option due to https:/github.com/ostreedev/ostree/issues/1374
 sed -i '/.*--nonet.*/d' ./Makefile-man.am
@@ -226,6 +229,7 @@ To build from source, use the following:
 ```bash
 git clone https://github.com/containers/conmon
 cd conmon
+export GOCACHE="$(mktemp -d)"
 make
 sudo make podman
 ```
@@ -245,25 +249,12 @@ sudo cp runc /usr/bin/runc
 
 #### CNI plugins
 
-```bash
-git clone https://github.com/containernetworking/plugins.git $GOPATH/src/github.com/containernetworking/plugins
-cd $GOPATH/src/github.com/containernetworking/plugins
-./build_linux.sh
-sudo mkdir -p /usr/libexec/cni
-sudo cp bin/* /usr/libexec/cni
-```
-
 #### Setup CNI networking
 
 A proper description of setting up CNI networking is given in the [`cni` README](cni/README.md).
 
-Using the CNI plugins from above, a more basic network config is achieved with:
-
-```bash
-sudo mkdir -p /etc/cni/net.d
-curl -qsSL https://raw.githubusercontent.com/containers/libpod/master/cni/87-podman-bridge.conflist | sudo tee /etc/cni/net.d/99-loopback.conf
-```
-
+A basic setup for CNI networking is done by default during the installation or make processes and
+no further configuration is needed to start using Podman.
 
 #### Add configuration
 
