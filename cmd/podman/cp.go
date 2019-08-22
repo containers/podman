@@ -55,7 +55,6 @@ func init() {
 	flags.BoolVar(&cpCommand.Pause, "pause", false, "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
-	rootCmd.AddCommand(cpCommand.Command)
 }
 
 func cpCmd(c *cliconfig.CpValues) error {
