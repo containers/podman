@@ -736,14 +736,14 @@ Note: if you use the `--network=host` option these sysctls will not be allowed.
 
 Run container in systemd mode. The default is *true*.
 
-If the command you running inside of the container is systemd or init, podman
+If the command you are running inside of the container is systemd or init, podman
 will setup tmpfs mount points in the following directories:
 
 /run, /run/lock, /tmp, /sys/fs/cgroup/systemd, /var/lib/journal
 
 It will also set the default stop signal to SIGRTMIN+3.
 
-This allow systemd to run in a confined container without any modifications.
+This allows systemd to run in a confined container without any modifications.
 
 Note: On `SELinux` systems, systemd attempts to write to the cgroup
 file system.  Containers writing to the cgroup file system are denied by default.
