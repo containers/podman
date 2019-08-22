@@ -49,8 +49,6 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func GenerateKube(name: string, service: bool) KubePodService](#GenerateKube)
 
-[func GenerateSystemd(name: string, restart: string, timeout: int, useName: bool) string](#GenerateSystemd)
-
 [func GetAttachSockets(name: string) Sockets](#GetAttachSockets)
 
 [func GetContainer(id: string) Container](#GetContainer)
@@ -482,11 +480,6 @@ error will be returned. See also [ImportImage](ImportImage).
 method GenerateKube(name: [string](https://godoc.org/builtin#string), service: [bool](https://godoc.org/builtin#bool)) [KubePodService](#KubePodService)</div>
 GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
 and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
-### <a name="GenerateSystemd"></a>func GenerateSystemd
-<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
-
-method GenerateSystemd(name: [string](https://godoc.org/builtin#string), restart: [string](https://godoc.org/builtin#string), timeout: [int](https://godoc.org/builtin#int), useName: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
-
 ### <a name="GetAttachSockets"></a>func GetAttachSockets
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

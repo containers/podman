@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/systemdgen"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +39,10 @@ func init() {
 	containerSystemdCommand.SetHelpTemplate(HelpTemplate())
 	containerSystemdCommand.SetUsageTemplate(UsageTemplate())
 	flags := containerSystemdCommand.Flags()
-	flags.BoolVarP(&containerSystemdCommand.Name, "name", "n", false, "use the container name instead of ID")
+	flags.BoolVarP(&containerSystemdCommand.Name, "name", "n", false, "use the container/pod name instead of ID")
+	if !remoteclient {
+		flags.BoolVarP(&containerSystemdCommand.Files, "files", "f", false, "generate files instead of printing to stdout")
+	}
 	flags.IntVarP(&containerSystemdCommand.StopTimeout, "timeout", "t", -1, "stop timeout override")
 	flags.StringVar(&containerSystemdCommand.RestartPolicy, "restart-policy", "on-failure", "applicable systemd restart-policy")
 }
@@ -55,10 +57,6 @@ func generateSystemdCmd(c *cliconfig.GenerateSystemdValues) error {
 	// User input stop timeout must be 0 or greater
 	if c.Flag("timeout").Changed && c.StopTimeout < 0 {
 		return errors.New("timeout value must be 0 or greater")
-	}
-	// Make sure the input restart policy is valid
-	if err := systemdgen.ValidateRestartPolicy(c.RestartPolicy); err != nil {
-		return err
 	}
 
 	unit, err := runtime.GenerateSystemd(c)

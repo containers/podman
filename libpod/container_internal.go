@@ -788,7 +788,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 	}
 
 	// Build a dependency graph of containers
-	graph, err := buildContainerGraph(depCtrs)
+	graph, err := BuildContainerGraph(depCtrs)
 	if err != nil {
 		return errors.Wrapf(err, "error generating dependency graph for container %s", c.ID())
 	}
