@@ -10,7 +10,7 @@ var (
 	// ErrBadMntOption indicates that an invalid mount option was passed.
 	ErrBadMntOption = errors.Errorf("invalid mount option")
 	// ErrDupeMntOption indicates that a duplicate mount option was passed.
-	ErrDupeMntOption = errors.Errorf("duplicate option passed")
+	ErrDupeMntOption = errors.Errorf("duplicate mount option passed")
 )
 
 // DefaultMountOptions sets default mount options for ProcessOptions.
