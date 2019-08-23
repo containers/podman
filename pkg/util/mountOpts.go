@@ -27,7 +27,7 @@ type DefaultMountOptions struct {
 // is not included, they will be set unconditionally.
 func ProcessOptions(options []string, isTmpfs bool, defaults *DefaultMountOptions) ([]string, error) {
 	var (
-		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind bool
+		foundWrite, foundSize, foundProp, foundMode, foundExec, foundSuid, foundDev, foundCopyUp, foundBind, foundZ bool
 	)
 
 	for _, opt := range options {
@@ -91,6 +91,13 @@ func ProcessOptions(options []string, isTmpfs bool, defaults *DefaultMountOption
 				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'rbind' and 'bind' can be used")
 			}
 			foundBind = true
+		case "z", "Z":
+			if isTmpfs {
+				return nil, errors.Wrapf(ErrBadMntOption, "the 'z' and 'Z' options are not allowed with tmpfs mounts")
+			}
+			if foundZ {
+				return nil, errors.Wrapf(ErrDupeMntOption, "only one of 'z' and 'Z' can be used")
+			}
 		default:
 			return nil, errors.Wrapf(ErrBadMntOption, "unknown mount option %q", opt)
 		}
