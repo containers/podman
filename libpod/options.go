@@ -1360,7 +1360,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 			}
 			destinations[vol.Dest] = true
 
-			mountOpts, err := util.ProcessOptions(vol.Options, false)
+			mountOpts, err := util.ProcessOptions(vol.Options, false, nil)
 			if err != nil {
 				return errors.Wrapf(err, "error processing options for named volume %q mounted at %q", vol.Name, vol.Dest)
 			}

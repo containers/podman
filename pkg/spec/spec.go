@@ -2,13 +2,11 @@ package createconfig
 
 import (
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/docker/docker/oci/caps"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -455,25 +453,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	return configSpec, nil
-}
-
-func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
-	var err error
-	target, err = filepath.Abs(target)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot resolve %s", target)
-	}
-	var bestSoFar *pmount.Info
-	for _, i := range mounts {
-		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
-			// Won't be better than what we have already found
-			continue
-		}
-		if strings.HasPrefix(target, i.Mountpoint) {
-			bestSoFar = i
-		}
-	}
-	return bestSoFar, nil
 }
 
 func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {

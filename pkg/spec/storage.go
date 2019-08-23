@@ -10,6 +10,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
+	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -816,17 +817,46 @@ func supercedeUserMounts(mounts []spec.Mount, configMount []spec.Mount) []spec.M
 
 // Ensure mount options on all mounts are correct
 func initFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
+	// We need to look up mounts so we can figure out the proper mount flags
+	// to apply.
+	systemMounts, err := pmount.GetMounts()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving system mounts to look up mount options")
+	}
+
+	// TODO: We probably don't need to re-build the mounts array
 	var mounts []spec.Mount
 	for _, m := range inputMounts {
 		if m.Type == TypeBind {
-			opts, err := util.ProcessOptions(m.Options, false)
+			baseMnt, err := findMount(m.Destination, systemMounts)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error looking up mountpoint for mount %s", m.Destination)
+			}
+			var noexec, nosuid, nodev bool
+			for _, baseOpt := range strings.Split(baseMnt.Opts, ",") {
+				switch baseOpt {
+				case "noexec":
+					noexec = true
+				case "nosuid":
+					nosuid = true
+				case "nodev":
+					nodev = true
+				}
+			}
+
+			defaultMountOpts := new(util.DefaultMountOptions)
+			defaultMountOpts.Noexec = noexec
+			defaultMountOpts.Nosuid = nosuid
+			defaultMountOpts.Nodev = nodev
+
+			opts, err := util.ProcessOptions(m.Options, false, defaultMountOpts)
 			if err != nil {
 				return nil, err
 			}
 			m.Options = opts
 		}
 		if m.Type == TypeTmpfs && filepath.Clean(m.Destination) != "/dev" {
-			opts, err := util.ProcessOptions(m.Options, true)
+			opts, err := util.ProcessOptions(m.Options, true, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -836,4 +866,25 @@ func initFSMounts(inputMounts []spec.Mount) ([]spec.Mount, error) {
 		mounts = append(mounts, m)
 	}
 	return mounts, nil
+}
+
+// TODO: We could make this a bit faster by building a tree of the mountpoints
+// and traversing it to identify the correct mount.
+func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
+	var err error
+	target, err = filepath.Abs(target)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot resolve %s", target)
+	}
+	var bestSoFar *pmount.Info
+	for _, i := range mounts {
+		if bestSoFar != nil && len(bestSoFar.Mountpoint) > len(i.Mountpoint) {
+			// Won't be better than what we have already found
+			continue
+		}
+		if strings.HasPrefix(target, i.Mountpoint) {
+			bestSoFar = i
+		}
+	}
+	return bestSoFar, nil
 }
