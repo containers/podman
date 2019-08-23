@@ -182,7 +182,10 @@ func startFloatingProcess() error {
 			return fmt.Errorf("cannot write pid to file err:%q", err.Error())
 		}
 		defer f.Close()
-		f.WriteString(strconv.Itoa(processPID))
+		_, err = f.WriteString(strconv.Itoa(processPID))
+		if err != nil {
+			return fmt.Errorf("cannot write pid to the file")
+		}
 		err = process.Release()
 		if err != nil {
 			return fmt.Errorf("cannot detach process err:%q", err.Error())
@@ -246,7 +249,7 @@ func runBPFSource(pid int, profilePath string) error {
 				logrus.Errorf("failed to decode received data '%s': %s\n", data, err)
 				continue
 			}
-			name, err := getName(uint32(e.ID))
+			name, err := getName(e.ID)
 			if err != nil {
 				logrus.Errorf("failed to get name of syscall from id : %d received : %q", e.ID, name)
 			}
@@ -285,7 +288,10 @@ func sendSIGINT() error {
 	if err != nil {
 		return fmt.Errorf("cannot find process with PID %d \nerror msg: %q", pid, err.Error())
 	}
-	p.Signal(os.Interrupt)
+	err = p.Signal(os.Interrupt)
+	if err != nil {
+		return fmt.Errorf("cannot send signal to child process err: %q", err.Error())
+	}
 	return nil
 }
 
