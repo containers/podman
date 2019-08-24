@@ -1,3 +1,5 @@
+// +build oci_trace_hook
+
 package main
 
 import (

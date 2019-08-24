@@ -36,6 +36,7 @@ BUILDTAGS ?= \
 	seccomp \
 	varlink
 
+BUILDTAG_TRACE_HOOK ?= $(shell hack/generate_seccomp_tag.sh)
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
@@ -46,6 +47,12 @@ ifeq (,$(findstring systemd,$(BUILDTAGS)))
 $(warning \
 	Podman is being compiled without the systemd build tag.\
 	Install libsystemd for journald support)
+endif
+
+ifeq (,$(BUILDTAG_TRACE_HOOK))
+$(warning \
+	Podman is being compiled without the oci_trace_hook build tag.\
+	Install libbcc to use the oci-trace-hook)
 endif
 
 BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
@@ -502,7 +509,7 @@ endef
 
 
 install.oci-trace-hook:
-	if pkg-config libbcc 2> /dev/null ; then \
+	if [ ! -z "$(BUILDTAG_TRACE_HOOK)" ]; then \
 		install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR); \
 		install ${SELINUXOPT} -d -m 755 $(HOOK_DIR) ; \
 		install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook ; \
@@ -511,8 +518,8 @@ install.oci-trace-hook:
 	fi
 
 oci-trace-hook:
-	if pkg-config libbcc 2> /dev/null ; then \
-		$(GO) build -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook ; \
+	if [ ! -z "$(BUILDTAG_TRACE_HOOK)" ] ; then \
+		$(GO_BUILD) -tags $(BUILDTAG_TRACE_HOOK) -o bin/oci-trace-hook $(PROJECT)/cmd/oci-trace-hook; \
 	fi
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
