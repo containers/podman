@@ -39,8 +39,9 @@ The following instructions assume your GOPATH is ~/go. Adjust as needed for your
 environment.
 
 ### Installing ginkgo
-Build ginkgo and install it under $GOPATH/bin with the following command:
+Build ginkgo and install it under $GOPATH/bin with the following commands:
 ```
+export GOCACHE="$(mktemp -d)"
 GOPATH=~/go make .install.ginkgo
 ```
 If your PATH does not include $GOPATH/bin, you might consider adding it.
