@@ -142,7 +142,14 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to untar context dir %s", contextDir))
 	}
 	logrus.Debugf("untar of %s successful", contextDir)
-
+	defer func() {
+		if err := os.Remove(contextDir); err != nil {
+			logrus.Errorf("unable to delete file '%s': %q", contextDir, err)
+		}
+		if err := os.RemoveAll(newContextDir); err != nil {
+			logrus.Errorf("unable to delete directory '%s': %q", newContextDir, err)
+		}
+	}()
 	// All output (stdout, stderr) is captured in output as well
 	var output bytes.Buffer
 
