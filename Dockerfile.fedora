@@ -28,6 +28,7 @@ RUN dnf -y install btrfs-progs-devel \
               slirp4netns \
               container-selinux \
               containernetworking-plugins \
+              iproute \
               iptables && dnf clean all
 
 # Install ginkgo
