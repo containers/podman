@@ -1361,6 +1361,8 @@ pids [int](https://godoc.org/builtin#int)
 ### <a name="Create"></a>type Create
 
 Create is an input structure for creating containers.
+args[0] is the image name or id
+args[1-] are the new commands if changed
 
 args [[]string](#[]string)
 

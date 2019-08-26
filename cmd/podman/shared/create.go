@@ -81,7 +81,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if len(c.InputArgs) != 0 {
 			name = c.InputArgs[0]
 		} else {
-			return nil, nil, errors.Errorf("error, no input arguments were provided")
+			return nil, nil, errors.Errorf("error, image name not provided")
 		}
 
 		pullType, err := util.ValidatePullType(c.String("pull"))
