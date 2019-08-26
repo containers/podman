@@ -48,6 +48,12 @@ case "$SPECIALMODE" in
         make test-binaries
         make local${TESTSUITE}
         ;;
+    endpoint)
+        make
+        make install PREFIX=/usr ETCDIR=/etc
+        make test-binaries
+        make endpoint
+        ;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc
