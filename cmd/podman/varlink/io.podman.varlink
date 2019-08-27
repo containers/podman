@@ -274,6 +274,8 @@ type Sockets(
 )
 
 # Create is an input structure for creating containers.
+# args[0] is the image name or id
+# args[1-] are the new commands if changed
 type Create (
     args: []string,
     addHost: ?[]string,

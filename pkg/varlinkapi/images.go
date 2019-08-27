@@ -338,7 +338,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 	dockerRegistryOptions := image.DockerRegistryOptions{}
 	if format != "" {
 		switch format {
-		case "oci": //nolint
+		case "oci": // nolint
 			manifestType = v1.MediaTypeImageManifest
 		case "v2s1":
 			manifestType = manifest.DockerV2Schema1SignedMediaType
@@ -360,7 +360,12 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 	output := bytes.NewBuffer([]byte{})
 	c := make(chan error)
 	go func() {
-		err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", "", "", output, compress, so, &dockerRegistryOptions, nil)
+		writer := bytes.NewBuffer([]byte{})
+		err := newImage.PushImageToHeuristicDestination(getContext(), destname, manifestType, "", "", "", writer, compress, so, &dockerRegistryOptions, nil)
+		if err != nil {
+			c <- err
+		}
+		_, err = io.CopyBuffer(output, writer, nil)
 		c <- err
 		close(c)
 	}()
@@ -388,6 +393,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 				}
 				br := iopodman.MoreResponse{
 					Logs: log,
+					Id:   newImage.ID(),
 				}
 				call.ReplyPushImage(br)
 				log = []string{}
@@ -403,6 +409,7 @@ func (i *LibpodAPI) PushImage(call iopodman.VarlinkCall, name, tag string, compr
 
 	br := iopodman.MoreResponse{
 		Logs: log,
+		Id:   newImage.ID(),
 	}
 	return call.ReplyPushImage(br)
 }
@@ -530,7 +537,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	}
 	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
 	switch manifestType {
-	case "oci", "": //nolint
+	case "oci", "": // nolint
 		mimeType = buildah.OCIv1ImageManifest
 	case "docker":
 		mimeType = manifest.DockerV2Schema2MediaType
@@ -821,7 +828,7 @@ func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageS
 	// Image has been saved to `output`
 	if outputToDir {
 		// If the output is a directory, we need to tar up the directory to send it back
-		//Create a tempfile for the directory tarball
+		// Create a tempfile for the directory tarball
 		outputFile, err := ioutil.TempFile("", "varlink_save_dir")
 		if err != nil {
 			return err
