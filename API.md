@@ -177,7 +177,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func VolumeCreate(options: VolumeCreateOpts) string](#VolumeCreate)
 
-[func VolumeRemove(options: VolumeRemoveOpts) []string](#VolumeRemove)
+[func VolumeRemove(options: VolumeRemoveOpts) []string, map[string]](#VolumeRemove)
 
 [func VolumesPrune() []string, []string](#VolumesPrune)
 
@@ -1151,7 +1151,7 @@ VolumeCreate creates a volume on a remote host
 ### <a name="VolumeRemove"></a>func VolumeRemove
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method VolumeRemove(options: [VolumeRemoveOpts](#VolumeRemoveOpts)) [[]string](#[]string)</div>
+method VolumeRemove(options: [VolumeRemoveOpts](#VolumeRemoveOpts)) [[]string](#[]string), [map[string]](#map[string])</div>
 VolumeRemove removes a volume on a remote host
 ### <a name="VolumesPrune"></a>func VolumesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">

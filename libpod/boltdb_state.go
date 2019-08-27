@@ -1735,6 +1735,74 @@ func (s *BoltState) Volume(name string) (*Volume, error) {
 	return volume, nil
 }
 
+// LookupVolume locates a volume from a partial name.
+func (s *BoltState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	volName := []byte(name)
+
+	volume := new(Volume)
+	volume.config = new(VolumeConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		allVolsBkt, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		// Check for exact match on name
+		volDB := volBkt.Bucket(volName)
+		if volDB != nil {
+			return s.getVolumeFromDB(volName, volume, volBkt)
+		}
+
+		// No exact match. Search all names.
+		foundMatch := false
+		err = allVolsBkt.ForEach(func(checkName, checkName2 []byte) error {
+			if strings.HasPrefix(string(checkName), name) {
+				if foundMatch {
+					return errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+				}
+				foundMatch = true
+				volName = checkName
+			}
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		if !foundMatch {
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+		}
+
+		return s.getVolumeFromDB(volName, volume, volBkt)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return volume, nil
+
+}
+
 // HasVolume returns true if the given volume exists in the state, otherwise it returns false
 func (s *BoltState) HasVolume(name string) (bool, error) {
 	if name == "" {

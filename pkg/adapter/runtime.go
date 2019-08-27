@@ -196,8 +196,8 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 }
 
 // RemoveVolumes is a wrapper to remove volumes
-func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
-	return r.Runtime.RemoveVolumes(ctx, c.InputArgs, c.All, c.Force)
+func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, map[string]error, error) {
+	return shared.SharedRemoveVolumes(ctx, r.Runtime, c.InputArgs, c.All, c.Force)
 }
 
 // Push is a wrapper to push an image to a registry
@@ -220,7 +220,7 @@ func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeIn
 		volumes, err = r.GetAllVolumes()
 	} else {
 		for _, v := range c.InputArgs {
-			vol, err := r.GetVolume(v)
+			vol, err := r.LookupVolume(v)
 			if err != nil {
 				return nil, err
 			}

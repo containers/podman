@@ -1212,7 +1212,7 @@ method ReceiveFile(path: string, delete: bool) -> (len: int)
 method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
 
 # VolumeRemove removes a volume on a remote host
-method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
+method VolumeRemove(options: VolumeRemoveOpts) -> (successes: []string, failures: [string]string)
 
 # GetVolumes gets slice of the volumes on a remote host
 method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)

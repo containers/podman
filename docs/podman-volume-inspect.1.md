@@ -11,6 +11,7 @@ podman\-volume\-inspect - Get detailed information on one or more volumes
 Display detailed information on one or more volumes. The output can be formatted using
 the **--format** flag and a Go template. To get detailed information about all the
 existing volumes, use the **--all** flag.
+Volumes can be queried individually by providing their full name or a unique partial name.
 
 
 ## OPTIONS

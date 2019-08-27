@@ -622,13 +622,18 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 }
 
 // RemoveVolumes removes volumes over a varlink connection for the remote client
-func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
+func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, map[string]error, error) {
 	rmOpts := iopodman.VolumeRemoveOpts{
 		All:     c.All,
 		Force:   c.Force,
 		Volumes: c.InputArgs,
 	}
-	return iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+	success, failures, err := iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+	stringsToErrors := make(map[string]error)
+	for k, v := range failures {
+		stringsToErrors[k] = errors.New(v)
+	}
+	return success, stringsToErrors, err
 }
 
 func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, digestfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
