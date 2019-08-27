@@ -535,7 +535,9 @@ test_building_snap_task:
 
     container:
         image: yakshaveinc/snapcraft:core18
-    snapcraft_script: 'cd contrib/snapcraft && snapcraft'
+    snapcraft_script:
+        - 'apt-get -y update'
+        - 'cd contrib/snapcraft && snapcraft'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
