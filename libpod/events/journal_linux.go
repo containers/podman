@@ -4,6 +4,7 @@ package events
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/coreos/go-systemd/journal"
@@ -42,6 +43,9 @@ func (e EventJournalD) Write(ee Event) error {
 		m["PODMAN_IMAGE"] = ee.Image
 		m["PODMAN_NAME"] = ee.Name
 		m["PODMAN_ID"] = ee.ID
+		if ee.ContainerExitCode != 0 {
+			m["PODMAN_EXIT_CODE"] = strconv.Itoa(ee.ContainerExitCode)
+		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
@@ -65,6 +69,11 @@ func (e EventJournalD) Read(options ReadOptions) error {
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
 		if err := j.SeekTail(); err != nil {
 			return errors.Wrap(err, "failed to seek end of journal")
+		}
+	} else {
+		podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"} //nolint
+		if err := j.AddMatch(podmanJournal.String()); err != nil {
+			return errors.Wrap(err, "failed to add filter for event log")
 		}
 	}
 	// the api requires a next|prev before getting a cursor
@@ -141,6 +150,14 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) { /
 	case Container, Pod:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Image = entry.Fields["PODMAN_IMAGE"]
+		if code, ok := entry.Fields["PODMAN_EXIT_CODE"]; ok {
+			intCode, err := strconv.Atoi(code)
+			if err != nil {
+				logrus.Errorf("Error parsing event exit code %s", code)
+			} else {
+				newEvent.ContainerExitCode = intCode
+			}
+		}
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 	}
