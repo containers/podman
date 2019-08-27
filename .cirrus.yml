@@ -534,7 +534,7 @@ test_building_snap_task:
     allow_failures: true
 
     container:
-            image: snapcore/snapcraft:stable
+        image: yakshaveinc/snapcraft:core18
     snapcraft_script: 'cd contrib/snapcraft && snapcraft'
 
 
