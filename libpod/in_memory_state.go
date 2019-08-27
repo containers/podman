@@ -425,6 +425,26 @@ func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 	return nil
 }
 
+// RewriteVolumeConfig rewrites a volume's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment in state.go before using it.
+func (s *InMemoryState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	// If the volume does not exist, return error
+	stateVol, ok := s.volumes[volume.Name()]
+	if !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	stateVol.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {

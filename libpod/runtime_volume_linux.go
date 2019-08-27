@@ -28,7 +28,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 }
 
 // newVolume creates a new empty volume
-func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (*Volume, error) {
+func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, Err error) {
 	volume, err := newVolume(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating volume")
@@ -67,6 +67,21 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		return nil, err
 	}
 	volume.config.MountPoint = fullVolPath
+
+	lock, err := r.lockManager.AllocateLock()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error allocating lock for new volume")
+	}
+	volume.lock = lock
+	volume.config.LockID = volume.lock.ID()
+
+	defer func() {
+		if Err != nil {
+			if err := volume.lock.Free(); err != nil {
+				logrus.Errorf("Error freeing volume lock after failed creation: %v", err)
+			}
+		}
+	}()
 
 	volume.valid = true
 
@@ -110,6 +125,8 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", dep, v.Name())
 			}
 
+			logrus.Debugf("Removing container %s (depends on volume %q)", ctr.ID(), v.Name())
+
 			// TODO: do we want to set force here when removing
 			// containers?
 			// I'm inclined to say no, in case someone accidentally
@@ -128,12 +145,24 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		return errors.Wrapf(err, "error removing volume %s", v.Name())
 	}
 
-	// Delete the mountpoint path of the volume, that is delete the volume from /var/lib/containers/storage/volumes
+	var removalErr error
+
+	// Free the volume's lock
+	if err := v.lock.Free(); err != nil {
+		removalErr = errors.Wrapf(err, "error freeing lock for volume %s", v.Name())
+	}
+
+	// Delete the mountpoint path of the volume, that is delete the volume
+	// from /var/lib/containers/storage/volumes
 	if err := v.teardownStorage(); err != nil {
-		return errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
+		if removalErr == nil {
+			removalErr = errors.Wrapf(err, "error cleaning up volume storage for %q", v.Name())
+		} else {
+			logrus.Errorf("error cleaning up volume storage for volume %q: %v", v.Name(), err)
+		}
 	}
 
 	defer v.newVolumeEvent(events.Remove)
 	logrus.Debugf("Removed volume %s", v.Name())
-	return nil
+	return removalErr
 }

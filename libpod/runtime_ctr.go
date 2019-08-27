@@ -253,10 +253,13 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 
 	// Go through named volumes and add them.
 	// If they don't exist they will be created using basic options.
+	// Maintain an array of them - we need to lock them later.
+	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
 		// Check if it exists already
-		_, err := r.state.Volume(vol.Name)
+		dbVol, err := r.state.Volume(vol.Name)
 		if err == nil {
+			ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
 			// The volume exists, we're good
 			continue
 		} else if errors.Cause(err) != config2.ErrNoSuchVolume {
@@ -275,6 +278,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		if err := ctr.copyWithTarFromImage(vol.Dest, newVol.MountPoint()); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Name)
 		}
+
+		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
 	}
 
 	if ctr.config.LogPath == "" && ctr.config.LogDriver != JournaldLogging {
@@ -289,6 +294,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			}
 		}
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
+	}
+
+	// Lock all named volumes we are adding ourself to, to ensure we can't
+	// use a volume being removed.
+	for _, namedVol := range ctrNamedVolumes {
+		toLock := namedVol
+		toLock.lock.Lock()
+		defer toLock.lock.Unlock()
 	}
 
 	// Add the container to the state
