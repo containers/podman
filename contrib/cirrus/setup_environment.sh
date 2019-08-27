@@ -57,8 +57,7 @@ esac
 # Reload to incorporate any changes from above
 source "$SCRIPT_BASE/lib.sh"
 
-install_test_configs
-
+# Must execute before possible setup_rootless()
 make install.tools
 
 case "$SPECIALMODE" in
@@ -93,3 +92,5 @@ case "$SPECIALMODE" in
     *)
         die 111 "Unsupported \$SPECIALMODE: $SPECIALMODE"
 esac
+
+install_test_configs

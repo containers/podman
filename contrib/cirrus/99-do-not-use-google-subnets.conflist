@@ -1,0 +1,21 @@
+{
+    "cniVersion": "0.4.0",
+    "name": "do-not-use-google-subnets",
+    "plugins": [
+        {
+            "type": "bridge",
+            "name": "do-not-use-google-subnets",
+            "bridge": "do-not-use-google-subnets",
+            "ipam": {
+                "type": "host-local",
+                "ranges": [
+                    [
+                        {
+                            "subnet": "10.128.0.0/9"
+                        }
+                    ]
+                ]
+            }
+        }
+    ]
+}
