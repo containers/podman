@@ -525,6 +525,19 @@ special_testing_endpoint_task:
     always:
         <<: *standardlogs
 
+
+test_building_snap_task:
+
+    depends_on:
+        - "gating"
+
+    allow_failures: true
+
+    container:
+            image: snapcore/snapcraft:stable
+    snapcraft_script: 'cd contrib/snapcraft && snapcraft'
+
+
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
 
