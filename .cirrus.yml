@@ -525,6 +525,19 @@ special_testing_endpoint_task:
     always:
         <<: *standardlogs
 
+
+test_building_snap_task:
+
+    depends_on:
+        - "gating"
+
+    container:
+        image: yakshaveinc/snapcraft:core18
+    snapcraft_script:
+        - 'apt-get -y update'
+        - 'cd contrib/snapcraft && snapcraft'
+
+
 # Test building of new cache-images for future PR testing, in this PR.
 test_build_cache_images_task:
 
@@ -633,6 +646,7 @@ success_task:
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "test_build_cache_images"
+        - "test_building_snap"
         - "verify_test_built_images"
 
     env:
@@ -674,6 +688,7 @@ release_task:
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "test_build_cache_images"
+        - "test_building_snap"
         - "verify_test_built_images"
         - "success"
 
