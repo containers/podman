@@ -531,8 +531,6 @@ test_building_snap_task:
     depends_on:
         - "gating"
 
-    allow_failures: true
-
     container:
         image: yakshaveinc/snapcraft:core18
     snapcraft_script:
@@ -648,6 +646,7 @@ success_task:
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "test_build_cache_images"
+        - "test_building_snap"
         - "verify_test_built_images"
 
     env:
@@ -689,6 +688,7 @@ release_task:
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "test_build_cache_images"
+        - "test_building_snap"
         - "verify_test_built_images"
         - "success"
 
