@@ -5,7 +5,10 @@ package integration
 import (
 	"io/ioutil"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -76,5 +79,50 @@ WantedBy=multi-user.target
 
 		status := SystemExec("bash", []string{"-c", "systemctl status redis"})
 		Expect(status.OutputToString()).To(ContainSubstring("active (running)"))
+	})
+
+	It("podman run container with systemd PID1", func() {
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+		if cgroupsv2 {
+			Skip("systemd test does not work in cgroups V2 mode yet")
+		}
+
+		systemdImage := "fedora"
+		pull := podmanTest.Podman([]string{"pull", systemdImage})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull.ExitCode()).To(Equal(0))
+
+		ctrName := "testSystemd"
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", systemdImage, "init"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(Equal(0))
+		ctrID := run.OutputToString()
+
+		logs := podmanTest.Podman([]string{"logs", ctrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
+
+		// Give container 10 seconds to start
+		started := false
+		for i := 0; i < 10; i++ {
+			runningCtrs := podmanTest.Podman([]string{"ps", "-q", "--no-trunc"})
+			runningCtrs.WaitWithDefaultTimeout()
+			Expect(runningCtrs.ExitCode()).To(Equal(0))
+
+			if strings.Contains(runningCtrs.OutputToString(), ctrID) {
+				started = true
+				break
+			}
+
+			time.Sleep(1 * time.Second)
+		}
+
+		Expect(started).To(BeTrue())
+
+		systemctl := podmanTest.Podman([]string{"exec", "-t", "-i", ctrName, "systemctl", "status", "--no-pager"})
+		systemctl.WaitWithDefaultTimeout()
+		Expect(systemctl.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(systemctl.OutputToString(), "State:")).To(BeTrue())
 	})
 })

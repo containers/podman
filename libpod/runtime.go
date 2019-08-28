@@ -76,10 +76,6 @@ var (
 	// place of the configuration file pointed to by ConfigPath.
 	OverrideConfigPath = etcDir + "/containers/libpod.conf"
 
-	// DefaultInfraImage to use for infra container
-
-	// DefaultInfraCommand to be run in an infra container
-
 	// DefaultSHMLockPath is the default path for SHM locks
 	DefaultSHMLockPath = "/libpod_lock"
 	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
