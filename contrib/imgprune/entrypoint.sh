@@ -6,7 +6,10 @@ source /usr/local/bin/lib_entrypoint.sh
 
 req_env_var GCPJSON GCPNAME GCPPROJECT IMGNAMES
 
-BASE_IMAGES=""
+for env in $(sed -ne 's/^.*BASE_IMAGE=/img=/p' contrib/cirrus/lib.sh);do
+    eval $env
+    BASE_IMAGES="$BASE_IMAGES $img"
+done
 # When executing under Cirrus-CI, have access to current source
 if [[ "$CI" == "true" ]] && [[ -r "$CIRRUS_WORKING_DIR/$SCRIPT_BASE" ]]
 then
