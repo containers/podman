@@ -36,16 +36,6 @@ case "$SPECIALMODE" in
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
                 -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
         ;;
-    cgroupv2)
-        setenforce 0
-        dnf install -y crun
-        export OCI_RUNTIME=/usr/bin/crun
-        make
-        make install PREFIX=/usr ETCDIR=/etc
-        make install.config PREFIX=/usr
-        make test-binaries
-        make local${TESTSUITE}
-        ;;
     endpoint)
         make
         make install PREFIX=/usr ETCDIR=/etc
@@ -53,9 +43,9 @@ case "$SPECIALMODE" in
         make endpoint
         ;;
     bindings)
-	make
+	    make
         make install PREFIX=/usr ETCDIR=/etc
-	cd pkg/bindings/test && ginkgo -r
+	    cd pkg/bindings/test && ginkgo -r
 	;;
     none)
         make

@@ -59,6 +59,8 @@ $BIGTO $SUDOAPTGET install \
     cri-o-runc \
     criu \
     curl \
+    conmon \
+    dnsmasq \
     e2fslibs-dev \
     emacs-nox \
     file \
@@ -129,7 +131,7 @@ then
     ooe.sh sudo update-grub
 fi
 
-sudo /tmp/libpod/hack/install_catatonit.sh
+ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
 ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
 
 ubuntu_finalize

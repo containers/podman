@@ -47,6 +47,19 @@ case "${OS_RELEASE_ID}" in
         setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
+
+        if [[ "$OS_RELEASE_VER" == "31" ]]; then
+            warn "Testing with crun instead of runc"
+            X=$(echo "export export OCI_RUNTIME=/usr/bin/crun" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            warn "Upgrading to the latest crun"
+            # Normally not something to do for stable testing
+            # but crun is new, and late-breaking fixes may be required
+            # on short notice
+            dnf update -y crun
+            warn "Setting SELinux into Permissive mode"
+            setenforce 0
+        fi
         ;;
     centos)  # Current VM is an image-builder-image no local podman/testing
         echo "No further setup required for VM image building"
@@ -62,9 +75,6 @@ source "$SCRIPT_BASE/lib.sh"
 make install.tools
 
 case "$SPECIALMODE" in
-    cgroupv2)
-        remove_packaged_podman_files  # we're building from source
-        ;;
     none)
         [[ -n "$CROSS_PLATFORM" ]] || \
             remove_packaged_podman_files

@@ -31,10 +31,8 @@ ooe.sh sudo yum -y install \
     libvirt-client \
     libvirt-daemon \
     make \
-    python34 \
-    python34 \
-    python34-PyYAML \
-    python34-PyYAML \
+    python36 \
+    python36-PyYAML \
     qemu-img \
     qemu-kvm \
     qemu-kvm-tools \
