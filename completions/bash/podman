@@ -2669,6 +2669,7 @@ _podman_container_runlabel() {
 
 _podman_image_sign() {
     local options_with_args="
+	--cert-dir
 	-d
 	--directory
 	--sign-by
