@@ -6,13 +6,17 @@ source /usr/local/bin/lib_entrypoint.sh
 
 req_env_var GCPJSON GCPNAME GCPPROJECT IMGNAMES
 
-BASE_IMAGES=""
-# When executing under Cirrus-CI, have access to current source
-if [[ "$CI" == "true" ]] && [[ -r "$CIRRUS_WORKING_DIR/$SCRIPT_BASE" ]]
+unset BASE_IMAGES
+# When executing under Cirrus-CI, script have access to current source
+LIB="$CIRRUS_WORKING_DIR/$SCRIPT_BASE/lib.sh"
+if [[ "$CI" == "true" ]] && [[ -r "$LIB" ]]
 then
     # Avoid importing anything that might conflict
-    eval "$(egrep -sh '^export .+BASE_IMAGE=' < $CIRRUS_WORKING_DIR/$SCRIPT_BASE/lib.sh)"
-    BASE_IMAGES="$UBUNTU_BASE_IMAGE $PRIOR_UBUNTU_BASE_IMAGE $FEDORA_BASE_IMAGE $PRIOR_FEDORA_BASE_IMAGE"
+    for env in $(sed -ne 's/^[^#]\+_BASE_IMAGE=/img=/p' "$LIB")
+    do
+        eval $env
+        BASE_IMAGES="$BASE_IMAGES $img"
+    done
 else
     # metadata labeling may have broken for some reason in the future
     echo "Warning: Running outside of Cirrus-CI, very minor-risk of base-image deletion."
