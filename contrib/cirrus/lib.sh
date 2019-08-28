@@ -56,13 +56,12 @@ PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-30,xfedora-30,fedora-29}"
-# Google-maintained base-image names
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-31,fedora-30}"
+# Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
-# Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1565360543"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1565360543"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-31-20190828-n-0-1567012783" # FIXME: PRE-RELEASE
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1567012783"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
@@ -373,7 +372,6 @@ _finalize() {
         echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
     fi
     echo "Re-initializing so next boot does 'first-boot' setup again."
-    sudo history -c
     cd /
     sudo rm -rf /var/lib/cloud/instanc*
     sudo rm -rf /root/.ssh/*

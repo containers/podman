@@ -205,10 +205,10 @@ the ``cache_images`` Task) some input parameters are required:
    to limit the base-images produced.  For example,
    ``PACKER_BUILDS=fedora,image-builder-image``.
 
-If there is an existing 'image-builder-image' within GCE, it may be utilized
-to produce base-images (in addition to cache-images).  However it must be
-created with support for nested-virtualization, and with elevated cloud
-privileges (to access GCE, from within the GCE VM).  For example:
+If there is no existing 'image-builder-image' within GCE, a new
+one may be bootstrapped by creating a CentOS 7 VM with support for
+nested-virtualization, and with elevated cloud privileges (to access
+GCE, from within the GCE VM).  For example:
 
 ```
 $ alias pgcloud='sudo podman run -it --rm -e AS_ID=$UID
@@ -218,34 +218,33 @@ $ URL=https://www.googleapis.com/auth
 $ SCOPES=$URL/userinfo.email,$URL/compute,$URL/devstorage.full_control
 
 # The --min-cpu-platform is critical for nested-virt.
-$ pgcloud compute instances create $USER-making-images \
-    --image-family image-builder-image \
+$ pgcloud compute instances create $USER-image-builder \
+    --image-family centos-7 \
     --boot-disk-size "200GB" \
     --min-cpu-platform "Intel Haswell" \
     --machine-type n1-standard-2 \
     --scopes $SCOPES
 ```
 
-Alternatively, if there is no image-builder-image available yet, a bare-metal
-CentOS 7 machine with network access to GCE is required.  Software dependencies
-can be obtained from the ``packer/image-builder-image_base_setup.sh`` script.
+Then from that VM, execute the
+``contrib/cirrus/packer/image-builder-image_base_setup.sh`` script.
+Shutdown the VM, and convert it into a new image-builder-image.
 
-In both cases, the following can be used to setup and build base-images.
+Building new base images is done by first creating a VM from an
+image-builder-image and copying the credentials json file to it.
 
 ```
-$ IP_ADDRESS=1.2.3.4  # EXTERNAL_IP from command output above
-$ rsync -av $PWD centos@$IP_ADDRESS:.
-$ scp $GOOGLE_APPLICATION_CREDENTIALS centos@$IP_ADDRESS:.
-$ ssh centos@$IP_ADDRESS
-...
+$ hack/get_ci_vm.sh image-builder-image-1541772081
+...in another terminal...
+$ pgcloud compute scp /path/to/gac.json $USER-image-builder-image-1541772081:.
 ```
 
-When ready, change to the ``packer`` sub-directory, and build the images:
+Then, on the VM, change to the ``packer`` sub-directory, and build the images:
 
 ```
 $ cd libpod/contrib/cirrus/packer
 $ make libpod_base_images GCP_PROJECT_ID=<VALUE> \
-    GOOGLE_APPLICATION_CREDENTIALS=<VALUE> \
+    GOOGLE_APPLICATION_CREDENTIALS=/path/to/gac.json \
     PACKER_BUILDS=<OPTIONAL>
 ```
 
@@ -273,6 +272,5 @@ values follows:
               and utilized for testing.
 * `in_podman`: Causes testing to occur within a container executed by
                podman on the host.
-* `cgroupv2`: The kernel on this VM was prepared with options to enable v2 cgroups
 * `windows`: See **darwin**
 * `darwin`: Signals the ``special_testing_cross`` task to cross-compile the remote client.

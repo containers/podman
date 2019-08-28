@@ -1,9 +1,4 @@
-
-# N/B: PACKER_BUILDS variable is required.  Should contain CSV of
-# builder name(s) from applicable YAML file,
-# e.g for names see libpod_images.yml
-
-PACKER_VER ?= 1.4.2
+PACKER_VER ?= 1.4.3
 GOARCH=$(shell go env GOARCH)
 ARCH=$(uname -m)
 PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
@@ -56,8 +51,9 @@ test: libpod_base_images.json libpod_images.json packer
 
 .PHONY: libpod_images
 libpod_images: guard-PACKER_BUILDS libpod_images.json packer
-	./packer build -only=${PACKER_BUILDS} \
+	./packer build \
 		-force \
+		$(shell test -z "${PACKER_BUILDS}" || echo "-only=${PACKER_BUILDS}") \
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
@@ -82,6 +78,7 @@ cidata.iso: user-data meta-data
 .PHONY: libpod_base_images
 libpod_base_images: guard-GCP_PROJECT_ID guard-GOOGLE_APPLICATION_CREDENTIALS libpod_base_images.json cidata.iso cidata.ssh packer
 	PACKER_CACHE_DIR=/tmp ./packer build \
+		$(shell test -z "${PACKER_BUILDS}" || echo "-only=${PACKER_BUILDS}") \
 		-force \
 		-var TIMESTAMP=$(TIMESTAMP) \
 		-var TTYDEV=$(TTYDEV) \

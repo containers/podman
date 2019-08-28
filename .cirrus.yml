@@ -30,10 +30,9 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5664838702858240"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
-    SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
+    _BUILT_IMAGE_SUFFIX: "libpod-5756090249117696"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
 
@@ -77,7 +76,7 @@ gce_instance:
     memory: "4Gb"
     disk: 200
     # A matrix could be used here, for now just one VM
-    image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+    image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
 
 
 # Every *_task runs in parallel in separate VMsd. The name prefix only for reference
@@ -201,12 +200,8 @@ build_each_commit_task:
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -232,12 +227,8 @@ build_without_cgo_task:
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -327,7 +318,7 @@ testing_task:
     gce_instance:
         matrix:
             # Images are generated separately, from build_images_task (below)
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            #image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
@@ -357,6 +348,7 @@ testing_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
 
+
 # Test crun only on latest Fedora
 testing_crun_task:
 
@@ -375,6 +367,9 @@ testing_crun_task:
     env:
         ADD_SECOND_PARTITION: true
         OCI_RUNTIME: "/usr/bin/crun"
+
+    gce_instance:
+        image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
@@ -478,36 +473,6 @@ special_testing_cross_task:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
 
-special_testing_cgroupv2_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
-
-    gce_instance:
-        image_name: "${SPECIAL_FEDORA_CACHE_IMAGE_NAME}"
-
-    env:
-        SPECIALMODE: 'cgroupv2'  # See docs
-        matrix:
-            TEST_REMOTE_CLIENT: true
-            TEST_REMOTE_CLIENT: false
-
-    timeout_in: 20m
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
-
 special_testing_endpoint_task:
 
     depends_on:
@@ -601,11 +566,10 @@ verify_test_built_images_task:
             TEST_REMOTE_CLIENT: false
         matrix:
             # Required env. var. by check_image_script
-            PACKER_BUILDER_NAME: "fedora-29"
             PACKER_BUILDER_NAME: "fedora-30"
-            PACKER_BUILDER_NAME: "xfedora-30"
+            PACKER_BUILDER_NAME: "fedora-31"
             PACKER_BUILDER_NAME: "ubuntu-18"
-            # TODO support $UBUNTU_CACHE_IMAGE_NAME: PACKER_BUILDER_NAME: "ubuntu-19"
+            PACKER_BUILDER_NAME: "ubuntu-19"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
@@ -616,15 +580,9 @@ verify_test_built_images_task:
     # Note: A truncated form of normal testing. It only needs to confirm new images
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
-    integration_test_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
-    build_release_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}
-    system_test_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
+    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     always:
         <<: *standardlogs
@@ -650,7 +608,6 @@ success_task:
         - "testing_crun"
         - "special_testing_rootless"
         - "special_testing_in_podman"
-        - "special_testing_cgroupv2"
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "test_build_cache_images"

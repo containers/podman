@@ -51,17 +51,12 @@ builders:
       source_image_family: 'prior-ubuntu-base'
 
     - <<: *gce_hosted_image
+      name: 'fedora-31'
+      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+      source_image_family: 'fedora-base'
+
+    - <<: *gce_hosted_image
       name: 'fedora-30'
-      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
-      source_image_family: 'fedora-base'
-
-    - <<: *gce_hosted_image
-      name: 'xfedora-30'
-      source_image: '{{user `FEDORA_BASE_IMAGE`}}'
-      source_image_family: 'fedora-base'
-
-    - <<: *gce_hosted_image
-      name: 'fedora-29'
       source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
       source_image_family: 'prior-fedora-base'
 

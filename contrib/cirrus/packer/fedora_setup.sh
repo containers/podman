@@ -21,72 +21,79 @@ echo "Enabling updates-testing repository"
 ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
 ooe.sh sudo dnf config-manager --set-enabled updates-testing
 
-echo "Installing general build/test dependencies"
-ooe.sh sudo dnf install -y \
-    atomic-registries \
+echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
+INSTALL_PACKAGES=(\
     autoconf \
     automake \
     bats \
     bridge-utils \
     btrfs-progs-devel \
-    bzip2 \
     container-selinux \
     containernetworking-plugins \
     containers-common \
     criu \
     device-mapper-devel \
     emacs-nox \
-    findutils \
     fuse3 \
     fuse3-devel \
     gcc \
     git \
     glib2-devel \
     glibc-static \
-    gnupg \
     go-md2man \
     golang \
-    golang-github-cpuguy83-go-md2man \
     gpgme-devel \
-    iproute \
     iptables \
     jq \
     libassuan-devel \
-    libcap-devel \
     libnet \
     libnet-devel \
     libnl3-devel \
-    libseccomp \
     libseccomp-devel \
     libselinux-devel \
     libvarlink-util \
-    lsof \
-    make \
-    nmap-ncat \
     ostree \
     ostree-devel \
     podman \
-    procps-ng \
     protobuf \
     protobuf-c \
     protobuf-c-devel \
-    protobuf-compiler \
     protobuf-devel \
     protobuf-python \
     python \
-    python2-future \
-    python3-dateutil \
-    python3-psutil \
     python3-pytoml \
-    runc \
     selinux-policy-devel \
     slirp4netns \
     unzip \
     vim \
-    which \
-    xz \
-    zip
-
+    zip \
+)
+case "$OS_RELEASE_VER" in
+    30)
+        INSTALL_PACKAGES+=(\
+            atomic-registries \
+            bzip2 \
+            findutils \
+            gnupg \
+            golang-github-cpuguy83-go-md2man \
+            iproute \
+            libseccomp \
+            procps-ng \
+            python2-future \
+            python3-dateutil \
+            python3-psutil \
+            runc \
+            which \
+            xz \
+        )
+        ;;
+    31)
+        INSTALL_PACKAGES+=(crun)
+        ;;
+    *)
+        bad_os_id_ver ;;
+esac
+ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
 
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish

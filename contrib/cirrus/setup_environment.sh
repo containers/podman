@@ -58,9 +58,6 @@ source "$SCRIPT_BASE/lib.sh"
 make install.tools
 
 case "$SPECIALMODE" in
-    cgroupv2)
-        remove_packaged_podman_files  # we're building from source
-        ;;
     none)
         [[ -n "$CROSS_PLATFORM" ]] || \
             remove_packaged_podman_files

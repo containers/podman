@@ -36,18 +36,6 @@ case "$SPECIALMODE" in
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
                 -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
         ;;
-    cgroupv2)
-        # FIXME: use the package once all the fixes are in a release
-        # yum install -y crun
-        setenforce 0
-        yum builddep -y crun
-        (git clone --depth=1 https://github.com/containers/crun && cd crun && ./autogen.sh && ./configure --prefix=/usr && make -j4 && make install)
-        export OCI_RUNTIME=/usr/bin/crun
-        make
-        make install PREFIX=/usr ETCDIR=/etc
-        make test-binaries
-        make local${TESTSUITE}
-        ;;
     endpoint)
         make
         make install PREFIX=/usr ETCDIR=/etc
