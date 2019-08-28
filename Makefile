@@ -311,8 +311,9 @@ $(MANPAGES): %: %.md .gopathok
 
 docs: $(MANPAGES) ## Generate documentation
 
-install-podman-remote-docs: docs
-	@(cd docs; ./podman-remote.sh ./remote)
+install-podman-remote-docs: podman-remote docs
+	mkdir -p "$(MANDIR)"
+	@docs/podman-remote.sh "$(MANDIR)"
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
@@ -335,10 +336,10 @@ podman-$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 	-rm -rf "$(TMPDIR)"
 
 # Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
-podman-remote-$(RELEASE_NUMBER)-%.zip:
-	$(MAKE) podman-remote-$* install-podman-remote-docs release.txt \
+podman-remote-$(RELEASE_NUMBER)-%.zip: podman-remote docs
+	$(MAKE) podman-remote-$* release.txt install-podman-remote-docs \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
-		RELEASE_DIST=$* RELEASE_DIST_VER="-"
+		RELEASE_DIST=$* RELEASE_DIST_VER="-" MANDIR=$(CURDIR)/docs/remote
 	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
 	$(eval SUBDIR := podman-$(RELEASE_VERSION))
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
