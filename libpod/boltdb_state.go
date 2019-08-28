@@ -870,7 +870,7 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 	newCfgJSON, err := json.Marshal(newCfg)
 	if err != nil {
-		return errors.Wrapf(err, "error marshalling new configuration JSON for container %s", pod.ID())
+		return errors.Wrapf(err, "error marshalling new configuration JSON for pod %s", pod.ID())
 	}
 
 	db, err := s.getDBCon()
@@ -893,6 +893,50 @@ func (s *BoltState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 
 		if err := podDB.Put(configKey, newCfgJSON); err != nil {
 			return errors.Wrapf(err, "error updating pod %s config JSON", pod.ID())
+		}
+
+		return nil
+	})
+	return err
+}
+
+// RewriteVolumeConfig rewrites a volume's configuration.
+// WARNING: This function is DANGEROUS. Do not use without reading the full
+// comment on this function in state.go.
+func (s *BoltState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !s.valid {
+		return define.ErrDBClosed
+	}
+
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	newCfgJSON, err := json.Marshal(newCfg)
+	if err != nil {
+		return errors.Wrapf(err, "error marshalling new configuration JSON for volume %q", volume.Name())
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		volBkt, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volDB := volBkt.Bucket([]byte(volume.Name()))
+		if volDB == nil {
+			volume.valid = false
+			return errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found in DB", volume.Name())
+		}
+
+		if err := volDB.Put(configKey, newCfgJSON); err != nil {
+			return errors.Wrapf(err, "error updating volume %q config JSON", volume.Name())
 		}
 
 		return nil

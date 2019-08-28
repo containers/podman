@@ -2,6 +2,8 @@ package libpod
 
 import (
 	"time"
+
+	"github.com/containers/libpod/libpod/lock"
 )
 
 // Volume is the type used to create named volumes
@@ -11,21 +13,35 @@ type Volume struct {
 
 	valid   bool
 	runtime *Runtime
+	lock    lock.Locker
 }
 
 // VolumeConfig holds the volume's config information
 type VolumeConfig struct {
-	// Name of the volume
+	// Name of the volume.
 	Name string `json:"name"`
-
-	Labels        map[string]string `json:"labels"`
-	Driver        string            `json:"driver"`
-	MountPoint    string            `json:"mountPoint"`
-	CreatedTime   time.Time         `json:"createdAt,omitempty"`
-	Options       map[string]string `json:"options"`
-	IsCtrSpecific bool              `json:"ctrSpecific"`
-	UID           int               `json:"uid"`
-	GID           int               `json:"gid"`
+	// ID of the volume's lock.
+	LockID uint32 `json:"lockID"`
+	// Labels for the volume.
+	Labels map[string]string `json:"labels"`
+	// The volume driver. Empty string or local does not activate a volume
+	// driver, all other volumes will.
+	Driver string `json:"driver"`
+	// The location the volume is mounted at.
+	MountPoint string `json:"mountPoint"`
+	// Time the volume was created.
+	CreatedTime time.Time `json:"createdAt,omitempty"`
+	// Options to pass to the volume driver. For the local driver, this is
+	// a list of mount options. For other drivers, they are passed to the
+	// volume driver handling the volume.
+	Options map[string]string `json:"options"`
+	// Whether this volume was created for a specific container and will be
+	// removed with it.
+	IsCtrSpecific bool `json:"ctrSpecific"`
+	// UID the volume will be created as.
+	UID int `json:"uid"`
+	// GID the volume will be created as.
+	GID int `json:"gid"`
 }
 
 // Name retrieves the volume's name

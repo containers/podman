@@ -115,12 +115,20 @@ type State interface {
 	// answer is this: use this only very sparingly, and only if you really
 	// know what you're doing.
 	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
-	// PLEASE READ THE ABOVE DESCRIPTION BEFORE USING.
+	// PLEASE READ THE DESCRIPTION FOR RewriteContainerConfig BEFORE USING.
 	// This function is identical to RewriteContainerConfig, save for the
 	// fact that it is used with pods instead.
 	// It is subject to the same conditions as RewriteContainerConfig.
 	// Please do not use this unless you know what you're doing.
 	RewritePodConfig(pod *Pod, newCfg *PodConfig) error
+	// PLEASE READ THE DESCRIPTION FOR RewriteContainerConfig BEFORE USING.
+	// This function is identical to RewriteContainerConfig, save for the
+	// fact that it is used with volumes instead.
+	// It is subject to the same conditions as RewriteContainerConfig.
+	// The exception is that volumes do not have IDs, so only volume name
+	// cannot be altered.
+	// Please do not use this unless you know what you're doing.
+	RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error
 
 	// Accepts full ID of pod.
 	// If the pod given is not in the set namespace, an error will be
