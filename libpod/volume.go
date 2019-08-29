@@ -26,7 +26,7 @@ type VolumeConfig struct {
 	Labels map[string]string `json:"labels"`
 	// The volume driver. Empty string or local does not activate a volume
 	// driver, all other volumes will.
-	Driver string `json:"driver"`
+	Driver string `json:"volumeDriver"`
 	// The location the volume is mounted at.
 	MountPoint string `json:"mountPoint"`
 	// Time the volume was created.
@@ -34,7 +34,7 @@ type VolumeConfig struct {
 	// Options to pass to the volume driver. For the local driver, this is
 	// a list of mount options. For other drivers, they are passed to the
 	// volume driver handling the volume.
-	Options map[string]string `json:"options"`
+	Options map[string]string `json:"volumeOptions"`
 	// Whether this volume was created for a specific container and will be
 	// removed with it.
 	IsCtrSpecific bool `json:"ctrSpecific"`
