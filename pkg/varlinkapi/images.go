@@ -563,7 +563,6 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	}
 
 	c := make(chan error)
-	defer close(c)
 
 	go func() {
 		newImage, err = ctr.Commit(getContext(), imageName, options)
@@ -571,6 +570,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 			c <- err
 		}
 		c <- nil
+		close(c)
 	}()
 
 	// reply is the func being sent to the output forwarder.  in this case it is replying

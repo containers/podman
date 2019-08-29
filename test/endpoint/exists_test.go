@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Podman pull", func() {
+var _ = Describe("Podman exists", func() {
 	var (
 		tempdir      string
 		err          error
