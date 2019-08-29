@@ -98,6 +98,26 @@ func addDevice(g *generate.Generator, device string) error {
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a valid device", src)
 	}
+	if rootless.IsRootless() {
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "the specified device %s doesn't exist", src)
+			}
+			return errors.Wrapf(err, "stat device %s exist", src)
+		}
+		perm := "ro"
+		if strings.Contains(permissions, "w") {
+			perm = "rw"
+		}
+		devMnt := spec.Mount{
+			Destination: dst,
+			Type:        TypeBind,
+			Source:      src,
+			Options:     []string{"slave", "nosuid", "noexec", perm, "rbind"},
+		}
+		g.Config.Mounts = append(g.Config.Mounts, devMnt)
+		return nil
+	}
 	dev.Path = dst
 	linuxdev := spec.LinuxDevice{
 		Path:     dev.Path,
