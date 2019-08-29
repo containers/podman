@@ -189,6 +189,11 @@ func (p *EndpointTestIntegration) Varlink(endpoint, message string, more bool) *
 	return &EndpointSession{session}
 }
 
+func (s *EndpointSession) StdErrToString() string {
+	fields := strings.Fields(fmt.Sprintf("%s", s.Err.Contents()))
+	return strings.Join(fields, " ")
+}
+
 func (s *EndpointSession) OutputToString() string {
 	fields := strings.Fields(fmt.Sprintf("%s", s.Out.Contents()))
 	return strings.Join(fields, " ")
