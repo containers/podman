@@ -69,7 +69,8 @@ case "$SPECIALMODE" in
         remove_packaged_podman_files  # we're building from source
         ;;
     none)
-        remove_packaged_podman_files
+        [[ -n "$CROSS_PLATFORM" ]] || \
+            remove_packaged_podman_files
         ;;
     endpoint)
         remove_packaged_podman_files
@@ -91,8 +92,6 @@ case "$SPECIALMODE" in
     in_podman)  # Assumed to be Fedora
         $SCRIPT_BASE/setup_container_environment.sh
         ;;
-    windows) ;&  # for podman-remote building only
-    darwin) ;;
     *)
         die 111 "Unsupported \$SPECIALMODE: $SPECIALMODE"
 esac

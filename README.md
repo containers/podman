@@ -8,6 +8,9 @@ popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`
 * [Latest Version: 1.4.4](https://github.com/containers/libpod/releases/latest)
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/libpod/libpod?status.svg)](https://godoc.org/github.com/containers/libpod/libpod)
+* Automated continuous release downloads (including remote-client):
+  * Master Branch: [https://storage.cloud.google.com/libpod-master-releases/](https://storage.cloud.google.com/libpod-master-releases/)
+  * Pull-requests: [https://storage.cloud.google.com/libpod-pr-releases/](https://storage.cloud.google.com/libpod-pr-releases/)
 
 ## Overview and scope
 

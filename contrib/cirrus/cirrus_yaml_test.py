@@ -26,7 +26,6 @@ class TestCaseBase(unittest.TestCase):
 class TestDependsOn(TestCaseBase):
 
     ALL_TASK_NAMES = None
-    SUCCESS_RELEASE = set(['success', 'release'])
 
     def setUp(self):
         super().setUp()
@@ -34,34 +33,22 @@ class TestDependsOn(TestCaseBase):
                                    for key, _ in self.CIRRUS_YAML.items()
                                    if key.endswith('_task')])
 
-    def test_dicts(self):
+    def test_00_dicts(self):
         """Expected dictionaries are present and non-empty"""
-        for name in ('success_task', 'release_task'):
-            # tests all names then show specific failures
-            with self.subTest(name=name):
-                self.assertIn(name, self.CIRRUS_YAML)
-                self.assertIn(name.replace('_task', ''), self.ALL_TASK_NAMES)
-                self.assertIn('depends_on', self.CIRRUS_YAML[name])
-                self.assertGreater(len(self.CIRRUS_YAML[name]['depends_on']), 0)
+        self.assertIn('success_task', self.CIRRUS_YAML)
+        self.assertIn('success_task'.replace('_task', ''), self.ALL_TASK_NAMES)
+        self.assertIn('depends_on', self.CIRRUS_YAML['success_task'])
+        self.assertGreater(len(self.CIRRUS_YAML['success_task']['depends_on']), 0)
 
-    def _check_dep(self, name, task_name, deps):
-        # name includes '_task' suffix, task_name does not
-        msg=('Please add "{0}" to the "depends_on" list in "{1}"'
-             "".format(task_name, name))
-        self.assertIn(task_name, deps, msg=msg)
+    def test_01_depends(self):
+        """Success task depends on all other tasks"""
+        success_deps = set(self.CIRRUS_YAML['success_task']['depends_on'])
+        for task_name in self.ALL_TASK_NAMES - set(['success']):
+            with self.subTest(task_name=task_name):
+                msg=('Please add "{0}" to the "depends_on" list in "success_task"'
+                     "".format(task_name))
+                self.assertIn(task_name, success_deps, msg=msg)
 
-    def test_depends(self):
-        """Success and Release tasks depend on all other tasks"""
-        for name in ('success_task', 'release_task'):
-            deps = set(self.CIRRUS_YAML[name]['depends_on'])
-            for task_name in self.ALL_TASK_NAMES - self.SUCCESS_RELEASE:
-                with self.subTest(name=name, task_name=task_name):
-                    self._check_dep(name, task_name, deps)
-
-    def test_release(self):
-        """Release task must always execute last"""
-        deps = set(self.CIRRUS_YAML['release_task']['depends_on'])
-        self._check_dep('release_task', 'success', deps)
 
 
 if __name__ == "__main__":

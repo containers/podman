@@ -20,6 +20,7 @@ __pycache__
 /cmd/podman/varlink/iopodman.go
 .gopathok
 test/e2e/e2e.coverprofile
-/podman*zip
+release.txt
+podman-remote*.zip
 podman*.tar.gz
 .idea*

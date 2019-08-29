@@ -65,10 +65,6 @@ case "$SPECIALMODE" in
             make local${TESTSUITE}
         fi
         ;;
-    windows) ;&  # for podman-remote building only
-    darwin)
-        warn '' "No $SPECIALMODE remote client integration tests configured"
-        ;;
     *)
         die 110 "Unsupported \$SPECIALMODE: $SPECIALMODE"
 esac
