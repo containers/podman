@@ -390,7 +390,7 @@ Default is to create a private IPC namespace (POSIX SysV IPC) for the container
 
 **--kernel-memory**=*number[unit]*
 
-Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)
+Kernel memory limit (format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 Constrains the kernel memory available to a container. If a limit of 0
 is specified (not using `--kernel-memory`), the container's kernel memory
@@ -432,7 +432,7 @@ Not currently supported
 
 **--memory**, **-m**=*limit*
 
-Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
+Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
@@ -442,7 +442,7 @@ system's page size (the value would be very large, that's millions of trillions)
 
 **--memory-reservation**=*limit*
 
-Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)
+Memory soft limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 After setting memory reservation, when the system detects memory contention
 or low memory, containers are forced to restrict their consumption to their
@@ -683,9 +683,9 @@ Note: Labeling can be disabled for all containers by setting label=false in the 
 
 **--shm-size**=*size*
 
-Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
-Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
+Size of `/dev/shm` (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
+When size is `0`, there is no limit on the amount of memory used for IPC by the container.
 
 **--sig-proxy**=*true|false*
 

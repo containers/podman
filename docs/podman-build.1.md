@@ -281,7 +281,7 @@ with 3 being roughly equivalent to using the global *--debug* option, and
 values below 0 omitting even error messages which accompany fatal errors.
 
 **--memory**, **-m**=*LIMIT*
-Memory limit (format: <number>[<unit>], where unit = b, k, m or g)
+Memory limit (format: <number>[<unit>], where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))
 
 Allows you to constrain the memory available to a container. If the host
 supports swap memory, then the **-m** memory setting can be larger than physical
