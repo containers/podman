@@ -11,7 +11,7 @@ podman pod is a set of subcommands that manage pods, or groups of containers.
 
 ## SUBCOMMANDS
 
-| Command | Man Page                                          | Description                                                                    |
+| Command | Man Page                                          | Description                                                                       |
 | ------- | ------------------------------------------------- | --------------------------------------------------------------------------------- |
 | create  | [podman-pod-create(1)](podman-pod-create.1.md)    | Create a new pod.                                                                 |
 | exists  | [podman-pod-exists(1)](podman-pod-exists.1.md)    | Check if a pod exists in local storage.                                           |
