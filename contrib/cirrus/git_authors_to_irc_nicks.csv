@@ -1,0 +1,8 @@
+# Comma separated mapping of author e-mail, to Freenode IRC nick.
+# When no match is found here, the username portion of the e-mail is used.
+# Sorting is done at runtime - first-found e-mail match wins.
+# Comments (like this) and blank lines are ignored.
+
+rothberg@redhat.com,vrothberg
+santiago@redhat.com,edsantiago
+gscrivan@redhat.com,giuseppe

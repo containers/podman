@@ -28,11 +28,12 @@ CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/libp
 export GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
 export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"
 export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
-TIMESTAMPS_FILEPATH="${TIMESTAMPS_FILEPATH:-/var/tmp/timestamps}"
-SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 # Saves typing / in case location ever moves
 SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
+# Important filepaths
+SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
+AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
 
 cd $GOSRC
 if type -P git &> /dev/null
