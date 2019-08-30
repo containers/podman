@@ -1,7 +1,7 @@
 % podman-remote(1)
 
 ## NAME
-podman-remote - A tool for remote management of pods, containers and images
+podman-remote - A remote CLI for Podman: A Simple management tool for pods, containers and images.
 
 ## SYNOPSIS
 **podman-remote** [*options*] *command*
