@@ -27,7 +27,6 @@ ooe.sh sudo dnf install -y \
     autoconf \
     automake \
     bats \
-    bcc-devel \
     bridge-utils \
     btrfs-progs-devel \
     bzip2 \
@@ -96,6 +95,11 @@ sudo /tmp/libpod/hack/install_catatonit.sh
 
 # Same script is used for several related contexts
 case "$PACKER_BUILDER_NAME" in
+
+    *fedora-30)
+        ooe.sh sudo dnf install -y bcc-devel
+        ;;
+
     xfedora*)
         echo "Configuring CGroups v2 enabled on next boot"
         sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
