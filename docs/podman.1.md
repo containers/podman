@@ -169,7 +169,6 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |
 | [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                              |
 | [podman-push(1)](podman-push.1.md)               | Push an image from local storage to elsewhere.                              |
-| [podman-remote(1)](podman-remote.1.md)           | A tool for remote management of pods, containers and images                 |
 | [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                             |
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
 | [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
