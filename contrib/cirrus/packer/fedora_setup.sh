@@ -87,7 +87,6 @@ ooe.sh sudo dnf install -y \
     xz \
     zip
 
-
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish
 
@@ -96,9 +95,9 @@ sudo /tmp/libpod/hack/install_catatonit.sh
 # Same script is used for several related contexts
 case "$PACKER_BUILDER_NAME" in
 
-    *fedora-30)
+    *fedora-3*)
         ooe.sh sudo dnf install -y bcc-devel
-        ;;
+        ;&
 
     xfedora*)
         echo "Configuring CGroups v2 enabled on next boot"
