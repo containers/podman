@@ -1,7 +1,7 @@
 % podman-container-prune(1)
 
 ## NAME
-podman-container-prune - Remove all stopped containers
+podman-container-prune - Remove all stopped containers from local storage
 
 ## SYNOPSIS
 **podman container prune** [*options*]

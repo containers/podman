@@ -4,7 +4,7 @@
 podman-play-kube - Create pods and containers based on Kubernetes YAML
 
 ## SYNOPSIS
-**podman play kube** [*options*] *file***.yml**
+**podman play kube** [*options*] *file*__.yml__
 
 ## DESCRIPTION
 **podman play kube** will read in a structured file of Kubernetes YAML.  It will then recreate

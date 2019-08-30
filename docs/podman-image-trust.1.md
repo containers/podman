@@ -5,7 +5,7 @@ podman\-image\-trust - Manage container registry image trust policy
 
 
 ## SYNOPSIS
-**podman image trust** set|show [*options*] *REGISTRY[/REPOSITORY]*
+**podman image trust** set|show [*options*] *registry[/repository]*
 
 ## DESCRIPTION
 Manages which registries you trust as a source of container images  based on its location.  The location is determined

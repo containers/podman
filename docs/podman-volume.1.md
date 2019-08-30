@@ -1,7 +1,7 @@
 % podman-volume(1)
 
 ## NAME
-podman\-volume - Simple management tool for volumes.
+podman\-volume - Simple management tool for volumes
 
 ## SYNOPSIS
 **podman volume** *subcommand*

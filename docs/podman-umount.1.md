@@ -1,7 +1,7 @@
 % podman-umount(1)
 
 ## NAME
-podman\-umount - Unmount the specified working containers' root file system.
+podman\-umount - Unmount a working container's root filesystem
 
 ## SYNOPSIS
 **podman umount** *container* [...]

@@ -1,7 +1,7 @@
 % podman-network(1)
 
 ## NAME
-podman\-network- Manage podman CNI networks
+podman\-network - Manage Podman CNI networks
 
 ## SYNOPSIS
 **podman network** *subcommand*

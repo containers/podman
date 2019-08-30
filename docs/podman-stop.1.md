@@ -1,7 +1,7 @@
 % podman-stop(1)
 
 ## NAME
-podman\-stop - Stop one or more containers
+podman\-stop - Stop one or more running containers
 
 ## SYNOPSIS
 **podman stop** [*options*] *container* ...

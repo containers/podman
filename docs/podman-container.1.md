@@ -14,8 +14,8 @@ The container command allows you to manage containers
 | Command    | Man Page                                            | Description                                                                  |
 | ---------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
 | attach     | [podman-attach(1)](podman-attach.1.md)              | Attach to a running container.                                               |
-| checkpoint | [podman-container-checkpoint(1)](podman-container-checkpoint.1.md)  | Checkpoints one or more containers.                          |
-| cleanup    | [podman-container-cleanup(1)](podman-container-cleanup.1.md)    | Cleanup containers network and mountpoints.                      |
+| checkpoint | [podman-container-checkpoint(1)](podman-container-checkpoint.1.md)  | Checkpoints one or more running containers.                  |
+| cleanup    | [podman-container-cleanup(1)](podman-container-cleanup.1.md)    | Cleanup the container's network and mountpoints.                 |
 | commit     | [podman-commit(1)](podman-commit.1.md)              | Create new image based on the changed container.                             |
 | cp         | [podman-cp(1)](podman-cp.1.md)                      | Copy files/folders between a container and the local filesystem.             |
 | create     | [podman-create(1)](podman-create.1.md)              | Create a new container.                                                      |

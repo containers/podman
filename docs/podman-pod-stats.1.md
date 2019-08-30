@@ -1,7 +1,7 @@
 % podman-pod-stats(1)
 
 ## NAME
-podman\-pod\-stats - Display a live stream of resource usage statistics for the containers in one or more pods
+podman\-pod\-stats - Display a live stream of resource usage stats for containers in one or more pods
 
 ## SYNOPSIS
 **podman pod stats** [*options*] [*pod*]

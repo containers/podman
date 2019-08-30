@@ -153,15 +153,15 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-images(1)](podman-images.1.md)           | List images in local storage.                                               |
 | [podman-import(1)](podman-import.1.md)           | Import a tarball and save it as a filesystem image.                         |
 | [podman-info(1)](podman-info.1.md)               | Displays Podman related system information.                                 |
-| [podman-init(1)](podman-init.1.md)               | Initialize a container                                                      |
+| [podman-init(1)](podman-init.1.md)               | Initialize one or more containers                                           |
 | [podman-inspect(1)](podman-inspect.1.md)         | Display a container or image's configuration.                               |
 | [podman-kill(1)](podman-kill.1.md)               | Kill the main process in one or more containers.                            |
 | [podman-load(1)](podman-load.1.md)               | Load an image from a container image archive into container storage.        |
 | [podman-login(1)](podman-login.1.md)             | Login to a container registry.                                              |
 | [podman-logout(1)](podman-logout.1.md)           | Logout of a container registry.                                             |
-| [podman-logs(1)](podman-logs.1.md)               | Display the logs of a container.                                            |
+| [podman-logs(1)](podman-logs.1.md)               | Display the logs of one or more containers.                                 |
 | [podman-mount(1)](podman-mount.1.md)             | Mount a working container's root filesystem.                                |
-| [podman-network(1)](podman-network.1.md)         | Manage Podman CNI networks.                                |
+| [podman-network(1)](podman-network.1.md)         | Manage Podman CNI networks.                                                 |
 | [podman-pause(1)](podman-pause.1.md)             | Pause one or more containers.                                               |
 | [podman-play(1)](podman-play.1.md)               | Play pods and containers based on a structured input file.                  |
 | [podman-pod(1)](podman-pod.1.md)                 | Management tool for groups of containers, called pods.                      |
@@ -169,6 +169,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-ps(1)](podman-ps.1.md)                   | Prints out information about containers.                                    |
 | [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                              |
 | [podman-push(1)](podman-push.1.md)               | Push an image from local storage to elsewhere.                              |
+| [podman-remote(1)](podman-remote.1.md)           | A tool for remote management of pods, containers and images                 |
 | [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                             |
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                              |
 | [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
@@ -186,7 +187,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-unshare(1)](podman-unshare.1.md)         | Run a command inside of a modified user namespace.                          |
 | [podman-varlink(1)](podman-varlink.1.md)         | Runs the varlink backend interface.                                         |
 | [podman-version(1)](podman-version.1.md)         | Display the Podman version information.                                     |
-| [podman-volume(1)](podman-volume.1.md)           | Manage Volumes.                                                             |
+| [podman-volume(1)](podman-volume.1.md)           | Simple management tool for volumes.                                         |
 | [podman-wait(1)](podman-wait.1.md)               | Wait on one or more containers to stop and print their exit codes.          |
 
 ## FILES
