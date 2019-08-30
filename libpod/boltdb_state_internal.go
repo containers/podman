@@ -449,6 +449,14 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 		return errors.Wrapf(err, "error unmarshalling volume %s config from DB", string(name))
 	}
 
+	// Volume state is allowed to be nil for legacy compatability
+	volStateBytes := volDB.Get(stateKey)
+	if volStateBytes != nil {
+		if err := json.Unmarshal(volStateBytes, volume.state); err != nil {
+			return errors.Wrapf(err, "error unmarshalling volume %s state from DB", string(name))
+		}
+	}
+
 	// Get the lock
 	lock, err := s.runtime.lockManager.RetrieveLock(volume.config.LockID)
 	if err != nil {

@@ -6,17 +6,20 @@ import (
 	"github.com/containers/libpod/libpod/lock"
 )
 
-// Volume is the type used to create named volumes
-// TODO: all volumes should be created using this and the Volume API
+// Volume is a libpod named volume.
+// Named volumes may be shared by multiple containers, and may be created using
+// more complex options than normal bind mounts. They may be backed by a mounted
+// filesystem on the host.
 type Volume struct {
 	config *VolumeConfig
+	state  *VolumeState
 
 	valid   bool
 	runtime *Runtime
 	lock    lock.Locker
 }
 
-// VolumeConfig holds the volume's config information
+// VolumeConfig holds the volume's immutable configuration.
 type VolumeConfig struct {
 	// Name of the volume.
 	Name string `json:"name"`
@@ -34,7 +37,15 @@ type VolumeConfig struct {
 	// Options to pass to the volume driver. For the local driver, this is
 	// a list of mount options. For other drivers, they are passed to the
 	// volume driver handling the volume.
-	Options map[string]string `json:"volumeOptions"`
+	Options map[string]string `json:"volumeOptions,omitempty"`
+	// Type is the type of the volume. This is only used with the local
+	// driver. It the the filesystem that we will attempt to mount - nfs,
+	// tmpfs, etc.
+	Type string `json:"type,omitempty"`
+	// Device is the device of the volume. This is only used with the local
+	// driver, and only with some filesystem types (e.g., not required by
+	// tmpfs). It is the device to mount.
+	Device string `json:"device,omitempty"`
 	// Whether this volume was created for a specific container and will be
 	// removed with it.
 	IsCtrSpecific bool `json:"ctrSpecific"`
@@ -42,6 +53,18 @@ type VolumeConfig struct {
 	UID int `json:"uid"`
 	// GID the volume will be created as.
 	GID int `json:"gid"`
+}
+
+// VolumeState holds the volume's mutable state.
+// Volumes are not guaranteed to have a state. Only volumes using the Local
+// driver that have mount options set will create a state.
+type VolumeState struct {
+	// MountCount is the number of times this volume has been requested to
+	// be mounted.
+	// It is incremented on mount() and decremented on unmount().
+	// On incrementing from 0, the volume will be mounted on the host.
+	// On decrementing to 0, the volume will be unmounted on the host.
+	MountCount uint `json:"mountCount"`
 }
 
 // Name retrieves the volume's name

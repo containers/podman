@@ -203,6 +203,10 @@ type State interface {
 	// RemoveVolume removes the specified volume.
 	// Only volumes that have no container dependencies can be removed
 	RemoveVolume(volume *Volume) error
+	// UpdateVolume updates the volume's state from the database.
+	UpdateVolume(volume *Volume) error
+	// SaveVolume saves a volume's state to the database.
+	SaveVolume(volume *Volume) error
 	// AllVolumes returns all the volumes available in the state
 	AllVolumes() ([]*Volume, error)
 }
