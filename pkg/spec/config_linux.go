@@ -4,6 +4,7 @@ package createconfig
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -133,8 +134,53 @@ func addDevice(g *generate.Generator, device string) error {
 	return nil
 }
 
+// based on getDevices from runc (libcontainer/devices/devices.go)
+func getDevices(path string) ([]*configs.Device, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		if rootless.IsRootless() && os.IsPermission(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := []*configs.Device{}
+	for _, f := range files {
+		switch {
+		case f.IsDir():
+			switch f.Name() {
+			// ".lxc" & ".lxd-mounts" added to address https://github.com/lxc/lxd/issues/2825
+			case "pts", "shm", "fd", "mqueue", ".lxc", ".lxd-mounts":
+				continue
+			default:
+				sub, err := getDevices(filepath.Join(path, f.Name()))
+				if err != nil {
+					return nil, err
+				}
+				if sub != nil {
+					out = append(out, sub...)
+				}
+				continue
+			}
+		case f.Name() == "console":
+			continue
+		}
+		device, err := devices.DeviceFromPath(filepath.Join(path, f.Name()), "rwm")
+		if err != nil {
+			if err == devices.ErrNotADevice {
+				continue
+			}
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		out = append(out, device)
+	}
+	return out, nil
+}
+
 func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
-	hostDevices, err := devices.HostDevices()
+	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
 	}
