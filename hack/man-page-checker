@@ -39,13 +39,9 @@ done
 # Pass 2: compare descriptions.
 #
 # Make sure the descriptive text in podman-foo.1.md matches the one
-# in the table in podman.1.md.
-for md in *-*.1.md;do
-    # Currently the only exception.
-    if [ "$md" = "podman-remote.1.md" ]; then
-        continue
-    fi
-
+# in the table in podman.1.md. podman-remote is not a podman subcommand,
+# so it is excluded here.
+for md in $(ls -1 *-*.1.md | grep -v remote);do
     desc=$(egrep -A1 '^#* NAME' $md|tail -1|sed -e 's/^podman[^ ]\+ - //')
 
     # podman.1.md has a two-column table; podman-*.1.md all have three.
