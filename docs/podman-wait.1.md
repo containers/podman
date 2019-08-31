@@ -6,6 +6,8 @@ podman\-wait - Wait on one or more containers to stop and print their exit codes
 ## SYNOPSIS
 **podman wait** [*options*] *container*
 
+**podman container wait** [*options*] *container*
+
 ## DESCRIPTION
 Waits on one or more containers to stop.  The container can be referred to by its
 name or ID.  In the case of multiple containers, podman will wait on each consecutively.

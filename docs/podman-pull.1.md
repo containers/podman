@@ -6,6 +6,8 @@ podman\-pull - Pull an image from a registry
 ## SYNOPSIS
 **podman pull** [*options*] *name*[:*tag*|@*digest*]
 
+**podman image pull** [*options*] *name*[:*tag*|@*digest*]
+
 ## DESCRIPTION
 Copies an image from a registry onto the local machine. **podman pull** pulls an
 image from Docker Hub if a registry is not specified in the command line argument.

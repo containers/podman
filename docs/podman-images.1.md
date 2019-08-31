@@ -6,6 +6,10 @@ podman\-images - List images in local storage
 ## SYNOPSIS
 **podman images** [*options*]
 
+**podman image list** [*options*]
+
+**podman image ls** [*options*]
+
 ## DESCRIPTION
 Displays locally stored images, their names, and their IDs.
 

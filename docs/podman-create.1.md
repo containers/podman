@@ -6,6 +6,8 @@ podman\-create - Create a new container
 ## SYNOPSIS
 **podman create** [*options*] *image* [*command* [*arg* ...]]
 
+**podman container create** [*options*] *image* [*command* [*arg* ...]]
+
 ## DESCRIPTION
 
 Creates a writable container layer over the specified image and prepares it for

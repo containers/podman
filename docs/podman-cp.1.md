@@ -6,6 +6,8 @@ podman\-cp - Copy files/folders between a container and the local filesystem
 ## SYNOPSIS
 **podman cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
 
+**podman container cp** [*options*] [*container*:]*src_path* [*container*:]*dest_path*
+
 ## DESCRIPTION
 Copies the contents of **src_path** to the **dest_path**. You can copy from the container's filesystem to the local machine or the reverse, from the local filesystem to the container.
 If - is specified for either the SRC_PATH or DEST_PATH, you can also stream a tar archive from STDIN or to STDOUT.

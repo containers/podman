@@ -6,6 +6,8 @@ podman\-save - Save an image to a container archive
 ## SYNOPSIS
 **podman save** [*options*] *name*[:*tag*]
 
+**podman image save** [*options*] *name*[:*tag*]
+
 ## DESCRIPTION
 **podman save** saves an image to either **docker-archive**, **oci-archive**, **oci-dir** (directory with oci manifest type), or **docker-dir** (directory with v2s2 manifest type) on the local machine,
 default is **docker-archive**. **podman save** writes to STDOUT by default and can be redirected to a

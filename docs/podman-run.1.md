@@ -6,6 +6,8 @@ podman\-run - Run a command in a new container
 ## SYNOPSIS
 **podman run** [*options*] *image* [*command* [*arg* ...]]
 
+**podman container run** [*options*] *image* [*command* [*arg* ...]]
+
 ## DESCRIPTION
 
 Run a process in a new container. **podman run** starts a process with its own

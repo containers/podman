@@ -6,6 +6,8 @@ podman\-export - Export a container's filesystem contents as a tar archive
 ## SYNOPSIS
 **podman export** [*options*] *container*
 
+**podman container export** [*options*] *container*
+
 ## DESCRIPTION
 **podman export** exports the filesystem of a container and saves it as a tarball
 on the local machine. **podman export** writes to STDOUT by default and can be

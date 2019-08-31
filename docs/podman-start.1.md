@@ -6,6 +6,8 @@ podman\-start - Start one or more containers
 ## SYNOPSIS
 **podman start** [*options*] *container* ...
 
+**podman container start** [*options*] *container* ...
+
 ## DESCRIPTION
 Start one or more containers.  You may use container IDs or names as input.  The *attach* and *interactive*
 options cannot be used to override the *--tty* and *--interactive* options from when the container

@@ -6,6 +6,8 @@ podman\-stop - Stop one or more running containers
 ## SYNOPSIS
 **podman stop** [*options*] *container* ...
 
+**podman container stop** [*options*] *container* ...
+
 ## DESCRIPTION
 Stops one or more containers.  You may use container IDs or names as input. The **--timeout** switch
 allows you to specify the number of seconds to wait before forcibly stopping the container after the stop command
