@@ -3,6 +3,7 @@ package libpod
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -20,6 +22,8 @@ const (
 	// DefaultTransport is a prefix that we apply to an image name
 	// to check docker hub first for the image
 	DefaultTransport = "docker://"
+
+	unknownPackage = "Unknown"
 )
 
 // FuncTimer helps measure the execution time of a function
@@ -151,4 +155,37 @@ func JSONDeepCopy(from, to interface{}) error {
 		return err
 	}
 	return json.Unmarshal(tmp, to)
+}
+
+func dpkgVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func rpmVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func packageVersion(program string) string {
+	if out := rpmVersion(program); out != unknownPackage {
+		return out
+	}
+	return dpkgVersion(program)
+}
+
+func programVersion(mountProgram string) (string, error) {
+	output, err := utils.ExecCmd(mountProgram, "--version")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(output, "\n"), nil
 }

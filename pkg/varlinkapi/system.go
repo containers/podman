@@ -3,9 +3,9 @@
 package varlinkapi
 
 import (
+	"fmt"
 	"github.com/containers/libpod/libpod/define"
 	goruntime "runtime"
-	"strings"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
@@ -83,7 +83,7 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Images:               int64(store["ImageStore"].(map[string]interface{})["number"].(int)),
 		Run_root:             store["RunRoot"].(string),
 		Graph_root:           store["GraphRoot"].(string),
-		Graph_driver_options: strings.Join(store["GraphOptions"].([]string), ", "),
+		Graph_driver_options: fmt.Sprintf("%v", store["GraphOptions"]),
 		Graph_status:         graphStatus,
 	}
 
