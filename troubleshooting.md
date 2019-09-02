@@ -391,3 +391,22 @@ Choose one of the following:
   * Install and configure fuse-overlayfs.
     * Install the fuse-overlayfs package for your Linux Distribution.
     * Add `mount_program = "/usr/bin/fuse-overlayfs` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
+
+### 16) rhel7-init based images don't work with cgroups v2
+
+The systemd version shipped in rhel7-init doesn't have support for cgroups v2.  You'll need at least systemd 230.
+
+#### Symptom
+```console
+
+sh# podman run --name test -d registry.access.redhat.com/rhel7-init:latest && sleep 10 && podman exec test systemctl status
+c8567461948439bce72fad3076a91ececfb7b14d469bfa5fbc32c6403185beff
+Failed to get D-Bus connection: Operation not permitted
+Error: non zero exit code: 1: OCI runtime error
+```
+
+#### Solution
+You'll need to either:
+
+* configure the host to use cgroups v1
+* update the image to use an updated version of systemd.
