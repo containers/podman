@@ -4,6 +4,7 @@ package createconfig
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -98,6 +99,26 @@ func addDevice(g *generate.Generator, device string) error {
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a valid device", src)
 	}
+	if rootless.IsRootless() {
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "the specified device %s doesn't exist", src)
+			}
+			return errors.Wrapf(err, "stat device %s exist", src)
+		}
+		perm := "ro"
+		if strings.Contains(permissions, "w") {
+			perm = "rw"
+		}
+		devMnt := spec.Mount{
+			Destination: dst,
+			Type:        TypeBind,
+			Source:      src,
+			Options:     []string{"slave", "nosuid", "noexec", perm, "rbind"},
+		}
+		g.Config.Mounts = append(g.Config.Mounts, devMnt)
+		return nil
+	}
 	dev.Path = dst
 	linuxdev := spec.LinuxDevice{
 		Path:     dev.Path,
@@ -113,8 +134,53 @@ func addDevice(g *generate.Generator, device string) error {
 	return nil
 }
 
+// based on getDevices from runc (libcontainer/devices/devices.go)
+func getDevices(path string) ([]*configs.Device, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		if rootless.IsRootless() && os.IsPermission(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := []*configs.Device{}
+	for _, f := range files {
+		switch {
+		case f.IsDir():
+			switch f.Name() {
+			// ".lxc" & ".lxd-mounts" added to address https://github.com/lxc/lxd/issues/2825
+			case "pts", "shm", "fd", "mqueue", ".lxc", ".lxd-mounts":
+				continue
+			default:
+				sub, err := getDevices(filepath.Join(path, f.Name()))
+				if err != nil {
+					return nil, err
+				}
+				if sub != nil {
+					out = append(out, sub...)
+				}
+				continue
+			}
+		case f.Name() == "console":
+			continue
+		}
+		device, err := devices.DeviceFromPath(filepath.Join(path, f.Name()), "rwm")
+		if err != nil {
+			if err == devices.ErrNotADevice {
+				continue
+			}
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		out = append(out, device)
+	}
+	return out, nil
+}
+
 func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
-	hostDevices, err := devices.HostDevices()
+	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
 	}
@@ -153,15 +219,16 @@ func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
 			newMounts = append(newMounts, devMnt)
 		}
 		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
+		g.Config.Linux.Resources.Devices = nil
 	} else {
 		for _, d := range hostDevices {
 			g.AddDevice(Device(d))
 		}
+		// Add resources device - need to clear the existing one first.
+		g.Config.Linux.Resources.Devices = nil
+		g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
 	}
 
-	// Add resources device - need to clear the existing one first.
-	g.Config.Linux.Resources.Devices = nil
-	g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
 	return nil
 }
 
