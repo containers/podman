@@ -80,6 +80,36 @@ The Podman configuration files for root reside in /usr/share/containers with ove
 
 The default authorization file used by the `podman login` and `podman logout` commands reside in ${XDG\_RUNTIME\_DIR}/containers/auth.json.
 
+## Systemd unit for rootless container
+
+```
+[Unit]
+Description=nginx
+Requires=user@1001.service
+After=user@1001.service
+
+[Service]
+Type=simple
+KillMode=none
+MemoryMax=200M
+ExecStartPre=-/usr/bin/podman rm -f nginx
+ExecStartPre=/usr/bin/podman pull nginx
+ExecStart=/usr/bin/podman run --name=nginx -p 8080:80 -v /home/nginx/html:/usr/share/nginx/html:Z nginx
+ExecStop=/usr/bin/podman stop nginx
+Restart=always
+User=nginx
+Group=nginx
+
+[Install]
+WantedBy=multi-user.target
+```
+
+This example unit will launch a nginx container using the existing user nginx with id 1001, serving static content from /home/nginx/html and limited to 200MB of RAM.
+
+You can use all the usual systemd flags to control the process, including capabilities and cgroup directives to limit memory or CPU.
+
+See #3866 for more details.
+
 ## More information
 
 If you are still experiencing problems running Podman in a rootless environment, please refer to the [Shortcomings of Rootless Podman](https://github.com/containers/libpod/blob/master/rootless.md) page which lists known issues and solutions to known issues in this environment.
