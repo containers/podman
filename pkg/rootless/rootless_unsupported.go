@@ -53,3 +53,9 @@ func EnableLinger() (string, error) {
 func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
+
+// ConfigurationMatches checks whether the additional uids/gids configured for the user
+// match the current user namespace.
+func ConfigurationMatches() (bool, error) {
+	return true, nil
+}
