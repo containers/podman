@@ -3,6 +3,10 @@
 # Sorting is done at runtime - first-found e-mail match wins.
 # Comments (like this) and blank lines are ignored.
 
+bbaude@redhat.com,baude
+matthew.heon@pm.me,mheon
+matthew.heon@gmail.com,mheon
+emilien@redhat.com,EmilienM
 rothberg@redhat.com,vrothberg
 santiago@redhat.com,edsantiago
 gscrivan@redhat.com,giuseppe
