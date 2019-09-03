@@ -6,6 +6,8 @@ podman\-history - Show the history of an image
 ## SYNOPSIS
 **podman history** [*options*] *image*[:*tag*|@*digest*]
 
+**podman image history** [*options*] *image*[:*tag*|@*digest*]
+
 ## DESCRIPTION
 **podman history** displays the history of an image by printing out information
 about each layer used in the image. The information printed out for each layer

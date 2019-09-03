@@ -6,6 +6,16 @@ podman\-ps - Prints out information about containers
 ## SYNOPSIS
 **podman ps** [*options*]
 
+**podman container list** [*options*]
+
+**podman container ls** [*options*]
+
+**podman container ps** [*options*]
+
+**podman list** [*options*]
+
+**podman ls** [*options*]
+
 ## DESCRIPTION
 **podman ps** lists the running containers on the system. Use the **--all** flag to view
 all the containers information.  By default it lists:

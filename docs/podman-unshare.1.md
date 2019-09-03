@@ -1,10 +1,10 @@
 % podman-unshare(1)
 
 ## NAME
-podman\-unshare - Run a command inside of a modified user namespace.
+podman\-unshare - Run a command inside of a modified user namespace
 
 ## SYNOPSIS
-**podman unshare** [*options*] [**--**] [*command*]
+**podman unshare** [*options*] [*--*] [*command*]
 
 ## DESCRIPTION
 Launches a process (by default, *$SHELL*) in a new user namespace. The user

@@ -1,10 +1,10 @@
 % podman-container-runlabel(1)
 
 ## NAME
-podman-container-runlabel - Execute Image Label Method
+podman-container-runlabel - Executes a command as described by a container image label
 
 ## SYNOPSIS
-**podman container runlabel** [*options*] *LABEL* *IMAGE* [ARG...]
+**podman container runlabel** [*options*] *label* *image* [*arg...*]
 
 ## DESCRIPTION
 **podman container runlabel** reads the provided `LABEL` field in the container

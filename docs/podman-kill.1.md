@@ -1,10 +1,12 @@
 % podman-kill(1)
 
 ## NAME
-podman\-kill - Kills one or more containers with a signal
+podman\-kill - Kill the main process in one or more containers
 
 ## SYNOPSIS
 **podman kill** [*options*] [*container* ...]
+
+**podman container kill** [*options*] [*container* ...]
 
 ## DESCRIPTION
 The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal.

@@ -1,7 +1,7 @@
 % podman-system-migrate(1)
 
 ## NAME
-podman\-system\-migrate - Migrate container to the latest version of podman
+podman\-system\-migrate - Migrate existing containers to a new podman version
 
 ## SYNOPSIS
 ** podman system migrate**

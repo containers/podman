@@ -1,7 +1,7 @@
 % podman-container-cleanup(1)
 
 ## NAME
-podman\-container\-cleanup - Cleanup Container storage and networks
+podman\-container\-cleanup - Cleanup the container's network and mountpoints
 
 ## SYNOPSIS
 **podman container cleanup** [*options*] *container*

@@ -1,7 +1,7 @@
 % podman-container-restore(1)
 
 ## NAME
-podman\-container\-restore - Restores one or more running containers
+podman\-container\-restore - Restores one or more containers from a checkpoint
 
 ## SYNOPSIS
 **podman container restore** [*options*] *container* ...

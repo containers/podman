@@ -1,10 +1,12 @@
 % podman-stop(1)
 
 ## NAME
-podman\-stop - Stop one or more containers
+podman\-stop - Stop one or more running containers
 
 ## SYNOPSIS
 **podman stop** [*options*] *container* ...
+
+**podman container stop** [*options*] *container* ...
 
 ## DESCRIPTION
 Stops one or more containers.  You may use container IDs or names as input. The **--timeout** switch

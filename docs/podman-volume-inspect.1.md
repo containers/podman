@@ -1,7 +1,7 @@
 % podman-volume-inspect(1)
 
 ## NAME
-podman\-volume\-inspect - Inspect one or more volumes
+podman\-volume\-inspect - Get detailed information on one or more volumes
 
 ## SYNOPSIS
 **podman volume inspect** [*options*] *volume* [...]

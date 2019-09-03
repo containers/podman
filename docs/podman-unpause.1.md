@@ -6,6 +6,8 @@ podman\-unpause - Unpause one or more containers
 ## SYNOPSIS
 **podman unpause** [*options*]|[*container* ...]
 
+**podman container unpause** [*options*]|[*container* ...]
+
 ## DESCRIPTION
 Unpauses the processes in one or more containers.  You may use container IDs or names as input.
 

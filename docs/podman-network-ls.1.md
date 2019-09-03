@@ -1,7 +1,7 @@
 % podman-network-ls(1)
 
 ## NAME
-podman\-network-ls- Display a summary of CNI networks
+podman\-network\-ls - Display a summary of CNI networks
 
 ## SYNOPSIS
 **podman network ls**  [*options*]

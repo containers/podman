@@ -1,12 +1,12 @@
 % podman-rm(1)
 
 ## NAME
-podman\-container\-rm (podman\-rm) - Remove one or more containers
+podman\-rm - Remove one or more containers
 
 ## SYNOPSIS
-**podman container rm** [*options*] *container*
-
 **podman rm** [*options*] *container*
+
+**podman container rm** [*options*] *container*
 
 ## DESCRIPTION
 **podman rm** will remove one or more containers from the host.  The container name or ID can be used.  This does not remove images.  Running containers will not be removed without the `-f` option

@@ -6,6 +6,8 @@ podman\-push - Push an image from local storage to elsewhere
 ## SYNOPSIS
 **podman push** [*options*] *image* [*destination*]
 
+**podman image push** [*options*] *image* [*destination*]
+
 ## DESCRIPTION
 Pushes an image from local storage to a specified destination.
 Push is mainly used to push images to registries, however **podman push**

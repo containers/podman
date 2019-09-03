@@ -6,6 +6,8 @@ podman\-init - Initialize one or more containers
 ## SYNOPSIS
 **podman init** [*options*] *container* [*container*...]
 
+**podman container init** [*options*] *container* [*container*...]
+
 ## DESCRIPTION
 Initialize one or more containers.
 You may use container IDs or names as input.

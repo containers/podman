@@ -1,7 +1,7 @@
 % podman-version(1)
 
 ## NAME
-podman\-version - Display the PODMAN Version Information
+podman\-version - Display the Podman version information
 
 ## SYNOPSIS
 **podman version** [*options*]

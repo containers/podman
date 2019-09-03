@@ -1,7 +1,7 @@
 % podman-system-renumber(1)
 
 ## NAME
-podman\-system\-renumber - Renumber container locks
+podman\-system\-renumber - Migrate lock numbers to handle a change in maximum number of locks
 
 ## SYNOPSIS
 **podman system renumber**

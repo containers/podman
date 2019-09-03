@@ -1,6 +1,6 @@
 % podman-generate-kube(1)
 ## NAME
-podman-generate-kube - Generate Kubernetes YAML
+podman-generate-kube - Generate Kubernetes YAML based on a pod or container
 
 ## SYNOPSIS
 **podman generate kube** [*options*] *container* | *pod*

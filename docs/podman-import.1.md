@@ -6,6 +6,8 @@ podman\-import - Import a tarball and save it as a filesystem image
 ## SYNOPSIS
 **podman import** [*options*] *path* [*reference*]
 
+**podman image import** [*options*] *path* [*reference*]
+
 ## DESCRIPTION
 **podman import** imports a tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz)
 and saves it as a filesystem image. Remote tarballs can be specified using a URL.

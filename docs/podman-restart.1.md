@@ -6,6 +6,8 @@ podman\-restart - Restart one or more containers
 ## SYNOPSIS
 **podman restart** [*options*] *container* ...
 
+**podman container restart** [*options*] *container* ...
+
 ## DESCRIPTION
 The restart command allows containers to be restarted using their ID or name.
 Containers will be stopped if they are running and then restarted. Stopped
