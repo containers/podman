@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var USER HOME GOSRC SCRIPT_BASE SETUP_MARKER_FILEPATH
+req_env_var USER HOME GOSRC SCRIPT_BASE SETUP_MARKER_FILEPATH TEST_IMAGE_CACHE_DIRPATH
 
 show_env_vars
 
@@ -80,7 +80,14 @@ case "$SPECIALMODE" in
         remove_packaged_podman_files
         ;;
     in_podman)  # Assumed to be Fedora
-        $SCRIPT_BASE/setup_container_environment.sh
+        # Since CRIU 3.11 has been pushed to Fedora 28 the checkpoint/restore
+        # test cases are actually run. As CRIU uses iptables to lock and unlock
+        # the network during checkpoint and restore it needs the following two
+        # modules loaded.
+        modprobe ip6table_nat || :
+        modprobe iptable_nat || :
+
+        install_container_image ${IN_PODMAN_IMAGE}
         ;;
     *)
         die 111 "Unsupported \$SPECIALMODE: $SPECIALMODE"

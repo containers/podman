@@ -76,7 +76,7 @@ exercising cgroups v2 with podman integration tests.  Also depends on
 having `SPECIALMODE` set to 'cgroupv2`
 
 
-### ``test_build_cache_images_task`` Task
+### ``test_build_vm_images_task`` Task
 
 Modifying the contents of cache-images is tested by making changes to
 one or more of the ``./contrib/cirrus/packer/*_setup.sh`` files.  Then
@@ -103,7 +103,7 @@ in the PR description, add the magic string:  ``***CIRRUS: TEST IMAGES***``
 
 ### ``verify_test_built_images`` Task
 
-Only runs following successful ``test_build_cache_images_task`` task.  Uses
+Only runs following successful ``test_build_vm_images_task`` task.  Uses
 images following the standard naming format; ***however, only runs a limited
 sub-set of automated tests***.  Validating newly built images fully, requires
 updating ``.cirrus.yml``.
@@ -119,7 +119,7 @@ updating ``.cirrus.yml``.
 
 ***Manual Steps:***  Assuming the automated steps pass, then
 you'll find the new image names displayed at the end of the
-`test_build_cache_images`.  For example:
+`test_build_vm_images`.  For example:
 
 
 ```

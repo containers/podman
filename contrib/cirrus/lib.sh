@@ -63,10 +63,19 @@ export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 export FEDORA_BASE_IMAGE="fedora-cloud-base-31-20190828-n-0-1567012783" # FIXME: PRE-RELEASE
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1567012783"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+
+# Location for both seeding and loading
+TEST_IMAGE_CACHE_DIRPATH="${TEST_IMAGE_CACHE_DIRPATH:-/var/cache/test_images}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
 # Image for uploading releases
 UPLDREL_IMAGE="quay.io/libpod/upldrel:latest"
+# Image for gating PRs
+GATE_IMAGE="quay.io/libpod/gate:latest"
+# Image for Updating VM Image timestamps
+TIMESTAMP_IMAGE="quay.io/libpod/imgts:latest"
+# Image for pruning old VM Images
+PRUNE_IMAGE="quay.io/libpod/imgprune:latest"
 
 # Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND="noninteractive"
@@ -356,6 +365,26 @@ remove_packaged_podman_files() {
         if [[ -d "$fullpath" ]] || [[ $(basename "$fullpath") == "conmon" ]] ; then continue; fi
         ooe.sh sudo rm -vf "$fullpath"
     done
+}
+
+install_container_image() {
+    local fqin
+    local image_name
+    local image_cache_file
+    fqin="$1"
+    req_env_var TEST_IMAGE_CACHE_DIRPATH fqin
+    image_name=$(basename ${UPLDREL_IMAGE%:*})
+    image_cache_file="$TEST_IMAGE_CACHE_DIRPATH/${image_name}.tar"
+    # When test-building + verifying, they are cached and loaded here by Cirrus-CI
+    if [[ -d "$TEST_IMAGE_CACHE_DIRPATH" ]] && [[ -r "$image_cache_file" ]]
+    then
+        echo "."  # Cirrus-CI strips out blank lines
+        echo "Warning: Loading image $fqin from cache $image_cache_file for testing"
+        echo "."
+        podman load --input "$image_cache_file" $fqin
+    else
+        podman pull ${fqin}
+    fi
 }
 
 systemd_banish() {

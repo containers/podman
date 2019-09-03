@@ -4,7 +4,7 @@ set -eo pipefail
 
 source $(dirname $0)/lib.sh
 
-req_env_var CI UPLDREL_IMAGE CIRRUS_BUILD_ID GOSRC RELEASE_GCPJSON RELEASE_GCPNAME RELEASE_GCPROJECT
+req_env_var CI UPLDREL_IMAGE CIRRUS_BUILD_ID GOSRC RELEASE_GCPJSON RELEASE_GCPNAME RELEASE_GCPROJECT TEST_IMAGE_CACHE_DIRPATH
 
 [[ "$CI" == "true" ]] || \
     die 56 "$0 must be run under Cirrus-CI to function"
@@ -33,6 +33,8 @@ trap "rm -f $TMPF" EXIT
 set +x
 echo "$RELEASE_GCPJSON" > "$TMPF"
 unset RELEASE_GCPJSON
+
+install_container_image $UPLDREL_IMAGE
 
 cd $GOSRC
 for filename in $(ls -1 *.tar.gz *.zip)
