@@ -347,7 +347,8 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	return true, int(ret), nil
 }
 
-func getConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
@@ -413,7 +414,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
-	uids, gids, err := getConfiguredMappings()
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
 		return false, -1, err
 	}
@@ -663,7 +664,7 @@ func ConfigurationMatches() (bool, error) {
 		return true, nil
 	}
 
-	uids, gids, err := getConfiguredMappings()
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
 		return false, err
 	}

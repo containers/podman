@@ -5,6 +5,7 @@ package rootless
 import (
 	"os"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/pkg/errors"
 )
 
@@ -58,4 +59,9 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 // match the current user namespace.
 func ConfigurationMatches() (bool, error) {
 	return true, nil
+}
+
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+	return nil, nil, errors.New("this function is not supported on this os")
 }
