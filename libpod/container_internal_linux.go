@@ -21,7 +21,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/libpod/define"
-	crioAnnotations "github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/criu"
@@ -347,8 +347,12 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
-	g.AddAnnotation(crioAnnotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
+	g.AddAnnotation(annotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
+
+	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
+		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
+	}
 
 	for _, i := range c.config.Spec.Linux.Namespaces {
 		if i.Type == spec.UTSNamespace {
