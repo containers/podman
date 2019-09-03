@@ -120,6 +120,14 @@ func profileOff(cmd *cobra.Command) error {
 }
 
 func setupRootless(cmd *cobra.Command, args []string) error {
+	matches, err := rootless.ConfigurationMatches()
+	if err != nil {
+		return err
+	}
+	if !matches {
+		logrus.Warningf("the current user namespace doesn't match the configuration in /etc/subuid or /etc/subgid")
+		logrus.Warningf("you can use `%s system migrate` to recreate the user namespace and restart the containers", os.Args[0])
+	}
 	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || cmd == _migrateCommand || strings.HasPrefix(cmd.Use, "help") {
 		return nil
 	}
@@ -140,7 +148,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		became, ret, err := rootless.TryJoinFromFilePaths("", false, []string{pausePidPath})
 		if err != nil {
 			logrus.Errorf("cannot join pause process.  You may need to remove %s and stop all containers", pausePidPath)
-			logrus.Errorf("you can use `%s system migrate` to recreate the pause process", os.Args[0])
+			logrus.Errorf("you can use `%s system migrate` to recreate the pause process and restart the containers", os.Args[0])
 			logrus.Errorf(err.Error())
 			os.Exit(1)
 		}

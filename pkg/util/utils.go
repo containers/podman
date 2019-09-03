@@ -3,7 +3,6 @@ package util
 import (
 	"fmt"
 	"os"
-	ouser "os/user"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -156,22 +155,15 @@ func ParseIDMapping(mode namespaces.UsernsMode, UIDMapSlice, GIDMapSlice []strin
 			uid := rootless.GetRootlessUID()
 			gid := rootless.GetRootlessGID()
 
-			username := os.Getenv("USER")
-			if username == "" {
-				user, err := ouser.LookupId(fmt.Sprintf("%d", uid))
-				if err == nil {
-					username = user.Username
-				}
-			}
-			mappings, err := idtools.NewIDMappings(username, username)
+			uids, gids, err := rootless.GetConfiguredMappings()
 			if err != nil {
-				return nil, errors.Wrapf(err, "cannot find mappings for user %s", username)
+				return nil, errors.Wrapf(err, "cannot read mappings")
 			}
 			maxUID, maxGID := 0, 0
-			for _, u := range mappings.UIDs() {
+			for _, u := range uids {
 				maxUID += u.Size
 			}
-			for _, g := range mappings.GIDs() {
+			for _, g := range gids {
 				maxGID += g.Size
 			}
 

@@ -3,7 +3,9 @@
 package rootless
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -106,7 +108,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 	}
 
 	appendTriplet := func(l []string, a, b, c int) []string {
-		return append(l, fmt.Sprintf("%d", a), fmt.Sprintf("%d", b), fmt.Sprintf("%d", c))
+		return append(l, strconv.Itoa(a), strconv.Itoa(b), strconv.Itoa(c))
 	}
 
 	args := []string{path, fmt.Sprintf("%d", pid)}
@@ -345,6 +347,32 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	return true, int(ret), nil
 }
 
+// GetConfiguredMappings returns the additional IDs configured for the current user.
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
+	var uids, gids []idtools.IDMap
+	username := os.Getenv("USER")
+	if username == "" {
+		var id string
+		if os.Geteuid() == 0 {
+			id = strconv.Itoa(GetRootlessUID())
+		} else {
+			id = strconv.Itoa(os.Geteuid())
+		}
+		userID, err := user.LookupId(id)
+		if err == nil {
+			username = userID.Username
+		}
+	}
+	mappings, err := idtools.NewIDMappings(username, username)
+	if err != nil {
+		logrus.Warnf("cannot find mappings for user %s: %v", username, err)
+	} else {
+		uids = mappings.UIDs()
+		gids = mappings.GIDs()
+	}
+	return uids, gids, nil
+}
+
 func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool, int, error) {
 	if os.Geteuid() == 0 || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
@@ -386,25 +414,14 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		return false, -1, errors.Errorf("cannot re-exec process")
 	}
 
-	var uids, gids []idtools.IDMap
-	username := os.Getenv("USER")
-	if username == "" {
-		userID, err := user.LookupId(fmt.Sprintf("%d", os.Getuid()))
-		if err == nil {
-			username = userID.Username
-		}
-	}
-	mappings, err := idtools.NewIDMappings(username, username)
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
-		logrus.Warnf("cannot find mappings for user %s: %v", username, err)
-	} else {
-		uids = mappings.UIDs()
-		gids = mappings.GIDs()
+		return false, -1, err
 	}
 
 	uidsMapped := false
-	if mappings != nil && uids != nil {
-		err := tryMappingTool("newuidmap", pid, os.Getuid(), uids)
+	if uids != nil {
+		err := tryMappingTool("newuidmap", pid, os.Geteuid(), uids)
 		uidsMapped = err == nil
 	}
 	if !uidsMapped {
@@ -416,20 +433,20 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		}
 
 		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
-		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getuid())), 0666)
+		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write uid_map")
 		}
 	}
 
 	gidsMapped := false
-	if mappings != nil && gids != nil {
-		err := tryMappingTool("newgidmap", pid, os.Getgid(), gids)
+	if gids != nil {
+		err := tryMappingTool("newgidmap", pid, os.Getegid(), gids)
 		gidsMapped = err == nil
 	}
 	if !gidsMapped {
 		gidMap := fmt.Sprintf("/proc/%d/gid_map", pid)
-		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getgid())), 0666)
+		err = ioutil.WriteFile(gidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Getegid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write gid_map")
 		}
@@ -585,4 +602,86 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 	}
 
 	return joinUserAndMountNS(uint(pausePid), pausePidPath)
+}
+func readMappingsProc(path string) ([]idtools.IDMap, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot open %s", path)
+	}
+	defer file.Close()
+
+	mappings := []idtools.IDMap{}
+
+	buf := bufio.NewReader(file)
+	for {
+		line, _, err := buf.ReadLine()
+		if err != nil {
+			if err == io.EOF {
+				return mappings, nil
+			}
+			return nil, errors.Wrapf(err, "cannot read line from %s", path)
+		}
+		if line == nil {
+			return mappings, nil
+		}
+
+		containerID, hostID, size := 0, 0, 0
+		if _, err := fmt.Sscanf(string(line), "%d %d %d", &containerID, &hostID, &size); err != nil {
+			return nil, errors.Wrapf(err, "cannot parse %s", string(line))
+		}
+		mappings = append(mappings, idtools.IDMap{ContainerID: containerID, HostID: hostID, Size: size})
+	}
+}
+
+func matches(id int, configuredIDs []idtools.IDMap, currentIDs []idtools.IDMap) bool {
+	// The first mapping is the host user, handle it separately.
+	if currentIDs[0].HostID != id || currentIDs[0].Size != 1 {
+		return false
+	}
+
+	currentIDs = currentIDs[1:]
+	if len(currentIDs) != len(configuredIDs) {
+		return false
+	}
+
+	// It is fine to iterate sequentially as both slices are sorted.
+	for i := range currentIDs {
+		if currentIDs[i].HostID != configuredIDs[i].HostID {
+			return false
+		}
+		if currentIDs[i].Size != configuredIDs[i].Size {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ConfigurationMatches checks whether the additional uids/gids configured for the user
+// match the current user namespace.
+func ConfigurationMatches() (bool, error) {
+	if !IsRootless() || os.Geteuid() != 0 {
+		return true, nil
+	}
+
+	uids, gids, err := GetConfiguredMappings()
+	if err != nil {
+		return false, err
+	}
+
+	currentUIDs, err := readMappingsProc("/proc/self/uid_map")
+	if err != nil {
+		return false, err
+	}
+
+	if !matches(GetRootlessUID(), uids, currentUIDs) {
+		return false, err
+	}
+
+	currentGIDs, err := readMappingsProc("/proc/self/gid_map")
+	if err != nil {
+		return false, err
+	}
+
+	return matches(GetRootlessGID(), gids, currentGIDs), nil
 }
