@@ -449,7 +449,7 @@ func (s *BoltState) getVolumeFromDB(name []byte, volume *Volume, volBkt *bolt.Bu
 		return errors.Wrapf(err, "error unmarshalling volume %s config from DB", string(name))
 	}
 
-	// Volume state is allowed to be nil for legacy compatability
+	// Volume state is allowed to be nil for legacy compatibility
 	volStateBytes := volDB.Get(stateKey)
 	if volStateBytes != nil {
 		if err := json.Unmarshal(volStateBytes, volume.state); err != nil {

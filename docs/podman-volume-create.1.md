@@ -39,6 +39,8 @@ $ podman volume create myvol
 $ podman volume create
 
 $ podman volume create --label foo=bar myvol
+
+$ podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=nodev,noexec myvol
 ```
 
 ## SEE ALSO

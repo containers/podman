@@ -185,7 +185,7 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 		options = append(options, libpod.WithVolumeLabels(labels))
 	}
 
-	if len(options) != 0 {
+	if len(opts) != 0 {
 		options = append(options, libpod.WithVolumeOptions(opts))
 	}
 	newVolume, err := r.NewVolume(ctx, options...)

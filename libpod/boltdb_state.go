@@ -159,6 +159,16 @@ func (s *BoltState) Refresh() error {
 			return err
 		}
 
+		allVolsBucket, err := getAllVolsBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		volBucket, err := getVolBucket(tx)
+		if err != nil {
+			return err
+		}
+
 		// Iterate through all IDs. Check if they are containers.
 		// If they are, unmarshal their state, and then clear
 		// PID, mountpoint, and state for all of them
@@ -231,6 +241,44 @@ func (s *BoltState) Refresh() error {
 
 			if err := ctrBkt.Put(stateKey, newStateBytes); err != nil {
 				return errors.Wrapf(err, "error updating state for container %s in DB", string(id))
+			}
+
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		// Now refresh volumes
+		err = allVolsBucket.ForEach(func(id, name []byte) error {
+			dbVol := volBucket.Bucket(id)
+			if dbVol == nil {
+				return errors.Wrapf(define.ErrInternal, "inconsistency in state - volume %s is in all volumes bucket but volume not found", string(id))
+			}
+
+			// Get the state
+			volStateBytes := dbVol.Get(stateKey)
+			if volStateBytes == nil {
+				// If the volume doesn't have a state, nothing to do
+				return nil
+			}
+
+			oldState := new(VolumeState)
+
+			if err := json.Unmarshal(volStateBytes, oldState); err != nil {
+				return errors.Wrapf(err, "error unmarshalling state for volume %s", string(id))
+			}
+
+			// Reset mount count to 0
+			oldState.MountCount = 0
+
+			newState, err := json.Marshal(oldState)
+			if err != nil {
+				return errors.Wrapf(err, "error marshalling state for volume %s", string(id))
+			}
+
+			if err := dbVol.Put(stateKey, newState); err != nil {
+				return errors.Wrapf(err, "error storing new state for volume %s", string(id))
 			}
 
 			return nil
@@ -1630,6 +1678,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 
 			volume := new(Volume)
 			volume.config = new(VolumeConfig)
+			volume.state = new(VolumeState)
 
 			if err := s.getVolumeFromDB(id, volume, volBucket); err != nil {
 				if errors.Cause(err) != define.ErrNSMismatch {

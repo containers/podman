@@ -48,6 +48,19 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	volume.config.CreatedTime = time.Now()
 
+	if volume.config.Driver == "local" {
+		logrus.Debugf("Validating options for local driver")
+		// Validate options
+		for key := range volume.config.Options {
+			switch key {
+			case "device", "o", "type":
+				// Do nothing, valid keys
+			default:
+				return nil, errors.Wrapf(define.ErrInvalidArg, "invalid mount option %s for driver 'local'", key)
+			}
+		}
+	}
+
 	// Create the mountpoint of this volume
 	volPathRoot := filepath.Join(r.config.VolumePath, volume.config.Name)
 	if err := os.MkdirAll(volPathRoot, 0700); err != nil {
@@ -102,6 +115,11 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		return define.ErrVolumeRemoved
 	}
 
+	// Update volume status to pick up a potential removal from state
+	if err := v.update(); err != nil {
+		return err
+	}
+
 	deps, err := r.state.VolumeInUse(v)
 	if err != nil {
 		return err
@@ -135,6 +153,11 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 				return errors.Wrapf(err, "error removing container %s that depends on volume %s", ctr.ID(), v.Name())
 			}
 		}
+	}
+
+	// If the volume is still mounted - force unmount it
+	if err := v.unmount(true); err != nil {
+		return errors.Wrapf(err, "error unmounting volume %s", v.Name())
 	}
 
 	// Set volume as invalid so it can no longer be used

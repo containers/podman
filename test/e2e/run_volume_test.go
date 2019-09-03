@@ -5,11 +5,14 @@ package integration
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run with volumes", func() {
@@ -189,5 +192,61 @@ var _ = Describe("Podman run with volumes", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
+
+	It("podman run with tmpfs named volume mounts and unmounts", func() {
+		SkipIfRootless()
+		volName := "testvol"
+		mkVolume := podmanTest.Podman([]string{"volume", "create", "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=nodev", "testvol"})
+		mkVolume.WaitWithDefaultTimeout()
+		Expect(mkVolume.ExitCode()).To(Equal(0))
+
+		// Volume not mounted on create
+		mountCmd1, err := gexec.Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
+		Expect(err).To(BeNil())
+		mountCmd1.Wait(90)
+		Expect(mountCmd1.ExitCode()).To(Equal(0))
+		os.Stdout.Sync()
+		os.Stderr.Sync()
+		mountOut1 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd1.Out.Contents())), " ")
+		fmt.Printf("Output: %s", mountOut1)
+		Expect(strings.Contains(mountOut1, volName)).To(BeFalse())
+
+		ctrName := "testctr"
+		podmanSession := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, "-v", fmt.Sprintf("%s:/testvol", volName), ALPINE, "top"})
+		podmanSession.WaitWithDefaultTimeout()
+		Expect(podmanSession.ExitCode()).To(Equal(0))
+
+		// Volume now mounted as container is running
+		mountCmd2, err := gexec.Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
+		Expect(err).To(BeNil())
+		mountCmd2.Wait(90)
+		Expect(mountCmd2.ExitCode()).To(Equal(0))
+		os.Stdout.Sync()
+		os.Stderr.Sync()
+		mountOut2 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd2.Out.Contents())), " ")
+		fmt.Printf("Output: %s", mountOut2)
+		Expect(strings.Contains(mountOut2, volName)).To(BeTrue())
+
+		// Stop the container to unmount
+		podmanStopSession := podmanTest.Podman([]string{"stop", "--timeout", "0", ctrName})
+		podmanStopSession.WaitWithDefaultTimeout()
+		Expect(podmanStopSession.ExitCode()).To(Equal(0))
+
+		// We have to force cleanup so the unmount happens
+		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", ctrName})
+		podmanCleanupSession.WaitWithDefaultTimeout()
+		Expect(podmanCleanupSession.ExitCode()).To(Equal(0))
+
+		// Ensure volume is unmounted
+		mountCmd3, err := gexec.Start(exec.Command("mount"), GinkgoWriter, GinkgoWriter)
+		Expect(err).To(BeNil())
+		mountCmd3.Wait(90)
+		Expect(mountCmd3.ExitCode()).To(Equal(0))
+		os.Stdout.Sync()
+		os.Stderr.Sync()
+		mountOut3 := strings.Join(strings.Fields(fmt.Sprintf("%s", mountCmd3.Out.Contents())), " ")
+		fmt.Printf("Output: %s", mountOut3)
+		Expect(strings.Contains(mountOut3, volName)).To(BeFalse())
 	})
 })

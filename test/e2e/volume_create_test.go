@@ -57,4 +57,10 @@ var _ = Describe("Podman volume create", func() {
 		Expect(match).To(BeTrue())
 		Expect(len(check.OutputToStringArray())).To(Equal(1))
 	})
+
+	It("podman create volume with bad volume option", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--opt", "badOpt=bad"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })

@@ -38,14 +38,6 @@ type VolumeConfig struct {
 	// a list of mount options. For other drivers, they are passed to the
 	// volume driver handling the volume.
 	Options map[string]string `json:"volumeOptions,omitempty"`
-	// Type is the type of the volume. This is only used with the local
-	// driver. It the the filesystem that we will attempt to mount - nfs,
-	// tmpfs, etc.
-	Type string `json:"type,omitempty"`
-	// Device is the device of the volume. This is only used with the local
-	// driver, and only with some filesystem types (e.g., not required by
-	// tmpfs). It is the device to mount.
-	Device string `json:"device,omitempty"`
 	// Whether this volume was created for a specific container and will be
 	// removed with it.
 	IsCtrSpecific bool `json:"ctrSpecific"`
@@ -101,10 +93,9 @@ func (v *Volume) MountPoint() string {
 // Options return the volume's options
 func (v *Volume) Options() map[string]string {
 	options := make(map[string]string)
-	for key, value := range v.config.Options {
-		options[key] = value
+	for k, v := range v.config.Options {
+		options[k] = v
 	}
-
 	return options
 }
 
