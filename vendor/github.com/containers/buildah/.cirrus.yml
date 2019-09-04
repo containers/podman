@@ -19,10 +19,10 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-30-1-2-1559164849"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-29-1-2-1559164849"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-1904-disco-v20190514"         # Latest
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-1804-bionic-v20190530"  # LTS
+    FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-30-1-2-1565360543"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-cloud-base-29-1-2-1565360543"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-1904-disco-v20190724"          # Latest
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-1804-bionic-v20190722a"  # LTS
 
     ####
     #### Command variables to help avoid duplication

@@ -16,7 +16,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,56 +35,71 @@ type AddAndCopyOptions struct {
 	Hasher io.Writer
 	// Excludes is the contents of the .dockerignore file
 	Excludes []string
-	// The base directory for Excludes and data to copy in
+	// ContextDir is the base directory for Excludes for content being copied
 	ContextDir string
 	// ID mapping options to use when contents to be copied are part of
 	// another container, and need ownerships to be mapped from the host to
 	// that container's values before copying them into the container.
 	IDMappingOptions *IDMappingOptions
+	// DryRun indicates that the content should be digested, but not actually
+	// copied into the container.
+	DryRun bool
 }
 
 // addURL copies the contents of the source URL to the destination.  This is
 // its own function so that deferred closes happen after we're done pulling
 // down each item of potentially many.
-func addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer) error {
-	logrus.Debugf("saving %q to %q", srcurl, destination)
+func (b *Builder) addURL(destination, srcurl string, owner idtools.IDPair, hasher io.Writer, dryRun bool) error {
 	resp, err := http.Get(srcurl)
 	if err != nil {
 		return errors.Wrapf(err, "error getting %q", srcurl)
 	}
 	defer resp.Body.Close()
-	f, err := os.Create(destination)
-	if err != nil {
-		return errors.Wrapf(err, "error creating %q", destination)
+
+	thisHasher := hasher
+	if thisHasher != nil && b.ContentDigester.Hash() != nil {
+		thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
 	}
-	if err = f.Chown(owner.UID, owner.GID); err != nil {
-		return errors.Wrapf(err, "error setting owner of %q to %d:%d", destination, owner.UID, owner.GID)
+	if thisHasher == nil {
+		thisHasher = b.ContentDigester.Hash()
 	}
-	if last := resp.Header.Get("Last-Modified"); last != "" {
-		if mtime, err2 := time.Parse(time.RFC1123, last); err2 != nil {
-			logrus.Debugf("error parsing Last-Modified time %q: %v", last, err2)
-		} else {
-			defer func() {
-				if err3 := os.Chtimes(destination, time.Now(), mtime); err3 != nil {
-					logrus.Debugf("error setting mtime on %q to Last-Modified time %q: %v", destination, last, err3)
-				}
-			}()
+	thisWriter := thisHasher
+
+	if !dryRun {
+		logrus.Debugf("saving %q to %q", srcurl, destination)
+		f, err := os.Create(destination)
+		if err != nil {
+			return errors.Wrapf(err, "error creating %q", destination)
 		}
+		defer f.Close()
+		if err = f.Chown(owner.UID, owner.GID); err != nil {
+			return errors.Wrapf(err, "error setting owner of %q to %d:%d", destination, owner.UID, owner.GID)
+		}
+		if last := resp.Header.Get("Last-Modified"); last != "" {
+			if mtime, err2 := time.Parse(time.RFC1123, last); err2 != nil {
+				logrus.Debugf("error parsing Last-Modified time %q: %v", last, err2)
+			} else {
+				defer func() {
+					if err3 := os.Chtimes(destination, time.Now(), mtime); err3 != nil {
+						logrus.Debugf("error setting mtime on %q to Last-Modified time %q: %v", destination, last, err3)
+					}
+				}()
+			}
+		}
+		defer func() {
+			if err2 := f.Chmod(0600); err2 != nil {
+				logrus.Debugf("error setting permissions on %q: %v", destination, err2)
+			}
+		}()
+		thisWriter = io.MultiWriter(f, thisWriter)
 	}
-	defer f.Close()
-	bodyReader := io.Reader(resp.Body)
-	if hasher != nil {
-		bodyReader = io.TeeReader(bodyReader, hasher)
-	}
-	n, err := io.Copy(f, bodyReader)
+
+	n, err := io.Copy(thisWriter, resp.Body)
 	if err != nil {
 		return errors.Wrapf(err, "error reading contents for %q from %q", destination, srcurl)
 	}
 	if resp.ContentLength >= 0 && n != resp.ContentLength {
 		return errors.Errorf("error reading contents for %q from %q: wrong length (%d != %d)", destination, srcurl, n, resp.ContentLength)
-	}
-	if err := f.Chmod(0600); err != nil {
-		return errors.Wrapf(err, "error setting permissions on %q", destination)
 	}
 	return nil
 }
@@ -119,31 +133,34 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	}
 	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 	dest := mountPoint
-	if destination != "" && filepath.IsAbs(destination) {
-		dir := filepath.Dir(destination)
-		if dir != "." && dir != "/" {
-			if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, dir), 0755, hostOwner); err != nil {
-				return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, dir))
+	if !options.DryRun {
+		// Resolve the destination if it was specified as a relative path.
+		if destination != "" && filepath.IsAbs(destination) {
+			dir := filepath.Dir(destination)
+			if dir != "." && dir != "/" {
+				if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, dir), 0755, hostOwner); err != nil {
+					return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, dir))
+				}
+			}
+			dest = filepath.Join(dest, destination)
+		} else {
+			if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, b.WorkDir()))
+			}
+			dest = filepath.Join(dest, b.WorkDir(), destination)
+		}
+		// If the destination was explicitly marked as a directory by ending it
+		// with a '/', create it so that we can be sure that it's a directory,
+		// and any files we're copying will be placed in the directory.
+		if len(destination) > 0 && destination[len(destination)-1] == os.PathSeparator {
+			if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
+				return errors.Wrapf(err, "error creating directory %q", dest)
 			}
 		}
-		dest = filepath.Join(dest, destination)
-	} else {
-		if err = idtools.MkdirAllAndChownNew(filepath.Join(dest, b.WorkDir()), 0755, hostOwner); err != nil {
-			return errors.Wrapf(err, "error creating directory %q", filepath.Join(dest, b.WorkDir()))
+		// Make sure the destination's parent directory is usable.
+		if destpfi, err2 := os.Stat(filepath.Dir(dest)); err2 == nil && !destpfi.IsDir() {
+			return errors.Errorf("%q already exists, but is not a subdirectory)", filepath.Dir(dest))
 		}
-		dest = filepath.Join(dest, b.WorkDir(), destination)
-	}
-	// If the destination was explicitly marked as a directory by ending it
-	// with a '/', create it so that we can be sure that it's a directory,
-	// and any files we're copying will be placed in the directory.
-	if len(destination) > 0 && destination[len(destination)-1] == os.PathSeparator {
-		if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-			return errors.Wrapf(err, "error creating directory %q", dest)
-		}
-	}
-	// Make sure the destination's parent directory is usable.
-	if destpfi, err2 := os.Stat(filepath.Dir(dest)); err2 == nil && !destpfi.IsDir() {
-		return errors.Errorf("%q already exists, but is not a subdirectory)", filepath.Dir(dest))
 	}
 	// Now look at the destination itself.
 	destfi, err := os.Stat(dest)
@@ -156,10 +173,10 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	if len(source) > 1 && (destfi == nil || !destfi.IsDir()) {
 		return errors.Errorf("destination %q is not a directory", dest)
 	}
-	copyFileWithTar := b.copyFileWithTar(options.IDMappingOptions, &containerOwner, options.Hasher)
-	copyWithTar := b.copyWithTar(options.IDMappingOptions, &containerOwner, options.Hasher)
-	untarPath := b.untarPath(nil, options.Hasher)
-	err = addHelper(excludes, extract, dest, destfi, hostOwner, options, copyFileWithTar, copyWithTar, untarPath, source...)
+	copyFileWithTar := b.copyFileWithTar(options.IDMappingOptions, &containerOwner, options.Hasher, options.DryRun)
+	copyWithTar := b.copyWithTar(options.IDMappingOptions, &containerOwner, options.Hasher, options.DryRun)
+	untarPath := b.untarPath(nil, options.Hasher, options.DryRun)
+	err = b.addHelper(excludes, extract, dest, destfi, hostOwner, options, copyFileWithTar, copyWithTar, untarPath, source...)
 	if err != nil {
 		return err
 	}
@@ -230,9 +247,10 @@ func dockerIgnoreMatcher(lines []string, contextDir string) (*fileutils.PatternM
 	return matcher, nil
 }
 
-func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
-	for _, src := range source {
+func (b *Builder) addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, destfi os.FileInfo, hostOwner idtools.IDPair, options AddAndCopyOptions, copyFileWithTar, copyWithTar, untarPath func(src, dest string) error, source ...string) error {
+	for n, src := range source {
 		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+			b.ContentDigester.Start("")
 			// We assume that source is a file, and we're copying
 			// it to the destination.  If the destination is
 			// already a directory, create a file inside of it.
@@ -246,7 +264,7 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 			if destfi != nil && destfi.IsDir() {
 				d = filepath.Join(dest, path.Base(url.Path))
 			}
-			if err = addURL(d, src, hostOwner, options.Hasher); err != nil {
+			if err = b.addURL(d, src, hostOwner, options.Hasher, options.DryRun); err != nil {
 				return err
 			}
 			continue
@@ -270,14 +288,17 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 				return errors.Wrapf(err, "error reading %q", esrc)
 			}
 			if srcfi.IsDir() {
+				b.ContentDigester.Start("dir")
 				// The source is a directory, so copy the contents of
 				// the source directory into the target directory.  Try
 				// to create it first, so that if there's a problem,
 				// we'll discover why that won't work.
-				if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
-					return errors.Wrapf(err, "error creating directory %q", dest)
+				if !options.DryRun {
+					if err = idtools.MkdirAllAndChownNew(dest, 0755, hostOwner); err != nil {
+						return errors.Wrapf(err, "error creating directory %q", dest)
+					}
 				}
-				logrus.Debugf("copying %q to %q", esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
+				logrus.Debugf("copying[%d] %q to %q", n, esrc+string(os.PathSeparator)+"*", dest+string(os.PathSeparator)+"*")
 				if excludes == nil || !excludes.Exclusions() {
 					if err = copyWithTar(esrc, dest); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", esrc, dest)
@@ -295,25 +316,10 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 					if skip {
 						return nil
 					}
-					// combine the filename with the dest directory
+					// combine the source's basename with the dest directory
 					fpath, err := filepath.Rel(esrc, path)
 					if err != nil {
 						return errors.Wrapf(err, "error converting %s to a path relative to %s", path, esrc)
-					}
-					mtime := info.ModTime()
-					atime := mtime
-					times := []syscall.Timespec{
-						syscall.NsecToTimespec(atime.Unix()),
-						syscall.NsecToTimespec(mtime.Unix()),
-					}
-					if info.IsDir() {
-						return addHelperDirectory(esrc, path, filepath.Join(dest, fpath), info, hostOwner, times)
-					}
-					if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-						return addHelperSymlink(path, filepath.Join(dest, fpath), hostOwner, times)
-					}
-					if !info.Mode().IsRegular() {
-						return errors.Errorf("error copying %q to %q: source is not a regular file; file mode is %s", path, dest, info.Mode())
 					}
 					if err = copyFileWithTar(path, filepath.Join(dest, fpath)); err != nil {
 						return errors.Wrapf(err, "error copying %q to %q", path, dest)
@@ -326,6 +332,8 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 				continue
 			}
 
+			b.ContentDigester.Start("file")
+
 			if !extract || !archive.IsArchivePath(esrc) {
 				// This source is a file, and either it's not an
 				// archive, or we don't care whether or not it's an
@@ -335,7 +343,7 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 					d = filepath.Join(dest, filepath.Base(gsrc))
 				}
 				// Copy the file, preserving attributes.
-				logrus.Debugf("copying %q to %q", esrc, d)
+				logrus.Debugf("copying[%d] %q to %q", n, esrc, d)
 				if err = copyFileWithTar(esrc, d); err != nil {
 					return errors.Wrapf(err, "error copying %q to %q", esrc, d)
 				}
@@ -343,53 +351,11 @@ func addHelper(excludes *fileutils.PatternMatcher, extract bool, dest string, de
 			}
 
 			// We're extracting an archive into the destination directory.
-			logrus.Debugf("extracting contents of %q into %q", esrc, dest)
+			logrus.Debugf("extracting contents[%d] of %q into %q", n, esrc, dest)
 			if err = untarPath(esrc, dest); err != nil {
 				return errors.Wrapf(err, "error extracting %q into %q", esrc, dest)
 			}
 		}
 	}
-	return nil
-}
-
-func addHelperDirectory(esrc, path, dest string, info os.FileInfo, hostOwner idtools.IDPair, times []syscall.Timespec) error {
-	if err := idtools.MkdirAllAndChownNew(dest, info.Mode().Perm(), hostOwner); err != nil {
-		// discard only EEXIST on the top directory, which would have been created earlier in the caller
-		if !os.IsExist(err) || path != esrc {
-			return errors.Errorf("error creating directory %q", dest)
-		}
-	}
-	if err := idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
-		return errors.Wrapf(err, "error setting owner of directory %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
-	}
-	if err := system.LUtimesNano(dest, times); err != nil {
-		return errors.Wrapf(err, "error setting dates on directory %q", dest)
-	}
-	return nil
-}
-
-func addHelperSymlink(src, dest string, hostOwner idtools.IDPair, times []syscall.Timespec) error {
-	linkContents, err := os.Readlink(src)
-	if err != nil {
-		return errors.Wrapf(err, "error reading contents of symbolic link at %q", src)
-	}
-	if err = os.Symlink(linkContents, dest); err != nil {
-		if !os.IsExist(err) {
-			return errors.Wrapf(err, "error creating symbolic link to %q at %q", linkContents, dest)
-		}
-		if err = os.RemoveAll(dest); err != nil {
-			return errors.Wrapf(err, "error clearing symbolic link target %q", dest)
-		}
-		if err = os.Symlink(linkContents, dest); err != nil {
-			return errors.Wrapf(err, "error creating symbolic link to %q at %q (second try)", linkContents, dest)
-		}
-	}
-	if err = idtools.SafeLchown(dest, hostOwner.UID, hostOwner.GID); err != nil {
-		return errors.Wrapf(err, "error setting owner of symbolic link %q to %d:%d", dest, hostOwner.UID, hostOwner.GID)
-	}
-	if err = system.LUtimesNano(dest, times); err != nil {
-		return errors.Wrapf(err, "error setting dates on symbolic link %q", dest)
-	}
-	logrus.Debugf("Symlink(%s, %s)", linkContents, dest)
 	return nil
 }

@@ -2,6 +2,16 @@
 
 # Changelog
 
+## v1.10.1 (2019-08-08)
+    Bump containers/image to v3.0.2 to fix keyring issue
+    Bug fix for volume minus syntax
+    Bump container/storage v1.13.1 and containers/image v3.0.1
+    bump github.com/containernetworking/cni to v0.7.1
+    Add overlayfs to fuse-overlayfs tip
+    Add automatic apparmor tag discovery
+    Fix bug whereby --get-login has no effect
+    Bump to v1.11.0-dev
+
 ## v1.10.0 (2019-08-02)
     vendor github.com/containers/image@v3.0.0
     Remove GO111MODULE in favor of `-mod=vendor`

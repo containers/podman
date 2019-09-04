@@ -462,25 +462,40 @@ func ValidateVolumeCtrDir(ctrDir string) error {
 
 // ValidateVolumeOpts validates a volume's options
 func ValidateVolumeOpts(options []string) ([]string, error) {
-	var foundRootPropagation, foundRWRO, foundLabelChange, bindType int
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid int
 	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		switch opt {
+		case "noexec", "exec":
+			foundExec++
+			if foundExec > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'noexec' or 'exec' option", strings.Join(options, ", "))
+			}
+		case "nodev", "dev":
+			foundDev++
+			if foundDev > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nodev' or 'dev' option", strings.Join(options, ", "))
+			}
+		case "nosuid", "suid":
+			foundSuid++
+			if foundSuid > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nosuid' or 'suid' option", strings.Join(options, ", "))
+			}
 		case "rw", "ro":
+			foundRWRO++
 			if foundRWRO > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
 			}
-			foundRWRO++
 		case "z", "Z", "O":
+			foundLabelChange++
 			if foundLabelChange > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", strings.Join(options, ", "))
 			}
-			foundLabelChange++
 		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
+			foundRootPropagation++
 			if foundRootPropagation > 1 {
 				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", strings.Join(options, ", "))
 			}
-			foundRootPropagation++
 		case "bind", "rbind":
 			bindType++
 			if bindType > 1 {

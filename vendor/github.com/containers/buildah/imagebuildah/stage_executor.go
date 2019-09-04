@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -249,9 +248,112 @@ func (s *StageExecutor) volumeCacheRestore() error {
 	return nil
 }
 
+// digestContent digests any content that this next instruction would add to
+// the image, returning the digester if there is any, or nil otherwise.  We
+// don't care about the details of where in the filesystem the content actually
+// goes, because we're not actually going to add it here, so this is less
+// involved than Copy().
+func (s *StageExecutor) digestSpecifiedContent(node *parser.Node) (string, error) {
+	// No instruction: done.
+	if node == nil {
+		return "", nil
+	}
+
+	// Not adding content: done.
+	switch strings.ToUpper(node.Value) {
+	default:
+		return "", nil
+	case "ADD", "COPY":
+	}
+
+	// Pull out everything except the first node (the instruction) and the
+	// last node (the destination).
+	var srcs []string
+	destination := node
+	for destination.Next != nil {
+		destination = destination.Next
+		if destination.Next != nil {
+			srcs = append(srcs, destination.Value)
+		}
+	}
+
+	var sources []string
+	var idMappingOptions *buildah.IDMappingOptions
+	contextDir := s.executor.contextDir
+	for _, flag := range node.Flags {
+		if strings.HasPrefix(flag, "--from=") {
+			// Flag says to read the content from another
+			// container.  Update the ID mappings and
+			// all-content-comes-from-below-this-directory value.
+			from := strings.TrimPrefix(flag, "--from=")
+			if other, ok := s.executor.stages[from]; ok {
+				contextDir = other.mountPoint
+				idMappingOptions = &other.builder.IDMappingOptions
+			} else if builder, ok := s.executor.containerMap[from]; ok {
+				contextDir = builder.MountPoint
+				idMappingOptions = &builder.IDMappingOptions
+			} else {
+				return "", errors.Errorf("the stage %q has not been built", from)
+			}
+		}
+	}
+	for _, src := range srcs {
+		if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+			// Source is a URL.  TODO: cache this content
+			// somewhere, so that we can avoid pulling it down
+			// again if we end up needing to drop it into the
+			// filesystem.
+			sources = append(sources, src)
+		} else {
+			// Source is not a URL, so it's a location relative to
+			// the all-content-comes-from-below-this-directory
+			// directory.
+			contextSrc, err := securejoin.SecureJoin(contextDir, src)
+			if err != nil {
+				return "", errors.Wrapf(err, "error joining %q and %q", contextDir, src)
+			}
+			sources = append(sources, contextSrc)
+		}
+	}
+	// If the all-content-comes-from-below-this-directory is the build
+	// context, read its .dockerignore.
+	var excludes []string
+	if contextDir == s.executor.contextDir {
+		var err error
+		if excludes, err = imagebuilder.ParseDockerignore(contextDir); err != nil {
+			return "", errors.Wrapf(err, "error parsing .dockerignore in %s", contextDir)
+		}
+	}
+	// Restart the digester and have it do a dry-run copy to compute the
+	// digest information.
+	options := buildah.AddAndCopyOptions{
+		Excludes:         excludes,
+		ContextDir:       contextDir,
+		IDMappingOptions: idMappingOptions,
+		DryRun:           true,
+	}
+	s.builder.ContentDigester.Restart()
+	download := strings.ToUpper(node.Value) == "ADD"
+	err := s.builder.Add(destination.Value, download, options, sources...)
+	if err != nil {
+		return "", errors.Wrapf(err, "error dry-running %q", node.Original)
+	}
+	// Return the formatted version of the digester's result.
+	contentDigest := ""
+	prefix, digest := s.builder.ContentDigester.Digest()
+	if prefix != "" {
+		prefix += ":"
+	}
+	if digest.Validate() == nil {
+		contentDigest = prefix + digest.Encoded()
+	}
+	return contentDigest, nil
+}
+
 // Copy copies data into the working tree.  The "Download" field is how
-// imagebuilder tells us the instruction was "ADD" and not "COPY"
+// imagebuilder tells us the instruction was "ADD" and not "COPY".
 func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
+	s.builder.ContentDigester.Restart()
 	for _, copy := range copies {
 		// Check the file and see if part of it is a symlink.
 		// Convert it to the target if so.  To be ultrasafe
@@ -283,41 +385,52 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		if err := s.volumeCacheInvalidate(copy.Dest); err != nil {
 			return err
 		}
-		sources := []string{}
+		var sources []string
+		// The From field says to read the content from another
+		// container.  Update the ID mappings and
+		// all-content-comes-from-below-this-directory value.
+		var idMappingOptions *buildah.IDMappingOptions
+		var copyExcludes []string
+		contextDir := s.executor.contextDir
+		if len(copy.From) > 0 {
+			if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
+				contextDir = other.mountPoint
+				idMappingOptions = &other.builder.IDMappingOptions
+			} else if builder, ok := s.executor.containerMap[copy.From]; ok {
+				contextDir = builder.MountPoint
+				idMappingOptions = &builder.IDMappingOptions
+			} else {
+				return errors.Errorf("the stage %q has not been built", copy.From)
+			}
+			copyExcludes = excludes
+		} else {
+			copyExcludes = append(s.executor.excludes, excludes...)
+		}
 		for _, src := range copy.Src {
-			contextDir := s.executor.contextDir
-			copyExcludes := excludes
-			var idMappingOptions *buildah.IDMappingOptions
 			if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+				// Source is a URL.
 				sources = append(sources, src)
-			} else if len(copy.From) > 0 {
-				var srcRoot string
-				if other, ok := s.executor.stages[copy.From]; ok && other.index < s.index {
-					srcRoot = other.mountPoint
-					contextDir = other.mountPoint
-					idMappingOptions = &other.builder.IDMappingOptions
-				} else if builder, ok := s.executor.containerMap[copy.From]; ok {
-					srcRoot = builder.MountPoint
-					contextDir = builder.MountPoint
-					idMappingOptions = &builder.IDMappingOptions
-				} else {
-					return errors.Errorf("the stage %q has not been built", copy.From)
-				}
-				srcSecure, err := securejoin.SecureJoin(srcRoot, src)
+			} else {
+				// Treat the source, which is not a URL, as a
+				// location relative to the
+				// all-content-comes-from-below-this-directory
+				// directory.
+				srcSecure, err := securejoin.SecureJoin(contextDir, src)
 				if err != nil {
 					return err
 				}
-				// If destination is a folder, we need to take extra care to
-				// ensure that files are copied with correct names (since
-				// resolving a symlink may result in a different name).
 				if hadFinalPathSeparator {
+					// If destination is a folder, we need to take extra care to
+					// ensure that files are copied with correct names (since
+					// resolving a symlink may result in a different name).
 					_, srcName := filepath.Split(src)
 					_, srcNameSecure := filepath.Split(srcSecure)
 					if srcName != srcNameSecure {
 						options := buildah.AddAndCopyOptions{
-							Chown:      copy.Chown,
-							ContextDir: contextDir,
-							Excludes:   copyExcludes,
+							Chown:            copy.Chown,
+							ContextDir:       contextDir,
+							Excludes:         copyExcludes,
+							IDMappingOptions: idMappingOptions,
 						}
 						if err := s.builder.Add(filepath.Join(copy.Dest, srcName), copy.Download, options, srcSecure); err != nil {
 							return err
@@ -326,20 +439,16 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 					}
 				}
 				sources = append(sources, srcSecure)
-
-			} else {
-				sources = append(sources, filepath.Join(s.executor.contextDir, src))
-				copyExcludes = append(s.executor.excludes, excludes...)
 			}
-			options := buildah.AddAndCopyOptions{
-				Chown:            copy.Chown,
-				ContextDir:       contextDir,
-				Excludes:         copyExcludes,
-				IDMappingOptions: idMappingOptions,
-			}
-			if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
-				return err
-			}
+		}
+		options := buildah.AddAndCopyOptions{
+			Chown:            copy.Chown,
+			ContextDir:       contextDir,
+			Excludes:         copyExcludes,
+			IDMappingOptions: idMappingOptions,
+		}
+		if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -645,7 +754,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			// squash the contents of the base image.  Whichever is
 			// the case, we need to commit() to create a new image.
 			logCommit(s.output, -1)
-			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(nil), false, s.output); err != nil {
+			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(nil, ""), false, s.output); err != nil {
 				return "", nil, errors.Wrapf(err, "error committing base container")
 			}
 		} else {
@@ -711,13 +820,18 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				logrus.Debugf("%v", errors.Wrapf(err, "error building at step %+v", *step))
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
+			// In case we added content, retrieve its digest.
+			addedContentDigest, err := s.digestSpecifiedContent(node)
+			if err != nil {
+				return "", nil, err
+			}
 			if moreInstructions {
 				// There are still more instructions to process
 				// for this stage.  Make a note of the
 				// instruction in the history that we'll write
 				// for the image when we eventually commit it.
 				now := time.Now()
-				s.builder.AddPrependedEmptyLayer(&now, s.executor.getCreatedBy(node), "", "")
+				s.builder.AddPrependedEmptyLayer(&now, s.executor.getCreatedBy(node, addedContentDigest), "", "")
 				continue
 			} else {
 				// This is the last instruction for this stage,
@@ -726,7 +840,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				// if it's used as the basis for a later stage.
 				if lastStage || imageIsUsedLater {
 					logCommit(s.output, i)
-					imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node), false, s.output)
+					imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node, addedContentDigest), false, s.output)
 					if err != nil {
 						return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 					}
@@ -756,7 +870,11 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 		// cached images so far, look for one that matches what we
 		// expect to produce for this instruction.
 		if checkForLayers && !(s.executor.squash && lastInstruction && lastStage) {
-			cacheID, err = s.layerExists(ctx, node)
+			addedContentDigest, err := s.digestSpecifiedContent(node)
+			if err != nil {
+				return "", nil, err
+			}
+			cacheID, err = s.intermediateImageExists(ctx, node, addedContentDigest)
 			if err != nil {
 				return "", nil, errors.Wrap(err, "error checking if cached image exists from a previous build")
 			}
@@ -809,9 +927,14 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				logrus.Debugf("%v", errors.Wrapf(err, "error building at step %+v", *step))
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
+			// In case we added content, retrieve its digest.
+			addedContentDigest, err := s.digestSpecifiedContent(node)
+			if err != nil {
+				return "", nil, err
+			}
 			// Create a new image, maybe with a new layer.
 			logCommit(s.output, i)
-			imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node), !s.stepRequiresLayer(step), commitName)
+			imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(node, addedContentDigest), !s.stepRequiresLayer(step), commitName)
 			if err != nil {
 				return "", nil, errors.Wrapf(err, "error committing container for step %+v", *step)
 			}
@@ -899,9 +1022,9 @@ func (s *StageExecutor) tagExistingImage(ctx context.Context, cacheID, output st
 	return img.ID, ref, nil
 }
 
-// layerExists returns true if an intermediate image of currNode exists in the image store from a previous build.
+// intermediateImageExists returns true if an intermediate image of currNode exists in the image store from a previous build.
 // It verifies this by checking the parent of the top layer of the image and the history.
-func (s *StageExecutor) layerExists(ctx context.Context, currNode *parser.Node) (string, error) {
+func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *parser.Node, addedContentDigest string) (string, error) {
 	// Get the list of images available in the image store
 	images, err := s.executor.store.Images()
 	if err != nil {
@@ -932,83 +1055,12 @@ func (s *StageExecutor) layerExists(ctx context.Context, currNode *parser.Node) 
 				return "", errors.Wrapf(err, "error getting history of %q", image.ID)
 			}
 			// children + currNode is the point of the Dockerfile we are currently at.
-			if s.executor.historyMatches(baseHistory, currNode, history) {
-				// This checks if the files copied during build have been changed if the node is
-				// a COPY or ADD command.
-				filesMatch, err := s.copiedFilesMatch(currNode, history[len(history)-1].Created)
-				if err != nil {
-					return "", errors.Wrapf(err, "error checking if copied files match")
-				}
-				if filesMatch {
-					return image.ID, nil
-				}
+			if s.executor.historyMatches(baseHistory, currNode, history, addedContentDigest) {
+				return image.ID, nil
 			}
 		}
 	}
 	return "", nil
-}
-
-// getFilesToCopy goes through node to get all the src files that are copied, added or downloaded.
-// It is possible for the Dockerfile to have src as hom*, which means all files that have hom as a prefix.
-// Another format is hom?.txt, which means all files that have that name format with the ? replaced by another character.
-func (s *StageExecutor) getFilesToCopy(node *parser.Node) ([]string, error) {
-	currNode := node.Next
-	var src []string
-	for currNode.Next != nil {
-		if strings.HasPrefix(currNode.Value, "http://") || strings.HasPrefix(currNode.Value, "https://") {
-			src = append(src, currNode.Value)
-			currNode = currNode.Next
-			continue
-		}
-		matches, err := filepath.Glob(filepath.Join(s.copyFrom, currNode.Value))
-		if err != nil {
-			return nil, errors.Wrapf(err, "error finding match for pattern %q", currNode.Value)
-		}
-		src = append(src, matches...)
-		currNode = currNode.Next
-	}
-	return src, nil
-}
-
-// copiedFilesMatch checks to see if the node instruction is a COPY or ADD.
-// If it is either of those two it checks the timestamps on all the files copied/added
-// by the dockerfile. If the host version has a time stamp greater than the time stamp
-// of the build, the build will not use the cached version and will rebuild.
-func (s *StageExecutor) copiedFilesMatch(node *parser.Node, historyTime *time.Time) (bool, error) {
-	if node.Value != "add" && node.Value != "copy" {
-		return true, nil
-	}
-
-	src, err := s.getFilesToCopy(node)
-	if err != nil {
-		return false, err
-	}
-	for _, item := range src {
-		// for urls, check the Last-Modified field in the header.
-		if strings.HasPrefix(item, "http://") || strings.HasPrefix(item, "https://") {
-			urlContentNew, err := urlContentModified(item, historyTime)
-			if err != nil {
-				return false, err
-			}
-			if urlContentNew {
-				return false, nil
-			}
-			continue
-		}
-		// Walks the file tree for local files and uses chroot to ensure we don't escape out of the allowed path
-		// when resolving any symlinks.
-		// Change the time format to ensure we don't run into a parsing error when converting again from string
-		// to time.Time. It is a known Go issue that the conversions cause errors sometimes, so specifying a particular
-		// time format here when converting to a string.
-		timeIsGreater, err := resolveModifiedTime(s.copyFrom, item, historyTime.Format(time.RFC3339Nano))
-		if err != nil {
-			return false, errors.Wrapf(err, "error resolving symlinks and comparing modified times: %q", item)
-		}
-		if timeIsGreater {
-			return false, nil
-		}
-	}
-	return true, nil
 }
 
 // commit writes the container's contents to an image, using a passed-in tag as
@@ -1133,24 +1185,4 @@ func (s *StageExecutor) EnsureContainerPath(path string) error {
 		return errors.Wrapf(err, "error ensuring container path %q", path)
 	}
 	return nil
-}
-
-// urlContentModified sends a get request to the url and checks if the header has a value in
-// Last-Modified, and if it does compares the time stamp to that of the history of the cached image.
-// returns true if there is no Last-Modified value in the header.
-func urlContentModified(url string, historyTime *time.Time) (bool, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return false, errors.Wrapf(err, "error getting %q", url)
-	}
-	defer resp.Body.Close()
-	if lastModified := resp.Header.Get("Last-Modified"); lastModified != "" {
-		lastModifiedTime, err := time.Parse(time.RFC1123, lastModified)
-		if err != nil {
-			return false, errors.Wrapf(err, "error parsing time for %q", url)
-		}
-		return lastModifiedTime.After(*historyTime), nil
-	}
-	logrus.Debugf("Response header did not have Last-Modified %q, will rebuild.", url)
-	return true, nil
 }

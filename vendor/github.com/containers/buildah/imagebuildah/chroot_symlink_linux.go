@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/pkg/errors"
@@ -15,13 +14,11 @@ import (
 
 const (
 	symlinkChrootedCommand = "chrootsymlinks-resolve"
-	symlinkModifiedTime    = "modtimesymlinks-resolve"
 	maxSymlinksResolved    = 40
 )
 
 func init() {
 	reexec.Register(symlinkChrootedCommand, resolveChrootedSymlinks)
-	reexec.Register(symlinkModifiedTime, resolveSymlinkTimeModified)
 }
 
 // resolveSymlink uses a child subprocess to resolve any symlinks in filename
@@ -69,118 +66,6 @@ func resolveChrootedSymlinks() {
 		os.Exit(1)
 	}
 	os.Exit(status)
-}
-
-// main() for grandparent subprocess.  Its main job is to shuttle stdio back
-// and forth, managing a pseudo-terminal if we want one, for our child, the
-// parent subprocess.
-func resolveSymlinkTimeModified() {
-	status := 0
-	flag.Parse()
-	if len(flag.Args()) < 1 {
-		os.Exit(1)
-	}
-	// Our first parameter is the directory to chroot into.
-	if err := unix.Chdir(flag.Arg(0)); err != nil {
-		fmt.Fprintf(os.Stderr, "chdir(): %v\n", err)
-		os.Exit(1)
-	}
-	if err := unix.Chroot(flag.Arg(0)); err != nil {
-		fmt.Fprintf(os.Stderr, "chroot(): %v\n", err)
-		os.Exit(1)
-	}
-
-	// Our second parameter is the path name to evaluate for symbolic links.
-	// Our third parameter is the time the cached intermediate image was created.
-	// We check whether the modified time of the filepath we provide is after the time the cached image was created.
-	timeIsGreater, err := modTimeIsGreater(flag.Arg(0), flag.Arg(1), flag.Arg(2))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error checking if modified time of resolved symbolic link is greater: %v\n", err)
-		os.Exit(1)
-	}
-	if _, err := os.Stdout.WriteString(fmt.Sprintf("%v", timeIsGreater)); err != nil {
-		fmt.Fprintf(os.Stderr, "error writing string to stdout: %v\n", err)
-		os.Exit(1)
-	}
-	os.Exit(status)
-}
-
-// resolveModifiedTime (in the grandparent process) checks filename for any symlinks,
-// resolves it and compares the modified time of the file with historyTime, which is
-// the creation time of the cached image. It returns true if filename was modified after
-// historyTime, otherwise returns false.
-func resolveModifiedTime(rootdir, filename, historyTime string) (bool, error) {
-	// The child process expects a chroot and one path that
-	// will be consulted relative to the chroot directory and evaluated
-	// for any symbolic links present.
-	cmd := reexec.Command(symlinkModifiedTime, rootdir, filename, historyTime)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return false, errors.Wrapf(err, string(output))
-	}
-	// Hand back true/false depending on in the file was modified after the caches image was created.
-	return string(output) == "true", nil
-}
-
-// modTimeIsGreater goes through the files added/copied in using the Dockerfile and
-// checks the time stamp (follows symlinks) with the time stamp of when the cached
-// image was created. IT compares the two and returns true if the file was modified
-// after the cached image was created, otherwise it returns false.
-func modTimeIsGreater(rootdir, path string, historyTime string) (bool, error) {
-	var timeIsGreater bool
-
-	// Convert historyTime from string to time.Time for comparison
-	histTime, err := time.Parse(time.RFC3339Nano, historyTime)
-	if err != nil {
-		return false, errors.Wrapf(err, "error converting string to time.Time %q", historyTime)
-	}
-
-	// Since we are chroot in rootdir, we want a relative path, i.e (path - rootdir)
-	relPath, err := filepath.Rel(rootdir, path)
-	if err != nil {
-		return false, errors.Wrapf(err, "error making path %q relative to %q", path, rootdir)
-	}
-
-	// Walk the file tree and check the time stamps.
-	err = filepath.Walk(relPath, func(path string, info os.FileInfo, err error) error {
-		// If using cached images, it is possible for files that are being copied to come from
-		// previous build stages. But if using cached images, then the copied file won't exist
-		// since a container won't have been created for the previous build stage and info will be nil.
-		// In that case just return nil and continue on with using the cached image for the whole build process.
-		if info == nil {
-			return nil
-		}
-		modTime := info.ModTime()
-		if info.Mode()&os.ModeSymlink == os.ModeSymlink {
-			// Evaluate any symlink that occurs to get updated modified information
-			resolvedPath, err := filepath.EvalSymlinks(path)
-			if err != nil && os.IsNotExist(err) {
-				return errors.Wrapf(errDanglingSymlink, "%q", path)
-			}
-			if err != nil {
-				return errors.Wrapf(err, "error evaluating symlink %q", path)
-			}
-			fileInfo, err := os.Stat(resolvedPath)
-			if err != nil {
-				return errors.Wrapf(err, "error getting file info %q", resolvedPath)
-			}
-			modTime = fileInfo.ModTime()
-		}
-		if modTime.After(histTime) {
-			timeIsGreater = true
-			return nil
-		}
-		return nil
-	})
-
-	if err != nil {
-		// if error is due to dangling symlink, ignore error and return nil
-		if errors.Cause(err) == errDanglingSymlink {
-			return false, nil
-		}
-		return false, errors.Wrapf(err, "error walking file tree %q", path)
-	}
-	return timeIsGreater, err
 }
 
 // getSymbolic link goes through each part of the path and continues resolving symlinks as they appear.

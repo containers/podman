@@ -67,6 +67,8 @@ github.com/containernetworking/plugins v0.7.4 h1:ugkuXfg1Pdzm54U5DGMzreYIkZPSCmS
 github.com/containernetworking/plugins v0.7.4/go.mod h1:dagHaAhNjXjT9QYOklkKJDGaQPTg4pf//FrUcJeb7FU=
 github.com/containernetworking/plugins v0.8.1 h1:dJbykiiSIS3Xvo8d+A6rSXcUEFGfvCjUA+bUED4qegQ=
 github.com/containernetworking/plugins v0.8.1/go.mod h1:dagHaAhNjXjT9QYOklkKJDGaQPTg4pf//FrUcJeb7FU=
+github.com/containers/buildah v1.8.4-0.20190821140209-376e52ee0142 h1:RxJ7MbdmorTHiKcJDOz6SwRPasZVp4LOdRWoZ1fdlsQ=
+github.com/containers/buildah v1.8.4-0.20190821140209-376e52ee0142/go.mod h1:QIIw13J1YIwWQskItX1wqZPQtUOOKrOnHE+LTibbLLA=
 github.com/containers/buildah v1.9.0 h1:ktVRCGNoVfW8PlTuCKUeh+zGdqn1Nik80DSWvGX+v4Y=
 github.com/containers/buildah v1.9.0/go.mod h1:1CsiLJvyU+h+wOjnqJJOWuJCVcMxZOr5HN/gHGdzJxY=
 github.com/containers/buildah v1.9.2 h1:dg87r1W1poWVQE0lTmP3BzaqgEI5IRudZ3jKjNIZ3xQ=
