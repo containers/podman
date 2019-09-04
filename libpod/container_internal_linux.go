@@ -1039,6 +1039,11 @@ func (c *Container) makeBindMounts() error {
 
 // generateResolvConf generates a containers resolv.conf
 func (c *Container) generateResolvConf() (string, error) {
+	var (
+		nameservers    []string
+		cniNameServers []string
+	)
+
 	resolvConf := "/etc/resolv.conf"
 	for _, namespace := range c.config.Spec.Linux.Namespaces {
 		if namespace.Type == spec.NetworkNamespace {
@@ -1074,18 +1079,31 @@ func (c *Container) generateResolvConf() (string, error) {
 		return "", errors.Wrapf(err, "error parsing host resolv.conf")
 	}
 
-	// Make a new resolv.conf
-	nameservers := resolvconf.GetNameservers(resolv.Content)
-	// slirp4netns has a built in DNS server.
-	if c.config.NetMode.IsSlirp4netns() {
-		nameservers = append([]string{"10.0.2.3"}, nameservers...)
+	// Check if CNI gave back and DNS servers for us to add in
+	cniResponse := c.state.NetworkStatus
+	for _, i := range cniResponse {
+		if i.DNS.Nameservers != nil {
+			cniNameServers = append(cniNameServers, i.DNS.Nameservers...)
+			logrus.Debugf("adding nameserver(s) from cni response of '%q'", i.DNS.Nameservers)
+		}
 	}
+
+	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	if len(c.config.DNSServer) > 0 {
 		// We store DNS servers as net.IP, so need to convert to string
-		nameservers = []string{}
 		for _, server := range c.config.DNSServer {
 			nameservers = append(nameservers, server.String())
 		}
+	} else if len(cniNameServers) > 0 {
+		nameservers = append(nameservers, cniNameServers...)
+	} else {
+		// Make a new resolv.conf
+		nameservers = resolvconf.GetNameservers(resolv.Content)
+		// slirp4netns has a built in DNS server.
+		if c.config.NetMode.IsSlirp4netns() {
+			nameservers = append([]string{"10.0.2.3"}, nameservers...)
+		}
+
 	}
 
 	search := resolvconf.GetSearchDomains(resolv.Content)
