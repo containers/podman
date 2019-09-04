@@ -4,7 +4,6 @@ package integration
 
 import (
 	"os"
-	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -36,6 +35,8 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
+		SkipIfRootless()
+
 		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
 		result.WaitWithDefaultTimeout()
 		cid := result.OutputToString()
@@ -43,25 +44,30 @@ var _ = Describe("Podman run exit", func() {
 
 		mount := SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
-		Expect(strings.Contains(mount.OutputToString(), cid))
+		Expect(mount.OutputToString()).To(ContainSubstring(cid))
 
 		pmount := podmanTest.Podman([]string{"mount", "--notruncate"})
 		pmount.WaitWithDefaultTimeout()
-		Expect(strings.Contains(pmount.OutputToString(), cid))
 		Expect(pmount.ExitCode()).To(Equal(0))
+		Expect(pmount.OutputToString()).To(ContainSubstring(cid))
 
 		stop := podmanTest.Podman([]string{"stop", cid})
 		stop.WaitWithDefaultTimeout()
 		Expect(stop.ExitCode()).To(Equal(0))
 
+		// We have to force cleanup so the unmount happens
+		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", cid})
+		podmanCleanupSession.WaitWithDefaultTimeout()
+		Expect(podmanCleanupSession.ExitCode()).To(Equal(0))
+
 		mount = SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
-		Expect(!strings.Contains(mount.OutputToString(), cid))
+		Expect(mount.OutputToString()).NotTo(ContainSubstring(cid))
 
 		pmount = podmanTest.Podman([]string{"mount", "--notruncate"})
 		pmount.WaitWithDefaultTimeout()
-		Expect(!strings.Contains(pmount.OutputToString(), cid))
 		Expect(pmount.ExitCode()).To(Equal(0))
+		Expect(pmount.OutputToString()).NotTo(ContainSubstring(cid))
 
 	})
 })
