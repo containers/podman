@@ -69,7 +69,11 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		defer watcher.Close()
 	}
 
-	timeoutChan := time.After(timeout)
+	var timeoutChan <-chan time.Time
+
+	if timeout != 0 {
+		timeoutChan = time.After(timeout)
+	}
 
 	for {
 		select {
