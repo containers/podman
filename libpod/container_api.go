@@ -14,7 +14,6 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -524,24 +523,25 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	if !c.valid {
 		return -1, define.ErrCtrRemoved
 	}
-	err := wait.PollImmediateInfinite(waitTimeout,
-		func() (bool, error) {
-			logrus.Debugf("Checking container %s status...", c.ID())
-			stopped, err := c.isStopped()
-			if err != nil {
-				return false, err
-			}
-			if !stopped {
-				return false, nil
-			}
-			return true, nil
-		},
-	)
-	if err != nil {
-		return 0, err
+
+	exitFile := c.exitFilePath()
+	chWait := make(chan error, 1)
+
+	defer close(chWait)
+
+	for {
+		// ignore errors here, it is only used to avoid waiting
+		// too long.
+		_, _ = WaitForFile(exitFile, chWait, waitTimeout)
+
+		stopped, err := c.isStopped()
+		if err != nil {
+			return -1, err
+		}
+		if stopped {
+			return c.state.ExitCode, nil
+		}
 	}
-	exitCode := c.state.ExitCode
-	return exitCode, nil
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage
