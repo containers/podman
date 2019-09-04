@@ -4,12 +4,14 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_REPO_FULL_NAME
+req_env_var CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_REPO_FULL_NAME CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO
 
 cd $CIRRUS_WORKING_DIR
 
 if [[ "$CIRRUS_BRANCH" =~ "pull" ]]
 then
+    echo "Retrieving latest HEADS and tags"
+    git fetch --all --tags
     echo "Finding commit authors for PR $CIRRUS_PR"
     unset NICKS
     if [[ -r "$AUTHOR_NICKS_FILEPATH" ]]
@@ -20,7 +22,8 @@ then
         # Depending on branch-state, it's possible SHARANGE could be _WAY_ too big
         MAX_NICKS=10
         # newline separated
-        COMMIT_AUTHORS=$(git log --format='%ae' $SHARANGE | \
+        GITLOG="git log --format='%ae'"
+        COMMIT_AUTHORS=$($GITLOGt $SHARANGE || $GITLOG -1 HEAD | \
                          sort -u | \
                          egrep -v "$EXCLUDE_RE" | \
                          tail -$MAX_NICKS)
