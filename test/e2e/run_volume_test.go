@@ -184,4 +184,10 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(matches[0]).To(Not(ContainSubstring("nodev")))
 		Expect(matches[0]).To(Not(ContainSubstring("nosuid")))
 	})
+
+	It("podman run with noexec can't exec", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })
