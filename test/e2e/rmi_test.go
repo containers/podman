@@ -282,6 +282,7 @@ RUN find $LOCAL
 		session := podmanTest.PodmanNoCache([]string{"image", "rm"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
-		Expect(session.LineInOutputContains("image name or ID must be specified"))
+		match, _ := session.ErrorGrepString("image name or ID must be specified")
+		Expect(match).To(BeTrue())
 	})
 })

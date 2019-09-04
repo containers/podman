@@ -155,13 +155,13 @@ var _ = Describe("Podman images", func() {
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline.ExitCode()).To(Equal(0))
 		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
-		Expect(retapline.LineInOutputContains("alpine"))
+		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
 		retapline = podmanTest.PodmanNoCache([]string{"images", "-f", "reference=alpine"})
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline.ExitCode()).To(Equal(0))
 		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
-		Expect(retapline.LineInOutputContains("alpine"))
+		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
 		retnone := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "reference=bogus"})
 		retnone.WaitWithDefaultTimeout()
