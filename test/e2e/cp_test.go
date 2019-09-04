@@ -223,7 +223,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"cp", "testctr:testfile", "testfile1"})
+		session = podmanTest.Podman([]string{"cp", "--pause=false", "testctr:testfile", "testfile1"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -233,7 +233,7 @@ var _ = Describe("Podman cp", func() {
 		Expect(err).To(BeNil())
 		Expect(strings.Contains(string(cmdRet), "testuser")).To(BeFalse())
 
-		session = podmanTest.Podman([]string{"cp", "testfile1", "testctr:testfile2"})
+		session = podmanTest.Podman([]string{"cp", "--pause=false", "testfile1", "testctr:testfile2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
