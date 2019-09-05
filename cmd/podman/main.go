@@ -145,6 +145,10 @@ func main() {
 	if reexec.Init() {
 		return
 	}
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
+	}
 	if err := rootCmd.Execute(); err != nil {
 		outputError(err)
 	} else {
