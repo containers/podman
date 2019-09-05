@@ -18,7 +18,6 @@ require (
 	github.com/etcd-io/bbolt v1.3.2
 	github.com/fsouza/go-dockerclient v1.3.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/imdario/mergo v0.3.6 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
@@ -27,14 +26,15 @@ require (
 	github.com/mattn/go-shellwords v1.0.5
 	github.com/moby/moby v0.0.0-20171005181806-f8806b18b4b9 // indirect
 	github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c // indirect
-	github.com/onsi/ginkgo v1.6.0
-	github.com/onsi/gomega v1.4.3
+	github.com/onsi/ginkgo v1.8.0
+	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v1.0.0-rc8
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.2.2
+	github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
 	github.com/openshift/imagebuilder v1.1.0
 	github.com/pkg/errors v0.8.1
 	github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4
@@ -49,8 +49,7 @@ require (
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-	golang.org/x/sync v0.0.0-20181221193216-37e7f081c4d4 // indirect
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
-	gopkg.in/yaml.v2 v2.2.2 // indirect
+	k8s.io/api v0.0.0-20190813020757-36bff7324fb7 // indirect
 	k8s.io/client-go v0.0.0-20181219152756-3dd551c0f083 // indirect
 )

@@ -2,15 +2,18 @@ package buildah
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/copy"
+	"github.com/containers/image/docker"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/signature"
@@ -21,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -107,20 +111,63 @@ type PushOptions struct {
 }
 
 var (
-	// commitPolicy bypasses any signing requirements when committing containers to images
-	commitPolicy = &signature.Policy{
-		Default: []signature.PolicyRequirement{signature.NewPRReject()},
-		Transports: map[string]signature.PolicyTransportScopes{
-			is.Transport.Name(): {
-				"": []signature.PolicyRequirement{
-					signature.NewPRInsecureAcceptAnything(),
-				},
-			},
+	// storageAllowedPolicyScopes overrides the policy for local storage
+	// to ensure that we can read images from it.
+	storageAllowedPolicyScopes = signature.PolicyTransportScopes{
+		"": []signature.PolicyRequirement{
+			signature.NewPRInsecureAcceptAnything(),
 		},
 	}
-	// pushPolicy bypasses any signing requirements when pushing (copying) images from local storage
-	pushPolicy = commitPolicy
 )
+
+// checkRegistrySourcesAllows checks the $BUILD_REGISTRY_SOURCES environment
+// variable, if it's set.  The contents are expected to be a JSON-encoded
+// github.com/openshift/api/config/v1.Image, set by an OpenShift build
+// controller that arranged for us to be run in a container.
+func checkRegistrySourcesAllows(forWhat string, dest types.ImageReference) error {
+	transport := dest.Transport()
+	if transport == nil {
+		return nil
+	}
+	if transport.Name() != docker.Transport.Name() {
+		return nil
+	}
+	dref := dest.DockerReference()
+	if dref == nil || reference.Domain(dref) == "" {
+		return nil
+	}
+
+	if registrySources, ok := os.LookupEnv("BUILD_REGISTRY_SOURCES"); ok && len(registrySources) > 0 {
+		var sources configv1.RegistrySources
+		if err := json.Unmarshal([]byte(registrySources), &sources); err != nil {
+			return errors.Wrapf(err, "error parsing $BUILD_REGISTRY_SOURCES (%q) as JSON", registrySources)
+		}
+		blocked := false
+		if len(sources.BlockedRegistries) > 0 {
+			for _, blockedDomain := range sources.BlockedRegistries {
+				if blockedDomain == reference.Domain(dref) {
+					blocked = true
+				}
+			}
+		}
+		if blocked {
+			return errors.Errorf("%s registry at %q denied by policy: it is in the blocked registries list", forWhat, reference.Domain(dref))
+		}
+		allowed := true
+		if len(sources.AllowedRegistries) > 0 {
+			allowed = false
+			for _, allowedDomain := range sources.AllowedRegistries {
+				if allowedDomain == reference.Domain(dref) {
+					allowed = true
+				}
+			}
+		}
+		if !allowed {
+			return errors.Errorf("%s registry at %q denied by policy: not in allowed registries list", forWhat, reference.Domain(dref))
+		}
+	}
+	return nil
+}
 
 // Commit writes the contents of the container, along with its updated
 // configuration, to a new image in the specified location, and if we know how,
@@ -157,6 +204,14 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		return "", nil, "", errors.Errorf("commit access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
+	// Load the system signing policy.
+	commitPolicy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return "", nil, "", errors.Wrapf(err, "error obtaining default signature policy")
+	}
+	// Override the settings for local storage to make sure that we can always read the source "image".
+	commitPolicy.Transports[is.Transport.Name()] = storageAllowedPolicyScopes
+
 	policyContext, err := signature.NewPolicyContext(commitPolicy)
 	if err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error creating new signature policy context")
@@ -166,6 +221,28 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			logrus.Debugf("error destroying signature policy context: %v", err2)
 		}
 	}()
+
+	// Check if the commit is blocked by $BUILDER_REGISTRY_SOURCES.
+	if err := checkRegistrySourcesAllows("commit to", dest); err != nil {
+		return imgID, nil, "", err
+	}
+	if len(options.AdditionalTags) > 0 {
+		names, err := util.ExpandNames(options.AdditionalTags, "", systemContext, b.store)
+		if err != nil {
+			return imgID, nil, "", err
+		}
+		for _, name := range names {
+			additionalDest, err := docker.Transport.ParseReference(name)
+			if err != nil {
+				return imgID, nil, "", errors.Wrapf(err, "error parsing image name %q as an image reference", name)
+			}
+			if err := checkRegistrySourcesAllows("commit to", additionalDest); err != nil {
+				return imgID, nil, "", err
+			}
+		}
+	}
+	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
+
 	// Check if the base image is already in the destination and it's some kind of local
 	// storage.  If so, we can skip recompressing any layers that come from the base image.
 	exportBaseLayers := true
@@ -292,10 +369,24 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		return nil, "", errors.Errorf("push access to registry for %q is blocked by configuration", transports.ImageName(dest))
 	}
 
+	// Load the system signing policy.
+	pushPolicy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "error obtaining default signature policy")
+	}
+	// Override the settings for local storage to make sure that we can always read the source "image".
+	pushPolicy.Transports[is.Transport.Name()] = storageAllowedPolicyScopes
+
 	policyContext, err := signature.NewPolicyContext(pushPolicy)
 	if err != nil {
 		return nil, "", errors.Wrapf(err, "error creating new signature policy context")
 	}
+	defer func() {
+		if err2 := policyContext.Destroy(); err2 != nil {
+			logrus.Debugf("error destroying signature policy context: %v", err2)
+		}
+	}()
+
 	// Look up the image.
 	src, _, err := util.FindImage(options.Store, "", systemContext, image)
 	if err != nil {
@@ -313,6 +404,13 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		}
 		maybeCachedSrc = cache
 	}
+
+	// Check if the push is blocked by $BUILDER_REGISTRY_SOURCES.
+	if err := checkRegistrySourcesAllows("push to", dest); err != nil {
+		return nil, "", err
+	}
+	logrus.Debugf("pushing image to reference %q is allowed by policy", transports.ImageName(dest))
+
 	// Copy everything.
 	switch options.Compression {
 	case archive.Uncompressed:
