@@ -77,7 +77,7 @@ var _ = Describe("Podman mount", func() {
 		j := podmanTest.Podman([]string{"mount", "--format=json"})
 		j.WaitWithDefaultTimeout()
 		Expect(j.ExitCode()).To(Equal(0))
-		Expect(j.IsJSONOutputValid())
+		Expect(j.IsJSONOutputValid()).To(BeTrue())
 
 		umount := podmanTest.Podman([]string{"umount", cid})
 		umount.WaitWithDefaultTimeout()

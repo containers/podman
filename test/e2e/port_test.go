@@ -135,12 +135,12 @@ var _ = Describe("Podman port", func() {
 		result1 := podmanTest.Podman([]string{"port", "-l", "5000"})
 		result1.WaitWithDefaultTimeout()
 		Expect(result1.ExitCode()).To(BeZero())
-		Expect(result1.LineInOuputStartsWith("0.0.0.0:5000"))
+		Expect(result1.LineInOuputStartsWith("0.0.0.0:5000")).To(BeTrue())
 
 		// Check that the second port was honored
 		result2 := podmanTest.Podman([]string{"port", "-l", "5001"})
 		result2.WaitWithDefaultTimeout()
 		Expect(result2.ExitCode()).To(BeZero())
-		Expect(result2.LineInOuputStartsWith("0.0.0.0:5001"))
+		Expect(result2.LineInOuputStartsWith("0.0.0.0:5001")).To(BeTrue())
 	})
 })
