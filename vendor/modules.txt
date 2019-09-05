@@ -45,7 +45,7 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.8.4-0.20190821140209-376e52ee0142
+# github.com/containers/buildah v1.11.0
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser
@@ -60,6 +60,7 @@ github.com/containers/buildah/docker
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
+github.com/containers/buildah/pkg/cgroups
 # github.com/containers/image v3.0.2+incompatible
 github.com/containers/image/directory
 github.com/containers/image/docker
@@ -240,7 +241,7 @@ github.com/fsouza/go-dockerclient/internal/term
 github.com/ghodss/yaml
 # github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
 github.com/godbus/dbus
-# github.com/gogo/protobuf v1.2.1
+# github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
 # github.com/golang/protobuf v1.3.1
@@ -269,7 +270,7 @@ github.com/imdario/mergo
 github.com/inconshreveable/mousetrap
 # github.com/ishidawataru/sctp v0.0.0-20180918013207-6e2cb1366111
 github.com/ishidawataru/sctp
-# github.com/json-iterator/go v1.1.6
+# github.com/json-iterator/go v1.1.7
 github.com/json-iterator/go
 # github.com/klauspost/compress v1.7.2
 github.com/klauspost/compress/zstd
@@ -366,6 +367,8 @@ github.com/opencontainers/runtime-tools/error
 # github.com/opencontainers/selinux v1.3.0
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/go-selinux
+# github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
+github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -539,9 +542,9 @@ gopkg.in/inf.v0
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.2
 gopkg.in/yaml.v2
-# k8s.io/api v0.0.0-20190624085159-95846d7ef82a
+# k8s.io/api v0.0.0-20190813020757-36bff7324fb7
 k8s.io/api/core/v1
-# k8s.io/apimachinery v0.0.0-20190624085041-961b39a1baa0
+# k8s.io/apimachinery v0.0.0-20190809020650-423f5d784010
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/api/resource

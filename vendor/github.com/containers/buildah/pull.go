@@ -218,6 +218,9 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	if blocked {
 		return nil, errors.Errorf("pull access to registry for %q is blocked by configuration", transports.ImageName(srcRef))
 	}
+	if err := checkRegistrySourcesAllows("pull from", srcRef); err != nil {
+		return nil, err
+	}
 
 	destName, err := localImageNameForReference(ctx, store, srcRef)
 	if err != nil {

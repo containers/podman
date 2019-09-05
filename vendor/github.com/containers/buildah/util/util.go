@@ -9,6 +9,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/buildah/pkg/cgroups"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/pkg/sysregistriesv2"
 	"github.com/containers/image/signature"
@@ -249,6 +250,12 @@ func Runtime() string {
 	if runtime != "" {
 		return runtime
 	}
+
+	// Need to switch default until runc supports cgroups v2
+	if unified, _ := cgroups.IsCgroup2UnifiedMode(); unified {
+		return "crun"
+	}
+
 	return DefaultRuntime
 }
 

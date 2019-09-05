@@ -1384,8 +1384,7 @@ func runUsingRuntimeMain() {
 		os.Exit(1)
 	}
 	// Set ourselves up to read the container's exit status.  We're doing this in a child process
-	// so that we won't mess with the setting in a caller of the library. This stubs to OS specific
-	// calls
+	// so that we won't mess with the setting in a caller of the library.
 	if err := setChildProcess(); err != nil {
 		os.Exit(1)
 	}
