@@ -1403,11 +1403,10 @@ func (s *BoltState) AddVolume(volume *Volume) error {
 	// Volume state is allowed to not exist
 	var volStateJSON []byte
 	if volume.state != nil {
-		stateJSON, err := json.Marshal(volume.state)
+		volStateJSON, err = json.Marshal(volume.state)
 		if err != nil {
 			return errors.Wrapf(err, "error marshalling volume %s state to JSON", volume.Name())
 		}
-		volStateJSON = stateJSON
 	}
 
 	db, err := s.getDBCon()

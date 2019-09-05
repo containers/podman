@@ -44,11 +44,11 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 		volume.config.Name = stringid.GenerateNonCryptoID()
 	}
 	if volume.config.Driver == "" {
-		volume.config.Driver = "local"
+		volume.config.Driver = define.VolumeDriverLocal
 	}
 	volume.config.CreatedTime = time.Now()
 
-	if volume.config.Driver == "local" {
+	if volume.config.Driver == define.VolumeDriverLocal {
 		logrus.Debugf("Validating options for local driver")
 		// Validate options
 		for key := range volume.config.Options {

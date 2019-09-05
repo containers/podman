@@ -67,7 +67,7 @@ func (v *Volume) mount() error {
 
 	errPipe, err := mountCmd.StderrPipe()
 	if err != nil {
-		return errors.Wrapf(err, "getting stderr pipe")
+		return errors.Wrapf(err, "error getting stderr pipe for mount")
 	}
 	if err := mountCmd.Start(); err != nil {
 		out, err2 := ioutil.ReadAll(errPipe)

@@ -18,3 +18,7 @@ type InfoData struct {
 	Type string
 	Data map[string]interface{}
 }
+
+// VolumeDriverLocal is the "local" volume driver. It is managed by libpod
+// itself.
+const VolumeDriverLocal = "local"

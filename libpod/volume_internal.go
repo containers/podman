@@ -26,7 +26,7 @@ func (v *Volume) teardownStorage() error {
 // Volumes with options set, or a filesystem type, or a device to mount need to
 // be mounted and unmounted.
 func (v *Volume) needsMount() bool {
-	return len(v.config.Options) > 0 && v.config.Driver == "local"
+	return len(v.config.Options) > 0 && v.config.Driver == define.VolumeDriverLocal
 }
 
 // update() updates the volume state from the DB.

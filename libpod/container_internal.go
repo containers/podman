@@ -1253,10 +1253,10 @@ func (c *Container) mountStorage() (_ string, Err error) {
 					return
 				}
 				vol.lock.Lock()
-				defer vol.lock.Unlock()
 				if err := vol.unmount(false); err != nil {
 					logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
 				}
+				vol.lock.Unlock()
 			}()
 		}
 	}
@@ -1281,14 +1281,19 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
+	var cleanupErr error
+
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
-			return err
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
 		}
 	}
 
 	if c.config.Rootfs != "" {
-		return nil
+		return cleanupErr
 	}
 
 	if err := c.unmount(false); err != nil {
@@ -1298,13 +1303,13 @@ func (c *Container) cleanupStorage() error {
 		// state
 		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
-			return nil
+		} else {
+			if cleanupErr != nil {
+				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
 		}
-
-		return err
 	}
-
-	var cleanupErr error
 
 	// Request an unmount of all named volumes
 	for _, v := range c.config.NamedVolumes {
