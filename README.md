@@ -5,7 +5,7 @@
 Libpod provides a library for applications looking to use the Container Pod concept,
 popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`. Podman manages pods, containers, container images, and container volumes.
 
-* [Latest Version: 1.4.4](https://github.com/containers/libpod/releases/latest)
+* [Latest Version: 1.5.1](https://github.com/containers/libpod/releases/latest)
 * [Continuous Integration:](contrib/cirrus/README.md) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [GoDoc: ![GoDoc](https://godoc.org/github.com/containers/libpod/libpod?status.svg)](https://godoc.org/github.com/containers/libpod/libpod)
 * Automated continuous release downloads (including remote-client):
@@ -29,11 +29,9 @@ This project tests all builds against each supported version of Fedora, the late
 
 ## Roadmap
 
-1. Allow the Podman CLI to use a Varlink backend to connect to remote Podman instances
 1. Integrate libpod into CRI-O to replace its existing container management backend
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
-1. Support for CGroups V2 (and resource isolation for rootless containers)
 
 ## Rootless
 Podman can be easily run as a normal user, without requiring a setuid binary.
