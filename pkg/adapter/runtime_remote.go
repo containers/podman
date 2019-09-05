@@ -113,6 +113,18 @@ func (r RemoteRuntime) DeferredShutdown(force bool) {
 	}
 }
 
+// RuntimeConfig is a bogus wrapper for compat with the libpod runtime
+type RuntimeConfig struct {
+	// CGroupManager is the CGroup Manager to use
+	// Valid values are "cgroupfs" and "systemd"
+	CgroupManager string
+}
+
+// Shutdown is a bogus wrapper for compat with the libpod runtime
+func (r *RemoteRuntime) GetConfig() (*RuntimeConfig, error) {
+	return nil, nil
+}
+
 // Shutdown is a bogus wrapper for compat with the libpod runtime
 func (r RemoteRuntime) Shutdown(force bool) error {
 	return nil
