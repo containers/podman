@@ -3,6 +3,8 @@
 package utils
 
 import (
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/dbus"
 	"github.com/godbus/dbus"
 )
@@ -10,9 +12,19 @@ import (
 // RunUnderSystemdScope adds the specified pid to a systemd scope
 func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	var properties []systemdDbus.Property
-	conn, err := systemdDbus.New()
-	if err != nil {
-		return err
+	var conn *systemdDbus.Conn
+	var err error
+
+	if rootless.IsRootless() {
+		conn, err = cgroups.GetUserConnection(rootless.GetRootlessUID())
+		if err != nil {
+			return err
+		}
+	} else {
+		conn, err = systemdDbus.New()
+		if err != nil {
+			return err
+		}
 	}
 	properties = append(properties, systemdDbus.PropSlice(slice))
 	properties = append(properties, newProp("PIDs", []uint32{uint32(pid)}))
