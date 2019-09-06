@@ -24,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-const unknownPackage = "Unknown"
-
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int) error {
 	for ; path != "/"; path = filepath.Dir(path) {
@@ -114,36 +112,12 @@ func (r *OCIRuntime) createContainer(ctr *Container, restoreOptions *ContainerCh
 	return r.createOCIContainer(ctr, restoreOptions)
 }
 
-func rpmVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
-func dpkgVersion(path string) string {
-	output := unknownPackage
-	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
-	if outp, err := cmd.Output(); err == nil {
-		output = string(outp)
-	}
-	return strings.Trim(output, "\n")
-}
-
 func (r *OCIRuntime) pathPackage() string {
-	if out := rpmVersion(r.path); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.path)
+	return packageVersion(r.path)
 }
 
 func (r *OCIRuntime) conmonPackage() string {
-	if out := rpmVersion(r.conmonPath); out != unknownPackage {
-		return out
-	}
-	return dpkgVersion(r.conmonPath)
+	return packageVersion(r.conmonPath)
 }
 
 // execContainer executes a command in a running container
