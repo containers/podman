@@ -281,10 +281,17 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
+	graphRoot := storeOpts.GraphRoot
+	if graphRoot == "" {
+		logrus.Warnf("Storage configuration is unset - using hardcoded default paths")
+		graphRoot = "/var/lib/containers/storage"
+	}
+	volumePath := filepath.Join(graphRoot, "volumes")
+	staticDir := filepath.Join(graphRoot, "libpod")
 	return RuntimeConfig{
 		// Leave this empty so containers/storage will use its defaults
 		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            filepath.Join(storeOpts.GraphRoot, "volumes"),
+		VolumePath:            volumePath,
 		ImageDefaultTransport: DefaultTransport,
 		StateType:             BoltDBStateStore,
 		OCIRuntime:            "runc",
@@ -314,7 +321,7 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 		},
 		InitPath:              define.DefaultInitPath,
 		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             filepath.Join(storeOpts.GraphRoot, "libpod"),
+		StaticDir:             staticDir,
 		TmpDir:                "",
 		MaxLogSize:            -1,
 		NoPivotRoot:           false,
@@ -789,6 +796,20 @@ func probeConmon(conmonBinary string) error {
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
+	// Let's sanity-check some paths first.
+	// Relative paths can cause nasty bugs, because core paths we use could
+	// shift between runs (or even parts of the program - the OCI runtime
+	// uses a different working directory than we do, for example.
+	if !filepath.IsAbs(runtime.config.StaticDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "static directory must be an absolute path - instead got %q", runtime.config.StaticDir)
+	}
+	if !filepath.IsAbs(runtime.config.TmpDir) {
+		return errors.Wrapf(define.ErrInvalidArg, "temporary directory must be an absolute path - instead got %q", runtime.config.TmpDir)
+	}
+	if !filepath.IsAbs(runtime.config.VolumePath) {
+		return errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", runtime.config.VolumePath)
+	}
+
 	// Find a working conmon binary
 	foundConmon := false
 	foundOutdatedConmon := false
