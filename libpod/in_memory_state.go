@@ -507,6 +507,36 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	return nil
 }
 
+// UpdateVolume updates a volume from the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) UpdateVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
+// SaveVolume saves a volume's state to the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) SaveVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
 // VolumeInUse checks if the given volume is being used by at least one container
 func (s *InMemoryState) VolumeInUse(volume *Volume) ([]string, error) {
 	if !volume.valid {

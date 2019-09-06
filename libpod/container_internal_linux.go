@@ -49,19 +49,19 @@ func (c *Container) mountSHM(shmOptions string) error {
 }
 
 func (c *Container) unmountSHM(mount string) error {
-	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
+	if err := unix.Unmount(mount, 0); err != nil {
 		if err != syscall.EINVAL {
-			logrus.Warnf("container %s failed to unmount %s : %v", c.ID(), mount, err)
-		} else {
-			logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
+			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
 		}
+		// If it's just an EINVAL, debug logs only
+		logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 	}
 	return nil
 }
 
 // prepare mounts the container and sets up other required resources like net
 // namespaces
-func (c *Container) prepare() (err error) {
+func (c *Container) prepare() (Err error) {
 	var (
 		wg                              sync.WaitGroup
 		netNS                           ns.NetNS
@@ -108,31 +108,42 @@ func (c *Container) prepare() (err error) {
 		logrus.Debugf("Created root filesystem for container %s at %s", c.ID(), c.state.Mountpoint)
 	}()
 
-	defer func() {
-		if err != nil {
-			if err2 := c.cleanupNetwork(); err2 != nil {
-				logrus.Errorf("Error cleaning up container %s network: %v", c.ID(), err2)
-			}
-			if err2 := c.cleanupStorage(); err2 != nil {
-				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), err2)
-			}
-		}
-	}()
-
 	wg.Wait()
 
+	var createErr error
 	if createNetNSErr != nil {
-		if mountStorageErr != nil {
-			logrus.Error(createNetNSErr)
-			return mountStorageErr
-		}
-		return createNetNSErr
+		createErr = createNetNSErr
 	}
 	if mountStorageErr != nil {
-		return mountStorageErr
+		logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+		createErr = mountStorageErr
 	}
 
-	// Save the container
+	// Only trigger storage cleanup if mountStorage was successful.
+	// Otherwise, we may mess up mount counters.
+	if createNetNSErr != nil && mountStorageErr == nil {
+		if err := c.cleanupStorage(); err != nil {
+			// createErr is guaranteed non-nil, so print
+			// unconditionally
+			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			createErr = errors.Wrapf(err, "error unmounting storage for container %s after network create failure", c.ID())
+		}
+	}
+
+	// It's OK to unconditionally trigger network cleanup. If the network
+	// isn't ready it will do nothing.
+	if createErr != nil {
+		if err := c.cleanupNetwork(); err != nil {
+			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+			createErr = errors.Wrapf(err, "error cleaning up container %s network after setup failure", c.ID())
+		}
+	}
+
+	if createErr != nil {
+		return createErr
+	}
+
+	// Save changes to container state
 	return c.save()
 }
 

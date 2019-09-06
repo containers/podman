@@ -1205,7 +1205,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (string, error) {
+func (c *Container) mountStorage() (_ string, Err error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1224,6 +1224,40 @@ func (c *Container) mountStorage() (string, error) {
 		}
 		if err := os.Chown(c.config.ShmDir, c.RootUID(), c.RootGID()); err != nil {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
+		}
+		defer func() {
+			if Err != nil {
+				if err := c.unmountSHM(c.config.ShmDir); err != nil {
+					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
+	}
+
+	// Request a mount of all named volumes
+	for _, v := range c.config.NamedVolumes {
+		vol, err := c.runtime.state.Volume(v.Name)
+		if err != nil {
+			return "", errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+		}
+
+		if vol.needsMount() {
+			vol.lock.Lock()
+			if err := vol.mount(); err != nil {
+				vol.lock.Unlock()
+				return "", errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
+			}
+			vol.lock.Unlock()
+			defer func() {
+				if Err == nil {
+					return
+				}
+				vol.lock.Lock()
+				if err := vol.unmount(false); err != nil {
+					logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
+				}
+				vol.lock.Unlock()
+			}()
 		}
 	}
 
@@ -1247,14 +1281,19 @@ func (c *Container) cleanupStorage() error {
 		return nil
 	}
 
+	var cleanupErr error
+
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
-			return err
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
 		}
 	}
 
 	if c.config.Rootfs != "" {
-		return nil
+		return cleanupErr
 	}
 
 	if err := c.unmount(false); err != nil {
@@ -1264,19 +1303,52 @@ func (c *Container) cleanupStorage() error {
 		// state
 		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
-			return nil
+		} else {
+			if cleanupErr != nil {
+				logrus.Errorf("Error cleaning up container %s storage: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
+		}
+	}
+
+	// Request an unmount of all named volumes
+	for _, v := range c.config.NamedVolumes {
+		vol, err := c.runtime.state.Volume(v.Name)
+		if err != nil {
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+
+			// We need to try and unmount every volume, so continue
+			// if they fail.
+			continue
 		}
 
-		return err
+		if vol.needsMount() {
+			vol.lock.Lock()
+			if err := vol.unmount(false); err != nil {
+				if cleanupErr != nil {
+					logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+				}
+				cleanupErr = errors.Wrapf(err, "error unmounting volume %s for container %s", vol.Name(), c.ID())
+			}
+			vol.lock.Unlock()
+		}
 	}
 
 	c.state.Mountpoint = ""
 	c.state.Mounted = false
 
 	if c.valid {
-		return c.save()
+		if err := c.save(); err != nil {
+			if cleanupErr != nil {
+				logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
+			}
+			cleanupErr = err
+		}
 	}
-	return nil
+	return cleanupErr
 }
 
 // Unmount the a container and free its resources
