@@ -50,10 +50,10 @@ func (c *Container) mountSHM(shmOptions string) error {
 
 func (c *Container) unmountSHM(mount string) error {
 	if err := unix.Unmount(mount, 0); err != nil {
-		if err != syscall.EINVAL {
+		if err != syscall.EINVAL && err != syscall.ENOENT {
 			return errors.Wrapf(err, "error unmounting container %s SHM mount %s", c.ID(), mount)
 		}
-		// If it's just an EINVAL, debug logs only
+		// If it's just an EINVAL or ENOENT, debug logs only
 		logrus.Debugf("container %s failed to unmount %s : %v", c.ID(), mount, err)
 	}
 	return nil
