@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/syslog"
 	"os"
 	"runtime/pprof"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/utils"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -120,6 +122,10 @@ func profileOff(cmd *cobra.Command) error {
 }
 
 func setupRootless(cmd *cobra.Command, args []string) error {
+	if !rootless.IsRootless() {
+		return nil
+	}
+
 	matches, err := rootless.ConfigurationMatches()
 	if err != nil {
 		return err
@@ -128,15 +134,45 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		logrus.Warningf("the current user namespace doesn't match the configuration in /etc/subuid or /etc/subgid")
 		logrus.Warningf("you can use `%s system migrate` to recreate the user namespace and restart the containers", os.Args[0])
 	}
-	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || cmd == _migrateCommand || strings.HasPrefix(cmd.Use, "help") {
-		return nil
-	}
 
 	podmanCmd := cliconfig.PodmanCommand{
 		Command:     cmd,
 		InputArgs:   args,
 		GlobalFlags: MainGlobalOpts,
 		Remote:      remoteclient,
+	}
+
+	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd)
+	if err != nil {
+		return errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.DeferredShutdown(false)
+
+	// do it only after podman has already re-execed and running with uid==0.
+	if os.Geteuid() == 0 {
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
+		if err != nil {
+			return err
+		}
+
+		if !ownsCgroup {
+			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
+			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
+				conf, err := runtime.GetConfig()
+				if err != nil {
+					return err
+				}
+				if conf.CgroupManager == libpod.SystemdCgroupsManager {
+					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
+				} else {
+					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
+				}
+			}
+		}
+	}
+
+	if os.Geteuid() == 0 || cmd == _searchCommand || cmd == _versionCommand || cmd == _mountCommand || cmd == _migrateCommand || strings.HasPrefix(cmd.Use, "help") {
+		return nil
 	}
 
 	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
@@ -158,13 +194,6 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	}
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
-
-	runtime, err := libpodruntime.GetRuntime(getContext(), &podmanCmd)
-	if err != nil {
-		return errors.Wrapf(err, "could not get runtime")
-	}
-	defer runtime.DeferredShutdown(false)
-
 	ctrs, err := runtime.GetRunningContainers()
 	if err != nil {
 		logrus.Errorf(err.Error())
