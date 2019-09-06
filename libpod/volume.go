@@ -57,6 +57,13 @@ type VolumeState struct {
 	// On incrementing from 0, the volume will be mounted on the host.
 	// On decrementing to 0, the volume will be unmounted on the host.
 	MountCount uint `json:"mountCount"`
+	// NeedsCopyUp indicates that the next time the volume is mounted into
+	// a container, the container will "copy up" the contents of the
+	// mountpoint into the volume.
+	// This should only be done once. As such, this is set at container
+	// create time, then cleared after the copy up is done and never set
+	// again.
+	NeedsCopyUp bool `json:"notYetMounted,omitempty"`
 }
 
 // Name retrieves the volume's name

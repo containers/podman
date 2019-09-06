@@ -21,6 +21,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -1234,43 +1235,82 @@ func (c *Container) mountStorage() (_ string, Err error) {
 		}()
 	}
 
-	// Request a mount of all named volumes
-	for _, v := range c.config.NamedVolumes {
-		vol, err := c.runtime.state.Volume(v.Name)
-		if err != nil {
-			return "", errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
-		}
-
-		if vol.needsMount() {
-			vol.lock.Lock()
-			if err := vol.mount(); err != nil {
-				vol.lock.Unlock()
-				return "", errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
-			}
-			vol.lock.Unlock()
-			defer func() {
-				if Err == nil {
-					return
-				}
-				vol.lock.Lock()
-				if err := vol.unmount(false); err != nil {
-					logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
-				}
-				vol.lock.Unlock()
-			}()
-		}
-	}
-
-	// TODO: generalize this mount code so it will mount every mount in ctr.config.Mounts
+	// We need to mount the container before volumes - to ensure the copyup
+	// works properly.
 	mountPoint := c.config.Rootfs
 	if mountPoint == "" {
 		mountPoint, err = c.mount()
 		if err != nil {
 			return "", err
 		}
+		defer func() {
+			if Err != nil {
+				if err := c.unmount(false); err != nil {
+					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
+	}
+
+	// Request a mount of all named volumes
+	for _, v := range c.config.NamedVolumes {
+		vol, err := c.mountNamedVolume(v, mountPoint)
+		if err != nil {
+			return "", err
+		}
+		defer func() {
+			if Err == nil {
+				return
+			}
+			vol.lock.Lock()
+			if err := vol.unmount(false); err != nil {
+				logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
+			}
+			vol.lock.Unlock()
+		}()
 	}
 
 	return mountPoint, nil
+}
+
+// Mount a single named volume into the container.
+// If necessary, copy up image contents into the volume.
+// Does not verify that the name volume given is actually present in container
+// config.
+// Returns the volume that was mounted.
+func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string) (*Volume, error) {
+	vol, err := c.runtime.state.Volume(v.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving named volume %s for container %s", v.Name, c.ID())
+	}
+
+	vol.lock.Lock()
+	defer vol.lock.Unlock()
+	if vol.needsMount() {
+		if err := vol.mount(); err != nil {
+			return nil, errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
+		}
+	}
+	// The volume may need a copy-up. Check the state.
+	if err := vol.update(); err != nil {
+		return nil, err
+	}
+	if vol.state.NeedsCopyUp {
+		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
+		}
+		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
+		}
+
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+	}
+	return vol, nil
 }
 
 // cleanupStorage unmounts and cleans up the container's root filesystem
@@ -1614,15 +1654,11 @@ func (c *Container) unmount(force bool) error {
 }
 
 // this should be from chrootarchive.
-func (c *Container) copyWithTarFromImage(src, dest string) error {
-	mountpoint, err := c.mount()
-	if err != nil {
-		return err
-	}
+// Container MUST be mounted before calling.
+func (c *Container) copyWithTarFromImage(source, dest string) error {
 	a := archive.NewDefaultArchiver()
-	source := filepath.Join(mountpoint, src)
 
-	if err = c.copyOwnerAndPerms(source, dest); err != nil {
+	if err := c.copyOwnerAndPerms(source, dest); err != nil {
 		return err
 	}
 	return a.CopyWithTar(source, dest)

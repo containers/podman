@@ -275,10 +275,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}
 
-		if err := ctr.copyWithTarFromImage(vol.Dest, newVol.MountPoint()); err != nil && !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "Failed to copy content into new volume mount %q", vol.Name)
-		}
-
 		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
 	}
 
