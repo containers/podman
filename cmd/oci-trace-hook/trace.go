@@ -24,7 +24,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// event struct used to read data from the perf ring buffer from the
+// event struct used to read data from the perf ring buffer
 type event struct {
 	// PID of the process making the syscall
 	Pid uint32

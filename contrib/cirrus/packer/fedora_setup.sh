@@ -95,15 +95,16 @@ sudo /tmp/libpod/hack/install_catatonit.sh
 # Same script is used for several related contexts
 case "$PACKER_BUILDER_NAME" in
 
-    *fedora-3*)
-        ooe.sh sudo dnf install -y bcc-devel
-        ;&
-
     xfedora*)
         echo "Configuring CGroups v2 enabled on next boot"
         sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
         sudo dnf install -y crun
         ;&  # continue to next matching item
+
+    *fedora-3*)
+        ooe.sh sudo dnf install -y bcc-devel
+        ;&
+
     *)
         echo "Finalizing $PACKER_BUILDER_NAME VM image"
         ;;
