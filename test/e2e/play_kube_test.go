@@ -40,6 +40,7 @@ spec:
     image: {{ .Image }}
     name: {{ .Name }}
     resources: {}
+    {{ if .SecurityContext }}
     securityContext:
       allowPrivilegeEscalation: true
       {{ if .Caps }}
@@ -60,6 +61,7 @@ spec:
       privileged: false
       readOnlyRootFilesystem: false
     workingDir: /
+    {{ end }}
   {{ end }}
 {{ end }}
 status: {}
@@ -72,12 +74,13 @@ type Pod struct {
 }
 
 type Container struct {
-	Cmd     []string
-	Image   string
-	Name    string
-	Caps    bool
-	CapAdd  []string
-	CapDrop []string
+	Cmd             []string
+	Image           string
+	Name            string
+	SecurityContext bool
+	Caps            bool
+	CapAdd          []string
+	CapDrop         []string
 }
 
 func generateKubeYaml(name string, hostname string, ctrs []Container, fileName string) error {
@@ -126,7 +129,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube test correct command", func() {
 		ctrName := "testCtr"
 		ctrCmd := []string{"top"}
-		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, false, nil, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml("test", "", []Container{testContainer}, tempFile)
@@ -145,7 +148,7 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman play kube test correct output", func() {
 		ctrName := "testCtr"
 		ctrCmd := []string{"echo", "hello"}
-		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, false, nil, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml("test", "", []Container{testContainer}, tempFile)
@@ -170,7 +173,7 @@ var _ = Describe("Podman generate kube", func() {
 		podName := "test"
 		ctrName := "testCtr"
 		ctrCmd := []string{"top"}
-		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, false, nil, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml(podName, "", []Container{testContainer}, tempFile)
@@ -190,7 +193,7 @@ var _ = Describe("Podman generate kube", func() {
 		hostname := "myhostname"
 		ctrName := "testCtr"
 		ctrCmd := []string{"top"}
-		testContainer := Container{ctrCmd, ALPINE, ctrName, false, nil, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, false, nil, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml("test", hostname, []Container{testContainer}, tempFile)
@@ -210,7 +213,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctrName := "testCtr"
 		ctrCmd := []string{"cat", "/proc/self/status"}
 		capAdd := "CAP_SYS_ADMIN"
-		testContainer := Container{ctrCmd, ALPINE, ctrName, true, []string{capAdd}, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, true, []string{capAdd}, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml("test", "", []Container{testContainer}, tempFile)
@@ -230,7 +233,7 @@ var _ = Describe("Podman generate kube", func() {
 		ctrName := "testCtr"
 		ctrCmd := []string{"cat", "/proc/self/status"}
 		capDrop := "CAP_SYS_ADMIN"
-		testContainer := Container{ctrCmd, ALPINE, ctrName, true, []string{capDrop}, nil}
+		testContainer := Container{ctrCmd, ALPINE, ctrName, true, true, []string{capDrop}, nil}
 		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
 
 		err := generateKubeYaml("test", "", []Container{testContainer}, tempFile)
@@ -244,5 +247,24 @@ var _ = Describe("Podman generate kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
 		Expect(inspect.OutputToString()).To(ContainSubstring(capDrop))
+	})
+
+	It("podman play kube no security context", func() {
+		// expect play kube to not fail if no security context is specified
+		ctrName := "testCtr"
+		ctrCmd := "ls"
+		testContainer := Container{[]string{ctrCmd}, ALPINE, ctrName, false, false, nil, nil}
+		tempFile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+
+		err := generateKubeYaml("test", "", []Container{testContainer}, tempFile)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", tempFile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
 	})
 })

@@ -683,25 +683,27 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		containerConfig.User = imageData.Config.User
 	}
 
-	if containerConfig.SecurityOpts != nil {
-		if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
-			containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
-		}
-		if containerYAML.SecurityContext.Privileged != nil {
-			containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
-		}
+	if containerYAML.SecurityContext != nil {
+		if containerConfig.SecurityOpts != nil {
+			if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
+				containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+			}
+			if containerYAML.SecurityContext.Privileged != nil {
+				containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
+			}
 
-		if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
-			containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
-		}
+			if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
+				containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+			}
 
-	}
-	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
-		for _, capability := range caps.Add {
-			containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
 		}
-		for _, capability := range caps.Drop {
-			containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
+		if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
+			for _, capability := range caps.Add {
+				containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
+			}
+			for _, capability := range caps.Drop {
+				containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
+			}
 		}
 	}
 
