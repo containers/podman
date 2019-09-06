@@ -62,7 +62,7 @@ RUN dnf -y install --exclude container-selinux \
      mkdir -p /usr/share/containers; \
      cp $GOPATH/src/github.com/containers/libpod/libpod.conf /usr/share/containers; \
      # Adjust libpod.conf to write logging to a file
-     sed -i 's/events_logger = "journald"/events_logger = "file"/g' /usr/share/containers/libpod.conf; \
+     sed -i 's/# events_logger = "journald"/events_logger = "file"/g' /usr/share/containers/libpod.conf; \
      rm -rf /root/podman/*; \
      dnf -y remove git golang go-md2man make; \
      dnf clean all;
