@@ -1,3 +1,7 @@
+#
+# This bash script was originally copied and converted from the upstream
+# github.com:docker/docker project
+#
 : ${PROG:=$(basename ${BASH_SOURCE})}
 
 
@@ -1390,19 +1394,23 @@ _podman_import() {
 	--quiet
 	-q
      "
-    _complete_ "$options_with_args" "$boolean_options"
+     case "$prev" in
+         --change|-c|--message|-m)
+		return
+		;;
+    esac
 
     case "$cur" in
 	-*)
 	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
 	    ;;
 	*)
-	    local counter=$( __podman_pos_first_nonflag "$options_with_args" )
-	    if [ "$cword" -eq "$((counter))" ]; then
-		__podman_complete_images --repo --tag
-		return
-	    else
+	    local counter=$(__podman_pos_first_nonflag '--change|-c|--message|-m')
+	    if [ "$cword" -eq "$counter" ]; then
 		_filedir
+		return
+	    elif [ "$cword" -eq "$((counter + 1))" ]; then
+		__podman_complete_images --repo --tag
 		return
 	    fi
 	    ;;
