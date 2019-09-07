@@ -60,7 +60,6 @@ echo $rand        |   0 | $rand
 # 'run --rm' goes through different code paths and may lose exit status.
 # See https://github.com/containers/libpod/issues/3795
 @test "podman run --rm" {
-    skip_if_remote "podman-remote does not handle exit codes"
 
     run_podman 0 run --rm $IMAGE /bin/true
     run_podman 1 run --rm $IMAGE /bin/false

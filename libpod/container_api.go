@@ -821,3 +821,12 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
 }
+
+// AutoRemove indicates whether the container will be removed after it is executed
+func (c *Container) AutoRemove() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
+}

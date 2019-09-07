@@ -396,14 +396,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
 		if errors.Cause(err) == define.ErrDetach {
-			exitCode = 0
-			return exitCode, nil
-		}
-		// This means the command did not exist
-		exitCode = 127
-		e := strings.ToLower(err.Error())
-		if strings.Contains(e, "permission denied") || strings.Contains(e, "operation not permitted") {
-			exitCode = 126
+			return 0, nil
 		}
 		if c.IsSet("rm") {
 			if deleteError := r.Runtime.RemoveContainer(ctx, ctr, true, false); deleteError != nil {

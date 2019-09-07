@@ -162,7 +162,7 @@ var _ = Describe("Podman run", func() {
 
 		session = podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(127))
+		Expect(session.ExitCode()).To(Equal(126))
 	})
 
 })

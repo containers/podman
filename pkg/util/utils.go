@@ -377,3 +377,19 @@ func ValidatePullType(pullType string) (PullType, error) {
 		return PullImageMissing, errors.Errorf("invalid pull type %q", pullType)
 	}
 }
+
+// ExitCode reads the error message when failing to executing container process
+// and then returns 0 if no error, 126 if command does not exist, or 127 for
+// all other errors
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	e := strings.ToLower(err.Error())
+	if strings.Contains(e, "file not found") ||
+		strings.Contains(e, "no such file or directory") {
+		return 127
+	}
+
+	return 126
+}

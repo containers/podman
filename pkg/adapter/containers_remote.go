@@ -464,19 +464,22 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, true)
 	cid, err := iopodman.CreateContainer().Call(r.Conn, results.MakeVarlink())
 	if err != nil {
-		return 0, err
+		return exitCode, err
 	}
 	if c.Bool("detach") {
-		_, err := iopodman.StartContainer().Call(r.Conn, cid)
+		if _, err := iopodman.StartContainer().Call(r.Conn, cid); err != nil {
+			return exitCode, err
+		}
 		fmt.Println(cid)
-		return 0, err
+		return 0, nil
 	}
-	errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"))
+	exitChan, errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"))
 	if err != nil {
-		return 0, err
+		return exitCode, err
 	}
+	exitCode = <-exitChan
 	finalError := <-errChan
-	return 0, finalError
+	return exitCode, finalError
 }
 
 func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
@@ -572,7 +575,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 			return err
 		}
 	}
-	errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys)
+	_, errChan, err := r.attach(ctx, inputStream, os.Stdout, c.InputArgs[0], false, c.DetachKeys)
 	if err != nil {
 		return err
 	}
@@ -686,12 +689,13 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 	}
 	// start.go makes sure that if attach, there can be only one ctr
 	if c.Attach {
-		errChan, err := r.attach(ctx, inputStream, os.Stdout, containerIDs[0], true, c.DetachKeys)
+		exitChan, errChan, err := r.attach(ctx, inputStream, os.Stdout, containerIDs[0], true, c.DetachKeys)
 		if err != nil {
 			return exitCode, nil
 		}
+		exitCode := <-exitChan
 		err = <-errChan
-		return 0, err
+		return exitCode, err
 	}
 
 	// TODO the notion of starting a pod container and its deps still needs to be worked through
@@ -710,13 +714,13 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 	return exitCode, finalErr
 }
 
-func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan error, error) {
+func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid string, start bool, detachKeys string) (chan int, chan error, error) {
 	var (
 		oldTermState *term.State
 	)
 	spec, err := r.Spec(cid)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	resize := make(chan remotecommand.TerminalSize, 5)
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
@@ -726,7 +730,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 	if haveTerminal && spec.Process.Terminal {
 		cancel, oldTermState, err := handleTerminalAttach(ctx, resize)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		defer cancel()
 		defer restoreTerminal(oldTermState)
@@ -738,7 +742,7 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 	reply, err := iopodman.Attach().Send(r.Conn, varlink.Upgrade, cid, detachKeys, start)
 	if err != nil {
 		restoreTerminal(oldTermState)
-		return nil, err
+		return nil, nil, err
 	}
 
 	// See if the server accepts the upgraded connection or returns an error
@@ -746,11 +750,12 @@ func (r *LocalRuntime) attach(ctx context.Context, stdin, stdout *os.File, cid s
 
 	if err != nil {
 		restoreTerminal(oldTermState)
-		return nil, err
+		return nil, nil, err
 	}
 
-	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, stdin, stdout, oldTermState, resize, nil)
-	return errChan, nil
+	ecChan := make(chan int, 1)
+	errChan := configureVarlinkAttachStdio(r.Conn.Reader, r.Conn.Writer, stdin, stdout, oldTermState, resize, ecChan)
+	return ecChan, errChan, nil
 }
 
 // PauseContainers pauses container(s) based on CLI inputs.
