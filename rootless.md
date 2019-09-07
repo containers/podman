@@ -6,14 +6,14 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
 
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
-* Lacking “How To” documentation or documentation in general
-* If /etc/subuid and /etc/subgid not setup for a user, then podman commands
+* “How To” documentation is in patchy at best.
+* If /etc/subuid and /etc/subgid are not setup for a user, then podman commands
 can easily fail
   * This can be a big issue on machines using Network Based Password information (FreeIPA, Active Directory, LDAP)
   * We are working to get support for NSSWITCH on the /etc/subuid and /etc/subgid files.
-* No cgroup Support (hopefully fixed when cgroups V2 happens).
-  * Cgroups V1 does not safely support cgroup delegation.
-  * Cgroups V2 development for container support is ongoing.
+* No cgroup V1 Support
+  * cgroup V1 does not safely support cgroup delegation.
+  * cgroup V2 is available on Fedora 29 and later and other Linux distributions.
 * Can not share container images with CRI-O or other users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
@@ -28,13 +28,13 @@ can easily fail
 * No CNI Support
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
   * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
-* Cannot use ping
+* Cannot use ping out of the box.
   * [(Can be fixed by setting sysctl on host)](https://github.com/containers/libpod/blob/master/troubleshooting.md#5-rootless-containers-cannot-ping-hosts)
-* Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release
+* Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)
      * Only works if you enter the mount namespace with a tool like buildah unshare
-  * podman stats (Lack of Cgroup support)
+  * podman stats (Without cgroup V2 support)
   * Checkpoint and Restore (CRIU requires root)
   * Pause and Unpause (no freezer cgroup)
 * Issues with higher UIDs can cause builds to fail
