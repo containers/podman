@@ -18,8 +18,8 @@ BINDIR ?= ${PREFIX}/bin
 LIBEXECDIR ?= ${PREFIX}/libexec
 MANDIR ?= ${PREFIX}/share/man
 SHAREDIR_CONTAINERS ?= ${PREFIX}/share/containers
-HOOK_BIN_DIR ?= /usr/libexec/oci/hooks.d/
-HOOK_DIR ?= /usr/share/containers/oci/hooks.d
+HOOK_BIN_DIR ?= ${PREFIX}/libexec/oci/hooks.d/
+HOOK_DIR ?= ${PREFIX}/share/containers/oci/hooks.d
 ETCDIR ?= /etc
 TMPFILESDIR ?= ${PREFIX}/lib/tmpfiles.d
 SYSTEMDDIR ?= ${PREFIX}/lib/systemd/system
@@ -510,11 +510,11 @@ endef
 
 install.oci-trace-hook:
 	if [ ! -z "$(BUILDTAG_TRACE_HOOK)" ]; then \
-		install ${SELINUXOPT} -d -m 755 $(HOOK_BIN_DIR); \
-		install ${SELINUXOPT} -d -m 755 $(HOOK_DIR) ; \
-		install ${SELINUXOPT} -m 755 bin/oci-trace-hook $(HOOK_BIN_DIR)/oci-trace-hook ; \
-		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-run.json $(HOOK_DIR) ; \
-		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-stop.json $(HOOK_DIR) ; \
+		install ${SELINUXOPT} -d -m 755 ${DESTDIR}$(HOOK_BIN_DIR); \
+		install ${SELINUXOPT} -d -m 755 ${DESTDIR}$(HOOK_DIR) ; \
+		install ${SELINUXOPT} -m 755 bin/oci-trace-hook ${DESTDIR}$(HOOK_BIN_DIR)/oci-trace-hook ; \
+		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-run.json ${DESTDIR}$(HOOK_DIR) ; \
+		install ${SELINUXOPT} -m 644 cmd/oci-trace-hook/oci-trace-hook-stop.json ${DESTDIR}$(HOOK_DIR) ; \
 	fi
 
 oci-trace-hook:
