@@ -15,7 +15,7 @@ configured with the `--change` flag and a commit message can be set using the
 `--message` flag. The container and its processes are paused while the image is
 committed. This minimizes the likelihood of data corruption when creating the new
 image. If this is not desired, the `--pause` flag can be set to false. When the commit
-is complete, podman will print out the ID of the new image.
+is complete, Podman will print out the ID of the new image.
 
 If *image* does not begin with a registry name component, `localhost` will be added to the name.
 

@@ -521,8 +521,8 @@ process.
 
 **--volume**, **-v**[=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*]
 
-   Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, podman
-   bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the podman
+   Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
+   bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
    container. The `OPTIONS` are a comma delimited list and can be:
 
    * [rw|ro]
@@ -547,14 +547,14 @@ See examples.
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
-default, podman does not change the labels set by the OS.
+default, Podman does not change the labels set by the OS.
 
 To change a label in the container context, you can add either of two suffixes
-`:z` or `:Z` to the volume mount. These suffixes tell podman to relabel file
-objects on the shared volumes. The `z` option tells podman that two containers
-share the volume content. As a result, podman labels the content with a shared
+`:z` or `:Z` to the volume mount. These suffixes tell Podman to relabel file
+objects on the shared volumes. The `z` option tells Podman that two containers
+share the volume content. As a result, Podman labels the content with a shared
 content label. Shared volume labels allow all containers to read/write content.
-The `Z` option tells podman to label the content with a private unshared label.
+The `Z` option tells Podman to label the content with a private unshared label.
 Only the current container can use a private volume.
 
   `Overlay Volume Mounts`

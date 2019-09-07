@@ -249,7 +249,7 @@ type InfoStore (
     run_root: string
 )
 
-# InfoPodman provides details on the podman binary
+# InfoPodman provides details on the Podman binary
 type InfoPodmanBinary (
     compiler: string,
     go_version: string,

@@ -5,7 +5,7 @@
 ## Overview
 
 This directory contains the Dockerfiles necessary to create the three podmanimage container
-images that are housed on quay.io under the podman account.  All three repositories where
+images that are housed on quay.io under the Podman account.  All three repositories where
 the images live are public and can be pulled without credentials.  These container images are secured and the
 resulting containers can run safely with privileges within the container.  The container images are built
 using the latest Fedora and then Podman is installed into them:

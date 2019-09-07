@@ -98,7 +98,7 @@ The *since* and *until* values can be RFC3339Nano time stamps or a Go duration s
 
 ## EXAMPLES
 
-Showing podman events
+Showing Podman events
 ```
 $ podman events
 2019-03-02 10:33:42.312377447 -0600 CST container create 34503c192940 (image=docker.io/library/alpine:latest, name=friendly_allen)
@@ -108,7 +108,7 @@ $ podman events
 2019-03-02 10:33:51.047104966 -0600 CST container cleanup 34503c192940 (image=docker.io/library/alpine:latest, name=friendly_allen)
 ```
 
-Show only podman create events
+Show only Podman create events
 ```
 $ podman events --filter event=create
 2019-03-02 10:36:01.375685062 -0600 CST container create 20dc581f6fbf (image=docker.io/library/alpine:latest, name=sharp_morse)
@@ -117,7 +117,7 @@ $ podman events --filter event=create
 2019-03-02 10:36:29.978806894 -0600 CST container create d81e30f1310f (image=docker.io/library/busybox:latest, name=musing_newton)
 ```
 
-Show only podman pod create events
+Show only Podman pod create events
 ```
 $ podman events --filter event=create --filter type=pod
 2019-03-02 10:44:29.601746633 -0600 CST pod create 1df5ebca7b44 (image=, name=confident_hawking)
@@ -125,7 +125,7 @@ $ podman events --filter event=create --filter type=pod
 2019-03-02 10:44:47.486759133 -0600 CST pod create 71e807fc3a8e (image=, name=reverent_swanson)
 ```
 
-Show only podman events created in the last five minutes:
+Show only Podman events created in the last five minutes:
 ```
 $ sudo podman events --since 5m
 2019-03-02 10:44:29.598835409 -0600 CST container create b629d10d3831 (image=k8s.gcr.io/pause:3.1, name=1df5ebca7b44-infra)
@@ -134,7 +134,7 @@ $ sudo podman events --since 5m
 2019-03-02 10:44:42.374637304 -0600 CST pod create ca731231718e (image=, name=webapp)
 ```
 
-Show podman events in JSON Lines format
+Show Podman events in JSON Lines format
 ```
 events --format json
 {"ID":"683b0909d556a9c02fa8cd2b61c3531a965db42158627622d1a67b391964d519","Image":"localhost/myshdemo:latest","Name":"agitated_diffie","Status":"cleanup","Time":"2019-04-27T22:47:00.849932843-04:00","Type":"container"}

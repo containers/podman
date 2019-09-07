@@ -72,7 +72,7 @@ and `darwin` targets.
 ### ``special_testing_cgroupv2`` Task
 
 Use the latest Fedora release with the required kernel options pre-set for
-exercising cgroups v2 with podman integration tests.  Also depends on
+exercising cgroups v2 with Podman integration tests.  Also depends on
 having `SPECIALMODE` set to 'cgroupv2`
 
 
@@ -272,7 +272,7 @@ values follows:
 * `rootless`: Causes a random, ordinary user account to be created
               and utilized for testing.
 * `in_podman`: Causes testing to occur within a container executed by
-               podman on the host.
+               Podman on the host.
 * `cgroupv2`: The kernel on this VM was prepared with options to enable v2 cgroups
 * `windows`: See **darwin**
 * `darwin`: Signals the ``special_testing_cross`` task to cross-compile the remote client.

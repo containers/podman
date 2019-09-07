@@ -1732,7 +1732,7 @@ uptime [string](https://godoc.org/builtin#string)
 eventlogger [string](https://godoc.org/builtin#string)
 ### <a name="InfoPodmanBinary"></a>type InfoPodmanBinary
 
-InfoPodman provides details on the podman binary
+InfoPodman provides details on the Podman binary
 
 compiler [string](https://godoc.org/builtin#string)
 

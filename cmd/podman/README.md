@@ -1,5 +1,5 @@
-# podman - Simple debugging tool for pods and images
-podman is a daemonless container runtime for managing containers, pods, and container images.
+# Podman - Simple debugging tool for pods and images
+Podman is a daemonless container runtime for managing containers, pods, and container images.
 It is intended as a counterpart to CRI-O, to provide low-level debugging not available through the CRI interface used by Kubernetes.
 It can also act as a container runtime independent of CRI-O, creating and managing its own set of containers.
 

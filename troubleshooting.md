@@ -146,11 +146,11 @@ If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users new
 
 ### 7) Permission denied when running Podman commands
 
-When rootless podman attempts to execute a container on a non exec home directory a permission error will be raised.
+When rootless Podman attempts to execute a container on a non exec home directory a permission error will be raised.
 
 #### Symptom
 
-If you are running podman or buildah on a home directory that is mounted noexec,
+If you are running Podman or buildah on a home directory that is mounted noexec,
 then they will fail. With a message like:
 
 ```
@@ -194,11 +194,11 @@ processes to write to the cgroup file system. Turn on this boolean, on SELinux s
 
 ### 9) Newuidmap missing when running rootless Podman commands
 
-Rootless podman requires the newuidmap and newgidmap programs to be installed.
+Rootless Podman requires the newuidmap and newgidmap programs to be installed.
 
 #### Symptom
 
-If you are running podman or buildah as a not root user, you get an error complaining about
+If you are running Podman or buildah as a not root user, you get an error complaining about
 a missing newuidmap executable.
 
 ```
@@ -212,7 +212,7 @@ Install a version of shadow-utils that includes these executables.  Note RHEL7 a
 
 ### 10) rootless setup user: invalid argument
 
-Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
+Rootless Podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
 
 #### Symptom
 
@@ -262,7 +262,7 @@ grep johndoe /etc/subuid /etc/subgid
 ### 11) Changing the location of the Graphroot leads to permission denied
 
 When I change the graphroot storage location in storage.conf, the next time I
-run podman I get an error like:
+run Podman I get an error like:
 
 ```
 # podman run -p 5000:5000 -it centos bash
@@ -360,7 +360,7 @@ Choose one of the following:
   * Setup containers/storage in a different directory, not on an NFS share.
     * Create a directory on a local file system.
     * Edit `~/.config/containers/libpod.conf` and point the `volume_path` option to that local directory.
-  * Otherwise just run podman as root, via `sudo podman`
+  * Otherwise just run Podman as root, via `sudo podman`
 
 ### 15) Rootless 'podman build' fails when using OverlayFS:
 
