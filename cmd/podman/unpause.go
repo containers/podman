@@ -55,7 +55,7 @@ func unpauseCmd(c *cliconfig.UnpauseValues) error {
 	if err != nil {
 		if errors.Cause(err) == define.ErrNoSuchCtr {
 			if len(c.InputArgs) > 1 {
-				exitCode = 125
+				exitCode = define.ExecErrorCodeGeneric
 			} else {
 				exitCode = 1
 			}
@@ -63,7 +63,7 @@ func unpauseCmd(c *cliconfig.UnpauseValues) error {
 		return err
 	}
 	if len(failures) > 0 {
-		exitCode = 125
+		exitCode = define.ExecErrorCodeGeneric
 	}
 	return printCmdResults(ok, failures)
 }

@@ -1,6 +1,8 @@
 package define
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -27,4 +29,20 @@ func TranslateExecErrorToExitCode(originalEC int, err error) int {
 		return ExecErrorCodeNotFound
 	}
 	return originalEC
+}
+
+// ExitCode reads the error message when failing to executing container process
+// and then returns 0 if no error, ExecErrorCodeNotFound if command does not exist, or ExecErrorCodeCannotInvoke for
+// all other errors
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	e := strings.ToLower(err.Error())
+	if strings.Contains(e, "file not found") ||
+		strings.Contains(e, "no such file or directory") {
+		return ExecErrorCodeNotFound
+	}
+
+	return ExecErrorCodeCannotInvoke
 }

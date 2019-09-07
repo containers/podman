@@ -341,12 +341,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		// if the container was created as part of a pod, also start its dependencies, if any.
 		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
 			// This means the command did not exist
-			exitCode = 127
-			e := strings.ToLower(err.Error())
-			if strings.Contains(e, "permission denied") || strings.Contains(e, "operation not permitted") || strings.Contains(e, "file not found") || strings.Contains(e, "no such file or directory") {
-				exitCode = 126
-			}
-			return exitCode, err
+			return define.ExitCode(err), err
 		}
 
 		fmt.Printf("%s\n", ctr.ID())
@@ -415,7 +410,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
-		return exitCode, err
+		return define.ExitCode(err), err
 	}
 
 	if ecode, err := ctr.Wait(); err != nil {
@@ -424,7 +419,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 			event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
-				exitCode = 127
+				exitCode = define.ExecErrorCodeNotFound
 			} else {
 				exitCode = event.ContainerExitCode
 			}
@@ -576,7 +571,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 // Start will start a container
 func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigProxy bool) (int, error) {
 	var (
-		exitCode  = 125
+		exitCode  = define.ExecErrorCodeGeneric
 		lastError error
 	)
 
@@ -636,7 +631,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 					event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
 					if err != nil {
 						logrus.Errorf("Cannot get exit code: %v", err)
-						exitCode = 127
+						exitCode = define.ExecErrorCodeNotFound
 					} else {
 						exitCode = event.ContainerExitCode
 					}
@@ -914,7 +909,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 		cmd []string
 	)
 	// default invalid command exit code
-	ec := 125
+	ec := define.ExecErrorCodeGeneric
 
 	if cli.Latest {
 		if ctr, err = r.GetLatestContainer(); err != nil {

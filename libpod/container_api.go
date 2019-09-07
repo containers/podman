@@ -216,8 +216,8 @@ func (c *Container) Kill(signal uint) error {
 }
 
 // Exec starts a new process inside the container
-// Returns an exit code and an error. If Exec was not able to exec in the container before a failure, an exit code of 126 is returned.
-// If another generic error happens, an exit code of 125 is returned.
+// Returns an exit code and an error. If Exec was not able to exec in the container before a failure, an exit code of define.ExecErrorCodeCannotInvoke is returned.
+// If another generic error happens, an exit code of define.ExecErrorCodeGeneric is returned.
 // Sometimes, the $RUNTIME exec call errors, and if that is the case, the exit code is the exit code of the call.
 // Otherwise, the exit code will be the exit code of the executed call inside of the container.
 // TODO investigate allowing exec without attaching

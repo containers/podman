@@ -669,7 +669,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigProxy bool) (int, error) {
 	var (
 		finalErr error
-		exitCode = 125
+		exitCode = define.ExecErrorCodeGeneric
 	)
 	// TODO Figure out how to deal with exit codes
 	inputStream := os.Stdin

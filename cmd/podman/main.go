@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/version"
@@ -20,7 +21,7 @@ import (
 // This is populated by the Makefile from the VERSION file
 // in the repository
 var (
-	exitCode = 125
+	exitCode = define.ExecErrorCodeGeneric
 	Ctx      context.Context
 	span     opentracing.Span
 	closer   io.Closer
@@ -152,11 +153,12 @@ func main() {
 	if err := rootCmd.Execute(); err != nil {
 		outputError(err)
 	} else {
-		// The exitCode modified from 125, indicates an application
+		// The exitCode modified from define.ExecErrorCodeGeneric,
+		// indicates an application
 		// running inside of a container failed, as opposed to the
 		// podman command failed.  Must exit with that exit code
 		// otherwise command exited correctly.
-		if exitCode == 125 {
+		if exitCode == define.ExecErrorCodeGeneric {
 			exitCode = 0
 		}
 
