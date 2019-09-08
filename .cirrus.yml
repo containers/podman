@@ -627,6 +627,25 @@ verify_test_built_images_task:
         <<: *standardlogs
 
 
+upload_snap_task:
+
+    depends_on:
+        - "test_building_snap"
+
+    container:
+        image: yakshaveinc/snapcraft:core18
+
+    env:
+        SNAPCRAFT_LOGIN: ENCRYPTED[...FILLME...]
+    snapcraft_login_file:
+        path: /root/.snapcraft/login.cfg
+        variable_name: SNAPCRAFT_LOGIN
+    snapcraft_script:
+        - 'apt-get -y update'
+        - 'snapcraft login --with "/root/.snapcraft/login.cfg"'
+        - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
+
+
 # Post message to IRC if everything passed PR testing
 success_task:
 
