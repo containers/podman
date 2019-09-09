@@ -17,8 +17,8 @@ var networkcheckCommand = cliconfig.PodmanCommand{
 	},
 }
 
-// Commands that are universally implemented
 var networkcheckCommands = []*cobra.Command{
+	_networkCreateCommand,
 	_networkinspectCommand,
 	_networklistCommand,
 	_networkrmCommand,

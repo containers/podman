@@ -39,12 +39,16 @@ github.com/containerd/continuity/pathdriver
 # github.com/containernetworking/cni v0.7.1
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/current
+github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
-github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/pkg/types/020
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
+github.com/containernetworking/plugins/pkg/ip
+github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
+github.com/containernetworking/plugins/pkg/utils/hwaddr
+github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 # github.com/containers/buildah v1.11.0
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
@@ -145,6 +149,8 @@ github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
 github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
+# github.com/coreos/go-iptables v0.4.2
+github.com/coreos/go-iptables/iptables
 # github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
 github.com/coreos/go-systemd/activation
 github.com/coreos/go-systemd/dbus
@@ -406,6 +412,8 @@ github.com/prometheus/common/internal/bitbucket.org/ww/goautoneg
 # github.com/prometheus/procfs v0.0.2
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
+# github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8
+github.com/safchain/ethtool
 # github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 github.com/seccomp/containers-golang
 # github.com/seccomp/libseccomp-golang v0.9.1

@@ -13,6 +13,7 @@ The network command manages CNI networks for Podman. It is not supported for roo
 
 | Command  | Man Page                                            | Description                                                                  |
 | -------  | --------------------------------------------------- | ---------------------------------------------------------------------------- |
+| create | [podman-network-create(1)](podman-network-create.1.md)| Create a Podman CNI network|
 | inspect | [podman-network-inspect(1)](podman-network-inspect.1.md)| Displays the raw CNI network configuration for one or more networks|
 | ls | [podman-network-ls(1)](podman-network-ls.1.md)| Display a summary of CNI networks                        |
 | rm | [podman-network-rm(1)](podman-network-rm.1.md)| Remove one or more CNI networks                        |
