@@ -83,7 +83,7 @@ func GetRootlessConfigHomeDir() (string, error) {
 				logrus.Errorf("unable to make temp dir %s", tmpDir)
 			}
 			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0755 {
+			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() >= 0700 {
 				cfgHomeDir = tmpDir
 			}
 		}
