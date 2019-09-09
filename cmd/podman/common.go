@@ -22,7 +22,8 @@ var (
 )
 
 const (
-	idTruncLength = 12
+	idTruncLength      = 12
+	sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
 )
 
 func splitCamelCase(src string) string {
@@ -302,7 +303,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"kernel-memory", "",
-		"Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)",
+		"Kernel memory limit "+sizeWithUnitFormat,
 	)
 	createFlags.StringArrayP(
 		"label", "l", []string{},
@@ -326,11 +327,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringP(
 		"memory", "m", "",
-		"Memory limit (format: <number>[<unit>], where unit = b, k, m or g)",
+		"Memory limit "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"memory-reservation", "",
-		"Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)",
+		"Memory soft limit "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"memory-swap", "",
@@ -422,7 +423,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"shm-size", cliconfig.DefaultShmSize,
-		"Size of `/dev/shm`. The format is `<number><unit>`",
+		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"stop-signal", "",
