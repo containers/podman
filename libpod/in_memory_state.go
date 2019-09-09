@@ -459,6 +459,41 @@ func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	return vol, nil
 }
 
+// LookupVolume finds a volume from an unambiguous partial ID.
+func (s *InMemoryState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	vol, ok := s.volumes[name]
+	if ok {
+		return vol, nil
+	}
+
+	// Alright, we've failed to find by full name. Now comes the expensive
+	// part.
+	// Loop through all volumes and look for matches.
+	var (
+		foundMatch bool
+		candidate  *Volume
+	)
+	for volName, vol := range s.volumes {
+		if strings.HasPrefix(volName, name) {
+			if foundMatch {
+				return nil, errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+			}
+			candidate = vol
+			foundMatch = true
+		}
+	}
+
+	if !foundMatch {
+		return nil, errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+	}
+
+	return candidate, nil
+}
+
 // HasVolume checks if a volume with the given name is present in the state
 func (s *InMemoryState) HasVolume(name string) (bool, error) {
 	if name == "" {

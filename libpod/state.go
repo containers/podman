@@ -190,6 +190,9 @@ type State interface {
 	// Volume accepts full name of volume
 	// If the volume doesn't exist, an error will be returned
 	Volume(volName string) (*Volume, error)
+	// LookupVolume accepts an unambiguous partial name or full name of a
+	// volume. Ambiguous names will result in an error.
+	LookupVolume(name string) (*Volume, error)
 	// HasVolume returns true if volName exists in the state,
 	// otherwise it returns false
 	HasVolume(volName string) (bool, error)
