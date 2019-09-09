@@ -6,9 +6,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log/syslog"
 	"os"
 	"runtime/pprof"
+	"strconv"
 	"strings"
 	"syscall"
 
@@ -121,6 +123,24 @@ func profileOff(cmd *cobra.Command) error {
 	return nil
 }
 
+func movePauseProcessToScope() error {
+	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
+	if err != nil {
+		return errors.Wrapf(err, "could not get pause process pid file path")
+	}
+
+	data, err := ioutil.ReadFile(pausePidPath)
+	if err != nil {
+		return errors.Wrapf(err, "cannot read pause pid file")
+	}
+	pid, err := strconv.ParseUint(string(data), 10, 0)
+	if err != nil {
+		return errors.Wrapf(err, "cannot parse pid file %s", pausePidPath)
+	}
+
+	return utils.RunUnderSystemdScope(int(pid), "user.slice", "podman-pause.scope")
+}
+
 func setupRootless(cmd *cobra.Command, args []string) error {
 	if !rootless.IsRootless() {
 		return nil
@@ -206,6 +226,17 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 	}
 
 	became, ret, err := rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+	if err := movePauseProcessToScope(); err != nil {
+		conf, err := runtime.GetConfig()
+		if err != nil {
+			return err
+		}
+		if conf.CgroupManager == libpod.SystemdCgroupsManager {
+			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		} else {
+			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)
+		}
+	}
 	if err != nil {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
