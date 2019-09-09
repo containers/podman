@@ -14,6 +14,9 @@ can easily fail
 * No cgroup V1 Support
   * cgroup V1 does not safely support cgroup delegation.
   * However, cgroup V2 provides cgroup delegation and is available on Fedora starting with version 29 and other Linux distributions.
+* Some systemd's unit configuration options do not work in the rootless container
+  * systemd fails to apply several options and failures are silently ignored (e.g. CPUShares, MemoryLimit).
+  * Use of certain options will cause service startup failures (e.g. PrivateNetwork).
 * Can not share container images with CRI-O or other users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
