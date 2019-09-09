@@ -315,6 +315,9 @@ docs: $(MANPAGES) ## Generate documentation
 install-podman-remote-docs: docs
 	@(cd docs; ./podman-remote.sh ./remote)
 
+man-page-check:
+	./hack/man-page-checker
+
 # When publishing releases include critical build-time details
 .PHONY: release.txt
 release.txt:
@@ -505,7 +508,7 @@ validate.completions: completions/bash/podman
 	. completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 
-validate: gofmt .gitvalidation validate.completions
+validate: gofmt .gitvalidation validate.completions golangci-lint man-page-check
 
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)
