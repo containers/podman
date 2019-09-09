@@ -1032,6 +1032,8 @@ _podman_network_rm() {
     local options_with_args="
      "
     local boolean_options="
+    --force
+    -f
     --help
     -h
     "

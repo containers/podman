@@ -86,6 +86,7 @@ func GetNetworksFromFilesystem() ([]*allocator.Net, error) {
 					return nil, err
 				}
 				cniNetworks = append(cniNetworks, &ipamConf)
+				break
 			}
 		}
 	}
@@ -104,4 +105,27 @@ func GetNetworkNamesFromFileSystem() ([]string, error) {
 		networkNames = append(networkNames, n.Name)
 	}
 	return networkNames, nil
+}
+
+// GetInterfaceNameFromConfig returns the interface name for the bridge plugin
+func GetInterfaceNameFromConfig(path string) (string, error) {
+	var name string
+	conf, err := libcni.ConfListFromFile(path)
+	if err != nil {
+		return "", err
+	}
+	for _, cniplugin := range conf.Plugins {
+		if cniplugin.Network.Type == "bridge" {
+			plugin := make(map[string]interface{})
+			if err := json.Unmarshal(cniplugin.Bytes, &plugin); err != nil {
+				return "", err
+			}
+			name = plugin["bridge"].(string)
+			break
+		}
+	}
+	if len(name) == 0 {
+		return "", errors.New("unable to find interface name for network")
+	}
+	return name, nil
 }

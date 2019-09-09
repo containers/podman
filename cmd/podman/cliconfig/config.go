@@ -280,6 +280,7 @@ type NetworkListValues struct {
 
 type NetworkRmValues struct {
 	PodmanCommand
+	Force bool
 }
 
 type NetworkInspectValues struct {

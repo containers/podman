@@ -2,8 +2,10 @@ package network
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/util"
+	"os/exec"
 
+	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/libpod/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,4 +40,16 @@ func GetFreeDeviceName() (string, error) {
 		deviceNum++
 	}
 	return deviceName, nil
+}
+
+// RemoveInterface removes an interface by the given name
+func RemoveInterface(interfaceName string) error {
+	// Make sure we have the ip command on the system
+	ipPath, err := exec.LookPath("ip")
+	if err != nil {
+		return err
+	}
+	// Delete the network interface
+	_, err = utils.ExecCmd(ipPath, []string{"link", "del", interfaceName}...)
+	return err
 }
