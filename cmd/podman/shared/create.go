@@ -695,6 +695,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		CapDrop:           c.StringSlice("cap-drop"),
 		CidFile:           c.String("cidfile"),
 		Cgroupns:          c.String("cgroupns"),
+		Cgroups:           c.String("cgroups"),
 		CgroupParent:      c.String("cgroup-parent"),
 		Command:           command,
 		UserCommand:       userCommand,

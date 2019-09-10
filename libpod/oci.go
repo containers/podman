@@ -48,19 +48,20 @@ const (
 // OCIRuntime represents an OCI-compatible runtime that libpod can call into
 // to perform container operations
 type OCIRuntime struct {
-	name          string
-	path          string
-	conmonPath    string
-	conmonEnv     []string
-	cgroupManager string
-	tmpDir        string
-	exitsDir      string
-	socketsDir    string
-	logSizeMax    int64
-	noPivot       bool
-	reservePorts  bool
-	supportsJSON  bool
-	sdNotify      bool
+	name              string
+	path              string
+	conmonPath        string
+	conmonEnv         []string
+	cgroupManager     string
+	tmpDir            string
+	exitsDir          string
+	socketsDir        string
+	logSizeMax        int64
+	noPivot           bool
+	reservePorts      bool
+	supportsJSON      bool
+	supportsNoCgroups bool
+	sdNotify          bool
 }
 
 // ociError is used to parse the OCI runtime JSON log.  It is not part of the
@@ -73,7 +74,7 @@ type ociError struct {
 
 // Make a new OCI runtime with provided options.
 // The first path that points to a valid executable will be used.
-func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON bool) (*OCIRuntime, error) {
+func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *RuntimeConfig, supportsJSON, supportsNoCgroups bool) (*OCIRuntime, error) {
 	if name == "" {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "the OCI runtime must be provided a non-empty name")
 	}
@@ -93,6 +94,7 @@ func newOCIRuntime(name string, paths []string, conmonPath string, runtimeCfg *R
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
 	runtime.supportsJSON = supportsJSON
+	runtime.supportsNoCgroups = supportsNoCgroups
 
 	foundPath := false
 	for _, path := range paths {

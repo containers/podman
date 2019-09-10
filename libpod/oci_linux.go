@@ -402,10 +402,12 @@ func (r *OCIRuntime) stopContainer(ctr *Container, timeout uint) error {
 	}
 
 	var args []string
-	if rootless.IsRootless() {
+	if rootless.IsRootless() || ctr.config.NoCgroups {
 		// we don't use --all for rootless containers as the OCI runtime might use
 		// the cgroups to determine the PIDs, but for rootless containers there is
 		// not any.
+		// Same logic for NoCgroups - we can't use cgroups as the user
+		// explicitly requested none be created.
 		args = []string{"kill", ctr.ID(), "KILL"}
 	} else {
 		args = []string{"kill", "--all", ctr.ID(), "KILL"}

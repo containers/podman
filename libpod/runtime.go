@@ -157,8 +157,12 @@ type RuntimeConfig struct {
 	OCIRuntime string `toml:"runtime"`
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
 	OCIRuntimes map[string][]string `toml:"runtimes"`
-	// RuntimeSupportsJSON is the list of the OCI runtimes that support --format=json
+	// RuntimeSupportsJSON is the list of the OCI runtimes that support
+	// --format=json.
 	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
+	// running containers without CGroups.
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
 	// RuntimePath is the path to OCI runtime binary for launching
 	// containers.
 	// The first path pointing to a valid file will be used
@@ -259,21 +263,22 @@ type RuntimeConfig struct {
 // If they were not, we may override them with information from the database,
 // if it exists and differs from what is present in the system already.
 type runtimeConfiguredFrom struct {
-	storageGraphDriverSet bool
-	storageGraphRootSet   bool
-	storageRunRootSet     bool
-	libpodStaticDirSet    bool
-	libpodTmpDirSet       bool
-	volPathSet            bool
-	conmonPath            bool
-	conmonEnvVars         bool
-	initPath              bool
-	ociRuntimes           bool
-	runtimePath           bool
-	cniPluginDir          bool
-	noPivotRoot           bool
-	runtimeSupportsJSON   bool
-	ociRuntime            bool
+	storageGraphDriverSet    bool
+	storageGraphRootSet      bool
+	storageRunRootSet        bool
+	libpodStaticDirSet       bool
+	libpodTmpDirSet          bool
+	volPathSet               bool
+	conmonPath               bool
+	conmonEnvVars            bool
+	initPath                 bool
+	ociRuntimes              bool
+	runtimePath              bool
+	cniPluginDir             bool
+	noPivotRoot              bool
+	runtimeSupportsJSON      bool
+	runtimeSupportsNoCgroups bool
+	ociRuntime               bool
 }
 
 func defaultRuntimeConfig() (RuntimeConfig, error) {
@@ -603,6 +608,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		if tmpConfig.RuntimeSupportsJSON != nil {
 			runtime.configuredFrom.runtimeSupportsJSON = true
 		}
+		if tmpConfig.RuntimeSupportsNoCgroups != nil {
+			runtime.configuredFrom.runtimeSupportsNoCgroups = true
+		}
 		if tmpConfig.OCIRuntime != "" {
 			runtime.configuredFrom.ociRuntime = true
 		}
@@ -648,6 +656,9 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 			if !runtime.configuredFrom.runtimeSupportsJSON {
 				runtime.config.RuntimeSupportsJSON = tmpConfig.RuntimeSupportsJSON
+			}
+			if !runtime.configuredFrom.runtimeSupportsNoCgroups {
+				runtime.config.RuntimeSupportsNoCgroups = tmpConfig.RuntimeSupportsNoCgroups
 			}
 			if !runtime.configuredFrom.ociRuntime {
 				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
@@ -1009,6 +1020,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
+	// Make lookup tables for runtime support
+	supportsJSON := make(map[string]bool)
+	supportsNoCgroups := make(map[string]bool)
+	for _, r := range runtime.config.RuntimeSupportsJSON {
+		supportsJSON[r] = true
+	}
+	for _, r := range runtime.config.RuntimeSupportsNoCgroups {
+		supportsNoCgroups[r] = true
+	}
+
 	// Get us at least one working OCI runtime.
 	runtime.ociRuntimes = make(map[string]*OCIRuntime)
 
@@ -1026,15 +1047,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 		name := filepath.Base(runtime.config.RuntimePath[0])
 
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			return err
 		}
@@ -1045,15 +1061,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Initialize remaining OCI runtimes
 	for name, paths := range runtime.config.OCIRuntimes {
-		supportsJSON := false
-		for _, r := range runtime.config.RuntimeSupportsJSON {
-			if r == name {
-				supportsJSON = true
-				break
-			}
-		}
+		json := supportsJSON[name]
+		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, supportsJSON)
+		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -1073,15 +1084,10 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		if strings.HasPrefix(runtime.config.OCIRuntime, "/") {
 			name := filepath.Base(runtime.config.OCIRuntime)
 
-			supportsJSON := false
-			for _, r := range runtime.config.RuntimeSupportsJSON {
-				if r == name {
-					supportsJSON = true
-					break
-				}
-			}
+			json := supportsJSON[name]
+			nocgroups := supportsNoCgroups[name]
 
-			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, supportsJSON)
+			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
 			if err != nil {
 				return err
 			}

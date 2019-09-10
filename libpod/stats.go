@@ -19,6 +19,10 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.ContainerID = c.ID()
 	stats.Name = c.Name()
 
+	if c.config.NoCgroups {
+		return nil, errors.Wrapf(define.ErrNoCgroups, "cannot run top on container %s as it did not create a cgroup", c.ID())
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

@@ -1120,6 +1120,10 @@ func (c *Container) stop(timeout uint) error {
 
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
+	if c.config.NoCgroups {
+		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using CGroups")
+	}
+
 	if err := c.ociRuntime.pauseContainer(c); err != nil {
 		return err
 	}
@@ -1133,6 +1137,10 @@ func (c *Container) pause() error {
 
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
+	if c.config.NoCgroups {
+		return errors.Wrapf(define.ErrNoCgroups, "cannot unpause without using CGroups")
+	}
+
 	if err := c.ociRuntime.unpauseContainer(c); err != nil {
 		return err
 	}

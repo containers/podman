@@ -356,6 +356,9 @@ type ContainerConfig struct {
 	StopTimeout uint `json:"stopTimeout,omitempty"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
+	// NoCgroups indicates that the container will not create CGroups. It is
+	// incompatible with CgroupParent.
+	NoCgroups bool `json:"noCgroups,omitempty"`
 	// Cgroup parent of the container
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
