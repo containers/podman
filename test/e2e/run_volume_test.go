@@ -249,4 +249,25 @@ var _ = Describe("Podman run with volumes", func() {
 		fmt.Printf("Output: %s", mountOut3)
 		Expect(strings.Contains(mountOut3, volName)).To(BeFalse())
 	})
+
+	It("podman named volume copyup", func() {
+		baselineSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", ALPINE, "ls", "/etc/apk/"})
+		baselineSession.WaitWithDefaultTimeout()
+		Expect(baselineSession.ExitCode()).To(Equal(0))
+		baselineOutput := baselineSession.OutputToString()
+
+		inlineVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "-v", "testvol1:/etc/apk", ALPINE, "ls", "/etc/apk/"})
+		inlineVolumeSession.WaitWithDefaultTimeout()
+		Expect(inlineVolumeSession.ExitCode()).To(Equal(0))
+		Expect(inlineVolumeSession.OutputToString()).To(Equal(baselineOutput))
+
+		makeVolumeSession := podmanTest.Podman([]string{"volume", "create", "testvol2"})
+		makeVolumeSession.WaitWithDefaultTimeout()
+		Expect(makeVolumeSession.ExitCode()).To(Equal(0))
+
+		separateVolumeSession := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "-v", "testvol2:/etc/apk", ALPINE, "ls", "/etc/apk/"})
+		separateVolumeSession.WaitWithDefaultTimeout()
+		Expect(separateVolumeSession.ExitCode()).To(Equal(0))
+		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
+	})
 })

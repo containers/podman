@@ -11,9 +11,11 @@ import (
 func newVolume(runtime *Runtime) (*Volume, error) {
 	volume := new(Volume)
 	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
 	volume.runtime = runtime
 	volume.config.Labels = make(map[string]string)
 	volume.config.Options = make(map[string]string)
+	volume.state.NeedsCopyUp = true
 
 	return volume, nil
 }

@@ -115,7 +115,9 @@ func (c *Container) prepare() (Err error) {
 		createErr = createNetNSErr
 	}
 	if mountStorageErr != nil {
-		logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+		if createErr != nil {
+			logrus.Errorf("Error preparing container %s: %v", c.ID(), createErr)
+		}
 		createErr = mountStorageErr
 	}
 
