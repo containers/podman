@@ -120,6 +120,18 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(100))
 	})
 
+	It("podman exec pseudo-terminal sanity check", func() {
+		setup := podmanTest.Podman([]string{"run", "--detach", "--name", "test1", fedoraMinimal, "sleep", "+Inf"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "--interactive", "--tty", "test1", "/usr/bin/stty", "--all"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString(" onlcr")
+		Expect(match).Should(BeTrue())
+	})
+
 	It("podman exec simple command with user", func() {
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
