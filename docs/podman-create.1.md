@@ -322,7 +322,7 @@ Print usage statement
 **--http-proxy**=*true|false*
 
 By default proxy environment variables are passed into the container if set
-for the podman process.  This can be disabled by setting the `--http-proxy`
+for the Podman process.  This can be disabled by setting the `--http-proxy`
 option to `false`.  The environment variables passed in include `http_proxy`,
 `https_proxy`, `ftp_proxy`, `no_proxy`, and also the upper case versions of
 those.  This option is only needed when the host system must use a proxy but
@@ -341,7 +341,7 @@ Defaults to `true`
 
 **--image-volume**, **builtin-volume**=*bind|tmpfs|ignore*
 
-Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind').
+Tells Podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore' (default 'bind').
 bind: A directory is created inside the container state directory and bind mounted into
 the container for the volumes.
 tmpfs: The volume is mounted onto the container as a tmpfs, which allows the users to create
@@ -505,7 +505,7 @@ Set the Network mode for the container. Invalid if using **--dns**, **--dns-opti
                 'bridge': create a network stack on the default bridge
                 'none': no networking
                 'container:<name|id>': reuse another container's network stack
-                'host': use the podman host network stack.  Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+                'host': use the Podman host network stack.  Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
                 '<network-name>|<network-id>': connect to a user-defined network
                 'ns:<path>': path to a network namespace to join
                 'slirp4netns': use slirp4netns to create a user network stack.  This is the default for rootless containers
@@ -543,19 +543,19 @@ Tune the container's pids limit. Set `-1` to have unlimited pids for the contain
 
 **--pod**=*name*
 
-Run container in an existing pod. If you want podman to make the pod for you, preference the pod name with `new:`.
+Run container in an existing pod. If you want Podman to make the pod for you, preference the pod name with `new:`.
 To make a pod with more granular options, use the `podman pod create` command before creating a container.
 
 **--privileged**=*true|false*
 
 Give extended privileges to this container. The default is *false*.
 
-By default, podman containers are
+By default, Podman containers are
 “unprivileged” (=false) and cannot, for example, modify parts of the kernel.
 This is because by default a container is not allowed to access any devices.
 A “privileged” container is given access to all devices.
 
-When the operator executes a privileged container, podman enables access
+When the operator executes a privileged container, Podman enables access
 to all devices on the host, turns off graphdriver mount options, as well as
 turning off most of the security measures protecting the host from the
 container.
@@ -577,9 +577,9 @@ Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPO
 Publish all exposed ports to random ports on the host interfaces. The default is *false*.
 
 When set to true publish all exposed ports to the host interfaces. The
-default is false. If the operator uses -P (or -p) then podman will make the
+default is false. If the operator uses -P (or -p) then Podman will make the
 exposed port accessible on the host and the ports will be available to any
-client that can reach the host. When using -P, podman will bind any exposed
+client that can reach the host. When using -P, Podman will bind any exposed
 port to a random port on the host within an *ephemeral port range* defined by
 `/proc/sys/net/ipv4/ip_local_port_range`. To find the mapping between the host
 ports and the exposed ports, use `podman port`.
@@ -733,11 +733,11 @@ any options, the systems uses the following options:
 
 Allocate a pseudo-TTY. The default is *false*.
 
-When set to true podman will allocate a pseudo-tty and attach to the standard
+When set to true Podman will allocate a pseudo-tty and attach to the standard
 input of the container. This can be used, for example, to run a throwaway
 interactive shell. The default is false.
 
-Note: The **-t** option is incompatible with a redirection of the podman client
+Note: The **-t** option is incompatible with a redirection of the Podman client
 standard input.
 
 **--uidmap**=*container_uid:host_uid:amount*
@@ -793,8 +793,8 @@ container. The `OPTIONS` are a comma delimited list and can be:
 * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
-must be an absolute path as well. podman bind-mounts the `HOST-DIR` to the
-path you specify. For example, if you supply the `/foo` value, podman creates a bind-mount.
+must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
+path you specify. For example, if you supply the `/foo` value, Podman creates a bind-mount.
 
 You can specify multiple  **-v** options to mount one or more mounts to a
 container.
@@ -806,14 +806,14 @@ See examples.
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
-default, podman does not change the labels set by the OS.
+default, Podman does not change the labels set by the OS.
 
 To change a label in the container context, you can add either of two suffixes
-`:z` or `:Z` to the volume mount. These suffixes tell podman to relabel file
-objects on the shared volumes. The `z` option tells podman that two containers
-share the volume content. As a result, podman labels the content with a shared
+`:z` or `:Z` to the volume mount. These suffixes tell Podman to relabel file
+objects on the shared volumes. The `z` option tells Podman that two containers
+share the volume content. As a result, Podman labels the content with a shared
 content label. Shared volume labels allow all containers to read/write content.
-The `Z` option tells podman to label the content with a private unshared label.
+The `Z` option tells Podman to label the content with a private unshared label.
 Only the current container can use a private volume.
 
 By default bind mounted volumes are `private`. That means any mounts done
@@ -861,7 +861,7 @@ To share a volume, use the --volumes-from option when running
 the target container. You can share volumes even if the source container
 is not running.
 
-By default, podman mounts the volumes in the same mode (read-write or
+By default, Podman mounts the volumes in the same mode (read-write or
 read-only) as it is mounted in the source container. Optionally, you
 can change this by suffixing the container-id with either the `ro` or
 `rw` keyword.
@@ -869,11 +869,11 @@ can change this by suffixing the container-id with either the `ro` or
 Labeling systems like SELinux require that proper labels are placed on volume
 content mounted into a container. Without a label, the security system might
 prevent the processes running inside the container from using the content. By
-default, podman does not change the labels set by the OS.
+default, Podman does not change the labels set by the OS.
 
 To change a label in the container context, you can add `z` to the volume mount.
-This suffix tells podman to relabel file objects on the shared volumes. The `z`
-option tells podman that two containers share the volume content. As a result,
+This suffix tells Podman to relabel file objects on the shared volumes. The `z`
+option tells Podman that two containers share the volume content. As a result,
 podman labels the content with a shared content label. Shared volume labels allow
 all containers to read/write content.
 
@@ -927,7 +927,7 @@ Note: RHEL7 and Centos 7 will not have this feature until RHEL7.7 is released.
 
 In order for users to run rootless, there must be an entry for their username in /etc/subuid and /etc/subgid which lists the UIDs for their user namespace.
 
-Rootless podman works better if the fuse-overlayfs and slirp4netns packages are installed.
+Rootless Podman works better if the fuse-overlayfs and slirp4netns packages are installed.
 The fuse-overlay package provides a userspace overlay storage driver, otherwise users need to use
 the vfs storage driver, which is diskspace expensive and does not perform well. slirp4netns is
 required for VPN, without it containers need to be run with the --net=host flag.
@@ -937,7 +937,7 @@ required for VPN, without it containers need to be run with the --net=host flag.
 Environment variables within containers can be set using multiple different options:  This section describes the precedence.
 
 Precedence Order:
-	   **--env-host** : Host environment of the process executing podman is added.
+	   **--env-host** : Host environment of the process executing Podman is added.
 
 	   Container image : Any environment variables specified in the container image.
 
@@ -967,7 +967,7 @@ b
 subgid(5), subuid(5), libpod.conf(5), systemd.unit(5), setsebool(8), slirp4netns(1), fuse-overlayfs(1)
 
 ## HISTORY
-October 2017, converted from Docker documentation to podman by Dan Walsh for podman <dwalsh@redhat.com>
+October 2017, converted from Docker documentation to Podman by Dan Walsh for Podman <dwalsh@redhat.com>
 
 November 2014, updated by Sven Dowideit <SvenDowideit@home.org.au>
 

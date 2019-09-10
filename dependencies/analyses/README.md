@@ -13,7 +13,7 @@ The analysis script will then read and parse the build data and print a sorted t
 Running such an analysis on libpod may look as follows:
 
 ```
-# 1) Build the podman binary with `-work -a`.
+# 1) Build the Podman binary with `-work -a`.
 [libpod]$ BUILDFLAGS="-work -a" make podman
 [...]
 WORK=/tmp/go-build794287815

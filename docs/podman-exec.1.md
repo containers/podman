@@ -64,7 +64,7 @@ when creating the container.
 The exit code from `podman exec` gives information about why the command within the container failed to run or why it exited.  When `podman exec` exits with a
 non-zero code, the exit codes follow the `chroot` standard, see below:
 
-**_125_** if the error is with podman **_itself_**
+**_125_** if the error is with Podman **_itself_**
 
     $ podman exec --foo ctrID /bin/sh; echo $?
     Error: unknown flag: --foo
