@@ -136,8 +136,8 @@ help:
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
 	mkdir -p "$(GOPKGBASEDIR)"
-	ln -sfnT "$(CURDIR)" "$(GOPKGDIR)"
-	ln -sfnT "$(CURDIR)/vendor/github.com/varlink" "$(FIRST_GOPATH)/src/github.com/varlink"
+	ln -sfn "$(CURDIR)" "$(GOPKGDIR)"
+	ln -sfn "$(CURDIR)/vendor/github.com/varlink" "$(FIRST_GOPATH)/src/github.com/varlink"
 endif
 	touch $@
 
