@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // GetPruneImages returns a slice of images that have no names/unused
@@ -44,6 +46,10 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool) ([]string, error) 
 	}
 	for _, p := range pruneImages {
 		if err := p.Remove(ctx, true); err != nil {
+			if errors.Cause(err) == storage.ErrImageUsedByContainer {
+				logrus.Warnf("Failed to prune image %s as it is in use: %v", p.ID(), err)
+				continue
+			}
 			return nil, errors.Wrap(err, "failed to prune image")
 		}
 		defer p.newImageEvent(events.Prune)
