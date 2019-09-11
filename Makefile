@@ -84,6 +84,7 @@ GINKGOTIMEOUT ?= -timeout=90m
 
 RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
 RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER)
+RELEASE_NUMERIC = $(shell echo $(RELEASE_NUMBER) |sed -e 's/^v\(.*\)/\1/')
 RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
 RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
 RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
@@ -163,6 +164,10 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+
+.PHONY: podman.msi
+podman.msi: podman-remote-windows ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	wixl -D VERSION=$(RELEASE_NUMERIC) -o bin/podman-$(RELEASE_NUMBER).msi contrib/msi/podman.wxs
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
