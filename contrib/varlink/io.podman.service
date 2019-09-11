@@ -6,8 +6,9 @@ Documentation=man:podman-varlink(1)
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/podman varlink unix:%t/podman/io.podman
-KillMode=none
+ExecStart=/usr/bin/podman varlink unix:%t/podman/io.podman --timeout=60000
+TimeoutStopSec=30
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
