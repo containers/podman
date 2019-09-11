@@ -362,7 +362,7 @@ func (r *layerStore) Load() error {
 			}
 		}
 		if shouldSave {
-			return r.Save()
+			return r.saveLayers()
 		}
 	}
 	return err
@@ -393,6 +393,16 @@ func (r *layerStore) loadMounts() error {
 }
 
 func (r *layerStore) Save() error {
+	r.mountsLockfile.Lock()
+	defer r.mountsLockfile.Unlock()
+	defer r.mountsLockfile.Touch()
+	if err := r.saveLayers(); err != nil {
+		return err
+	}
+	return r.saveMounts()
+}
+
+func (r *layerStore) saveLayers() error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to modify the layer store at %q", r.layerspath())
 	}
@@ -408,13 +418,7 @@ func (r *layerStore) Save() error {
 		return err
 	}
 	defer r.Touch()
-	if err := ioutils.AtomicWriteFile(rpath, jldata, 0600); err != nil {
-		return err
-	}
-	r.mountsLockfile.Lock()
-	defer r.mountsLockfile.Unlock()
-	defer r.mountsLockfile.Touch()
-	return r.saveMounts()
+	return ioutils.AtomicWriteFile(rpath, jldata, 0600)
 }
 
 func (r *layerStore) saveMounts() error {
