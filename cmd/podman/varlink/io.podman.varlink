@@ -147,6 +147,7 @@ type ContainerStats (
 
 type PsOpts (
     all: bool,
+    external: ?bool,
     filters: ?[]string,
     last: ?int,
     latest: ?bool,

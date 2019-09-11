@@ -71,7 +71,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 		response, err := runtime.RemoveImage(ctx, img, c.Force)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
-				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
+				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\nUsing the --force option will remove the container and image, but may cause failures for other dependent systems.", img.ID())
 			}
 			if !adapter.IsImageNotFound(err) {
 				exitCode = 2

@@ -36,15 +36,16 @@ const (
 // PsOptions describes the struct being formed for ps.
 type PsOptions struct {
 	All       bool
+	External  bool
 	Format    string
 	Last      int
 	Latest    bool
+	Namespace bool
 	NoTrunc   bool
 	Pod       bool
 	Quiet     bool
 	Size      bool
 	Sort      string
-	Namespace bool
 	Sync      bool
 }
 
@@ -199,6 +200,8 @@ func NewBatchContainer(r *libpod.Runtime, ctr *libpod.Container, opts PsOptions)
 		status = "Created"
 	case define.ContainerStateRemoving.String():
 		status = "Removing"
+	case define.ContainerStateNA.String():
+		status = "NA"
 	default:
 		status = "Error"
 	}
@@ -461,7 +464,35 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 		if err != nil {
 			return nil, err
 		}
+		storeCtrs, err := r.GetExternalContainers(containers)
+		if err != nil {
+			return nil, err
+		}
 
+		if opts.External {
+			containers = storeCtrs
+		} else {
+			containers = append(containers, storeCtrs...)
+		}
+
+		// GetContainers() filters the Podman containers, but it's called from more
+		// places than PS, so we can't move the filtering logic here.  If
+		// we find external containers, let's refilter.
+		if len(storeCtrs) > 0 {
+			ctrsFiltered := make([]*libpod.Container, 0, len(containers))
+
+			for _, ctr := range containers {
+				include := true
+				for _, filter := range filterFuncs {
+					include = include && filter(ctr)
+				}
+
+				if include {
+					ctrsFiltered = append(ctrsFiltered, ctr)
+				}
+			}
+			containers = ctrsFiltered
+		}
 		// We only want the last few containers.
 		if opts.Last > 0 && opts.Last <= len(containers) {
 			return nil, errors.Errorf("--last not yet supported")
@@ -528,7 +559,7 @@ func PBatch(r *libpod.Runtime, containers []*libpod.Container, workers int, opts
 	for res := range results {
 		// We sort out running vs non-running here to save lots of copying
 		// later.
-		if !opts.All && !opts.Latest && opts.Last < 1 {
+		if !opts.All && !opts.External && !opts.Latest && opts.Last < 1 {
 			if !res.IsInfra && res.State == define.ContainerStateRunning {
 				psResults = append(psResults, res)
 			}

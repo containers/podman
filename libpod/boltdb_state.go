@@ -609,6 +609,12 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return define.ErrDBClosed
 	}
 
+	// We're dealing with a non-Podman container, don't
+	// attempt to update, it won't go well.
+	if ctr.state.State == define.ContainerStateNA {
+		return nil
+	}
+
 	if !ctr.valid {
 		return define.ErrCtrRemoved
 	}

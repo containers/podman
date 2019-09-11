@@ -120,6 +120,7 @@ func psInit(command *cliconfig.PsValues) {
 	command.SetUsageTemplate(UsageTemplate())
 	flags := command.Flags()
 	flags.BoolVarP(&command.All, "all", "a", false, "Show all the containers, default is only running containers")
+	flags.BoolVar(&command.External, "external", false, "Show containers in storage not controlled by Podman")
 	flags.StringSliceVarP(&command.Filter, "filter", "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&command.Format, "format", "", "Pretty-print containers to JSON or using a Go template")
 	flags.IntVarP(&command.Last, "last", "n", -1, "Print the n last created containers (all states)")
@@ -160,7 +161,7 @@ func psCmd(c *cliconfig.PsValues) error {
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
 	}
-	if !c.Size {
+	if !c.Size && !c.All && !c.External {
 		runtime, err = adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
 	} else {
 		runtime, err = adapter.GetRuntime(getContext(), &c.PodmanCommand)
@@ -311,14 +312,15 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 	)
 	opts := shared.PsOptions{
 		All:       c.All,
+		External:  c.External,
 		Format:    c.Format,
 		Last:      c.Last,
 		Latest:    c.Latest,
+		Namespace: c.Namespace,
 		NoTrunc:   c.NoTrunct,
 		Pod:       c.Pod,
 		Quiet:     c.Quiet,
 		Size:      c.Size,
-		Namespace: c.Namespace,
 		Sort:      c.Sort,
 		Sync:      c.Sync,
 	}

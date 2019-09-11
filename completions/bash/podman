@@ -2383,6 +2383,7 @@ _podman_ps() {
      "
      local boolean_options="
 	  --all -a
+	  --external
 	  --help -h
 	  --latest -l
 	  --no-trunc

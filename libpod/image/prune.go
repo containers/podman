@@ -118,7 +118,7 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 	for _, p := range pruneImages {
 		if err := p.Remove(ctx, true); err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
-				logrus.Warnf("Failed to prune image %s as it is in use: %v", p.ID(), err)
+				logrus.Warnf("Failed to prune image %s as it is in use: %v.\nA container associated with containers/storage i.e. Buildah, CRI-O, etc., maybe associated with this image.\nUsing the rmi command with the --force option will remove the container and image, but may cause failures for other dependent systems.", p.ID(), err)
 				continue
 			}
 			return nil, errors.Wrap(err, "failed to prune image")

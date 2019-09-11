@@ -230,7 +230,7 @@ func (ir *Runtime) GetImagesWithFilters(filters []string) ([]*Image, error) {
 }
 
 func (i *Image) reloadImage() error {
-	newImage, err := i.imageruntime.getImage(i.ID())
+	newImage, err := i.imageruntime.GetImage(i.ID())
 	if err != nil {
 		return errors.Wrapf(err, "unable to reload image")
 	}
@@ -259,7 +259,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 		i.InputName = dest.DockerReference().String()
 	}
 
-	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
+	img, err := i.imageruntime.GetImage(stripSha256(i.InputName))
 	if err == nil {
 		return img.image, err
 	}
@@ -283,7 +283,7 @@ func (i *Image) getLocalImage() (*storage.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	img, err = i.imageruntime.getImage(ref.String())
+	img, err = i.imageruntime.GetImage(ref.String())
 	if err == nil {
 		return img.image, err
 	}
@@ -457,10 +457,30 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 	return nil
 }
 
-// getImage retrieves an image matching the given name or hash from system
+// TODO: Rework this method to not require an assembly of the fq name with transport
+/*
+// GetManifest tries to GET an images manifest, returns nil on success and err on failure
+func (i *Image) GetManifest() error {
+	pullRef, err := alltransports.ParseImageName(i.assembleFqNameTransport())
+	if err != nil {
+		return errors.Errorf("unable to parse '%s'", i.Names()[0])
+	}
+	imageSource, err := pullRef.NewImageSource(nil)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create new image source")
+	}
+	_, _, err = imageSource.GetManifest(nil)
+	if err == nil {
+		return nil
+	}
+	return err
+}
+*/
+
+// GetImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
-func (ir *Runtime) getImage(image string) (*Image, error) {
+func (ir *Runtime) GetImage(image string) (*Image, error) {
 	var img *storage.Image
 	ref, err := is.Transport.ParseStoreReference(ir.store, image)
 	if err == nil {

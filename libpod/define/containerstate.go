@@ -28,6 +28,10 @@ const (
 	// ContainerStateRemoving indicates the container is in the process of
 	// being removed.
 	ContainerStateRemoving ContainerStatus = iota
+	// ContainerStateNA indicates the container is controlled by c/storage
+	// and not by libpod/Podman.  This status should ONLY be used by the
+	// ps command.
+	ContainerStateNA ContainerStatus = iota
 )
 
 // ContainerStatus returns a string representation for users
@@ -50,6 +54,8 @@ func (t ContainerStatus) String() string {
 		return "exited"
 	case ContainerStateRemoving:
 		return "removing"
+	case ContainerStateNA:
+		return "NA"
 	}
 	return "bad state"
 }
@@ -74,6 +80,8 @@ func StringToContainerStatus(status string) (ContainerStatus, error) {
 		return ContainerStateExited, nil
 	case ContainerStateRemoving.String():
 		return ContainerStateRemoving, nil
+	case ContainerStateNA.String():
+		return ContainerStateNA, nil
 	default:
 		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
 	}

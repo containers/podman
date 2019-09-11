@@ -393,6 +393,11 @@ func (c *Container) syncContainer() error {
 	if err := c.runtime.state.UpdateContainer(c); err != nil {
 		return err
 	}
+
+	// We've a non-Podman container, don't sync, it won't go well.
+	if c.state.State == define.ContainerStateNA {
+		return nil
+	}
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStatePaused) {

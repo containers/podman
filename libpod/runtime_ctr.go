@@ -837,3 +837,59 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	}
 	return ctrs[lastCreatedIndex], nil
 }
+
+//GetExternalContainers returns a list of containers from containers/storage that
+//are not currently known to Podman.  The list of containers passed in are all
+//of the containers known to Podman from the GetContainers() function.
+func (r *Runtime) GetExternalContainers(ctrs []*Container) ([]*Container, error) {
+	var retCtrs []*Container
+
+	// We only have a store when doing all, storage or size, so skip this otherwise.
+	if r.store == nil {
+		return retCtrs, nil
+	}
+
+	// Make a map of the libpod containers.  If we run across them from
+	// c/storage, we won't grab them in the processing below.
+	libpodCtrs := make(map[string]bool)
+	for _, ctr := range ctrs {
+		libpodCtrs[ctr.ID()] = true
+	}
+
+	storeContainers, err2 := r.store.Containers()
+	if err2 != nil {
+		return ctrs, errors.Wrapf(err2, "error reading list of all containers")
+	}
+	for _, container := range storeContainers {
+		// No need to handle libpod containers here.
+		if _, foundCtr := libpodCtrs[container.ID]; foundCtr {
+			continue
+		}
+		newCtr := new(Container)
+		newCtr.config = new(ContainerConfig)
+		newCtr.state = new(ContainerState)
+
+		name := ""
+		if len(container.Names) > 0 {
+			name = container.Names[0]
+		}
+		myImage, _ := r.ImageRuntime().GetImage(container.ImageID)
+		newCtr.runtime = r
+		newCtr.config.ID = container.ID
+		newCtr.config.Name = container.Names[0]
+		newCtr.config.RootfsImageID = container.ImageID
+		newCtr.config.RootfsImageName = myImage.Names()[0]
+		newCtr.config.Command = []string{"NA"}
+		newCtr.config.CreatedTime = container.Created
+		newCtr.state.State = define.ContainerStateNA
+		lock, err := r.lockManager.AllocateLock()
+		if err != nil {
+			return nil, errors.Wrapf(err, "error allocating lock for container %s", newCtr.config.ID)
+		}
+		newCtr.lock = lock
+		logrus.Debugf("Found non podman container name [%v], id [%v] imageID [%v] date [%v]\n", name, container.ID, container.ImageID, container.Created)
+		retCtrs = append(retCtrs, newCtr)
+	}
+
+	return retCtrs, nil
+}

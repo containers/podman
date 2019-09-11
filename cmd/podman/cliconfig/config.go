@@ -420,6 +420,7 @@ type PortValues struct {
 type PsValues struct {
 	PodmanCommand
 	All       bool
+	External  bool
 	Filter    []string
 	Format    string
 	Last      int

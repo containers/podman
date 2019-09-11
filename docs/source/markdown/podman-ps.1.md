@@ -32,11 +32,18 @@ all the containers information.  By default it lists:
 
 **--all**, **-a**
 
-Show all the containers, default is only running containers
+Show all the containers including those created by other container technologies such as Buildah and CRI-O.  The default displays only running containers created by Podman.  Containers not created by Podman have an 'NA' status.
 
 **--pod**, **-p**
 
 Display the pods the containers are associated with
+
+**--external**
+
+Display containers that are not controlled by Podman but are stored in containers storage.  These containers
+are generally created via other container technology such as Buildah or CRI-O and may depend on the
+same container images that Podman is using.  These containers are denoted with a 'NA' in the COMMAND and
+STATUS column of the ps output.  These containers are also shown when using the `--all` option.
 
 **--no-trunc**
 
@@ -172,11 +179,18 @@ CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS 
 
 ```
 
+```
+$ podman ps --external
+CONTAINER ID  IMAGE                             COMMAND  CREATED      STATUS  PORTS  NAMES
+38a8a78596f9  docker.io/library/busybox:latest  NA       2 hours ago  NA             busybox-working-container
+fd7b786b5c32  docker.io/library/alpine:latest   NA       2 hours ago  NA             alpine-working-container
+```
+
 ## ps
 Print a list of containers
 
 ## SEE ALSO
-podman(1)
+podman(1), buildah(1), crio(8)
 
 ## HISTORY
 August 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

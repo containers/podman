@@ -511,16 +511,17 @@ func (r *LocalRuntime) Ps(c *cliconfig.PsValues, opts shared.PsOptions) ([]share
 	var psContainers []shared.PsContainerOutput
 	last := int64(c.Last)
 	PsOpts := iopodman.PsOpts{
-		All:     c.All,
-		Filters: &c.Filter,
-		Last:    &last,
-		Latest:  &c.Latest,
-		NoTrunc: &c.NoTrunct,
-		Pod:     &c.Pod,
-		Quiet:   &c.Quiet,
-		Size:    &c.Size,
-		Sort:    &c.Sort,
-		Sync:    &c.Sync,
+		All:      c.All,
+		External: &c.External,
+		Filters:  &c.Filter,
+		Last:     &last,
+		Latest:   &c.Latest,
+		NoTrunc:  &c.NoTrunct,
+		Pod:      &c.Pod,
+		Quiet:    &c.Quiet,
+		Size:     &c.Size,
+		Sort:     &c.Sort,
+		Sync:     &c.Sync,
 	}
 	containers, err := iopodman.Ps().Call(r.Conn, PsOpts)
 	if err != nil {
