@@ -629,6 +629,9 @@ verify_test_built_images_task:
 
 upload_snap_task:
 
+    # Only when PR or branch is merged into master
+    only_if: $CIRRUS_BRANCH == $DEST_BRANCH
+
     depends_on:
         - "test_building_snap"
 
