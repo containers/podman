@@ -1,8 +1,9 @@
-// +build no_openssl
+// +build !no_openssl
 
 package libtrust
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -267,18 +268,10 @@ func (k *ecPrivateKey) String() string {
 // the signature and the name of the JWK signature algorithm used, e.g.,
 // "ES256", "ES384", "ES512".
 func (k *ecPrivateKey) Sign(data io.Reader, hashID crypto.Hash) (signature []byte, alg string, err error) {
-	// Generate a signature of the data using the internal alg.
-	// The given hashId is only a suggestion, and since EC keys only support
-	// on signature/hash algorithm given the curve name, we disregard it for
-	// the elliptic curve JWK signature implementation.
-	hasher := k.signatureAlgorithm.HashID().New()
-	_, err = io.Copy(hasher, data)
-	if err != nil {
-		return nil, "", fmt.Errorf("error reading data to sign: %s", err)
-	}
-	hash := hasher.Sum(nil)
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(data)
 
-	r, s, err := ecdsa.Sign(rand.Reader, k.PrivateKey, hash)
+	r, s, err := ecdsa.HashSign(rand.Reader, k.PrivateKey, buf.Bytes(), hashID)
 	if err != nil {
 		return nil, "", fmt.Errorf("error producing signature: %s", err)
 	}
