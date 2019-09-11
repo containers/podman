@@ -1749,6 +1749,7 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 
 	volume := new(Volume)
 	volume.config = new(VolumeConfig)
+	volume.state = new(VolumeState)
 
 	db, err := s.getDBCon()
 	if err != nil {
