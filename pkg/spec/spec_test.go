@@ -21,9 +21,9 @@ var (
 func makeTestCreateConfig() *CreateConfig {
 	cc := new(CreateConfig)
 	cc.Resources = CreateResourceConfig{}
-	cc.IDMappings = new(storage.IDMappingOptions)
-	cc.IDMappings.UIDMap = []idtools.IDMap{}
-	cc.IDMappings.GIDMap = []idtools.IDMap{}
+	cc.User.IDMappings = new(storage.IDMappingOptions)
+	cc.User.IDMappings.UIDMap = []idtools.IDMap{}
+	cc.User.IDMappings.GIDMap = []idtools.IDMap{}
 
 	return cc
 }

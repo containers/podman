@@ -666,55 +666,55 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 	return infraPorts
 }
 
-func setupSecurityContext(containerConfig *createconfig.CreateConfig, containerYAML v1.Container) {
+func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfig *createconfig.UserConfig, containerYAML v1.Container) {
 	if containerYAML.SecurityContext == nil {
 		return
 	}
 	if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
-		containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+		securityConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
 	}
 	if containerYAML.SecurityContext.Privileged != nil {
-		containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
+		securityConfig.Privileged = *containerYAML.SecurityContext.Privileged
 	}
 
 	if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
-		containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+		securityConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
 	}
 
 	if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
 		if seopt.User != "" {
-			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=user:%s", seopt.User))
-			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("user:%s", seopt.User))
+			securityConfig.SecurityOpts = append(securityConfig.SecurityOpts, fmt.Sprintf("label=user:%s", seopt.User))
+			securityConfig.LabelOpts = append(securityConfig.LabelOpts, fmt.Sprintf("user:%s", seopt.User))
 		}
 		if seopt.Role != "" {
-			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=role:%s", seopt.Role))
-			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("role:%s", seopt.Role))
+			securityConfig.SecurityOpts = append(securityConfig.SecurityOpts, fmt.Sprintf("label=role:%s", seopt.Role))
+			securityConfig.LabelOpts = append(securityConfig.LabelOpts, fmt.Sprintf("role:%s", seopt.Role))
 		}
 		if seopt.Type != "" {
-			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=type:%s", seopt.Type))
-			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("type:%s", seopt.Type))
+			securityConfig.SecurityOpts = append(securityConfig.SecurityOpts, fmt.Sprintf("label=type:%s", seopt.Type))
+			securityConfig.LabelOpts = append(securityConfig.LabelOpts, fmt.Sprintf("type:%s", seopt.Type))
 		}
 		if seopt.Level != "" {
-			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=level:%s", seopt.Level))
-			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("level:%s", seopt.Level))
+			securityConfig.SecurityOpts = append(securityConfig.SecurityOpts, fmt.Sprintf("label=level:%s", seopt.Level))
+			securityConfig.LabelOpts = append(securityConfig.LabelOpts, fmt.Sprintf("level:%s", seopt.Level))
 		}
 	}
 	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
 		for _, capability := range caps.Add {
-			containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
+			securityConfig.CapAdd = append(securityConfig.CapAdd, string(capability))
 		}
 		for _, capability := range caps.Drop {
-			containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
+			securityConfig.CapDrop = append(securityConfig.CapDrop, string(capability))
 		}
 	}
 	if containerYAML.SecurityContext.RunAsUser != nil {
-		containerConfig.User = fmt.Sprintf("%d", *containerYAML.SecurityContext.RunAsUser)
+		userConfig.User = fmt.Sprintf("%d", *containerYAML.SecurityContext.RunAsUser)
 	}
 	if containerYAML.SecurityContext.RunAsGroup != nil {
-		if containerConfig.User == "" {
-			containerConfig.User = "0"
+		if userConfig.User == "" {
+			userConfig.User = "0"
 		}
-		containerConfig.User = fmt.Sprintf("%s:%d", containerConfig.User, *containerYAML.SecurityContext.RunAsGroup)
+		userConfig.User = fmt.Sprintf("%s:%d", userConfig.User, *containerYAML.SecurityContext.RunAsGroup)
 	}
 }
 
@@ -722,6 +722,13 @@ func setupSecurityContext(containerConfig *createconfig.CreateConfig, containerY
 func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
+		pidConfig       createconfig.PidConfig
+		networkConfig   createconfig.NetworkConfig
+		cgroupConfig    createconfig.CgroupConfig
+		utsConfig       createconfig.UtsConfig
+		ipcConfig       createconfig.IpcConfig
+		userConfig      createconfig.UserConfig
+		securityConfig  createconfig.SecurityConfig
 	)
 
 	// The default for MemorySwappiness is -1, not 0
@@ -737,15 +744,15 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	imageData, _ := newImage.Inspect(ctx)
 
-	containerConfig.User = "0"
+	userConfig.User = "0"
 	if imageData != nil {
-		containerConfig.User = imageData.Config.User
+		userConfig.User = imageData.Config.User
 	}
 
-	setupSecurityContext(&containerConfig, containerYAML)
+	setupSecurityContext(&securityConfig, &userConfig, containerYAML)
 
 	var err error
-	containerConfig.SeccompProfilePath, err = libpod.DefaultSeccompPath()
+	containerConfig.Security.SeccompProfilePath, err = libpod.DefaultSeccompPath()
 	if err != nil {
 		return nil, err
 	}
@@ -768,19 +775,27 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.StopSignal = 15
 
 	// If the user does not pass in ID mappings, just set to basics
-	if containerConfig.IDMappings == nil {
-		containerConfig.IDMappings = &storage.IDMappingOptions{}
+	if userConfig.IDMappings == nil {
+		userConfig.IDMappings = &storage.IDMappingOptions{}
 	}
 
-	containerConfig.NetMode = ns.NetworkMode(namespaces["net"])
-	containerConfig.IpcMode = ns.IpcMode(namespaces["ipc"])
-	containerConfig.UtsMode = ns.UTSMode(namespaces["uts"])
+	networkConfig.NetMode = ns.NetworkMode(namespaces["net"])
+	ipcConfig.IpcMode = ns.IpcMode(namespaces["ipc"])
+	utsConfig.UtsMode = ns.UTSMode(namespaces["uts"])
 	// disabled in code review per mheon
 	//containerConfig.PidMode = ns.PidMode(namespaces["pid"])
-	containerConfig.UsernsMode = ns.UsernsMode(namespaces["user"])
+	userConfig.UsernsMode = ns.UsernsMode(namespaces["user"])
 	if len(containerConfig.WorkDir) == 0 {
 		containerConfig.WorkDir = "/"
 	}
+
+	containerConfig.Pid = pidConfig
+	containerConfig.Network = networkConfig
+	containerConfig.Uts = utsConfig
+	containerConfig.Ipc = ipcConfig
+	containerConfig.Cgroup = cgroupConfig
+	containerConfig.User = userConfig
+	containerConfig.Security = securityConfig
 
 	// Set default environment variables and incorporate data from image, if necessary
 	envs := shared.EnvVariablesFromData(imageData)

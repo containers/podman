@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
+func getSeccompConfig(config *SecurityConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
 	return nil, errors.New("function not supported on non-linux OS's")
 }
 func addDevice(g *generate.Generator, device string) error {

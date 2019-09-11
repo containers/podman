@@ -10,7 +10,7 @@ import (
 	seccomp "github.com/seccomp/containers-golang"
 )
 
-func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
+func getSeccompConfig(config *SecurityConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
 	var seccompConfig *spec.LinuxSeccomp
 	var err error
 
