@@ -518,6 +518,10 @@ type SearchValues struct {
 	TlsVerify bool
 }
 
+type TrustValues struct {
+	PodmanCommand
+}
+
 type SignValues struct {
 	PodmanCommand
 	Directory string
