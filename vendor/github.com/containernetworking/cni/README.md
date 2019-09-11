@@ -9,7 +9,7 @@
 
 # Community Sync Meeting
 
-There is a community sync meeting for users and developers every 1-2 months. The next meeting will help on a Google Hangout and the link is in the [agenda](https://docs.google.com/document/d/10ECyT2mBGewsJUcmYmS8QNo1AcNgy2ZIe2xS7lShYhE/edit?usp=sharing) (Notes from previous meeting are also in this doc).
+There is a community sync meeting for users and developers every 1-2 months. The next meeting will be held on a Google Hangout and the link is in the [agenda](https://docs.google.com/document/d/10ECyT2mBGewsJUcmYmS8QNo1AcNgy2ZIe2xS7lShYhE/edit?usp=sharing) (Notes from previous meeting are also in this doc).
 
 The next meeting will be held on *Wednesday, January 30th, 2019* at *4:00pm UTC / 11:00am EDT / 8:00am PDT* [Add to Calendar](https://www.worldtimebuddy.com/?qm=1&lid=100,5,2643743,5391959&h=100&date=2019-01-30&sln=16-17).
 
@@ -67,6 +67,8 @@ To avoid duplication, we think it is prudent to define a common interface betwee
 - [Knitter - a CNI plugin supporting multiple networking for Kubernetes](https://github.com/ZTE/Knitter)
 - [DANM - a CNI-compliant networking solution for TelCo workloads running on Kubernetes](https://github.com/nokia/danm)
 - [VMware NSX – a CNI plugin that enables automated NSX L2/L3 networking and L4/L7 Load Balancing; network isolation at the pod, node, and cluster level; and zero-trust security policy for your Kubernetes cluster.](https://docs.vmware.com/en/VMware-NSX-T/2.2/com.vmware.nsxt.ncp_kubernetes.doc/GUID-6AFA724E-BB62-4693-B95C-321E8DDEA7E1.html)
+- [cni-route-override - a meta CNI plugin that override route information](https://github.com/redhat-nfvpe/cni-route-override)
+- [Terway - a collection of CNI Plugins based on alibaba cloud VPC/ECS network product](https://github.com/AliyunContainerService/terway)
 
 The CNI team also maintains some [core plugins in a separate repository](https://github.com/containernetworking/plugins).
 
@@ -189,13 +191,13 @@ lo        Link encap:Local Loopback
 
 ## What might CNI do in the future?
 
-CNI currently covers a wide range of needs for network configuration due to it simple model and API.
+CNI currently covers a wide range of needs for network configuration due to its simple model and API.
 However, in the future CNI might want to branch out into other directions:
 
 - Dynamic updates to existing network configuration
 - Dynamic policies for network bandwidth and firewall rules
 
-If these topics of are interest, please contact the team via the mailing list or IRC and find some like-minded people in the community to put a proposal together.
+If these topics are of interest, please contact the team via the mailing list or IRC and find some like-minded people in the community to put a proposal together.
 
 ## Contact
 

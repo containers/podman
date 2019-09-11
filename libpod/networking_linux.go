@@ -27,25 +27,36 @@ import (
 )
 
 // Get an OCICNI network config
-func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
-	network := ocicni.PodNetwork{
-		Name:         name,
-		Namespace:    name, // TODO is there something else we should put here? We don't know about Kube namespaces
-		ID:           id,
-		NetNS:        nsPath,
-		PortMappings: ports,
-		Networks:     networks,
+func (r *Runtime) getPodNetwork(id, name, nsPath string, config *ContainerConfig, staticIP net.IP) ocicni.PodNetwork {
+	networks := make([]ocicni.NetAttachment, 0)
+	for _, netName := range config.Networks {
+		networks = append(networks, ocicni.NetAttachment{Name: netName})
+	}
+	if len(networks) == 0 {
+		networks = append(networks, ocicni.NetAttachment{Name: r.netPlugin.GetDefaultNetworkName()})
 	}
 
+	firstNetworkName := networks[0].Name
+	podNetwork := ocicni.PodNetwork{
+		Name:      name,
+		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
+		ID:        id,
+		NetNS:     nsPath,
+		Networks:  networks,
+		RuntimeConfig: map[string]ocicni.RuntimeConfig{
+			firstNetworkName: {},
+		},
+	}
+	firstNetwork := podNetwork.RuntimeConfig[firstNetworkName]
+	if len(config.PortMappings) != 0 {
+		firstNetwork.PortMappings = config.PortMappings
+	}
 	if staticIP != nil {
-		defaultNetwork := r.netPlugin.GetDefaultNetworkName()
-
-		network.Networks = []string{defaultNetwork}
-		network.NetworkConfig = make(map[string]ocicni.NetworkConfig)
-		network.NetworkConfig[defaultNetwork] = ocicni.NetworkConfig{IP: staticIP.String()}
+		firstNetwork.IP = staticIP.String()
 	}
+	podNetwork.RuntimeConfig[firstNetworkName] = firstNetwork
 
-	return network
+	return podNetwork
 }
 
 // Create and configure a new network namespace for a container
@@ -59,7 +70,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		requestedIP = ctr.config.StaticIP
 	}
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.Config(), requestedIP)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -75,10 +86,10 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
-		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
-		resultCurrent, err := cnitypes.GetResult(r)
+		logrus.Debugf("[%d] CNI result: %v", idx, r.Result)
+		resultCurrent, err := cnitypes.GetResult(r.Result)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
+			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result, err)
 		}
 		networkStatus = append(networkStatus, resultCurrent)
 	}
@@ -408,7 +419,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		requestedIP = ctr.config.StaticIP
 	}
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.Config(), requestedIP)
 
 	// The network may have already been torn down, so don't fail here, just log
 	if err := r.netPlugin.TearDownPod(podNetwork); err != nil {

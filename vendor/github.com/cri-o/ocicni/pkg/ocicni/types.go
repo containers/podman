@@ -24,12 +24,44 @@ type PortMapping struct {
 	HostIP string `json:"hostIP"`
 }
 
-// NetworkConfig is additional configuration for a single CNI network.
-type NetworkConfig struct {
+// IpRange maps to the standard CNI ipRanges Capability
+// see: https://github.com/containernetworking/cni/blob/master/CONVENTIONS.md
+type IpRange struct {
+	// Subnet is the whole CIDR
+	Subnet string `json:"subnet"`
+	// RangeStart is the first available IP in subnet
+	RangeStart string `json:"rangeStart,omitempty"`
+	// RangeEnd is the last available IP in subnet
+	RangeEnd string `json:"rangeEnd,omitempty"`
+	// Gateway is the gateway of subnet
+	Gateway string `json:"gateway,omitempty"`
+}
+
+// RuntimeConfig is additional configuration for a single CNI network that
+// is pod-specific rather than general to the network.
+type RuntimeConfig struct {
 	// IP is a static IP to be specified in the network. Can only be used
 	// with the hostlocal IP allocator. If left unset, an IP will be
 	// dynamically allocated.
 	IP string
+	// PortMappings is the port mapping of the sandbox.
+	PortMappings []PortMapping
+	// Bandwidth is the bandwidth limiting of the pod
+	Bandwidth *BandwidthConfig
+	// IpRanges is the ip range gather which is used for address allocation
+	IpRanges [][]IpRange
+}
+
+// BandwidthConfig maps to the standard CNI bandwidth Capability
+// see: https://github.com/containernetworking/cni/blob/master/CONVENTIONS.md
+type BandwidthConfig struct {
+	// IngressRate is a limit for incoming traffic in bps
+	IngressRate  uint64
+	IngressBurst uint64
+
+	// EgressRate is a limit for outgoing traffic in bps
+	EgressRate  uint64
+	EgressBurst uint64
 }
 
 // PodNetwork configures the network of a pod sandbox.
@@ -42,17 +74,34 @@ type PodNetwork struct {
 	ID string
 	// NetNS is the network namespace path of the sandbox.
 	NetNS string
-	// PortMappings is the port mapping of the sandbox.
-	PortMappings []PortMapping
 
-	// Networks is a list of CNI network names to attach to the sandbox
-	// Leave this list empty to attach the default network to the sandbox
-	Networks []string
+	// Networks is a list of CNI network names (and optional interface
+	// names) to attach to the sandbox. Leave this list empty to attach the
+	// default network to the sandbox
+	Networks []NetAttachment
 
 	// NetworkConfig is configuration specific to a single CNI network.
 	// It is optional, and can be omitted for some or all specified networks
 	// without issue.
-	NetworkConfig map[string]NetworkConfig
+	RuntimeConfig map[string]RuntimeConfig
+}
+
+// NetAttachment describes a container network attachment
+type NetAttachment struct {
+	// NetName contains the name of the CNI network to which the container
+	// should be or is attached
+	Name string
+	// Ifname contains the optional interface name of the attachment
+	Ifname string
+}
+
+// NetResult contains the result the network attachment operation
+type NetResult struct {
+	// Result is the CNI Result
+	Result types.Result
+	// NetAttachment contains the network and interface names of this
+	// network attachment
+	NetAttachment
 }
 
 // CNIPlugin is the interface that needs to be implemented by a plugin
@@ -68,13 +117,13 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(network PodNetwork) ([]types.Result, error)
+	SetUpPod(network PodNetwork) ([]NetResult, error)
 
 	// TearDownPod is the method called before a pod's sandbox container will be deleted
 	TearDownPod(network PodNetwork) error
 
 	// Status is the method called to obtain the ipv4 or ipv6 addresses of the pod sandbox
-	GetPodNetworkStatus(network PodNetwork) ([]types.Result, error)
+	GetPodNetworkStatus(network PodNetwork) ([]NetResult, error)
 
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error

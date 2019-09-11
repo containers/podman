@@ -46,7 +46,9 @@ func (e *RawExec) ExecPlugin(ctx context.Context, pluginPath string, stdinData [
 func pluginErr(err error, output []byte) error {
 	if _, ok := err.(*exec.ExitError); ok {
 		emsg := types.Error{}
-		if perr := json.Unmarshal(output, &emsg); perr != nil {
+		if len(output) == 0 {
+			emsg.Msg = "netplugin failed with no error message"
+		} else if perr := json.Unmarshal(output, &emsg); perr != nil {
 			emsg.Msg = fmt.Sprintf("netplugin failed but error parsing its diagnostic message %q: %v", string(output), perr)
 		}
 		return &emsg
