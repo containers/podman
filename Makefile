@@ -83,7 +83,7 @@ LIBSECCOMP_COMMIT := release-2.3
 GINKGOTIMEOUT ?= -timeout=90m
 
 RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
-RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER)
+RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER|sed -e 's/^v\(.*\)/\1/')
 RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
 RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
 RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
@@ -163,6 +163,10 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+
+.PHONY: podman.msi
+podman.msi: podman-remote-windows ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	wixl -D VERSION=$(RELEASE_NUMBER) -o bin/podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
@@ -328,9 +332,9 @@ release.txt:
 		echo -n " $$field"; done >> "$@"
 	echo "" >> "$@"
 
-podman-$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
+podman-v$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
-	$(eval SUBDIR := podman-$(RELEASE_NUMBER))
+	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
 	$(MAKE) install.bin install.man install.cni install.systemd "DESTDIR=$(TMPDIR)/$(SUBDIR)" "PREFIX=/usr"
 	# release.txt location and content depended upon by automated tooling
@@ -339,7 +343,7 @@ podman-$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 	-rm -rf "$(TMPDIR)"
 
 # Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
-podman-remote-$(RELEASE_NUMBER)-%.zip:
+podman-remote-v$(RELEASE_NUMBER)-%.zip:
 	$(MAKE) podman-remote-$* install-podman-remote-docs release.txt \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
@@ -364,12 +368,12 @@ podman-remote-$(RELEASE_NUMBER)-%.zip:
 .PHONY: podman-release
 podman-release:
 	rm -f release.txt
-	$(MAKE) podman-$(RELEASE_NUMBER).tar.gz
+	$(MAKE) podman-v$(RELEASE_NUMBER).tar.gz
 
 .PHONY: podman-remote-%-release
 podman-remote-%-release:
 	rm -f release.txt
-	$(MAKE) podman-remote-$(RELEASE_NUMBER)-$*.zip
+	$(MAKE) podman-remote-v$(RELEASE_NUMBER)-$*.zip
 
 docker-docs: docs
 	(cd docs; ./dckrman.sh *.1)

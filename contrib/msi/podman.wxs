@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+
+  <?ifndef var.VERSION?>
+  <?error VERSION must be defined via command line argument?>
+  <?endif?>
+
+  <Product Name="Podman $(var.VERSION)" Id="*" UpgradeCode="696BAB5D-CA1F-4B05-B123-320F245B8D6D" Version="$(var.VERSION)" Language="1033" Manufacturer="Red Hat Inc.">
+
+    <Package Id="*" Keywords="Installer" Description="Red Hat's Podman $(var.VERSION) Installer" Comments="Apache 2.0 License" Manufacturer="Red Hat Inc." InstallScope="perMachine" InstallerVersion="100" Compressed="yes"/>
+    <Media Id="1" Cabinet="Podman.cab" EmbedCab="yes"/>
+    <Property Id="DiskPrompt" Value="Red Hat's Podman $(var.VERSION) Installation"/>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+
+      <Directory Id="ProgramFilesFolder" Name="PFiles">
+        <Directory Id="RedHatPFiles" Name="RedHat">
+          <Directory Id="INSTALLDIR" Name="Podman">
+            <Component Id="INSTALLDIR_Component" Guid="14B310C4-9B5D-4DA5-ADF9-B9D008E4CD82">
+              <CreateFolder/>
+            </Component>
+            <Component Id="MainExecutable" Guid="73752F94-6589-4C7B-ABED-39D655A19714">
+              <File Id="520C6E17-77A2-4F41-9611-30FA763A0702" Name="podman-remote-windows.exe" Source="bin/podman-remote-windows.exe"/>
+              <File Id="A14218A0-4180-44AC-B109-7C63B3099DCA" Name="podman.bat" Source="podman.bat" KeyPath="yes"/>
+            </Component>
+          </Directory>
+        </Directory>
+      </Directory>
+    </Directory>
+
+    <Property Id="setx" Value="setx.exe"/>
+    <CustomAction Id="ChangePath" ExeCommand='PATH "%PATH%;[INSTALLDIR]"' Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
+
+    <Feature Id="Complete" Level="1">
+      <ComponentRef Id="INSTALLDIR_Component"/>
+      <ComponentRef Id="MainExecutable"/>
+    </Feature>
+
+    <Icon Id="podman.ico" SourceFile="contrib/msi/podman-logo.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="podman.ico"/>
+
+    <InstallExecuteSequence>
+      <RemoveExistingProducts Before="InstallInitialize"/>
+      <Custom Action="ChangePath" After="InstallServices">NOT Installed</Custom>
+    </InstallExecuteSequence>
+
+  </Product>
+</Wix>
