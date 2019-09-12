@@ -50,9 +50,7 @@ case "${OS_REL_VER}" in
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
         ;;
     centos-7)  # Current VM is an image-builder-image no local podman/testing
-	echo "No further setup required for VM image building"
-	# All SELinux distros need this for systemd-in-a-container
-	setsebool container_manage_cgroup true
+        echo "No further setup required for VM image building"
         exit 0
         ;;
     *) bad_os_id_ver ;;
