@@ -39,7 +39,7 @@ func init() {
 	importCommand.SetHelpTemplate(HelpTemplate())
 	importCommand.SetUsageTemplate(UsageTemplate())
 	flags := importCommand.Flags()
-	flags.StringSliceVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
+	flags.StringArrayVarP(&importCommand.Change, "change", "c", []string{}, "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR")
 	flags.StringVarP(&importCommand.Message, "message", "m", "", "Set commit message for imported image")
 	flags.BoolVarP(&importCommand.Quiet, "quiet", "q", false, "Suppress output")
 
@@ -56,7 +56,6 @@ func importCmd(c *cliconfig.ImportValues) error {
 		source    string
 		reference string
 	)
-
 	args := c.InputArgs
 	switch len(args) {
 	case 0:
@@ -81,7 +80,7 @@ func importCmd(c *cliconfig.ImportValues) error {
 	if runtime.Remote {
 		quiet = false
 	}
-	iid, err := runtime.Import(getContext(), source, reference, c.StringSlice("change"), c.String("message"), quiet)
+	iid, err := runtime.Import(getContext(), source, reference, importCommand.Change, c.String("message"), quiet)
 	if err == nil {
 		fmt.Println(iid)
 	}
