@@ -6,14 +6,14 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
 
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
-* “How To” documentation is in patchy at best.
+* “How To” documentation is patchy at best.
 * If /etc/subuid and /etc/subgid are not setup for a user, then podman commands
 can easily fail
   * This can be a big issue on machines using Network Based Password information (FreeIPA, Active Directory, LDAP)
   * We are working to get support for NSSWITCH on the /etc/subuid and /etc/subgid files.
 * No cgroup V1 Support
   * cgroup V1 does not safely support cgroup delegation.
-  * cgroup V2 is available on Fedora 29 and later and other Linux distributions.
+  * However, cgroup V2 provides cgroup delegation and is available on Fedora starting with version 29 and other Linux distributions.
 * Can not share container images with CRI-O or other users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
