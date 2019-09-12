@@ -33,6 +33,7 @@ func getMainCommands() []*cobra.Command {
 func getImageSubCommands() []*cobra.Command {
 	return []*cobra.Command{
 		_signCommand,
+		_trustCommand,
 	}
 }
 
