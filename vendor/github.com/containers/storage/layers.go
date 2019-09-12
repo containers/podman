@@ -353,7 +353,7 @@ func (r *layerStore) Load() error {
 			}
 			if cleanup, ok := layer.Flags[incompleteFlag]; ok {
 				if b, ok := cleanup.(bool); ok && b {
-					err = r.Delete(layer.ID)
+					err = r.deleteInternal(layer.ID)
 					if err != nil {
 						break
 					}
@@ -935,7 +935,7 @@ func (r *layerStore) tspath(id string) string {
 	return filepath.Join(r.layerdir, id+tarSplitSuffix)
 }
 
-func (r *layerStore) Delete(id string) error {
+func (r *layerStore) deleteInternal(id string) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to delete layers at %q", r.layerspath())
 	}
@@ -944,23 +944,7 @@ func (r *layerStore) Delete(id string) error {
 		return ErrLayerUnknown
 	}
 	id = layer.ID
-	// The layer may already have been explicitly unmounted, but if not, we
-	// should try to clean that up before we start deleting anything at the
-	// driver level.
-	mountCount, err := r.Mounted(id)
-	if err != nil {
-		return errors.Wrapf(err, "error checking if layer %q is still mounted", id)
-	}
-	for mountCount > 0 {
-		if _, err := r.Unmount(id, false); err != nil {
-			return err
-		}
-		mountCount, err = r.Mounted(id)
-		if err != nil {
-			return errors.Wrapf(err, "error checking if layer %q is still mounted", id)
-		}
-	}
-	err = r.driver.Remove(id)
+	err := r.driver.Remove(id)
 	if err == nil {
 		os.Remove(r.tspath(id))
 		delete(r.byid, id)
@@ -996,11 +980,36 @@ func (r *layerStore) Delete(id string) error {
 				label.ReleaseLabel(mountLabel)
 			}
 		}
-		if err = r.Save(); err != nil {
-			return err
-		}
 	}
 	return err
+}
+
+func (r *layerStore) Delete(id string) error {
+	layer, ok := r.lookup(id)
+	if !ok {
+		return ErrLayerUnknown
+	}
+	id = layer.ID
+	// The layer may already have been explicitly unmounted, but if not, we
+	// should try to clean that up before we start deleting anything at the
+	// driver level.
+	mountCount, err := r.Mounted(id)
+	if err != nil {
+		return errors.Wrapf(err, "error checking if layer %q is still mounted", id)
+	}
+	for mountCount > 0 {
+		if _, err := r.Unmount(id, false); err != nil {
+			return err
+		}
+		mountCount, err = r.Mounted(id)
+		if err != nil {
+			return errors.Wrapf(err, "error checking if layer %q is still mounted", id)
+		}
+	}
+	if err := r.deleteInternal(id); err != nil {
+		return err
+	}
+	return r.Save()
 }
 
 func (r *layerStore) Lookup(name string) (id string, err error) {
