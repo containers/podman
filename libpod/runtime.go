@@ -87,6 +87,12 @@ var (
 
 	// minConmonMajor is the major version required for conmon
 	minConmonMajor = 2
+
+	// minConmonMinor is the minor version required for conmon
+	minConmonMinor = 0
+
+	// minConmonPatch is the sub-minor version required for conmon
+	minConmonPatch = 1
 )
 
 // A RuntimeOption is a functional option which alters the Runtime created by
@@ -807,6 +813,31 @@ func probeConmon(conmonBinary string) error {
 	if major < minConmonMajor {
 		return define.ErrConmonOutdated
 	}
+	if major > minConmonMajor {
+		return nil
+	}
+
+	minor, err := strconv.Atoi(matches[2])
+	if err != nil {
+		return errors.Wrapf(err, versionFormatErr)
+	}
+	if minor < minConmonMinor {
+		return define.ErrConmonOutdated
+	}
+	if minor > minConmonMinor {
+		return nil
+	}
+
+	patch, err := strconv.Atoi(matches[3])
+	if err != nil {
+		return errors.Wrapf(err, versionFormatErr)
+	}
+	if patch < minConmonPatch {
+		return define.ErrConmonOutdated
+	}
+	if patch > minConmonPatch {
+		return nil
+	}
 
 	return nil
 }
@@ -866,7 +897,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	if !foundConmon {
 		if foundOutdatedConmon {
-			return errors.Wrapf(define.ErrConmonOutdated, "please update to v%d.0.0 or later", minConmonMajor)
+			return errors.Errorf("please update to v%d.%d.%d or later: %v", minConmonMajor, minConmonMinor, minConmonPatch, define.ErrConmonOutdated)
 		}
 		return errors.Wrapf(define.ErrInvalidArg,
 			"could not find a working conmon binary (configured options: %v)",
