@@ -3,10 +3,13 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -31,6 +34,8 @@ func init() {
 	networkrmCommand.Command = _networkrmCommand
 	networkrmCommand.SetHelpTemplate(HelpTemplate())
 	networkrmCommand.SetUsageTemplate(UsageTemplate())
+	flags := networkrmCommand.Flags()
+	flags.BoolVarP(&networkrmCommand.Force, "force", "f", false, "remove any containers using network")
 }
 
 func networkrmCmd(c *cliconfig.NetworkRmValues) error {
@@ -40,9 +45,18 @@ func networkrmCmd(c *cliconfig.NetworkRmValues) error {
 	if len(c.InputArgs) < 1 {
 		return errors.Errorf("at least one network name is required")
 	}
-	runtime, err := adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return err
 	}
-	return runtime.NetworkRemove(c)
+	deletes, rmErrors, lastErr := runtime.NetworkRemove(getContext(), c)
+	for _, d := range deletes {
+		fmt.Println(d)
+	}
+	// we only want to print errors if there is more
+	// than one
+	for network, removalErr := range rmErrors {
+		logrus.Errorf("unable to remove %q: %q", network, removalErr)
+	}
+	return lastErr
 }
