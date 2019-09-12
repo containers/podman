@@ -21,6 +21,7 @@ linters:
     - gosimple
     - govet
     - ineffassign
+    - interfacer
     - misspell
     - nakedret
     - staticcheck
@@ -37,7 +38,6 @@ linters:
     # - gocritic
     # - gocyclo
     # - gosec
-    # - interfacer
     # - lll
     # - maligned
     # - prealloc

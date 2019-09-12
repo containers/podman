@@ -360,6 +360,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		Args:             options.Args,
 		Format:           options.Format,
 		TempVolumes:      map[string]bool{},
+		Devices:          options.Devices,
 	}
 
 	if options.Mount {

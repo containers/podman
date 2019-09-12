@@ -3,3 +3,4 @@ docs/buildah*.1
 /imgtype
 /build/
 tests/tools/build
+Dockerfile*
