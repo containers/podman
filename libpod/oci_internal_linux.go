@@ -21,6 +21,7 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/lookup"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/coreos/go-systemd/activation"
@@ -359,35 +360,46 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *OCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
+	mustCreateCgroup := true
 	// If cgroup creation is disabled - just signal.
 	if ctr.config.NoCgroups {
-		return writeConmonPipeData(startFd)
+		mustCreateCgroup = false
 	}
 
-	cgroupParent := ctr.CgroupParent()
-	if r.cgroupManager == SystemdCgroupsManager {
-		unitName := createUnitName("libpod-conmon", ctr.ID())
-
-		realCgroupParent := cgroupParent
-		splitParent := strings.Split(cgroupParent, "/")
-		if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
-			realCgroupParent = splitParent[len(splitParent)-1]
-		}
-
-		logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
-		if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
-			logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
-		}
-	} else {
-		cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
-		control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
+	if rootless.IsRootless() {
+		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 		if err != nil {
-			logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			return err
+		}
+		mustCreateCgroup = !ownsCgroup
+	}
+
+	if mustCreateCgroup {
+		cgroupParent := ctr.CgroupParent()
+		if r.cgroupManager == SystemdCgroupsManager {
+			unitName := createUnitName("libpod-conmon", ctr.ID())
+
+			realCgroupParent := cgroupParent
+			splitParent := strings.Split(cgroupParent, "/")
+			if strings.HasSuffix(cgroupParent, ".slice") && len(splitParent) > 1 {
+				realCgroupParent = splitParent[len(splitParent)-1]
+			}
+
+			logrus.Infof("Running conmon under slice %s and unitName %s", realCgroupParent, unitName)
+			if err := utils.RunUnderSystemdScope(cmd.Process.Pid, realCgroupParent, unitName); err != nil {
+				logrus.Warnf("Failed to add conmon to systemd sandbox cgroup: %v", err)
+			}
 		} else {
-			// we need to remove this defer and delete the cgroup once conmon exits
-			// maybe need a conmon monitor?
-			if err := control.AddPid(cmd.Process.Pid); err != nil {
+			cgroupPath := filepath.Join(ctr.config.CgroupParent, "conmon")
+			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
+			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+			} else {
+				// we need to remove this defer and delete the cgroup once conmon exits
+				// maybe need a conmon monitor?
+				if err := control.AddPid(cmd.Process.Pid); err != nil {
+					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
+				}
 			}
 		}
 	}
