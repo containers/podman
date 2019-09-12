@@ -4,6 +4,17 @@
 
 Prior to allowing users without root privileges to run Podman, the administrator must install or build Podman and complete the following configurations.
 
+## cgroup V2 support
+
+The cgroup V2  Linux kernel feature allows the user to limit the amount of resources a rootless container can use.  If the Linux distribution that you are running Podman on is enabled with  cgroup V2 then you might need to change the default OCI Runtime.  The default runtime `runc` does not currently work with cgroup V2 enabled systems, so you have to switch to the alternative OCI runtime `crun`.
+
+The alternative OCI runtime support for cgroup V2 can  be turned on at the command line by using the `--runtime` option:
+
+```
+sudo podman --runtime /usr/bin/crun
+```
+or by changing the value for the "Default OCI runtime" in the libpod.conf file either at the system level or at the [#user-configuration-files](user level) from `runtime = "runc"` to `runtime = "crun"`.
+
 ## Administrator Actions
 
 ### Installing Podman
@@ -22,7 +33,7 @@ The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package pr
 
 When using Podman in a rootless environment, it is recommended to use fuse-overlayfs rather than the VFS file system.  Installing the fuse3-devel package gives Podman the dependencies it needs to install, build and use fuse-overlayfs in a rootless environment for you.  The fuse-overlayfs project is also available from [GitHub](https://github.com/containers/fuse-overlayfs).  This especially needs to be checked on Ubuntu distributions as fuse-overlayfs is not generally installed by default.
 
-If podman is installed before fuse-overlayfs, it may be necessary to change the `driver` option under `[storage]` to `"overlay"`.
+If Podman is installed before fuse-overlayfs, it may be necessary to change the `driver` option under `[storage]` to `"overlay"`.
 
 ### Enable user namespaces (on RHEL7 machines)
 
@@ -48,7 +59,7 @@ The format of this file is USERNAME:UID:RANGE
 
 This means the user johndoe is allocated UIDS 100000-165535 as well as their standard UID in the /etc/passwd file.  NOTE: this is not currently supported with network installs.  These files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
 
-If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the pause process.
+If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the `[podman system migrate](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md)` command which will stop all the containers for the user and will kill the pause process.
 
 Rather than updating the files directly, the usermod program can be used to assign UIDs and GIDs to a user.
 
@@ -78,7 +89,7 @@ Once the Administrator has completed the setup on the machine and then the confi
 
 ### User Configuration Files.
 
-The Podman configuration files for root reside in /usr/share/containers with overrides in /etc/containers.  In the rootless environment they reside in ${XDG\_CONFIG\_HOME}/containers and are owned by each individual user.  The user can modify these files as they wish.
+The Podman configuration files for root reside in /usr/share/containers with overrides in /etc/containers.  In the rootless environment they reside in ${XDG\_CONFIG\_HOME}/containers and are owned by each individual user.  The main files are libpod.conf and storage.conf and the user can modify these files as they wish.
 
 The default authorization file used by the `podman login` and `podman logout` commands reside in ${XDG\_RUNTIME\_DIR}/containers/auth.json.
 
@@ -89,7 +100,6 @@ The default authorization file used by the `podman login` and `podman logout` co
 Description=nginx
 Requires=user@1001.service
 After=user@1001.service
-
 [Service]
 Type=simple
 KillMode=none
@@ -101,7 +111,6 @@ ExecStop=/usr/bin/podman stop nginx
 Restart=always
 User=nginx
 Group=nginx
-
 [Install]
 WantedBy=multi-user.target
 ```
