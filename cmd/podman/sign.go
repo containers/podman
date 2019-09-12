@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/trust"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -130,21 +131,32 @@ func signCmd(c *cliconfig.SignValues) error {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}
 
-		registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
-		if registryInfo != nil {
+		if rootless.IsRootless() {
 			if sigStoreDir == "" {
-				sigStoreDir = registryInfo.SigStoreStaging
+				runtimeConfig, err := runtime.GetConfig()
+				if err != nil {
+					return err
+				}
+
+				sigStoreDir = filepath.Join(filepath.Dir(runtimeConfig.StorageConfig.GraphRoot), "sigstore")
+			}
+		} else {
+			registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
+			if registryInfo != nil {
 				if sigStoreDir == "" {
-					sigStoreDir = registryInfo.SigStore
+					sigStoreDir = registryInfo.SigStoreStaging
+					if sigStoreDir == "" {
+						sigStoreDir = registryInfo.SigStore
+					}
+				}
+				sigStoreDir, err = isValidSigStoreDir(sigStoreDir)
+				if err != nil {
+					return errors.Wrapf(err, "invalid signature storage %s", sigStoreDir)
 				}
 			}
-			sigStoreDir, err = isValidSigStoreDir(sigStoreDir)
-			if err != nil {
-				return errors.Wrapf(err, "invalid signature storage %s", sigStoreDir)
+			if sigStoreDir == "" {
+				sigStoreDir = SignatureStoreDir
 			}
-		}
-		if sigStoreDir == "" {
-			sigStoreDir = SignatureStoreDir
 		}
 
 		repos, err := newImage.RepoDigests()
