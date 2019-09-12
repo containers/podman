@@ -163,7 +163,15 @@ func (c *Container) createExecBundle(sessionID string) (err error) {
 
 // cleanup an exec session after its done
 func (c *Container) cleanupExecBundle(sessionID string) error {
-	return os.RemoveAll(c.execBundlePath(sessionID))
+	if err := os.RemoveAll(c.execBundlePath(sessionID)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	// Clean up the sockets dir. Issue #3962
+	// Also ignore if it doesn't exist for some reason; hence the conditional return below
+	if err := os.RemoveAll(filepath.Join(c.ociRuntime.socketsDir, sessionID)); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // the path to a containers exec session bundle
