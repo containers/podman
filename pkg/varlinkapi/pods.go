@@ -5,12 +5,12 @@ package varlinkapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter/shortcuts"
 )
 
 // CreatePod ...

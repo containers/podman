@@ -319,12 +319,14 @@ func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, outPath str
 
 // GetContainerStats ...
 func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) error {
-	cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-	if rootless.IsRootless() && !cgroupv2 {
-		return call.ReplyErrRequiresCgroupsV2ForRootless("rootless containers cannot report container stats")
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if !cgroupv2 {
+			return call.ReplyErrRequiresCgroupsV2ForRootless("rootless containers cannot report container stats")
+		}
 	}
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
