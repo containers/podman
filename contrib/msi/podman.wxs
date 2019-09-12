@@ -36,6 +36,9 @@
       <ComponentRef Id="MainExecutable"/>
     </Feature>
 
+    <Icon Id="podman.ico" SourceFile="contrib/msi/podman-logo.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="podman.ico"/>
+
     <InstallExecuteSequence>
       <RemoveExistingProducts Before="InstallInitialize"/>
       <Custom Action="ChangePath" After="InstallServices">NOT Installed</Custom>
