@@ -491,12 +491,29 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 	if unified {
 		g.RemoveMount("/sys/fs/cgroup")
 
-		sourcePath := filepath.Join("/sys/fs/cgroup")
-		systemdMnt := spec.Mount{
-			Destination: "/sys/fs/cgroup",
-			Type:        "bind",
-			Source:      sourcePath,
-			Options:     []string{"bind", "private", "rw"},
+		hasCgroupNs := false
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.CgroupNamespace {
+				hasCgroupNs = true
+				break
+			}
+		}
+
+		var systemdMnt spec.Mount
+		if hasCgroupNs {
+			systemdMnt = spec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"private", "rw"},
+			}
+		} else {
+			systemdMnt = spec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "bind",
+				Source:      "/sys/fs/cgroup",
+				Options:     []string{"bind", "private", "rw"},
+			}
 		}
 		g.AddMount(systemdMnt)
 	} else {
