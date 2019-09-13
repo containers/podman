@@ -9,7 +9,9 @@ import (
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -79,11 +81,36 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
 	}
 
+	exitCode := define.ExitCode(finalErr)
 	if finalErr != define.ErrDetach && finalErr != nil {
 		logrus.Error(finalErr)
+	} else {
+		if ecode, err := ctr.Wait(); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				// Check events
+				event, err := i.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+				if err != nil {
+					logrus.Errorf("Cannot get exit code: %v", err)
+					exitCode = define.ExecErrorCodeNotFound
+				} else {
+					exitCode = event.ContainerExitCode
+				}
+			} else {
+				exitCode = define.ExitCode(err)
+			}
+		} else {
+			exitCode = int(ecode)
+		}
 	}
 
-	if err = virtwriter.HangUp(writer, 0); err != nil {
+	if ctr.AutoRemove() {
+		err := i.Runtime.RemoveContainer(getContext(), ctr, false, false)
+		if err != nil {
+			logrus.Errorf("Failed to remove container %s: %s", ctr.ID(), err.Error())
+		}
+	}
+
+	if err = virtwriter.HangUp(writer, uint32(exitCode)); err != nil {
 		logrus.Errorf("Failed to HANG-UP attach to %s: %s", ctr.ID(), err.Error())
 	}
 	return call.Writer.Flush()
