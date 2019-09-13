@@ -23,6 +23,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/pkg/cgroups"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -254,6 +255,8 @@ type RuntimeConfig struct {
 	// SDNotify tells Libpod to allow containers to notify the host
 	// systemd of readiness using the SD_NOTIFY mechanism
 	SDNotify bool
+	// CgroupCheck verifies if the cgroup check for correct OCI runtime has been done.
+	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 }
 
 // runtimeConfiguredFrom is a struct used during early runtime init to help
@@ -575,6 +578,10 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 				configPath)
 		}
 
+		if err := cgroupV2Check(configPath, tmpConfig); err != nil {
+			return nil, err
+		}
+
 		if tmpConfig.StaticDir != "" {
 			runtime.configuredFrom.libpodStaticDirSet = true
 		}
@@ -662,6 +669,14 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 			}
 			if !runtime.configuredFrom.ociRuntime {
 				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
+			}
+
+			cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+			if err != nil {
+				return nil, err
+			}
+			if cgroupsV2 {
+				runtime.config.CgroupCheck = true
 			}
 
 			break
@@ -1450,4 +1465,38 @@ func (r *Runtime) ImageRuntime() *image.Runtime {
 // SystemContext returns the imagecontext
 func (r *Runtime) SystemContext() *types.SystemContext {
 	return r.imageContext
+}
+
+// Since runc does not currently support cgroupV2
+// Change to default crun on first running of libpod.conf
+// TODO Once runc has support for cgroups, this function should be removed.
+func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
+	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if cgroupsV2 {
+			path, err := exec.LookPath("crun")
+			if err != nil {
+				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
+				// Can't find crun path so do nothing
+				return nil
+			}
+			tmpConfig.CgroupCheck = true
+			tmpConfig.OCIRuntime = path
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0666)
+			if err != nil {
+				return errors.Wrapf(err, "cannot open file %s", configPath)
+			}
+			defer file.Close()
+			enc := toml.NewEncoder(file)
+			if err := enc.Encode(tmpConfig); err != nil {
+				if removeErr := os.Remove(configPath); removeErr != nil {
+					logrus.Debugf("unable to remove %s: %q", configPath, err)
+				}
+			}
+		}
+	}
+	return nil
 }
