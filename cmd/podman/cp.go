@@ -14,6 +14,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
@@ -52,7 +53,7 @@ func init() {
 	cpCommand.Command = _cpCommand
 	flags := cpCommand.Flags()
 	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
-	flags.BoolVar(&cpCommand.Pause, "pause", true, "Pause the container while copying")
+	flags.BoolVar(&cpCommand.Pause, "pause", copyPause(), "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
 }
@@ -479,4 +480,15 @@ func pathWithBindMountSource(m specs.Mount, path string) (string, error) {
 		path = filepath.Join(string(os.PathSeparator), path)
 	}
 	return securejoin.SecureJoin(m.Source, strings.TrimPrefix(path, m.Destination))
+}
+
+func copyPause() bool {
+	if !remoteclient && rootless.IsRootless() {
+		cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
+		if !cgroupv2 {
+			logrus.Debugf("defaulting to pause==false on rootless cp in cgroupv1 systems")
+			return false
+		}
+	}
+	return true
 }
