@@ -178,9 +178,9 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		if !ownsCgroup {
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
-				conf, err := runtime.GetConfig()
-				if err != nil {
-					return err
+				conf, err2 := runtime.GetConfig()
+				if err2 != nil {
+					return err2
 				}
 				if conf.CgroupManager == libpod.SystemdCgroupsManager {
 					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
