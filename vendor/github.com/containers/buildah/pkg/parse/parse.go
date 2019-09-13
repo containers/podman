@@ -14,9 +14,12 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/image/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -885,4 +888,84 @@ func RegistryFromFullName(input string) string {
 		return split[0]
 	}
 	return split[0]
+}
+
+// Device parses device mapping string to a src, dest & permissions string
+// Valid values for device looklike:
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
+func Device(device string) (string, string, string, error) {
+	src := ""
+	dst := ""
+	permissions := "rwm"
+	arr := strings.Split(device, ":")
+	switch len(arr) {
+	case 3:
+		if !isValidDeviceMode(arr[2]) {
+			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
+		}
+		permissions = arr[2]
+		fallthrough
+	case 2:
+		if isValidDeviceMode(arr[1]) {
+			permissions = arr[1]
+		} else {
+			if len(arr[1]) == 0 || arr[1][0] != '/' {
+				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
+			}
+			dst = arr[1]
+		}
+		fallthrough
+	case 1:
+		if len(arr[0]) > 0 {
+			src = arr[0]
+			break
+		}
+		fallthrough
+	default:
+		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+	}
+
+	if dst == "" {
+		dst = src
+	}
+	return src, dst, permissions, nil
+}
+
+// isValidDeviceMode checks if the mode for device is valid or not.
+// isValid mode is a composition of r (read), w (write), and m (mknod).
+func isValidDeviceMode(mode string) bool {
+	var legalDeviceMode = map[rune]bool{
+		'r': true,
+		'w': true,
+		'm': true,
+	}
+	if mode == "" {
+		return false
+	}
+	for _, c := range mode {
+		if !legalDeviceMode[c] {
+			return false
+		}
+		legalDeviceMode[c] = false
+	}
+	return true
+}
+
+func DeviceFromPath(device string) (configs.Device, error) {
+	src, dst, permissions, err := Device(device)
+	if err != nil {
+		return configs.Device{}, err
+	}
+	if unshare.IsRootless() {
+		return configs.Device{}, errors.Errorf("Renameing device %s to %s is not a supported in rootless containers", src, dst)
+	}
+	dev, err := devices.DeviceFromPath(src, permissions)
+	if err != nil {
+		return configs.Device{}, errors.Wrapf(err, "%s is not a valid device", src)
+	}
+	dev.Path = dst
+	return *dev, nil
 }

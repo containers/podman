@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
@@ -156,6 +157,8 @@ type BuildOptions struct {
 	BlobDirectory string
 	// Target the targeted FROM in the Dockerfile to build
 	Target string
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
@@ -264,7 +267,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 // dockerfile content and will use ctxDir as the base include path.
 //
 // Note: we cannot use cmd.StdoutPipe() as cmd.Wait() closes it.
-func preprocessDockerfileContents(r io.ReadCloser, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
+func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.ReadCloser, err error) {
 	cppPath := "/usr/bin/cpp"
 	if _, err = os.Stat(cppPath); err != nil {
 		if os.IsNotExist(err) {
