@@ -27,13 +27,8 @@ load helpers
                "echo $rand_content1 >/tmp/$rand_filename1;
                 echo $rand_content2 >/tmp/$rand_filename2"
 
-    run_podman cp 'cpcontainer:/tmp/*' $dstdir
-
-    test -e $dstdir/$rand_filename1 || die "file 1 not copied from container"
-    test -e $dstdir/$rand_filename2 || die "file 2 not copied from container"
-
-    is "$(<$dstdir/$rand_filename1)" "$rand_content1" "content of file 1"
-    is "$(<$dstdir/$rand_filename2)" "$rand_content2" "content of file 2"
+    # cp no longer supports wildcarding
+    run_podman 125 cp 'cpcontainer:/tmp/*' $dstdir
 
     run_podman rm cpcontainer
 }
@@ -150,13 +145,13 @@ load helpers
 
     # Copy file from host into container, into a file named 'x'
     # Note that the second has a trailing slash; this will trigger mkdir
-    run_podman cp $srcdir/$rand_filename1 cpcontainer:/tmp/d1/x
+    run_podman cp --pause=false $srcdir/$rand_filename1 cpcontainer:/tmp/d1/x
     is "$output" "" "output from podman cp 1"
 
-    run_podman cp $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
+    run_podman cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
     is "$output" "" "output from podman cp 3"
 
-    run_podman cp $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
+    run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"
 
     # Read back.
@@ -205,7 +200,7 @@ load helpers
                "mkdir -p $graphroot; trap 'exit 0' 15;while :;do sleep 0.5;done"
 
     # Copy from host into container.
-    run_podman cp $srcdir/$rand_filename cpcontainer:$graphroot/$rand_filename
+    run_podman cp --pause=false $srcdir/$rand_filename cpcontainer:$graphroot/$rand_filename
 
     # ls, and confirm it's there.
     run_podman exec cpcontainer ls -l $graphroot/$rand_filename

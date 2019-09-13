@@ -52,7 +52,7 @@ func init() {
 	cpCommand.Command = _cpCommand
 	flags := cpCommand.Flags()
 	flags.BoolVar(&cpCommand.Extract, "extract", false, "Extract the tar file into the destination directory.")
-	flags.BoolVar(&cpCommand.Pause, "pause", false, "Pause the container while copying")
+	flags.BoolVar(&cpCommand.Pause, "pause", true, "Pause the container while copying")
 	cpCommand.SetHelpTemplate(HelpTemplate())
 	cpCommand.SetUsageTemplate(UsageTemplate())
 }
@@ -147,7 +147,6 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 
 	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 
-	var glob []string
 	if isFromHostToCtr {
 		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol {
 			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, destPath)
@@ -209,13 +208,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 			srcPath = cleanedPath
 		}
 	}
-	glob, err = filepath.Glob(srcPath)
-	if err != nil {
-		return errors.Wrapf(err, "invalid glob %q", srcPath)
-	}
-	if len(glob) == 0 {
-		glob = append(glob, srcPath)
-	}
+
 	if !filepath.IsAbs(destPath) {
 		dir, err := os.Getwd()
 		if err != nil {
@@ -224,19 +217,11 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		destPath = filepath.Join(dir, destPath)
 	}
 
-	var lastError error
-	for _, src := range glob {
-		if src == "-" {
-			src = os.Stdin.Name()
-			extract = true
-		}
-		err := copy(src, destPath, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
-		if lastError != nil {
-			logrus.Error(lastError)
-		}
-		lastError = err
+	if src == "-" {
+		srcPath = os.Stdin.Name()
+		extract = true
 	}
-	return lastError
+	return copy(srcPath, destPath, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
 }
 
 func getUser(mountPoint string, userspec string) (specs.User, error) {
