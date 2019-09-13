@@ -130,6 +130,12 @@ var _ = Describe("Podman exec", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString(" onlcr")
 		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"exec", "--interactive", "--tty", "test1", "/usr/bin/stty", "size"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("0 0")
+		Expect(match).Should(BeFalse())
 	})
 
 	It("podman exec simple command with user", func() {
