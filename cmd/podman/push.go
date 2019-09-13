@@ -86,6 +86,12 @@ func pushCmd(c *cliconfig.PushValues) error {
 		destName = args[1]
 	}
 
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	if err != nil {
+		return errors.Wrapf(err, "could not create runtime")
+	}
+	defer runtime.DeferredShutdown(false)
+
 	// --compress and --format can only be used for the "dir" transport
 	splitArg := strings.SplitN(destName, ":", 2)
 	if c.Flag("compress").Changed || c.Flag("format").Changed {
@@ -105,12 +111,6 @@ func pushCmd(c *cliconfig.PushValues) error {
 		}
 		registryCreds = creds
 	}
-
-	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
-	if err != nil {
-		return errors.Wrapf(err, "could not create runtime")
-	}
-	defer runtime.DeferredShutdown(false)
 
 	var writer io.Writer
 	if !c.Quiet {
