@@ -708,7 +708,7 @@ func (c *Container) startDependencies(ctx context.Context) error {
 	}
 
 	// If there are no containers without dependencies, we can't start
-	// Error out
+	// Error out asdfasdfasdfasdfsadfasfaf
 	if len(graph.noDepNodes) == 0 {
 		// we have no dependencies that need starting, go ahead and return
 		if len(graph.nodes) == 0 {
