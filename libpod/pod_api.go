@@ -5,6 +5,8 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -161,6 +163,16 @@ func (p *Pod) Pause() (map[string]error, error) {
 
 	if !p.valid {
 		return nil, define.ErrPodRemoved
+	}
+
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine cgroupversion")
+		}
+		if !cgroupv2 {
+			return nil, errors.Wrap(define.ErrNoCgroups, "can not pause pods containing rootless containers with cgroup V1")
+		}
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)

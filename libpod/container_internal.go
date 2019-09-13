@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/ctime"
 	"github.com/containers/libpod/pkg/hooks"
 	"github.com/containers/libpod/pkg/hooks/exec"
@@ -1130,6 +1131,16 @@ func (c *Container) stop(timeout uint) error {
 func (c *Container) pause() error {
 	if c.config.NoCgroups {
 		return errors.Wrapf(define.ErrNoCgroups, "cannot pause without using CGroups")
+	}
+
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return errors.Wrap(err, "failed to determine cgroupversion")
+		}
+		if !cgroupv2 {
+			return errors.Wrap(define.ErrNoCgroups, "can not pause containers on rootless containers with cgroup V1")
+		}
 	}
 
 	if err := c.ociRuntime.pauseContainer(c); err != nil {
