@@ -26,6 +26,7 @@ ooe.sh sudo dnf install -y \
     atomic-registries \
     autoconf \
     automake \
+    bash-completion \
     bats \
     bridge-utils \
     btrfs-progs-devel \

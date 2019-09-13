@@ -41,6 +41,7 @@ $BIGTO $SUDOAPTGET install \
     aufs-tools \
     autoconf \
     automake \
+    bash-completion \
     bats \
     bison \
     btrfs-tools \
