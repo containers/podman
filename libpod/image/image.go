@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	types2 "github.com/containernetworking/cni/pkg/types"
 	cp "github.com/containers/image/copy"
 	"github.com/containers/image/directory"
 	dockerarchive "github.com/containers/image/docker/archive"
@@ -387,11 +386,6 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 		parent = nextParent
 	}
 	return nil
-}
-
-// Decompose an Image
-func (i *Image) Decompose() error {
-	return types2.NotImplementedError
 }
 
 // TODO: Rework this method to not require an assembly of the fq name with transport
