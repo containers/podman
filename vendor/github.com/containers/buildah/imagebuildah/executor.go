@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/pkg/errors"
@@ -90,6 +91,9 @@ type Executor struct {
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
 	buildArgs                      map[string]string
+	addCapabilities                []string
+	dropCapabilities               []string
+	devices                        []configs.Device
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
@@ -144,6 +148,9 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
 		buildArgs:                      options.Args,
+		addCapabilities:                options.AddCapabilities,
+		dropCapabilities:               options.DropCapabilities,
+		devices:                        options.Devices,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr

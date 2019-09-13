@@ -4,7 +4,8 @@ branches:
   - try
 
 host:
-  distro: fedora/28/atomic
+  # 29 is the highest level of atomic
+  distro: fedora/29/atomic
 
 required: true
 
@@ -49,12 +50,12 @@ tests:
   - podman run --net=host --security-opt label=disable --cap-add all --security-opt seccomp=unconfined -v /etc/yum.repos.d:/etc/yum.repos.d.host:ro
     -v $PWD:/go/src/github.com/containers/buildah
     --workdir /go/src/github.com/containers/buildah
-    registry.fedoraproject.org/fedora:28 bash -c sh ./.papr.sh
+    registry.fedoraproject.org/fedora:30 bash -c sh ./.papr.sh
 
 ---
 
 container:
-    image: registry.fedoraproject.org/fedora:28
+    image: registry.fedoraproject.org/fedora:30
 
 packages:
     - btrfs-progs-devel

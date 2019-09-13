@@ -585,6 +585,9 @@ func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, f
 		CommonBuildOpts:       s.executor.commonBuildOptions,
 		DefaultMountsFilePath: s.executor.defaultMountsFilePath,
 		Format:                s.executor.outputFormat,
+		AddCapabilities:       s.executor.addCapabilities,
+		DropCapabilities:      s.executor.dropCapabilities,
+		Devices:               s.executor.devices,
 	}
 
 	// Check and see if the image is a pseudonym for the end result of a
@@ -757,9 +760,17 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(nil, ""), false, s.output); err != nil {
 				return "", nil, errors.Wrapf(err, "error committing base container")
 			}
+		} else if len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 {
+			// The image would be modified by the labels passed
+			// via the command line, so we need to commit.
+			logCommit(s.output, -1)
+			if imgID, ref, err = s.commit(ctx, ib, s.executor.getCreatedBy(stage.Node, ""), true, s.output); err != nil {
+				return "", nil, err
+			}
 		} else {
-			// We don't need to squash the base image, so just
-			// reuse the base image.
+			// We don't need to squash the base image, and the
+			// image wouldn't be modified by the command line
+			// options, so just reuse the base image.
 			logCommit(s.output, -1)
 			if imgID, ref, err = s.tagExistingImage(ctx, s.builder.FromImageID, s.output); err != nil {
 				return "", nil, err

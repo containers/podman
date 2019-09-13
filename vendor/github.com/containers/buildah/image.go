@@ -710,7 +710,7 @@ func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.Ima
 		preferredManifestType: manifestType,
 		exporting:             exporting,
 		squash:                options.Squash,
-		emptyLayer:            options.EmptyLayer,
+		emptyLayer:            options.EmptyLayer && !options.Squash,
 		tarPath:               b.tarPath(&b.IDMappingOptions),
 		parent:                parent,
 		blobDirectory:         options.BlobDirectory,

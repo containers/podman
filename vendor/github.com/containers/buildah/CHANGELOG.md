@@ -2,6 +2,58 @@
 
 # Changelog
 
+## v1.11.1 (2019-09-11)
+    Add --devices flag to bud and from
+    Downgrade .papr to highest atomic verion
+    Add support for /run/.containerenv
+    Truncate output of too long image names
+    Preserve file and directory mount permissions
+    Bump fedora version from 28 to 30
+    makeImageRef: ignore EmptyLayer if Squash is set
+    Set TMPDIR to /var/tmp by default
+    replace --debug=false with --log-level=error
+    Allow mounts.conf entries for equal source and destination paths
+    fix label and annotation for 1-line Dockerfiles
+    Enable interfacer linter and fix lints
+    install.md: mention goproxy
+    Makefile: use go proxy
+    Bump to v1.12.0-dev
+
+## v1.11.0 (2019-08-29)
+    tests/bud.bats: add --signature-policy to some tests
+    Vendor github.com/openshift/api
+    pull/commit/push: pay attention to $BUILD_REGISTRY_SOURCES
+    Add `--log-level` command line option and deprecate `--debug`
+    add support for cgroupsV2
+    Correctly detect ExitError values from Run()
+    Disable empty logrus timestamps to reduce logger noise
+    Remove outdated deps Makefile target
+    Remove gofmt.sh in favor of golangci-lint
+    Remove govet.sh in favor of golangci-lint
+    Allow to override build date with SOURCE_DATE_EPOCH
+    Update shebangs to take env into consideration
+    Fix directory pull image names
+    Add --digestfile and Re-add push statement as debug
+    README: mention that Podman uses Buildah's API
+    Use content digests in ADD/COPY history entries
+    add: add a DryRun flag to AddAndCopyOptions
+    Fix possible runtime panic on bud
+    Add security-related volume options to validator
+    use correct path for ginkgo
+    Add bud 'without arguments' integration tests
+    Update documentation about bud
+    add: handle hard links when copying with .dockerignore
+    add: teach copyFileWithTar() about symlinks and directories
+    Allow buildah bud to be called without arguments
+    imagebuilder: fix detection of referenced stage roots
+    Touch up go mod instructions in install
+    run_linux: fix mounting /sys in a userns
+    Vendor Storage v1.13.2
+    Cirrus: Update VM images
+    Fix handling of /dev/null masked devices
+    Update `bud`/`from` help to contain indicator for `--dns=none`
+    Bump back to v1.11.0-dev
+
 ## v1.10.1 (2019-08-08)
     Bump containers/image to v3.0.2 to fix keyring issue
     Bug fix for volume minus syntax

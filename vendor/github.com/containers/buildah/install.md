@@ -324,11 +324,11 @@ registries = []
 
 `/usr/share/containers/mounts.conf` and optionally `/etc/containers/mounts.conf`
 
-The mounts.conf files specify volume mount directories that are automatically mounted inside containers when executing the `buildah run` or `buildah build-using-dockerfile` commands.  Container process can then use this content.  The volume mount content does not get committed to the final image.  This file is usually provided by the containers-common package.
+The mounts.conf files specify volume mount files or directories that are automatically mounted inside containers when executing the `buildah run` or `buildah build-using-dockerfile` commands.  Container processes can then use this content.  The volume mount content does not get committed to the final image.  This file is usually provided by the containers-common package.
 
 Usually these directories are used for passing secrets or credentials required by the package software to access remote package repositories.
 
-For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.
+For example, a mounts.conf with the line "`/usr/share/rhel/secrets:/run/secrets`", the content of `/usr/share/rhel/secrets` directory is mounted on `/run/secrets` inside the container.  This mountpoint allows Red Hat Enterprise Linux subscriptions from the host to be used within the container.  It is also possible to omit the destination if it's equal to the source path.  For example, specifying `/var/lib/secrets` will mount the directory into the same container destination path `/var/lib/secrets`.
 
 Note this is not a volume mount. The content of the volumes is copied into container storage, not bind mounted directly from the host.
 
@@ -396,3 +396,5 @@ If you wish to vendor in your personal fork to try changes out (assuming contain
 To revert
  * `go mod edit -dropreplace github.com/containers/storage`
  * `make vendor`
+
+To speed up fetching dependencies, you can use a [Go Module Proxy](https://proxy.golang.org) by setting `GOPROXY=https://proxy.golang.org`.

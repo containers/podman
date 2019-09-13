@@ -16,6 +16,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.11.0"
+	Version = "1.11.2"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -188,8 +189,7 @@ type Builder struct {
 	// committed image after the history item for the layer that we're
 	// committing.
 	AppendedEmptyLayers []v1.History
-
-	CommonBuildOpts *CommonBuildOptions
+	CommonBuildOpts     *CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
 	// Format for the build Image
@@ -198,6 +198,8 @@ type Builder struct {
 	TempVolumes map[string]bool
 	// ContentDigester counts the digest of all Add()ed content
 	ContentDigester CompositeDigester
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // BuilderInfo are used as objects to display container information
@@ -228,6 +230,7 @@ type BuilderInfo struct {
 	AddCapabilities       []string
 	DropCapabilities      []string
 	History               []v1.History
+	Devices               []configs.Device
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -272,6 +275,7 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		AddCapabilities:       append([]string{}, b.AddCapabilities...),
 		DropCapabilities:      append([]string{}, b.DropCapabilities...),
 		History:               history,
+		Devices:               b.Devices,
 	}
 }
 
@@ -406,6 +410,8 @@ type BuilderOptions struct {
 	CommonBuildOpts *CommonBuildOptions
 	// Format for the container image
 	Format string
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // ImportOptions are used to initialize a Builder from an existing container
