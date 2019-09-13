@@ -13,7 +13,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.1
-	github.com/containers/buildah v1.11.0
+	github.com/containers/buildah v1.11.2
 	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/psgo v1.3.1
@@ -22,7 +22,7 @@ require (
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-iptables v0.4.2 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
-	github.com/coreos/go-systemd v0.0.0-20190620071333-e64a0ec8b42a
+	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
@@ -65,7 +65,7 @@ require (
 	github.com/onsi/gomega v1.5.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
-	github.com/opencontainers/runc v1.0.0-rc8
+	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.3.0

@@ -381,3 +381,17 @@ func LogIfNotRetryable(err error, what string) (retry bool) {
 func LogIfUnexpectedWhileDraining(err error, what string) {
 	logIfNotErrno(err, what, syscall.EINTR, syscall.EAGAIN, syscall.EIO)
 }
+
+// TruncateString trims the given string to the provided maximum amount of
+// characters and shortens it with `...`.
+func TruncateString(str string, to int) string {
+	newStr := str
+	if len(str) > to {
+		const tr = "..."
+		if to > len(tr) {
+			to -= len(tr)
+		}
+		newStr = str[0:to] + tr
+	}
+	return newStr
+}

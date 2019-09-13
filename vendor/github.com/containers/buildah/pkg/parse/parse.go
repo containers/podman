@@ -886,3 +886,67 @@ func RegistryFromFullName(input string) string {
 	}
 	return split[0]
 }
+
+// Device parses device mapping string to a src, dest & permissions string
+// Valid values for device looklike:
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
+func Device(device string) (string, string, string, error) {
+	src := ""
+	dst := ""
+	permissions := "rwm"
+	arr := strings.Split(device, ":")
+	switch len(arr) {
+	case 3:
+		if !isValidDeviceMode(arr[2]) {
+			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
+		}
+		permissions = arr[2]
+		fallthrough
+	case 2:
+		if isValidDeviceMode(arr[1]) {
+			permissions = arr[1]
+		} else {
+			if len(arr[1]) == 0 || arr[1][0] != '/' {
+				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
+			}
+			dst = arr[1]
+		}
+		fallthrough
+	case 1:
+		if len(arr[0]) > 0 {
+			src = arr[0]
+			break
+		}
+		fallthrough
+	default:
+		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+	}
+
+	if dst == "" {
+		dst = src
+	}
+	return src, dst, permissions, nil
+}
+
+// isValidDeviceMode checks if the mode for device is valid or not.
+// isValid mode is a composition of r (read), w (write), and m (mknod).
+func isValidDeviceMode(mode string) bool {
+	var legalDeviceMode = map[rune]bool{
+		'r': true,
+		'w': true,
+		'm': true,
+	}
+	if mode == "" {
+		return false
+	}
+	for _, c := range mode {
+		if !legalDeviceMode[c] {
+			return false
+		}
+		legalDeviceMode[c] = false
+	}
+	return true
+}
