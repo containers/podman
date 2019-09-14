@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -157,7 +158,7 @@ func startFloatingProcess() error {
 		return err
 	}
 	pid := s.Pid
-	fileName := s.Annotations["io.podman.trace-syscall"]
+	fileName := s.Annotations["io.containers.trace-syscall"]
 	attr := &os.ProcAttr{
 		Dir: ".",
 		Env: os.Environ(),
@@ -171,7 +172,7 @@ func startFloatingProcess() error {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGUSR1)
 
-		process, err := os.StartProcess("/usr/libexec/oci/hooks.d/oci-trace-hook", []string{"/usr/libexec/oci/hooks.d/trace", "-r", strconv.Itoa(pid), "-f", fileName}, attr)
+		process, err := os.StartProcess(os.Args[0], []string{os.Args[0], "-r", strconv.Itoa(pid), "-f", fileName}, attr)
 		if err != nil {
 			return fmt.Errorf("cannot launch process err: %q", err.Error())
 		}
@@ -306,6 +307,7 @@ func generateProfile(c map[string]int, fileName string) error {
 			names = append(names, s)
 		}
 	}
+	sort.Strings(names)
 	s.DefaultAction = types.ActErrno
 
 	s.Syscalls = []*types.Syscall{

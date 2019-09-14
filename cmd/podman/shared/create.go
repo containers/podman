@@ -586,8 +586,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		annotations[splitAnnotation[0]] = splitAnnotation[1]
 	}
 
-	if annotations["io.podman.trace-syscall"] != "" {
-		if !filepath.IsAbs(annotations["io.podman.trace-syscall"]) {
+	if annotations["io.containers.trace-syscall"] != "" {
+		if !filepath.IsAbs(annotations["io.containers.trace-syscall"]) {
 			return nil, errors.Errorf("Invalid Path, Please enter an absolute path")
 		}
 

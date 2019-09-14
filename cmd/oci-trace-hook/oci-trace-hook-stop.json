@@ -1,7 +1,7 @@
 {
 	"version": "1.0.0",
 	"hook": {
-		"path": "/usr/libexec/oci/hooks.d/oci-trace-hook",
+		"path": "/usr/local/libexec/oci/hooks.d/oci-trace-hook",
 		"args": [
 			"oci-trace-hook",
 			"-t"
@@ -9,7 +9,7 @@
 	},
 	"when": {
 		"annotations": {
-			"io.podman.trace-syscall": ".*"
+			"io.containers.trace-syscall": ".*"
 		}
 	},
 	"stages": [

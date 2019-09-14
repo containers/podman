@@ -23,8 +23,11 @@ var _ = Describe("Podman generate profile", func() {
 
 	BeforeEach(func() {
 		SkipIfRootless()
-		if _, err := os.Stat("/usr/share/containers/oci/hooks.d/oci-trace-hook-run.json"); err != nil {
-			Skip("oci-trace-hook not installed, please install the hook")
+		if _, err := os.Stat("/etc/containers/oci/hooks.d/oci-trace-hook-run.json"); err != nil {
+			Skip("oci-trace-hook prestart hook is not installed, please install the hook")
+		}
+		if _, err := os.Stat("/etc/containers/oci/hooks.d/oci-trace-hook-stop.json"); err != nil {
+			Skip("oci-trace-hook poststop hook is not installed, please install the hook")
 		}
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
@@ -47,7 +50,7 @@ var _ = Describe("Podman generate profile", func() {
 		defer tmpfile.Close()
 		defer os.Remove(fileName)
 
-		session := podmanTest.Podman([]string{"run", "--annotation", "io.podman.trace-syscall=" + fileName, ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--annotation", "io.containers.trace-syscall=" + fileName, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -65,7 +68,7 @@ var _ = Describe("Podman generate profile", func() {
 		defer tmpfile.Close()
 		defer os.Remove(fileName)
 
-		session := podmanTest.Podman([]string{"run", "--annotation", "io.podman.trace-syscall=" + fileName, ALPINE, "true"})
+		session := podmanTest.Podman([]string{"run", "--annotation", "io.containers.trace-syscall=" + fileName, ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -83,7 +86,7 @@ var _ = Describe("Podman generate profile", func() {
 		tmpfile.Close()
 		defer os.Remove(profilePath1)
 
-		session := podmanTest.Podman([]string{"run", "--annotation", "io.podman.trace-syscall=" + profilePath1, ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"run", "--annotation", "io.containers.trace-syscall=" + profilePath1, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -93,7 +96,7 @@ var _ = Describe("Podman generate profile", func() {
 		tmpfile.Close()
 		defer os.Remove(profilePath2)
 
-		result := podmanTest.Podman([]string{"run", "--annotation", "io.podman.trace-syscall=" + profilePath2, ALPINE, "ls"})
+		result := podmanTest.Podman([]string{"run", "--annotation", "io.containers.trace-syscall=" + profilePath2, ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
