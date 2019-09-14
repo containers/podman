@@ -552,7 +552,7 @@ Default is to create a private PID namespace for the container
 
 **--pids-limit**=*limit*
 
-Tune the container's pids limit. Set `-1` to have unlimited pids for the container.
+Tune the container's pids limit. Set `0` to have unlimited pids for the container. (default "4096" on systems that support PIDS cgroups).
 
 **--pod**=*name*
 
