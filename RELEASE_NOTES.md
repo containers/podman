@@ -1,5 +1,57 @@
 # Release Notes
 
+## 1.6.0
+### Features
+- The `podman network create`, `podman network rm`, `podman network inspect`, and `podman network ls` commands have been added to manage CNI networks used by Podman
+- The `podman volume create` command can now create and mount volumes with options, allowing volumes backed by NFS, tmpfs, and many other filesystems
+- Podman can now run containers without CGroups for better integration with systemd by using the `--cgroups=disabled` flag with `podman create` and `podman run`. This is presently only supported with the `crun` OCI runtime
+- The `podman volume rm` and `podman volume inspect` commands can now refer to volumes by an unambiguous partial name, in addition to full name (e.g. `podman volume rm myvol` to remove a volume named `myvolume`) ([#3891](https://github.com/containers/libpod/issues/3891))
+- The `podman run` and `podman create` commands now support the `--pull` flag to allow forced re-pulling of images ([#3734](https://github.com/containers/libpod/issues/3734))
+- Mounting volumes into a container using `--volume`, `--mount`, and `--tmpfs` now allows the `suid`, `dev`, and `exec` mount options (the inverse of `nosuid`, `nodev`, `noexec`) ([#3819](https://github.com/containers/libpod/issues/3819))
+- The `podman push` command now supports the `--digestfile` option to save a file containing the pushed digest
+- Pods can now have their hostname set via `podman pod create --hostname` or providing Pod YAML with a hostname set to `podman play kube` ([#3732](https://github.com/containers/libpod/issues/3732))
+- The `podman image sign` command now supports the `--cert-dir` flag
+- The `podman run` and `podman create` commands now support the `--security-opt label=filetype:$LABEL` flag to set the SELinux label for container files
+- The remote Podman client now supports healthchecks
+
+### Bugfixes
+- Fixed a bug where remote `podman pull` would panic if a Varlink connection was not available ([#4013](https://github.com/containers/libpod/issues/4013))
+- Fixed a bug where `podman exec` would not properly set terminal size when creating a new exec session ([#3903](https://github.com/containers/libpod/issues/3903))
+- Fixed a bug where `podman exec` would not clean up socket symlinks on the host ([#3962](https://github.com/containers/libpod/issues/3962))
+- Fixed a bug where Podman could not run systemd in containers that created a CGroup namespace
+- Fixed a bug where `podman prune -a` would attempt to prune images used by Buildah and CRI-O, causing errors ([#3983](https://github.com/containers/libpod/issues/3983))
+- Fixed a bug where improper permissions on the `~/.config` directory could cause rootless Podman to use an incorrect directory for storing some files
+- Fixed a bug where the bash completions for `podman import` threw errors
+- Fixed a bug where Podman volumes created with `podman volume create` would not copy the contents of their mountpoint the first time they were mounted into a container ([#3945](https://github.com/containers/libpod/issues/3945))
+- Fixed a bug where rootless Podman could not run `podman exec` when the container was not run inside a CGroup owned by the user ([#3937](https://github.com/containers/libpod/issues/3937))
+- Fixed a bug where `podman play kube` would panic when given Pod YAML without a `securityContext` ([#3956](https://github.com/containers/libpod/issues/3956))
+- Fixed a bug where Podman would place files incorrectly when `storage.conf` configuration items were set to the empty string ([#3952](https://github.com/containers/libpod/issues/3952))
+- Fixed a bug where `podman build` did not correctly inherit Podman's CGroup configuration, causing crashed on CGroups V2 systems ([#3938](https://github.com/containers/libpod/issues/3938))
+- Fixed a bug where `podman cp` would improperly copy files on the host when copying a symlink in the container that included a glob operator ([#3829](https://github.com/containers/libpod/issues/3829))
+- Fixed a bug where remote `podman run --rm` would exit before the container was completely removed, allowing race conditions when removing container resources ([#3870](https://github.com/containers/libpod/issues/3870))
+- Fixed a bug where rootless Podman would not properly handle changes to `/etc/subuid` and `/etc/subgid` after a container was launched
+- Fixed a bug where rootless Podman could not include some devices in a container using the `--device` flag ([#3905](https://github.com/containers/libpod/issues/3905))
+- Fixed a bug where the `commit` Varlink API would segfault if provided incorrect arguments ([#3897](https://github.com/containers/libpod/issues/3897))
+- Fixed a bug where temporary files were not properly cleaned up after a build using remote Podman ([#3869](https://github.com/containers/libpod/issues/3869))
+- Fixed a bug where `podman remote cp` crashed instead of reporting it was not yet supported ([#3861](https://github.com/containers/libpod/issues/3861))
+- Fixed a bug where `podman exec` would run as the wrong user when execing into a container was started from an image with Dockerfile `USER` (or a user specified via `podman run --user`) ([#3838](https://github.com/containers/libpod/issues/3838))
+- Fixed a bug where images pulled using the `oci:` transport would be improperly named
+- Fixed a bug where `podman varlink` would hang when managed by systemd due to SD_NOTIFY support conflicting with Varlink ([#3572](https://github.com/containers/libpod/issues/3572))
+
+### Misc
+- Significant changes were made to Podman volumes in this release. If you have pre-existing volumes, it is strongly recommended to run `podman system renumber` after upgrading.
+- Version 0.8.1 or greater of the CNI Plugins is now required for Podman
+- Version 2.0.1 or greater of Conmon is strongly recommended
+- Updated vendored Buildah to v1.11.2
+- Improved error messages when trying to run `podman pause` or `podman stats` on a rootless container on a system without CGroups V2 enabled
+- `TMPDIR` has been set to `/var/tmp` by default to better handle large temporary files
+- `podman wait` has been optimized to detect stopped containers more rapidly
+- Podman containers now include a `ContainerManager` annotation indicating they were created by `libpod`
+- The `podman info` command now includes information about `slirp4netns` and `fuse-overlayfs` if they are available
+- Podman no longer sets a default size of 65kb for tmpfs filesystems
+- The default Podman CNI network has been renamed in an attempt to prevent conflicts with CRI-O when both are run on the same system. This should only take effect on system restart
+- The output of `podman volume inspect` has been more closely matched to `docker volume inspect`
+
 ## 1.5.1
 ### Features
 - The hostname of pods is now set to the pod's name
