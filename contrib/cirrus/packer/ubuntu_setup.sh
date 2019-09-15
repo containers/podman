@@ -34,7 +34,7 @@ then
 fi
 sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 4052245BD4284CDD
 # The repository isn't available for ubnutu 19 but the binaries work perfectly
-sudo echo "deb https://repo.iovisor.org/apt/$(lsb_release -cs) $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/iovisor.list
+sudo echo "deb https://repo.iovisor.org/apt/bionic bionic main" | sudo tee /etc/apt/sources.list.d/iovisor.list
 
 $LILTO $SUDOAPTGET update
 
