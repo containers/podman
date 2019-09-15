@@ -36,13 +36,15 @@ func doCommonSkipChecks(t *testing.T) {
 		t.Skip("seccomp, which is enabled by default, is only supported on Linux")
 	}
 
-	isUnified, err := cgroups.IsCgroup2UnifiedMode()
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
+	if rootless.IsRootless() {
+		isCgroupV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
 
-	if rootless.IsRootless() && !isUnified {
-		t.Skip("cgroups v1 cannot be used when rootless")
+		if !isCgroupV2 {
+			t.Skip("cgroups v1 cannot be used when rootless")
+		}
 	}
 }
 
