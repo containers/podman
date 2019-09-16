@@ -3,6 +3,14 @@ setlocal enableextensions
 
 title Podman
 
+if "%1" EQU "" (
+  goto run_help
+)
+
+if "%1" EQU "/?" (
+  goto run_help
+)
+
 :: If remote-host is given on command line -- use it
 setlocal enabledelayedexpansion
 for %%a in (%*) do (
@@ -39,5 +47,22 @@ set /p user="Please enter the remote user name: "
 :run_podman
 endlocal
 podman-remote-windows.exe %*
+goto end
+
+:run_help
+set run=start "Podman Help" /D "%~dp0" /B
+
+if not "%3" == "" (
+  %run% "podman-%2-%3.html
+  goto end
+)
+
+if not "%2" == "" (
+  %run% "podman-%2.html
+  goto end
+)
+
+%run% "%podman-remote.html"
+goto end
 
 :End

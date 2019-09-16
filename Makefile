@@ -165,8 +165,13 @@ podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on 
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
 .PHONY: podman.msi
-podman.msi: podman-remote-windows ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
-	wixl -D VERSION=$(RELEASE_NUMBER) -o bin/podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs
+podman.msi: podman-remote podman-remote-windows docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	rm -rf bin/windows
+	mkdir -p bin/windows
+	docs/podman-remote.sh windows bin/windows docs
+	find bin/windows -print \
+	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix bin/windows/ >bin/windows/pages.wsx
+	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=bin/windows -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs bin/windows/pages.wsx
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
@@ -316,8 +321,9 @@ $(MANPAGES): %: %.md .gopathok
 
 docs: $(MANPAGES) ## Generate documentation
 
-install-podman-remote-docs: docs
-	@(cd docs; ./podman-remote.sh ./remote)
+install-podman-remote-docs: podman-remote docs
+	rm -rf docs/remote
+	docs/podman-remote.sh darwin docs/remote docs
 
 man-page-check:
 	./hack/man-page-checker
