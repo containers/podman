@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -199,7 +200,7 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog)
 
 	if preserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", string(preserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.Itoa(preserveFDs))...)
 	}
 
 	for _, capability := range capAdd {
@@ -236,6 +237,12 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 		return -1, nil, err
 	}
 
+	if preserveFDs > 0 {
+		for fd := 3; fd < 3+preserveFDs; fd++ {
+			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
+		}
+	}
+
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
 	execCmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", preserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", preserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", preserveFDs+5))
@@ -246,12 +253,6 @@ func (r *OCIRuntime) execContainer(c *Container, cmd, capAdd, env []string, tty 
 	execCmd.Dir = c.execBundlePath(sessionID)
 	execCmd.SysProcAttr = &syscall.SysProcAttr{
 		Setpgid: true,
-	}
-
-	if preserveFDs > 0 {
-		for fd := 3; fd < 3+preserveFDs; fd++ {
-			execCmd.ExtraFiles = append(execCmd.ExtraFiles, os.NewFile(uintptr(fd), fmt.Sprintf("fd-%d", fd)))
-		}
 	}
 
 	err = startCommandGivenSelinux(execCmd)
