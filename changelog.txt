@@ -1,3 +1,162 @@
+- Changelog for v1.6.0-rc1 (2019-09-16)
+  * Fix default to pause in podman cp
+  * Update release notes for v1.6.0
+  * Vendor Bulidah 1.11.2
+  * get runtime for podman-remote push earlier
+  * rootless: report the correct error
+  * Report errors when trying to pause rootless containers
+  * Do not support wildcards on cp
+  * Podman-remote run should wait for exit code
+  * Use exit code constants
+  * exec: Register resize func a bit later
+  * clean up after healthcheck execs
+  * enhance podman network rm
+  * Add podman icon to installer
+  * Test that PTYs created by 'podman exec --tty' have the ONLCR flag
+  * Prevent podman varlink socket fight
+  * Touch up some bad grammar in rootless doc
+  * linux: fix systemd with --cgroupns=private
+  * rootless: run pause process in its own scope
+  * rootless: automatically create a systemd scope
+  * utils: use the user session for systemd
+  * Support building Windows msi file
+  * Add cgroup v2 info to rootless tutorial
+  * fix podman sign signature store for rootless
+  * podman-remote image trust is broken
+  * Cirrus: Fix unnecessary setsebool
+  * Add further fields to StorageContainer
+  * Volume lookup needs to include state to unmarshal into
+  * Do not prune images being used by a container
+  * Add support for launching containers without CGroups
+  * add lint and manpage check to make validate
+  * Add `ContainerManager` annotation to created containers
+  * When first mounting any named volume, copy up
+  * Add function for looking up volumes by partial name
+  * hack/man_page_checker - improve diagnostics
+  * podman network create
+  * Fixup `util.GetRootlessConfigHomeDir` permission requirements
+  * Fixup Makefile for BSD systems, e.g. macOS
+  * Replace "podman" with "Podman"
+  * Add instructions for mounting named volumes from the host for `podman run`
+  * Add instruction for using fuse-overlayfs as the rootless storage driver
+  * Fix podman import bash completions
+  * Turn off journald in podmanimages on quay.io
+  * build: pass down the cgroup manager to buildah
+  * mac_client.md
+  * Ignore ENOENT on umount of SHM
+  * play kube: fix segfault
+  * Return information about mount_program (fuse-overlayfs)
+  * Ensure good defaults on blank c/storage configuration
+  * Correctly report errors on unmounting SHM
+  * Add ability for volumes with options to mount/umount
+  * Fixup README.md to give proper information
+  * Add volume state
+  * Change volume driver and options JSON tags
+  * Update buildah to v1.11.0
+  * Set TMPDIR to /var/tmp by default
+  * cli-flags: use a consistent format for <size><unit>
+  * Fix unit tests missing comparative for 'Expect'
+  * System tests: support for crun on f31/rawhide
+  * libpod: avoid polling container status
+  * Add test to verify noexec works with volume mounts
+  * Cirrus: Update e-mail -> IRC Nick table
+  * handle dns response from cni
+  * pkg/util: use rootless function to read additional users
+  * Enable hack/man-page-checker in CI
+  * rootless: detect user namespace configuration changes
+  * rootless.md: add systemd unit example
+  * docs: add note about failing rhel7 systemd on cgroups v2
+  * spec: provide custom implementation for getDevices
+  * spec: do not set devices cgroup when rootless
+  * rootless: bind mount devices instead of creating them
+  * Add command aliases to SYNOPSIS section
+  * Exclude podman-remote
+  * Cirrus: On success, add IRC nick mention to msg
+  * Fix table spacing
+  * Revert the descriptive text for podman-remote
+  * WIP - ignore man pages for commands besides podman
+  * podman-remote is not a subcommand
+  * Fix formatting and enable hack/man-page-checker
+  * Cirrus: Load base-image names indirectly
+  * Cirrus: Remove image_prune YAML-alias workaround
+  * Fix links to manpages
+  * Makefile: use go proxy
+  * man: events-logger → events-backend
+  * dont panic when using varlink commit and uppercase image names
+  * Add a test for the new suid/exec/dev options
+  * Fix addition of mount options when using RO tmpfs
+  * Allow :z and :Z with ProcessOptions
+  * Set base mount options for bind mounts from base system
+  * Don't double-process tmpfs options
+  * Add support for 'exec', 'suid', 'dev' mount flags
+  * Update buildah to current master
+  * Cirrus: Reimplement release archive + upload
+  * Readme: Links for automatic binary releases
+  * Re-add locks to volumes.
+  * image: remove unused Decompose method
+  * Temporarily disable systemd test for CGroups V2
+  * Add an integration test for systemd in a container
+  * clean up after remote build
+  * Cirrus: Block CNI use of google VPCs
+  * Add snap build test to success and release check
+  * Run `apt-get update` to avoid missing package while building
+  * Use snapcraft on Ubuntu 18.04 for libostree-dev
+  * Test build snap with Cirrus CI
+  * Update varlink doc and code
+  * podman cp: big set of system tests
+  * add iproute to podman in podman image
+  * Cirrus: Enable VM image housekeeping
+  * clean up after remote build
+  * Adjust name of Podman CNI network bridge
+  * Update cni config instructions
+  * Fix minor typos in podman-run docs.
+  * Fix link format in rootless_tutorial.md.
+  * Need to include command name in error message
+  * podman-remote: cp crashes
+  * generate systemd: support pods and geneartig files
+  * Dockerfile.fedora: install cni plugins package
+  * Add --digestfile option to push
+  * generate systemd: drop support for remote clients
+  * exec: run with user specified on container start
+  * Dockerfile*: fix build for CNI plugins
+  * Touchup README with Buildah build usage
+  * Dockerfile.*: bump CNI plugins commit
+  * Implement healthcheck for remote client
+  * networking: use firewall plugin
+  * Flake fix: build test timeout
+  * Fix error message on podman stats on cgroups v1 rootless environments
+  * test: enable all tests for crun
+  * test: fix return code check for missing workdir
+  * Fix directory pull image name for OCI images
+  * .cirrus.yml: use crun from git master
+  * libpod, pkg: lookup also for crun failures
+  * libpod.conf: add crun to runtime_supports_json
+  * containers, create: debug message on failed deletion
+  * libpod: still attempt to read the oci log file if not output
+  * Issue template update to include package info
+  * Allow customizing pod hostname
+  * add --cert-dir image sign
+  * Cirrus: Minor: Simplify crun test task
+  * Create framework for varlink endpoint integration tests
+  * Cirrus: Confirm networking more
+  * inclusion of podman network
+  * do not activate sd_notify support when varlink
+  * Remove --tmpfs size default
+  * cirrus: enable cgroups v2 tests with crun
+  * tests: skip pause tests if freezer is not available
+  * tests: enable run tests for cgroups v2
+  * tests: enable cpu tests for cgroups v2
+  * tests: enable memory tests for cgroups v2
+  * runtime: honor --runtime flag to build
+  * test: fix option name
+  * Add support & documentation to run containers with different file types
+  * Use GetRuntimeDir to setup auth.json for login
+  * add --pull flag for podman create&run
+  * Fix typos
+  * Update Varlink API documentation for volumes changes
+  * Swap 'volume inspect' frontend to use the new backend
+  * Implement backend for 'volume inspect'
+
 - Changelog for v1.5.1 (2019-08-15)
   * Add release notes for v1.5.1
   * Set Pod hostname as Pod name
