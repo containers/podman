@@ -389,7 +389,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 		Type: TypeBind,
 	}
 
-	var setSource, setDest, setRORW, setSuid, setDev, setExec bool
+	var setSource, setDest, setRORW, setSuid, setDev, setExec, setRelabel bool
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
@@ -467,6 +467,22 @@ func getBindMount(args []string) (spec.Mount, error) {
 			}
 			newMount.Destination = kv[1]
 			setDest = true
+		case "relabel":
+			if setRelabel {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'relabel' option more than once")
+			}
+			setRelabel = true
+			if len(kv) != 2 {
+				return newMount, errors.Wrapf(util.ErrBadMntOption, "%s mount option must be 'private' or 'shared'", kv[0])
+			}
+			switch kv[1] {
+			case "private":
+				newMount.Options = append(newMount.Options, "z")
+			case "shared":
+				newMount.Options = append(newMount.Options, "Z")
+			default:
+				return newMount, errors.Wrapf(util.ErrBadMntOption, "%s mount option must be 'private' or 'shared'", kv[0])
+			}
 		default:
 			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
 		}
