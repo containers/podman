@@ -1202,7 +1202,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			}
 		}
 		if cimage == nil {
-			return nil, ErrImageUnknown
+			return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 		}
 		imageID = cimage.ID
 
@@ -1437,7 +1437,7 @@ func (s *store) ListImageBigData(id string) ([]string, error) {
 			return bigDataNames, err
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImageBigDataSize(id, key string) (int64, error) {
@@ -1516,7 +1516,7 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 			return data, nil
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
@@ -2891,7 +2891,7 @@ func (s *store) Image(id string) (*Image, error) {
 			return image, nil
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
@@ -2953,7 +2953,7 @@ func (s *store) ImagesByDigest(d digest.Digest) ([]*Image, error) {
 			}
 		}
 		imageList, err := store.ByDigest(d)
-		if err != nil && err != ErrImageUnknown {
+		if err != nil && errors.Cause(err) != ErrImageUnknown {
 			return nil, err
 		}
 		images = append(images, imageList...)
