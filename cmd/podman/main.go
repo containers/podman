@@ -111,6 +111,11 @@ func before(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	// check that global opts input is valid
+	if err := checkInput(); err != nil {
+		return err
+	}
+
 	//	Set log level; if not log-level is provided, default to error
 	logLevel := MainGlobalOpts.LogLevel
 	if logLevel == "" {

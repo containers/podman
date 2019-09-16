@@ -12,6 +12,7 @@ type RemoteConnection struct {
 	Destination string `toml:"destination"`
 	Username    string `toml:"username"`
 	IsDefault   bool   `toml:"default"`
+	Port        int    `toml:"port"`
 }
 
 // GetConfigFilePath is a simple helper to export the configuration file's

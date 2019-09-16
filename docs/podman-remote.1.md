@@ -35,6 +35,10 @@ Print usage statement
 
 Log messages above specified level: debug, info, warn, error (default), fatal or panic
 
+**--port**=*integer*
+
+Use an alternative port for the ssh connections.  The default port is 22
+
 **--remote-config-path**=*path*
 
 Alternate path for configuration file

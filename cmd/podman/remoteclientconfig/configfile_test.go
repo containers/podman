@@ -13,11 +13,13 @@ var goodConfig = `
 [connections.homer]
 destination = "192.168.1.1"
 username = "myuser"
+port = 22
 default = true
 
 [connections.bart]
 destination = "foobar.com"
 username = "root"
+port = 22
 `
 var noDest = `
 [connections]
@@ -26,9 +28,11 @@ var noDest = `
 destination = "192.168.1.1"
 username = "myuser"
 default = true
+port = 22
 
 [connections.bart]
 username = "root"
+port = 22
 `
 
 var noUser = `
@@ -36,6 +40,7 @@ var noUser = `
 
 [connections.homer]
 destination = "192.168.1.1"
+port = 22
 `
 
 func makeGoodResult() *RemoteConfig {
@@ -44,10 +49,12 @@ func makeGoodResult() *RemoteConfig {
 		Destination: "192.168.1.1",
 		Username:    "myuser",
 		IsDefault:   true,
+		Port:        22,
 	}
 	goodConnections["bart"] = RemoteConnection{
 		Destination: "foobar.com",
 		Username:    "root",
+		Port:        22,
 	}
 	var goodResult = RemoteConfig{
 		Connections: goodConnections,
@@ -59,6 +66,7 @@ func makeNoUserResult() *RemoteConfig {
 	var goodConnections = make(map[string]RemoteConnection)
 	goodConnections["homer"] = RemoteConnection{
 		Destination: "192.168.1.1",
+		Port:        22,
 	}
 	var goodResult = RemoteConfig{
 		Connections: goodConnections,
@@ -135,7 +143,7 @@ func TestRemoteConfig_GetDefault(t *testing.T) {
 		wantErr bool
 	}{
 		// A good toml should return the connection that is marked isDefault
-		{"good", fields{Connections: makeGoodResult().Connections}, &RemoteConnection{"192.168.1.1", "myuser", true}, false},
+		{"good", fields{Connections: makeGoodResult().Connections}, &RemoteConnection{"192.168.1.1", "myuser", true, 22}, false},
 		// If nothing is marked as isDefault and there is more than one connection, error should occur
 		{"nodefault", fields{Connections: noDefault}, nil, true},
 		// if nothing is marked as isDefault but there is only one connection, the one connection is considered the default
@@ -175,9 +183,9 @@ func TestRemoteConfig_GetRemoteConnection(t *testing.T) {
 		wantErr bool
 	}{
 		// Good connection
-		{"goodhomer", fields{Connections: makeGoodResult().Connections}, args{name: "homer"}, &RemoteConnection{"192.168.1.1", "myuser", true}, false},
+		{"goodhomer", fields{Connections: makeGoodResult().Connections}, args{name: "homer"}, &RemoteConnection{"192.168.1.1", "myuser", true, 22}, false},
 		// Good connection
-		{"goodbart", fields{Connections: makeGoodResult().Connections}, args{name: "bart"}, &RemoteConnection{"foobar.com", "root", false}, false},
+		{"goodbart", fields{Connections: makeGoodResult().Connections}, args{name: "bart"}, &RemoteConnection{"foobar.com", "root", false, 22}, false},
 		// Getting an unknown connection should result in error
 		{"noexist", fields{Connections: makeGoodResult().Connections}, args{name: "foobar"}, nil, true},
 		// Getting a connection when there are none should result in an error
