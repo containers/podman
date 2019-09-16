@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -227,5 +228,19 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "test1", "notthere"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(127))
+	})
+
+	It("podman exec preserve fds sanity check", func() {
+		// TODO: add this test once crun adds the --preserve-fds flag for exec
+		if strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "--preserve-fds", "1", "test1", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 })
