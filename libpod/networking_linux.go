@@ -127,13 +127,13 @@ type slirp4netnsCmd struct {
 	Args    slirp4netnsCmdArg `json:"arguments"`
 }
 
-func checkSlirpFlags(path string) (bool, bool, error) {
+func checkSlirpFlags(path string) (bool, bool, bool, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, false, err
+		return false, false, false, err
 	}
-	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), nil
+	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), strings.Contains(string(out), "--enable-sandbox"), nil
 }
 
 // Configure the network namespace for a rootless container
@@ -166,7 +166,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	if havePortMapping {
 		cmdArgs = append(cmdArgs, "--api-socket", apiSocket, fmt.Sprintf("%d", ctr.state.PID))
 	}
-	dhp, mtu, err := checkSlirpFlags(path)
+	dhp, mtu, sandbox, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s", path)
 	}
@@ -175,6 +175,9 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 	if mtu {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
+	}
+	if sandbox {
+		cmdArgs = append(cmdArgs, "--enable-sandbox")
 	}
 	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4", fmt.Sprintf("%d", ctr.state.PID), "tap0")
 
