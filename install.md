@@ -130,6 +130,7 @@ sudo apt-get install \
   go-md2man \
   iptables \
   libassuan-dev \
+  libbtrfs-dev \
   libc6-dev \
   libdevmapper-dev \
   libglib2.0-dev \
