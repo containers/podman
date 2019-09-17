@@ -28,7 +28,7 @@ import (
 )
 
 // Get an OCICNI network config
-func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP) ocicni.PodNetwork {
+func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr) ocicni.PodNetwork {
 	defaultNetwork := r.netPlugin.GetDefaultNetworkName()
 	network := ocicni.PodNetwork{
 		Name:      name,
@@ -40,10 +40,17 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 		},
 	}
 
-	if staticIP != nil {
+	if staticIP != nil || staticMAC != nil {
 		network.Networks = []ocicni.NetAttachment{{Name: defaultNetwork}}
+		var rt ocicni.RuntimeConfig = ocicni.RuntimeConfig{PortMappings: ports}
+		if staticIP != nil {
+			rt.IP = staticIP.String()
+		}
+		if staticMAC != nil {
+			rt.MAC = staticMAC.String()
+		}
 		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
-			defaultNetwork: {IP: staticIP.String(), PortMappings: ports},
+			defaultNetwork: rt,
 		}
 	} else {
 		network.Networks = make([]ocicni.NetAttachment, len(networks))
@@ -66,7 +73,16 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 		requestedIP = ctr.config.StaticIP
 	}
 
-	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+	var requestedMAC net.HardwareAddr
+	if ctr.requestedMAC != nil {
+		requestedMAC = ctr.requestedMAC
+		// cancel request for a specific MAC in case the container is reused later
+		ctr.requestedMAC = nil
+	} else {
+		requestedMAC = ctr.config.StaticMAC
+	}
+
+	podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctrNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
 	results, err := r.netPlugin.SetUpPod(podNetwork)
 	if err != nil {
@@ -447,7 +463,16 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 			requestedIP = ctr.config.StaticIP
 		}
 
-		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP)
+		var requestedMAC net.HardwareAddr
+		if ctr.requestedMAC != nil {
+			requestedMAC = ctr.requestedMAC
+			// cancel request for a specific MAC in case the container is reused later
+			ctr.requestedMAC = nil
+		} else {
+			requestedMAC = ctr.config.StaticMAC
+		}
+
+		podNetwork := r.getPodNetwork(ctr.ID(), ctr.Name(), ctr.state.NetNS.Path(), ctr.config.Networks, ctr.config.PortMappings, requestedIP, requestedMAC)
 
 		if err := r.netPlugin.TearDownPod(podNetwork); err != nil {
 			return errors.Wrapf(err, "error tearing down CNI namespace configuration for container %s", ctr.ID())

@@ -467,14 +467,15 @@ type RestartValues struct {
 
 type RestoreValues struct {
 	PodmanCommand
-	All            bool
-	Keep           bool
-	Latest         bool
-	TcpEstablished bool
-	Import         string
-	Name           string
-	IgnoreRootfs   bool
-	IgnoreStaticIP bool
+	All             bool
+	Keep            bool
+	Latest          bool
+	TcpEstablished  bool
+	Import          string
+	Name            string
+	IgnoreRootfs    bool
+	IgnoreStaticIP  bool
+	IgnoreStaticMAC bool
 }
 
 type RmValues struct {

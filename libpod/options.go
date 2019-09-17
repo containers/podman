@@ -1052,6 +1052,31 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 	}
 }
 
+// WithStaticMAC indicates that the container should request a static MAC from
+// the CNI plugins.
+// It cannot be set unless WithNetNS has already been passed.
+// Further, it cannot be set if additional CNI networks to join have been
+// specified.
+func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		if !ctr.config.CreateNetNS {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if the container is not creating a network namespace")
+		}
+
+		if len(ctr.config.Networks) != 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining additional CNI networks")
+		}
+
+		ctr.config.StaticMAC = mac
+
+		return nil
+	}
+}
+
 // WithLogDriver sets the log driver for the container
 func WithLogDriver(driver string) CtrCreateOption {
 	return func(ctr *Container) error {
