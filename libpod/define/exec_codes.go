@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -39,8 +40,9 @@ func ExitCode(err error) int {
 		return 0
 	}
 	e := strings.ToLower(err.Error())
-	if strings.Contains(e, "file not found") ||
-		strings.Contains(e, "no such file or directory") {
+	logrus.Debugf("ExitCode msg: %q", e)
+	if strings.Contains(e, "not found") ||
+		strings.Contains(e, "no such file") {
 		return ExecErrorCodeNotFound
 	}
 
