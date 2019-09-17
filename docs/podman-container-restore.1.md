@@ -76,6 +76,15 @@ a container is restored multiple times from an exported checkpoint with **--name
 Using **--ignore-static-ip** tells Podman to ignore the IP address if it was configured
 with **--ip** during container creation.
 
+**--ignore-static-mac**
+
+If the container was started with **--mac-address** the restored container also
+tries to use that MAC address and restore fails if that MAC address is already
+in use. This can happen, if a container is restored multiple times from an
+exported checkpoint with **--name, -n**.
+
+Using **--ignore-static-mac** tells Podman to ignore the MAC address if it was
+configured with **--mac-address** during container creation.
 ## EXAMPLE
 
 podman container restore mywebserver

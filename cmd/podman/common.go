@@ -327,7 +327,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"mac-address", "",
-		"Container MAC address (e.g. 92:d0:c6:0a:29:33), not currently supported",
+		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
 	)
 	createFlags.StringP(
 		"memory", "m", "",

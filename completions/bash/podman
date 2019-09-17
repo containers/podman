@@ -877,6 +877,7 @@ _podman_container_restore() {
 	  --tcp-established
 	  --ignore-rootfs
 	  --ignore-static-ip
+	  --ignore-static-mac
      "
      case "$prev" in
         -i|--import)

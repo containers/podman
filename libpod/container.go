@@ -138,6 +138,10 @@ type Container struct {
 	// being checkpointed. If requestedIP is set it will be used instead
 	// of config.StaticIP.
 	requestedIP net.IP
+	// A restored container should have the same MAC address as before
+	// being checkpointed. If requestedMAC is set it will be used instead
+	// of config.StaticMAC.
+	requestedMAC net.HardwareAddr
 
 	// This is true if a container is restored from a checkpoint.
 	restoreFromCheckpoint bool
@@ -296,6 +300,10 @@ type ContainerConfig struct {
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned an IP by CNI.
 	StaticIP net.IP `json:"staticIP"`
+	// StaticMAC is a static MAC to request for the container.
+	// This cannot be set unless CreateNetNS is set.
+	// If not set, the container will be dynamically assigned a MAC by CNI.
+	StaticMAC net.HardwareAddr `json:"staticMAC"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
