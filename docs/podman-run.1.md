@@ -475,13 +475,15 @@ Tune a container's memory swappiness behavior. Accepts an integer between 0 and 
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPES are bind, and tmpfs.
+Current supported mount TYPES are `bind`, `volume`, and `tmpfs`.
 
        e.g.
 
        type=bind,source=/path/on/host,destination=/path/in/container
 
-       type=bind,source=volume-name,destination=/path/in/container
+       type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
+
+       type=volume,source=vol1,destination=/path/in/container,ro=true
 
        type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 
@@ -495,8 +497,11 @@ Current supported mount TYPES are bind, and tmpfs.
 
        Options specific to bind:
 
-	      · bind-propagation: Z, z, shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+	      · bind-propagation: shared, slave, private, rshared, rslave, or rprivate(default). See also mount(2).
+
 	      . bind-nonrecursive: do not setup a recursive bind mount.  By default it is recursive.
+
+	      . relabel: shared, private.
 
        Options specific to tmpfs:
 
