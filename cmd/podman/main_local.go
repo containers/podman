@@ -267,3 +267,8 @@ func setUMask() {
 	// Be sure we can create directories with 0755 mode.
 	syscall.Umask(0022)
 }
+
+// checkInput can be used to verify any of the globalopt values
+func checkInput() error {
+	return nil
+}

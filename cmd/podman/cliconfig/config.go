@@ -41,6 +41,7 @@ type MainFlags struct {
 	VarlinkAddress       string
 	ConnectionName       string
 	RemoteConfigFilePath string
+	Port                 int
 }
 
 type AttachValues struct {

@@ -22,6 +22,9 @@ of the user's remote connections.
   Denotes whether the connection is the default connection for the user.  The default connection
   is used when the user does not specify a destination or connection name to `podman`.
 
+**port** = int
+  Use an alternative port for the ssh connections.  The default port is 22.
+
 
 ## EXAMPLE
 
@@ -37,6 +40,7 @@ is designated as the default connection.
     [connections.host2]
     destination = "192.168.122.133"
     username = "fedora"
+    port = 2222
 ```
 
 ## FILES

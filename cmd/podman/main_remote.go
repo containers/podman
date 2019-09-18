@@ -3,6 +3,7 @@
 package main
 
 import (
+	"github.com/pkg/errors"
 	"os/user"
 
 	"github.com/spf13/cobra"
@@ -18,6 +19,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.ConnectionName, "connection", "", "remote connection name")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteConfigFilePath, "remote-config-path", "", "alternate path for configuration file")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", username, "username on the remote host")
+	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.Port, "port", 22, "port on remote host")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
 	// TODO maybe we allow the altering of this for bridge connections?
 	// rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
@@ -42,3 +44,11 @@ func setRLimits() error {
 }
 
 func setUMask() {}
+
+// checkInput can be used to verify any of the globalopt values
+func checkInput() error {
+	if MainGlobalOpts.Port < 0 || MainGlobalOpts.Port > 65536 {
+		return errors.Errorf("remote port must be between 0 and 65536")
+	}
+	return nil
+}
