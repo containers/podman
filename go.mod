@@ -17,7 +17,7 @@ require (
 	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/psgo v1.3.1
-	github.com/containers/storage v1.13.2
+	github.com/containers/storage v1.13.3
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
 	github.com/coreos/go-iptables v0.4.2 // indirect

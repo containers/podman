@@ -372,7 +372,7 @@ func (r *imageStore) ClearFlag(id string, flag string) error {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return ErrImageUnknown
+		return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	delete(image.Flags, flag)
 	return r.Save()
@@ -384,7 +384,7 @@ func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return ErrImageUnknown
+		return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	if image.Flags == nil {
 		image.Flags = make(map[string]interface{})
@@ -456,14 +456,14 @@ func (r *imageStore) addMappedTopLayer(id, layer string) error {
 		image.MappedTopLayers = append(image.MappedTopLayers, layer)
 		return r.Save()
 	}
-	return ErrImageUnknown
+	return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) Metadata(id string) (string, error) {
 	if image, ok := r.lookup(id); ok {
 		return image.Metadata, nil
 	}
-	return "", ErrImageUnknown
+	return "", errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) SetMetadata(id, metadata string) error {
@@ -474,7 +474,7 @@ func (r *imageStore) SetMetadata(id, metadata string) error {
 		image.Metadata = metadata
 		return r.Save()
 	}
-	return ErrImageUnknown
+	return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) removeName(image *Image, name string) {
@@ -499,7 +499,7 @@ func (r *imageStore) SetNames(id string, names []string) error {
 		image.Names = names
 		return r.Save()
 	}
-	return ErrImageUnknown
+	return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) Delete(id string) error {
@@ -508,7 +508,7 @@ func (r *imageStore) Delete(id string) error {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return ErrImageUnknown
+		return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	id = image.ID
 	toDeleteIndex := -1
@@ -551,14 +551,14 @@ func (r *imageStore) Get(id string) (*Image, error) {
 	if image, ok := r.lookup(id); ok {
 		return copyImage(image), nil
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) Lookup(name string) (id string, err error) {
 	if image, ok := r.lookup(name); ok {
 		return image.ID, nil
 	}
-	return "", ErrImageUnknown
+	return "", errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (r *imageStore) Exists(id string) bool {
@@ -570,7 +570,7 @@ func (r *imageStore) ByDigest(d digest.Digest) ([]*Image, error) {
 	if images, ok := r.bydigest[d]; ok {
 		return copyImageSlice(images), nil
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with digest %q", d)
 }
 
 func (r *imageStore) BigData(id, key string) ([]byte, error) {
@@ -579,7 +579,7 @@ func (r *imageStore) BigData(id, key string) ([]byte, error) {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return nil, ErrImageUnknown
+		return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	return ioutil.ReadFile(r.datapath(image.ID, key))
 }
@@ -590,7 +590,7 @@ func (r *imageStore) BigDataSize(id, key string) (int64, error) {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return -1, ErrImageUnknown
+		return -1, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	if image.BigDataSizes == nil {
 		image.BigDataSizes = make(map[string]int64)
@@ -610,7 +610,7 @@ func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return "", ErrImageUnknown
+		return "", errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	if image.BigDataDigests == nil {
 		image.BigDataDigests = make(map[string]digest.Digest)
@@ -624,7 +624,7 @@ func (r *imageStore) BigDataDigest(id, key string) (digest.Digest, error) {
 func (r *imageStore) BigDataNames(id string) ([]string, error) {
 	image, ok := r.lookup(id)
 	if !ok {
-		return nil, ErrImageUnknown
+		return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	return copyStringSlice(image.BigDataNames), nil
 }
@@ -649,7 +649,7 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 	}
 	image, ok := r.lookup(id)
 	if !ok {
-		return ErrImageUnknown
+		return errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 	err := os.MkdirAll(r.datadir(image.ID), 0700)
 	if err != nil {
