@@ -345,6 +345,21 @@ install_test_configs(){
 remove_packaged_podman_files(){
     echo "Removing packaged podman files to prevent conflicts with source build and testing."
     req_env_var OS_RELEASE_ID
+
+    # If any binaries are resident they could cause unexpected pollution
+    for unit in io.podman.service io.podman.socket
+    do
+        for state in enabled active
+        do
+            if systemctl --quiet is-$state $unit
+            then
+                echo "Warning: $unit found $state prior to packaged-file removal"
+                systemctl --quiet disable $unit || true
+                systemctl --quiet stop $unit || true
+            fi
+        done
+    done
+
     if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
     then
         LISTING_CMD="sudo -E dpkg-query -L podman"
@@ -359,6 +374,9 @@ remove_packaged_podman_files(){
         if [[ -d "$fullpath" ]] || [[ $(basename "$fullpath") == "conmon" ]] ; then continue; fi
         ooe.sh sudo rm -vf "$fullpath"
     done
+
+    # Be super extra sure and careful vs performant and completely safe
+    sync && echo 3 > /proc/sys/vm/drop_caches
 }
 
 systemd_banish(){
