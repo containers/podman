@@ -220,6 +220,7 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 // volumes, and return a list of them.
 // Conflicts are resolved simply - the last container specified wins.
 // Container names may be suffixed by mount options after a colon.
+// TODO: We should clean these paths if possible
 func (config *CreateConfig) getVolumesFrom(runtime *libpod.Runtime) (map[string]spec.Mount, map[string]*libpod.ContainerNamedVolume, error) {
 	// Both of these are maps of mount destination to mount type.
 	// We ensure that each destination is only mounted to once in this way.
@@ -465,7 +466,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = kv[1]
+			newMount.Destination = filepath.Clean(kv[1])
 			setDest = true
 		case "relabel":
 			if setRelabel {
@@ -559,7 +560,7 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = kv[1]
+			newMount.Destination = filepath.Clean(kv[1])
 			setDest = true
 		default:
 			return newMount, errors.Wrapf(util.ErrBadMntOption, kv[0])
@@ -623,7 +624,7 @@ func getNamedVolume(args []string) (*libpod.ContainerNamedVolume, error) {
 			if err := parse.ValidateVolumeCtrDir(kv[1]); err != nil {
 				return nil, err
 			}
-			newVolume.Dest = kv[1]
+			newVolume.Dest = filepath.Clean(kv[1])
 			setDest = true
 		default:
 			return nil, errors.Wrapf(util.ErrBadMntOption, kv[0])
@@ -678,10 +679,12 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			return nil, nil, err
 		}
 
+		cleanDest := filepath.Clean(dest)
+
 		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") {
 			// This is not a named volume
 			newMount := spec.Mount{
-				Destination: dest,
+				Destination: cleanDest,
 				Type:        string(TypeBind),
 				Source:      src,
 				Options:     options,
@@ -694,7 +697,7 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			// This is a named volume
 			newNamedVol := new(libpod.ContainerNamedVolume)
 			newNamedVol.Name = src
-			newNamedVol.Dest = dest
+			newNamedVol.Dest = cleanDest
 			newNamedVol.Options = options
 
 			if _, ok := volumes[newNamedVol.Dest]; ok {
@@ -719,10 +722,11 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 	}
 
 	for vol := range config.BuiltinImgVolumes {
+		cleanDest := filepath.Clean(vol)
 		if config.ImageVolumeType == "tmpfs" {
 			// Tmpfs image volumes are handled as mounts
 			mount := spec.Mount{
-				Destination: vol,
+				Destination: cleanDest,
 				Source:      TypeTmpfs,
 				Type:        TypeTmpfs,
 				Options:     []string{"rprivate", "rw", "nodev"},
@@ -732,7 +736,7 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 			namedVolume := new(libpod.ContainerNamedVolume)
 			namedVolume.Name = stringid.GenerateNonCryptoID()
 			namedVolume.Options = []string{"rprivate", "rw", "nodev"}
-			namedVolume.Dest = vol
+			namedVolume.Dest = cleanDest
 			volumes[vol] = namedVolume
 		}
 	}
@@ -760,7 +764,7 @@ func (config *CreateConfig) getTmpfsMounts() (map[string]spec.Mount, error) {
 		}
 
 		mount := spec.Mount{
-			Destination: destPath,
+			Destination: filepath.Clean(destPath),
 			Type:        string(TypeTmpfs),
 			Options:     options,
 			Source:      string(TypeTmpfs),
