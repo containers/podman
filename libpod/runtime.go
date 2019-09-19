@@ -247,7 +247,7 @@ type RuntimeConfig struct {
 	// EventsLogger determines where events should be logged
 	EventsLogger string `toml:"events_logger"`
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"-events_logfile_path"`
+	EventsLogFilePath string `toml:"events_logfile_path"`
 	//DetachKeys is the sequence of keys used to detach a container
 	DetachKeys string `toml:"detach_keys"`
 
