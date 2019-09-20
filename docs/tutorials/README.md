@@ -12,6 +12,10 @@ Learn how to setup Podman and perform some basic commands with the utility.
 
 The steps required to setup rootless Podman are enumerated.
 
-**[Setup on OS X](https://github.com/containers/libpod/blob/master/mac_client.md)**
+**[Setup on OS X](https://github.com/containers/libpod/blob/master/doc/tutorials/mac_client.md)**
 
 Special setup for running the Podman remote client on a Mac and connecting to Podman running on a Linux VM are documented
+
+**[Remote Client](https://github.com/containers/libpod/blob/master/doc/tutorials/remote_client.md)**
+
+A brief how-to on using the Podman remote-client.

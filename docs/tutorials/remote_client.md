@@ -19,8 +19,8 @@ system as a user with privileges to the varlink socket (more on this later).
 
 ## Building the remote client
 At this time, the remote-client is not being packaged for any distribution.  It must be built from
-source.  To set up your build environment, see [Installation notes](install.md) and follow the
-section [Building from scratch](install.md#building-from-scratch).  Once you can successfully
+source.  To set up your build environment, see [Installation notes](https://github.com/containers/libpod/blob/master/install.md) and follow the
+section [Building from scratch](https://github.com/containers/libpod/blob/master/install.md#building-from-scratch).  Once you can successfully
 build the regular Podman binary, you can now build the remote-client.
 ```
 $ make podman-remote
