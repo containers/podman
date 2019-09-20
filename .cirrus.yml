@@ -674,6 +674,7 @@ success_task:
         - "special_testing_endpoint"
         - "test_build_cache_images"
         - "test_building_snap"
+        - "upload_snap"
         - "verify_test_built_images"
 
     env:
