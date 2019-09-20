@@ -55,7 +55,7 @@ env:
     #### Credentials and other secret-sauces, decrypted at runtime when authorized.
     ####
     # Freenode IRC credentials for posting status messages
-    IRCID: ENCRYPTED[e87bba62a8e924dc70bdb2b66b16f6ab4a60d2870e6e5534ae9e2b0076f483c71c84091c655ca239101e6816c5ec0883]
+    IRCID: ENCRYPTED[1913f8a4572b6a6d2036232327789c4f6c0d98cde53f0336d860cd219b4cbd83863eefd93471aef8fa1079d4698e382d]
     # Needed to build GCE images, within a GCE VM
     SERVICE_ACCOUNT: ENCRYPTED[99e9a0b1c23f8dd29e83dfdf164f064cfd17afd9b895ca3b5e4c41170bd4290a8366fe2ad8e7a210b9f751711d1d002a]
     # User ID for cirrus to ssh into VMs
