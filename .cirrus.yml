@@ -491,7 +491,7 @@ special_testing_cgroupv2_task:
             TEST_REMOTE_CLIENT: true
             TEST_REMOTE_CLIENT: false
 
-    timeout_in: 20m
+    timeout_in: 120m
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'

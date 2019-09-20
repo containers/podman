@@ -5,6 +5,10 @@
   <?error VERSION must be defined via command line argument?>
   <?endif?>
 
+  <?ifndef var.ManSourceDir?>
+  <?define ManSourceDir = "bin/windows" ?>
+  <?endif?>
+
   <Product Name="Podman $(var.VERSION)" Id="*" UpgradeCode="696BAB5D-CA1F-4B05-B123-320F245B8D6D" Version="$(var.VERSION)" Language="1033" Manufacturer="Red Hat Inc.">
 
     <Package Id="*" Keywords="Installer" Description="Red Hat's Podman $(var.VERSION) Installer" Comments="Apache 2.0 License" Manufacturer="Red Hat Inc." InstallScope="perMachine" InstallerVersion="100" Compressed="yes"/>
@@ -34,6 +38,7 @@
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
       <ComponentRef Id="MainExecutable"/>
+      <ComponentGroupRef Id="ManFiles"/>
     </Feature>
 
     <Icon Id="podman.ico" SourceFile="contrib/msi/podman-logo.ico"/>
