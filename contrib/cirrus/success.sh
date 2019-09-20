@@ -18,18 +18,21 @@ then
     then
         SHARANGE="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
         EXCLUDE_RE='merge-robot'
+        EMAILCSET='[:alnum:]-+_@.'
         AUTHOR_NICKS=$(egrep -v '(^[[:space:]]*$)|(^[[:space:]]*#)' "$AUTHOR_NICKS_FILEPATH" | sort -u)
         # Depending on branch-state, it's possible SHARANGE could be _WAY_ too big
         MAX_NICKS=10
         # newline separated
         GITLOG="git log --format='%ae'"
-        COMMIT_AUTHORS=$($GITLOGt $SHARANGE || $GITLOG -1 HEAD | \
+        COMMIT_AUTHORS=$($GITLOG $SHARANGE || $GITLOG -1 HEAD | \
                          sort -u | \
                          egrep -v "$EXCLUDE_RE" | \
+                         tr --delete --complement "$EMAILCSET[:space:]" | \
                          tail -$MAX_NICKS)
 
         for c_email in $COMMIT_AUTHORS
         do
+            c_email=$(echo "$c_email" | tr --delete --complement "$EMAILCSET")
             echo -e "\tExamining $c_email"
             NICK=$(echo "$AUTHOR_NICKS" | grep -m 1 "$c_email" | \
                    awk --field-separator ',' '{print $2}' | tr -d '[[:blank:]]')
