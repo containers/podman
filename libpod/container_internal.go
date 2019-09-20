@@ -646,14 +646,8 @@ func (c *Container) removeConmonFiles() error {
 
 	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile := filepath.Join(c.ociRuntime.exitsDir, c.ID())
-	if _, err := os.Stat(exitFile); err != nil {
-		if !os.IsNotExist(err) {
-			return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
-		}
-	} else {
-		if err := os.Remove(exitFile); err != nil {
-			return errors.Wrapf(err, "error removing container %s exit file", c.ID())
-		}
+	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s exit file", c.ID())
 	}
 
 	return nil
@@ -921,6 +915,12 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	span, _ := opentracing.StartSpanFromContext(ctx, "init")
 	span.SetTag("struct", "container")
 	defer span.Finish()
+
+	// Unconditionally remove conmon temporary files.
+	// We've been running into far too many issues where they block startup.
+	if err := c.removeConmonFiles(); err != nil {
+		return err
+	}
 
 	// Generate the OCI newSpec
 	newSpec, err := c.generateSpec(ctx)
