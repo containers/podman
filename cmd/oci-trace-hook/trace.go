@@ -172,7 +172,7 @@ func startFloatingProcess() error {
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, syscall.SIGUSR1)
 
-		process, err := os.StartProcess(os.Args[0], []string{os.Args[0], "-r", strconv.Itoa(pid), "-f", fileName}, attr)
+		process, err := os.StartProcess("/usr/local/libexec/oci/hooks.d/oci-trace-hook", []string{"oci-trace-hook", "-r", strconv.Itoa(pid), "-f", fileName}, attr)
 		if err != nil {
 			return fmt.Errorf("cannot launch process err: %q", err.Error())
 		}
