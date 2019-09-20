@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -108,7 +109,7 @@ var _ = Describe("Podman start", func() {
 		start := podmanTest.Podman([]string{"start", "-l"})
 		start.WaitWithDefaultTimeout()
 		Expect(start.ExitCode()).To(Not(Equal(0)))
-
+		time.Sleep(2 * time.Second)
 		numContainers := podmanTest.NumberOfContainers()
 		Expect(numContainers).To(BeZero())
 	})
