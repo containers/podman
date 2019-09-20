@@ -639,7 +639,7 @@ upload_snap_task:
         image: yakshaveinc/snapcraft:core18
 
     env:
-        SNAPCRAFT_LOGIN: ENCRYPTED[...FILLME...]
+        SNAPCRAFT_LOGIN: ENCRYPTED[d8e82eb31c6372fec07f405f413d57806026b1a9f8400033531ebcd54d6750a5e4a8b1f68e3ec65c98c65e0d9b2a6a75]
     snapcraft_login_file:
         path: /root/.snapcraft/login.cfg
         variable_name: SNAPCRAFT_LOGIN
