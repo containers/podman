@@ -200,13 +200,16 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 		pspec.Cwd = cwd
 
 	}
+
+	overrides := c.getUserOverrides()
+	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, overrides)
+	if err != nil {
+		return nil, err
+	}
+
 	// If user was set, look it up in the container to get a UID to use on
 	// the host
 	if user != "" {
-		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, nil)
-		if err != nil {
-			return nil, err
-		}
 		sgids := make([]uint32, 0, len(execUser.Sgids))
 		for _, sgid := range execUser.Sgids {
 			sgids = append(sgids, uint32(sgid))
@@ -218,6 +221,17 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 		}
 
 		pspec.User = processUser
+	}
+
+	hasHomeSet := false
+	for _, s := range pspec.Env {
+		if strings.HasPrefix(s, "HOME=") {
+			hasHomeSet = true
+			break
+		}
+	}
+	if !hasHomeSet {
+		pspec.Env = append(pspec.Env, fmt.Sprintf("HOME=%s", execUser.Home))
 	}
 
 	processJSON, err := json.Marshal(pspec)
