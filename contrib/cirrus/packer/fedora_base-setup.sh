@@ -8,8 +8,6 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
-[[ "$1" == "post" ]] || exit 0  # nothing to do
-
 install_ooe
 
 echo "Updating packages"

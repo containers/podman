@@ -36,7 +36,7 @@ SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_c
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
 
 cd $GOSRC
-if type -P git &> /dev/null
+if type -P git &> /dev/null && [[ -d "$GOSRC/.git" ]]
 then
     CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git show-ref --hash=8 HEAD || date +%s)}
 else # pick something unique and obviously not from Cirrus
@@ -52,16 +52,17 @@ CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
 CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
 CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
 # Vars. for image-building
-PACKER_VER="1.3.5"
+PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-30,xfedora-30,fedora-29}"
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-30,xfedora-30,fedora-29}"
 # Google-maintained base-image names
-export UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
+export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
+export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1559164849"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1559164849"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1565360543"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1565360543"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
@@ -80,9 +81,6 @@ BIGTO="timeout_attempt_delay_command 300s 5 30s"
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
-
-# Names of systemd units which should never be running
-EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean"
 
 SPECIALMODE="${SPECIALMODE:-none}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
@@ -322,7 +320,7 @@ EOF
     sudo chmod 755 /usr/bin/git
 }
 
-install_test_configs(){
+install_test_configs() {
     echo "Installing cni config, policy and registry config"
     req_env_var GOSRC SCRIPT_BASE
     cd $GOSRC
@@ -342,7 +340,7 @@ install_test_configs(){
 # of pulling in necessary prerequisites packages as the set can change over time.
 # For general CI testing however, calling this function makes sure the system
 # can only run the compiled source version.
-remove_packaged_podman_files(){
+remove_packaged_podman_files() {
     echo "Removing packaged podman files to prevent conflicts with source build and testing."
     req_env_var OS_RELEASE_ID
 
@@ -379,24 +377,11 @@ remove_packaged_podman_files(){
     sync && echo 3 > /proc/sys/vm/drop_caches
 }
 
-systemd_banish(){
-    echo "Disabling periodic services that could destabilize testing (ignoring errors):"
-    set +e  # Not all of these exist on every platform
-    for unit in $EVIL_UNITS
-    do
-        echo "Banishing $unit (ignoring errors)"
-        (
-            sudo systemctl stop $unit
-            sudo systemctl disable $unit
-            sudo systemctl disable $unit.timer
-            sudo systemctl mask $unit
-            sudo systemctl mask $unit.timer
-        ) &> /dev/null
-    done
-    set -e
+systemd_banish() {
+    $GOSRC/$PACKER_BASE/systemd_banish.sh
 }
 
-_finalize(){
+_finalize() {
     set +e  # Don't fail at the very end
     if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
     then
@@ -419,7 +404,7 @@ _finalize(){
     sudo fstrim -av
 }
 
-rh_finalize(){
+rh_finalize() {
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
     PKG=$(type -P dnf || type -P yum || echo "")
@@ -430,7 +415,7 @@ rh_finalize(){
     _finalize
 }
 
-ubuntu_finalize(){
+ubuntu_finalize() {
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
     $LILTO $SUDOAPTGET autoremove

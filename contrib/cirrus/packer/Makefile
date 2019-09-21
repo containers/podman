@@ -3,7 +3,7 @@
 # builder name(s) from applicable YAML file,
 # e.g for names see libpod_images.yml
 
-PACKER_VER ?= 1.3.5
+PACKER_VER ?= 1.4.2
 GOARCH=$(shell go env GOARCH)
 ARCH=$(uname -m)
 PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
@@ -15,12 +15,23 @@ PACKER_BASE ?= contrib/cirrus/packer
 SCRIPT_BASE ?= contrib/cirrus
 POST_MERGE_BUCKET_SUFFIX ?=
 
+UBUNTU_BASE_IMAGE = $(shell source ../lib.sh && echo "$$UBUNTU_BASE_IMAGE")
+PRIOR_UBUNTU_BASE_IMAGE = $(shell source ../lib.sh && echo "$$PRIOR_UBUNTU_BASE_IMAGE")
+
 # For debugging nested-virt, use
 #TTYDEV := $(shell tty)
 TTYDEV := /dev/null
 
 .PHONY: all
 all: libpod_images
+
+# Utility target for checking required parameters
+.PHONY: guard-%
+guard-%:
+	@if [[ -z "$($*)" ]]; then \
+		echo "Missing or empty required make variable '$*'."; \
+		exit 1; \
+	fi;
 
 %.json: %.yml
 	@python3 -c 'import json,yaml; json.dump( yaml.load(open("$<").read()), open("$@","w"), indent=2);'
@@ -44,10 +55,7 @@ test: libpod_base_images.json libpod_images.json packer
 	@echo "All good"
 
 .PHONY: libpod_images
-libpod_images: libpod_images.json packer
-ifndef PACKER_BUILDS
-	$(error PACKER_BUILDS is undefined, expected builder-names CSV)
-endif
+libpod_images: guard-PACKER_BUILDS libpod_images.json packer
 	./packer build -only=${PACKER_BUILDS} \
 		-force \
 		-var GOSRC=$(GOSRC) \
@@ -72,16 +80,7 @@ cidata.iso: user-data meta-data
 
 # This is intended to be run by a human, with admin access to the libpod GCE project.
 .PHONY: libpod_base_images
-libpod_base_images: libpod_base_images.json cidata.iso cidata.ssh packer
-ifndef GCP_PROJECT_ID
-	$(error GCP_PROJECT_ID is undefined, expected complete GCP project ID string e.g. foobar-12345)
-endif
-ifndef GOOGLE_APPLICATION_CREDENTIALS
-	$(error GOOGLE_APPLICATION_CREDENTIALS is undefined, expected absolute path to JSON file, like $HOME/.config/gcloud/legacy_credentials/*/adc.json)
-endif
-ifndef PACKER_BUILDS
-	$(error PACKER_BUILDS is undefined, expected builder-names CSV)
-endif
+libpod_base_images: guard-GCP_PROJECT_ID guard-GOOGLE_APPLICATION_CREDENTIALS libpod_base_images.json cidata.iso cidata.ssh packer
 	PACKER_CACHE_DIR=/tmp ./packer build \
 		-force \
 		-var TIMESTAMP=$(TIMESTAMP) \
@@ -91,5 +90,6 @@ endif
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
-		-only $(PACKER_BUILDS) \
+		-var UBUNTU_BASE_IMAGE=$(UBUNTU_BASE_IMAGE) \
+		-var PRIOR_UBUNTU_BASE_IMAGE=$(PRIOR_UBUNTU_BASE_IMAGE) \
 		libpod_base_images.json

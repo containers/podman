@@ -24,6 +24,8 @@ ooe.sh sudo dnf config-manager --set-enabled updates-testing
 echo "Installing general build/test dependencies"
 ooe.sh sudo dnf install -y \
     atomic-registries \
+    autoconf \
+    automake \
     bats \
     bridge-utils \
     btrfs-progs-devel \
@@ -35,10 +37,14 @@ ooe.sh sudo dnf install -y \
     device-mapper-devel \
     emacs-nox \
     findutils \
+    fuse3 \
+    fuse3-devel \
+    gcc \
     git \
     glib2-devel \
     glibc-static \
     gnupg \
+    go-md2man \
     golang \
     golang-github-cpuguy83-go-md2man \
     gpgme-devel \
@@ -81,6 +87,7 @@ ooe.sh sudo dnf install -y \
     xz \
     zip
 
+
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish
 
@@ -91,6 +98,7 @@ case "$PACKER_BUILDER_NAME" in
     xfedora*)
         echo "Configuring CGroups v2 enabled on next boot"
         sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
+        sudo dnf install -y crun
         ;&  # continue to next matching item
     *)
         echo "Finalizing $PACKER_BUILDER_NAME VM image"
