@@ -279,6 +279,17 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	hasHomeSet := false
+	for _, s := range c.config.Spec.Process.Env {
+		if strings.HasPrefix(s, "HOME=") {
+			hasHomeSet = true
+			break
+		}
+	}
+	if !hasHomeSet {
+		c.config.Spec.Process.Env = append(c.config.Spec.Process.Env, fmt.Sprintf("HOME=%s", execUser.Home))
+	}
+
 	if c.config.User != "" {
 		// User and Group must go together
 		g.SetProcessUID(uint32(execUser.Uid))
