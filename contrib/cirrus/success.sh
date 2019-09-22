@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var CIRRUS_BRANCH CIRRUS_BUILD_ID CIRRUS_REPO_FULL_NAME CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO
+req_env_var CIRRUS_BRANCH CIRRUS_REPO_FULL_NAME CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO CIRRUS_CHANGE_MESSAGE
 
 cd $CIRRUS_WORKING_DIR
 
@@ -25,9 +25,9 @@ then
         # newline separated
         GITLOG="git log --format='%ae'"
         COMMIT_AUTHORS=$($GITLOG $SHARANGE || $GITLOG -1 HEAD | \
-                         sort -u | \
-                         egrep -v "$EXCLUDE_RE" | \
                          tr --delete --complement "$EMAILCSET[:space:]" | \
+                         egrep -v "$EXCLUDE_RE" | \
+                         sort -u | \
                          tail -$MAX_NICKS)
 
         for c_email in $COMMIT_AUTHORS
@@ -43,8 +43,13 @@ then
                 echo -e "\t\tNot found in $(basename $AUTHOR_NICKS_FILEPATH), using e-mail username."
                 NICK=$(echo "$c_email" | cut -d '@' -f 1)
             fi
-            echo -e "\tUsing nick $NICK"
-            NICKS="${NICKS:+$NICKS, }$NICK"
+            if ! echo "$NICKS" | grep -q "$NICK"
+            then
+                echo -e "\tUsing nick $NICK"
+                NICKS="${NICKS:+$NICKS, }$NICK"
+            else
+                echo -e "\tNot re-adding duplicate nick $NICK"
+            fi
         done
     fi
 
