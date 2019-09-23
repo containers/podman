@@ -11,7 +11,9 @@ podman\-events - Monitor Podman events
 Monitor and print events that occur in Podman. Each event will include a timestamp,
 a type, a status, name (if applicable), and image (if applicable).  The default logging
 mechanism is *journald*. This can be changed in libpod.conf by changing the `events_logger`
-value to `file`.  Only `file` and `journald` are the accepted.
+value to `file`.  Only `file` and `journald` are accepted. A `none` logger is also
+available but this logging mechanism completely disables events; nothing will be reported by
+`podman events`.
 
 The *container* event type will report the follow statuses:
  * attach
@@ -53,6 +55,10 @@ The *image* event type will report the following statuses:
  * save
  * tag
  * untag
+
+The *system* type will report the following statuses:
+ * refresh
+ * renumber
 
 The *volume* type will report the following statuses:
  * create
