@@ -181,6 +181,30 @@ func (c *Container) cleanupNetwork() error {
 	return nil
 }
 
+func (c *Container) getUserOverrides() *lookup.Overrides {
+	var hasPasswdFile, hasGroupFile bool
+	overrides := lookup.Overrides{}
+	for _, m := range c.config.Spec.Mounts {
+		if m.Destination == "/etc/passwd" {
+			overrides.ContainerEtcPasswdPath = m.Source
+			hasPasswdFile = true
+		}
+		if m.Destination == "/etc/group" {
+			overrides.ContainerEtcGroupPath = m.Source
+			hasGroupFile = true
+		}
+		if m.Destination == "/etc" {
+			if !hasPasswdFile {
+				overrides.ContainerEtcPasswdPath = filepath.Join(m.Source, "passwd")
+			}
+			if !hasGroupFile {
+				overrides.ContainerEtcGroupPath = filepath.Join(m.Source, "group")
+			}
+		}
+	}
+	return &overrides
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
@@ -188,7 +212,8 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	span.SetTag("type", "container")
 	defer span.Finish()
 
-	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, nil)
+	overrides := c.getUserOverrides()
+	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
 		return nil, err
 	}

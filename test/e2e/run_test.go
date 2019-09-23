@@ -200,6 +200,12 @@ var _ = Describe("Podman run", func() {
 		match, _ := session.GrepString("/root")
 		Expect(match).Should(BeTrue())
 
+		session = podmanTest.Podman([]string{"run", "--rm", "--user", "2", ALPINE, "printenv", "HOME"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ = session.GrepString("/sbin")
+		Expect(match).Should(BeTrue())
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "HOME=/foo", ALPINE, "printenv", "HOME"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
