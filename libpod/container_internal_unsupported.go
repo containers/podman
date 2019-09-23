@@ -40,3 +40,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 func (c *Container) copyOwnerAndPerms(source, dest string) error {
 	return nil
 }
+
+func (c *Container) refreshCNI() error {
+	return define.ErrNotImplemented
+}

@@ -1294,3 +1294,10 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 	}
 	return nil
 }
+
+// Teardown CNI config on refresh
+func (c *Container) refreshCNI() error {
+	// Let's try and delete any lingering network config...
+	podNetwork := c.runtime.getPodNetwork(c.ID(), c.config.Name, "", c.config.Networks, c.config.PortMappings, c.config.StaticIP)
+	return c.runtime.netPlugin.TearDownPod(podNetwork)
+}
