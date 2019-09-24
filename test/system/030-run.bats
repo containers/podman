@@ -3,7 +3,6 @@
 load helpers
 
 @test "podman run - basic tests" {
-    skip "Temporarily disabled during investigation into github issue 4044"
     rand=$(random_string 30)
 
     # 2019-09 Fedora 31 and rawhide (32) are switching from runc to crun
@@ -28,6 +27,7 @@ echo $rand        |   0 | $rand
 /etc              | 126 | $err_no_exec_dir
 "
 
+    tests_run=0
     while read cmd expected_rc expected_output; do
         if [ "$expected_output" = "''" ]; then expected_output=""; fi
 
@@ -41,9 +41,24 @@ echo $rand        |   0 | $rand
         # a way to do so.
         eval set "$cmd"
 
-        run_podman $expected_rc run $IMAGE "$@"
-        is "$output" "$expected_output" "podman run $cmd - output"
+        # FIXME: The </dev/null is a hack, necessary because as of 2019-09
+        #        podman-remote has a bug in which it silently slurps up stdin,
+        #        including the output of parse_table (i.e. tests to be run).
+        run_podman $expected_rc run $IMAGE "$@" </dev/null
+
+        # FIXME: remove conditional once podman-remote issue #4096 is fixed
+        if ! is_remote; then
+            is "$output" "$expected_output" "podman run $cmd - output"
+        fi
+
+        tests_run=$(expr $tests_run + 1)
     done < <(parse_table "$tests")
+
+    # Make sure we ran the expected number of tests! Until 2019-09-24
+    # podman-remote was only running one test (the "true" one); all
+    # the rest were being silently ignored because of podman-remote
+    # bug #4095, in which it slurps up stdin.
+    is "$tests_run" "$(grep . <<<$tests | wc -l)" "Ran the full set of tests"
 }
 
 @test "podman run - uidmapping has no /sys/kernel mounts" {
