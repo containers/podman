@@ -35,16 +35,20 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:        id,
 		NetNS:     nsPath,
-		Networks:  networks,
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
 			defaultNetwork: {PortMappings: ports},
 		},
 	}
 
 	if staticIP != nil {
-		network.Networks = []string{defaultNetwork}
+		network.Networks = []ocicni.NetAttachment{{Name: defaultNetwork}}
 		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
 			defaultNetwork: {IP: staticIP.String(), PortMappings: ports},
+		}
+	} else {
+		network.Networks = make([]ocicni.NetAttachment, len(networks))
+		for i, netName := range networks {
+			network.Networks[i].Name = netName
 		}
 	}
 
@@ -78,10 +82,10 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
-		logrus.Debugf("[%d] CNI result: %v", idx, r.String())
-		resultCurrent, err := cnitypes.GetResult(r)
+		logrus.Debugf("[%d] CNI result: %v", idx, r.Result.String())
+		resultCurrent, err := cnitypes.GetResult(r.Result)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.String(), err)
+			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result.String(), err)
 		}
 		networkStatus = append(networkStatus, resultCurrent)
 	}
