@@ -65,7 +65,9 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	}
 
 	// ACK the client upgrade request
-	call.ReplyAttach()
+	if err := call.ReplyAttach(); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
 
 	reader, writer, _, pw, streams := setupStreams(call)
 
