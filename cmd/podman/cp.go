@@ -290,7 +290,7 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 	}
 
 	destdir := destPath
-	if !srcfi.IsDir() && !strings.HasSuffix(dest, string(os.PathSeparator)) {
+	if !srcfi.IsDir() {
 		destdir = filepath.Dir(destPath)
 	}
 	_, err = os.Stat(destdir)
@@ -329,7 +329,7 @@ func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, ch
 
 	destfi, err := os.Stat(destPath)
 	if err != nil {
-		if !os.IsNotExist(err) {
+		if !os.IsNotExist(err) || strings.HasSuffix(dest, string(os.PathSeparator)) {
 			return errors.Wrapf(err, "failed to get stat of dest path %s", destPath)
 		}
 	}
