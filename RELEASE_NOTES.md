@@ -8,6 +8,7 @@
 - The `podman volume rm` and `podman volume inspect` commands can now refer to volumes by an unambiguous partial name, in addition to full name (e.g. `podman volume rm myvol` to remove a volume named `myvolume`) ([#3891](https://github.com/containers/libpod/issues/3891))
 - The `podman run` and `podman create` commands now support the `--pull` flag to allow forced re-pulling of images ([#3734](https://github.com/containers/libpod/issues/3734))
 - Mounting volumes into a container using `--volume`, `--mount`, and `--tmpfs` now allows the `suid`, `dev`, and `exec` mount options (the inverse of `nosuid`, `nodev`, `noexec`) ([#3819](https://github.com/containers/libpod/issues/3819))
+- Mounting volumes into a container using `--mount` now allows the `relabel=Z` and `relabel=z` options to relabel mounts.
 - The `podman push` command now supports the `--digestfile` option to save a file containing the pushed digest
 - Pods can now have their hostname set via `podman pod create --hostname` or providing Pod YAML with a hostname set to `podman play kube` ([#3732](https://github.com/containers/libpod/issues/3732))
 - The `podman image sign` command now supports the `--cert-dir` flag
@@ -37,12 +38,18 @@
 - Fixed a bug where `podman exec` would run as the wrong user when execing into a container was started from an image with Dockerfile `USER` (or a user specified via `podman run --user`) ([#3838](https://github.com/containers/libpod/issues/3838))
 - Fixed a bug where images pulled using the `oci:` transport would be improperly named
 - Fixed a bug where `podman varlink` would hang when managed by systemd due to SD_NOTIFY support conflicting with Varlink ([#3572](https://github.com/containers/libpod/issues/3572))
+- Fixed a bug where mounts to the same destination would sometimes not trigger a conflict, causing a race as to which was actually mounted
+- Fixed a bug where `podman exec --preserve-fds` caused Podman to hang ([#4020](https://github.com/containers/libpod/issues/4020))
+- Fixed a bug where removing an unmounted container that was unmounted might sometimes not properly clean up the container ([#4033](https://github.com/containers/libpod/issues/4033))
+- Fixed a bug where the Varlink server would freeze when run in a systemd unit file ([#4005](https://github.com/containers/libpod/issues/4005))
+- Fixed a bug where Podman would not properly set the `$HOME` environment variable when the OCI runtime did not set it
 
 ### Misc
 - Significant changes were made to Podman volumes in this release. If you have pre-existing volumes, it is strongly recommended to run `podman system renumber` after upgrading.
 - Version 0.8.1 or greater of the CNI Plugins is now required for Podman
 - Version 2.0.1 or greater of Conmon is strongly recommended
 - Updated vendored Buildah to v1.11.2
+- Updated vendored containers/storage library to v1.13.3
 - Improved error messages when trying to run `podman pause` or `podman stats` on a rootless container on a system without CGroups V2 enabled
 - `TMPDIR` has been set to `/var/tmp` by default to better handle large temporary files
 - `podman wait` has been optimized to detect stopped containers more rapidly
