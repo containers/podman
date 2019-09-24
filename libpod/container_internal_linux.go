@@ -78,15 +78,21 @@ func (c *Container) prepare() (Err error) {
 		// Set up network namespace if not already set up
 		if c.config.CreateNetNS && c.state.NetNS == nil && !c.config.PostConfigureNetNS {
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
+			if createNetNSErr != nil {
+				return
+			}
 
 			tmpStateLock.Lock()
 			defer tmpStateLock.Unlock()
 
 			// Assign NetNS attributes to container
-			if createNetNSErr == nil {
-				c.state.NetNS = netNS
-				c.state.NetworkStatus = networkStatus
-			}
+			c.state.NetNS = netNS
+			c.state.NetworkStatus = networkStatus
+		}
+
+		// handle rootless network namespace setup
+		if c.state.NetNS != nil && c.config.NetMode == "slirp4netns" && !c.config.PostConfigureNetNS {
+			createNetNSErr = c.runtime.setupRootlessNetNS(c)
 		}
 	}()
 	// Mount storage if not mounted

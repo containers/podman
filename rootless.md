@@ -27,7 +27,6 @@ can easily fail
 * Can not use overlayfs driver, but does support fuse-overlayfs
   * Ubuntu supports non root overlay, but no other Linux distros do.
 * Only other supported driver is VFS.
-* No KATA Container support
 * No CNI Support
   * CNI wants to modify IPTables, plus other network manipulation that requires CAP_SYS_ADMIN.
   * There is potential we could probably do some sort of blacklisting of the relevant plugins, and add a new plugin for rootless networking - slirp4netns as one example and there may be others
