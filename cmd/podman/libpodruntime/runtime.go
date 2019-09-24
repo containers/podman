@@ -171,7 +171,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}
 
-	if withFDS {
+	if !withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}
 	if c.Flags().Changed("config") {
