@@ -73,6 +73,8 @@ UPLDREL_IMAGE="quay.io/libpod/upldrel:latest"
 export DEBIAN_FRONTEND="noninteractive"
 SUDOAPTGET="ooe.sh sudo -E apt-get -qq --yes"
 SUDOAPTADD="ooe.sh sudo -E add-apt-repository --yes"
+# Regex that finds enabled periodic apt configuration items
+PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
 # Short-cuts for retrying/timeout calls
 LILTO="timeout_attempt_delay_command 24s 5 30s"
 BIGTO="timeout_attempt_delay_command 300s 5 30s"
