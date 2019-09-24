@@ -467,6 +467,10 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 		return nil, errors.Wrapf(err, "unable to read %s as YAML", yamlFile)
 	}
 
+	if podYAML.Kind != "Pod" {
+		return nil, errors.Errorf("Invalid YAML kind: %s. Pod is the only supported Kubernetes YAML kind", podYAML.Kind)
+	}
+
 	// check for name collision between pod and container
 	podName := podYAML.ObjectMeta.Name
 	for _, n := range podYAML.Spec.Containers {
