@@ -55,6 +55,26 @@ db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
 
 ```
+$ podman import --change "ENTRYPOINT ["/bin/sh","-c","test-image"]"  --change LABEL=blue=image test-image.tar image-imported
+Getting image source signatures
+Copying blob e3b0c44298fc skipped: already exists
+Copying config 1105523502 done
+Writing manifest to image destination
+Storing signatures
+110552350206337183ceadc0bdd646dc356e06514c548b69a8917b4182414b
+```
+```
+$ podman import --change "CMD /bin/sh"  --change LABEL=blue=image test-image.tar image-imported
+Getting image source signatures
+Copying blob e3b0c44298fc skipped: already exists
+Copying config ae9a27e249 done
+Writing manifest to image destination
+Storing signatures
+ae9a27e249f801aff11a4ba54a81751ea9fbc9db45a6df3f1bfd63fc2437bb9c
+```
+
+
+```
 $ cat ctr.tar | podman -q import --message "importing the ctr.tar tarball" - image-imported
 db65d991f3bbf7f31ed1064db9a6ced7652e3f8166c4736aa9133dadd3c7acb3
 ```
