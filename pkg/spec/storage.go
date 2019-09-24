@@ -168,6 +168,9 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 			if _, ok := baseMounts[dest]; ok {
 				continue
 			}
+			if _, ok := baseVolumes[dest]; ok {
+				continue
+			}
 			localOpts := options
 			if dest == "/run" {
 				localOpts = append(localOpts, "noexec", "size=65536k")
