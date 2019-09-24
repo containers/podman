@@ -36,13 +36,14 @@ github.com/checkpoint-restore/go-criu
 github.com/checkpoint-restore/go-criu/rpc
 # github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc
 github.com/containerd/continuity/pathdriver
-# github.com/containernetworking/cni v0.7.1
+# github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 github.com/containernetworking/cni/pkg/types
 github.com/containernetworking/cni/pkg/types/current
 github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/types/020
+github.com/containernetworking/cni/pkg/utils
 # github.com/containernetworking/plugins v0.8.1
 github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/ip
@@ -159,7 +160,7 @@ github.com/coreos/go-systemd/sdjournal
 github.com/coreos/go-systemd/journal
 # github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 github.com/coreos/pkg/dlopen
-# github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
+# github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
 github.com/cyphar/filepath-securejoin

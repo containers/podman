@@ -64,6 +64,8 @@ github.com/containernetworking/cni v0.7.0-rc2 h1:2GGDhbwdWPY53iT7LXy+LBP76Ch2D/h
 github.com/containernetworking/cni v0.7.0-rc2/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/cni v0.7.1 h1:fE3r16wpSEyaqY4Z4oFrLMmIGfBYIKpPrHK31EJ9FzE=
 github.com/containernetworking/cni v0.7.1/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
+github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784 h1:rqUVLD8I859xRgUx/WMC3v7QAFqbLKZbs+0kqYboRJc=
+github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/plugins v0.7.4 h1:ugkuXfg1Pdzm54U5DGMzreYIkZPSCmSq4rm5TIXVICA=
 github.com/containernetworking/plugins v0.7.4/go.mod h1:dagHaAhNjXjT9QYOklkKJDGaQPTg4pf//FrUcJeb7FU=
 github.com/containernetworking/plugins v0.8.1 h1:dJbykiiSIS3Xvo8d+A6rSXcUEFGfvCjUA+bUED4qegQ=
@@ -139,8 +141,11 @@ github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f/go.mod h1:E3G3o1h8I7cfc
 github.com/cpuguy83/go-md2man v1.0.10/go.mod h1:SmD6nW6nTyfqj6ABTjUi3V3JVMnlJmwcJI5acqYI6dE=
 github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27 h1:c3yt54JU7t7bzcae8YwI6+TvbWeQWrBfDxYi7zL9XPE=
 github.com/cri-o/ocicni v0.0.0-20190328132530-0c180f981b27/go.mod h1:BO0al9TKber3XUTucLzKgoG5sq8qiOB41H7zSdfw6r8=
+github.com/cri-o/ocicni v0.1.0 h1:7OOh/1d/K5JbMJ4tb/xRs3PNTlGckeICWMa/Rx4efu0=
 github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca h1:CJstDqYy9ClWuPcDHMTCAiUS+ckekluYetGR2iYYWuo=
 github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca/go.mod h1:BO0al9TKber3XUTucLzKgoG5sq8qiOB41H7zSdfw6r8=
+github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b h1:SgS+WV10y2Bubuy2HquSBori6DXj9sqRN77Hgs5H7Qc=
+github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b/go.mod h1:ZOuIEOp/3MB1eCBWANnNxM3zUA3NWh76wSRCsnKAg2c=
 github.com/cyphar/filepath-securejoin v0.2.1 h1:5DPkzz/0MwUpvR4fxASKzgApeq2OMFY5FfYtrX28Coo=
 github.com/cyphar/filepath-securejoin v0.2.1/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
 github.com/cyphar/filepath-securejoin v0.2.2 h1:jCwT2GTP+PY5nBz3c/YL5PAIbusElVrPujOBSCj8xRg=
