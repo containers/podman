@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     e2fslibs-dev \
+    file \
     gawk \
     gettext \
     go-md2man \

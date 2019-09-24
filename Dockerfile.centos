@@ -2,9 +2,12 @@ FROM registry.centos.org/centos/centos:7
 
 RUN yum -y install btrfs-progs-devel \
               atomic-registries \
+              autoconf \
+              automake \
               bzip2 \
               device-mapper-devel \
               findutils \
+              file \
               git \
               glibc-static \
               glib2-devel \
@@ -15,6 +18,7 @@ RUN yum -y install btrfs-progs-devel \
               libassuan-devel \
               libseccomp-devel \
               libselinux-devel \
+              libtool \
               containers-common \
               runc \
               make \

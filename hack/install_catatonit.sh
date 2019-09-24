@@ -6,10 +6,19 @@ CATATONIT_VERSION="v0.1.4"
 if [ -f $CATATONIT_PATH ]; then
 	echo "skipping ... catatonit is already installed"
 else
-	echo "downloading catatonit to $CATATONIT_PATH"
-	curl -o catatonit -L https://github.com/openSUSE/catatonit/releases/download/$CATATONIT_VERSION/catatonit.x86_64
-	chmod +x catatonit
+	echo "installing catatonit to $CATATONIT_PATH"
+	buildDir=$(mktemp -d)
+	git clone https://github.com/openSUSE/catatonit.git $buildDir
+
+	pushd $buildDir
+	echo `pwd`
+	git reset --hard ${CATATONIT_VERSION}
+	autoreconf -fi
+	./configure
+	make
 	install ${SELINUXOPT} -d -m 755 $BASE_PATH
 	install ${SELINUXOPT} -m 755 catatonit $CATATONIT_PATH
-	rm catatonit
+	popd
+
+	rm -rf $buildDir
 fi
