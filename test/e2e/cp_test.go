@@ -51,6 +51,10 @@ var _ = Describe("Podman cp", func() {
 		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
 		Expect(err).To(BeNil())
 
+		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -65,30 +69,29 @@ var _ = Describe("Podman cp", func() {
 	})
 
 	It("podman cp file to dir", func() {
-		srcPath := filepath.Join(podmanTest.RunRoot, "cp_test.txt")
-		dstDir := filepath.Join(podmanTest.RunRoot, "receive")
+		name := "testctr"
+		setup := podmanTest.RunTopContainer(name)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		srcPath := "/tmp/cp_test.txt"
 		fromHostToContainer := []byte("copy from host to container directory")
-
-		session := podmanTest.Podman([]string{"create", ALPINE, "ls", "foodir/"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-		name := session.OutputToString()
-
 		err := ioutil.WriteFile(srcPath, fromHostToContainer, 0644)
 		Expect(err).To(BeNil())
-		err = os.Mkdir(dstDir, 0755)
-		Expect(err).To(BeNil())
+
+		session := podmanTest.Podman([]string{"exec", name, "mkdir", "foodir"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foodir/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"cp", name + ":foodir/cp_test.txt", dstDir})
+		session = podmanTest.Podman([]string{"exec", name, "ls", "foodir/cp_test.txt"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		os.Remove("cp_test.txt")
-		os.RemoveAll("receive")
+		os.Remove("/tmp/cp_test.txt")
 	})
 
 	It("podman cp dir to dir", func() {
@@ -137,10 +140,18 @@ var _ = Describe("Podman cp", func() {
 		session = podmanTest.Podman([]string{"cp", name + ":/foo.tar.gz", "-"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		os.RemoveAll(testDirPath)
+		os.Remove("file.tar.gz")
 	})
 
 	It("podman cp tar", func() {
-		session := podmanTest.Podman([]string{"create", "--name", "testctr", ALPINE, "ls", "-l", "foo"})
+		testctr := "testctr"
+		setup := podmanTest.RunTopContainer(testctr)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", testctr, "mkdir", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -157,7 +168,7 @@ var _ = Describe("Podman cp", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"start", "-a", "testctr"})
+		session = podmanTest.Podman([]string{"exec", testctr, "ls", "-l", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("file.tar"))
@@ -187,6 +198,15 @@ var _ = Describe("Podman cp", func() {
 
 		_, err = os.Stat("/tmp/cp_test.txt")
 		Expect(err).To(Not(BeNil()))
+
+		session = podmanTest.Podman([]string{"exec", name, "ln", "-s", "/tmp/nonesuch", "/test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", "--pause=false", srcPath, name + ":/test1/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
 	})
 	It("podman cp volume", func() {
 		session := podmanTest.Podman([]string{"volume", "create", "data"})
@@ -208,6 +228,9 @@ var _ = Describe("Podman cp", func() {
 		session = podmanTest.Podman([]string{"cp", "container1" + ":/data/cp_vol1", "cp_vol2"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		os.Remove("cp_vol")
+		os.Remove("cp_vol2")
 	})
 
 	It("podman cp from ctr chown ", func() {

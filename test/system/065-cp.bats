@@ -144,12 +144,13 @@ load helpers
                       trap 'exit 0' 15;while :;do sleep 0.5;done"
 
     # Copy file from host into container, into a file named 'x'
-    # Note that the second has a trailing slash; this will trigger mkdir
+    # Note that the second has a trailing slash, implying a directory.
+    # Since that destination directory doesn't exist, the cp will fail
     run_podman cp --pause=false $srcdir/$rand_filename1 cpcontainer:/tmp/d1/x
     is "$output" "" "output from podman cp 1"
 
-    run_podman cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
-    is "$output" "" "output from podman cp 3"
+    run_podman 125 cp --pause=false $srcdir/$rand_filename2 cpcontainer:/tmp/d2/x/
+    is "$output" "Error: failed to get stat of dest path .*stat.* no such file or directory" "cp will not create nonexistent destination directory"
 
     run_podman cp --pause=false $srcdir/$rand_filename3 cpcontainer:/tmp/d3/x
     is "$output" "" "output from podman cp 3"
@@ -161,10 +162,8 @@ load helpers
     run_podman exec cpcontainer cat /tmp/nonesuch1
     is "$output" "$rand_content1" "cp creates destination file"
 
-    # In the second case, podman creates a directory nonesuch2, then
-    # creates a file with the same name as the input file. THIS IS WEIRD!
-    run_podman exec cpcontainer cat /tmp/nonesuch2/$rand_filename2
-    is "$output" "$rand_content2" "cp creates destination dir and file"
+    # cp into nonexistent directory should not mkdir nonesuch2 directory
+    run_podman 1 exec cpcontainer test -e /tmp/nonesuch2
 
     # In the third case, podman (correctly imo) creates a file named 'x'
     run_podman exec cpcontainer cat /tmp/d3/x

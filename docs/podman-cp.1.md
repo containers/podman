@@ -29,7 +29,7 @@ Assuming a path separator of /, a first argument of **src_path** and second argu
   - **dest_path** does not exist
 	- the file is saved to a file created at **dest_path**
   - **dest_path** does not exist and ends with /
-	- **dest_path** is created as a directory and the file is copied into this directory using the basename from **src_path**
+	- Error condition: the destination directory must exist.
   - **dest_path** exists and is a file
 	- the destination is overwritten with the source file's contents
   - **dest_path** exists and is a directory
