@@ -765,8 +765,43 @@ method ListImages() -> (images: []Image)
 method GetImage(id: string) -> (image: Image)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [MoreResponse](#MoreResponse) structure
+# contextDir tarball path, the 'dockerfiles' path, and 'output' option in the BuildInfo structure.  The 'output'
+# options is the name of the of the resulting build. It will return a [MoreResponse](#MoreResponse) structure
 # that contains the build logs and resulting image ID.
+# #### Example
+# ~~~
+# $ sudo varlink call -m unix:///run/podman/io.podman/io.podman.BuildImage '{"build":{"contextDir":"/tmp/t/context.tar","dockerfiles":["Dockerfile"], "output":"foobar"}}'
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "STEP 1: FROM alpine\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "STEP 2: COMMIT foobar\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "b7b28af77ffec6054d13378df4fdf02725830086c7444d9c278af25312aa39b9\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "b7b28af77ffec6054d13378df4fdf02725830086c7444d9c278af25312aa39b9",
+#    "logs": []
+#  }
+# }
+# ~~~
 method BuildImage(build: BuildInfo) -> (image: MoreResponse)
 
 # This function is not implemented yet.
