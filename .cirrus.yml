@@ -117,6 +117,12 @@ gating_task:
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
 
+    # Verify some aspects of ci/related scripts
+    ci_script:
+        - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/lib.sh.t |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh -C ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/packer test'
+        - '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/cirrus_yaml_test.py |& ${TIMESTAMP}'
+
     # Verify expected bash environment (-o pipefail)
     pipefail_enabledscript: 'if /bin/false | /bin/true; then echo "pipefail fault" && exit 72; fi'
 
