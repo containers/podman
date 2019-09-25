@@ -87,10 +87,10 @@ github.com/containers/image/v5/storage
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/docker/reference
 github.com/containers/image/v5/docker/tarfile
+github.com/containers/image/v5/image
 github.com/containers/image/v5/oci/layout
 github.com/containers/image/v5/tarball
 github.com/containers/image/v5/pkg/sysregistriesv2
-github.com/containers/image/v5/image
 github.com/containers/image/v5/directory/explicitfilepath
 github.com/containers/image/v5/docker/policyconfiguration
 github.com/containers/image/v5/pkg/blobinfocache/none
