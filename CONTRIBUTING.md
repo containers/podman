@@ -347,9 +347,6 @@ tracking system.
 There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
 You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
 
-[owners]: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md#owners
-
-
 ### Bot Interactions
 
 The primary human-interface is through comments in pull-requests.  Some of these are outlined

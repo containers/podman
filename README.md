@@ -33,6 +33,20 @@ This project tests all builds against each supported version of Fedora, the late
 1. Further work on the podman pod command
 1. Further improvements on rootless containers
 
+## Communications
+
+For general questions and discussion, please use the
+IRC `#podman` channel on `irc.freenode.net`.
+
+For discussions around issues/bugs and features, you can use the GitHub
+[issues](https://github.com/containers/libpod/issues)
+and
+[PRs](https://github.com/containers/libpod/pulls)
+tracking system.
+
+There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
+You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
+
 ## Rootless
 Podman can be easily run as a normal user, without requiring a setuid binary.
 When run without root, Podman containers use user namespaces to set root in the container to the user running Podman.
