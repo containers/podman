@@ -270,4 +270,14 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(separateVolumeSession.ExitCode()).To(Equal(0))
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
 	})
+
+	It("podman read-only tmpfs conflict with volume", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "-v", "tmp_volume:/run", ALPINE, "touch", "/run/a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session2 := podmanTest.Podman([]string{"run", "--rm", "-t", "-i", "--read-only", "--tmpfs", "/run", ALPINE, "touch", "/run/a"})
+		session2.WaitWithDefaultTimeout()
+		Expect(session2.ExitCode()).To(Equal(0))
+	})
 })
