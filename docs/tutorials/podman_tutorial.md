@@ -5,7 +5,7 @@ Podman is a utility provided as part of the libpod library.  It can be used to c
 containers. The following tutorial will teach you how to set up Podman and perform some basic
 commands with Podman.
 
-If you are running on a Mac, you should instead follow the [Mac tutorial](https://github.com/containers/libpod/blob/master/mac_client.md)
+If you are running on a Mac, you should instead follow the [Mac tutorial](https://github.com/containers/libpod/blob/master/docs/tutorials/mac_client.md)
 to set up the remote Podman client.
 
 **NOTE**: the code samples are intended to be run as a non-root user, and use `sudo` where
