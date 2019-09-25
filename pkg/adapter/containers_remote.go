@@ -473,7 +473,12 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		fmt.Println(cid)
 		return 0, nil
 	}
-	exitChan, errChan, err := r.attach(ctx, os.Stdin, os.Stdout, cid, true, c.String("detach-keys"))
+	inputStream := os.Stdin
+	// If -i is not set, clear stdin
+	if !c.Bool("interactive") {
+		inputStream = nil
+	}
+	exitChan, errChan, err := r.attach(ctx, inputStream, os.Stdout, cid, true, c.String("detach-keys"))
 	if err != nil {
 		return exitCode, err
 	}
