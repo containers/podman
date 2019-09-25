@@ -36,6 +36,9 @@ var helpMessage = `
 `
 
 func main() {
+	if reexec.Init() {
+		return
+	}
 
 	ctx := context.Background()
 	imageName := ""
@@ -50,10 +53,6 @@ func main() {
 	}
 
 	flag.Parse()
-
-	if reexec.Init() {
-		return
-	}
 
 	switch strings.ToLower(*logLevel) {
 	case "error":

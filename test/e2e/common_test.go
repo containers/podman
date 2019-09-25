@@ -78,11 +78,15 @@ func (a testResultsSorted) Less(i, j int) bool { return a[i].length < a[j].lengt
 
 var testResults []testResult
 
+func TestMain(m *testing.M) {
+	if reexec.Init() {
+		return
+	}
+	os.Exit(m.Run())
+}
+
 // TestLibpod ginkgo master function
 func TestLibpod(t *testing.T) {
-	if reexec.Init() {
-		os.Exit(1)
-	}
 	if os.Getenv("NOCACHE") == "1" {
 		CACHE_IMAGES = []string{}
 		RESTORE_IMAGES = []string{}
