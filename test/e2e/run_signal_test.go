@@ -19,6 +19,7 @@ import (
 )
 
 const sigCatch = "trap \"echo FOO >> /h/fifo \" 8; echo READY >> /h/fifo; while :; do sleep 0.25; done"
+const sigCatch2 = "trap \"echo Received\" SIGFPE; while :; do sleep 0.25; done"
 
 var _ = Describe("Podman run with --sig-proxy", func() {
 	var (
@@ -110,11 +111,11 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 	})
 
 	Specify("signals are not forwarded to container with sig-proxy false", func() {
-		signal := syscall.SIGPOLL
+		signal := syscall.SIGFPE
 		if rootless.IsRootless() {
 			podmanTest.RestoreArtifact(fedoraMinimal)
 		}
-		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch})
+		session, pid := podmanTest.PodmanPID([]string{"run", "--name", "test2", "--sig-proxy=false", fedoraMinimal, "bash", "-c", sigCatch2})
 
 		ok := WaitForContainer(podmanTest)
 		Expect(ok).To(BeTrue())
@@ -132,7 +133,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(137))
-		ok, _ = session.GrepString(fmt.Sprintf("Received %d", signal))
+		ok, _ = session.GrepString("Received")
 		Expect(ok).To(BeFalse())
 	})
 
