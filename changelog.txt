@@ -1,3 +1,49 @@
+- Changelog for v1.6.0-rc2 (2019-09-24)
+  * Add release notes for new-in-RC2 changes
+  * system tests: run test: reenable and fix
+  * play kube: Only support pod kind in k8s yaml
+  * runtime: fix logic to disable SDNotify
+  * add list mount tests
+  * Make netns bind mount shared
+  * Add Kata Containers support
+  * rootless: Rearrange setup of rootless containers
+  * Document the 'system' event types for 'podman events'
+  * Cirrus: Add upload_snap to success dependencies
+  * Cirrus: Add snapcraft credentials
+  * Cirrus: Upload snap only on merges to master
+  * Cirrus: Push snap continuously
+  * exec: set HOME also with exec sessions
+  * execuser: look at the source for /etc/{passwd,group} overrides
+  * We need to convert libpod.conf files in user homedir for cgroupv2
+  * Cirrus: Temporarily disable testing on Ubuntu 19
+  * Cirrus: disable Evil Units in base-images
+  * Cirrus: Add latest ubuntu
+  * Cirrus: More podbot/success improvements
+  * Cirrus: Fix success script
+  * Cirrus: Update podbot credentials
+  * container: make sure $HOME is always set
+  * Move rootless and Mac to Tutorials page
+  * fix trivial type for event logger
+  * Support podman-remote help on windows
+  * Clean destination paths during mount generation
+  * tests: use crun package
+  * Add a note on systemd shortcomings in rootless containers
+  * support non-standard ssh port for remote-client
+  * Add links to the Mac tutorial in the main tutorial
+  * Vendor c/storage 1.13.3
+  * System-test: Temporarily disable 030-run
+  * Fix exit code failure
+  * exec: fix --preserve-fds
+  * networking: use --enable-sandbox if available
+  * Add 'relabel' to --mount options
+  * Bump Gitvalidation epoch
+  * Bump to v1.6.0-dev
+  * Unmounting a container that is already unmounted is OK
+  * Check for rootless before checking cgroups version in spec_test.
+  * Skip spec_test for rootless envs without cgroup v2.
+  * fix unit test to use Expect
+  * Cirrus: Prevent resident pollution
+
 - Changelog for v1.6.0-rc1 (2019-09-16)
   * Fix default to pause in podman cp
   * Update release notes for v1.6.0
