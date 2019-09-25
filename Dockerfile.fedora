@@ -2,8 +2,11 @@ FROM registry.fedoraproject.org/fedora:30
 
 RUN dnf -y install btrfs-progs-devel \
               atomic-registries \
+              autoconf \
+              automake \
               bzip2 \
               device-mapper-devel \
+              file \
               findutils \
               git \
               glib2-devel \
@@ -15,6 +18,7 @@ RUN dnf -y install btrfs-progs-devel \
               libassuan-devel \
               libseccomp-devel \
               libselinux-devel \
+              libtool \
               containers-common \
               runc \
               make \
