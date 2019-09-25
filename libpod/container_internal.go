@@ -622,7 +622,7 @@ func (c *Container) refresh() error {
 		return err
 	}
 
-	return nil
+	return c.refreshCNI()
 }
 
 // Remove conmon attach socket and terminal resize FIFO
