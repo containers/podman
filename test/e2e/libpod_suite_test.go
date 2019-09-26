@@ -29,7 +29,7 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 
 // PodmanNoCache calls the podman command with no configured imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true, false)
+	podmanSession := p.PodmanBase(args, false, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -66,7 +66,7 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 }
 
 // MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string, noEvents bool) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	var debug string
 	if _, ok := os.LookupEnv("DEBUG"); ok {
 		debug = "--log-level=debug --syslog=true "
@@ -84,6 +84,11 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents bool) []stri
 	}
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	if !noCache {
+		cacheOptions := []string{"--storage-opt",
+			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+		podmanOptions = append(cacheOptions, podmanOptions...)
+	}
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions
 }

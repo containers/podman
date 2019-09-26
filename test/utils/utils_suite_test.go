@@ -32,7 +32,7 @@ func FakePodmanTestCreate() *FakePodmanTest {
 	return p
 }
 
-func (p *FakePodmanTest) makeOptions(args []string, noEvents bool) []string {
+func (p *FakePodmanTest) makeOptions(args []string, noEvents, noCache bool) []string {
 	return FakeOutputs[strings.Join(args, " ")]
 }
 
