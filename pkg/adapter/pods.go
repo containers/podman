@@ -469,6 +469,9 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 
 	// check for name collision between pod and container
 	podName := podYAML.ObjectMeta.Name
+	if podName == "" {
+		return nil, errors.Errorf("pod does not have a name")
+	}
 	for _, n := range podYAML.Spec.Containers {
 		if n.Name == podName {
 			fmt.Printf("a container exists with the same name (%s) as the pod in your YAML file; changing pod name to %s_pod\n", podName, podName)
