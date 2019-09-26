@@ -11,6 +11,8 @@
 package keyctl
 
 import (
+	"unsafe"
+
 	"golang.org/x/sys/unix"
 )
 
@@ -76,4 +78,43 @@ func Unlink(parent Keyring, child ID) error {
 func Link(parent Keyring, child ID) error {
 	_, err := unix.KeyctlInt(unix.KEYCTL_LINK, int(child.ID()), int(parent.ID()), 0, 0)
 	return err
+}
+
+// ReadUserKeyring reads user keyring and returns slice of key with id(key_serial_t) representing the IDs of all the keys that are linked to it
+func ReadUserKeyring() ([]*Key, error) {
+	var (
+		b        []byte
+		err      error
+		sizeRead int
+	)
+	krSize := 4
+	size := krSize
+	b = make([]byte, size)
+	sizeRead = size + 1
+	for sizeRead > size {
+		r1, err := unix.KeyctlBuffer(unix.KEYCTL_READ, unix.KEY_SPEC_USER_KEYRING, b, size)
+		if err != nil {
+			return nil, err
+		}
+
+		if sizeRead = int(r1); sizeRead > size {
+			b = make([]byte, sizeRead)
+			size = sizeRead
+			sizeRead = size + 1
+		} else {
+			krSize = sizeRead
+		}
+	}
+	keyIDs := getKeyIDsFromByte(b[:krSize])
+	return keyIDs, err
+}
+
+func getKeyIDsFromByte(byteKeyIDs []byte) []*Key {
+	idSize := 4
+	var keys []*Key
+	for idx := 0; idx+idSize <= len(byteKeyIDs); idx = idx + idSize {
+		tempID := *(*int32)(unsafe.Pointer(&byteKeyIDs[idx]))
+		keys = append(keys, &Key{id: keyID(tempID)})
+	}
+	return keys
 }

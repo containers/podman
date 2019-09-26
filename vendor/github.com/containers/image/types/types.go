@@ -6,8 +6,9 @@ import (
 	"time"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/pkg/compression"
 	"github.com/opencontainers/go-digest"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // ImageTransport is a top-level namespace for ways to to store/load an image.
@@ -90,6 +91,19 @@ type ImageReference interface {
 	DeleteImage(ctx context.Context, sys *SystemContext) error
 }
 
+// LayerCompression indicates if layers must be compressed, decompressed or preserved
+type LayerCompression int
+
+const (
+	// PreserveOriginal indicates the layer must be preserved, ie
+	// no compression or decompression.
+	PreserveOriginal LayerCompression = iota
+	// Decompress indicates the layer must be decompressed
+	Decompress
+	// Compress indicates the layer must be compressed
+	Compress
+)
+
 // BlobInfo collects known information about a blob (layer/config).
 // In some situations, some fields may be unknown, in others they may be mandatory; documenting an “unknown” value here does not override that.
 type BlobInfo struct {
@@ -98,6 +112,14 @@ type BlobInfo struct {
 	URLs        []string
 	Annotations map[string]string
 	MediaType   string
+	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
+	// whether the original layer should be preserved or (de)compressed. The
+	// field defaults to preserve the original layer.
+	CompressionOperation LayerCompression
+	// CompressionAlgorithm is used in Image.UpdateLayerInfos to set the correct
+	// MIME type for compressed layers (e.g., gzip or zstd). This field MUST be
+	// set when `CompressionOperation == Compress`.
+	CompressionAlgorithm *compression.Algorithm
 }
 
 // BICTransportScope encapsulates transport-dependent representation of a “scope” where blobs are or are not present.
@@ -210,19 +232,6 @@ type ImageSource interface {
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
 	LayerInfosForCopy(ctx context.Context) ([]BlobInfo, error)
 }
-
-// LayerCompression indicates if layers must be compressed, decompressed or preserved
-type LayerCompression int
-
-const (
-	// PreserveOriginal indicates the layer must be preserved, ie
-	// no compression or decompression.
-	PreserveOriginal LayerCompression = iota
-	// Decompress indicates the layer must be decompressed
-	Decompress
-	// Compress indicates the layer must be compressed
-	Compress
-)
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
 //
@@ -511,6 +520,11 @@ type SystemContext struct {
 	// === dir.Transport overrides ===
 	// DirForceCompress compresses the image layers if set to true
 	DirForceCompress bool
+
+	// CompressionFormat is the format to use for the compression of the blobs
+	CompressionFormat *compression.Algorithm
+	// CompressionLevel specifies what compression level is used
+	CompressionLevel *int
 }
 
 // ProgressProperties is used to pass information from the copy code to a monitor which

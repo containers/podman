@@ -124,8 +124,6 @@ func (e *fastEncoder) Encode(blk *blockEnc, src []byte) {
 	// nextEmit is where in src the next emitLiteral should start from.
 	nextEmit := s
 	cv := load6432(src, s)
-	// nextHash is the hash at s
-	nextHash := hash6(cv, hashLog)
 
 	// Relative offsets
 	offset1 := int32(blk.recentOffsets[0])
@@ -157,8 +155,8 @@ encodeLoop:
 				panic("offset0 was 0")
 			}
 
-			nextHash2 := hash6(cv>>8, hashLog) & tableMask
-			nextHash = nextHash & tableMask
+			nextHash := hash6(cv, hashLog)
+			nextHash2 := hash6(cv>>8, hashLog)
 			candidate := e.table[nextHash]
 			candidate2 := e.table[nextHash2]
 			repIndex := s - offset1 + 2
@@ -207,8 +205,6 @@ encodeLoop:
 					break encodeLoop
 				}
 				cv = load6432(src, s)
-				//nextHash = hashLen(cv, hashLog, mls)
-				nextHash = hash6(cv, hashLog)
 				continue
 			}
 			coffset0 := s - (candidate.offset - e.cur)
@@ -245,7 +241,6 @@ encodeLoop:
 				break encodeLoop
 			}
 			cv = load6432(src, s)
-			nextHash = hash6(cv, hashLog)
 		}
 		// A 4-byte match has been found. We'll later see if more than 4 bytes.
 		offset2 = offset1
@@ -292,15 +287,16 @@ encodeLoop:
 			break encodeLoop
 		}
 		cv = load6432(src, s)
-		nextHash = hash6(cv, hashLog)
 
 		// Check offset 2
-		if o2 := s - offset2; canRepeat && o2 > 0 && load3232(src, o2) == uint32(cv) {
+		if o2 := s - offset2; canRepeat && load3232(src, o2) == uint32(cv) {
 			// We have at least 4 byte match.
 			// No need to check backwards. We come straight from a match
 			l := 4 + e.matchlen(s+4, o2+4, src)
+
 			// Store this, since we have it.
-			e.table[nextHash&tableMask] = tableEntry{offset: s + e.cur, val: uint32(cv)}
+			nextHash := hash6(cv, hashLog)
+			e.table[nextHash] = tableEntry{offset: s + e.cur, val: uint32(cv)}
 			seq.matchLen = uint32(l) - zstdMinMatch
 			seq.litLen = 0
 			// Since litlen is always 0, this is offset 1.
@@ -319,7 +315,6 @@ encodeLoop:
 			}
 			// Prepare next loop.
 			cv = load6432(src, s)
-			nextHash = hash6(cv, hashLog)
 		}
 	}
 

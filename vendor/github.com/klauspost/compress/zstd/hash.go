@@ -64,7 +64,7 @@ func hash6(u uint64, h uint8) uint32 {
 	return uint32(((u << (64 - 48)) * prime6bytes) >> ((64 - h) & 63))
 }
 
-// hash6 returns the hash of the lowest 7 bytes of u to fit in a hash table with h bits.
+// hash7 returns the hash of the lowest 7 bytes of u to fit in a hash table with h bits.
 // Preferably h should be a constant and should always be <64.
 func hash7(u uint64, h uint8) uint32 {
 	return uint32(((u << (64 - 56)) * prime7bytes) >> ((64 - h) & 63))

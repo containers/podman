@@ -184,9 +184,7 @@ tagLit60Plus:
 	// checks. In the asm version, we code it once instead of once per switch case.
 	ADDQ CX, SI
 	SUBQ $58, SI
-	MOVQ SI, BX
-	SUBQ R11, BX
-	CMPQ BX, R12
+	CMPQ SI, R13
 	JA   errCorrupt
 
 	// case x == 60:
@@ -232,9 +230,7 @@ tagCopy4:
 	ADDQ $5, SI
 
 	// if uint(s) > uint(len(src)) { etc }
-	MOVQ SI, BX
-	SUBQ R11, BX
-	CMPQ BX, R12
+	CMPQ SI, R13
 	JA   errCorrupt
 
 	// length = 1 + int(src[s-5])>>2
@@ -251,9 +247,7 @@ tagCopy2:
 	ADDQ $3, SI
 
 	// if uint(s) > uint(len(src)) { etc }
-	MOVQ SI, BX
-	SUBQ R11, BX
-	CMPQ BX, R12
+	CMPQ SI, R13
 	JA   errCorrupt
 
 	// length = 1 + int(src[s-3])>>2
@@ -277,9 +271,7 @@ tagCopy:
 	ADDQ $2, SI
 
 	// if uint(s) > uint(len(src)) { etc }
-	MOVQ SI, BX
-	SUBQ R11, BX
-	CMPQ BX, R12
+	CMPQ SI, R13
 	JA   errCorrupt
 
 	// offset = int(uint32(src[s-2])&0xe0<<3 | uint32(src[s-1]))

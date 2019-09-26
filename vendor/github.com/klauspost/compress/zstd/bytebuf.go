@@ -116,6 +116,9 @@ func (r *readerWrapper) readByte() (byte, error) {
 }
 
 func (r *readerWrapper) skipN(n int) error {
-	_, err := io.CopyN(ioutil.Discard, r.r, int64(n))
+	n2, err := io.CopyN(ioutil.Discard, r.r, int64(n))
+	if n2 != int64(n) {
+		err = io.ErrUnexpectedEOF
+	}
 	return err
 }
