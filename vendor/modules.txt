@@ -66,7 +66,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/umask
-# github.com/containers/image v3.0.2+incompatible
+# github.com/containers/image v3.0.2+incompatible => github.com/containers/image v1.5.2-0.20190926174930-b8ce1a20f13f
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive
@@ -89,8 +89,9 @@ github.com/containers/image/directory/explicitfilepath
 github.com/containers/image/docker/policyconfiguration
 github.com/containers/image/pkg/blobinfocache/none
 github.com/containers/image/pkg/tlsclientconfig
+github.com/containers/image/pkg/compression
 github.com/containers/image/pkg/strslice
-github.com/containers/image/pkg/keyctl
+github.com/containers/image/internal/pkg/keyctl
 github.com/containers/image/version
 github.com/containers/image/docker/daemon
 github.com/containers/image/openshift
@@ -98,7 +99,6 @@ github.com/containers/image/ostree
 github.com/containers/image/internal/tmpdir
 github.com/containers/image/oci/internal
 github.com/containers/image/pkg/blobinfocache
-github.com/containers/image/pkg/compression
 github.com/containers/image/pkg/blobinfocache/boltdb
 github.com/containers/image/pkg/blobinfocache/memory
 github.com/containers/image/pkg/blobinfocache/internal/prioritize
@@ -279,7 +279,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.7
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.7.2
+# github.com/klauspost/compress v1.8.1
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/huff0
@@ -352,7 +352,7 @@ github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 # github.com/opencontainers/go-digest v1.0.0-rc1
 github.com/opencontainers/go-digest
-# github.com/opencontainers/image-spec v1.0.1
+# github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go/v1
 github.com/opencontainers/image-spec/specs-go
 # github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
@@ -395,7 +395,7 @@ github.com/pkg/errors
 github.com/pkg/profile
 # github.com/pmezard/go-difflib v1.0.0
 github.com/pmezard/go-difflib/difflib
-# github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7
+# github.com/pquerna/ffjson v0.0.0-20190813045741-dac163c6c0a9
 github.com/pquerna/ffjson/fflib/v1
 github.com/pquerna/ffjson/inception
 github.com/pquerna/ffjson/shared
@@ -508,7 +508,7 @@ golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+# golang.org/x/sys v0.0.0-20190902133755-9109b7679e13
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry

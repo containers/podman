@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -207,12 +208,17 @@ func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context) (types.Imag
 	layers := make([]imgspecv1.Descriptor, len(m.m.LayersDescriptors))
 	for idx := range layers {
 		layers[idx] = oci1DescriptorFromSchema2Descriptor(m.m.LayersDescriptors[idx])
-		if m.m.LayersDescriptors[idx].MediaType == manifest.DockerV2Schema2ForeignLayerMediaType {
+		switch m.m.LayersDescriptors[idx].MediaType {
+		case manifest.DockerV2Schema2ForeignLayerMediaType:
 			layers[idx].MediaType = imgspecv1.MediaTypeImageLayerNonDistributable
-		} else {
-			// we assume layers are gzip'ed because docker v2s2 only deals with
-			// gzip'ed layers. However, OCI has non-gzip'ed layers as well.
+		case manifest.DockerV2Schema2ForeignLayerMediaTypeGzip:
+			layers[idx].MediaType = imgspecv1.MediaTypeImageLayerNonDistributableGzip
+		case manifest.DockerV2SchemaLayerMediaTypeUncompressed:
+			layers[idx].MediaType = imgspecv1.MediaTypeImageLayer
+		case manifest.DockerV2Schema2LayerMediaType:
 			layers[idx].MediaType = imgspecv1.MediaTypeImageLayerGzip
+		default:
+			return nil, fmt.Errorf("Unknown media type during manifest conversion: %q", m.m.LayersDescriptors[idx].MediaType)
 		}
 	}
 

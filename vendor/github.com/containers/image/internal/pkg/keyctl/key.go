@@ -62,3 +62,12 @@ func (k *Key) Unlink() error {
 	_, err := unix.KeyctlInt(unix.KEYCTL_UNLINK, int(k.id), int(k.ring), 0, 0)
 	return err
 }
+
+// Describe returns a string describing the attributes of a specified key
+func (k *Key) Describe() (string, error) {
+	keyAttr, err := unix.KeyctlString(unix.KEYCTL_DESCRIBE, int(k.id))
+	if err != nil {
+		return "", err
+	}
+	return keyAttr, nil
+}

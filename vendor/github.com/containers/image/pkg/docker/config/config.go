@@ -142,9 +142,17 @@ func RemoveAuthentication(sys *types.SystemContext, registry string) error {
 	})
 }
 
-// RemoveAllAuthentication deletes all the credentials stored in auth.json
+// RemoveAllAuthentication deletes all the credentials stored in auth.json and kernel keyring
 func RemoveAllAuthentication(sys *types.SystemContext) error {
 	return modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+		if enableKeyring {
+			err := removeAllAuthFromKernelKeyring()
+			if err == nil {
+				logrus.Debugf("removing all credentials from kernel keyring")
+				return false, nil
+			}
+			logrus.Debugf("error removing credentials from kernel keyring")
+		}
 		auths.CredHelpers = make(map[string]string)
 		auths.AuthConfigs = make(map[string]dockerAuthConfig)
 		return true, nil
