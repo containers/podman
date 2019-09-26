@@ -189,7 +189,7 @@ clean: ## Clean artifacts
 	rm -rf \
 		.gopathok \
 		_output \
-		release.txt
+		release.txt \
 		$(wildcard podman-remote*.zip) \
 		$(wildcard podman*.tar.gz) \
 		bin \
