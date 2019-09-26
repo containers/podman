@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/tools/remotecommand"
@@ -26,7 +27,13 @@ const (
 	TerminalResize SocketDest = iota
 	// Quit and detach
 	Quit SocketDest = iota
+	// Quit from the client
+	HangUpFromClient SocketDest = iota
 )
+
+// ClientHangup signifies that the client wants to drop its
+// connection from the server
+var ClientHangup = errors.New("client hangup")
 
 // IntToSocketDest returns a socketdest based on integer input
 func IntToSocketDest(i int) SocketDest {
@@ -41,6 +48,8 @@ func IntToSocketDest(i int) SocketDest {
 		return TerminalResize
 	case Quit.Int():
 		return Quit
+	case HangUpFromClient.Int():
+		return HangUpFromClient
 	default:
 		return ToStderr
 	}
@@ -65,7 +74,7 @@ func NewVirtWriteCloser(w *bufio.Writer, dest SocketDest) VirtWriteCloser {
 
 // Close is a required method for a writecloser
 func (v VirtWriteCloser) Close() error {
-	return nil
+	return v.writer.Flush()
 }
 
 // Write prepends a header to the input message.  The header is
@@ -96,7 +105,6 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 	if r == nil {
 		return errors.Errorf("Reader must not be nil")
 	}
-
 	for {
 		n, err := io.ReadFull(r, headerBytes)
 		if err != nil {
@@ -107,7 +115,6 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 		}
 
 		messageSize = int64(binary.BigEndian.Uint32(headerBytes[4:8]))
-
 		switch IntToSocketDest(int(headerBytes[0])) {
 		case ToStdout:
 			if output != nil {
@@ -161,7 +168,16 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 				execEcChan <- int(ecInt)
 			}
 			return nil
-
+		case HangUpFromClient:
+			// This sleep allows the pipes to flush themselves before tearing everything down.
+			// It makes me sick to do it but after a full day I cannot put my finger on the race
+			// that occurs when closing things up.  It would require a significant rewrite of code
+			// to make the pipes close down properly.  Given that we are currently discussing a
+			// rewrite of all things remote, this hardly seems worth resolving.
+			//
+			// reproducer: echo hello | (podman-remote run -i alpine cat)
+			time.Sleep(1 * time.Second)
+			return ClientHangup
 		default:
 			// Something really went wrong
 			return errors.New("unknown multiplex destination")

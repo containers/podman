@@ -45,7 +45,6 @@ func runCmd(c *cliconfig.RunValues) error {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
 		defer span.Finish()
 	}
-
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
