@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/image/pkg/keyctl"
+	"github.com/containers/image/internal/pkg/keyctl"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
+
+const keyDescribePrefix = "container-registry-login:"
 
 func getAuthFromKernelKeyring(registry string) (string, string, error) {
 	userkeyring, err := keyctl.UserKeyring()
@@ -39,6 +42,39 @@ func deleteAuthFromKernelKeyring(registry string) error {
 		return err
 	}
 	return key.Unlink()
+}
+
+func removeAllAuthFromKernelKeyring() error {
+	keys, err := keyctl.ReadUserKeyring()
+	if err != nil {
+		return err
+	}
+
+	userkeyring, err := keyctl.UserKeyring()
+	if err != nil {
+		return err
+	}
+
+	for _, k := range keys {
+		keyAttr, err := k.Describe()
+		if err != nil {
+			return err
+		}
+		// split string "type;uid;gid;perm;description"
+		keyAttrs := strings.SplitN(keyAttr, ";", 5)
+		if len(keyAttrs) < 5 {
+			return errors.Errorf("Key attributes of %d are not avaliable", k.ID())
+		}
+		keyDescribe := keyAttrs[4]
+		if strings.HasPrefix(keyDescribe, keyDescribePrefix) {
+			err := keyctl.Unlink(userkeyring, k)
+			if err != nil {
+				return errors.Wrapf(err, "error unlinking key %d", k.ID())
+			}
+			logrus.Debugf("unlinked key %d:%s", k.ID(), keyAttr)
+		}
+	}
+	return nil
 }
 
 func setAuthToKernelKeyring(registry, username, password string) error {
@@ -75,5 +111,5 @@ func setAuthToKernelKeyring(registry, username, password string) error {
 }
 
 func genDescription(registry string) string {
-	return fmt.Sprintf("container-registry-login:%s", registry)
+	return fmt.Sprintf("%s%s", keyDescribePrefix, registry)
 }

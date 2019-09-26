@@ -14,3 +14,7 @@ func deleteAuthFromKernelKeyring(registry string) error {
 func setAuthToKernelKeyring(registry, username, password string) error {
 	return ErrNotSupported
 }
+
+func removeAllAuthFromKernelKeyring() error {
+	return ErrNotSupported
+}
