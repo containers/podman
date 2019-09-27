@@ -27,7 +27,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // LocalRuntime describes a typical libpod runtime
@@ -453,4 +453,9 @@ func (r *LocalRuntime) GetVersion() (define.Version, error) {
 // RemoteEndpoint resolve interface requirement
 func (r *LocalRuntime) RemoteEndpoint() (*Endpoint, error) {
 	return nil, errors.New("RemoteEndpoint() not implemented for local connection")
+}
+
+// GetLocalRuntime returns local liblod.Runtime
+func (r *LocalRuntime) GetLocalRuntime() *libpod.Runtime {
+	return r.Runtime
 }

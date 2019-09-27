@@ -32,7 +32,8 @@ var (
 		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3
-  podman umount --all`,
+  podman umount --all
+  podman umount --image imageID`,
 	}
 )
 
@@ -44,17 +45,30 @@ func init() {
 	flags.BoolVarP(&umountCommand.All, "all", "a", false, "Umount all of the currently mounted containers")
 	flags.BoolVarP(&umountCommand.Force, "force", "f", false, "Force the complete umount all of the currently mounted containers")
 	flags.BoolVarP(&umountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.BoolVarP(&umountCommand.Image, "image", "i", false, "umount image")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func umountCmd(c *cliconfig.UmountValues) error {
+
+	var (
+		ok       []string
+		failures map[string]error
+		err      error
+	)
+
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime")
 	}
 	defer runtime.DeferredShutdown(false)
 
-	ok, failures, err := runtime.UmountRootFilesystems(getContext(), c)
+	if c.Image {
+		ok, failures, err = runtime.UmountImage(c)
+	} else {
+		ok, failures, err = runtime.UmountRootFilesystems(getContext(), c)
+	}
+
 	if err != nil {
 		return err
 	}

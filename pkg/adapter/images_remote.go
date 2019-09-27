@@ -54,3 +54,18 @@ func (r *LocalRuntime) Tree(c *cliconfig.TreeValues) (*image.InfoImage, map[stri
 
 	return imageInfo, layerInfoMap, img, nil
 }
+
+// UmountImage removes container(s) based on CLI inputs.
+func (r *LocalRuntime) UmountImage(cli *cliconfig.UmountValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	_, err := iopodman.UnmountImage().Call(r.Conn, cli.InputArgs[0], cli.Force)
+	if err != nil {
+		return ok, failures, err
+	}
+	ok = append(ok, cli.InputArgs[1])
+	return ok, failures, nil
+}

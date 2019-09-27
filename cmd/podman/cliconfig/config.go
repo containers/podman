@@ -262,6 +262,7 @@ type MountValues struct {
 	Format  string
 	NoTrunc bool
 	Latest  bool
+	Image   bool
 }
 
 type NetworkCreateValues struct {
@@ -569,6 +570,7 @@ type UmountValues struct {
 	All    bool
 	Force  bool
 	Latest bool
+	Image  bool
 }
 
 type UnpauseValues struct {

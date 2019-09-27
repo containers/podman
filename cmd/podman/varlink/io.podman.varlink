@@ -1219,6 +1219,8 @@ method ImagesPrune(all: bool) -> (pruned: []string)
 # This function is not implemented yet.
 # method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
 
+method  UnmountImage(name: string, force: bool) -> (notimplemented: NotImplemented)
+
 # GenerateKube generates a Kubernetes v1 Pod description of a Podman container or pod
 # and its containers. The description is in YAML.  See also [ReplayKube](ReplayKube).
 method GenerateKube(name: string, service: bool) -> (pod: KubePodService)

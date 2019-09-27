@@ -148,6 +148,7 @@ func (ir *Runtime) UnmountImage(idOrName string, force bool) (bool, error) {
 // to only deal with local images already in the store (or
 // its aliases)
 func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
+	logrus.Info("ImageFromLocal: ", ir)
 	image := Image{
 		InputName:    name,
 		imageruntime: ir,
@@ -247,9 +248,12 @@ func (i *Image) reloadImage() error {
 
 // stringSha256 strips sha256 from user input
 func stripSha256(name string) string {
+	logrus.Info("stripSha256 : ", name)
 	if strings.HasPrefix(name, "sha256:") && len(name) > 7 {
+		logrus.Info("stripSha256 : returning inside.. ", name)
 		return name[7:]
 	}
+	logrus.Info("stripSha256 : returning outside.. ", name)
 	return name
 }
 
@@ -435,11 +439,14 @@ func (i *Image) GetManifest() error {
 // If no matching image can be found, an error is returned
 func (ir *Runtime) getImage(image string) (*Image, error) {
 	var img *storage.Image
+	logrus.Info("getImage...")
+	logrus.Info(ir)
 	ref, err := is.Transport.ParseStoreReference(ir.store, image)
 	if err == nil {
 		img, err = is.Transport.GetStoreImage(ir.store, ref)
 	}
 	if err != nil {
+		logrus.Info("not nil ", ir.store, image)
 		img2, err2 := ir.store.Image(image)
 		if err2 != nil {
 			if ref == nil {

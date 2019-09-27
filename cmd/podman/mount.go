@@ -4,10 +4,12 @@ import (
 	js "encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	of "github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -49,6 +51,7 @@ func init() {
 	flags.StringVar(&mountCommand.Format, "format", "", "Change the output format to Go template")
 	flags.BoolVarP(&mountCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&mountCommand.NoTrunc, "notruncate", false, "Do not truncate output")
+	flags.BoolVar(&mountCommand.Image, "image", false, "mount image to folder")
 
 	markFlagHiddenForRemoteClient("latest", flags)
 }
@@ -66,7 +69,17 @@ func mountCmd(c *cliconfig.MountValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.DeferredShutdown(false)
-
+	if c.Image {
+		if len(c.InputArgs) > 1 {
+			fmt.Println("only one image can be mounted at a time")
+		}
+		path, err := mountImage(runtime, c.InputArgs[0])
+		if err != nil {
+			return err
+		}
+		fmt.Println(path)
+		return nil
+	}
 	if os.Geteuid() != 0 {
 		rtc, err := runtime.GetConfig()
 		if err != nil {
@@ -166,4 +179,19 @@ func mountCmd(c *cliconfig.MountValues) error {
 		}
 	}
 	return nil
+}
+
+func mountImage(runtime *libpod.Runtime, img string) (string, error) {
+	image, err := runtime.ImageRuntime().NewFromLocal(img)
+	if err != nil {
+		return "", fmt.Errorf("no image found : %s", img)
+	}
+
+	mountPoint, err := runtime.ImageRuntime().MountImage(image.ID())
+	if err != nil {
+		return "", fmt.Errorf("no image found : %s", img)
+	}
+	mountPoint, err = filepath.EvalSymlinks(mountPoint)
+
+	return mountPoint, nil
 }
