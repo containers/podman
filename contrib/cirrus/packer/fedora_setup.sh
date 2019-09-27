@@ -53,6 +53,7 @@ ooe.sh sudo dnf install -y \
     jq \
     libassuan-devel \
     libcap-devel \
+    libmsi1 \
     libnet \
     libnet-devel \
     libnl3-devel \
@@ -62,9 +63,11 @@ ooe.sh sudo dnf install -y \
     libvarlink-util \
     lsof \
     make \
+    msitools \
     nmap-ncat \
     ostree \
     ostree-devel \
+    pandoc \
     podman \
     procps-ng \
     protobuf \

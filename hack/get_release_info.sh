@@ -33,7 +33,7 @@ case "$1" in
         OUTPUT="${GOARCH:-$(go env GOARCH 2> /dev/null)}"
         ;;
     BASENAME*)
-        OUTPUT="${CIRRUS_REPO_NAME:-$(basename $(git rev-parse --show-toplevel))}"
+        OUTPUT="podman"
         ;;
     REMOTENAME*)
         OUTPUT="$($0 BASENAME)-remote"
