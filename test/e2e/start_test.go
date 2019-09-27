@@ -6,6 +6,7 @@ import (
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman start", func() {
@@ -107,32 +108,30 @@ var _ = Describe("Podman start", func() {
 
 		start := podmanTest.Podman([]string{"start", "-l"})
 		start.WaitWithDefaultTimeout()
-		Expect(start.ExitCode()).To(Not(Equal(0)))
+		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
 
-		numContainers := podmanTest.NumberOfContainers()
-		Expect(numContainers).To(BeZero())
+		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout).Should(BeZero())
 	})
 
 	It("podman failed to start without --rm should NOT delete the container", func() {
 		session := podmanTest.Podman([]string{"create", "-it", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		start := podmanTest.Podman([]string{"start", "-l"})
 		start.WaitWithDefaultTimeout()
-		Expect(start.ExitCode()).To(Not(Equal(0)))
+		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
 
-		numContainers := podmanTest.NumberOfContainers()
-		Expect(numContainers).To(Equal(1))
+		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout).Should(Equal(1))
 	})
 
 	It("podman start --sig-proxy should not work without --attach", func() {
 		session := podmanTest.Podman([]string{"create", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session).Should(Exit(0))
 
 		session = podmanTest.Podman([]string{"start", "-l", "--sig-proxy"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session).Should(Exit(125))
 	})
 })
