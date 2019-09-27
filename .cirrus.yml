@@ -86,7 +86,7 @@ testing_task:
 
     env:
         ADD_SECOND_PARTITION: true
-        TEST_REMOTE_CLIENT: true
+        TEST_REMOTE_CLIENT: false
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
