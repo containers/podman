@@ -107,15 +107,6 @@ func before(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	if err := setupRootless(cmd, args); err != nil {
-		return err
-	}
-
-	// check that global opts input is valid
-	if err := checkInput(); err != nil {
-		return err
-	}
-
 	//	Set log level; if not log-level is provided, default to error
 	logLevel := MainGlobalOpts.LogLevel
 	if logLevel == "" {
@@ -127,6 +118,15 @@ func before(cmd *cobra.Command, args []string) error {
 	}
 	logrus.SetLevel(level)
 	if err := setSyslog(); err != nil {
+		return err
+	}
+
+	if err := setupRootless(cmd, args); err != nil {
+		return err
+	}
+
+	// check that global opts input is valid
+	if err := checkInput(); err != nil {
 		return err
 	}
 
