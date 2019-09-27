@@ -88,7 +88,8 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		pod := session.OutputToString()
 
-		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx - debug})
+		podmanTest.WaitContainerReady(webserver.OutputToStringArray()[0], "worker cycle", 30, 1)
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver.ExitCode()).To(Equal(0))
 
@@ -103,7 +104,8 @@ var _ = Describe("Podman pod create", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		pod := session.OutputToString()
 
-		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx})
+		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", nginx - debug})
+		podmanTest.WaitContainerReady(webserver.OutputToStringArray()[0], "worker cycle", 30, 1)
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver.ExitCode()).To(Equal(0))
 
