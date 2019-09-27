@@ -149,6 +149,8 @@ func main() {
 	//cpuProfile := false
 
 	if reexec.Init() {
+		// We were invoked with a different argv[0] indicating that we
+		// had a specific job to do as a subprocess, and it's done.
 		return
 	}
 	// Hard code TMPDIR functions to use /var/tmp, if user did not override

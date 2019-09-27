@@ -29,7 +29,6 @@ import (
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -85,9 +84,6 @@ func NewImageRuntimeFromStore(store storage.Store) *Runtime {
 // NewImageRuntimeFromOptions creates an Image Runtime including the store given
 // store options
 func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) {
-	if reexec.Init() {
-		return nil, errors.Errorf("unable to reexec")
-	}
 	store, err := setStore(options)
 	if err != nil {
 		return nil, err

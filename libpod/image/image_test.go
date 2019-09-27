@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 )
@@ -68,6 +69,13 @@ func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
 	l = append(l, busybox, busyboxGlibc)
 	return l, nil
 
+}
+
+func TestMain(m *testing.M) {
+	if reexec.Init() {
+		return
+	}
+	os.Exit(m.Run())
 }
 
 // TestImage_NewFromLocal tests finding the image locally by various names,
