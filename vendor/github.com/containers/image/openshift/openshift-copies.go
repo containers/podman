@@ -205,22 +205,18 @@ func (config *directClientConfig) ClientConfig() (*restConfig, error) {
 	// only try to read the auth information if we are secure
 	if isConfigTransportTLS(*clientConfig) {
 		var err error
-
-		// mergo is a first write wins for map value and a last writing wins for interface values
-		// NOTE: This behavior changed with https://github.com/imdario/mergo/commit/d304790b2ed594794496464fadd89d2bb266600a.
-		//       Our mergo.Merge version is older than this change.
 		// REMOVED: Support for interactive fallback.
 		userAuthPartialConfig, err := getUserIdentificationPartialConfig(configAuthInfo)
 		if err != nil {
 			return nil, err
 		}
-		mergo.Merge(clientConfig, userAuthPartialConfig)
+		mergo.MergeWithOverwrite(clientConfig, userAuthPartialConfig)
 
 		serverAuthPartialConfig, err := getServerIdentificationPartialConfig(configAuthInfo, configClusterInfo)
 		if err != nil {
 			return nil, err
 		}
-		mergo.Merge(clientConfig, serverAuthPartialConfig)
+		mergo.MergeWithOverwrite(clientConfig, serverAuthPartialConfig)
 	}
 
 	return clientConfig, nil
@@ -241,7 +237,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdAuthInfo, conf
 	configClientConfig.CAFile = configClusterInfo.CertificateAuthority
 	configClientConfig.CAData = configClusterInfo.CertificateAuthorityData
 	configClientConfig.Insecure = configClusterInfo.InsecureSkipTLSVerify
-	mergo.Merge(mergedConfig, configClientConfig)
+	mergo.MergeWithOverwrite(mergedConfig, configClientConfig)
 
 	return mergedConfig, nil
 }
@@ -324,7 +320,7 @@ func (config *directClientConfig) getContext() clientcmdContext {
 
 	var mergedContext clientcmdContext
 	if configContext, exists := contexts[contextName]; exists {
-		mergo.Merge(&mergedContext, configContext)
+		mergo.MergeWithOverwrite(&mergedContext, configContext)
 	}
 	// REMOVED: overrides support
 
@@ -427,7 +423,7 @@ func (config *directClientConfig) getAuthInfo() clientcmdAuthInfo {
 
 	var mergedAuthInfo clientcmdAuthInfo
 	if configAuthInfo, exists := authInfos[authInfoName]; exists {
-		mergo.Merge(&mergedAuthInfo, configAuthInfo)
+		mergo.MergeWithOverwrite(&mergedAuthInfo, configAuthInfo)
 	}
 	// REMOVED: overrides support
 
@@ -440,10 +436,10 @@ func (config *directClientConfig) getCluster() clientcmdCluster {
 	clusterInfoName := config.getClusterName()
 
 	var mergedClusterInfo clientcmdCluster
-	mergo.Merge(&mergedClusterInfo, defaultCluster)
-	mergo.Merge(&mergedClusterInfo, envVarCluster)
+	mergo.MergeWithOverwrite(&mergedClusterInfo, defaultCluster)
+	mergo.MergeWithOverwrite(&mergedClusterInfo, envVarCluster)
 	if configClusterInfo, exists := clusterInfos[clusterInfoName]; exists {
-		mergo.Merge(&mergedClusterInfo, configClusterInfo)
+		mergo.MergeWithOverwrite(&mergedClusterInfo, configClusterInfo)
 	}
 	// REMOVED: overrides support
 
@@ -577,7 +573,7 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 	// first merge all of our maps
 	mapConfig := clientcmdNewConfig()
 	for _, kubeconfig := range kubeconfigs {
-		mergo.Merge(mapConfig, kubeconfig)
+		mergo.MergeWithOverwrite(mapConfig, kubeconfig)
 	}
 
 	// merge all of the struct values in the reverse order so that priority is given correctly
@@ -585,14 +581,14 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 	nonMapConfig := clientcmdNewConfig()
 	for i := len(kubeconfigs) - 1; i >= 0; i-- {
 		kubeconfig := kubeconfigs[i]
-		mergo.Merge(nonMapConfig, kubeconfig)
+		mergo.MergeWithOverwrite(nonMapConfig, kubeconfig)
 	}
 
 	// since values are overwritten, but maps values are not, we can merge the non-map config on top of the map config and
 	// get the values we expect.
 	config := clientcmdNewConfig()
-	mergo.Merge(config, mapConfig)
-	mergo.Merge(config, nonMapConfig)
+	mergo.MergeWithOverwrite(config, mapConfig)
+	mergo.MergeWithOverwrite(config, nonMapConfig)
 
 	// REMOVED: Possibility to skip this.
 	if err := resolveLocalPaths(config); err != nil {

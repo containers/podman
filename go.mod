@@ -83,7 +83,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.4.0 // indirect
-	github.com/stretchr/testify v1.3.0
+	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber/jaeger-client-go v2.16.0+incompatible
 	github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 // indirect
@@ -113,4 +113,4 @@ require (
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
 
-replace github.com/containers/image => github.com/containers/image v1.5.2-0.20190926181947-ddb11c057155
+replace github.com/containers/image => github.com/mtrmac/image v0.0.0-20190927194019-7dbdc9548c4a

@@ -533,6 +533,8 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge, 
 	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusUnauthorized:
+		err := client.HandleErrorResponse(res)
+		logrus.Debugf("Server response when trying to obtain an access token: \n%q", err.Error())
 		return nil, ErrUnauthorizedForCredentials
 	case http.StatusOK:
 		break
