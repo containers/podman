@@ -113,4 +113,4 @@ require (
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
 
-replace github.com/containers/image => github.com/lsm5/containers-image v1.5.2-0.20190928190048-7e1a69c76961
+replace github.com/containers/image => github.com/lsm5/containers-image v1.5.2-0.20190928192321-cde02de02ee9
