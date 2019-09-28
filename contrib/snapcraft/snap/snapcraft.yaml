@@ -1,5 +1,5 @@
 name: podman # you probably want to 'snapcraft register <name>'
-version: '0.11.1.1' # just for humans, typically '1.2+git' or '1.3.2'
+version: git
 summary: Manage pods, containers and container images
 description: |
   `podman` is a tool for managing Pods, Containers, and Container Images
@@ -14,7 +14,7 @@ base: core18
 parts:
   podman:
     plugin: go
-    source: https://github.com/containers/libpod/archive/v0.11.1.1.tar.gz
+    source: ../..
     go-importpath: github.com/containers/libpod
     build-packages:
      # https://github.com/containers/libpod/blob/master/install.md#build-and-run-dependencies
