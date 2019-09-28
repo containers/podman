@@ -416,7 +416,7 @@ func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers 
 
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
-	podmanOptions := p.MakeOptions(args, false)
+	podmanOptions := p.MakeOptions(args, false, false)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)

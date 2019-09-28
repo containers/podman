@@ -36,7 +36,7 @@ func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration 
 
 // PodmanNoCache calls podman with out adding the imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true, false)
+	podmanSession := p.PodmanBase(args, false, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -142,7 +142,7 @@ func (p *PodmanTestIntegration) StopVarlink() {
 }
 
 //MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string, noEvents bool) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	return args
 }
 

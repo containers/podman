@@ -12,6 +12,7 @@
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
+/test/goecho/goecho
 /build/
 .nfs*
 .ropeproject
