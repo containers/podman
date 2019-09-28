@@ -66,7 +66,7 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/umask
-# github.com/containers/image v3.0.2+incompatible => github.com/mtrmac/image v0.0.0-20190927194019-7dbdc9548c4a
+# github.com/containers/image v3.0.2+incompatible => github.com/lsm5/containers-image v1.5.2-0.20190928190048-7e1a69c76961
 github.com/containers/image/directory
 github.com/containers/image/docker
 github.com/containers/image/docker/archive
