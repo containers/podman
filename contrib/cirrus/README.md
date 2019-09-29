@@ -124,35 +124,46 @@ you'll find the new image names displayed at the end of the
 
 ```
 ...cut...
-==> Builds finished. The artifacts of successful builds are:
---> ubuntu-18: A disk image was created: ubuntu-18-libpod-5699523102900224
---> ubuntu-18:
---> fedora-29: A disk image was created: fedora-29-libpod-5699523102900224
---> fedora-29:
---> fedora-28: A disk image was created: fedora-28-libpod-5699523102900224
+
+[+0747s] ==> Builds finished. The artifacts of successful builds are:
+[+0747s] --> ubuntu-18: A disk image was created: ubuntu-18-libpod-5664838702858240
+[+0747s] --> fedora-29: A disk image was created: fedora-29-libpod-5664838702858240
+[+0747s] --> fedora-30: A disk image was created: fedora-30-libpod-5664838702858240
+[+0747s] --> ubuntu-19: A disk image was created: ubuntu-19-libpod-5664838702858240
 ```
 
-Now edit `.cirrus.yml`, updating the `*_IMAGE_NAME` lines to reflect the
-images from above:
+Notice the suffix on all the image names comes from the env. var. set in
+*.cirrus.yml*: `BUILT_IMAGE_SUFFIX: "-${CIRRUS_REPO_NAME}-${CIRRUS_BUILD_ID}"`.
+Edit `.cirrus.yml`, in the top-level `env` section, update the suffix variable
+used at runtime to launch VMs for testing:
 
 
 ```yaml
 env:
     ...cut...
     ####
-    #### Cache-image names to test with
+    #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-5699523102900224"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-5699523102900224"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-5699523102900224"
+    _BUILT_IMAGE_SUFFIX: "libpod-5664838702858240"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
     ...cut...
 ```
 
-***NOTE:*** If re-using the same PR with new images in `.cirrus.yml`,
-take care to also *update the PR description* to remove
-the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
-`--force` pushing would needlessly cause Cirrus-CI to build
-and test images again.
+***NOTES:***
+* If re-using the same PR with new images in `.cirrus.yml`,
+  take care to also *update the PR description* to remove
+  the magic ``***CIRRUS: TEST IMAGES***`` string.  Keeping it and
+  `--force` pushing would needlessly cause Cirrus-CI to build
+  and test images again.
+* In the future, if you need to review the log from the build that produced
+  the referenced image:
+
+  * Note the Build ID from the image name (for example `5664838702858240`).
+  * Go to that build in the Cirrus-CI WebUI, using the build ID in the URL.
+    (For example `https://cirrus-ci.com/build/5664838702858240`.
+  * Choose the *test_build_cache_images* task.
+  * Open the *build_vm_images* script section.
 
 ### `release` Task
 
