@@ -18,8 +18,16 @@ trap "sudo rm -rf $GOPATH" EXIT
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish
 
+# Stop disruption upon boot ASAP after booting
+echo "Disabling all packaging activity on boot"
+# Don't let sed process sed's temporary files
+_FILEPATHS=$(sudo ls -1 /etc/apt/apt.conf.d)
+for filename in $_FILEPATHS; do \
+    echo "Checking/Patching $filename"
+    sudo sed -i -r -e "s/$PERIODIC_APT_RE/"'\10"\;/' "/etc/apt/apt.conf.d/$filename"; done
+
 echo "Updating/configuring package repositories."
-$LILTO $SUDOAPTGET update
+$BIGTO $SUDOAPTGET update
 
 echo "Upgrading all packages"
 $BIGTO $SUDOAPTGET upgrade
@@ -41,6 +49,7 @@ $BIGTO $SUDOAPTGET install \
     aufs-tools \
     autoconf \
     automake \
+    bash-completion \
     bats \
     bison \
     btrfs-tools \

@@ -56,6 +56,11 @@ then
     item_test "On ubuntu /usr/bin/runc is /usr/lib/cri-o-runc/sbin/runc" "$SAMESAME" -eq "0" || let "NFAILS+=1"
 fi
 
+if [[ "$OS_RELEASE_ID" == "ubuntu" ]]
+then
+    item_test "On ubuntu, no periodic apt crap is enabled" -z "$(egrep $PERIODIC_APT_RE /etc/apt/apt.conf.d/*)"
+fi
+
 echo "Checking items specific to ${PACKER_BUILDER_NAME}${BUILT_IMAGE_SUFFIX}"
 case "$PACKER_BUILDER_NAME" in
     xfedora*)

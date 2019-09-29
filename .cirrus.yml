@@ -30,7 +30,7 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5664838702858240"
+    _BUILT_IMAGE_SUFFIX: "libpod-5816955207942144"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
     SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
@@ -637,9 +637,7 @@ verify_test_built_images_task:
     integration_test_script: >-
         [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
             $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
-    build_release_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}
+    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
     system_test_script: >-
         [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
             $SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}
