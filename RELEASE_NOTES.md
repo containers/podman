@@ -43,13 +43,20 @@
 - Fixed a bug where removing an unmounted container that was unmounted might sometimes not properly clean up the container ([#4033](https://github.com/containers/libpod/issues/4033))
 - Fixed a bug where the Varlink server would freeze when run in a systemd unit file ([#4005](https://github.com/containers/libpod/issues/4005))
 - Fixed a bug where Podman would not properly set the `$HOME` environment variable when the OCI runtime did not set it
+- Fixed a bug where rootless Podman would incorrectly print warning messages when an OCI runtime was not found ([#4012](https://github.com/containers/libpod/issues/4012))
+- Fixed a bug where named volumes would conflict with, instead of overriding, `tmpfs` filesystems added by the `--read-only-tmpfs` flag to `podman create` and `podman run`
+- Fixed a bug where `podman cp` would incorrectly make the target directory when copying to a symlink which pointed to a nonexistent directory ([#3894](https://github.com/containers/libpod/issues/3894))
+- Fixed a bug where remote Podman would incorrectly read `STDIN` when the `-i` flag was not set ([#4095](https://github.com/containers/libpod/issues/4095))
+- Fixed a bug where `podman play kube` would create an empty pod when given an unsupported YAML type ([#4093](https://github.com/containers/libpod/issues/4093))
+- Fixed a bug where `podman import --change` improperly parsed `CMD` ([#4000](https://github.com/containers/libpod/issues/4000))
 
 ### Misc
 - Significant changes were made to Podman volumes in this release. If you have pre-existing volumes, it is strongly recommended to run `podman system renumber` after upgrading.
 - Version 0.8.1 or greater of the CNI Plugins is now required for Podman
 - Version 2.0.1 or greater of Conmon is strongly recommended
 - Updated vendored Buildah to v1.11.2
-- Updated vendored containers/storage library to v1.13.3
+- Updated vendored containers/storage library to v1.13.4
+- Improved error messages when trying to create a pod with no name via `podman play kube`
 - Improved error messages when trying to run `podman pause` or `podman stats` on a rootless container on a system without CGroups V2 enabled
 - `TMPDIR` has been set to `/var/tmp` by default to better handle large temporary files
 - `podman wait` has been optimized to detect stopped containers more rapidly
