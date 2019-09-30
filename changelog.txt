@@ -1,3 +1,44 @@
+- Changelog for v1.6.0 (2019-09-30)
+  * info: add cgroups2
+  * Finalize release notes for 1.6.0 final
+  * Bump github.com/onsi/ginkgo from 1.8.0 to 1.10.1
+  * Bump github.com/docker/docker-credential-helpers from 0.6.2 to 0.6.3
+  * Bump github.com/stretchr/testify from 1.3.0 to 1.4.0
+  * Bump github.com/uber/jaeger-client-go
+  * Bump github.com/spf13/pflag from 1.0.3 to 1.0.5
+  * update c/storage to v1.13.4
+  * Cirrus: Minor, fix env. var. intention
+  * new examples added updated two examples with supported CMD and ENTRYPOINT syntax.
+  * new testcase for podman import --change added
+  * syntax updated for podman import --change
+  * Correct use of reexec.Init()
+  * Add a missing escape in the Makefile
+  * Change ginkgo Wait() to Eventually() test
+  * Set log-level immediately, before rootless setup
+  * Cirrus: Implement newly built VM images
+  * Add README note about security reporting process.
+  * Cirrus: Disable boottime Ubuntu package update
+  * Move noCache logic lower in stack
+  * cirrus: Add bash-completion support
+  * Add an error for pods without a name
+  * Make links relative in Tutorial README
+  * docs/podman-derivative-api.md: New file
+  * fix cp none exists dest path ends with '/'
+  * Dockerfile.fedora: install packages to build catatonit
+  * README: add Communications section
+  * drop OWNERS link for CONTRIBUTING.md
+  * Bump gitvalidation epoch
+  * Bump to v1.6.0-dev
+  * Handle conflict between volumes and --read-only-tmpfs
+  * Cirrus: Upload windows MSI release file
+  * conditionally send stdin on remote run
+  * Cirrus: VM Image accounting doc update
+  * Force a CNI Delete on refreshing containers
+  * Document the required varlink build args
+  * Update mac_client link
+  * Cirrus: Fail early on CI script unit test
+  * Unconditionally remove conmon files before starting
+
 - Changelog for v1.6.0-rc2 (2019-09-24)
   * Add release notes for new-in-RC2 changes
   * system tests: run test: reenable and fix
