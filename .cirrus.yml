@@ -295,7 +295,7 @@ meta_task:
 image_prune_task:
 
     # Do not run this frequently
-    only_if: $CIRRUS_BRANCH == 'master'
+    only_if: $CIRRUS_BRANCH == $DEST_BRANCH
 
     depends_on:
         - "meta"
