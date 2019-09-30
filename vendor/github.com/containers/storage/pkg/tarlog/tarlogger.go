@@ -26,7 +26,6 @@ func NewLogger(logger func(*tar.Header)) (io.WriteCloser, error) {
 		closed:     false,
 	}
 	tr := tar.NewReader(reader)
-	tr.RawAccounting = true
 	t.closeMutex.Lock()
 	go func() {
 		hdr, err := tr.Next()
