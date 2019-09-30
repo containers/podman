@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
@@ -29,6 +30,15 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = rootless.IsRootless()
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading cgroups mode")
+	}
+	cgroupVersion := "v1"
+	if unified {
+		cgroupVersion = "v2"
+	}
+	info["CgroupVersion"] = cgroupVersion
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
