@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
-	github.com/containernetworking/plugins v0.8.1
+	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.2
 	github.com/containers/conmon v0.3.0 // indirect
 	github.com/containers/image v3.0.2+incompatible
@@ -20,7 +20,6 @@ require (
 	github.com/containers/storage v1.13.4
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/etcd v3.3.13+incompatible // indirect
-	github.com/coreos/go-iptables v0.4.2 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
@@ -76,7 +75,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/rogpeppe/fastuuid v1.1.0 // indirect
-	github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 // indirect
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
 	github.com/seccomp/libseccomp-golang v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.4.2
@@ -106,7 +104,6 @@ require (
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
 	google.golang.org/grpc v1.21.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/mgo.v2 v2.0.0-20180705113604-9856a29383ce // indirect
 	gopkg.in/yaml.v2 v2.2.2
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7
 	k8s.io/apimachinery v0.0.0-20190809020650-423f5d784010
