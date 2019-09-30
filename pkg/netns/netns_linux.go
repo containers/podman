@@ -126,9 +126,12 @@ func NewNS() (ns.NetNS, error) {
 		// Don't unlock. By not unlocking, golang will kill the OS thread when the
 		// goroutine is done (for go1.10+)
 
+		threadNsPath := getCurrentThreadNetNSPath()
+
 		var origNS ns.NetNS
-		origNS, err = ns.GetNS(getCurrentThreadNetNSPath())
+		origNS, err = ns.GetNS(threadNsPath)
 		if err != nil {
+			logrus.Warnf("cannot open current network namespace %s: %q", threadNsPath, err)
 			return
 		}
 		defer func() {
@@ -140,13 +143,19 @@ func NewNS() (ns.NetNS, error) {
 		// create a new netns on the current thread
 		err = unix.Unshare(unix.CLONE_NEWNET)
 		if err != nil {
+			logrus.Warnf("cannot create a new network namespace: %q", err)
 			return
 		}
 
 		// Put this thread back to the orig ns, since it might get reused (pre go1.10)
 		defer func() {
 			if err := origNS.Set(); err != nil {
-				logrus.Warnf("unable to set namespace: %q", err)
+				if rootless.IsRootless() && strings.Contains(err.Error(), "operation not permitted") {
+					// When running in rootless mode it will fail to re-join
+					// the network namespace owned by root on the host.
+					return
+				}
+				logrus.Warnf("unable to reset namespace: %q", err)
 			}
 		}()
 
@@ -154,7 +163,7 @@ func NewNS() (ns.NetNS, error) {
 		// mount point. This causes the namespace to persist, even when there
 		// are no threads in the ns. Make this a shared mount; it needs to be
 		// back-propogated to the host
-		err = unix.Mount(getCurrentThreadNetNSPath(), nsPath, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
+		err = unix.Mount(threadNsPath, nsPath, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
 		if err != nil {
 			err = fmt.Errorf("failed to bind mount ns at %s: %v", nsPath, err)
 		}
