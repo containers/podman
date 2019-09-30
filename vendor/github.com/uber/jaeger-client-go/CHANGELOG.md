@@ -1,6 +1,37 @@
 Changes by Version
 ==================
 
+2.19.0 (2019-09-23)
+-------------------
+
+- Upgrade jaeger-lib to 2.2 and unpin Prom client (#434) -- Yuri Shkuro
+
+
+2.18.1 (2019-09-16)
+-------------------
+
+- Remove go.mod / go.sum that interfere with `go get` (#432)
+
+
+2.18.0 (2019-09-09)
+-------------------
+
+- Add option "noDebugFlagOnForcedSampling" for tracer initialization [resolves #422] (#423) <Jun Guo>
+
+
+2.17.0 (2019-08-30)
+-------------------
+
+- Add a flag for firehose mode (#419) <Prithvi Raj>
+- Default sampling server URL to agent (#414) <Bryan Boreham>
+- Update default sampling rate when sampling strategy is refreshed (#413) <Bryan Boreham>
+- Support "Self" Span Reference (#411) <dm03514>
+- Don't complain about blank service name if tracing is Disabled (#410) Yuri <Shkuro>
+- Use IP address from tag if exist (#402) <NikoKVCS>
+- Expose span data to custom reporters [fixes #394] (#399) <Curtis Allen>
+- Fix the span allocation in the pool (#381) <Dmitry Ponomarev>
+
+
 2.16.0 (2019-03-24)
 -------------------
 

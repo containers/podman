@@ -181,13 +181,14 @@ func (c Configuration) New(
 // NewTracer returns a new tracer based on the current configuration, using the given options,
 // and a closer func that can be used to flush buffers before shutdown.
 func (c Configuration) NewTracer(options ...Option) (opentracing.Tracer, io.Closer, error) {
+	if c.Disabled {
+		return &opentracing.NoopTracer{}, &nullCloser{}, nil
+	}
+
 	if c.ServiceName == "" {
 		return nil, nil, errors.New("no service name provided")
 	}
 
-	if c.Disabled {
-		return &opentracing.NoopTracer{}, &nullCloser{}, nil
-	}
 	opts := applyOptions(options...)
 	tracerMetrics := jaeger.NewMetrics(opts.metrics, nil)
 	if c.RPCMetrics {
@@ -234,6 +235,7 @@ func (c Configuration) NewTracer(options ...Option) (opentracing.Tracer, io.Clos
 		jaeger.TracerOptions.PoolSpans(opts.poolSpans),
 		jaeger.TracerOptions.ZipkinSharedRPCSpan(opts.zipkinSharedRPCSpan),
 		jaeger.TracerOptions.MaxTagValueLength(opts.maxTagValueLength),
+		jaeger.TracerOptions.NoDebugFlagOnForcedSampling(opts.noDebugFlagOnForcedSampling),
 	}
 
 	for _, tag := range opts.tags {

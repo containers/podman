@@ -110,6 +110,9 @@ func samplerConfigFromEnv() (*SamplerConfig, error) {
 
 	if e := os.Getenv(envSamplerManagerHostPort); e != "" {
 		sc.SamplingServerURL = e
+	} else if e := os.Getenv(envAgentHost); e != "" {
+		// Fallback if we know the agent host - try the sampling endpoint there
+		sc.SamplingServerURL = fmt.Sprintf("http://%s:%d/sampling", e, jaeger.DefaultSamplingServerPort)
 	}
 
 	if e := os.Getenv(envSamplerMaxOperations); e != "" {
