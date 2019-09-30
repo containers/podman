@@ -8,7 +8,7 @@
 
 [[constraint]]
   name = "github.com/prometheus/client_golang"
-  version = "0.8.0"
+  version = "^1"
 
 [[constraint]]
   name = "github.com/stretchr/testify"
@@ -20,7 +20,7 @@
 
 [[constraint]]
   name = "github.com/uber/jaeger-lib"
-  version = "^2.0"
+  version = "^2.2"
 
 [[constraint]]
   name = "go.uber.org/zap"

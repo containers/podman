@@ -16,6 +16,7 @@ package jaeger
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -25,6 +26,10 @@ import (
 
 // Span implements opentracing.Span
 type Span struct {
+	// referenceCounter used to increase the lifetime of
+	// the object before return it into the pool.
+	referenceCounter int32
+
 	sync.RWMutex
 
 	tracer *Tracer
@@ -89,6 +94,38 @@ func (s *Span) SetTag(key string, value interface{}) opentracing.Span {
 		s.setTagNoLocking(key, value)
 	}
 	return s
+}
+
+// SpanContext returns span context
+func (s *Span) SpanContext() SpanContext {
+	s.Lock()
+	defer s.Unlock()
+	return s.context
+}
+
+// StartTime returns span start time
+func (s *Span) StartTime() time.Time {
+	s.Lock()
+	defer s.Unlock()
+	return s.startTime
+}
+
+// Duration returns span duration
+func (s *Span) Duration() time.Duration {
+	s.Lock()
+	defer s.Unlock()
+	return s.duration
+}
+
+// Tags returns tags for span
+func (s *Span) Tags() opentracing.Tags {
+	s.Lock()
+	defer s.Unlock()
+	var result = make(opentracing.Tags)
+	for _, tag := range s.tags {
+		result[tag.key] = tag.value
+	}
+	return result
 }
 
 func (s *Span) setTagNoLocking(key string, value interface{}) {
@@ -174,6 +211,8 @@ func (s *Span) BaggageItem(key string) string {
 }
 
 // Finish implements opentracing.Span API
+// After finishing the Span object it returns back to the allocator unless the reporter retains it again,
+// so after that, the Span object should no longer be used because it won't be valid anymore.
 func (s *Span) Finish() {
 	s.FinishWithOptions(opentracing.FinishOptions{})
 }
@@ -197,6 +236,7 @@ func (s *Span) FinishWithOptions(options opentracing.FinishOptions) {
 	}
 	s.Unlock()
 	// call reportSpan even for non-sampled traces, to return span to the pool
+	// and update metrics counter
 	s.tracer.reportSpan(s)
 }
 
@@ -225,25 +265,66 @@ func (s *Span) OperationName() string {
 	return s.operationName
 }
 
+// Retain increases object counter to increase the lifetime of the object
+func (s *Span) Retain() *Span {
+	atomic.AddInt32(&s.referenceCounter, 1)
+	return s
+}
+
+// Release decrements object counter and return to the
+// allocator manager  when counter will below zero
+func (s *Span) Release() {
+	if atomic.AddInt32(&s.referenceCounter, -1) == -1 {
+		s.tracer.spanAllocator.Put(s)
+	}
+}
+
+// reset span state and release unused data
+func (s *Span) reset() {
+	s.firstInProcess = false
+	s.context = emptyContext
+	s.operationName = ""
+	s.tracer = nil
+	s.startTime = time.Time{}
+	s.duration = 0
+	s.observer = nil
+	atomic.StoreInt32(&s.referenceCounter, 0)
+
+	// Note: To reuse memory we can save the pointers on the heap
+	s.tags = s.tags[:0]
+	s.logs = s.logs[:0]
+	s.references = s.references[:0]
+}
+
 func (s *Span) serviceName() string {
 	return s.tracer.serviceName
 }
 
 // setSamplingPriority returns true if the flag was updated successfully, false otherwise.
 func setSamplingPriority(s *Span, value interface{}) bool {
-	s.Lock()
-	defer s.Unlock()
 	val, ok := value.(uint16)
 	if !ok {
 		return false
 	}
+	s.Lock()
+	defer s.Unlock()
 	if val == 0 {
 		s.context.flags = s.context.flags & (^flagSampled)
 		return true
 	}
-	if s.tracer.isDebugAllowed(s.operationName) {
+	if s.tracer.options.noDebugFlagOnForcedSampling {
+		s.context.flags = s.context.flags | flagSampled
+		return true
+	} else if s.tracer.isDebugAllowed(s.operationName) {
 		s.context.flags = s.context.flags | flagDebug | flagSampled
 		return true
 	}
 	return false
+}
+
+// EnableFirehose enables firehose flag on the span context
+func EnableFirehose(s *Span) {
+	s.Lock()
+	defer s.Unlock()
+	s.context.flags |= flagFirehose
 }

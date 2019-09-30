@@ -28,7 +28,6 @@ import (
 )
 
 const (
-	defaultSamplingServerURL       = "http://localhost:5778/sampling"
 	defaultSamplingRefreshInterval = time.Minute
 	defaultMaxOperations           = 2000
 )
@@ -348,24 +347,27 @@ func (s *adaptiveSampler) Equal(other Sampler) bool {
 func (s *adaptiveSampler) update(strategies *sampling.PerOperationSamplingStrategies) {
 	s.Lock()
 	defer s.Unlock()
+	newSamplers := map[string]*GuaranteedThroughputProbabilisticSampler{}
 	for _, strategy := range strategies.PerOperationStrategies {
 		operation := strategy.Operation
 		samplingRate := strategy.ProbabilisticSampling.SamplingRate
 		lowerBound := strategies.DefaultLowerBoundTracesPerSecond
 		if sampler, ok := s.samplers[operation]; ok {
 			sampler.update(lowerBound, samplingRate)
+			newSamplers[operation] = sampler
 		} else {
 			sampler := newGuaranteedThroughputProbabilisticSampler(
 				lowerBound,
 				samplingRate,
 			)
-			s.samplers[operation] = sampler
+			newSamplers[operation] = sampler
 		}
 	}
 	s.lowerBound = strategies.DefaultLowerBoundTracesPerSecond
 	if s.defaultSampler.SamplingRate() != strategies.DefaultSamplingProbability {
 		s.defaultSampler = newProbabilisticSampler(strategies.DefaultSamplingProbability)
 	}
+	s.samplers = newSamplers
 }
 
 // -----------------------
@@ -432,7 +434,7 @@ func applySamplerOptions(opts ...SamplerOption) samplerOptions {
 		options.maxOperations = defaultMaxOperations
 	}
 	if options.samplingServerURL == "" {
-		options.samplingServerURL = defaultSamplingServerURL
+		options.samplingServerURL = DefaultSamplingServerURL
 	}
 	if options.metrics == nil {
 		options.metrics = NewNullMetrics()
