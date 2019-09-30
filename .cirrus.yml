@@ -363,6 +363,7 @@ testing_task:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
     always: &standardlogs
+        package_versions_script: '$SCRIPT_BASE/logcollector.sh packages'
         ginkgo_node_logs_script: '$SCRIPT_BASE/logcollector.sh ginkgo'
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
