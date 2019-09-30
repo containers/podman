@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -69,6 +70,50 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
+// ParseChanges returns key, value(s) pair for given option.
+func ParseChanges(option string) (key string, vals []string, err error) {
+	// Supported format as below
+	// 1. key=value
+	// 2. key value
+	// 3. key ["value","value1"]
+	if strings.Contains(option, " ") {
+		// This handles 2 & 3 conditions.
+		var val string
+		tokens := strings.SplitAfterN(option, " ", 2)
+		if len(tokens) < 2 {
+			return "", []string{}, fmt.Errorf("invalid key value %s", option)
+		}
+		key = strings.Trim(tokens[0], " ") // Need to trim whitespace part of delimeter.
+		val = tokens[1]
+		if strings.Contains(tokens[1], "[") && strings.Contains(tokens[1], "]") {
+			//Trim '[',']' if exist.
+			val = strings.TrimLeft(strings.TrimRight(tokens[1], "]"), "[")
+		}
+		vals = strings.Split(val, ",")
+	} else if strings.Contains(option, "=") {
+		// handles condition 1.
+		tokens := strings.Split(option, "=")
+		key = tokens[0]
+		vals = tokens[1:]
+	} else {
+		// either ` ` or `=` must be provided after command
+		return "", []string{}, fmt.Errorf("invalid format %s", option)
+	}
+
+	if len(vals) == 0 {
+		return "", []string{}, errors.Errorf("no value given for instruction %q", key)
+	}
+
+	for _, v := range vals {
+		//each option must not have ' '., `[`` or `]` & empty strings
+		whitespaces := regexp.MustCompile(`[\[\s\]]`)
+		if whitespaces.MatchString(v) || len(v) == 0 {
+			return "", []string{}, fmt.Errorf("invalid value %s", v)
+		}
+	}
+	return key, vals, nil
+}
+
 // GetImageConfig converts the --change flag values in the format "CMD=/bin/bash USER=example"
 // to a type v1.ImageConfig
 func GetImageConfig(changes []string) (v1.ImageConfig, error) {
@@ -87,40 +132,42 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 	exposedPorts := make(map[string]struct{})
 	volumes := make(map[string]struct{})
 	labels := make(map[string]string)
-
 	for _, ch := range changes {
-		pair := strings.Split(ch, "=")
-		if len(pair) == 1 {
-			return v1.ImageConfig{}, errors.Errorf("no value given for instruction %q", ch)
+		key, vals, err := ParseChanges(ch)
+		if err != nil {
+			return v1.ImageConfig{}, err
 		}
-		switch pair[0] {
+
+		switch key {
 		case "USER":
-			user = pair[1]
+			user = vals[0]
 		case "EXPOSE":
 			var st struct{}
-			exposedPorts[pair[1]] = st
+			exposedPorts[vals[0]] = st
 		case "ENV":
-			if len(pair) < 3 {
-				return v1.ImageConfig{}, errors.Errorf("no value given for environment variable %q", pair[1])
+			if len(vals) < 2 {
+				return v1.ImageConfig{}, errors.Errorf("no value given for environment variable %q", vals[0])
 			}
-			env = append(env, strings.Join(pair[1:], "="))
+			env = append(env, strings.Join(vals[0:], "="))
 		case "ENTRYPOINT":
-			entrypoint = append(entrypoint, pair[1])
+			// ENTRYPOINT and CMD can have array of strings
+			entrypoint = append(entrypoint, vals...)
 		case "CMD":
-			cmd = append(cmd, pair[1])
+			// ENTRYPOINT and CMD can have array of strings
+			cmd = append(cmd, vals...)
 		case "VOLUME":
 			var st struct{}
-			volumes[pair[1]] = st
+			volumes[vals[0]] = st
 		case "WORKDIR":
-			workingDir = pair[1]
+			workingDir = vals[0]
 		case "LABEL":
-			if len(pair) == 3 {
-				labels[pair[1]] = pair[2]
+			if len(vals) == 2 {
+				labels[vals[0]] = vals[1]
 			} else {
-				labels[pair[1]] = ""
+				labels[vals[0]] = ""
 			}
 		case "STOPSIGNAL":
-			stopSignal = pair[1]
+			stopSignal = vals[0]
 		}
 	}
 
