@@ -213,7 +213,7 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/api/types/blkiodev
 github.com/docker/docker/api/types/strslice
-# github.com/docker/docker-credential-helpers v0.6.2
+# github.com/docker/docker-credential-helpers v0.6.3
 github.com/docker/docker-credential-helpers/credentials
 github.com/docker/docker-credential-helpers/client
 # github.com/docker/go-connections v0.4.0
