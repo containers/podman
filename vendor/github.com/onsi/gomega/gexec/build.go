@@ -1,3 +1,5 @@
+// untested sections: 5
+
 package gexec
 
 import (
@@ -66,7 +68,7 @@ func doBuild(gopath, packagePath string, env []string, args ...string) (compiled
 
 	executable := filepath.Join(tmpDir, path.Base(packagePath))
 	if runtime.GOOS == "windows" {
-		executable = executable + ".exe"
+		executable += ".exe"
 	}
 
 	cmdArgs := append([]string{"build"}, args...)

@@ -62,7 +62,7 @@ require (
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/munnerz/goautoneg v0.0.0-20190414153302-2ae31c8b6b30 // indirect
 	github.com/onsi/ginkgo v1.10.1
-	github.com/onsi/gomega v1.5.0
+	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
 	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
