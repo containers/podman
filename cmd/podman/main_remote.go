@@ -21,6 +21,8 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteUserName, "username", username, "username on the remote host")
 	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.Port, "port", 22, "port on remote host")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.RemoteHost, "remote-host", "", "remote host")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.IdentityFile, "identity-file", "", "identity-file")
+	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.IgnoreHosts, "ignore-hosts", false, "ignore hosts")
 	// TODO maybe we allow the altering of this for bridge connections?
 	// rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.VarlinkAddress, "varlink-address", adapter.DefaultAddress, "address of the varlink socket")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic. Logged to ~/.config/containers/podman.log")

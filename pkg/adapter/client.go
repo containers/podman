@@ -35,7 +35,7 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		if len(r.cmd.RemoteUserName) < 1 {
 			return nil, errors.New("you must provide a username when providing a remote host name")
 		}
-		rc := remoteclientconfig.RemoteConnection{r.cmd.RemoteHost, r.cmd.RemoteUserName, false, r.cmd.Port}
+		rc := remoteclientconfig.RemoteConnection{r.cmd.RemoteHost, r.cmd.RemoteUserName, false, r.cmd.Port, r.cmd.IdentityFile, r.cmd.IgnoreHosts}
 		remoteEndpoint, err = newBridgeConnection("", &rc, r.cmd.LogLevel)
 		//  if the user has a config file with connections in it
 	} else if len(remoteConfigConnections.Connections) > 0 {
