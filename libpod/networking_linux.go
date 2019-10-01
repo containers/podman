@@ -201,6 +201,12 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 		Setpgid: true,
 	}
 
+	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
+	if sandbox {
+		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
+		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
+	}
+
 	// Leak one end of the pipe in slirp4netns, the other will be sent to conmon
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
