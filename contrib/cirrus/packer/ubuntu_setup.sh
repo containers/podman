@@ -61,6 +61,7 @@ $BIGTO $SUDOAPTGET install \
     curl \
     e2fslibs-dev \
     emacs-nox \
+    file \
     gawk \
     gcc \
     gettext \

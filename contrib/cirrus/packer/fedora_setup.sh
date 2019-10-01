@@ -37,6 +37,7 @@ ooe.sh sudo dnf install -y \
     criu \
     device-mapper-devel \
     emacs-nox \
+    file \
     findutils \
     fuse3 \
     fuse3-devel \
@@ -61,6 +62,7 @@ ooe.sh sudo dnf install -y \
     libseccomp \
     libseccomp-devel \
     libselinux-devel \
+    libtool \
     libvarlink-util \
     lsof \
     make \
