@@ -1,0 +1,64 @@
+dist: xenial
+os: linux
+language: bash
+# Installing Dependencies
+# https://docs.travis-ci.com/user/installing-dependencies/
+addons:
+  apt:
+    update: true
+    sources:
+      # To install podman.
+      # https://github.com/containers/libpod/blob/master/install.md
+      - sourceline: "ppa:projectatomic/ppa"
+    packages:
+      - podman
+before_install:
+  # Show version and info.
+  - podman --version
+  - podman version
+  - podman info --debug
+  # Show deb package info.
+  - apt-cache show podman
+  - dpkg-query -L podman
+  - apt-cache show containers-common
+  - dpkg-query -L containers-common
+
+  # Create a configuration file /etc/containers/registries.conf,
+  # as it does not exist.
+  # Incompatibilities of podman from docker on Travis CI
+  # https://github.com/containers/libpod/issues/3679
+  - mkdir -p /etc/containers
+  - echo -e "[registries.search]\nregistries = ['docker.io']" | sudo tee /etc/containers/registries.conf
+matrix:
+  include:
+    - name: "xenial rootless podman run"
+      script:
+        - podman run --rm -t fedora uname -m
+    - name: "xenial rootless podman build"
+      install:
+        - podman build --rm -t my-fedora -f Dockerfile.simple .
+      script:
+        - podman run --rm -t my-fedora uname -m
+    - name: "xenial root podman run"
+      script:
+        - sudo podman run --rm -t fedora uname -m
+    - name: "xenial root podman build"
+      install:
+        - sudo podman build --rm -t my-fedora -f Dockerfile.simple .
+      script:
+        - sudo podman run --rm -t my-fedora uname -m
+    - name: "bionic rootless podman build"
+      dist: bionic
+      install:
+        - podman build --rm -t my-fedora -f Dockerfile.simple .
+      script:
+        - podman run --rm -t my-fedora uname -m
+    - name: "bionic root podman build"
+      dist: bionic
+      install:
+        - sudo podman build --rm -t my-fedora -f Dockerfile.simple .
+      script:
+        - sudo podman run --rm -t my-fedora uname -m
+  allow_failures:
+    - name: "bionic root podman build"
+  fast_finish: true

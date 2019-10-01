@@ -1,0 +1,3 @@
+ARG BASE_IMAGE=fedora:30
+FROM ${BASE_IMAGE}
+RUN uname -m
