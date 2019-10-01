@@ -387,6 +387,13 @@ func SetXdgDirs() error {
 		return errors.Wrapf(err, "cannot set XDG_RUNTIME_DIR")
 	}
 
+	if rootless.IsRootless() && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
+		sessionAddr := filepath.Join(runtimeDir, "bus")
+		if _, err := os.Stat(sessionAddr); err == nil {
+			os.Setenv("DBUS_SESSION_BUS_ADDRESS", fmt.Sprintf("unix:path=%s", sessionAddr))
+		}
+	}
+
 	// Setup XDG_CONFIG_HOME
 	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
 		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
