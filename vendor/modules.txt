@@ -43,7 +43,7 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/cni/libcni
 github.com/containernetworking/cni/pkg/invoke
 github.com/containernetworking/cni/pkg/types/020
-# github.com/containernetworking/plugins v0.8.1
+# github.com/containernetworking/plugins v0.8.2
 github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
