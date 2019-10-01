@@ -622,6 +622,10 @@ func (c *Container) refresh() error {
 		return err
 	}
 
+	if rootless.IsRootless() {
+		return nil
+	}
+
 	return c.refreshCNI()
 }
 
