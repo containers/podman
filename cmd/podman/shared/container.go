@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"

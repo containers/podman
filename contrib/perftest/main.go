@@ -9,7 +9,7 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/libpod"
 	image2 "github.com/containers/libpod/libpod/image"
 	cc "github.com/containers/libpod/pkg/spec"

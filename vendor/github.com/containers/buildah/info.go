@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/buildah/pkg/cgroups"
 	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
@@ -45,6 +46,17 @@ func hostInfo() map[string]interface{} {
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = unshare.IsRootless()
+
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		logrus.Error(err, "err reading cgroups mode")
+	}
+	cgroupVersion := "v1"
+	if unified {
+		cgroupVersion = "v2"
+	}
+	info["CgroupVersion"] = cgroupVersion
+
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		logrus.Error(err, "err reading memory info")

@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/shared/parse"

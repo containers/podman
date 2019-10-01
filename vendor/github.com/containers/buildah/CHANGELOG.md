@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.11.2 (2019-09-13)
+    Add some cleanup code
+    Move devices code to unit specific directory.
+    Bump back to v1.12.0-dev
+
 ## v1.11.1 (2019-09-11)
     Add --devices flag to bud and from
     Downgrade .papr to highest atomic verion

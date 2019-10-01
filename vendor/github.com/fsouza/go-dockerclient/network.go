@@ -114,13 +114,24 @@ func (c *Client) NetworkInfo(id string) (*Network, error) {
 type CreateNetworkOptions struct {
 	Name           string                 `json:"Name" yaml:"Name" toml:"Name"`
 	Driver         string                 `json:"Driver" yaml:"Driver" toml:"Driver"`
+	Scope          string                 `json:"Scope" yaml:"Scope" toml:"Scope"`
 	IPAM           *IPAMOptions           `json:"IPAM,omitempty" yaml:"IPAM" toml:"IPAM"`
+	ConfigFrom     *NetworkConfigFrom     `json:"ConfigFrom,omitempty" yaml:"ConfigFrom" toml:"ConfigFrom"`
 	Options        map[string]interface{} `json:"Options" yaml:"Options" toml:"Options"`
 	Labels         map[string]string      `json:"Labels" yaml:"Labels" toml:"Labels"`
 	CheckDuplicate bool                   `json:"CheckDuplicate" yaml:"CheckDuplicate" toml:"CheckDuplicate"`
 	Internal       bool                   `json:"Internal" yaml:"Internal" toml:"Internal"`
 	EnableIPv6     bool                   `json:"EnableIPv6" yaml:"EnableIPv6" toml:"EnableIPv6"`
+	Attachable     bool                   `json:"Attachable" yaml:"Attachable" toml:"Attachable"`
+	ConfigOnly     bool                   `json:"ConfigOnly" yaml:"ConfigOnly" toml:"ConfigOnly"`
+	Ingress        bool                   `json:"Ingress" yaml:"Ingress" toml:"Ingress"`
 	Context        context.Context        `json:"-"`
+}
+
+// NetworkConfigFrom is used in network creation for specifying the source of a
+// network configuration.
+type NetworkConfigFrom struct {
+	Network string `json:"Network" yaml:"Network" toml:"Network"`
 }
 
 // IPAMOptions controls IP Address Management when creating a network
@@ -225,6 +236,7 @@ type EndpointConfig struct {
 	GlobalIPv6Address   string              `json:"GlobalIPv6Address,omitempty" yaml:"GlobalIPv6Address,omitempty" toml:"GlobalIPv6Address,omitempty"`
 	GlobalIPv6PrefixLen int                 `json:"GlobalIPv6PrefixLen,omitempty" yaml:"GlobalIPv6PrefixLen,omitempty" toml:"GlobalIPv6PrefixLen,omitempty"`
 	MacAddress          string              `json:"MacAddress,omitempty" yaml:"MacAddress,omitempty" toml:"MacAddress,omitempty"`
+	DriverOpts          map[string]string   `json:"DriverOpts,omitempty" yaml:"DriverOpts,omitempty" toml:"DriverOpts,omitempty"`
 }
 
 // EndpointIPAMConfig represents IPAM configurations for an

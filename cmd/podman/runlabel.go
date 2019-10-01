@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"

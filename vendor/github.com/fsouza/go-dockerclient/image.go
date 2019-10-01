@@ -88,7 +88,7 @@ var (
 	// InputStream are provided in BuildImageOptions
 	ErrMultipleContexts = errors.New("image build may not be provided BOTH context dir and input stream")
 
-	// ErrMustSpecifyNames is the error rreturned when the Names field on
+	// ErrMustSpecifyNames is the error returned when the Names field on
 	// ExportImagesOptions is nil or empty
 	ErrMustSpecifyNames = errors.New("must specify at least one name to export")
 )
@@ -288,6 +288,7 @@ func (c *Client) PushImage(opts PushImageOptions, auth AuthConfiguration) error 
 type PullImageOptions struct {
 	Repository string `qs:"fromImage"`
 	Tag        string
+	Platform   string `ver:"1.32"`
 
 	// Only required for Docker Engine 1.9 or 1.10 w/ Remote API < 1.21
 	// and Docker Engine < 1.9
@@ -318,12 +319,15 @@ func (c *Client) PullImage(opts PullImageOptions, auth AuthConfiguration) error 
 		opts.Repository = parts[0]
 		opts.Tag = parts[1]
 	}
-	return c.createImage(queryString(&opts), headers, nil, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
+	return c.createImage(&opts, headers, nil, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
 }
 
-func (c *Client) createImage(qs string, headers map[string]string, in io.Reader, w io.Writer, rawJSONStream bool, timeout time.Duration, context context.Context) error {
-	path := "/images/create?" + qs
-	return c.stream("POST", path, streamOptions{
+func (c *Client) createImage(opts interface{}, headers map[string]string, in io.Reader, w io.Writer, rawJSONStream bool, timeout time.Duration, context context.Context) error {
+	url, err := c.getPath("/images/create", opts)
+	if err != nil {
+		return err
+	}
+	return c.streamUrl("POST", url, streamOptions{
 		setRawTerminal:    true,
 		headers:           headers,
 		in:                in,
@@ -394,7 +398,29 @@ func (c *Client) ExportImages(opts ExportImagesOptions) error {
 	if opts.Names == nil || len(opts.Names) == 0 {
 		return ErrMustSpecifyNames
 	}
-	return c.stream("GET", "/images/get?"+queryString(&opts), streamOptions{
+	// API < 1.25 allows multiple name values
+	// 1.25 says name must be a comma separated list
+	var err error
+	var exporturl string
+	if c.requestedAPIVersion.GreaterThanOrEqualTo(apiVersion125) {
+		var str string = opts.Names[0]
+		for _, val := range opts.Names[1:] {
+			str += "," + val
+		}
+		exporturl, err = c.getPath("/images/get", ExportImagesOptions{
+			Names:             []string{str},
+			OutputStream:      opts.OutputStream,
+			InactivityTimeout: opts.InactivityTimeout,
+			Context:           opts.Context,
+
+		})
+	} else {
+		exporturl, err = c.getPath("/images/get", &opts)
+	}
+	if err != nil {
+		return err
+	}
+	return c.streamUrl("GET", exporturl, streamOptions{
 		setRawTerminal:    true,
 		stdout:            opts.OutputStream,
 		inactivityTimeout: opts.InactivityTimeout,
@@ -435,7 +461,7 @@ func (c *Client) ImportImage(opts ImportImageOptions) error {
 		opts.InputStream = f
 		opts.Source = "-"
 	}
-	return c.createImage(queryString(&opts), nil, opts.InputStream, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
+	return c.createImage(&opts, nil, opts.InputStream, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
 }
 
 // BuildImageOptions present the set of informations available for building an
@@ -609,7 +635,7 @@ func isURL(u string) bool {
 }
 
 func headersWithAuth(auths ...registryAuth) (map[string]string, error) {
-	var headers = make(map[string]string)
+	headers := make(map[string]string)
 
 	for _, auth := range auths {
 		if auth.isEmpty() {

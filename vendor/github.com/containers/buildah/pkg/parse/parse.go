@@ -14,10 +14,10 @@ import (
 	"unicode"
 
 	"github.com/containers/buildah"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/go-units"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	units "github.com/docker/go-units"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

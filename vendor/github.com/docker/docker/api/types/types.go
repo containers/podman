@@ -146,7 +146,6 @@ type Commit struct {
 // GET "/info"
 type Info struct {
 	ID                 string
-	Builder            BuilderVersion
 	Containers         int
 	ContainersRunning  int
 	ContainersPaused   int
@@ -178,6 +177,7 @@ type Info struct {
 	NEventsListener    int
 	KernelVersion      string
 	OperatingSystem    string
+	OSVersion          string
 	OSType             string
 	Architecture       string
 	IndexServerAddress string
