@@ -22,6 +22,6 @@ func formatDefaultBridge(remoteConn *remoteclientconfig.RemoteConnection, logLev
 		options += " -q -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 	}
 	return fmt.Sprintf(
-		`ssh -p %d -T%s %s@%s -- /usr/bin/varlink -A \'/usr/bin/podman --log-level=%s varlink \\\$VARLINK_ADDRESS\' bridge`,
+		`ssh -p %d -T%s %s@%s -- varlink -A \'podman --log-level=%s varlink \\\$VARLINK_ADDRESS\' bridge`,
 		port, options, remoteConn.Username, remoteConn.Destination, logLevel)
 }
