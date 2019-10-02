@@ -38,7 +38,6 @@ load helpers
 # into host-only space. Try to podman-cp that symlink. It should fail.
 @test "podman cp - will not recognize symlink pointing into host space" {
     skip_if_remote "podman-remote does not yet handle cp"
-    skip "BROKEN: PLEASE ENABLE ONCE #3829 GETS FIXED"
 
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
@@ -69,7 +68,6 @@ load helpers
 # this invalid double symlink. It must fail.
 @test "podman cp - will not expand globs in host space (#3829)" {
     skip_if_remote "podman-remote does not yet handle cp"
-    skip "BROKEN: PLEASE ENABLE ONCE #3829 GETS FIXED"
 
     srcdir=$PODMAN_TMPDIR/cp-test-in
     dstdir=$PODMAN_TMPDIR/cp-test-out
