@@ -1,3 +1,10 @@
+- Changelog for v1.6.1 (2019-10-02)
+  * Update release notes for v1.6.1
+  * Bump gitvalidation epoch
+  * Bump to v1.6.1-dev
+  * rootless: allow cgroupfs manager on cgroups v2
+  * system tests: reenable skipped tests
+
 - Changelog for v1.6.1-rc1 (2019-10-02)
   * rootless: set DBUS_SESSION_BUS_ADDRESS if it is not set
   * install.md: add libbtrfs-dev for Debian build
