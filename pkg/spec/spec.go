@@ -387,6 +387,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if err != nil {
 			return nil, err
 		}
+		if !addedResources {
+			configSpec.Linux.Resources = &spec.LinuxResources{}
+		}
 		if addedResources && !cgroup2 {
 			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
 		}
