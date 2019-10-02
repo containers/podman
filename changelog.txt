@@ -1,3 +1,19 @@
+- Changelog for v1.6.1-rc1 (2019-10-02)
+  * rootless: set DBUS_SESSION_BUS_ADDRESS if it is not set
+  * install.md: add libbtrfs-dev for Debian build
+  * Bump github.com/onsi/gomega from 1.5.0 to 1.7.0
+  * Cirrus: Show names/versions of critical packages
+  * network: add workaround for slirp4netns --enable-sandbox issue
+  * rootless: do not attempt a CNI refresh
+  * Bump github.com/containernetworking/plugins from 0.8.1 to 0.8.2
+  * network: hide EPERM warning when rootless
+  * networking: fix segfault when slirp4netns is missing
+  * Bump gitvalidation epoch
+  * Bump to v1.6.1-dev
+  * Move derivitive doc so it won't be treated as a manpage
+  * catatonit: clone and build
+  * bump catatonit to v0.1.4
+
 - Changelog for v1.6.0 (2019-09-30)
   * info: add cgroups2
   * Finalize release notes for 1.6.0 final
