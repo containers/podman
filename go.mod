@@ -14,7 +14,7 @@ require (
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.2
-	github.com/containers/conmon v0.3.0 // indirect
+	github.com/containers/conmon v0.3.0
 	github.com/containers/image v3.0.2+incompatible
 	github.com/containers/psgo v1.3.1
 	github.com/containers/storage v1.13.4
@@ -53,6 +53,7 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/imdario/mergo v0.3.7 // indirect
+	github.com/iovisor/gobpf v0.0.0-20190827113749-5e47cda1484e
 	github.com/json-iterator/go v1.1.7
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
 	github.com/magiconair/properties v1.8.1 // indirect
@@ -60,7 +61,7 @@ require (
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/munnerz/goautoneg v0.0.0-20190414153302-2ae31c8b6b30 // indirect
-	github.com/onsi/ginkgo v1.10.1
+	github.com/onsi/ginkgo v1.10.2
 	github.com/onsi/gomega v1.7.0
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.1
@@ -76,7 +77,7 @@ require (
 	github.com/prometheus/common v0.6.0 // indirect
 	github.com/rogpeppe/fastuuid v1.1.0 // indirect
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f // indirect
-	github.com/seccomp/libseccomp-golang v0.9.1 // indirect
+	github.com/seccomp/libseccomp-golang v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect

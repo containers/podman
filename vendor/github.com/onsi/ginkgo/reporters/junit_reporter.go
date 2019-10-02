@@ -143,7 +143,7 @@ func (reporter *JUnitReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	reporter.suite.Errors = 0
 	file, err := os.Create(reporter.filename)
 	if err != nil {
-		fmt.Printf("Failed to create JUnit report file: %s\n\t%s", reporter.filename, err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to create JUnit report file: %s\n\t%s", reporter.filename, err.Error())
 	}
 	defer file.Close()
 	file.WriteString(xml.Header)
@@ -151,7 +151,7 @@ func (reporter *JUnitReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
 	encoder.Indent("  ", "    ")
 	err = encoder.Encode(reporter.suite)
 	if err != nil {
-		fmt.Printf("Failed to generate JUnit report\n\t%s", err.Error())
+		fmt.Fprintf(os.Stderr, "Failed to generate JUnit report\n\t%s", err.Error())
 	}
 }
 
