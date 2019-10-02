@@ -1,5 +1,11 @@
 # Release Notes
 
+## 1.6.1
+### Bugfixes
+- Fixed a bug where rootless Podman on systems using CGroups V2 would not function with the `cgroupfs` CGroups manager
+- Fixed a bug where rootless Podman could not correctly identify the DBus session address, causing containers to fail to start ([#4162](https://github.com/containers/libpod/issues/4162))
+- Fixed a bug where rootless Podman with `slirp4netns` networking would fail to start containers due to mount leaks
+
 ## 1.6.0
 ### Features
 - The `podman network create`, `podman network rm`, `podman network inspect`, and `podman network ls` commands have been added to manage CNI networks used by Podman
