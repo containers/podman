@@ -19,3 +19,7 @@ Special setup for running the Podman remote client on a Mac and connecting to Po
 **[Remote Client](remote_client.md)**
 
 A brief how-to on using the Podman remote-client.
+
+**[How to use libpod for custom/derivative projects](podman-derivative-api.md)**
+
+How the libpod API can be used within your own project.
