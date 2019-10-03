@@ -1,3 +1,5 @@
+![PODMAN logo](../../logo/podman-logo-source.svg)
+
 # How to use libpod for custom/derivative projects
 
 libpod today is a Golang library and a CLI.  The choice of interface you make has advantages and disadvantages.
