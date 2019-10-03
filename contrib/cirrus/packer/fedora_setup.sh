@@ -31,6 +31,7 @@ ooe.sh sudo dnf install -y \
     bridge-utils \
     btrfs-progs-devel \
     bzip2 \
+    conmon \
     container-selinux \
     containernetworking-plugins \
     containers-common \
