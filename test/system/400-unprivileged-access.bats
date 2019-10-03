@@ -22,7 +22,7 @@ load helpers
     # as a user, the parent directory must be world-readable.
     test_script=$PODMAN_TMPDIR/fail-if-writable
     cat >$test_script <<"EOF"
-#!/bin/sh
+#!/bin/bash
 
 path="$1"
 
