@@ -143,7 +143,7 @@ func TestRemoteConfig_GetDefault(t *testing.T) {
 		wantErr bool
 	}{
 		// A good toml should return the connection that is marked isDefault
-		{"good", fields{Connections: makeGoodResult().Connections}, &RemoteConnection{"192.168.1.1", "myuser", true, 22}, false},
+		{"good", fields{Connections: makeGoodResult().Connections}, &RemoteConnection{"192.168.1.1", "myuser", true, 22, "", false}, false},
 		// If nothing is marked as isDefault and there is more than one connection, error should occur
 		{"nodefault", fields{Connections: noDefault}, nil, true},
 		// if nothing is marked as isDefault but there is only one connection, the one connection is considered the default
@@ -183,9 +183,9 @@ func TestRemoteConfig_GetRemoteConnection(t *testing.T) {
 		wantErr bool
 	}{
 		// Good connection
-		{"goodhomer", fields{Connections: makeGoodResult().Connections}, args{name: "homer"}, &RemoteConnection{"192.168.1.1", "myuser", true, 22}, false},
+		{"goodhomer", fields{Connections: makeGoodResult().Connections}, args{name: "homer"}, &RemoteConnection{"192.168.1.1", "myuser", true, 22, "", false}, false},
 		// Good connection
-		{"goodbart", fields{Connections: makeGoodResult().Connections}, args{name: "bart"}, &RemoteConnection{"foobar.com", "root", false, 22}, false},
+		{"goodbart", fields{Connections: makeGoodResult().Connections}, args{name: "bart"}, &RemoteConnection{"foobar.com", "root", false, 22, "", false}, false},
 		// Getting an unknown connection should result in error
 		{"noexist", fields{Connections: makeGoodResult().Connections}, args{name: "foobar"}, nil, true},
 		// Getting a connection when there are none should result in an error

@@ -9,10 +9,12 @@ type RemoteConfig struct {
 
 // RemoteConnection describes the attributes of a podman-remote endpoint
 type RemoteConnection struct {
-	Destination string `toml:"destination"`
-	Username    string `toml:"username"`
-	IsDefault   bool   `toml:"default"`
-	Port        int    `toml:"port"`
+	Destination  string `toml:"destination"`
+	Username     string `toml:"username"`
+	IsDefault    bool   `toml:"default"`
+	Port         int    `toml:"port"`
+	IdentityFile string `toml:"identity_file"`
+	IgnoreHosts  bool   `toml:"ignore_hosts"`
 }
 
 // GetConfigFilePath is a simple helper to export the configuration file's

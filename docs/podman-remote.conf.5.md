@@ -25,6 +25,12 @@ of the user's remote connections.
 **port** = int
   Use an alternative port for the ssh connections.  The default port is 22.
 
+**identity_file** = ""
+  Use an alternative location for the ssh private key
+
+**ignore_hosts** = bool
+  Don't match the remote ssh host key with known hosts
+
 
 ## EXAMPLE
 

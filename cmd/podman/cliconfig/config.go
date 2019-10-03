@@ -42,6 +42,8 @@ type MainFlags struct {
 	ConnectionName       string
 	RemoteConfigFilePath string
 	Port                 int
+	IdentityFile         string
+	IgnoreHosts          bool
 }
 
 type AttachValues struct {
