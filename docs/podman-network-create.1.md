@@ -15,6 +15,11 @@ If no options are provided, Podman will assign a free subnet and name for your n
 Upon completion of creating the network, Podman will display the path to the newly added network file.
 
 ## OPTIONS
+**--disable-dns**
+
+Disables the DNS plugin for this network which if enabled, can perform container to container name
+resolution.
+
 **-d**, , **--driver**
 
 Driver to manage the network (default "bridge").  Currently on `bridge` is supported.

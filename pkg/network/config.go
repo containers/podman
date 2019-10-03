@@ -14,6 +14,9 @@ const (
 	// CNIDeviceName is the default network device name and in
 	// reality should have an int appended to it (cni-podman4)
 	CNIDeviceName = "cni-podman"
+	// DefaultPodmanDomainName is used for the dnsname plugin to define
+	// a localized domain name for a created network
+	DefaultPodmanDomainName = "dns.podman"
 )
 
 // GetDefaultPodmanNetwork outputs the default network for podman
@@ -96,4 +99,15 @@ type FirewallConfig struct {
 // Bytes outputs the configuration as []byte
 func (f FirewallConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(f, "", "\t")
+}
+
+// DNSNameConfig describes the dns container name resolution plugin config
+type DNSNameConfig struct {
+	PluginType string `json:"type"`
+	DomainName string `json:"domainName"`
+}
+
+// Bytes outputs the configuration as []byte
+func (d DNSNameConfig) Bytes() ([]byte, error) {
+	return json.MarshalIndent(d, "", "\t")
 }

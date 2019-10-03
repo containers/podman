@@ -982,6 +982,7 @@ _podman_network_create() {
     --subnet
      "
     local boolean_options="
+    --disable-dns
 	--help
 	-h
 	--internal

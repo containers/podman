@@ -155,15 +155,14 @@ func (r *LocalRuntime) removeNetwork(ctx context.Context, name string, container
 
 // NetworkCreate creates a CNI network
 func (r *LocalRuntime) NetworkCreate(cli *cliconfig.NetworkCreateValues) (string, error) {
-	var (
-		err error
-	)
-
 	isGateway := true
 	ipMasq := true
 	subnet := &cli.Network
 	ipRange := cli.IPRange
-
+	runtimeConfig, err := r.GetConfig()
+	if err != nil {
+		return "", err
+	}
 	// if range is provided, make sure it is "in" network
 	if cli.IsSet("subnet") {
 		// if network is provided, does it conflict with existing CNI or live networks
@@ -245,6 +244,11 @@ func (r *LocalRuntime) NetworkCreate(cli *cliconfig.NetworkCreateValues) (string
 	plugins = append(plugins, bridge)
 	plugins = append(plugins, network.NewPortMapPlugin())
 	plugins = append(plugins, network.NewFirewallPlugin())
+	// if we find the dnsname plugin, we add configuration for it
+	if network.HasDNSNamePlugin(runtimeConfig.CNIPluginDir) && !cli.DisableDNS {
+		// Note: in the future we might like to allow for dynamic domain names
+		plugins = append(plugins, network.NewDNSNamePlugin(network.DefaultPodmanDomainName))
+	}
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {
