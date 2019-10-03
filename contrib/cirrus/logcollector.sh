@@ -33,40 +33,35 @@ case $1 in
     ginkgo) showrun cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log ;;
     journal) showrun journalctl -b ;;
     packages)
-        case $OS_RELEASE_ID in
-            fedora*)
-                PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
-                PKG_NAMES=(\
-                    container-selinux \
+        # These names are common to Fedora and Ubuntu
+        PKG_NAMES=(\
+                    conmon \
                     containernetworking-plugins \
                     containers-common \
                     criu \
                     golang \
-                    podman \
-                    slirp4netns \
-                )
-                if [[ "$OS_RELEASE_VER" -lt "31" ]]; then
-                    PKG_NAMES+=(runc)
-                else
-                    PKG_NAMES+=(crun)
-                fi
-                ;;
-            ubuntu*)
-                PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
-                PKG_NAMES=(\
-                    containernetworking-plugins \
-                    containers-common \
-                    cri-o-runc \
-                    criu \
-                    golang \
-                    libvarlink \
                     podman \
                     skopeo \
                     slirp4netns \
+        )
+        case $OS_RELEASE_ID in
+            fedora*)
+                PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
+                PKG_NAMES+=(\
+                    container-selinux \
+                    crun \
+                    runc \
+                )
+                ;;
+            ubuntu*)
+                PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
+                PKG_NAMES+=(\
+                    cri-o-runc \
                 )
                 ;;
             *) bad_os_id_ver ;;
         esac
+        # Any not-present packages will be listed as such
         $PKG_LST_CMD ${PKG_NAMES[@]} | sort -u
         ;;
     *) die 1 "Warning, $(basename $0) doesn't know how to handle the parameter '$1'"
