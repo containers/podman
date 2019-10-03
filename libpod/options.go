@@ -20,8 +20,8 @@ import (
 )
 
 var (
-	nameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
-	regexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	NameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
 // Runtime Creation Options
@@ -648,8 +648,8 @@ func WithName(name string) CtrCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 
 		ctr.config.Name = name
@@ -1426,8 +1426,8 @@ func WithVolumeName(name string) VolumeCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 		volume.config.Name = name
 
@@ -1532,8 +1532,8 @@ func WithPodName(name string) PodCreateOption {
 		}
 
 		// Check the name against a regex
-		if !nameRegex.MatchString(name) {
-			return regexError
+		if !NameRegex.MatchString(name) {
+			return RegexError
 		}
 
 		pod.config.Name = name
@@ -1550,8 +1550,8 @@ func WithPodHostname(hostname string) PodCreateOption {
 		}
 
 		// Check the hostname against a regex
-		if !nameRegex.MatchString(hostname) {
-			return regexError
+		if !NameRegex.MatchString(hostname) {
+			return RegexError
 		}
 
 		pod.config.Hostname = hostname
