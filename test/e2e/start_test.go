@@ -110,7 +110,7 @@ var _ = Describe("Podman start", func() {
 		start.WaitWithDefaultTimeout()
 		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
 
-		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout).Should(BeZero())
+		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(BeZero())
 	})
 
 	It("podman failed to start without --rm should NOT delete the container", func() {
@@ -122,7 +122,7 @@ var _ = Describe("Podman start", func() {
 		start.WaitWithDefaultTimeout()
 		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
 
-		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout).Should(Equal(1))
+		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(Equal(1))
 	})
 
 	It("podman start --sig-proxy should not work without --attach", func() {
