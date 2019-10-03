@@ -33,7 +33,7 @@ RunRoot:
     run_podman info --format=json
 
     expr_nvr="[a-z0-9-]\\\+-[a-z0-9.]\\\+-[a-z0-9]\\\+\."
-    expr_path="/[a-z0-9\\\-\\\/.]\\\+\\\$"
+    expr_path="/[a-z0-9\\\/.-]\\\+\\\$"
 
     tests="
 host.BuildahVersion       | [0-9.]
