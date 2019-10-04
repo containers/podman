@@ -21,7 +21,7 @@ import (
 
 var (
 	buildCommand     cliconfig.BuildValues
-	buildDescription = "Builds an OCI or Docker image using instructions from one or more Dockerfiles and a specified build context directory."
+	buildDescription = "Builds an OCI or Docker image using instructions from one or more Containerfiles and a specified build context directory."
 	layerValues      buildahcli.LayerResults
 	budFlagsValues   buildahcli.BudResults
 	fromAndBudValues buildahcli.FromAndBudResults
@@ -30,7 +30,7 @@ var (
 
 	_buildCommand = &cobra.Command{
 		Use:   "build [flags] CONTEXT",
-		Short: "Build an image using instructions from Dockerfiles",
+		Short: "Build an image using instructions from Containerfiles",
 		Long:  buildDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			buildCommand.InputArgs = args
@@ -44,7 +44,7 @@ var (
 			return buildCmd(&buildCommand)
 		},
 		Example: `podman build .
-  podman build --creds=username:password -t imageName -f Dockerfile.simple .
+  podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,
 	}
 )
@@ -82,16 +82,16 @@ func init() {
 	markFlagHidden(flags, "signature-policy")
 }
 
-func getDockerfiles(files []string) []string {
-	var dockerfiles []string
+func getContainerfiles(files []string) []string {
+	var containerfiles []string
 	for _, f := range files {
 		if f == "-" {
-			dockerfiles = append(dockerfiles, "/dev/stdin")
+			containerfiles = append(containerfiles, "/dev/stdin")
 		} else {
-			dockerfiles = append(dockerfiles, f)
+			containerfiles = append(containerfiles, f)
 		}
 	}
-	return dockerfiles
+	return containerfiles
 }
 
 func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
@@ -151,7 +151,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		}
 	}
 
-	dockerfiles := getDockerfiles(c.File)
+	containerfiles := getContainerfiles(c.File)
 	format, err := getFormat(&c.PodmanCommand)
 	if err != nil {
 		return nil
@@ -190,31 +190,35 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		}
 	} else {
 		// No context directory or URL was specified.  Try to use the
-		// home of the first locally-available Dockerfile.
-		for i := range dockerfiles {
-			if strings.HasPrefix(dockerfiles[i], "http://") ||
-				strings.HasPrefix(dockerfiles[i], "https://") ||
-				strings.HasPrefix(dockerfiles[i], "git://") ||
-				strings.HasPrefix(dockerfiles[i], "github.com/") {
+		// home of the first locally-available Containerfile.
+		for i := range containerfiles {
+			if strings.HasPrefix(containerfiles[i], "http://") ||
+				strings.HasPrefix(containerfiles[i], "https://") ||
+				strings.HasPrefix(containerfiles[i], "git://") ||
+				strings.HasPrefix(containerfiles[i], "github.com/") {
 				continue
 			}
-			absFile, err := filepath.Abs(dockerfiles[i])
+			absFile, err := filepath.Abs(containerfiles[i])
 			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
+				return errors.Wrapf(err, "error determining path to file %q", containerfiles[i])
 			}
 			contextDir = filepath.Dir(absFile)
-			dockerfiles[i], err = filepath.Rel(contextDir, absFile)
+			containerfiles[i], err = filepath.Rel(contextDir, absFile)
 			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
+				return errors.Wrapf(err, "error determining path to file %q", containerfiles[i])
 			}
 			break
 		}
 	}
 	if contextDir == "" {
-		return errors.Errorf("no context directory specified, and no dockerfile specified")
+		return errors.Errorf("no context directory specified, and no containerfile specified")
 	}
-	if len(dockerfiles) == 0 {
-		dockerfiles = append(dockerfiles, filepath.Join(contextDir, "Dockerfile"))
+	if len(containerfiles) == 0 {
+		if checkIfFileExists(filepath.Join(contextDir, "Containerfile")) {
+			containerfiles = append(containerfiles, filepath.Join(contextDir, "Containerfile"))
+		} else {
+			containerfiles = append(containerfiles, filepath.Join(contextDir, "Dockerfile"))
+		}
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
@@ -318,7 +322,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		Squash:                  c.Squash,
 		Target:                  c.Target,
 	}
-	return runtime.Build(getContext(), c, options, dockerfiles)
+	return runtime.Build(getContext(), c, options, containerfiles)
 }
 
 // useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"

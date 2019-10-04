@@ -137,7 +137,7 @@ the exit codes follow the `chroot` standard, see below:
 | Command                                          | Description                                                                 |
 | ------------------------------------------------ | --------------------------------------------------------------------------- |
 | [podman-attach(1)](podman-attach.1.md)           | Attach to a running container.                                              |
-| [podman-build(1)](podman-build.1.md)             | Build a container image using a Dockerfile.                                 |
+| [podman-build(1)](podman-build.1.md)             | Build a container image using a Containerfile.                              |
 | [podman-commit(1)](podman-commit.1.md)           | Create new image based on the changed container.                            |
 | [podman-container(1)](podman-container.1.md)     | Manage containers.                                                          |
 | [podman-cp(1)](podman-cp.1.md)                   | Copy files/folders between a container and the local filesystem.            |
