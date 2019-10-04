@@ -28,3 +28,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 func LabelVolumePath(path string, shared bool) error {
 	return define.ErrNotImplemented
 }
+
+func Unmount(mount string) error {
+	return define.ErrNotImplemented
+}

@@ -115,15 +115,16 @@ func (s *InMemoryState) Container(id string) (*Container, error) {
 	return ctr, nil
 }
 
-// LookupContainer retrieves a container by full ID, unique partial ID, or name
-func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+// lookupID retrieves a container or pod ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) lookupID(idOrName string) (string, error) {
 	var (
 		nameIndex *registrar.Registrar
 		idIndex   *truncindex.TruncIndex
 	)
 
 	if idOrName == "" {
-		return nil, define.ErrEmptyID
+		return "", define.ErrEmptyID
 	}
 
 	if s.namespace != "" {
@@ -131,7 +132,7 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 		if !ok {
 			// We have no containers in the namespace
 			// Return false
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+			return "", define.ErrNoSuchCtr
 		}
 		nameIndex = nsIndex.nameIndex
 		idIndex = nsIndex.idIndex
@@ -147,13 +148,53 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 			fullID, err = idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+					return "", define.ErrNoSuchCtr
 				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
+				return "", errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
 			}
 		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
+			return "", errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
 		}
+	}
+
+	return fullID, nil
+}
+
+// LookupContainerID retrieves a container ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) LookupContainerID(idOrName string) (string, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+		_, ok := s.containers[fullID]
+		if !ok {
+			// It's a pod, not a container
+			return "", errors.Wrapf(define.ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
+		}
+
+	case define.ErrNoSuchCtr:
+		return "", errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return "", err
+	}
+
+	return fullID, nil
+}
+
+// LookupContainer retrieves a container by full ID, unique partial ID, or name
+func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+
+	case define.ErrNoSuchCtr:
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return nil, err
 	}
 
 	ctr, ok := s.containers[fullID]
@@ -383,6 +424,16 @@ func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	}
 
 	return ctrs, nil
+}
+
+// GetContainerConfig returns a container config from the database by full ID
+func (s *InMemoryState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	ctr, err := s.LookupContainer(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctr.Config(), nil
 }
 
 // RewriteContainerConfig rewrites a container's configuration.
@@ -623,49 +674,22 @@ func (s *InMemoryState) Pod(id string) (*Pod, error) {
 // LookupPod retrieves a pod from the state from a full or unique partial ID or
 // a full name
 func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
-	var (
-		nameIndex *registrar.Registrar
-		idIndex   *truncindex.TruncIndex
-	)
+	fullID, err := s.lookupID(idOrName)
 
-	if idOrName == "" {
-		return nil, define.ErrEmptyID
-	}
+	switch err {
+	case nil:
 
-	if s.namespace != "" {
-		nsIndex, ok := s.namespaceIndexes[s.namespace]
-		if !ok {
-			// We have no containers in the namespace
-			// Return false
-			return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
-		}
-		nameIndex = nsIndex.nameIndex
-		idIndex = nsIndex.idIndex
-	} else {
-		nameIndex = s.nameIndex
-		idIndex = s.idIndex
-	}
+	case define.ErrNoSuchCtr, define.ErrNoSuchPod:
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
 
-	fullID, err := nameIndex.Get(idOrName)
-	if err != nil {
-		if err == registrar.ErrNameNotReserved {
-			// What was passed is not a name, assume it's an ID
-			fullID, err = idIndex.Get(idOrName)
-			if err != nil {
-				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
-				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
-			}
-		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
-		}
+	default:
+		return nil, err
 	}
 
 	pod, ok := s.pods[fullID]
 	if !ok {
 		// It's a container not a pod
-		return nil, errors.Wrapf(define.ErrNoSuchPod, "id or name %s is a container not a pod", idOrName)
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "id or name %s is a container, not a pod", idOrName)
 	}
 
 	return pod, nil

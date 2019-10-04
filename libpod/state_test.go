@@ -452,12 +452,18 @@ func TestLookupContainerWithEmptyIDFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("")
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID("")
+		assert.Error(t, err)
 	})
 }
 
 func TestLookupNonexistentContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("does not exist")
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID("does not exist")
 		assert.Error(t, err)
 	})
 }
@@ -472,8 +478,11 @@ func TestLookupContainerByFullID(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -487,8 +496,11 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.ID()[0:8])
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.ID()[0:8])
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -507,6 +519,9 @@ func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
 
 		_, err = state.LookupContainer(testCtr1.ID()[0:8])
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testCtr1.ID()[0:8])
+		assert.Error(t, err)
 	})
 }
 
@@ -520,8 +535,11 @@ func TestLookupContainerByName(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.Name())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.Name())
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -535,6 +553,9 @@ func TestLookupCtrByPodNameFails(t *testing.T) {
 
 		_, err = state.LookupContainer(testPod.Name())
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testPod.Name())
+		assert.Error(t, err)
 	})
 }
 
@@ -547,6 +568,9 @@ func TestLookupCtrByPodIDFails(t *testing.T) {
 		assert.NoError(t, err)
 
 		_, err = state.LookupContainer(testPod.ID())
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testPod.ID())
 		assert.Error(t, err)
 	})
 }
@@ -565,8 +589,11 @@ func TestLookupCtrInSameNamespaceSucceeds(t *testing.T) {
 
 		ctr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, ctr, testCtr, true)
+
+		ctrID, err := state.LookupContainerID(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, ctrID, testCtr.ID())
 	})
 }
 
@@ -583,6 +610,9 @@ func TestLookupCtrInDifferentNamespaceFails(t *testing.T) {
 		state.SetNamespace("test2")
 
 		_, err = state.LookupContainer(testCtr.ID())
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testCtr.ID())
 		assert.Error(t, err)
 	})
 }
@@ -606,8 +636,11 @@ func TestLookupContainerMatchInDifferentNamespaceSucceeds(t *testing.T) {
 
 		ctr, err := state.LookupContainer("000")
 		assert.NoError(t, err)
-
 		testContainersEqual(t, ctr, testCtr2, true)
+
+		ctrID, err := state.LookupContainerID("000")
+		assert.NoError(t, err)
+		assert.Equal(t, ctrID, testCtr2.ID())
 	})
 }
 
@@ -3597,5 +3630,32 @@ func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
 		assert.NoError(t, err)
 
 		testPodsEqual(t, testPod, statePod, false)
+	})
+}
+
+func TestGetContainerConfigSucceeds(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr)
+		assert.NoError(t, err)
+
+		ctrCfg, err := state.GetContainerConfig(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, ctrCfg, testCtr.Config())
+	})
+}
+
+func TestGetContainerConfigEmptyIDFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		_, err := state.GetContainerConfig("")
+		assert.Error(t, err)
+	})
+}
+func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		_, err := state.GetContainerConfig("does not exist")
+		assert.Error(t, err)
 	})
 }

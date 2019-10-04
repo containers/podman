@@ -41,6 +41,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Diff(name: string) DiffInfo](#Diff)
 
+[func EvictContainer(name: string, removeVolumes: bool) string](#EvictContainer)
+
 [func ExecContainer(opts: ExecOpts) ](#ExecContainer)
 
 [func ExportContainer(name: string, path: string) string](#ExportContainer)
@@ -480,6 +482,22 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.DeleteUnusedImages
 
 method Diff(name: [string](https://godoc.org/builtin#string)) [DiffInfo](#DiffInfo)</div>
 Diff returns a diff between libpod objects
+### <a name="EvictContainer"></a>func EvictContainer
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method EvictContainer(name: [string](https://godoc.org/builtin#string), removeVolumes: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+EvictContainer requires the name or ID of a container as well as a boolean that
+indicates to remove builtin volumes. Upon successful eviction of the container,
+its ID is returned.  If the container cannot be found by name or ID,
+a [ContainerNotFound](#ContainerNotFound) error will be returned.
+See also [RemoveContainer](RemoveContainer).
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.EvictContainer '{"name": "62f4fd98cb57"}'
+{
+  "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+}
+~~~
 ### <a name="ExecContainer"></a>func ExecContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -988,10 +1006,12 @@ ReceiveFile allows the host to send a remote client a file
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
 method RemoveContainer(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool), removeVolumes: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
-RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
+RemoveContainer requires the name or ID of a container as well as a boolean that
+indicates whether a container should be forcefully removed (e.g., by stopping it), and a boolean
 indicating whether to remove builtin volumes. Upon successful removal of the
 container, its ID is returned.  If the
 container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+See also [EvictContainer](EvictContainer).
 #### Example
 ~~~
 $ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{"name": "62f4fd98cb57"}'

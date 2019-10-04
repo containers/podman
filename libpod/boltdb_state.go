@@ -407,6 +407,60 @@ func (s *BoltState) Container(id string) (*Container, error) {
 	return ctr, nil
 }
 
+// LookupContainerID retrieves a container ID from the state by full or unique
+// partial ID or name
+func (s *BoltState) LookupContainerID(idOrName string) (string, error) {
+	if idOrName == "" {
+		return "", define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return "", define.ErrDBClosed
+	}
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return "", err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	var id []byte
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		namesBucket, err := getNamesBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		nsBucket, err := getNSBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		fullID, err := s.lookupContainerID(idOrName, ctrBucket, namesBucket, nsBucket)
+		// Check if it is in our namespace
+		if s.namespaceBytes != nil {
+			ns := nsBucket.Get(fullID)
+			if !bytes.Equal(ns, s.namespaceBytes) {
+				return errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+			}
+		}
+		id = fullID
+		return err
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	retID := string(id)
+	return retID, nil
+}
+
 // LookupContainer retrieves a container from the state by full or unique
 // partial ID or name
 func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
@@ -444,67 +498,9 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		// First, check if the ID given was the actual container ID
-		var id []byte
-		ctrExists := ctrBucket.Bucket([]byte(idOrName))
-		if ctrExists != nil {
-			// A full container ID was given.
-			// It might not be in our namespace, but
-			// getContainerFromDB() will handle that case.
-			id = []byte(idOrName)
-			return s.getContainerFromDB(id, ctr, ctrBucket)
-		}
-
-		// Next, check if the full name was given
-		isPod := false
-		fullID := namesBucket.Get([]byte(idOrName))
-		if fullID != nil {
-			// The name exists and maps to an ID.
-			// However, we are not yet certain the ID is a
-			// container.
-			ctrExists = ctrBucket.Bucket(fullID)
-			if ctrExists != nil {
-				// A container bucket matching the full ID was
-				// found.
-				return s.getContainerFromDB(fullID, ctr, ctrBucket)
-			}
-			// Don't error if we have a name match but it's not a
-			// container - there's a chance we have a container with
-			// an ID starting with those characters.
-			// However, so we can return a good error, note whether
-			// this is a pod.
-			isPod = true
-		}
-
-		// We were not given a full container ID or name.
-		// Search for partial ID matches.
-		exists := false
-		err = ctrBucket.ForEach(func(checkID, checkName []byte) error {
-			// If the container isn't in our namespace, we
-			// can't match it
-			if s.namespaceBytes != nil {
-				ns := nsBucket.Get(checkID)
-				if !bytes.Equal(ns, s.namespaceBytes) {
-					return nil
-				}
-			}
-			if strings.HasPrefix(string(checkID), idOrName) {
-				if exists {
-					return errors.Wrapf(define.ErrCtrExists, "more than one result for container ID %s", idOrName)
-				}
-				id = checkID
-				exists = true
-			}
-
-			return nil
-		})
+		id, err := s.lookupContainerID(idOrName, ctrBucket, namesBucket, nsBucket)
 		if err != nil {
 			return err
-		} else if !exists {
-			if isPod {
-				return errors.Wrapf(define.ErrNoSuchCtr, "%s is a pod, not a container", idOrName)
-			}
-			return errors.Wrapf(define.ErrNoSuchCtr, "no container with name or ID %s found", idOrName)
 		}
 
 		return s.getContainerFromDB(id, ctr, ctrBucket)
@@ -858,6 +854,39 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	}
 
 	return ctrs, nil
+}
+
+// GetContainerConfig returns a container config from the database by full ID
+func (s *BoltState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	if len(id) == 0 {
+		return nil, define.ErrEmptyID
+	}
+
+	if !s.valid {
+		return nil, define.ErrDBClosed
+	}
+
+	config := new(ContainerConfig)
+
+	db, err := s.getDBCon()
+	if err != nil {
+		return nil, err
+	}
+	defer s.deferredCloseDBCon(db)
+
+	err = db.View(func(tx *bolt.Tx) error {
+		ctrBucket, err := getCtrBucket(tx)
+		if err != nil {
+			return err
+		}
+
+		return s.getContainerConfigFromDB([]byte(id), config, ctrBucket)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return config, nil
 }
 
 // RewriteContainerConfig rewrites a container's configuration.

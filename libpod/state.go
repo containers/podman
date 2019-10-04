@@ -58,6 +58,9 @@ type State interface {
 	// If the container is not in the set namespace, an error will be
 	// returned.
 	Container(id string) (*Container, error)
+	// Return a container ID from the database by full or partial ID or full
+	// name.
+	LookupContainerID(idOrName string) (string, error)
 	// Return a container from the database by full or partial ID or full
 	// name.
 	// Containers not in the set namespace will be ignored.
@@ -97,6 +100,9 @@ type State interface {
 	// If a namespace is set, only containers within the namespace will be
 	// returned.
 	AllContainers() ([]*Container, error)
+
+	// Return a container config from the database by full ID
+	GetContainerConfig(id string) (*ContainerConfig, error)
 
 	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// Rewrite a container's configuration.

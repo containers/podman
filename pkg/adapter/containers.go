@@ -205,7 +205,22 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
 	if err != nil {
-		return ok, failures, err
+		// Failed to get containers. If force is specified, get the containers ID
+		// and evict them
+		if !cli.Force {
+			return ok, failures, err
+		}
+
+		for _, ctr := range cli.InputArgs {
+			logrus.Debugf("Evicting container %q", ctr)
+			id, err := r.EvictContainer(ctx, ctr, cli.Volumes)
+			if err != nil {
+				failures[ctr] = errors.Wrapf(err, "Failed to evict container: %q", id)
+				continue
+			}
+			ok = append(ok, id)
+		}
+		return ok, failures, nil
 	}
 
 	pool := shared.NewPool("rm", maxWorkers, len(ctrs))
