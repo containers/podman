@@ -208,4 +208,10 @@ var _ = Describe("Podman network create", func() {
 		Expect(ncFail.ExitCode()).ToNot(BeZero())
 	})
 
+	It("podman network create with invalid network name", func() {
+		nc := podmanTest.Podman([]string{"network", "create", "foo "})
+		nc.WaitWithDefaultTimeout()
+		Expect(nc.ExitCode()).ToNot(BeZero())
+	})
+
 })

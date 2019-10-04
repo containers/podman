@@ -4,11 +4,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/network"
 	"net"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/network"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -57,6 +58,9 @@ func networkcreateCmd(c *cliconfig.NetworkCreateValues) error {
 	}
 	if len(c.InputArgs) > 1 {
 		return errors.Errorf("only one network can be created at a time")
+	}
+	if len(c.InputArgs) > 0 && !libpod.NameRegex.MatchString(c.InputArgs[0]) {
+		return libpod.RegexError
 	}
 	runtime, err := adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
 	if err != nil {
