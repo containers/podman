@@ -230,11 +230,11 @@ var _ = Describe("Podman ps", func() {
 	It("podman ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"ps", "-aqs"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"ps", "-a", "--ns", "-s"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman --sort by size", func() {

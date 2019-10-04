@@ -72,7 +72,7 @@ var _ = Describe("Podman save", func() {
 
 		save := podmanTest.PodmanNoCache([]string{"save", "-o", outfile, "FOOBAR"})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Not(Equal(0)))
+		Expect(save).To(ExitWithError())
 	})
 
 	It("podman save to directory with oci format", func() {
@@ -113,7 +113,7 @@ var _ = Describe("Podman save", func() {
 
 		save := podmanTest.PodmanNoCache([]string{"save", "--compress", "--format", "docker-dir", "-o", outdir, ALPINE})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).To(Not(Equal(0)))
+		Expect(save).To(ExitWithError())
 	})
 
 })

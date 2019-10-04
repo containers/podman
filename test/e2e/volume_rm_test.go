@@ -56,7 +56,7 @@ var _ = Describe("Podman volume rm", func() {
 
 		session = podmanTest.Podman([]string{"volume", "rm", "myvol"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring(cid))
 
 		session = podmanTest.Podman([]string{"volume", "rm", "-f", "myvol"})
@@ -116,7 +116,7 @@ var _ = Describe("Podman volume rm", func() {
 
 		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()

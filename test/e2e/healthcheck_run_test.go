@@ -38,7 +38,7 @@ var _ = Describe("Podman healthcheck run", func() {
 	It("podman healthcheck run bogus container", func() {
 		session := podmanTest.Podman([]string{"healthcheck", "run", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman healthcheck on valid container", func() {

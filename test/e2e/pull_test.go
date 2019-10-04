@@ -40,7 +40,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull from docker a not existing image", func() {
 		session := podmanTest.PodmanNoCache([]string{"pull", "ibetthisdoesntexistthere:foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pull from docker with tag", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull bogus image", func() {
 		session := podmanTest.PodmanNoCache([]string{"pull", "umohnani/get-started"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pull from docker-archive", func() {

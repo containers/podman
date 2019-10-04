@@ -203,11 +203,11 @@ var _ = Describe("Podman exec", func() {
 
 		session := podmanTest.Podman([]string{"exec", "--workdir", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"exec", "-w", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman exec cannot be invoked", func() {

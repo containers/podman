@@ -169,7 +169,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} \""})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).ToNot(Equal(0))
+		Expect(stats).To(ExitWithError())
 	})
 
 })

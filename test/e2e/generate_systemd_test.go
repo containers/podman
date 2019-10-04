@@ -37,19 +37,19 @@ var _ = Describe("Podman generate systemd", func() {
 	It("podman generate systemd on bogus container/pod", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman generate systemd bad restart policy", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--restart-policy", "never", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman generate systemd bad timeout value", func() {
 		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "-1", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman generate systemd good timeout value", func() {

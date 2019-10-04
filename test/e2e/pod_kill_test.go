@@ -36,7 +36,7 @@ var _ = Describe("Podman pod kill", func() {
 	It("podman pod kill bogus", func() {
 		session := podmanTest.Podman([]string{"pod", "kill", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pod kill a pod by id", func() {

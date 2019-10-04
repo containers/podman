@@ -164,12 +164,12 @@ var _ = Describe("Podman run cpu", func() {
 	It("podman run cpus and cpu-period", func() {
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-period=5000", "--cpus=0.5", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("podman run cpus and cpu-quota", func() {
 		result := podmanTest.Podman([]string{"run", "--rm", "--cpu-quota=5000", "--cpus=0.5", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(result).To(ExitWithError())
 	})
 })

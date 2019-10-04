@@ -135,7 +135,7 @@ var _ = Describe("Podman pod rm", func() {
 		fmt.Printf("Removing all empty pods\n")
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(result).To(ExitWithError())
 		foundExpectedError, _ := result.ErrorGrepString("contains containers and cannot be removed")
 		Expect(foundExpectedError).To(Equal(true))
 

@@ -140,7 +140,7 @@ var _ = Describe("Podman push", func() {
 
 		push := podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
 		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
@@ -151,11 +151,11 @@ var _ = Describe("Podman push", func() {
 
 		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
 		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
 		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()

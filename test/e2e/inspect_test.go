@@ -46,7 +46,7 @@ var _ = Describe("Podman inspect", func() {
 		SkipIfRemote()
 		session := podmanTest.Podman([]string{"inspect", "foobar4321"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman inspect with GO format", func() {

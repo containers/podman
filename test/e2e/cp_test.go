@@ -53,7 +53,7 @@ var _ = Describe("Podman cp", func() {
 
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"cp", srcPath, name + ":foo"})
 		session.WaitWithDefaultTimeout()
@@ -205,7 +205,7 @@ var _ = Describe("Podman cp", func() {
 
 		session = podmanTest.Podman([]string{"cp", "--pause=false", srcPath, name + ":/test1/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 	})
 	It("podman cp volume", func() {

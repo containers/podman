@@ -75,12 +75,12 @@ var _ = Describe("podman container runlabel", func() {
 	It("podman container runlabel bogus label should result in non-zero exit code", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 	It("podman container runlabel bogus label in remote image should result in non-zero exit", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", "docker.io/library/ubuntu:latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 
 	})
 

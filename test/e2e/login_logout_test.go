@@ -109,7 +109,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman login and logout with flag --authfile", func() {
@@ -198,7 +198,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "localhost:9001"})
 		session.WaitWithDefaultTimeout()
@@ -218,7 +218,7 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
@@ -234,10 +234,10 @@ var _ = Describe("Podman login and logout", func() {
 
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"push", ALPINE, "localhost:9001/test-alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 })

@@ -235,7 +235,7 @@ var _ = Describe("Podman create", func() {
 	It("podman create --pull", func() {
 		session := podmanTest.PodmanNoCache([]string{"create", "--pull", "never", "--name=foo", "nginx"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "nginx"})
 		session.WaitWithDefaultTimeout()

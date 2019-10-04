@@ -102,7 +102,7 @@ var _ = Describe("Podman rmi", func() {
 		// Trying without --force should fail
 		result := podmanTest.PodmanNoCache([]string{"rmi", alpineId})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 
 		// With --force it should work
 		resultForce := podmanTest.PodmanNoCache([]string{"rmi", "-f", alpineId})
