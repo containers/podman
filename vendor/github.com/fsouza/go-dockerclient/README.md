@@ -26,6 +26,12 @@ feature may get implemented/merged.
 For new projects, using the official SDK is probably more appropriate as
 go-dockerclient lags behind the official SDK.
 
+When using the official SDK, keep in mind that because of how the its
+dependencies are organized, you may need some extra steps in order to be able
+to import it in your projects (see
+[#784](https://github.com/fsouza/go-dockerclient/issues/784) and
+[moby/moby#28269](https://github.com/moby/moby/issues/28269)).
+
 ## Example
 
 ```go
@@ -85,7 +91,8 @@ func main() {
 
 If using [docker-machine](https://docs.docker.com/machine/), or another
 application that exports environment variables `DOCKER_HOST`,
-`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, you can use NewClientFromEnv.
+`DOCKER_TLS_VERIFY`, `DOCKER_CERT_PATH`, `DOCKER_API_VERSION`, you can use
+NewClientFromEnv.
 
 
 ```go
@@ -118,12 +125,13 @@ Commited code must pass:
 Running ``make test`` will check all of these. You can reformat the code with
 ``make fmt``.
 
-## Vendoring / Modules
+## Modules
 
-go-dockerclient supports [dep](https://github.com/golang/dep/) for vendoring
-and can also be installed as a module. If you're using dep or Go modules, you
-should be able to pick go-dockerclient releases and get the proper
-dependencies.
+go-dockerclient supports Go modules.
+
+If you're using dep, you can check the [releases
+page](https://github.com/fsouza/go-dockerclient/releases) for the latest
+release fully compatible with dep.
 
 With other vendoring tools, users might need to specify go-dockerclient's
 dependencies manually.

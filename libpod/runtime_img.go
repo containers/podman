@@ -17,9 +17,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	ociarchive "github.com/containers/image/oci/archive"
+	"github.com/containers/image/v4/directory"
+	dockerarchive "github.com/containers/image/v4/docker/archive"
+	ociarchive "github.com/containers/image/v4/oci/archive"
 	"github.com/opencontainers/image-spec/specs-go/v1"
 )
 

@@ -5,20 +5,12 @@ clone_folder: c:\gopath\src\github.com\fsouza\go-dockerclient
 environment:
   GOPATH: c:\gopath
   GOPROXY: https://proxy.golang.org
+  GO111MODULE: on
   SKIP_FMT_CHECK: 1
   matrix:
-    - GOVERSION: &go111 "1.11.10"
-      DEP_TOOL: dep
-      GO111MODULE: off
-    - GOVERSION: &go112 "1.12.5"
-      DEP_TOOL: dep
-      GO111MODULE: off
-    - GOVERSION: *go111
-      DEP_TOOL: mod
-      GO111MODULE: on
-    - GOVERSION: *go112
-      DEP_TOOL: mod
-      GO111MODULE: on
+    - GOVERSION: "1.11.13"
+    - GOVERSION: "1.12.9"
+    - GOVERSION: "1.13rc1"
 install:
   - choco install make
   - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
@@ -26,8 +18,8 @@ install:
   - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
   - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
 build_script:
-  - make testdeps DEP_TOOL=%DEP_TOOL%
+  - make testdeps
 test_script:
-  - make pretest gotest DEP_TOOL=%DEP_TOOL%
+  - make pretest gotest
 matrix:
   fast_finish: true

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"

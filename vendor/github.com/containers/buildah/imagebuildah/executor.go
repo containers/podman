@@ -12,11 +12,11 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
-	"github.com/containers/image/docker/reference"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/docker/reference"
+	is "github.com/containers/image/v4/storage"
+	"github.com/containers/image/v4/transports"
+	"github.com/containers/image/v4/transports/alltransports"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -164,7 +164,7 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 			stepCounter++
 			prefix := fmt.Sprintf("STEP %d: ", stepCounter)
 			suffix := "\n"
-			fmt.Fprintf(exec.err, prefix+format+suffix, args...)
+			fmt.Fprintf(exec.out, prefix+format+suffix, args...)
 		}
 	}
 	for arg := range options.Args {

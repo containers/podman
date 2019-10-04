@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/docker"
-	"github.com/containers/image/pkg/docker/config"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/docker"
+	"github.com/containers/image/v4/pkg/docker/config"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"

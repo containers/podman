@@ -281,6 +281,23 @@ func (lim *Limiter) SetLimitAt(now time.Time, newLimit Limit) {
 	lim.limit = newLimit
 }
 
+// SetBurst is shorthand for SetBurstAt(time.Now(), newBurst).
+func (lim *Limiter) SetBurst(newBurst int) {
+	lim.SetBurstAt(time.Now(), newBurst)
+}
+
+// SetBurstAt sets a new burst size for the limiter.
+func (lim *Limiter) SetBurstAt(now time.Time, newBurst int) {
+	lim.mu.Lock()
+	defer lim.mu.Unlock()
+
+	now, _, tokens := lim.advance(now)
+
+	lim.last = now
+	lim.tokens = tokens
+	lim.burst = newBurst
+}
+
 // reserveN is a helper method for AllowN, ReserveN, and WaitN.
 // maxFutureReserve specifies the maximum reservation wait duration allowed.
 // reserveN returns Reservation, not *Reservation, to avoid allocation in AllowN and WaitN.

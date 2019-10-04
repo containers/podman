@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strings"
 
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/signature"
-	"github.com/containers/image/types"
+	cp "github.com/containers/image/v4/copy"
+	"github.com/containers/image/v4/docker/reference"
+	"github.com/containers/image/v4/signature"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 )

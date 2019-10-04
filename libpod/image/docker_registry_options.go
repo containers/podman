@@ -3,8 +3,8 @@ package image
 import (
 	"fmt"
 
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/docker/reference"
+	"github.com/containers/image/v4/types"
 
 	podmanVersion "github.com/containers/libpod/version"
 )

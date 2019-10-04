@@ -53,6 +53,7 @@ type APIMount struct {
 	Mode        string `json:"Mode,omitempty" yaml:"Mode,omitempty" toml:"Mode,omitempty"`
 	RW          bool   `json:"RW,omitempty" yaml:"RW,omitempty" toml:"RW,omitempty"`
 	Propagation string `json:"Propagation,omitempty" yaml:"Propagation,omitempty" toml:"Propagation,omitempty"`
+	Type        string `json:"Type,omitempty" yaml:"Type,omitempty" toml:"Type,omitempty"`
 }
 
 // APIContainers represents each container in the list returned by

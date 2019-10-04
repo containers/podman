@@ -7,8 +7,6 @@
 	test \
 	integration
 
-DEP_TOOL ?= mod
-
 all: test
 
 staticcheck:
@@ -23,12 +21,7 @@ fmt:
 	gofumpt -s -w .
 
 testdeps:
-ifeq ($(DEP_TOOL), dep)
-	GO111MODULE=off go get -u github.com/golang/dep/cmd/dep
-	dep ensure -v
-else
 	go mod download
-endif
 
 pretest: staticcheck fmtcheck
 

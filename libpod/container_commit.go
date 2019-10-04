@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
-	is "github.com/containers/image/storage"
+	is "github.com/containers/image/v4/storage"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"

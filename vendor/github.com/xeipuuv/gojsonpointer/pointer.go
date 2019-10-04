@@ -130,10 +130,10 @@ func (p *JsonPointer) implementation(i *implStruct) {
 				node = v[decodedToken]
 				if isLastToken && i.mode == "SET" {
 					v[decodedToken] = i.setInValue
-				} else if isLastToken && i.mode =="DEL" {
-					delete(v,decodedToken)
+				} else if isLastToken && i.mode == "DEL" {
+					delete(v, decodedToken)
 				}
-			} else if (isLastToken && i.mode == "SET") {
+			} else if isLastToken && i.mode == "SET" {
 				v[decodedToken] = i.setInValue
 			} else {
 				i.outError = fmt.Errorf("Object has no key '%s'", decodedToken)
@@ -160,7 +160,7 @@ func (p *JsonPointer) implementation(i *implStruct) {
 			node = v[tokenIndex]
 			if isLastToken && i.mode == "SET" {
 				v[tokenIndex] = i.setInValue
-			}  else if isLastToken && i.mode =="DEL" {
+			} else if isLastToken && i.mode == "DEL" {
 				v[tokenIndex] = v[len(v)-1]
 				v[len(v)-1] = nil
 				v = v[:len(v)-1]

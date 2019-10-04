@@ -1,6 +1,8 @@
 package imagebuildah
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -55,7 +57,25 @@ func downloadToDirectory(url, dir string) error {
 	return nil
 }
 
-// TempDirForURL checks if the passed-in string looks like a URL.  If it is,
+func stdinToDirectory(dir string) error {
+	logrus.Debugf("extracting stdin to %q", dir)
+	r := bufio.NewReader(os.Stdin)
+	b, err := ioutil.ReadAll(r)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to read from stdin")
+	}
+	reader := bytes.NewReader(b)
+	if err := chrootarchive.Untar(reader, dir, nil); err != nil {
+		dockerfile := filepath.Join(dir, "Dockerfile")
+		// Assume this is a Dockerfile
+		if err := ioutil.WriteFile(dockerfile, b, 0600); err != nil {
+			return errors.Wrapf(err, "Failed to write bytes to %q", dockerfile)
+		}
+	}
+	return nil
+}
+
+// TempDirForURL checks if the passed-in string looks like a URL or -.  If it is,
 // TempDirForURL creates a temporary directory, arranges for its contents to be
 // the contents of that URL, and returns the temporary directory's path, along
 // with the name of a subdirectory which should be used as the build context
@@ -66,7 +86,8 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if !strings.HasPrefix(url, "http://") &&
 		!strings.HasPrefix(url, "https://") &&
 		!strings.HasPrefix(url, "git://") &&
-		!strings.HasPrefix(url, "github.com/") {
+		!strings.HasPrefix(url, "github.com/") &&
+		url != "-" {
 		return "", "", nil
 	}
 	name, err = ioutil.TempDir(dir, prefix)
@@ -76,7 +97,7 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(url, ".git") {
 		err = cloneToDirectory(url, name)
 		if err != nil {
-			if err2 := os.Remove(name); err2 != nil {
+			if err2 := os.RemoveAll(name); err2 != nil {
 				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 			}
 			return "", "", err
@@ -92,11 +113,22 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 	if strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://") {
 		err = downloadToDirectory(url, name)
 		if err != nil {
-			if err2 := os.Remove(name); err2 != nil {
+			if err2 := os.RemoveAll(name); err2 != nil {
 				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
 			}
 			return "", subdir, err
 		}
+		return name, subdir, nil
+	}
+	if url == "-" {
+		err = stdinToDirectory(name)
+		if err != nil {
+			if err2 := os.RemoveAll(name); err2 != nil {
+				logrus.Debugf("error removing temporary directory %q: %v", name, err2)
+			}
+			return "", subdir, err
+		}
+		logrus.Debugf("Build context is at %q", name)
 		return name, subdir, nil
 	}
 	logrus.Debugf("don't know how to retrieve %q", url)

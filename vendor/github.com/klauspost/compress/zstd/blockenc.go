@@ -155,14 +155,17 @@ func (h *literalsHeader) setSize(regenLen int) {
 }
 
 // setSizes will set the size of a compressed literals section and the input length.
-func (h *literalsHeader) setSizes(compLen, inLen int) {
+func (h *literalsHeader) setSizes(compLen, inLen int, single bool) {
 	compBits, inBits := bits.Len32(uint32(compLen)), bits.Len32(uint32(inLen))
 	// Only retain 2 bits
 	const mask = 3
 	lh := uint64(*h & mask)
 	switch {
 	case compBits <= 10 && inBits <= 10:
-		lh |= (1 << 2) | (uint64(inLen) << 4) | (uint64(compLen) << (10 + 4)) | (3 << 60)
+		if !single {
+			lh |= 1 << 2
+		}
+		lh |= (uint64(inLen) << 4) | (uint64(compLen) << (10 + 4)) | (3 << 60)
 		if debug {
 			const mmask = (1 << 24) - 1
 			n := (lh >> 4) & mmask
@@ -175,8 +178,14 @@ func (h *literalsHeader) setSizes(compLen, inLen int) {
 		}
 	case compBits <= 14 && inBits <= 14:
 		lh |= (2 << 2) | (uint64(inLen) << 4) | (uint64(compLen) << (14 + 4)) | (4 << 60)
+		if single {
+			panic("single stream used with more than 10 bits length.")
+		}
 	case compBits <= 18 && inBits <= 18:
 		lh |= (3 << 2) | (uint64(inLen) << 4) | (uint64(compLen) << (18 + 4)) | (5 << 60)
+		if single {
+			panic("single stream used with more than 10 bits length.")
+		}
 	default:
 		panic("internal error: block too big")
 	}
@@ -307,12 +316,30 @@ func (b *blockEnc) encodeLits() error {
 		return nil
 	}
 
-	// TODO: Switch to 1X when less than x bytes.
-	out, reUsed, err := huff0.Compress4X(b.literals, b.litEnc)
-	// Bail out of compression is too little.
-	if len(out) > (len(b.literals) - len(b.literals)>>4) {
+	var (
+		out            []byte
+		reUsed, single bool
+		err            error
+	)
+	if len(b.literals) >= 1024 {
+		// Use 4 Streams.
+		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)
+		if len(out) > len(b.literals)-len(b.literals)>>4 {
+			// Bail out of compression is too little.
+			err = huff0.ErrIncompressible
+		}
+	} else if len(b.literals) > 32 {
+		// Use 1 stream
+		single = true
+		out, reUsed, err = huff0.Compress1X(b.literals, b.litEnc)
+		if len(out) > len(b.literals)-len(b.literals)>>4 {
+			// Bail out of compression is too little.
+			err = huff0.ErrIncompressible
+		}
+	} else {
 		err = huff0.ErrIncompressible
 	}
+
 	switch err {
 	case huff0.ErrIncompressible:
 		if debug {
@@ -351,7 +378,7 @@ func (b *blockEnc) encodeLits() error {
 		lh.setType(literalsBlockCompressed)
 	}
 	// Set sizes
-	lh.setSizes(len(out), len(b.literals))
+	lh.setSizes(len(out), len(b.literals), single)
 	bh.setSize(uint32(len(out) + lh.size() + 1))
 
 	// Write block headers.
@@ -381,13 +408,20 @@ func (b *blockEnc) encode() error {
 	b.output = bh.appendTo(b.output)
 
 	var (
-		out    []byte
-		reUsed bool
-		err    error
+		out            []byte
+		reUsed, single bool
+		err            error
 	)
-	if len(b.literals) > 32 {
-		// TODO: Switch to 1X on small blocks.
+	if len(b.literals) >= 1024 {
+		// Use 4 Streams.
 		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)
+		if len(out) > len(b.literals)-len(b.literals)>>4 {
+			err = huff0.ErrIncompressible
+		}
+	} else if len(b.literals) > 32 {
+		// Use 1 stream
+		single = true
+		out, reUsed, err = huff0.Compress1X(b.literals, b.litEnc)
 		if len(out) > len(b.literals)-len(b.literals)>>4 {
 			err = huff0.ErrIncompressible
 		}
@@ -435,7 +469,7 @@ func (b *blockEnc) encode() error {
 				}
 			}
 		}
-		lh.setSizes(len(out), len(b.literals))
+		lh.setSizes(len(out), len(b.literals), single)
 		if debug {
 			printf("Compressed %d literals to %d bytes", len(b.literals), len(out))
 			println("Adding literal header:", lh)

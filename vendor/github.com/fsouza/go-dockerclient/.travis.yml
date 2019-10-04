@@ -3,21 +3,21 @@ language: go
 go:
   - 1.11.x
   - 1.12.x
+  - 1.13rc1
 os:
   - linux
   - osx
   - windows
 env:
   matrix:
-    - GOARCH=amd64 DEP_TOOL=mod GO111MODULE=on
-    - GOARCH=386 DEP_TOOL=mod GO111MODULE=on
-    - GOARCH=amd64 DEP_TOOL=dep GO111MODULE=off
-    - GOARCH=386 DEP_TOOL=dep GO111MODULE=off
+    - GOARCH=amd64
+    - GOARCH=386
   global:
     - GOPROXY=https://proxy.golang.org
+    - GO111MODULE=on
 install:
   - travis-scripts/win-setup.bash
-  - make testdeps DEP_TOOL=${DEP_TOOL}
+  - make testdeps
 script:
   - travis_wait 25 travis-scripts/run-tests.bash
 services:
@@ -26,8 +26,8 @@ matrix:
   fast_finish: true
   exclude:
     - os: osx
-      env: GOARCH=386 DEP_TOOL=dep GO111MODULE=off
+      env: GOARCH=386
     - os: osx
-      env: GOARCH=386 DEP_TOOL=mod GO111MODULE=on
+      env: GOARCH=386
   allow_failures:
     - os: windows

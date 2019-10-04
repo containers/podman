@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// DOption is an option for creating a encoder.
+// EOption is an option for creating a encoder.
 type EOption func(*encoderOptions) error
 
 // options retains accumulated state of multiple options.

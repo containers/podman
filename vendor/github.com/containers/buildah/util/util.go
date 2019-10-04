@@ -10,12 +10,12 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/pkg/cgroups"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/pkg/sysregistriesv2"
-	"github.com/containers/image/signature"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v4/docker/reference"
+	"github.com/containers/image/v4/pkg/sysregistriesv2"
+	"github.com/containers/image/v4/signature"
+	is "github.com/containers/image/v4/storage"
+	"github.com/containers/image/v4/transports"
+	"github.com/containers/image/v4/types"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -115,7 +115,7 @@ func ResolveName(name string, firstRegistry string, sc *types.SystemContext, sto
 	for _, registry := range searchRegistries {
 		reg, err := sysregistriesv2.FindRegistry(sc, registry)
 		if err != nil {
-			logrus.Debugf("unable to read registry configuraitno for %#v: %v", registry, err)
+			logrus.Debugf("unable to read registry configuration for %#v: %v", registry, err)
 			continue
 		}
 		if reg == nil || !reg.Blocked {
