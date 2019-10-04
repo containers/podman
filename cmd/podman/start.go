@@ -60,6 +60,9 @@ func startCmd(c *cliconfig.StartValues) error {
 	}
 
 	sigProxy := c.SigProxy || attach
+	if c.Flag("sig-proxy").Changed {
+		sigProxy = c.SigProxy
+	}
 
 	if sigProxy && !attach {
 		return errors.Wrapf(define.ErrInvalidArg, "you cannot use sig-proxy without --attach")
