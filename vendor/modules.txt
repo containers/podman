@@ -108,12 +108,13 @@ github.com/containers/image/v4/pkg/blobinfocache/memory
 github.com/containers/image/v4/pkg/blobinfocache/internal/prioritize
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
-# github.com/containers/psgo v1.3.1
+# github.com/containers/psgo v1.3.2
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
 github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
+github.com/containers/psgo/internal/cgroups
 github.com/containers/psgo/internal/host
 # github.com/containers/storage v1.13.4
 github.com/containers/storage
