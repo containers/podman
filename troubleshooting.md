@@ -142,7 +142,7 @@ If you are using a useradd command within a Dockerfile with a large UID/GID, it 
 
 #### Solution
 
-If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--log-no-init` parameter to change it to: `RUN useradd --log-no-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
+If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--no-log-init` parameter to change it to: `RUN useradd --no-log-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
 
 ### 7) Permission denied when running Podman commands
 
