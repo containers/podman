@@ -751,8 +751,9 @@ Note: if you use the `--network=host` option these sysctls will not be allowed.
 
 Run container in systemd mode. The default is *true*.
 
-If the command you are running inside of the container is systemd or init, Podman
-will setup tmpfs mount points in the following directories:
+If the command you are running inside of the container is systemd or
+/usr/sbin/init, Podman will setup tmpfs mount points in the following
+directories:
 
 /run, /run/lock, /tmp, /sys/fs/cgroup/systemd, /var/lib/journal
 

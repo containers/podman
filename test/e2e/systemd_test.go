@@ -94,7 +94,7 @@ WantedBy=multi-user.target
 		Expect(pull.ExitCode()).To(Equal(0))
 
 		ctrName := "testSystemd"
-		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", systemdImage, "init"})
+		run := podmanTest.Podman([]string{"run", "--name", ctrName, "-t", "-i", "-d", systemdImage, "/usr/sbin/init"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ctrID := run.OutputToString()

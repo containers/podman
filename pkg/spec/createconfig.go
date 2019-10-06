@@ -195,8 +195,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	if c.Interactive {
 		options = append(options, libpod.WithStdin())
 	}
-	if c.Systemd && (strings.HasSuffix(c.Command[0], "init") ||
-		strings.HasSuffix(c.Command[0], "systemd")) {
+	if c.Systemd {
 		options = append(options, libpod.WithSystemd())
 	}
 	if c.Name != "" {

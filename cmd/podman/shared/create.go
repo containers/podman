@@ -663,7 +663,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	var systemd bool
-	if command != nil && c.Bool("systemd") && ((filepath.Base(command[0]) == "init") || (filepath.Base(command[0]) == "systemd")) {
+	if command != nil && c.Bool("systemd") && (command[0] == "/usr/sbin/init" || (filepath.Base(command[0]) == "systemd")) {
 		systemd = true
 		if signalString == "" {
 			stopSignal, err = signal.ParseSignal("RTMIN+3")
