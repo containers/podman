@@ -1246,6 +1246,7 @@ _podman_build() {
 	  -q
 	  --rm
 	  --squash
+	  --squash-all
 	  --tls-verify
   "
 

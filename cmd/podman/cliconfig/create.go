@@ -12,13 +12,20 @@ type RunValues struct {
 	PodmanCommand
 }
 
+// PodmanBuildResults represents the results for Podman Build flags
+// that are unique to Podman.
+type PodmanBuildResults struct {
+	SquashAll bool
+}
+
 type BuildValues struct {
 	PodmanCommand
 	*buildahcli.BudResults
 	*buildahcli.UserNSResults
 	*buildahcli.FromAndBudResults
-	*buildahcli.NameSpaceResults
 	*buildahcli.LayerResults
+	*buildahcli.NameSpaceResults
+	*PodmanBuildResults
 }
 
 type CpValues struct {
