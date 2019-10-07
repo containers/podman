@@ -7,6 +7,7 @@ import (
 	"path"
 	"strings"
 
+	cg "github.com/containers/libpod/pkg/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -227,12 +228,18 @@ func checkCgroupCpusetInfo(cgMounts map[string]string, quiet bool) cgroupCpusetI
 
 // checkCgroupPids reads the pids information from the pids cgroup mount point.
 func checkCgroupPids(quiet bool) cgroupPids {
-	_, err := cgroups.FindCgroupMountpoint("", "pids")
+	cgroup2, err := cg.IsCgroup2UnifiedMode()
 	if err != nil {
-		if !quiet {
-			logrus.Warn(err)
+		logrus.Errorf("Failed to check cgroups version: %v", err)
+	}
+	if !cgroup2 {
+		_, err := cgroups.FindCgroupMountpoint("", "pids")
+		if err != nil {
+			if !quiet {
+				logrus.Warn(err)
+			}
+			return cgroupPids{}
 		}
-		return cgroupPids{}
 	}
 
 	return cgroupPids{

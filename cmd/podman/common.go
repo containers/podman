@@ -11,6 +11,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/fatih/camelcase"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
@@ -374,8 +375,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"PID namespace to use",
 	)
 	createFlags.Int64(
-		"pids-limit", 0,
-		"Tune container pids limit (set -1 for unlimited)",
+		"pids-limit", sysinfo.GetDefaultPidsLimit(),
+		"Tune container pids limit (set 0 for unlimited)",
 	)
 	createFlags.String(
 		"pod", "",

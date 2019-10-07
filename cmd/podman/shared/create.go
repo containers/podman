@@ -686,6 +686,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		logDriver = c.String("log-driver")
 	}
 
+	pidsLimit := c.Int64("pids-limit")
+	if c.String("cgroups") == "disabled" && !c.Changed("pids-limit") {
+		pidsLimit = 0
+	}
+
 	config := &cc.CreateConfig{
 		Annotations:       annotations,
 		BuiltinImgVolumes: ImageVolumes,
@@ -764,7 +769,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			MemorySwappiness:  int(memorySwappiness),
 			KernelMemory:      memoryKernel,
 			OomScoreAdj:       c.Int("oom-score-adj"),
-			PidsLimit:         c.Int64("pids-limit"),
+			PidsLimit:         pidsLimit,
 			Ulimit:            c.StringSlice("ulimit"),
 		},
 		RestartPolicy: c.String("restart"),
