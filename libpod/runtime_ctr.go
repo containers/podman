@@ -576,9 +576,31 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
 	}
+
 	id, err := r.state.LookupContainerID(idOrName)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to find container %q in state", idOrName)
+	}
+
+	// Begin by trying a normal removal. Valid containers will be removed normally.
+	tmpCtr, err := r.state.Container(id)
+	if err == nil {
+		logrus.Infof("Container %s successfully retrieved from state, attempting normal removal", id)
+		// Assume force = true for the evict case
+		err = r.removeContainer(ctx, tmpCtr, true, removeVolume, false)
+		if !tmpCtr.valid {
+			// If the container is marked invalid, remove succeeded
+			// in kicking it out of the state - no need to continue.
+			return id, err
+		}
+
+		if err == nil {
+			// Something has gone seriously wrong - no error but
+			// container was not removed.
+			logrus.Errorf("Container %s not removed with no error", id)
+		} else {
+			logrus.Warnf("Failed to removal container %s normally, proceeding with evict: %v", id, err)
+		}
 	}
 
 	// Error out if the container does not exist in libpod
