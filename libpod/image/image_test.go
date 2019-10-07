@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/containers/libpod/libpod/events"
@@ -291,4 +292,34 @@ func TestNormalizedTag(t *testing.T) {
 			assert.Equal(t, c.expected, res.String())
 		}
 	}
+}
+
+func TestImageMount(t *testing.T) {
+	if os.Geteuid() != 0 { // containers/storage requires root access
+		t.Skipf("Test not running as root")
+	}
+
+	//Set up
+	workdir, err := mkWorkDir()
+	t.Log(workdir)
+	assert.NoError(t, err)
+
+	so := storage.StoreOptions{
+		RunRoot:   workdir,
+		GraphRoot: workdir,
+	}
+	ir, err := NewImageRuntimeFromOptions(so)
+	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
+	newImage, err := ir.New(context.Background(), "docker.io/library/ubuntu:latest", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing)
+	assert.NoError(t, err)
+
+	mountPoint, err := ir.MountImage(newImage.ID())
+	mountPoint, err = filepath.EvalSymlinks(mountPoint)
+	assert.NoError(t, err)
+
+	_, err = ir.UnmountImage(newImage.ID(), false)
+	assert.NoError(t, err)
+	cleanup(workdir, ir)
+
 }

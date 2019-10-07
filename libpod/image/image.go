@@ -113,6 +113,37 @@ func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
 	return &image
 }
 
+// MountImage mounts the image to tempfolder and returns.
+func (ir *Runtime) MountImage(idOrName string) (string, error) {
+	image, err := ir.store.Image(idOrName)
+	if err != nil {
+		return "", err
+	}
+	//get image top layer id
+	mountPoint, err := ir.store.MountImage(image.TopLayer, []string{"ro"})
+	if err != nil {
+		logrus.Debugf("failed to mount image %q: %v", image.ID, err)
+		return "", err
+	}
+	logrus.Debugf("mounted image %q at %q", image.ID, mountPoint)
+	return mountPoint, nil
+}
+
+// UnmountImage unmounts image
+func (ir *Runtime) UnmountImage(idOrName string, force bool) (bool, error) {
+	image, err := ir.store.Image(idOrName)
+	if err != nil {
+		return false, err
+	}
+	// pass top layer of image for umount
+	mounted, err := ir.store.Unmount(image.TopLayer, force)
+	if err != nil {
+		return false, err
+	}
+	logrus.Debugf("unmounted image %q ", image.ID)
+	return mounted, nil
+}
+
 // NewFromLocal creates a new image object that is intended
 // to only deal with local images already in the store (or
 // its aliases)

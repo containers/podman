@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/v4/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -209,6 +209,36 @@ func (r *storageService) GetContainerMetadata(idOrName string) (RuntimeContainer
 		return metadata, err
 	}
 	return metadata, nil
+}
+
+// MountImage mounts the image to tempfolder and returns.
+func (r *storageService) MountImage(idOrName string) (string, error) {
+	image, err := r.store.Image(idOrName)
+	if err != nil {
+		return "", err
+	}
+	mountPoint, err := r.store.MountImage(image.ID, []string{"ro"})
+	if err != nil {
+		logrus.Debugf("failed to mount image %q: %v", image.ID, err)
+		return "", err
+	}
+	logrus.Debugf("mounted image %q at %q", image.ID, mountPoint)
+	return mountPoint, nil
+}
+
+func (r *storageService) UnmountImage(idOrName string, force bool) (bool, error) {
+	image, err := r.store.Image(idOrName)
+	if err != nil {
+		return false, err
+	}
+	mounted, err := r.store.Unmount(image.TopLayer, force)
+	if err != nil {
+		logrus.Debugf("failed to unmount image %q: %v", image.ID, err)
+		return false, err
+	}
+	logrus.Debugf("unmounted image %q", image.ID)
+	return mounted, nil
+
 }
 
 func (r *storageService) MountContainerImage(idOrName string) (string, error) {
