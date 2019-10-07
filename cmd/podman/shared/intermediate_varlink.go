@@ -152,7 +152,7 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		Subuidname:             StringToPtr(g.Find("subuidname")),
 		Subgidname:             StringToPtr(g.Find("subgidname")),
 		Sysctl:                 StringSliceToPtr(g.Find("sysctl")),
-		Systemd:                BoolToPtr(g.Find("systemd")),
+		Systemd:                StringToPtr(g.Find("systemd")),
 		Tmpfs:                  StringSliceToPtr(g.Find("tmpfs")),
 		Tty:                    BoolToPtr(g.Find("tty")),
 		Uidmap:                 StringSliceToPtr(g.Find("uidmap")),
@@ -321,6 +321,7 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 
 	var memSwapDefault int64 = -1
 	netModeDefault := "bridge"
+	systemdDefault := "true"
 	if rootless.IsRootless() {
 		netModeDefault = "slirp4netns"
 	}
@@ -409,7 +410,7 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["subgidname"] = stringFromVarlink(opts.Subgidname, "subgidname", nil)
 	m["subuidname"] = stringFromVarlink(opts.Subuidname, "subuidname", nil)
 	m["sysctl"] = stringSliceFromVarlink(opts.Sysctl, "sysctl", nil)
-	m["systemd"] = boolFromVarlink(opts.Systemd, "systemd", cliconfig.DefaultSystemD)
+	m["systemd"] = stringFromVarlink(opts.Systemd, "systemd", &systemdDefault)
 	m["tmpfs"] = stringSliceFromVarlink(opts.Tmpfs, "tmpfs", nil)
 	m["tty"] = boolFromVarlink(opts.Tty, "tty", false)
 	m["uidmap"] = stringSliceFromVarlink(opts.Uidmap, "uidmap", nil)

@@ -709,10 +709,15 @@ Network Namespace - current sysctls allowed:
     Sysctls beginning with net.*
 
 Note: if you use the --network=host option these sysctls will not be allowed.
-x
-**--systemd**=*true|false*
+
+**--systemd**=*true|false|always*
 
 Run container in systemd mode. The default is *true*.
+
+The value *always* enforces the systemd mode is enforced without
+looking at the executable name.  Otherwise, if set to true and the
+command you are running inside the container is systemd or
+/usr/sbin/init.
 
 If the command you are running inside of the container is systemd or
 /usr/sbin/init, Podman will setup tmpfs mount points in the following
