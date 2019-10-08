@@ -939,6 +939,9 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 
 	// With the spec complete, do an OCI create
 	if err := c.ociRuntime.createContainer(c, nil); err != nil {
+		if strings.Contains(err.Error(), "this version of runc doesn't work on cgroups v2") {
+			logrus.Errorf("oci runtime %q does not support CGroups V2: use system migrate to mitigate", c.ociRuntime.name)
+		}
 		return err
 	}
 
