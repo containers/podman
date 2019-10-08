@@ -368,6 +368,7 @@ testing_task:
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
+        varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
 
 # Test crun only on latest Fedora
 testing_crun_task:

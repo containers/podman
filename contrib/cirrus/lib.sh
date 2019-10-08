@@ -35,6 +35,9 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
 
+# Log remote-client system test varlink output here
+export VARLINK_LOG=/var/tmp/varlink.log
+
 cd $GOSRC
 if type -P git &> /dev/null && [[ -d "$GOSRC/.git" ]]
 then
