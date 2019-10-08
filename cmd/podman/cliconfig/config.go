@@ -651,6 +651,7 @@ type SystemRenumberValues struct {
 
 type SystemMigrateValues struct {
 	PodmanCommand
+	NewRuntime string
 }
 
 type SystemDfValues struct {

@@ -14,31 +14,31 @@ import (
 )
 
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
-func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, true, false, true)
+func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand, newRuntime string) (*libpod.Runtime, error) {
+	return getRuntime(ctx, c, false, true, false, true, newRuntime)
 }
 
 // GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
 func GetRuntimeDisableFDs(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, false, false)
+	return getRuntime(ctx, c, false, false, false, false, "")
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, true, false, false, true)
+	return getRuntime(ctx, c, true, false, false, true, "")
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, false, true)
+	return getRuntime(ctx, c, false, false, false, true, "")
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options
 func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, true, true)
+	return getRuntime(ctx, c, false, false, true, true, "")
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool) (*libpod.Runtime, error) {
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool, newRuntime string) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -88,6 +88,9 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 	}
 	if migrate {
 		options = append(options, libpod.WithMigrate())
+		if newRuntime != "" {
+			options = append(options, libpod.WithMigrateRuntime(newRuntime))
+		}
 	}
 
 	if renumber {

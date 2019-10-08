@@ -463,6 +463,28 @@ func WithMigrate() RuntimeOption {
 	}
 }
 
+// WithMigrateRuntime instructs Libpod to change the default OCI runtime on all
+// containers during a migration. This is not used if `MigrateRuntime()` is not
+// also passed.
+// Libpod makes no promises that your containers continue to work with the new
+// runtime - migrations between dissimilar runtimes may well break things.
+// Use with caution.
+func WithMigrateRuntime(requestedRuntime string) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		if requestedRuntime == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "must provide a non-empty name for new runtime")
+		}
+
+		rt.migrateRuntime = requestedRuntime
+
+		return nil
+	}
+}
+
 // WithEventsLogger sets the events backend to use.
 // Currently supported values are "file" for file backend and "journald" for
 // journald backend.
