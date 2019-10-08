@@ -13,7 +13,7 @@ import (
 )
 
 // ExecAttachCtr execs and attaches to a container
-func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged bool, env, cmd []string, user, workDir string, streams *libpod.AttachStreams, preserveFDs int, detachKeys string) (int, error) {
+func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *libpod.AttachStreams, preserveFDs uint, detachKeys string) (int, error) {
 	resize := make(chan remotecommand.TerminalSize)
 
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))

@@ -129,7 +129,7 @@ type Container struct {
 	valid      bool
 	lock       lock.Locker
 	runtime    *Runtime
-	ociRuntime *OCIRuntime
+	ociRuntime OCIRuntime
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File

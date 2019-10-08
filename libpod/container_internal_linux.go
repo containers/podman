@@ -659,7 +659,7 @@ func (c *Container) checkpointRestoreSupported() (err error) {
 	if !criu.CheckForCriu() {
 		return errors.Errorf("Checkpoint/Restore requires at least CRIU %d", criu.MinCriuVersion)
 	}
-	if !c.ociRuntime.featureCheckCheckpointing() {
+	if !c.ociRuntime.SupportsCheckpoint() {
 		return errors.Errorf("Configured runtime does not support checkpoint/restore")
 	}
 	return nil
@@ -695,7 +695,7 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return err
 	}
 
-	if err := c.ociRuntime.checkpointContainer(c, options); err != nil {
+	if err := c.ociRuntime.CheckpointContainer(c, options); err != nil {
 		return err
 	}
 
@@ -923,7 +923,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
-	if err := c.ociRuntime.createContainer(c, &options); err != nil {
+	if err := c.ociRuntime.CreateContainer(c, &options); err != nil {
 		return err
 	}
 

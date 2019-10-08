@@ -102,7 +102,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	ctr.config.StopTimeout = define.CtrRemoveTimeout
 
-	ctr.config.OCIRuntime = r.defaultOCIRuntime.name
+	ctr.config.OCIRuntime = r.defaultOCIRuntime.Name()
 
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
@@ -167,8 +167,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 
 	// Check NoCgroups support
 	if ctr.config.NoCgroups {
-		if !ctr.ociRuntime.supportsNoCgroups {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "requested OCI runtime %s is not compatible with NoCgroups", ctr.ociRuntime.name)
+		if !ctr.ociRuntime.SupportsNoCgroups() {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "requested OCI runtime %s is not compatible with NoCgroups", ctr.ociRuntime.Name())
 		}
 	}
 
@@ -430,7 +430,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 	}
 
 	if c.state.State == define.ContainerStatePaused {
-		if err := c.ociRuntime.killContainer(c, 9); err != nil {
+		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
 			return err
 		}
 		if err := c.unpause(); err != nil {
@@ -444,15 +444,15 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.StopTimeout()); err != nil {
+		if err := c.stop(c.StopTimeout(), true); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 	}
 
 	// Check that all of our exec sessions have finished
-	if len(c.state.ExecSessions) != 0 {
-		if err := c.ociRuntime.execStopContainer(c, c.StopTimeout()); err != nil {
-			return err
+	for _, session := range c.state.ExecSessions {
+		if err := c.ociRuntime.ExecStopContainer(c, session.ID, c.StopTimeout()); err != nil {
+			return errors.Wrapf(err, "error stopping exec session %s of container %s", session.ID, c.ID())
 		}
 	}
 

@@ -123,7 +123,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		if timeout > -1 {
 			stopTimeout = uint(timeout)
 		}
-		if err := ctr.stop(stopTimeout); err != nil {
+		if err := ctr.stop(stopTimeout, false); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
@@ -370,7 +370,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 			continue
 		}
 
-		if err := ctr.ociRuntime.killContainer(ctr, signal); err != nil {
+		if err := ctr.ociRuntime.KillContainer(ctr, signal, false); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
