@@ -30,7 +30,7 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5816955207942144"
+    _BUILT_IMAGE_SUFFIX: "libpod-6296905679634432"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
     SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
@@ -369,38 +369,6 @@ testing_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
 
-# Test crun only on latest Fedora
-testing_crun_task:
-
-    depends_on:
-        - "gating"
-        - "vendor"
-        - "varlink_api"
-        - "build_each_commit"
-        - "build_without_cgo"
-
-    # Only test build cache-images, if that's what's requested
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
-
-    timeout_in: 120m
-
-    env:
-        ADD_SECOND_PARTITION: true
-        OCI_RUNTIME: "/usr/bin/crun"
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    install_crun_script: 'dnf install -y crun'
-    unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
-
 
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
@@ -686,7 +654,6 @@ success_task:
         - "meta"
         - "image_prune"
         - "testing"
-        - "testing_crun"
         - "special_testing_rootless"
         - "special_testing_in_podman"
         - "special_testing_cgroupv2"

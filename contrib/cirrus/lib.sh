@@ -370,8 +370,8 @@ remove_packaged_podman_files() {
     # yum/dnf/dpkg may list system directories, only remove files
     $LISTING_CMD | while read fullpath
     do
-        # TODO: This can go away when conmon gets it's own package
-        if [[ -d "$fullpath" ]] || [[ $(basename "$fullpath") == "conmon" ]] ; then continue; fi
+        # Sub-directories may contain unrelated/valuable stuff
+        if [[ -d "$fullpath" ]]; then continue; fi
         ooe.sh sudo rm -vf "$fullpath"
     done
 
