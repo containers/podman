@@ -69,6 +69,18 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 			program["Package"] = packageVersion(path)
 			info["slirp4netns"] = program
 		}
+		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading uid mappings")
+		}
+		gidmappings, err := rootless.ReadMappingsProc("/proc/self/gid_map")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading gid mappings")
+		}
+		idmappings := make(map[string]interface{})
+		idmappings["uidmap"] = uidmappings
+		idmappings["gidmap"] = gidmappings
+		info["IDMappings"] = idmappings
 	}
 	info["OCIRuntime"] = map[string]interface{}{
 		"path":    r.defaultOCIRuntime.path,
@@ -128,6 +140,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	}
 	info["hostname"] = host
 	info["eventlogger"] = r.eventer.String()
+
 	return info, nil
 }
 
