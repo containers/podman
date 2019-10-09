@@ -89,6 +89,9 @@ RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
 RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)
 RELEASE_BASENAME := $(shell hack/get_release_info.sh BASENAME)
 
+# If non-empty, logs all output from varlink during remote system testing
+VARLINK_LOG ?=
+
 # If GOPATH not specified, use one in the local directory
 ifeq ($(GOPATH),)
 export GOPATH := $(CURDIR)/_output
@@ -274,7 +277,7 @@ remotesystem:
 	if timeout -v 1 true; then \
 		SOCK_FILE=$(shell mktemp --dry-run --tmpdir io.podman.XXXXXX);\
 		export PODMAN_VARLINK_ADDRESS=unix:$$SOCK_FILE; \
-		./bin/podman varlink --timeout=0 $$PODMAN_VARLINK_ADDRESS &>/dev/null & \
+		./bin/podman varlink --timeout=0 $$PODMAN_VARLINK_ADDRESS &> $(if $(VARLINK_LOG),$(VARLINK_LOG),/dev/null) & \
 		retry=5;\
 		while [[ $$retry -ge 0 ]]; do\
 			echo Waiting for varlink server...;\

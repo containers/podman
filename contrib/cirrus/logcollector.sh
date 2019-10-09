@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var CIRRUS_WORKING_DIR OS_RELEASE_ID
+req_env_var CIRRUS_WORKING_DIR OS_RELEASE_ID TEST_REMOTE_CLIENT
 
 # Assume there are other log collection commands to follow - Don't
 # let one break another that may be useful, but also keep any
@@ -32,6 +32,15 @@ case $1 in
     df) showrun df -lhTx tmpfs ;;
     ginkgo) showrun cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log ;;
     journal) showrun journalctl -b ;;
+    varlink)
+       if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
+       then
+          echo "(Trailing 100 lines of $VARLINK_LOG)"
+          showrun tail -100 $VARLINK_LOG
+       else
+          die 0 "\$TEST_REMOTE_CLIENT is not 'true': $TEST_REMOTE_CLIENT"
+       fi
+       ;;
     packages)
         # These names are common to Fedora and Ubuntu
         PKG_NAMES=(\

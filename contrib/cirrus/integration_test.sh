@@ -4,7 +4,7 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME
+req_env_var GOSRC SCRIPT_BASE OS_RELEASE_ID OS_RELEASE_VER CONTAINER_RUNTIME VARLINK_LOG
 
 # Our name must be of the form xxxx_test or xxxx_test.sh, where xxxx is
 # the test suite to run; currently (2019-05) the only option is 'integration'
@@ -59,7 +59,7 @@ case "$SPECIALMODE" in
         make test-binaries
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then
-            make remote${TESTSUITE}
+            make remote${TESTSUITE} VARLINK_LOG=$VARLINK_LOG
         else
             make local${TESTSUITE}
         fi
