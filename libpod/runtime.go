@@ -1469,6 +1469,25 @@ func (r *Runtime) GetOCIRuntimePath() string {
 // TODO Once runc has support for cgroups, this function should be removed.
 func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
 	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		if tmpConfig.CgroupManager == SystemdCgroupsManager {
+			// If we are running rootless and the systemd manager is requested, be sure that dbus is accessible
+			session := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
+			hasSession := session != ""
+			if hasSession && strings.HasPrefix(session, "unix:path=") {
+				_, err := os.Stat(strings.TrimPrefix(session, "unix:path="))
+				hasSession = err == nil
+			}
+
+			if !hasSession {
+				logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
+				logrus.Warningf("For using systemd, you may need to login using an user session")
+				logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibily as root)", rootless.GetRootlessUID())
+				logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
+
+				tmpConfig.CgroupManager = CgroupfsCgroupsManager
+			}
+
+		}
 		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return err
@@ -1482,7 +1501,7 @@ func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
 			}
 			tmpConfig.CgroupCheck = true
 			tmpConfig.OCIRuntime = path
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE, 0666)
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 			if err != nil {
 				return errors.Wrapf(err, "cannot open file %s", configPath)
 			}
