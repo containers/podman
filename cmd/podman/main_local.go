@@ -200,17 +200,12 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		return errors.Wrapf(err, "could not get pause process pid file path")
 	}
 
-	if _, err := os.Stat(pausePidPath); err == nil {
-		became, ret, err := rootless.TryJoinFromFilePaths("", false, []string{pausePidPath})
-		if err != nil {
-			logrus.Errorf("cannot join pause process.  You may need to remove %s and stop all containers", pausePidPath)
-			logrus.Errorf("you can use `%s system migrate` to recreate the pause process and restart the containers", os.Args[0])
-			logrus.Errorf(err.Error())
-			os.Exit(1)
-		}
-		if became {
-			os.Exit(ret)
-		}
+	became, ret, err := rootless.TryJoinPauseProcess(pausePidPath)
+	if err != nil {
+		return err
+	}
+	if became {
+		os.Exit(ret)
 	}
 
 	// if there is no pid file, try to join existing containers, and create a pause process.
@@ -225,7 +220,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		paths = append(paths, ctr.Config().ConmonPidFile)
 	}
 
-	became, ret, err := rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+	became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
 	if err := movePauseProcessToScope(); err != nil {
 		conf, err := runtime.GetConfig()
 		if err != nil {

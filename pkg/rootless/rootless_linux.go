@@ -566,10 +566,10 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 			r, w := os.NewFile(uintptr(fds[0]), "read file"), os.NewFile(uintptr(fds[1]), "write file")
 
-			defer errorhandling.CloseQuiet(w)
 			defer errorhandling.CloseQuiet(r)
 
 			if _, _, err := becomeRootInUserNS("", path, w); err != nil {
+				w.Close()
 				lastErr = err
 				continue
 			}
@@ -578,7 +578,6 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 				return false, 0, err
 			}
 			defer func() {
-				errorhandling.CloseQuiet(r)
 				C.reexec_in_user_namespace_wait(-1, 0)
 			}()
 
