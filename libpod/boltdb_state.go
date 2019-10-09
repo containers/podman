@@ -2,6 +2,7 @@ package libpod
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"sync"
 
@@ -658,9 +659,13 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return err
 	}
 
-	// Handle network namespace
-	if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
-		return err
+	// Handle network namespace.
+	if os.Geteuid() == 0 {
+		// Do it only when root, either on the host or as root in the
+		// user namespace.
+		if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
+			return err
+		}
 	}
 
 	// New state compiled successfully, swap it into the current state
