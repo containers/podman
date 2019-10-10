@@ -21,7 +21,7 @@ func GetAuthFile(authfile string) string {
 	}
 
 	if runtimeDir, err := util.GetRuntimeDir(); err == nil {
-		return filepath.Join(runtimeDir, "auth.json")
+		return filepath.Join(runtimeDir, "containers/auth.json")
 	}
 	return ""
 }
