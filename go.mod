@@ -14,9 +14,8 @@ require (
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.11.3
-	github.com/containers/image v3.0.2+incompatible // indirect
 	github.com/containers/image/v4 v4.0.1
-	github.com/containers/psgo v1.3.1
+	github.com/containers/psgo v1.3.2
 	github.com/containers/storage v1.13.4
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
