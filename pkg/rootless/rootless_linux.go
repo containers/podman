@@ -431,12 +431,14 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write setgroups file")
 		}
+		logrus.Debugf("write setgroups file exited with 0")
 
 		uidMap := fmt.Sprintf("/proc/%d/uid_map", pid)
 		err = ioutil.WriteFile(uidMap, []byte(fmt.Sprintf("%d %d 1\n", 0, os.Geteuid())), 0666)
 		if err != nil {
 			return false, -1, errors.Wrapf(err, "cannot write uid_map")
 		}
+		logrus.Debugf("write uid_map exited with 0")
 	}
 
 	gidsMapped := false
@@ -602,7 +604,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 	return joinUserAndMountNS(uint(pausePid), pausePidPath)
 }
-func readMappingsProc(path string) ([]idtools.IDMap, error) {
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot open %s", path)
@@ -668,7 +670,7 @@ func ConfigurationMatches() (bool, error) {
 		return false, err
 	}
 
-	currentUIDs, err := readMappingsProc("/proc/self/uid_map")
+	currentUIDs, err := ReadMappingsProc("/proc/self/uid_map")
 	if err != nil {
 		return false, err
 	}
@@ -677,7 +679,7 @@ func ConfigurationMatches() (bool, error) {
 		return false, err
 	}
 
-	currentGIDs, err := readMappingsProc("/proc/self/gid_map")
+	currentGIDs, err := ReadMappingsProc("/proc/self/gid_map")
 	if err != nil {
 		return false, err
 	}

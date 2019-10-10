@@ -65,3 +65,8 @@ func ConfigurationMatches() (bool, error) {
 func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
 }
+
+// ReadMappingsProc returns the uid_map and gid_map
+func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
+	return nil, nil
+}
