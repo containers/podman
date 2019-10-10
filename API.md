@@ -1591,7 +1591,7 @@ subgidname [?string](#?string)
 
 sysctl [?[]string](#?[]string)
 
-systemd [?bool](#?bool)
+systemd [?string](#?string)
 
 tmpfs [?[]string](#?[]string)
 

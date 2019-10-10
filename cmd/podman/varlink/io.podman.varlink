@@ -363,7 +363,7 @@ type Create (
     subuidname: ?string,
     subgidname: ?string,
     sysctl: ?[]string,
-    systemd: ?bool,
+    systemd: ?string,
     tmpfs: ?[]string,
     tty: ?bool,
     uidmap: ?[]string,

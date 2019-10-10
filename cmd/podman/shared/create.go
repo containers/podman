@@ -662,9 +662,17 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		return nil, errors.Errorf("invalid image-volume type %q. Pick one of bind, tmpfs, or ignore", c.String("image-volume"))
 	}
 
-	var systemd bool
-	if command != nil && c.Bool("systemd") && ((filepath.Base(command[0]) == "init") || (filepath.Base(command[0]) == "systemd")) {
-		systemd = true
+	systemd := c.String("systemd") == "always"
+	if !systemd && command != nil {
+		x, err := strconv.ParseBool(c.String("systemd"))
+		if err != nil {
+			return nil, errors.Wrapf(err, "cannot parse bool %s", c.String("systemd"))
+		}
+		if x && (command[0] == "/usr/sbin/init" || (filepath.Base(command[0]) == "systemd")) {
+			systemd = true
+		}
+	}
+	if systemd {
 		if signalString == "" {
 			stopSignal, err = signal.ParseSignal("RTMIN+3")
 			if err != nil {

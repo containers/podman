@@ -455,9 +455,9 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"sysctl", []string{},
 		"Sysctl options (default [])",
 	)
-	createFlags.Bool(
-		"systemd", cliconfig.DefaultSystemD,
-		"Run container in systemd mode if the command executable is systemd or init",
+	createFlags.String(
+		"systemd", "true",
+		`Run container in systemd mode ("true"|"false"|"always" (default "true")`,
 	)
 	createFlags.StringArray(
 		"tmpfs", []string{},
