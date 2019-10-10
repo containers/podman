@@ -264,6 +264,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		g.RemoveMount("/etc/hosts")
 		g.RemoveMount("/run/.containerenv")
 		g.RemoveMount("/run/secrets")
+
+		// Regenerate CGroup paths so they don't point to the old
+		// container ID.
+		cgroupPath, err := ctr.getOCICgroupPath()
+		if err != nil {
+			return nil, err
+		}
+		g.SetLinuxCgroupsPath(cgroupPath)
 	}
 
 	// Set up storage for the container

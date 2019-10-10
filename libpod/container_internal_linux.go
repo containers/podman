@@ -419,27 +419,11 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		g.AddProcessEnv("container", "libpod")
 	}
 
-	unified, err := cgroups.IsCgroup2UnifiedMode()
+	cgroupPath, err := c.getOCICgroupPath()
 	if err != nil {
 		return nil, err
 	}
-	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
-		g.SetLinuxCgroupsPath("")
-	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
-		// When runc is set to use Systemd as a cgroup manager, it
-		// expects cgroups to be passed as follows:
-		// slice:prefix:name
-		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
-		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
-		g.SetLinuxCgroupsPath(systemdCgroups)
-	} else {
-		cgroupPath, err := c.CGroupPath()
-		if err != nil {
-			return nil, err
-		}
-		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
-		g.SetLinuxCgroupsPath(cgroupPath)
-	}
+	g.SetLinuxCgroupsPath(cgroupPath)
 
 	// Mounts need to be sorted so paths will not cover other paths
 	mounts := sortMounts(g.Mounts())
@@ -1331,4 +1315,31 @@ func (c *Container) refreshCNI() error {
 	// Let's try and delete any lingering network config...
 	podNetwork := c.runtime.getPodNetwork(c.ID(), c.config.Name, "", c.config.Networks, c.config.PortMappings, c.config.StaticIP)
 	return c.runtime.netPlugin.TearDownPod(podNetwork)
+}
+
+// Get cgroup path in a format suitable for the OCI spec
+func (c *Container) getOCICgroupPath() (string, error) {
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return "", err
+	}
+	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
+		return "", nil
+	} else if c.runtime.config.CgroupManager == SystemdCgroupsManager {
+		// When runc is set to use Systemd as a cgroup manager, it
+		// expects cgroups to be passed as follows:
+		// slice:prefix:name
+		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
+		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
+		return systemdCgroups, nil
+	} else if c.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+		cgroupPath, err := c.CGroupPath()
+		if err != nil {
+			return "", err
+		}
+		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
+		return cgroupPath, nil
+	} else {
+		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.CgroupManager)
+	}
 }
