@@ -15,7 +15,6 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
@@ -48,14 +47,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["MemFree"] = mi.MemFree
 	info["SwapTotal"] = mi.SwapTotal
 	info["SwapFree"] = mi.SwapFree
-	conmonVersion, _ := r.GetConmonVersion()
-	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
 	hostDistributionInfo := r.GetHostDistributionInfo()
-	info["Conmon"] = map[string]interface{}{
-		"path":    r.conmonPath,
-		"package": r.defaultOCIRuntime.conmonPackage(),
-		"version": conmonVersion,
-	}
 	if rootless.IsRootless() {
 		if path, err := exec.LookPath("slirp4netns"); err == nil {
 			logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
@@ -82,11 +74,6 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		idmappings["gidmap"] = gidmappings
 		info["IDMappings"] = idmappings
 	}
-	info["OCIRuntime"] = map[string]interface{}{
-		"path":    r.defaultOCIRuntime.path,
-		"package": r.defaultOCIRuntime.pathPackage(),
-		"version": ociruntimeVersion,
-	}
 	info["Distribution"] = map[string]interface{}{
 		"distribution": hostDistributionInfo["Distribution"],
 		"version":      hostDistributionInfo["Version"],
@@ -97,6 +84,15 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		return nil, errors.Wrapf(err, "error reading kernel version")
 	}
 	info["kernel"] = kv
+
+	runtimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
+	if err != nil {
+		logrus.Errorf("Error getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
+	} else {
+		for k, v := range runtimeInfo {
+			info[k] = v
+		}
+	}
 
 	up, err := readUptime()
 	if err != nil {
@@ -226,29 +222,6 @@ func readUptime() (string, error) {
 		return "", fmt.Errorf("invalid uptime")
 	}
 	return string(f[0]), nil
-}
-
-// GetConmonVersion returns a string representation of the conmon version
-func (r *Runtime) GetConmonVersion() (string, error) {
-	output, err := utils.ExecCmd(r.conmonPath, "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
-}
-
-// GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
-func (r *Runtime) GetOCIRuntimePath() string {
-	return r.defaultOCIRuntime.path
-}
-
-// GetOCIRuntimeVersion returns a string representation of the oci runtimes version
-func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.GetOCIRuntimePath(), "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(output, "\n"), nil
 }
 
 // GetHostDistributionInfo returns a map containing the host's distribution and version

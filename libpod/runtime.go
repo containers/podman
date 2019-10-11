@@ -99,8 +99,8 @@ type Runtime struct {
 	store             storage.Store
 	storageService    *storageService
 	imageContext      *types.SystemContext
-	defaultOCIRuntime *OCIRuntime
-	ociRuntimes       map[string]*OCIRuntime
+	defaultOCIRuntime OCIRuntime
+	ociRuntimes       map[string]OCIRuntime
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
 	imageRuntime      *image.Runtime
@@ -1057,7 +1057,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	}
 
 	// Get us at least one working OCI runtime.
-	runtime.ociRuntimes = make(map[string]*OCIRuntime)
+	runtime.ociRuntimes = make(map[string]OCIRuntime)
 
 	// Is the old runtime_path defined?
 	if runtime.config.RuntimePath != nil {
@@ -1076,7 +1076,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		json := supportsJSON[name]
 		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
+		ociRuntime, err := newConmonOCIRuntime(name, runtime.config.RuntimePath, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			return err
 		}
@@ -1090,7 +1090,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		json := supportsJSON[name]
 		nocgroups := supportsNoCgroups[name]
 
-		ociRuntime, err := newOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
+		ociRuntime, err := newConmonOCIRuntime(name, paths, runtime.conmonPath, runtime.config, json, nocgroups)
 		if err != nil {
 			// Don't fatally error.
 			// This will allow us to ship configs including optional
@@ -1113,7 +1113,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 			json := supportsJSON[name]
 			nocgroups := supportsNoCgroups[name]
 
-			ociRuntime, err := newOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
+			ociRuntime, err := newConmonOCIRuntime(name, []string{runtime.config.OCIRuntime}, runtime.conmonPath, runtime.config, json, nocgroups)
 			if err != nil {
 				return err
 			}
@@ -1476,6 +1476,11 @@ func (r *Runtime) ImageRuntime() *image.Runtime {
 // SystemContext returns the imagecontext
 func (r *Runtime) SystemContext() *types.SystemContext {
 	return r.imageContext
+}
+
+// GetOCIRuntimePath retrieves the path of the default OCI runtime.
+func (r *Runtime) GetOCIRuntimePath() string {
+	return r.defaultOCIRuntime.Path()
 }
 
 // Since runc does not currently support cgroupV2

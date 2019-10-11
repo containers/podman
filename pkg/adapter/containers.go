@@ -899,7 +899,7 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	}()
 
 	cmd := append([]string{"ps"}, args...)
-	ec, err := c.Exec(false, false, []string{}, cmd, "", "", streams, 0, nil, "")
+	ec, err := c.Exec(false, false, map[string]string{}, cmd, "", "", streams, 0, nil, "")
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
@@ -959,12 +959,6 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 		return ec, errors.Wrapf(err, "unable to process environment variables")
 	}
 
-	// Build env slice of key=value strings for Exec
-	envs := []string{}
-	for k, v := range env {
-		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
-	}
-
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = os.Stdout
 	streams.ErrorStream = os.Stderr
@@ -975,7 +969,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, envs, cmd, cli.User, cli.Workdir, streams, cli.PreserveFDs, cli.DetachKeys)
+	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, env, cmd, cli.User, cli.Workdir, streams, uint(cli.PreserveFDs), cli.DetachKeys)
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 

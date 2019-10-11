@@ -44,3 +44,7 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 func (c *Container) refreshCNI() error {
 	return define.ErrNotImplemented
 }
+
+func (c *Container) getOCICgroupPath() (string, error) {
+	return "", define.ErrNotImplemented
+}

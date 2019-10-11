@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -563,9 +564,14 @@ func (i *LibpodAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) err
 		}
 	}
 
+	sockPath, err := ctr.AttachSocketPath()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
 	s := iopodman.Sockets{
 		Container_id:   ctr.ID(),
-		Io_socket:      ctr.AttachSocketPath(),
+		Io_socket:      sockPath,
 		Control_socket: ctr.ControlSocketPath(),
 	}
 	return call.ReplyGetAttachSockets(s)
@@ -811,9 +817,19 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 	// ACK the client upgrade request
 	call.ReplyExecContainer()
 
-	envs := []string{}
+	envs := make(map[string]string)
 	if opts.Env != nil {
-		envs = *opts.Env
+		// HACK: The Varlink API uses the old []string format for env,
+		// storage as "k=v". Split on the = and turn into the new map
+		// format.
+		for _, env := range *opts.Env {
+			splitEnv := strings.SplitN(env, "=", 2)
+			if len(splitEnv) == 1 {
+				logrus.Errorf("Got badly-formatted environment variable %q in exec", env)
+				continue
+			}
+			envs[splitEnv[0]] = splitEnv[1]
+		}
 	}
 
 	var user string
