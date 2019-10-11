@@ -302,8 +302,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit > 0 {
-		// if running on rootless on a cgroupv1 machine, pids limit is
-		// not supported.  If the value is still the default
+		// if running on rootless on a cgroupv1 machine or using the cgroupfs manager, pids
+		// limit is not supported.  If the value is still the default
 		// then ignore the settings.  If the caller asked for a
 		// non-default, then try to use it.
 		setPidLimit := true
@@ -312,7 +312,11 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			if err != nil {
 				return nil, err
 			}
-			if !cgroup2 && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+			runtimeConfig, err := runtime.GetConfig()
+			if err != nil {
+				return nil, err
+			}
+			if (!cgroup2 || runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
 				setPidLimit = false
 			}
 		}
