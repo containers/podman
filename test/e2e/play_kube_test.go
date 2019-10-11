@@ -23,7 +23,7 @@ metadata:
 spec:
   hostname: {{ .Hostname }}
   containers:
-{{ with .Containers }}
+{{ with .Ctrs }}
   {{ range . }}
   - command:
     {{ range .Cmd }}
@@ -95,21 +95,21 @@ func generateKubeYaml(pod *Pod, fileName string) error {
 
 // Pod describes the options a kube yaml can be configured at pod level
 type Pod struct {
-	Name       string
-	Hostname   string
-	Containers []*Container
+	Name     string
+	Hostname string
+	Ctrs     []*Ctr
 }
 
 // getPod takes a list of podOptions and returns a pod with sane defaults
 // and the configured options
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
-	p := Pod{defaultPodName, "", make([]*Container, 0)}
+	p := Pod{defaultPodName, "", make([]*Ctr, 0)}
 	for _, option := range options {
 		option(&p)
 	}
-	if len(p.Containers) == 0 {
-		p.Containers = []*Container{getContainer()}
+	if len(p.Ctrs) == 0 {
+		p.Ctrs = []*Ctr{getCtr()}
 	}
 	return &p
 }
@@ -122,14 +122,14 @@ func withHostname(h string) podOption {
 	}
 }
 
-func withContainer(c *Container) podOption {
+func withCtr(c *Ctr) podOption {
 	return func(pod *Pod) {
-		pod.Containers = append(pod.Containers, c)
+		pod.Ctrs = append(pod.Ctrs, c)
 	}
 }
 
-// Container describes the options a kube yaml can be configured at container level
-type Container struct {
+// Ctr describes the options a kube yaml can be configured at container level
+type Ctr struct {
 	Name            string
 	Image           string
 	Cmd             []string
@@ -139,45 +139,45 @@ type Container struct {
 	CapDrop         []string
 }
 
-// getContainer takes a list of containerOptions and returns a container with sane defaults
+// getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
-func getContainer(options ...containerOption) *Container {
-	c := Container{defaultCtrName, defaultCtrImage, defaultCtrCmd, true, false, nil, nil}
+func getCtr(options ...ctrOption) *Ctr {
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, true, false, nil, nil}
 	for _, option := range options {
 		option(&c)
 	}
 	return &c
 }
 
-type containerOption func(*Container)
+type ctrOption func(*Ctr)
 
-func withCmd(cmd []string) containerOption {
-	return func(c *Container) {
+func withCmd(cmd []string) ctrOption {
+	return func(c *Ctr) {
 		c.Cmd = cmd
 	}
 }
 
-func withImage(img string) containerOption {
-	return func(c *Container) {
+func withImage(img string) ctrOption {
+	return func(c *Ctr) {
 		c.Image = img
 	}
 }
 
-func withSecurityContext(sc bool) containerOption {
-	return func(c *Container) {
+func withSecurityContext(sc bool) ctrOption {
+	return func(c *Ctr) {
 		c.SecurityContext = sc
 	}
 }
 
-func withCapAdd(caps []string) containerOption {
-	return func(c *Container) {
+func withCapAdd(caps []string) ctrOption {
+	return func(c *Ctr) {
 		c.CapAdd = caps
 		c.Caps = true
 	}
 }
 
-func withCapDrop(caps []string) containerOption {
-	return func(c *Container) {
+func withCapDrop(caps []string) ctrOption {
+	return func(c *Ctr) {
 		c.CapDrop = caps
 		c.Caps = true
 	}
@@ -224,7 +224,7 @@ var _ = Describe("Podman generate kube", func() {
 	})
 
 	It("podman play kube test correct output", func() {
-		p := getPod(withContainer(getContainer(withCmd([]string{"echo", "hello"}))))
+		p := getPod(withCtr(getCtr(withCmd([]string{"echo", "hello"}))))
 
 		err := generateKubeYaml(p, kubeYaml)
 		Expect(err).To(BeNil())
@@ -275,9 +275,9 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube cap add", func() {
 		capAdd := "CAP_SYS_ADMIN"
-		ctr := getContainer(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}))
+		ctr := getCtr(withCapAdd([]string{capAdd}), withCmd([]string{"cat", "/proc/self/status"}))
 
-		err := generateKubeYaml(getPod(withContainer(ctr)), kubeYaml)
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -292,9 +292,9 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube cap drop", func() {
 		capDrop := "CAP_CHOWN"
-		ctr := getContainer(withCapDrop([]string{capDrop}))
+		ctr := getCtr(withCapDrop([]string{capDrop}))
 
-		err := generateKubeYaml(getPod(withContainer(ctr)), kubeYaml)
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
@@ -309,7 +309,7 @@ var _ = Describe("Podman generate kube", func() {
 
 	It("podman play kube no security context", func() {
 		// expect play kube to not fail if no security context is specified
-		err := generateKubeYaml(getPod(withContainer(getContainer(withSecurityContext(false)))), kubeYaml)
+		err := generateKubeYaml(getPod(withCtr(getCtr(withSecurityContext(false)))), kubeYaml)
 		Expect(err).To(BeNil())
 
 		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
