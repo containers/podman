@@ -1,23 +1,25 @@
 % podman-build(1)
 
 ## NAME
-podman\-build - Build a container image using a Dockerfile
+podman\-build - Build a container image using a Containerfile
 
 ## SYNOPSIS
-**podman build** [*options*] *context*
+**podman build** [*options*] [*context*]
 
-**podman image build** [*options*] *context*
+**podman image build** [*options*] [*context*]
 
 ## DESCRIPTION
-**podman build** Builds an image using instructions from one or more Dockerfiles and a specified build context directory.
+**podman build** Builds an image using instructions from one or more Containerfiles or Dockerfiles and a specified build context directory. A Containerfile uses the same syntax as a Dockerfile internally. For this document, a file referred to as a Containerfile can be a file named either 'Containerfile' or 'Dockerfile'.
 
-The build context directory can be specified as the http(s) URL of an archive, git repository or Dockerfile.
+The build context directory can be specified as the http(s) URL of an archive, git repository or Containerfile.
 
-Dockerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This can be useful to decompose Dockerfiles into several reusable parts that can be used via CPP's **#include** directive.  Notice, a Dockerfile.in file can still be used by other tools when manually preprocessing them via `cpp -E`.
+If no context directory is specified, then Podman will assume the current working directory as the build context, which should contain the Containerfile.
+
+Containerfiles ending with a ".in" suffix will be preprocessed via CPP(1).  This can be useful to decompose Containerfiles into several reusable parts that can be used via CPP's **#include** directive.  Notice, a Containerfile.in file can still be used by other tools when manually preprocessing them via `cpp -E`.
 
 When the URL is an archive, the contents of the URL is downloaded to a temporary location and extracted before execution.
 
-When the URL is an Dockerfile, the Dockerfile is downloaded to a temporary location.
+When the URL is an Containerfile, the Containerfile is downloaded to a temporary location.
 
 When a Git repository is set as the URL, the repository is cloned locally and then set as the context.
 
@@ -46,7 +48,7 @@ environment variable. `export REGISTRY_AUTH_FILE=path`
 **--build-arg**=*arg=value*
 
 Specifies a build argument and its value, which will be interpolated in
-instructions read from the Dockerfiles in the same way that environment
+instructions read from the Containerfiles in the same way that environment
 variables are, but which will not be added to environment variable list in the
 resulting image's configuration.
 
@@ -170,6 +172,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+**--device**=*device*
+
+Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
+
 **--disable-compression, -D**
 
 Don't compress filesystem layers when building the image unless it is required
@@ -201,22 +207,22 @@ Set custom DNS options
 
 Set custom DNS search domains
 
-**--file**, **-f**=*Dockerfile*
+**--file**, **-f**=*Containerfile*
 
-Specifies a Dockerfile which contains instructions for building the image,
+Specifies a Containerfile which contains instructions for building the image,
 either a local file or an **http** or **https** URL.  If more than one
-Dockerfile is specified, *FROM* instructions will only be accepted from the
+Containerfile is specified, *FROM* instructions will only be accepted from the
 first specified file.
 
-If a build context is not specified, and at least one Dockerfile is a
+If a build context is not specified, and at least one Containerfile is a
 local file, the directory in which it resides will be used as the build
 context.
 
-If you specify `-f -`, the Dockerfile contents will be read from stdin.
+If you specify `-f -`, the Containerfile contents will be read from stdin.
 
 **--force-rm**=*true|false*
 
-Always remove intermediate containers after a build, even if the build is unsuccessful.
+Always remove intermediate containers after a build, even if the build fails (default false).
 
 **--format**
 
@@ -368,7 +374,8 @@ environment variable.  `export BUILDAH_RUNTIME=/usr/local/bin/runc`
 
 Adds global flags for the container runtime. To list the supported flags, please
 consult the manpages of the selected container runtime (`runc` is the default
-runtime, the manpage to consult is `runc(8)`).
+runtime, the manpage to consult is `runc(8)`.  When the machine is configured
+for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)`.).
 
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given would be `--runtime-flag log-format=json`.
@@ -408,7 +415,7 @@ If _imageName_ does not include a registry name, the registry name *localhost* w
 
 **--target**=*stageName*
 
-Set the target build stage to build.  When building a Dockerfile with multiple build stages, --target
+Set the target build stage to build.  When building a Containerfile with multiple build stages, --target
 can be used to specify an intermediate build stage by name as the final stage for the resulting image.
 Commands after the target stage will be skipped.
 
@@ -526,7 +533,7 @@ process.
    container. The `OPTIONS` are a comma delimited list and can be:
 
    * [rw|ro]
-   * [z|Z]
+   * [z|Z|O]
    * [`[r]shared`|`[r]slave`|`[r]private`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `HOST-DIR`
@@ -559,7 +566,7 @@ Only the current container can use a private volume.
 
   `Overlay Volume Mounts`
 
-   The `:O` flag tells Buildah to mount the directory from the host as a temporary storage using the Overlay file system. The `RUN` command containers are allowed to modify contents within the mountpoint and are stored in the container storage in a separate directory.  In Overlay FS terms the source directory will be the lower, and the container storage directory will be the upper. Modifications to the mount point are destroyed when the `RUN` command finishes executing, similar to a tmpfs mount point.
+   The `:O` flag tells Podman to mount the directory from the host as a temporary storage using the Overlay file system. The `RUN` command containers are allowed to modify contents within the mountpoint and are stored in the container storage in a separate directory.  In Overlay FS terms the source directory will be the lower, and the container storage directory will be the upper. Modifications to the mount point are destroyed when the `RUN` command finishes executing, similar to a tmpfs mount point.
 
   Any subsequent execution of `RUN` commands sees the original source directory content, any changes from previous RUN commands no longer exists.
 
@@ -605,16 +612,16 @@ mount can be changed directly. For instance if `/` is the source mount for
 
 ## EXAMPLES
 
-### Build an image using local Dockerfiles
+### Build an image using local Containerfiles
 
 ```
 $ podman build .
 
-$ podman build -f Dockerfile.simple .
+$ podman build -f Containerfile.simple .
 
 $ cat ~/Dockerfile | podman build -f - .
 
-$ podman build -f Dockerfile.simple -f Dockerfile.notsosimple .
+$ podman build -f Dockerfile.simple -f Containerfile.notsosimple .
 
 $ podman build -f Dockerfile.in ~
 
@@ -649,19 +656,19 @@ $ podman build --no-cache --rm=false -t imageName .
 
 ### Building an image using a URL, Git repo, or archive
 
-  The build context directory can be specified as a URL to a Dockerfile, a Git repository, or URL to an archive. If the URL is a Dockerfile, it is downloaded to a temporary location and used as the context. When a Git repository is set as the URL, the repository is cloned locally to a temporary location and then used as the context. Lastly, if the URL is an archive, it is downloaded to a temporary location and extracted before being used as the context.
+  The build context directory can be specified as a URL to a Containerfile, a Git repository, or URL to an archive. If the URL is a Containerfile, it is downloaded to a temporary location and used as the context. When a Git repository is set as the URL, the repository is cloned locally to a temporary location and then used as the context. Lastly, if the URL is an archive, it is downloaded to a temporary location and extracted before being used as the context.
 
-#### Building an image using a URL to a Dockerfile
+#### Building an image using a URL to a Containerfile
 
-  Podman will download the Dockerfile to a temporary location and then use it as the build context.
+  Podman will download the Containerfile to a temporary location and then use it as the build context.
 
 ```
-$ podman build https://10.10.10.1/podman/Dockerfile
+$ podman build https://10.10.10.1/podman/Containerfile
 ```
 
 #### Building an image using a Git repository
 
-  Podman will clone the specified GitHub repository to a temporary location and use it as the context. The Dockerfile at the root of the repository will be used and it only works if the GitHub repository is a dedicated repository.
+  Podman will clone the specified GitHub repository to a temporary location and use it as the context. The Containerfile at the root of the repository will be used and it only works if the GitHub repository is a dedicated repository.
 
 ```
 $ podman build git://github.com/scollier/purpletest
@@ -669,10 +676,10 @@ $ podman build git://github.com/scollier/purpletest
 
 #### Building an image using a URL to an archive
 
-  Podman will fetch the archive file, decompress it, and use its contents as the build context. The Dockerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass `-f PATH/Dockerfile` option as well, the system will look for that file inside the contents of the archive.
+  Podman will fetch the archive file, decompress it, and use its contents as the build context. The Containerfile at the root of the archive and the rest of the archive will get used as the context of the build. If you pass `-f PATH/Containerfile` option as well, the system will look for that file inside the contents of the archive.
 
 ```
-$ podman build -f dev/Dockerfile https://10.10.10.1/podman/context.tar.gz
+$ podman build -f dev/Containerfile https://10.10.10.1/podman/context.tar.gz
 ```
 
   Note: supported compression formats are 'xz', 'bzip2', 'gzip' and 'identity' (no compression).
@@ -685,14 +692,14 @@ registries.conf is the configuration file which specifies which container regist
 
 ## Troubleshooting
 
-If you are using a useradd command within a Dockerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
+If you are using a useradd command within a Containerfile with a large UID/GID, it will create a large sparse file `/var/log/lastlog`.  This can cause the build to hang forever.  Go language does not support sparse files correctly, which can lead to some huge files being created in your container image.
 
 ### Solution
 
 If you are using `useradd` within your build script, you should pass the `--no-log-init or -l` option to the `useradd` command.  This option tells useradd to stop creating the lastlog file.
 
 ## SEE ALSO
-podman(1), buildah(1), containers-registries.conf(5), useradd(8)
+podman(1), buildah(1), containers-registries.conf(5), crun(8), runc(8), useradd(8)
 
 ## HISTORY
 May 2018, Minor revisions added by Joe Doss <joe@solidadmin.com>

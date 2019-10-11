@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"runtime/debug"
 
@@ -62,4 +63,13 @@ func aliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "health-timeout"
 	}
 	return pflag.NormalizedName(name)
+}
+
+// Check if a file exists and is not a directory
+func checkIfFileExists(name string) bool {
+	file, err := os.Stat(name)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !file.IsDir()
 }
