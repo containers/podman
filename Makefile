@@ -438,7 +438,10 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.socket ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
 	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${SYSTEMDDIR}/io.podman.service
-	install ${SELINUXOPT} -m 644 contrib/varlink/io.podman.service ${DESTDIR}${USERSYSTEMDDIR}/io.podman.service
+	install ${SELINUXOPT} -d ${DESTDIR}${USERSYSTEMDDIR}
+	# User units are ordered differently, we can't make the *system* multi-user.target depend on a user unit.
+	# For user units the default.target that's the default is fine.
+	sed -e 's,^WantedBy=.*,WantedBy=default.target,' < contrib/varlink/io.podman.service > ${DESTDIR}${USERSYSTEMDDIR}/io.podman.service
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
