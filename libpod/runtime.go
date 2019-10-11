@@ -114,6 +114,10 @@ type Runtime struct {
 	doRenumber bool
 
 	doMigrate bool
+	// System migrate can move containers to a new runtime.
+	// We make no promises that these migrated containers work on the new
+	// runtime, though.
+	migrateRuntime string
 
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),

@@ -32,13 +32,15 @@ func init() {
 	migrateCommand.Command = _migrateCommand
 	migrateCommand.SetHelpTemplate(HelpTemplate())
 	migrateCommand.SetUsageTemplate(UsageTemplate())
+	flags := migrateCommand.Flags()
+	flags.StringVar(&migrateCommand.NewRuntime, "new-runtime", "", "Specify a new runtime for all containers")
 }
 
 func migrateCmd(c *cliconfig.SystemMigrateValues) error {
 	// We need to pass one extra option to NewRuntime.
 	// This will inform the OCI runtime to start a migrate.
 	// That's controlled by the last argument to GetRuntime.
-	r, err := libpodruntime.GetRuntimeMigrate(getContext(), &c.PodmanCommand)
+	r, err := libpodruntime.GetRuntimeMigrate(getContext(), &c.PodmanCommand, c.NewRuntime)
 	if err != nil {
 		return errors.Wrapf(err, "error migrating containers")
 	}

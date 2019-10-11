@@ -24,6 +24,14 @@ pause process. The `/etc/subuid` and `/etc/subgid` files can then be
 edited or changed with usermod to recreate the user namespace with the
 newly configured mappings.
 
+## OPTIONS
+
+**--new-runtime**=*runtime*
+
+Set a new OCI runtime for all containers.
+This can be used after a system upgrade which changes the default OCI runtime to move all containers to the new runtime.
+There are no guarantees that the containers will continue to work under the new runtime, as some runtimes support differing options and configurations.
+
 ## SYNOPSIS
 **podman system migrate**
 
