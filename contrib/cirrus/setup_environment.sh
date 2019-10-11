@@ -54,7 +54,7 @@ case "${OS_RELEASE_ID}" in
             echo "mq-deadline" > /sys/block/sda/queue/scheduler
             cat /sys/block/sda/queue/scheduler
             warn "Testing with crun instead of runc"
-            X=$(echo "export export OCI_RUNTIME=/usr/bin/crun" | \
+            X=$(echo "export OCI_RUNTIME=/usr/bin/crun" | \
                 tee -a /etc/environment) && eval "$X" && echo "$X"
             warn "Upgrading to the latest crun"
             # Normally not something to do for stable testing
