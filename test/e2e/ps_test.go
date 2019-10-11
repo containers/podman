@@ -151,6 +151,13 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(result.OutputToStringArray())).Should(BeNumerically(">", 0))
 	})
 
+	It("podman ps with no containers is valid json format", func() {
+		result := podmanTest.Podman([]string{"ps", "--format", "json"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.IsJSONOutputValid()).To(BeTrue())
+	})
+
 	It("podman ps namespace flag with json format", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))

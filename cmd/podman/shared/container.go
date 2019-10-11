@@ -449,10 +449,8 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 // PBatch performs batch operations on a container in parallel. It spawns the
 // number of workers relative to the number of parallel operations desired.
 func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsContainerOutput {
-	var (
-		wg        sync.WaitGroup
-		psResults []PsContainerOutput
-	)
+	var wg sync.WaitGroup
+	psResults := []PsContainerOutput{}
 
 	// If the number of containers in question is less than the number of
 	// proposed parallel operations, we shouldnt spawn so many workers.
