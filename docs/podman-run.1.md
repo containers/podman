@@ -289,7 +289,7 @@ on the host system.
 
 Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subgidname flags.
 This option can be passed several times to map different ranges. If calling Podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
-The example maps gids 0-2000 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
+The example maps gids 0-1999 in the container to the gids 30000-31999 on the host. `--gidmap=0:30000:2000`
 
 **--group-add**=*group*
 
@@ -800,7 +800,7 @@ standard input.
 
 Run the container in a new user namespace using the supplied mapping. This option conflicts with the --userns and --subuidname flags.
 This option can be passed several times to map different ranges. If calling Podman run as an unprivileged user, the user needs to have the right to use the mapping. See `subuid(5)`.
-The example maps uids 0-2000 in the container to the uids 30000-31999 on the host. `--uidmap=0:30000:2000`
+The example maps uids 0-1999 in the container to the uids 30000-31999 on the host. `--uidmap=0:30000:2000`
 
 **--ulimit**=*option*
 
