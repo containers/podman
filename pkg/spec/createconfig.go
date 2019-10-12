@@ -104,7 +104,8 @@ type CreateConfig struct {
 	NetworkAlias       []string               //network-alias
 	PidMode            namespaces.PidMode     //pid
 	Pod                string                 //pod
-	CgroupMode         namespaces.CgroupMode  //cgroup
+	PodmanPath         string
+	CgroupMode         namespaces.CgroupMode //cgroup
 	PortBindings       nat.PortMap
 	Privileged         bool     //privileged
 	Publish            []string //publish
@@ -153,7 +154,16 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 		return nil, err
 	}
 
-	cmd, _ := os.Executable()
+	// We need a cleanup process for containers in the current model.
+	// But we can't assume that the caller is Podman - it could be another
+	// user of the API.
+	// As such, provide a way to specify a path to Podman, so we can
+	// still invoke a cleanup process.
+	cmd := c.PodmanPath
+	if cmd == "" {
+		cmd, _ = os.Executable()
+	}
+
 	command := []string{cmd,
 		"--root", config.StorageConfig.GraphRoot,
 		"--runroot", config.StorageConfig.RunRoot,
