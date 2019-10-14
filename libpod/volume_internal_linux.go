@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os/exec"
 
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -22,6 +24,11 @@ import (
 func (v *Volume) mount() error {
 	if !v.needsMount() {
 		return nil
+	}
+
+	// We cannot mount volumes as rootless.
+	if rootless.IsRootless() {
+		return errors.Wrapf(define.ErrRootless, "cannot mount volumes without root privileges")
 	}
 
 	// Update the volume from the DB to get an accurate mount counter.
@@ -108,6 +115,20 @@ func (v *Volume) unmount(force bool) error {
 		return nil
 	}
 
+	// We cannot unmount volumes as rootless.
+	if rootless.IsRootless() {
+		// If force is set, just clear the counter and bail without
+		// error, so we can remove volumes from the state if they are in
+		// an awkward configuration.
+		if force {
+			logrus.Errorf("Volume %s is mounted despite being rootless - state is not sane", v.Name())
+			v.state.MountCount = 0
+			return v.save()
+		}
+
+		return errors.Wrapf(define.ErrRootless, "cannot mount or unmount volumes without root privileges")
+	}
+
 	if !force {
 		v.state.MountCount = v.state.MountCount - 1
 	} else {
@@ -119,6 +140,10 @@ func (v *Volume) unmount(force bool) error {
 	if v.state.MountCount == 0 {
 		// Unmount the volume
 		if err := unix.Unmount(v.config.MountPoint, unix.MNT_DETACH); err != nil {
+			if err == unix.EINVAL {
+				// Ignore EINVAL - the mount no longer exists.
+				return nil
+			}
 			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
 		}
 		logrus.Debugf("Unmounted volume %s", v.Name())

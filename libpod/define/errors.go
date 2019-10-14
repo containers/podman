@@ -65,6 +65,10 @@ var (
 	// CGroup.
 	ErrNoCgroups = errors.New("this container does not have a cgroup")
 
+	// ErrRootless indicates that the given command cannot but run without
+	// root.
+	ErrRootless = errors.New("operation requires root privileges")
+
 	// ErrRuntimeStopped indicates that the runtime has already been shut
 	// down and no further operations can be performed on it
 	ErrRuntimeStopped = errors.New("runtime has already been stopped")
