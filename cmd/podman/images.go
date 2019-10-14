@@ -216,17 +216,18 @@ func (i imagesOptions) setOutputFormat() string {
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
-func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) (genericParams []interface{}) {
+func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) []interface{} {
+	genericParams := []interface{}{}
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
-		return
+		return genericParams
 	}
 	for _, v := range JSONParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
-	return
+	return genericParams
 }
 
 func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
@@ -309,7 +310,8 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 }
 
 // getImagesJSONOutput returns the images information in its raw form
-func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) (imagesOutput []imagesJSONParams) {
+func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) []imagesJSONParams {
+	imagesOutput := []imagesJSONParams{}
 	for _, img := range images {
 		size, err := img.Size(ctx)
 		if err != nil {
@@ -325,7 +327,7 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
-	return
+	return imagesOutput
 }
 
 // generateImagesOutput generates the images based on the format provided
@@ -336,10 +338,6 @@ func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage,
 
 	switch opts.format {
 	case formats.JSONString:
-		// If 0 images are present, print nothing for JSON
-		if len(images) == 0 {
-			return nil
-		}
 		imagesOutput := getImagesJSONOutput(ctx, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:

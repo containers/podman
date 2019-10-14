@@ -101,6 +101,13 @@ var _ = Describe("Podman images", func() {
 		Expect(session.LineInOuputStartsWith("docker.io/library/busybox")).To(BeTrue())
 	})
 
+	It("podman empty images list in JSON format", func() {
+		session := podmanTest.Podman([]string{"images", "--format=json", "not-existing-image"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
 	It("podman images in JSON format", func() {
 		session := podmanTest.Podman([]string{"images", "--format=json"})
 		session.WaitWithDefaultTimeout()
