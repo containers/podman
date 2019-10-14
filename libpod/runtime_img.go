@@ -69,7 +69,7 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// the image. we figure out which repotag the user is trying to refer
 		// to and untag it.
 		repoName, err := img.MatchRepoTag(img.InputName)
-		if hasChildren && err == image.ErrRepoTagNotFound {
+		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
 			return "", errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
 		}
 		if err != nil {
