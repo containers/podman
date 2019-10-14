@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.11.3
 	github.com/containers/image/v4 v4.0.1
 	github.com/containers/psgo v1.3.2
-	github.com/containers/storage v1.13.4
+	github.com/containers/storage v1.13.5
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
