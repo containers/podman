@@ -88,9 +88,9 @@ $ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
   "version": "1.0.0",
   "hook": {
     "path": "/usr/libexec/oci/hooks.d/oci-systemd-hook"
-  }
+  },
   "when": {
-    "commands": [".*/init$" , ".*/systemd$"],
+    "commands": [".*/init$" , ".*/systemd$"]
   },
   "stages": ["prestart", "poststop"]
 }
@@ -105,9 +105,9 @@ $ cat /etc/containers/oci/hooks.d/oci-umount.json
   "hook": {
     "path": "/usr/libexec/oci/hooks.d/oci-umount",
     "args": ["oci-umount", "--debug"],
-  }
+  },
   "when": {
-    "hasBindMounts": true,
+    "hasBindMounts": true
   },
   "stages": ["prestart"]
 }
