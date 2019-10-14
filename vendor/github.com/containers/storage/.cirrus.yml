@@ -82,7 +82,7 @@ lint_task:
     build_script: |
       echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
       apt-get update
-      apt-get install -y libbtrfs-dev libostree-dev libdevmapper-dev
+      apt-get install -y libbtrfs-dev libdevmapper-dev
     test_script: make lint
 
 # Update metadata on VM images referenced by this repository state

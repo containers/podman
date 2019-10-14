@@ -116,7 +116,7 @@ github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/cgroups
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.13.4
+# github.com/containers/storage v1.13.5
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
@@ -155,7 +155,6 @@ github.com/containers/storage/pkg/loopback
 github.com/containers/storage/drivers/overlayutils
 github.com/containers/storage/drivers/quota
 github.com/containers/storage/pkg/fsutils
-github.com/containers/storage/pkg/ostree
 github.com/containers/storage/drivers/copy
 # github.com/coreos/go-iptables v0.4.2
 github.com/coreos/go-iptables/iptables
