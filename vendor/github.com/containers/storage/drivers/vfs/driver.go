@@ -11,7 +11,6 @@ import (
 	"github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -51,11 +50,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		case "vfs.imagestore", ".imagestore":
 			d.homes = append(d.homes, strings.Split(val, ",")...)
 			continue
-		case "vfs.ostree_repo", ".ostree_repo":
-			if !ostree.OstreeSupport() {
-				return nil, fmt.Errorf("vfs: ostree_repo specified but support for ostree is missing")
-			}
-			d.ostreeRepo = val
 		case "vfs.mountopt":
 			return nil, fmt.Errorf("vfs driver does not support mount options")
 		case ".ignore_chown_errors", "vfs.ignore_chown_errors":
@@ -67,15 +61,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 			}
 		default:
 			return nil, fmt.Errorf("vfs driver does not support %s options", key)
-		}
-	}
-	if d.ostreeRepo != "" {
-		rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
-		if err != nil {
-			return nil, err
-		}
-		if err := ostree.CreateOSTreeRepository(d.ostreeRepo, rootUID, rootGID); err != nil {
-			return nil, err
 		}
 	}
 	d.updater = graphdriver.NewNaiveLayerIDMapUpdater(d)
@@ -92,7 +77,6 @@ type Driver struct {
 	name              string
 	homes             []string
 	idMappings        *idtools.IDMappings
-	ostreeRepo        string
 	ignoreChownErrors bool
 	naiveDiff         graphdriver.DiffDriver
 	updater           graphdriver.LayerIDMapUpdater
@@ -191,11 +175,6 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		}
 	}
 
-	if ro && d.ostreeRepo != "" {
-		if err := ostree.ConvertToOSTree(d.ostreeRepo, dir, id); err != nil {
-			return err
-		}
-	}
 	return nil
 
 }
@@ -216,10 +195,6 @@ func (d *Driver) dir(id string) string {
 
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
-	if d.ostreeRepo != "" {
-		// Ignore errors, we don't want to fail if the ostree branch doesn't exist,
-		ostree.DeleteOSTree(d.ostreeRepo, id)
-	}
 	return system.EnsureRemoveAll(d.dir(id))
 }
 

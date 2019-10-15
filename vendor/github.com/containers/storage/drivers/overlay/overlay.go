@@ -26,7 +26,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/locker"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/ostree"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
 	units "github.com/docker/go-units"
@@ -88,7 +87,6 @@ type overlayOptions struct {
 	imageStores       []string
 	quota             quota.Quota
 	mountProgram      string
-	ostreeRepo        string
 	skipMountHome     bool
 	mountOptions      string
 	ignoreChownErrors bool
@@ -108,7 +106,6 @@ type Driver struct {
 	supportsDType bool
 	usingMetacopy bool
 	locker        *locker.Locker
-	convert       map[string]bool
 }
 
 var (
@@ -234,12 +231,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		}
 	}
 
-	if opts.ostreeRepo != "" {
-		if err := ostree.CreateOSTreeRepository(opts.ostreeRepo, rootUID, rootGID); err != nil {
-			return nil, err
-		}
-	}
-
 	d := &Driver{
 		name:          "overlay",
 		home:          home,
@@ -251,7 +242,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		usingMetacopy: usingMetacopy,
 		locker:        locker.New(),
 		options:       *opts,
-		convert:       make(map[string]bool),
 	}
 
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d))
@@ -316,21 +306,9 @@ func parseOptions(options []string) (*overlayOptions, error) {
 				return nil, fmt.Errorf("overlay: can't stat program %s: %v", val, err)
 			}
 			o.mountProgram = val
-		case "overlay2.ostree_repo", "overlay.ostree_repo", ".ostree_repo":
-			logrus.Debugf("overlay: ostree_repo=%s", val)
-			if !ostree.OstreeSupport() {
-				return nil, fmt.Errorf("overlay: ostree_repo specified but support for ostree is missing")
-			}
-			o.ostreeRepo = val
 		case ".ignore_chown_errors", "overlay2.ignore_chown_errors", "overlay.ignore_chown_errors":
 			logrus.Debugf("overlay: ignore_chown_errors=%s", val)
 			o.ignoreChownErrors, err = strconv.ParseBool(val)
-			if err != nil {
-				return nil, err
-			}
-		case "overlay2.skip_mount_home", "overlay.skip_mount_home", ".skip_mount_home":
-			logrus.Debugf("overlay: skip_mount_home=%s", val)
-			o.skipMountHome, err = strconv.ParseBool(val)
 			if err != nil {
 				return nil, err
 			}
@@ -556,10 +534,6 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) (retErr
 		}
 	}
 
-	if d.options.ostreeRepo != "" {
-		d.convert[id] = true
-	}
-
 	return d.create(id, parent, opts)
 }
 
@@ -765,11 +739,6 @@ func (d *Driver) optsAppendMappings(opts string, uidMaps, gidMaps []idtools.IDMa
 func (d *Driver) Remove(id string) error {
 	d.locker.Lock(id)
 	defer d.locker.Unlock(id)
-
-	// Ignore errors, we don't want to fail if the ostree branch doesn't exist,
-	if d.options.ostreeRepo != "" {
-		ostree.DeleteOSTree(d.options.ostreeRepo, id)
-	}
 
 	dir := d.dir(id)
 	lid, err := ioutil.ReadFile(path.Join(dir, "link"))
@@ -1123,13 +1092,6 @@ func (d *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts)
 		InUserNS:          rsystem.RunningInUserNS(),
 	}); err != nil {
 		return 0, err
-	}
-
-	_, convert := d.convert[id]
-	if convert {
-		if err := ostree.ConvertToOSTree(d.options.ostreeRepo, applyDir, id); err != nil {
-			return 0, err
-		}
 	}
 
 	return directory.Size(applyDir)

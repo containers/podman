@@ -15,7 +15,6 @@ require (
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/runc v1.0.0-rc8
 	github.com/opencontainers/selinux v1.2.2
-	github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913
 	github.com/pkg/errors v0.8.1
 	github.com/pquerna/ffjson v0.0.0-20181028064349-e517b90714f7
 	github.com/sirupsen/logrus v1.4.2
