@@ -533,7 +533,7 @@ func (c *Container) teardownStorage() error {
 		// error - we wanted it gone, it is already gone.
 		// Potentially another tool using containers/storage already
 		// removed it?
-		if err == storage.ErrNotAContainer || err == storage.ErrContainerUnknown {
+		if errors.Cause(err) == storage.ErrNotAContainer || errors.Cause(err) == storage.ErrContainerUnknown {
 			logrus.Warnf("Storage for container %s already removed", c.ID())
 			return nil
 		}
