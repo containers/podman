@@ -93,6 +93,143 @@ var _ = Describe("Podman pull", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman pull by digest (image list)", func() {
+		session := podmanTest.PodmanNoCache([]string{"pull", "--override-arch=arm64", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// remove using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"rmi", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman pull by instance digest (image list)", func() {
+		session := podmanTest.PodmanNoCache([]string{"pull", "--override-arch=arm64", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(Not(ContainSubstring(ALPINELISTDIGEST)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(HavePrefix("[]"))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(Not(ContainSubstring(ALPINELISTDIGEST)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// remove using the digest of the instance
+		session = podmanTest.PodmanNoCache([]string{"rmi", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman pull by tag (image list)", func() {
+		session := podmanTest.PodmanNoCache([]string{"pull", "--override-arch=arm64", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		// inspect using the tag we used for pulling
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
+		// inspect using the tag we used for pulling
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
+		// inspect using the digest of the list
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
+		// inspect using the digest of the arch-specific image's manifest
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
+		// inspect using the image ID
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoDigests}}", ALPINEARM64ID})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+		// remove using the tag
+		session = podmanTest.PodmanNoCache([]string{"rmi", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman pull bogus image", func() {
 		session := podmanTest.PodmanNoCache([]string{"pull", "umohnani/get-started"})
 		session.WaitWithDefaultTimeout()
