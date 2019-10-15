@@ -462,6 +462,12 @@ func getContainerNetNS(ctr *Container) (string, error) {
 
 func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	var netStats *netlink.LinkStatistics
+	// rootless v2 cannot seem to resolve its network connection to
+	// collect statistics.  For now, we allow stats to at least run
+	// by returning nil
+	if rootless.IsRootless() {
+		return netStats, nil
+	}
 	netNSPath, netPathErr := getContainerNetNS(ctr)
 	if netPathErr != nil {
 		return nil, netPathErr
