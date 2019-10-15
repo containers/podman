@@ -17,6 +17,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -27,6 +28,7 @@ var (
 	fromAndBudValues buildahcli.FromAndBudResults
 	userNSValues     buildahcli.UserNSResults
 	namespaceValues  buildahcli.NameSpaceResults
+	podBuildValues   cliconfig.PodmanBuildResults
 
 	_buildCommand = &cobra.Command{
 		Use:   "build [flags] CONTEXT",
@@ -40,6 +42,7 @@ var (
 			buildCommand.FromAndBudResults = &fromAndBudValues
 			buildCommand.LayerResults = &layerValues
 			buildCommand.NameSpaceResults = &namespaceValues
+			buildCommand.PodmanBuildResults = &podBuildValues
 			buildCommand.Remote = remoteclient
 			return buildCmd(&buildCommand)
 		},
@@ -73,13 +76,28 @@ func init() {
 		logrus.Error("unable to set force-rm flag to true")
 	}
 	flag.DefValue = "true"
+	podmanBuildFlags := GetPodmanBuildFlags(&podBuildValues)
+	flag = podmanBuildFlags.Lookup("squash-all")
+	if err := flag.Value.Set("false"); err != nil {
+		logrus.Error("unable to set squash-all flag to false")
+	}
 
+	flag.DefValue = "true"
 	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
 
 	flags.AddFlagSet(&budFlags)
-	flags.AddFlagSet(&layerFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
+	flags.AddFlagSet(&layerFlags)
+	flags.AddFlagSet(&podmanBuildFlags)
 	markFlagHidden(flags, "signature-policy")
+}
+
+// GetPodmanBuildFlags flags used only by `podman build` and not by
+// `buildah bud`.
+func GetPodmanBuildFlags(flags *cliconfig.PodmanBuildResults) pflag.FlagSet {
+	fs := pflag.FlagSet{}
+	fs.BoolVar(&flags.SquashAll, "squash-all", false, "Squash all layers into a single layer.")
+	return fs
 }
 
 func getContainerfiles(files []string) []string {
@@ -119,6 +137,12 @@ func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
 }
 
 func buildCmd(c *cliconfig.BuildValues) error {
+	if (c.Flags().Changed("squash") && c.Flags().Changed("layers")) ||
+		(c.Flags().Changed("squash-all") && c.Flags().Changed("layers")) ||
+		(c.Flags().Changed("squash-all") && c.Flags().Changed("squash")) {
+		return fmt.Errorf("cannot specify squash, squash-all and layers options together")
+	}
+
 	// The following was taken directly from containers/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
 	output := ""
@@ -291,6 +315,22 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		ShmSize:      c.ShmSize,
 		Ulimit:       c.Ulimit,
 		Volumes:      c.Volumes,
+	}
+
+	// `buildah bud --layers=false` acts like `docker build --squash` does.
+	// That is all of the new layers created during the build process are
+	// condensed into one, any layers present prior to this build are retained
+	// without condensing.  `buildah bud --squash` squashes both new and old
+	// layers down into one.  Translate Podman commands into Buildah.
+	// Squash invoked, retain old layers, squash new layers into one.
+	if c.Flags().Changed("squash") && c.Squash {
+		c.Squash = false
+		layers = false
+	}
+	// Squash-all invoked, squash both new and old layers into one.
+	if c.Flags().Changed("squash-all") {
+		c.Squash = true
+		layers = false
 	}
 
 	options := imagebuildah.BuildOptions{

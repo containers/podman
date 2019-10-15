@@ -405,6 +405,11 @@ If you omit the unit, the system uses bytes. If you omit the size entirely, the 
 
 **--squash**
 
+Squash all of the image's new layers into a single new layer; any preexisting layers
+are not squashed.
+
+**--squash-all**
+
 Squash all of the new image's layers (including those inherited from a base image) into a single new layer.
 
 **--tag**, **-t**=*imageName*
