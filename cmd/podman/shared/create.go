@@ -668,7 +668,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, errors.Wrapf(err, "cannot parse bool %s", c.String("systemd"))
 		}
-		if x && (command[0] == "/usr/sbin/init" || (filepath.Base(command[0]) == "systemd")) {
+		if x && (command[0] == "/usr/sbin/init" || command[0] == "/sbin/init" || (filepath.Base(command[0]) == "systemd")) {
 			systemd = true
 		}
 	}
