@@ -1359,7 +1359,7 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 					}
 				}
 			}
-			return -1, errors.Wrapf(ss.err, "error reading container (probably exited) json message")
+			return -1, errors.Wrapf(ss.err, "container create failed (no logs from conmon)")
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
 		if ss.si.Data < 0 {
