@@ -216,8 +216,8 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 // If useRuntime is false, we will not directly hit runc to see the container's
 // status, but will instead only check for the existence of the conmon exit file
 // and update state to stopped if it exists.
-func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container, useRuntime bool) error {
-	exitFile, err := ctr.exitFilePath()
+func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
+	exitFile, err := r.ExitFilePath(ctr)
 	if err != nil {
 		return err
 	}
@@ -225,33 +225,6 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container, useRuntime bool
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
 		return err
-	}
-
-	// If not using the OCI runtime, we don't need to do most of this.
-	if !useRuntime {
-		// If the container's not running, nothing to do.
-		if ctr.state.State != define.ContainerStateRunning && ctr.state.State != define.ContainerStatePaused {
-			return nil
-		}
-
-		// Check for the exit file conmon makes
-		info, err := os.Stat(exitFile)
-		if err != nil {
-			if os.IsNotExist(err) {
-				// Container is still running, no error
-				return nil
-			}
-
-			return errors.Wrapf(err, "error running stat on container %s exit file", ctr.ID())
-		}
-
-		// Alright, it exists. Transition to Stopped state.
-		ctr.state.State = define.ContainerStateStopped
-		ctr.state.PID = 0
-		ctr.state.ConmonPID = 0
-
-		// Read the exit file to get our stopped time and exit code.
-		return ctr.handleExitFile(exitFile, info)
 	}
 
 	// Store old state so we know if we were already stopped
@@ -825,6 +798,7 @@ func (r *ConmonOCIRuntime) RuntimeInfo() (map[string]interface{}, error) {
 		"version": conmonVersion,
 	}
 	info["OCIRuntime"] = map[string]interface{}{
+		"name":    r.name,
 		"path":    r.path,
 		"package": runtimePackage,
 		"version": runtimeVersion,

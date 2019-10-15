@@ -656,7 +656,7 @@ func (c *Container) Sync() error {
 		(c.state.State != define.ContainerStateConfigured) &&
 		(c.state.State != define.ContainerStateExited) {
 		oldState := c.state.State
-		if err := c.ociRuntime.UpdateContainerStatus(c, true); err != nil {
+		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
 			return err
 		}
 		// Only save back to DB if state changed

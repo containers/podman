@@ -396,7 +396,11 @@ func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.
 
 		ociRuntime, ok := s.runtime.ociRuntimes[runtimeName]
 		if !ok {
-			return errors.Wrapf(define.ErrOCIRuntimeUnavailable, "cannot find OCI runtime %q for container %s", ctr.config.OCIRuntime, ctr.ID())
+			// Use a MissingRuntime implementation
+			ociRuntime, err = getMissingRuntime(runtimeName, s.runtime)
+			if err != nil {
+				return err
+			}
 		}
 		ctr.ociRuntime = ociRuntime
 	}
