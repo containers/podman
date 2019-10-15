@@ -100,6 +100,23 @@ var _ = Describe("Podman inspect", func() {
 		Expect(len(result.OutputToStringArray())).To(Equal(2))
 	})
 
+	It("podman inspect container and filter for Image{ID}", func() {
+		SkipIfRemote()
+		ls, ec, _ := podmanTest.RunLsContainer("")
+		Expect(ec).To(Equal(0))
+		cid := ls.OutputToString()
+
+		result := podmanTest.Podman([]string{"inspect", "--format={{.ImageID}}", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+
+		result = podmanTest.Podman([]string{"inspect", "--format={{.Image}}", cid})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(len(result.OutputToStringArray())).To(Equal(1))
+	})
+
 	It("podman inspect -l with additional input should fail", func() {
 		SkipIfRemote()
 		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})

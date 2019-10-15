@@ -104,6 +104,9 @@ func inspectCmd(c *cliconfig.InspectValues) error {
 	if strings.Contains(outputFormat, ".Dst") {
 		outputFormat = strings.Replace(outputFormat, ".Dst", ".Destination", -1)
 	}
+	if strings.Contains(outputFormat, ".ImageID") {
+		outputFormat = strings.Replace(outputFormat, ".ImageID", ".Image", -1)
+	}
 	if latestContainer {
 		lc, err := runtime.GetLatestContainer()
 		if err != nil {

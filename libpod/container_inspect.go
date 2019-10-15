@@ -96,7 +96,7 @@ type InspectContainerData struct {
 	Path            string                      `json:"Path"`
 	Args            []string                    `json:"Args"`
 	State           *InspectContainerState      `json:"State"`
-	ImageID         string                      `json:"Image"`
+	Image           string                      `json:"Image"`
 	ImageName       string                      `json:"ImageName"`
 	Rootfs          string                      `json:"Rootfs"`
 	Pod             string                      `json:"Pod"`
@@ -718,7 +718,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 			StartedAt:  runtimeInfo.StartedTime,
 			FinishedAt: runtimeInfo.FinishedTime,
 		},
-		ImageID:         config.RootfsImageID,
+		Image:           config.RootfsImageID,
 		ImageName:       config.RootfsImageName,
 		ExitCommand:     config.ExitCommand,
 		Namespace:       config.Namespace,
