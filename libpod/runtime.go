@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/v4/storage"
@@ -353,10 +352,6 @@ func defaultRuntimeConfig() (RuntimeConfig, error) {
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
 // containers/image uses XDG_RUNTIME_DIR to locate the auth file, XDG_CONFIG_HOME is
 // use for the libpod.conf configuration file.
-// SetXdgDirs internally calls EnableLinger() so that the user's processes are not
-// killed once the session is terminated.  EnableLinger() also attempts to
-// get the runtime directory when XDG_RUNTIME_DIR is not specified.
-// This function should only be called when running rootless.
 func SetXdgDirs() error {
 	if !rootless.IsRootless() {
 		return nil
@@ -364,21 +359,6 @@ func SetXdgDirs() error {
 
 	// Setup XDG_RUNTIME_DIR
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-	runtimeDirLinger, err := rootless.EnableLinger()
-	if err != nil {
-		return errors.Wrapf(err, "error enabling user session")
-	}
-	if runtimeDir == "" && runtimeDirLinger != "" {
-		if _, err := os.Stat(runtimeDirLinger); err != nil && os.IsNotExist(err) {
-			chWait := make(chan error)
-			defer close(chWait)
-			if _, err := WaitForFile(runtimeDirLinger, chWait, time.Second*10); err != nil {
-				return errors.Wrapf(err, "waiting for directory '%s'", runtimeDirLinger)
-			}
-		}
-		runtimeDir = runtimeDirLinger
-	}
 
 	if runtimeDir == "" {
 		var err error
@@ -400,10 +380,11 @@ func SetXdgDirs() error {
 
 	// Setup XDG_CONFIG_HOME
 	if cfgHomeDir := os.Getenv("XDG_CONFIG_HOME"); cfgHomeDir == "" {
-		if cfgHomeDir, err = util.GetRootlessConfigHomeDir(); err != nil {
+		cfgHomeDir, err := util.GetRootlessConfigHomeDir()
+		if err != nil {
 			return err
 		}
-		if err = os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
+		if err := os.Setenv("XDG_CONFIG_HOME", cfgHomeDir); err != nil {
 			return errors.Wrapf(err, "cannot set XDG_CONFIG_HOME")
 		}
 	}

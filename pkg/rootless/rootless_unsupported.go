@@ -37,12 +37,6 @@ func GetRootlessGID() int {
 	return -1
 }
 
-// EnableLinger configures the system to not kill the user processes once the session
-// terminates
-func EnableLinger() (string, error) {
-	return "", nil
-}
-
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
