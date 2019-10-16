@@ -157,7 +157,14 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 
 	// If the volume is still mounted - force unmount it
 	if err := v.unmount(true); err != nil {
-		return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+		if force {
+			// If force is set, evict the volume, even if errors
+			// occur. Otherwise we'll never be able to get rid of
+			// them.
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		} else {
+			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+		}
 	}
 
 	// Set volume as invalid so it can no longer be used
