@@ -1,3 +1,65 @@
+- Changelog for v1.6.2-rc1 (2019-10-16)
+  * Add release notes for Podman 1.6.2
+  * start: print full container ID
+  * Add a MissingRuntime implementation
+  * rootless v2 cannot collect network stats
+  * inspect: rename ImageID go field to Image
+  * systemd: accept also /sbin/init
+  * Unwrap errors before comparing them
+  * vendor github.com/containers/storage@v1.13.5
+  * Ensure volumes can be removed when they fail to unmount
+  * Fix sample's JSON syntax error in oci-hooks.5.md
+  * change error wording when conmon fails without logs
+  * images: empty list is valid json with --format=json
+  * Allow giving path to Podman for cleanup command
+  * Touch up bad math in run man page
+  * Add squash-all, fix squash option in build
+  * tests: enable ps --size tests for rootless
+  * container: initialize results list
+  * Make user io.podman.service unit WantedBy=default.target
+  * rootless: do not set PIDs limit if --cgroup-manager=cgroupfs
+  * Update build man page with latest Buildah changes
+  * Fix default path for auth.json
+  * When restoring containers, reset cgroup path
+  * Migrate can move containers to a new runtime
+  * Move OCI runtime implementation behind an interface
+  * show uid_map in podman info
+  * cli: support --systemd=always
+  * systemd: expect full path /usr/sbin/init
+  * catch runc v2 error
+  * Respect --sig-proxy flag with podman start --attach
+  * rootless: automatically recreate the pause.pid file
+  * rootless: do not close files twice
+  * refresh: do not access network ns if not in the namespace
+  * Cirrus: Produce and collect varlink output
+  * io.podman.socket: drop Also=multi-user.target
+  * Cirrus: Remove broken/failing testing_crun task
+  * Cirrus: Use new VM cache images
+  * Cirrus: Install conmon in Fedora VMs
+  * vendor c/psgo@v1.3.2
+  * troubleshooting: fix useradd no-log-init argument
+  * Setup a reasonable default for pids-limit 4096
+  * Update c/image to v4.0.1 and buildah to 1.11.3
+  * When evicting containers, perform a normal remove first
+  * Bump gopkg.in/yaml.v2 from 2.2.3 to 2.2.4
+  * podman network create: validate user input
+  * Cirrus: Simplify package NVR logging
+  * Docs: Update links, add links to latest
+  * Cirrus: Fix log URIs & add optional $ALSO_FILENAME
+  * Raise start_test polling interval
+  * system tests: info: deal with hyphen in username
+  * Bump gitvalidation epoch
+  * Bump to v1.6.2-dev
+  * Apply changes also to the windows implementation
+  * System-tests: Use bash explicitly
+  * Podman 1.6.0 has been released, update the README
+  * Add api link to tutorials
+  * Bump gopkg.in/yaml.v2 from 2.2.2 to 2.2.3
+  * Allow setting default parameters with env vars
+  * Avoid hard-coding path to varlink and podman
+  * Allow changing IdentityFile and to IgnoreHosts
+  * rm: add containers eviction with `rm --force`
+
 - Changelog for v1.6.1 (2019-10-02)
   * Update release notes for v1.6.1
   * Bump gitvalidation epoch
