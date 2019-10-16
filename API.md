@@ -1675,6 +1675,8 @@ id [string](https://godoc.org/builtin#string)
 
 digest [string](https://godoc.org/builtin#string)
 
+digests [[]string](#[]string)
+
 parentId [string](https://godoc.org/builtin#string)
 
 repoTags [[]string](#[]string)

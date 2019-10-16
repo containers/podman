@@ -299,6 +299,11 @@ func (i *Image) Digest() digest.Digest {
 	return i.image.Digest
 }
 
+// Digests returns the image's digests
+func (i *Image) Digests() []digest.Digest {
+	return i.image.Digests
+}
+
 // GetManifest returns the image's manifest as a byte array
 // and manifest type as a string.
 func (i *Image) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {

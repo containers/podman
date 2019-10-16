@@ -27,6 +27,7 @@ type imagesTemplateParams struct {
 	Tag         string
 	ID          string
 	Digest      digest.Digest
+	Digests     []digest.Digest
 	Created     string
 	CreatedTime time.Time
 	Size        string
@@ -34,12 +35,13 @@ type imagesTemplateParams struct {
 }
 
 type imagesJSONParams struct {
-	ID       string        `json:"id"`
-	Name     []string      `json:"names"`
-	Digest   digest.Digest `json:"digest"`
-	Created  time.Time     `json:"created"`
-	Size     *uint64       `json:"size"`
-	ReadOnly bool          `json:"readonly"`
+	ID       string          `json:"id"`
+	Name     []string        `json:"names"`
+	Digest   digest.Digest   `json:"digest"`
+	Digests  []digest.Digest `json:"digests"`
+	Created  time.Time       `json:"created"`
+	Size     *uint64         `json:"size"`
+	ReadOnly bool            `json:"readonly"`
 }
 
 type imagesOptions struct {
@@ -290,6 +292,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					Tag:         tag,
 					ID:          imageID,
 					Digest:      img.Digest(),
+					Digests:     img.Digests(),
 					CreatedTime: createdTime,
 					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
 					Size:        sizeStr,
@@ -321,6 +324,7 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 			ID:       img.ID(),
 			Name:     img.Names(),
 			Digest:   img.Digest(),
+			Digests:  img.Digests(),
 			Created:  img.Created(),
 			Size:     size,
 			ReadOnly: img.IsReadOnly(),
