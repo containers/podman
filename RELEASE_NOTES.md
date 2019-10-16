@@ -1,5 +1,36 @@
 # Release Notes
 
+## 1.6.2
+### Features
+- Added a `--runtime` flag to `podman system migrate` to allow the OCI runtime for all containers to be reset, to ease transition to the `crun` runtime on CGroups V2 systems until `runc` gains full support
+- The `podman rm` command can now remove containers in broken states which previously could not be removed
+- The `podman info` command, when run without root, now shows information on UID and GID mappings in the rootless user namespace
+- Added `podman build --squash-all` flag, which squashes all layers (including those of the base image) into one layer
+- The `--systemd` flag to `podman run` and `podman create` now accepts a string argument and allows a new value, `always`, which forces systemd support without checking if the the container entrypoint is systemd
+
+### Bugfixes
+- Fixed a bug where the `podman top` command did not work on systems using CGroups V2 ([#4192](https://github.com/containers/libpod/issues/4192))
+- Fixed a bug where rootless Podman could double-close a file, leading to a panic
+- Fixed a bug where rootless Podman could fail to retrieve some containers while refreshing the state
+- Fixed a bug where `podman start --attach --sig-proxy=false` would still proxy signals into the container
+- Fixed a bug where Podman would unconditionally use a non-default path for authentication credentials (`auth.json`), breaking `podman login` integration with `skopeo` and other tools using the containers/image library
+- Fixed a bug where `podman ps --format=json` and `podman images --format=json` would display `null` when no results were returned, instead of valid JSON
+- Fixed a bug where `podman build --squash` was incorrectly squashing all layers into one, instead of only new layers
+- Fixed a bug where rootless Podman would allow volumes with options to be mounted (mounting volumes requires root), creating an inconsistent state where volumes reported as mounted but were not ([#4248](https://github.com/containers/libpod/issues/4248))
+- Fixed a bug where volumes which failed to unmount could not be removed ([#4247](https://github.com/containers/libpod/issues/4247))
+- Fixed a bug where Podman incorrectly handled some errors relating to unmounted or missing containers in containers/storage
+- Fixed a bug where `podman stats` was broken on systems running CGroups V2 when run rootless ([#4268](https://github.com/containers/libpod/issues/4268))
+- Fixed a bug where the `podman start` command would print the short container ID, instead of the full ID
+- Fixed a bug where containers created with an OCI runtime that is no longer available (uninstalled or removed from the config file) would not appear in `podman ps` and could not be removed via `podman rm`
+
+### Misc
+- The default PID limit for containers is now set to 4096. It can be adjusted back to the old default (unlimited) by passing `--pids-limit 0` to `podman create` and `podman run`
+- The `podman network create` command now validates network names using the same regular expression as container and pod names
+- The `--systemd` flag to `podman run` and `podman create` will now only enable systemd mode when the binary being run inside the container is `/sbin/init`, `/usr/sbin/init`, or ends in `systemd` (previously detected any path ending in `init` or `systemd`)
+- Updated vendored Buildah to 1.11.3
+- Updated vendored containers/storage to 1.13.5
+- Updated vendored containers/image to 4.0.1
+
 ## 1.6.1
 ### Bugfixes
 - Fixed a bug where rootless Podman on systems using CGroups V2 would not function with the `cgroupfs` CGroups manager
