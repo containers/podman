@@ -15,6 +15,9 @@ Note:  Podman stats will not work in rootless environments that use CGroups V1.
 Podman stats relies on CGroup information for statistics, and CGroup v1 is not
 supported for rootless use cases.
 
+Note: Rootless environments that use CGroups V2 are not able to report statistics
+about their networking usage.
+
 ## OPTIONS
 
 **--all**, **-a**
