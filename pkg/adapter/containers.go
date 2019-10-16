@@ -663,7 +663,7 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 			lastError = errors.Wrapf(err, "unable to start container %q", container)
 			continue
 		}
-		fmt.Println(container)
+		fmt.Println(ctr.ID())
 	}
 	return exitCode, lastError
 }
