@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -324,29 +325,54 @@ func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 	return imgRef.Manifest(ctx)
 }
 
-// Names returns a string array of names associated with the image
+// Names returns a string array of names associated with the image, which may be a mixture of tags and digests
 func (i *Image) Names() []string {
 	return i.image.Names
 }
 
-// RepoDigests returns a string array of repodigests associated with the image
-func (i *Image) RepoDigests() ([]string, error) {
-	var repoDigests []string
-	imageDigest := i.Digest()
-
+// RepoTags returns a string array of repotags associated with the image
+func (i *Image) RepoTags() ([]string, error) {
+	var repoTags []string
 	for _, name := range i.Names() {
 		named, err := reference.ParseNormalizedNamed(name)
 		if err != nil {
 			return nil, err
 		}
-
-		canonical, err := reference.WithDigest(reference.TrimNamed(named), imageDigest)
-		if err != nil {
-			return nil, err
+		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+			repoTags = append(repoTags, tagged.String())
 		}
-
-		repoDigests = append(repoDigests, canonical.String())
 	}
+	return repoTags, nil
+}
+
+// RepoDigests returns a string array of repodigests associated with the image
+func (i *Image) RepoDigests() ([]string, error) {
+	var repoDigests []string
+	added := make(map[string]struct{})
+
+	for _, name := range i.Names() {
+		for _, imageDigest := range append(i.Digests(), i.Digest()) {
+			if imageDigest == "" {
+				continue
+			}
+
+			named, err := reference.ParseNormalizedNamed(name)
+			if err != nil {
+				return nil, err
+			}
+
+			canonical, err := reference.WithDigest(reference.TrimNamed(named), imageDigest)
+			if err != nil {
+				return nil, err
+			}
+
+			if _, alreadyInList := added[canonical.String()]; !alreadyInList {
+				repoDigests = append(repoDigests, canonical.String())
+				added[canonical.String()] = struct{}{}
+			}
+		}
+	}
+	sort.Strings(repoDigests)
 	return repoDigests, nil
 }
 
@@ -944,6 +970,11 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		size = int64(*usize)
 	}
 
+	repoTags, err := i.RepoTags()
+	if err != nil {
+		return nil, err
+	}
+
 	repoDigests, err := i.RepoDigests()
 	if err != nil {
 		return nil, err
@@ -965,7 +996,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 	data := &inspect.ImageData{
 		ID:           i.ID(),
-		RepoTags:     i.Names(),
+		RepoTags:     repoTags,
 		RepoDigests:  repoDigests,
 		Comment:      comment,
 		Created:      ociv1Img.Created,

@@ -206,9 +206,9 @@ func (i imagesOptions) setOutputFormat() string {
 	if i.quiet {
 		return formats.IDString
 	}
-	format := "table {{.Repository}}\t{{.Tag}}\t"
+	format := "table {{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}\t"
 	if i.noHeading {
-		format = "{{.Repository}}\t{{.Tag}}\t"
+		format = "{{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}\t"
 	}
 	if i.digests {
 		format += "{{.Digest}}\t"
@@ -270,7 +270,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 			imageID = shortID(img.ID())
 		}
 
-		// get all specified repo:tag pairs and print them separately
+		// get all specified repo:tag and repo@digest pairs and print them separately
 		repopairs, err := image.ReposToMap(img.Names())
 		if err != nil {
 			logrus.Errorf("error finding tag/digest for %s", img.ID())
@@ -287,11 +287,16 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					lastNumIdx := strings.LastIndexFunc(sizeStr, unicode.IsNumber)
 					sizeStr = sizeStr[:lastNumIdx+1] + " " + sizeStr[lastNumIdx+1:]
 				}
+				var imageDigest digest.Digest
+				if len(tag) == 71 && strings.HasPrefix(tag, "sha256:") {
+					imageDigest = digest.Digest(tag)
+					tag = ""
+				}
 				params := imagesTemplateParams{
 					Repository:  repo,
 					Tag:         tag,
 					ID:          imageID,
-					Digest:      img.Digest(),
+					Digest:      imageDigest,
 					Digests:     img.Digests(),
 					CreatedTime: createdTime,
 					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
@@ -302,7 +307,6 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 				if opts.quiet { // Show only one image ID when quiet
 					break outer
 				}
-
 			}
 		}
 	}
