@@ -223,6 +223,10 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
@@ -246,6 +250,10 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	defer span.Finish()
 
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))

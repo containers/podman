@@ -342,6 +342,8 @@ type Create (
     noHosts: ?bool,
     oomKillDisable: ?bool,
     oomScoreAdj: ?int,
+    overrideArch: ?string,
+    overrideOS: ?string,
     pid: ?string,
     pidsLimit: ?int,
     pod: ?string,

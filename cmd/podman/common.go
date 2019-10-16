@@ -371,6 +371,16 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Tune the host's OOM preferences (-1000 to 1000)",
 	)
 	createFlags.String(
+		"override-arch", "",
+		"use `ARCH` instead of the architecture of the machine for choosing images",
+	)
+	markFlagHidden(createFlags, "override-arch")
+	createFlags.String(
+		"override-os", "",
+		"use `OS` instead of the running OS for choosing images",
+	)
+	markFlagHidden(createFlags, "override-os")
+	createFlags.String(
 		"pid", "",
 		"PID namespace to use",
 	)

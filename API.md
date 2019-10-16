@@ -1557,6 +1557,10 @@ oomKillDisable [?bool](#?bool)
 
 oomScoreAdj [?int](#?int)
 
+overrideArch [?string](#?string)
+
+overrideOS [?string](#?string)
+
 pid [?string](#?string)
 
 pidsLimit [?int](#?int)

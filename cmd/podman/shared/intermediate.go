@@ -428,6 +428,8 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["no-hosts"] = newCRBool(c, "no-hosts")
 	m["oom-kill-disable"] = newCRBool(c, "oom-kill-disable")
 	m["oom-score-adj"] = newCRInt(c, "oom-score-adj")
+	m["override-arch"] = newCRString(c, "override-arch")
+	m["override-os"] = newCRString(c, "override-os")
 	m["pid"] = newCRString(c, "pid")
 	m["pids-limit"] = newCRInt64(c, "pids-limit")
 	m["pod"] = newCRString(c, "pod")
