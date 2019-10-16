@@ -11,7 +11,7 @@ load helpers
 BuildahVersion: *[0-9.]\\\+
 Conmon:\\\s\\\+package:
 Distribution:
-OCIRuntime:\\\s\\\+package:
+OCIRuntime:\\\s\\\+name:
 os:
 rootless:
 registries:

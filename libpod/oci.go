@@ -26,7 +26,7 @@ type OCIRuntime interface {
 	// It includes a switch for whether to perform a hard query of the
 	// runtime. If unset, the exit file (if supported by the implementation)
 	// will be used.
-	UpdateContainerStatus(ctr *Container, useRuntime bool) error
+	UpdateContainerStatus(ctr *Container) error
 	// StartContainer starts the given container.
 	StartContainer(ctr *Container) error
 	// KillContainer sends the given signal to the given container.

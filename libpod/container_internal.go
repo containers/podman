@@ -252,7 +252,7 @@ func (c *Container) waitForExitFileAndSync() error {
 		return err
 	}
 
-	if err := c.ociRuntime.UpdateContainerStatus(c, false); err != nil {
+	if err := c.checkExitFile(); err != nil {
 		return err
 	}
 
@@ -386,10 +386,11 @@ func (c *Container) syncContainer() error {
 		(c.state.State != define.ContainerStateConfigured) &&
 		(c.state.State != define.ContainerStateExited) {
 		oldState := c.state.State
-		// TODO: optionally replace this with a stat for the exit file
-		if err := c.ociRuntime.UpdateContainerStatus(c, false); err != nil {
+
+		if err := c.checkExitFile(); err != nil {
 			return err
 		}
+
 		// Only save back to DB if state changed
 		if c.state.State != oldState {
 			// Check for a restart policy match
@@ -1810,4 +1811,36 @@ func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume
 		}
 	}
 	return namedUserVolumes, userMounts
+}
+
+// Check for an exit file, and handle one if present
+func (c *Container) checkExitFile() error {
+	// If the container's not running, nothing to do.
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
+		return nil
+	}
+
+	exitFile, err := c.exitFilePath()
+	if err != nil {
+		return err
+	}
+
+	// Check for the exit file
+	info, err := os.Stat(exitFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Container is still running, no error
+			return nil
+		}
+
+		return errors.Wrapf(err, "error running stat on container %s exit file", c.ID())
+	}
+
+	// Alright, it exists. Transition to Stopped state.
+	c.state.State = define.ContainerStateStopped
+	c.state.PID = 0
+	c.state.ConmonPID = 0
+
+	// Read the exit file to get our stopped time and exit code.
+	return c.handleExitFile(exitFile, info)
 }
