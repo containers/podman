@@ -612,7 +612,9 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 		if c.Attach {
 			inputStream := os.Stdin
 			if !c.Interactive {
-				inputStream = nil
+				if !ctr.Stdin() {
+					inputStream = nil
+				}
 			}
 
 			// attach to the container and also start it not already running
