@@ -16,15 +16,14 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"unsafe"
 
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/godbus/dbus"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 /*
@@ -130,7 +129,7 @@ func tryMappingTool(tool string, pid int, hostID int, mappings []idtools.IDMap) 
 
 func readUserNs(path string) (string, error) {
 	b := make([]byte, 256)
-	_, err := syscall.Readlink(path, b)
+	_, err := unix.Readlink(path, b)
 	if err != nil {
 		return "", err
 	}
@@ -143,7 +142,7 @@ func readUserNsFd(fd uintptr) (string, error) {
 
 func getParentUserNs(fd uintptr) (uintptr, error) {
 	const nsGetParent = 0xb702
-	ret, _, errno := syscall.Syscall(syscall.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
+	ret, _, errno := unix.Syscall(unix.SYS_IOCTL, fd, uintptr(nsGetParent), 0)
 	if errno != 0 {
 		return 0, errno
 	}
@@ -179,7 +178,7 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 	for {
 		nextFd, err := getParentUserNs(fd)
 		if err != nil {
-			if err == syscall.ENOTTY {
+			if err == unix.ENOTTY {
 				return os.NewFile(fd, "userns child"), nil
 			}
 			return nil, errors.Wrapf(err, "cannot get parent user namespace")
@@ -191,14 +190,14 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 		}
 
 		if ns == currentNS {
-			if err := syscall.Close(int(nextFd)); err != nil {
+			if err := unix.Close(int(nextFd)); err != nil {
 				return nil, err
 			}
 
 			// Drop O_CLOEXEC for the fd.
-			_, _, errno := syscall.Syscall(syscall.SYS_FCNTL, fd, syscall.F_SETFD, 0)
+			_, _, errno := unix.Syscall(unix.SYS_FCNTL, fd, unix.F_SETFD, 0)
 			if errno != 0 {
-				if err := syscall.Close(int(fd)); err != nil {
+				if err := unix.Close(int(fd)); err != nil {
 					logrus.Errorf("failed to close file descriptor %d", fd)
 				}
 				return nil, errno
@@ -206,7 +205,7 @@ func getUserNSFirstChild(fd uintptr) (*os.File, error) {
 
 			return os.NewFile(fd, "userns child"), nil
 		}
-		if err := syscall.Close(int(fd)); err != nil {
+		if err := unix.Close(int(fd)); err != nil {
 			return nil, err
 		}
 		fd = nextFd
@@ -394,7 +393,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+	fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 	if err != nil {
 		return false, -1, err
 	}
@@ -491,21 +490,21 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (bool,
 
 	signals := []os.Signal{}
 	for sig := 0; sig < numSig; sig++ {
-		if sig == int(syscall.SIGTSTP) {
+		if sig == int(unix.SIGTSTP) {
 			continue
 		}
-		signals = append(signals, syscall.Signal(sig))
+		signals = append(signals, unix.Signal(sig))
 	}
 
 	gosignal.Notify(c, signals...)
 	defer gosignal.Reset()
 	go func() {
 		for s := range c {
-			if s == signal.SIGCHLD || s == signal.SIGPIPE {
+			if s == unix.SIGCHLD || s == unix.SIGPIPE {
 				continue
 			}
 
-			if err := syscall.Kill(int(pidC), s.(syscall.Signal)); err != nil {
+			if err := unix.Kill(int(pidC), s.(unix.Signal)); err != nil {
 				logrus.Errorf("failed to kill %d", int(pidC))
 			}
 		}
@@ -560,7 +559,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 			lastErr = nil
 			break
 		} else {
-			fds, err := syscall.Socketpair(syscall.AF_UNIX, syscall.SOCK_DGRAM, 0)
+			fds, err := unix.Socketpair(unix.AF_UNIX, unix.SOCK_DGRAM, 0)
 			if err != nil {
 				lastErr = err
 				continue
