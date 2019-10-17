@@ -24,19 +24,26 @@ func GetFreeDeviceName() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	bridgeNames, err := GetBridgeNamesFromFileSystem()
+	if err != nil {
+		return "", err
+	}
 	for {
 		deviceName = fmt.Sprintf("%s%d", CNIDeviceName, deviceNum)
-		logrus.Debugf("checking if device name %s exists in other cni networks", deviceName)
+		logrus.Debugf("checking if device name %q exists in other cni networks", deviceName)
 		if util.StringInSlice(deviceName, networkNames) {
 			deviceNum++
 			continue
 		}
-		logrus.Debugf("checking if device name %s exists in live networks", deviceName)
-		if !util.StringInSlice(deviceName, liveNetworksNames) {
+		logrus.Debugf("checking if device name %q exists in live networks", deviceName)
+		if util.StringInSlice(deviceName, liveNetworksNames) {
+			deviceNum++
+			continue
+		}
+		logrus.Debugf("checking if device name %q already exists as a bridge name ", deviceName)
+		if !util.StringInSlice(deviceName, bridgeNames) {
 			break
 		}
-		// TODO Still need to check the bridge names for a conflict but I dont know
-		// how to get them yet!
 		deviceNum++
 	}
 	return deviceName, nil

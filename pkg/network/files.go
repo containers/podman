@@ -129,3 +129,29 @@ func GetInterfaceNameFromConfig(path string) (string, error) {
 	}
 	return name, nil
 }
+
+// GetBridgeNamesFromFileSystem is a convenience function to get all the bridge
+// names from the configured networks
+func GetBridgeNamesFromFileSystem() ([]string, error) {
+	var bridgeNames []string
+	networks, err := LoadCNIConfsFromDir(CNIConfigDir)
+	if err != nil {
+		return nil, err
+	}
+	for _, n := range networks {
+		var name string
+		// iterate network conflists
+		for _, cniplugin := range n.Plugins {
+			// iterate plugins
+			if cniplugin.Network.Type == "bridge" {
+				plugin := make(map[string]interface{})
+				if err := json.Unmarshal(cniplugin.Bytes, &plugin); err != nil {
+					continue
+				}
+				name = plugin["bridge"].(string)
+			}
+		}
+		bridgeNames = append(bridgeNames, name)
+	}
+	return bridgeNames, nil
+}
