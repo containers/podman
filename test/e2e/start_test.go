@@ -108,7 +108,7 @@ var _ = Describe("Podman start", func() {
 
 		start := podmanTest.Podman([]string{"start", "-l"})
 		start.WaitWithDefaultTimeout()
-		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
+		Expect(start).To(ExitWithError())
 
 		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(BeZero())
 	})
@@ -120,7 +120,7 @@ var _ = Describe("Podman start", func() {
 
 		start := podmanTest.Podman([]string{"start", "-l"})
 		start.WaitWithDefaultTimeout()
-		Expect(start.ExitCode()).Should(BeNumerically(">", 0))
+		Expect(start).To(ExitWithError())
 
 		Eventually(podmanTest.NumberOfContainers(), defaultWaitTimeout, 3.0).Should(Equal(1))
 	})

@@ -108,7 +108,7 @@ var _ = Describe("Podman logs", func() {
 	It("podman logs latest and container name should fail", func() {
 		results := podmanTest.Podman([]string{"logs", "-l", "foobar"})
 		results.WaitWithDefaultTimeout()
-		Expect(results.ExitCode()).ToNot(Equal(0))
+		Expect(results).To(ExitWithError())
 	})
 
 	It("podman logs two containers and should display short container IDs", func() {

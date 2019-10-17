@@ -40,19 +40,19 @@ var _ = Describe("Podman run with --ip flag", func() {
 	It("Podman run --ip with garbage address", func() {
 		result := podmanTest.Podman([]string{"run", "-ti", "--ip", "114232346", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("Podman run --ip with v6 address", func() {
 		result := podmanTest.Podman([]string{"run", "-ti", "--ip", "2001:db8:bad:beef::1", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("Podman run --ip with non-allocatable IP", func() {
 		result := podmanTest.Podman([]string{"run", "-ti", "--ip", "203.0.113.124", ALPINE, "ls"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("Podman run with specified static IP has correct IP", func() {
@@ -70,6 +70,6 @@ var _ = Describe("Podman run with --ip flag", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		result = podmanTest.Podman([]string{"run", "-ti", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 })

@@ -143,7 +143,7 @@ var _ = Describe("Podman load", func() {
 	It("podman load bogus file", func() {
 		save := podmanTest.PodmanNoCache([]string{"load", "-i", "foobar.tar"})
 		save.WaitWithDefaultTimeout()
-		Expect(save.ExitCode()).ToNot(Equal(0))
+		Expect(save).To(ExitWithError())
 	})
 
 	It("podman load multiple tags", func() {

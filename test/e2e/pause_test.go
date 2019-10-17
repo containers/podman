@@ -52,13 +52,13 @@ var _ = Describe("Podman pause", func() {
 	It("podman pause bogus container", func() {
 		session := podmanTest.Podman([]string{"pause", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman unpause bogus container", func() {
 		session := podmanTest.Podman([]string{"unpause", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pause a created container by id", func() {
@@ -70,7 +70,7 @@ var _ = Describe("Podman pause", func() {
 		result := podmanTest.Podman([]string{"pause", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result.ExitCode()).To(Not(Equal(0)))
+		Expect(result).To(ExitWithError())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring(createdState))
 	})

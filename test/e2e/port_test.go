@@ -39,13 +39,13 @@ var _ = Describe("Podman port", func() {
 	It("podman port all and latest", func() {
 		result := podmanTest.Podman([]string{"port", "-a", "-l"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("podman port all and extra", func() {
 		result := podmanTest.Podman([]string{"port", "-a", "foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 
 	It("podman port -l nginx", func() {

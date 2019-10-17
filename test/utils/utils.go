@@ -268,7 +268,7 @@ func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
 	return matches, greps
 }
 
-//LineInOutputStartsWith returns true if a line in a
+// LineInOutputStartsWith returns true if a line in a
 // session output starts with the supplied string
 func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
 	for _, i := range s.OutputToStringArray() {
@@ -279,7 +279,7 @@ func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
 	return false
 }
 
-//LineInOutputContains returns true if a line in a
+// LineInOutputContains returns true if a line in a
 // session output contains the supplied string
 func (s *PodmanSession) LineInOutputContains(term string) bool {
 	for _, i := range s.OutputToStringArray() {
@@ -290,7 +290,7 @@ func (s *PodmanSession) LineInOutputContains(term string) bool {
 	return false
 }
 
-//LineInOutputContainsTag returns true if a line in the
+// LineInOutputContainsTag returns true if a line in the
 // session's output contains the repo-tag pair as returned
 // by podman-images(1).
 func (s *PodmanSession) LineInOutputContainsTag(repo, tag string) bool {
@@ -348,7 +348,7 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
-//tagOutPutToMap parses each string in imagesOutput and returns
+// tagOutPutToMap parses each string in imagesOutput and returns
 // a map of repo:tag pairs.  Notice, the first array item will
 // be skipped as it's considered to be the header.
 func tagOutputToMap(imagesOutput []string) map[string]string {
@@ -371,7 +371,7 @@ func tagOutputToMap(imagesOutput []string) map[string]string {
 	return m
 }
 
-//GetHostDistributionInfo returns a struct with its distribution name and version
+// GetHostDistributionInfo returns a struct with its distribution name and version
 func GetHostDistributionInfo() HostOS {
 	f, err := os.Open(OSReleasePath)
 	defer f.Close()
@@ -415,7 +415,7 @@ func IsKernelNewerThan(version string) (bool, error) {
 
 }
 
-//IsCommandAvaible check if command exist
+// IsCommandAvaible check if command exist
 func IsCommandAvailable(command string) bool {
 	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
 	err := check.Run()

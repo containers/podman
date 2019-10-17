@@ -40,13 +40,13 @@ var _ = Describe("Podman generate kube", func() {
 	It("podman generate pod kube on bogus object", func() {
 		session := podmanTest.Podman([]string{"generate", "kube", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman generate service kube on bogus object", func() {
 		session := podmanTest.Podman([]string{"generate", "kube", "-s", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman generate kube on container", func() {

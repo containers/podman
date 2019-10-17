@@ -74,7 +74,7 @@ var _ = Describe("Podman run networking", func() {
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
 
 		ncBusy := SystemExec("nc", []string{"-l", "-p", "80"})
-		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
+		Expect(ncBusy).To(ExitWithError())
 	})
 
 	It("podman run network expose ports in image metadata", func() {
@@ -229,7 +229,7 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run network in bogus user created network namespace", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
 	})
 })

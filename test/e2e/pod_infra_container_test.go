@@ -122,7 +122,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pod correctly sets up IPCNS", func() {
@@ -218,7 +218,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pod container can override pod pid NS", func() {
@@ -309,7 +309,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"rm", infraID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"pod", "rm", podID})
 		session.WaitWithDefaultTimeout()
