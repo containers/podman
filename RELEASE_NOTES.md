@@ -22,9 +22,11 @@
 - Fixed a bug where `podman stats` was broken on systems running CGroups V2 when run rootless ([#4268](https://github.com/containers/libpod/issues/4268))
 - Fixed a bug where the `podman start` command would print the short container ID, instead of the full ID
 - Fixed a bug where containers created with an OCI runtime that is no longer available (uninstalled or removed from the config file) would not appear in `podman ps` and could not be removed via `podman rm`
+- Fixed a bug where containers restored via `podman container restore --import` would retain the CGroup path of the original container, even if their container ID changed; thus, multiple containers created from the same checkpoint would all share the same CGroup
 
 ### Misc
 - The default PID limit for containers is now set to 4096. It can be adjusted back to the old default (unlimited) by passing `--pids-limit 0` to `podman create` and `podman run`
+- The `podman start --attach` command now automatically attaches `STDIN` if the container was created with `-i`
 - The `podman network create` command now validates network names using the same regular expression as container and pod names
 - The `--systemd` flag to `podman run` and `podman create` will now only enable systemd mode when the binary being run inside the container is `/sbin/init`, `/usr/sbin/init`, or ends in `systemd` (previously detected any path ending in `init` or `systemd`)
 - Updated vendored Buildah to 1.11.3
