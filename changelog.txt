@@ -1,3 +1,11 @@
+- Changelog for v1.6.2 (2019-10-17)
+  * Finalize release notes for v1.6.2
+  * rootless: drop dependency on docker
+  * Bump gitvalidation epoch
+  * Bump to v1.6.2-dev
+  * Refactor tests when checking for error exit codes
+  * Attach stdin to container at start if it was created with --interactive
+
 - Changelog for v1.6.2-rc1 (2019-10-16)
   * Add release notes for Podman 1.6.2
   * start: print full container ID
