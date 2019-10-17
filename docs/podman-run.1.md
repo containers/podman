@@ -839,7 +839,7 @@ Set the UTS mode for the container
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 
-**--volume**, **-v**[=*[HOST-DIR-OR-VOUME-NAME:CONTAINER-DIR[:OPTIONS]]*]
+**--volume**, **-v**[=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*]
 
 Create a bind mount. If you specify, ` -v /HOST-DIR:/CONTAINER-DIR`, Podman
 bind mounts `/HOST-DIR` in the host to `/CONTAINER-DIR` in the Podman
@@ -853,11 +853,23 @@ create one.
 * [`z`|`Z`]
 * [`[r]shared`|`[r]slave`|`[r]private`]
 
-The `/CONTAINER-DIR` must be an absolute path such as `/src/docs`. The `/HOST-DIR`
-must be an absolute path as well. Podman bind-mounts the `HOST-DIR` to the
-path you specify. For example, if you supply the `/foo` value, Podman creates a bind-mount.
+The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
+will be mounted into the container at this directory.
 
-You can specify multiple  **-v** options to mount one or more mounts to a
+Volumes may specify a source as well, as either a directory on the host or the
+name of a named volume. If no source is given, the volume will be created as an
+anonymous named volume with a randomly generated name, and will be removed when
+the container is removed via the `--rm` flag or `podman rm --volumes`.
+
+If a volume source is specified, it must be a path on the host or the name of a
+named volume. Host paths are allowed to be absolute or relative; relative paths
+are resolved relative to the directory Podman is run in. Any source that does
+not begin with a `.` or `/` it will be treated as the name of a named volume.
+If a volume with that name does not exist, it will be created. Volumes created
+with names are not anonymous and are not removed by `--rm` and
+`podman rm --volumes`.
+
+You can specify multiple  **-v** options to mount one or more volumes into a
 container.
 
 You can add `:ro` or `:rw` suffix to a volume to mount it  read-only or

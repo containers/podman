@@ -280,4 +280,81 @@ var _ = Describe("Podman run with volumes", func() {
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 	})
+
+	It("podman run with anonymous volume", func() {
+		list1 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list1.WaitWithDefaultTimeout()
+		Expect(list1.ExitCode()).To(Equal(0))
+		Expect(list1.OutputToString()).To(Equal(""))
+
+		session := podmanTest.Podman([]string{"create", "-v", "/test", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		list2 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list2.WaitWithDefaultTimeout()
+		Expect(list2.ExitCode()).To(Equal(0))
+		arr := list2.OutputToStringArray()
+		Expect(len(arr)).To(Equal(1))
+		Expect(arr[0]).To(Not(Equal("")))
+	})
+
+	It("podman rm -v removes anonymous volume", func() {
+		list1 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list1.WaitWithDefaultTimeout()
+		Expect(list1.ExitCode()).To(Equal(0))
+		Expect(list1.OutputToString()).To(Equal(""))
+
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, "-v", "/test", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		list2 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list2.WaitWithDefaultTimeout()
+		Expect(list2.ExitCode()).To(Equal(0))
+		arr := list2.OutputToStringArray()
+		Expect(len(arr)).To(Equal(1))
+		Expect(arr[0]).To(Not(Equal("")))
+
+		remove := podmanTest.Podman([]string{"rm", "-v", ctrName})
+		remove.WaitWithDefaultTimeout()
+		Expect(remove.ExitCode()).To(Equal(0))
+
+		list3 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list3.WaitWithDefaultTimeout()
+		Expect(list3.ExitCode()).To(Equal(0))
+		Expect(list3.OutputToString()).To(Equal(""))
+	})
+
+	It("podman rm -v retains named volume", func() {
+		list1 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list1.WaitWithDefaultTimeout()
+		Expect(list1.ExitCode()).To(Equal(0))
+		Expect(list1.OutputToString()).To(Equal(""))
+
+		ctrName := "testctr"
+		volName := "testvol"
+		session := podmanTest.Podman([]string{"create", "--name", ctrName, "-v", fmt.Sprintf("%s:/test", volName), ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		list2 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list2.WaitWithDefaultTimeout()
+		Expect(list2.ExitCode()).To(Equal(0))
+		arr := list2.OutputToStringArray()
+		Expect(len(arr)).To(Equal(1))
+		Expect(arr[0]).To(Equal(volName))
+
+		remove := podmanTest.Podman([]string{"rm", "-v", ctrName})
+		remove.WaitWithDefaultTimeout()
+		Expect(remove.ExitCode()).To(Equal(0))
+
+		list3 := podmanTest.Podman([]string{"volume", "list", "--quiet"})
+		list3.WaitWithDefaultTimeout()
+		Expect(list3.ExitCode()).To(Equal(0))
+		arr2 := list3.OutputToStringArray()
+		Expect(len(arr2)).To(Equal(1))
+		Expect(arr2[0]).To(Equal(volName))
+	})
 })

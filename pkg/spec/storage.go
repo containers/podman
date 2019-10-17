@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -648,7 +647,7 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 	mounts := make(map[string]spec.Mount)
 	volumes := make(map[string]*libpod.ContainerNamedVolume)
 
-	volumeFormatErr := errors.Errorf("incorrect volume format, should be host-dir:ctr-dir[:option]")
+	volumeFormatErr := errors.Errorf("incorrect volume format, should be [host-dir:]ctr-dir[:option]")
 
 	for _, vol := range config.Volumes {
 		var (
@@ -665,7 +664,11 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 
 		src = splitVol[0]
 		if len(splitVol) == 1 {
-			dest = src
+			// This is an anonymous named volume. Only thing given
+			// is destination.
+			// Name/source will be blank, and populated by libpod.
+			src = ""
+			dest = splitVol[0]
 		} else if len(splitVol) > 1 {
 			dest = splitVol[1]
 		}
@@ -675,8 +678,11 @@ func (config *CreateConfig) getVolumeMounts() (map[string]spec.Mount, map[string
 			}
 		}
 
-		if err := parse.ValidateVolumeHostDir(src); err != nil {
-			return nil, nil, err
+		// Do not check source dir for anonymous volumes
+		if len(splitVol) > 1 {
+			if err := parse.ValidateVolumeHostDir(src); err != nil {
+				return nil, nil, err
+			}
 		}
 		if err := parse.ValidateVolumeCtrDir(dest); err != nil {
 			return nil, nil, err
@@ -736,8 +742,8 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 			}
 			mounts[vol] = mount
 		} else {
+			// Anonymous volumes have no name.
 			namedVolume := new(libpod.ContainerNamedVolume)
-			namedVolume.Name = stringid.GenerateNonCryptoID()
 			namedVolume.Options = []string{"rprivate", "rw", "nodev"}
 			namedVolume.Dest = cleanDest
 			volumes[vol] = namedVolume
