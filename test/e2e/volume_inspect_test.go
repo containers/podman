@@ -2,6 +2,7 @@ package integration
 
 import (
 	"os"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -73,5 +74,17 @@ var _ = Describe("Podman volume inspect", func() {
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
 		Expect(session.OutputToStringArray()[0]).To(Equal(volName1))
 		Expect(session.OutputToStringArray()[1]).To(Equal(volName2))
+	})
+
+	It("inspect volume finds options", func() {
+		volName := "testvol"
+		session := podmanTest.Podman([]string{"volume", "create", "--opt", "type=tmpfs", volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"volume", "inspect", volName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(strings.Contains(inspect.OutputToString(), "tmpfs")).To(BeTrue())
 	})
 })
