@@ -410,3 +410,22 @@ You'll need to either:
 
 * configure the host to use cgroups v1
 * update the image to use an updated version of systemd.
+
+### 17) rootless containers exit once the user session exits
+
+
+You need to set lingering mode through loginctl to prevent user processes to be killed once
+the user session completed.
+
+#### Symptom
+
+Once the user logs out all the containers exit.
+
+#### Solution
+You'll need to either:
+
+* loginctl enable-linger $UID
+
+or as root if your user has not enough privileges.
+
+* sudo loginctl enable-linger $UID
