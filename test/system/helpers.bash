@@ -373,5 +373,19 @@ function random_string() {
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
 
+
+#########################
+#  find_exec_pid_files  #  Returns nothing or exec_pid hash files
+#########################
+#
+# Return exec_pid hash files if exists, otherwise, return nothing
+#
+function find_exec_pid_files() {
+    run_podman info --format '{{.store.RunRoot}}'
+    local storage_path="$output"
+    if [ -d $storage_path ]; then
+        find $storage_path -type f -iname 'exec_pid_*'
+    fi
+}
 # END   miscellaneous tools
 ###############################################################################

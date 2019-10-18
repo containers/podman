@@ -29,4 +29,24 @@ load helpers
     run_podman rm $cid
 }
 
+@test "podman exec - leak check" {
+    skip_if_remote
+
+    # Start a container in the background then run exec command
+    # three times and make sure no any exec pid hash file leak
+    run_podman run -td $IMAGE /bin/sh
+    cid="$output"
+
+    is "$(check_exec_pid)" "" "exec pid hash file indeed doesn't exist"
+
+    for i in {1..3}; do
+        run_podman exec $cid /bin/true
+    done
+
+    is "$(check_exec_pid)" "" "there isn't any exec pid hash file leak"
+
+    run_podman stop --time 1 $cid
+    run_podman rm -f $cid
+}
+
 # vim: filetype=sh
