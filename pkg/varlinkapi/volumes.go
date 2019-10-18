@@ -24,7 +24,11 @@ func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vol
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(options.Labels))
 	}
 	if len(options.Options) > 0 {
-		volumeOptions = append(volumeOptions, libpod.WithVolumeOptions(options.Options))
+		parsedOptions, err := shared.ParseVolumeOptions(options.Options)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		volumeOptions = append(volumeOptions, parsedOptions...)
 	}
 	newVolume, err := i.Runtime.NewVolume(getContext(), volumeOptions...)
 	if err != nil {
