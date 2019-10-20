@@ -364,4 +364,15 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
 	})
+
+	It("podman mount with invalid option fails", func() {
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=invalid", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate.ExitCode()).To(Equal(0))
+
+		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp", volName), ALPINE, "ls"})
+		volMount.WaitWithDefaultTimeout()
+		Expect(volMount.ExitCode()).To(Not(Equal(0)))
+	})
 })
