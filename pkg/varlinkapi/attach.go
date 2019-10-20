@@ -70,7 +70,6 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	}
 
 	reader, writer, _, pw, streams := setupStreams(call)
-
 	go func() {
 		if err := virtwriter.Reader(reader, nil, nil, pw, resize, nil); err != nil {
 			errChan <- err

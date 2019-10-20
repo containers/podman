@@ -1092,6 +1092,7 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 	// These are the special writers that encode input from the client.
 	varlinkStdinWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.ToStdin)
 	varlinkResizeWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.TerminalResize)
+	varlinkHangupWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.HangUpFromClient)
 
 	go func() {
 		// Read from the wire and direct to stdout or stderr
@@ -1117,7 +1118,6 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 			}
 		}
 	}()
-
 	if stdin != nil {
 		// Takes stdinput and sends it over the wire after being encoded
 		go func() {
@@ -1126,7 +1126,12 @@ func configureVarlinkAttachStdio(reader *bufio.Reader, writer *bufio.Writer, std
 				sendGenericError(ecChan)
 				errChan <- err
 			}
-
+			_, err := varlinkHangupWriter.Write([]byte("EOF"))
+			if err != nil {
+				logrus.Errorf("unable to notify server to hangup: %q", err)
+			}
+			err = varlinkStdinWriter.Close()
+			errChan <- err
 		}()
 	}
 	return errChan
