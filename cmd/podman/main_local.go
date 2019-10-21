@@ -16,7 +16,8 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/tracing"
@@ -32,8 +33,8 @@ import (
 const remote = false
 
 func init() {
-	cgroupManager := libpod.SystemdCgroupsManager
-	if runtimeConfig, err := libpod.DefaultRuntimeConfig(); err == nil {
+	cgroupManager := define.SystemdCgroupsManager
+	if runtimeConfig, err := config.NewConfig(""); err == nil {
 		cgroupManager = runtimeConfig.CgroupManager
 	}
 	cgroupHelp := "Cgroup manager to use (cgroupfs or systemd)"
@@ -181,7 +182,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		if !ownsCgroup {
 			unitName := fmt.Sprintf("podman-%d.scope", os.Getpid())
 			if err := utils.RunUnderSystemdScope(os.Getpid(), "user.slice", unitName); err != nil {
-				if conf.CgroupManager == libpod.SystemdCgroupsManager {
+				if conf.CgroupManager == define.SystemdCgroupsManager {
 					logrus.Warnf("Failed to add podman to systemd sandbox cgroup: %v", err)
 				} else {
 					logrus.Debugf("Failed to add podman to systemd sandbox cgroup: %v", err)
@@ -225,7 +226,7 @@ func setupRootless(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		if conf.CgroupManager == libpod.SystemdCgroupsManager {
+		if conf.CgroupManager == define.SystemdCgroupsManager {
 			logrus.Warnf("Failed to add pause process to systemd sandbox cgroup: %v", err)
 		} else {
 			logrus.Debugf("Failed to add pause process to systemd sandbox cgroup: %v", err)

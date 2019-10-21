@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/storage"
@@ -52,7 +53,7 @@ func getEmptyBoltState() (s State, p string, m lock.Manager, err error) {
 	}
 
 	runtime := new(Runtime)
-	runtime.config = new(RuntimeConfig)
+	runtime.config = new(config.Config)
 	runtime.config.StorageConfig = storage.StoreOptions{}
 	runtime.lockManager = lockManager
 

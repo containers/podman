@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	libpodconfig "github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
@@ -300,7 +302,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	blockAccessToKernelFilesystems(config, &g)
 
-	var runtimeConfig *libpod.RuntimeConfig
+	var runtimeConfig *libpodconfig.Config
 
 	if runtime != nil {
 		runtimeConfig, err = runtime.GetConfig()
@@ -321,7 +323,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			if err != nil {
 				return nil, err
 			}
-			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != define.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
 				setPidLimit = false
 			}
 		}
@@ -417,7 +419,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
 
-		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == libpod.SystemdCgroupsManager)
+		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == define.SystemdCgroupsManager)
 
 		if addedResources && !canUseResources {
 			return nil, errors.New("invalid configuration, cannot specify resource limits without cgroups v2 and --cgroup-manager=systemd")
