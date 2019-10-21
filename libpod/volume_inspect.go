@@ -62,6 +62,9 @@ func (v *Volume) Inspect() (*InspectVolumeData, error) {
 	}
 	data.Scope = v.Scope()
 	data.Options = make(map[string]string)
+	for k, v := range v.config.Options {
+		data.Options[k] = v
+	}
 	data.UID = v.config.UID
 	data.GID = v.config.GID
 	data.ContainerSpecific = v.config.IsCtrSpecific

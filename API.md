@@ -107,6 +107,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func InspectPod(name: string) string](#InspectPod)
 
+[func InspectVolume(name: string) string](#InspectVolume)
+
 [func KillContainer(name: string, signal: int) string](#KillContainer)
 
 [func KillPod(name: string, signal: int) string](#KillPod)
@@ -804,6 +806,12 @@ method InspectPod(name: [string](https://godoc.org/builtin#string)) [string](htt
 InspectPod takes the name or ID of an image and returns a string representation of data associated with the
 pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
 be returned if the pod cannot be found.
+### <a name="InspectVolume"></a>func InspectVolume
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method InspectVolume(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+InspectVolume inspects a single volume. Returns inspect JSON in the form of a
+string.
 ### <a name="KillContainer"></a>func KillContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

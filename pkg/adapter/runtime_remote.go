@@ -659,12 +659,39 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 }
 
 // InspectVolumes returns a slice of volumes based on an arg list or --all
-func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
-	reply, err := iopodman.GetVolumes().Call(r.Conn, c.InputArgs, c.All)
-	if err != nil {
-		return nil, err
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*libpod.InspectVolumeData, error) {
+	var (
+		inspectData []*libpod.InspectVolumeData
+		volumes     []string
+	)
+
+	if c.All {
+		allVolumes, err := r.Volumes(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, vol := range allVolumes {
+			volumes = append(volumes, vol.Name())
+		}
+	} else {
+		for _, arg := range c.InputArgs {
+			volumes = append(volumes, arg)
+		}
 	}
-	return varlinkVolumeToVolume(r, reply), nil
+
+	for _, vol := range volumes {
+		jsonString, err := iopodman.InspectVolume().Call(r.Conn, vol)
+		if err != nil {
+			return nil, err
+		}
+		inspectJSON := new(libpod.InspectVolumeData)
+		if err := json.Unmarshal([]byte(jsonString), inspectJSON); err != nil {
+			return nil, errors.Wrapf(err, "error unmarshalling inspect JSON for volume %s", vol)
+		}
+		inspectData = append(inspectData, inspectJSON)
+	}
+
+	return inspectData, nil
 }
 
 // Volumes returns a slice of adapter.volumes based on information about libpod
