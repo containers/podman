@@ -3,6 +3,8 @@
 package varlinkapi
 
 import (
+	"encoding/json"
+
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
@@ -78,6 +80,23 @@ func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all boo
 		volumes = append(volumes, newVol)
 	}
 	return call.ReplyGetVolumes(volumes)
+}
+
+// InspectVolume inspects a single volume, returning its JSON as a string.
+func (i *LibpodAPI) InspectVolume(call iopodman.VarlinkCall, name string) error {
+	vol, err := i.Runtime.LookupVolume(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	inspectOut, err := vol.Inspect()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	inspectJSON, err := json.Marshal(inspectOut)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyInspectVolume(string(inspectJSON))
 }
 
 // VolumesPrune removes unused images via a varlink call

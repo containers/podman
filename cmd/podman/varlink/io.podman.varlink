@@ -1268,6 +1268,10 @@ method VolumeRemove(options: VolumeRemoveOpts) -> (successes: []string, failures
 # GetVolumes gets slice of the volumes on a remote host
 method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
 
+# InspectVolume inspects a single volume. Returns inspect JSON in the form of a
+# string.
+method InspectVolume(name: string) -> (volume: string)
+
 # VolumesPrune removes unused volumes on the host
 method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
 
