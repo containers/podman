@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	bolt "github.com/etcd-io/bbolt"
 	jsoniter "github.com/json-iterator/go"
@@ -291,12 +292,12 @@ func (s *BoltState) Refresh() error {
 
 // GetDBConfig retrieves runtime configuration fields that were created when
 // the database was first initialized
-func (s *BoltState) GetDBConfig() (*DBConfig, error) {
+func (s *BoltState) GetDBConfig() (*config.DBConfig, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
 
-	cfg := new(DBConfig)
+	cfg := new(config.DBConfig)
 
 	db, err := s.getDBCon()
 	if err != nil {
