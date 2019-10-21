@@ -39,30 +39,30 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 
 		if config.RunRoot != "" {
 			rt.config.StorageConfig.RunRoot = config.RunRoot
-			rt.configuredFrom.storageRunRootSet = true
+			rt.config.StorageConfigRunRootSet = true
 			setField = true
 		}
 
 		if config.GraphRoot != "" {
 			rt.config.StorageConfig.GraphRoot = config.GraphRoot
-			rt.configuredFrom.storageGraphRootSet = true
+			rt.config.StorageConfigGraphRootSet = true
 
 			// Also set libpod static dir, so we are a subdirectory
 			// of the c/storage store by default
 			rt.config.StaticDir = filepath.Join(config.GraphRoot, "libpod")
-			rt.configuredFrom.libpodStaticDirSet = true
+			rt.config.StaticDirSet = true
 
 			// Also set libpod volume path, so we are a subdirectory
 			// of the c/storage store by default
 			rt.config.VolumePath = filepath.Join(config.GraphRoot, "volumes")
-			rt.configuredFrom.volPathSet = true
+			rt.config.VolumePathSet = true
 
 			setField = true
 		}
 
 		if config.GraphDriverName != "" {
 			rt.config.StorageConfig.GraphDriverName = config.GraphDriverName
-			rt.configuredFrom.storageGraphDriverSet = true
+			rt.config.StorageConfigGraphDriverNameSet = true
 			setField = true
 		}
 
@@ -135,13 +135,13 @@ func WithSignaturePolicy(path string) RuntimeOption {
 // Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
 // they will not share containers, and unspecified behavior may occur.
-func WithStateType(storeType RuntimeStateStore) RuntimeOption {
+func WithStateType(storeType define.RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
 		}
 
-		if storeType == InvalidStateStore {
+		if storeType == define.InvalidStateStore {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid state store type")
 		}
 
@@ -224,9 +224,9 @@ func WithCgroupManager(manager string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		if manager != CgroupfsCgroupsManager && manager != SystemdCgroupsManager {
+		if manager != define.CgroupfsCgroupsManager && manager != define.SystemdCgroupsManager {
 			return errors.Wrapf(define.ErrInvalidArg, "CGroup manager must be one of %s and %s",
-				CgroupfsCgroupsManager, SystemdCgroupsManager)
+				define.CgroupfsCgroupsManager, define.SystemdCgroupsManager)
 		}
 
 		rt.config.CgroupManager = manager
@@ -244,7 +244,7 @@ func WithStaticDir(dir string) RuntimeOption {
 		}
 
 		rt.config.StaticDir = dir
-		rt.configuredFrom.libpodStaticDirSet = true
+		rt.config.StaticDirSet = true
 
 		return nil
 	}
@@ -295,7 +295,7 @@ func WithTmpDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 		rt.config.TmpDir = dir
-		rt.configuredFrom.libpodTmpDirSet = true
+		rt.config.TmpDirSet = true
 
 		return nil
 	}
@@ -395,7 +395,7 @@ func WithVolumePath(volPath string) RuntimeOption {
 		}
 
 		rt.config.VolumePath = volPath
-		rt.configuredFrom.volPathSet = true
+		rt.config.VolumePathSet = true
 
 		return nil
 	}

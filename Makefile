@@ -74,8 +74,8 @@ ASMFLAGS ?= all=-trimpath=${PWD}
 LDFLAGS_PODMAN ?= $(LDFLAGS) \
 	  -X $(LIBPOD).gitCommit=$(GIT_COMMIT) \
 	  -X $(LIBPOD).buildInfo=$(BUILD_INFO) \
-	  -X $(LIBPOD).installPrefix=$(PREFIX) \
-	  -X $(LIBPOD).etcDir=$(ETCDIR)
+	  -X $(LIBPOD)/config.installPrefix=$(PREFIX) \
+	  -X $(LIBPOD)/config.etcDir=$(ETCDIR)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 # Rarely if ever should integration tests take more than 50min,

@@ -10,7 +10,7 @@ import (
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -259,7 +259,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	if err != nil {
 		return err
 	}
-	if conf != nil && conf.CgroupManager == libpod.SystemdCgroupsManager {
+	if conf != nil && conf.CgroupManager == define.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 	// end from buildah

@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v4/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
+	libpodconfig "github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -246,18 +247,18 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 	}
 
 	if config.SeccompProfilePath == "" {
-		if _, err := os.Stat(libpod.SeccompOverridePath); err == nil {
-			config.SeccompProfilePath = libpod.SeccompOverridePath
+		if _, err := os.Stat(libpodconfig.SeccompOverridePath); err == nil {
+			config.SeccompProfilePath = libpodconfig.SeccompOverridePath
 		} else {
 			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
+				return errors.Wrapf(err, "can't check if %q exists", libpodconfig.SeccompOverridePath)
 			}
-			if _, err := os.Stat(libpod.SeccompDefaultPath); err != nil {
+			if _, err := os.Stat(libpodconfig.SeccompDefaultPath); err != nil {
 				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
+					return errors.Wrapf(err, "can't check if %q exists", libpodconfig.SeccompDefaultPath)
 				}
 			} else {
-				config.SeccompProfilePath = libpod.SeccompDefaultPath
+				config.SeccompProfilePath = libpodconfig.SeccompDefaultPath
 			}
 		}
 	}

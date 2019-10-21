@@ -19,10 +19,6 @@ import (
 
 // Runtime API constants
 const (
-	// DefaultTransport is a prefix that we apply to an image name
-	// to check docker hub first for the image
-	DefaultTransport = "docker://"
-
 	unknownPackage = "Unknown"
 )
 

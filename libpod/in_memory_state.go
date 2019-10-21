@@ -3,6 +3,7 @@ package libpod
 import (
 	"strings"
 
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/registrar"
 	"github.com/containers/storage/pkg/truncindex"
@@ -80,8 +81,8 @@ func (s *InMemoryState) Refresh() error {
 
 // GetDBConfig is not implemented for in-memory state.
 // As we do not store a config, return an empty one.
-func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
-	return &DBConfig{}, nil
+func (s *InMemoryState) GetDBConfig() (*config.DBConfig, error) {
+	return &config.DBConfig{}, nil
 }
 
 // ValidateDBConfig is not implemented for the in-memory state.

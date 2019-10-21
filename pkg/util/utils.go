@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -439,4 +440,17 @@ func ExitCode(err error) int {
 	}
 
 	return 126
+}
+
+// HomeDir returns the home directory for the current user.
+func HomeDir() (string, error) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to resolve HOME directory")
+		}
+		home = usr.HomeDir
+	}
+	return home, nil
 }
