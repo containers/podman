@@ -509,6 +509,17 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		return nil, err
 	}
 
+	// storage.conf
+	storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
+	if err != nil {
+		return nil, err
+	}
+
+	createStorageConfFile := false
+	if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+		createStorageConfFile = true
+	}
+
 	defRunConf, err := defaultRuntimeConfig()
 	if err != nil {
 		return nil, err
@@ -683,27 +694,21 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	}
 
 	if rootless.IsRootless() && configPath == "" {
-		configPath, err := getRootlessConfigPath()
-		if err != nil {
-			return nil, err
-		}
-
-		// storage.conf
-		storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
-		if err != nil {
-			return nil, err
-		}
-		if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
+		if createStorageConfFile {
 			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
 				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
 			}
 		}
 
+		configPath, err := getRootlessConfigPath()
+		if err != nil {
+			return nil, err
+		}
 		if configPath != "" {
-			if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(configPath), 0711); err != nil {
 				return nil, err
 			}
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
 			if err != nil && !os.IsExist(err) {
 				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
 			}
