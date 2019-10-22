@@ -454,7 +454,7 @@ uninstall:
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
-	GIT_CHECK_EXCLUDE="./vendor" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:docs/rtd/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
