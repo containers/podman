@@ -602,7 +602,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	if err != nil {
 		return -1, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
-	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe, sessionID); err != nil {
+	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
 		return -1, nil, err
 	}
 
@@ -986,7 +986,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if err != nil {
 		return err
 	}
-	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe, ctr.ID()); err != nil {
+	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
 		return err
 	}
 	/* Wait for initial setup and fork, and reap child */
@@ -1213,7 +1213,7 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonse data down the start fd
-func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File, uuid string) error {
+func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
 	mustCreateCgroup := true
 	// If cgroup creation is disabled - just signal.
 	if ctr.config.NoCgroups {
