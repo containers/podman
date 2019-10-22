@@ -295,21 +295,32 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Maintain an array of them - we need to lock them later.
 	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
-		// Check if it exists already
-		dbVol, err := r.state.Volume(vol.Name)
-		if err == nil {
-			ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
-			// The volume exists, we're good
-			continue
-		} else if errors.Cause(err) != define.ErrNoSuchVolume {
-			return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+		isAnonymous := false
+		if vol.Name == "" {
+			// Anonymous volume. We'll need to create it.
+			// It needs a name first.
+			vol.Name = stringid.GenerateNonCryptoID()
+			isAnonymous = true
+		} else {
+			// Check if it exists already
+			dbVol, err := r.state.Volume(vol.Name)
+			if err == nil {
+				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
+				// The volume exists, we're good
+				continue
+			} else if errors.Cause(err) != define.ErrNoSuchVolume {
+				return nil, errors.Wrapf(err, "error retrieving named volume %s for new container", vol.Name)
+			}
 		}
 
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		newVol, err := r.newVolume(ctx, WithVolumeName(vol.Name), withSetCtrSpecific(),
-			WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
+		if isAnonymous {
+			volOptions = append(volOptions, withSetCtrSpecific())
+		}
+		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating named volume %q", vol.Name)
 		}

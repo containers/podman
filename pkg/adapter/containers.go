@@ -437,7 +437,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	}
 
 	if c.IsSet("rm") {
-		if err := r.Runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
+		if err := r.Runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
 			logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
 		}
 	}
@@ -1053,7 +1053,7 @@ func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.Cle
 
 // Only used when cleaning up containers
 func removeContainer(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
-	if err := runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
+	if err := runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
 		return errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
 	}
 	return nil
