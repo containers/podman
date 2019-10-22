@@ -119,5 +119,42 @@ line2" "=" "line 1
 line2"
 
 ###############################################################################
+# tests for is_release()
+
+# N/B: Assuming tests run in their own process, so wiping out the local
+# CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO and CIRRUS_TAG will be okay.
+function test_is_release() {
+    CIRRUS_BASE_SHA="$1"
+    CIRRUS_CHANGE_IN_REPO="$2"
+    CIRRUS_TAG="$3"
+    local exp_status=$4
+    local exp_msg=$5
+    local msg
+    msg=$(is_release)
+    local status=$?
+
+    check_result "$msg" "$exp_msg" "is_release(CIRRUS_BASE_SHA='$1' CIRRUS_CHANGE_IN_REPO='$2' CIRRUS_TAG='$3')"
+    check_result "$status" "$exp_status" "is_release(...) returned $status"
+}
+
+#                FROM    TO    TAG    RET    MSG
+#test_is_release ""      ""    ""     ""     ""
+
+test_is_release  ""      ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_BASE_SHA to be non-empty"
+test_is_release  "x"     ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_CHANGE_IN_REPO to be non-empty"
+
+test_is_release  "unknown" "x" ""     "11"    "is_release() unusable range unknown..x or tag "
+test_is_release  "x" "unknown" ""     "11"    "is_release() unusable range x..unknown or tag "
+test_is_release  "x" "x" "unknown"    "11"    "is_release() unusable range x..x or tag unknown"
+
+# Negative-testing git with this function is very difficult, assume it works
+# test_is_release ... "is_release() failed to fetch tags"
+# test_is_release ... "is_release() failed to parse tags"
+
+BF_V1=$(git rev-parse v1.0.0^)
+AT_V1=$(git rev-parse v1.0.0)
+test_is_release  "$BF_V1" "$BF_V1" "v9.8.7-dev" "2"     "Found \$RELVER v9.8.7-dev"
+test_is_release  "$BF_V1" "$AT_V1" "v9.8.7-dev" "2"     "Found \$RELVER v9.8.7-dev"
+test_is_release  "$BF_V1" "$AT_V1" ""           "0"     "Found \$RELVER v1.0.0"
 
 exit $rc
