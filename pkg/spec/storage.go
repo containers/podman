@@ -738,13 +738,13 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 				Destination: cleanDest,
 				Source:      TypeTmpfs,
 				Type:        TypeTmpfs,
-				Options:     []string{"rprivate", "rw", "nodev"},
+				Options:     []string{"rprivate", "rw", "nodev", "exec"},
 			}
 			mounts[vol] = mount
 		} else {
 			// Anonymous volumes have no name.
 			namedVolume := new(libpod.ContainerNamedVolume)
-			namedVolume.Options = []string{"rprivate", "rw", "nodev"}
+			namedVolume.Options = []string{"rprivate", "rw", "nodev", "exec"}
 			namedVolume.Dest = cleanDest
 			volumes[vol] = namedVolume
 		}
