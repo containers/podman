@@ -186,7 +186,12 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 	}
 
 	if len(opts) != 0 {
-		options = append(options, libpod.WithVolumeOptions(opts))
+		// We need to process -o for uid, gid
+		parsedOptions, err := shared.ParseVolumeOptions(opts)
+		if err != nil {
+			return "", err
+		}
+		options = append(options, parsedOptions...)
 	}
 	newVolume, err := r.NewVolume(ctx, options...)
 	if err != nil {
