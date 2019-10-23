@@ -35,7 +35,7 @@ var (
 
 	statsDescription = "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers."
 	_statsCommand    = &cobra.Command{
-		Use:   "stats [flags] CONTAINER [CONTAINER...]",
+		Use:   "stats [flags] [CONTAINER...]",
 		Short: "Display a live stream of container resource usage statistics",
 		Long:  statsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -43,9 +43,6 @@ var (
 			statsCommand.GlobalFlags = MainGlobalOpts
 			statsCommand.Remote = remoteclient
 			return statsCmd(&statsCommand)
-		},
-		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
 		},
 		Example: `podman stats --all --no-stream
   podman stats ctrID
@@ -92,8 +89,6 @@ func statsCmd(c *cliconfig.StatsValues) error {
 
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
-	} else if ctr == 0 {
-		return errors.Errorf("you must specify --all, --latest, or at least one container")
 	}
 
 	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)

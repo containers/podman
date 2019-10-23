@@ -11,6 +11,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+// TODO: we need to check the output. Currently, we only check the exit codes
+// which is not enough.
 var _ = Describe("Podman stats", func() {
 	var (
 		tempdir    string
@@ -57,6 +59,15 @@ var _ = Describe("Podman stats", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session = podmanTest.Podman([]string{"stats", "--no-stream", "-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman stats on all running containers", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"stats", "--no-stream"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
