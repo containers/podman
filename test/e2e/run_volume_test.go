@@ -357,4 +357,11 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(len(arr2)).To(Equal(1))
 		Expect(arr2[0]).To(Equal(volName))
 	})
+
+	It("podman run image volume is not noexec", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", redis, "grep", "/data", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("noexec")))
+	})
 })
