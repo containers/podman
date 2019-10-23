@@ -300,6 +300,15 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 
 	blockAccessToKernelFilesystems(config, &g)
 
+	var runtimeConfig *libpod.RuntimeConfig
+
+	if runtime != nil {
+		runtimeConfig, err = runtime.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit > 0 {
 		// if running on rootless on a cgroupv1 machine or using the cgroupfs manager, pids
@@ -312,11 +321,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			if err != nil {
 				return nil, err
 			}
-			runtimeConfig, err := runtime.GetConfig()
-			if err != nil {
-				return nil, err
-			}
-			if (!cgroup2 || runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != libpod.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
 				setPidLimit = false
 			}
 		}
@@ -411,10 +416,13 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		if !addedResources {
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
-		if addedResources && !cgroup2 {
-			return nil, errors.New("invalid configuration, cannot set resources with rootless containers not using cgroups v2 unified mode")
+
+		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == libpod.SystemdCgroupsManager)
+
+		if addedResources && !canUseResources {
+			return nil, errors.New("invalid configuration, cannot specify resource limits without cgroups v2 and --cgroup-manager=systemd")
 		}
-		if !cgroup2 {
+		if !canUseResources {
 			// Force the resources block to be empty instead of having default values.
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
