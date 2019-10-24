@@ -8,7 +8,7 @@ Commands
 
 :doc:`commit <man/podman-commit.1>` Create new image based on the changed container
 
-:doc:`containers <man/managecontainers>` Manage Containers
+:doc:`containers <managecontainers>` Manage Containers
 
 :doc:`cp <man/podman-cp.1>` Copy files/folders between a container and the local filesystem
 
@@ -22,13 +22,13 @@ Commands
 
 :doc:`export <man/podman-export.1>` Export container's filesystem contents as a tar archive
 
-:doc:`generate <man/generate>` Generated structured data
+:doc:`generate <generate>` Generated structured data
 
-:doc:`healthcheck <man/healthcheck>` Manage Healthcheck
+:doc:`healthcheck <healthcheck>` Manage Healthcheck
 
 :doc:`history <man/podman-history.1>` Show history of a specified image
 
-:doc:`image <man/image>` Manage images
+:doc:`image <image>` Manage images
 
 :doc:`images <man/podman-images.1>` List images in local storage
 
@@ -52,13 +52,13 @@ Commands
 
 :doc:`mount <man/podman-mount.1>` Mount a working container's root filesystem
 
-:doc:`network <man/network>` Manage Networks
+:doc:`network <network>` Manage Networks
 
 :doc:`pause <man/podman-pause.1>` Pause all the processes in one or more containers
 
-:doc:`play <man/play>` Play a pod
+:doc:`play <play>` Play a pod
 
-:doc:`pod <man/pod>` Manage pods
+:doc:`pod <pod>` Manage pods
 
 :doc:`port <man/podman-port.1>` List port mappings or a specific mapping for the container
 
@@ -86,7 +86,7 @@ Commands
 
 :doc:`stop <man/podman-stop.1>` Stop one or more containers
 
-:doc:`system <man/system>` Manage podman
+:doc:`system <system>` Manage podman
 
 :doc:`tag <man/podman-tag.1>` Add an additional name to a local image
 
@@ -102,6 +102,6 @@ Commands
 
 :doc:`version <man/podman-version.1>` Display the Podman Version Information
 
-:doc:`volume <man/volume>` Manage volumes
+:doc:`volume <volume>` Manage volumes
 
 :doc:`wait <man/podman-wait.1>` Block on one or more containers
