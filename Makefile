@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= 2b0892e757c878cdb087dd22b8986bccef0276ed
+EPOCH_TEST_COMMIT ?= ac73fd3fe5dcbf2647d589f9c9f37fe9531ed663
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -205,9 +205,7 @@ clean: ## Clean artifacts
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
-		$(MANPAGES) ||:
-	find . -name \*~ -delete
-	find . -name \#\* -delete
+		docs/build
 
 libpodimage: ## Build the libpod image
 	${CONTAINER_RUNTIME} build -t ${LIBPOD_IMAGE} .
@@ -312,13 +310,17 @@ install.catatonit:
 
 test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
 
-MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/source/man/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
+MANPAGES_DEST ?= $(subst source,build,$(MANPAGES))
 
 $(MANPAGES): %: %.md .gopathok
-	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $@
+	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source,build,$@)
 
-docs: $(MANPAGES) ## Generate documentation
+docdir:
+	mkdir -p docs/build/man
+
+docs: docdir $(MANPAGES) ## Generate documentation
 
 install-podman-remote-docs: podman-remote docs
 	rm -rf docs/remote
@@ -408,8 +410,8 @@ install.bin: podman
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.config:
@@ -444,16 +446,16 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
-	for i in $(filter %.1,$(MANPAGES)); do \
+	for i in $(filter %.1,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
 	done; \
-	for i in $(filter %.5,$(MANPAGES)); do \
+	for i in $(filter %.5,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
-	GIT_CHECK_EXCLUDE="./vendor:docs/rtd/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools

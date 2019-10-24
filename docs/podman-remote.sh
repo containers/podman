@@ -53,9 +53,8 @@ function darwin_fn() {
     local markdown=$1
     local file=$(basename $markdown)
     local dir=$(dirname $markdown)
-
-    if [[ -f $dir/links/$file ]]; then
-        markdown=$dir/links/$file
+    if [[ -f $dir/../../links/$file ]]; then
+        markdown=$dir/../../links/$file
     fi
     install $markdown $TARGET
 }

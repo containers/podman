@@ -18,7 +18,7 @@ die() {
     exit 1
 }
 
-cd $(dirname $0)/../docs || die "Please run me from top-level libpod dir"
+cd $(dirname $0)/../docs/source/man || die "Please run me from top-level libpod dir"
 
 rc=0
 
