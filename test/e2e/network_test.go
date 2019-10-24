@@ -155,4 +155,19 @@ var _ = Describe("Podman network", func() {
 		Expect(session.IsJSONOutputValid()).To(BeTrue())
 	})
 
+	It("podman network attach to rootless", func() {
+		SkipIfRoot()
+		// Setup, use uuid to prevent conflict with other tests
+		uuid := stringid.GenerateNonCryptoID()
+		secondPath := filepath.Join(cniPath, fmt.Sprintf("%s.conflist", uuid))
+		writeConf([]byte(secondConf), secondPath)
+		defer removeConf(secondPath)
+
+		session := podmanTest.Podman([]string{"run", "--network", "podman-integrationtest", ALPINE, "sh", "-c", "ip addr"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+		Expect(session.LineInOutputContains("eth0")).To(BeFalse())
+		Expect(session.LineInOutputContains("Error: cannot use CNI networks with rootless containers")).To(BeTrue())
+	})
+
 })
