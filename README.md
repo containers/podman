@@ -52,7 +52,7 @@ There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podm
 You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
 
 ## Rootless
-Podman can be easily run as a normal user, without requiring a setuid binary.
+Podman can be easily run as a normal user, without requiring a `setuid` binary.
 When run without root, Podman containers use user namespaces to set root in the container to the user running Podman.
 Rootless Podman runs locked-down containers with no privileges that the user running the container does not have.
 Some of these restrictions can be lifted (via `--privileged`, for example), but rootless containers will never have more privileges than the user that launched them.
