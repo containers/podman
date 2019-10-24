@@ -5,6 +5,7 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -210,6 +211,10 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	// Leak one end of the pipe in slirp4netns, the other will be sent to conmon
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get stderr for slirp4netns process")
+	}
 	if err := cmd.Start(); err != nil {
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
@@ -238,7 +243,8 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 					continue
 				}
 				if status.Exited() {
-					return errors.New("slirp4netns failed")
+					slurp, _ := ioutil.ReadAll(stderr)
+					return errors.Errorf("slirp4netns failed: %s", slurp)
 				}
 				if status.Signaled() {
 					return errors.New("slirp4netns killed by signal")
