@@ -1014,6 +1014,13 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
+
+		if rootless.IsRootless() {
+			if len(networks) > 0 {
+				return errors.New("cannot use CNI networks with rootless containers")
+			}
+		}
+
 		ctr.config.Networks = networks
 
 		return nil
