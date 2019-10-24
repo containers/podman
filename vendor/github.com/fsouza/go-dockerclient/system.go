@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"encoding/json"
+	"net/http"
 )
 
 // VolumeUsageData represents usage data from the docker system api
@@ -59,7 +60,7 @@ type DiskUsageOptions struct {
 // More Info Here https://dockr.ly/2PNzQyO
 func (c *Client) DiskUsage(opts DiskUsageOptions) (*DiskUsage, error) {
 	path := "/system/df"
-	resp, err := c.do("GET", path, doOptions{context: opts.Context})
+	resp, err := c.do(http.MethodGet, path, doOptions{context: opts.Context})
 	if err != nil {
 		return nil, err
 	}

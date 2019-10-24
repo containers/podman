@@ -212,6 +212,7 @@ func NewStages(node *parser.Node, b *Builder) (Stages, error) {
 			Builder: &Builder{
 				Args:        b.Args,
 				AllowedArgs: b.AllowedArgs,
+				Env:         b.Env,
 			},
 			Node: root,
 		})
@@ -436,7 +437,7 @@ func (b *Builder) FromImage(image *docker.Image, node *parser.Node) error {
 	SplitChildren(node, command.From)
 
 	b.RunConfig = *image.Config
-	b.Env = b.RunConfig.Env
+	b.Env = append(b.Env, b.RunConfig.Env...)
 	b.RunConfig.Env = nil
 
 	// Check to see if we have a default PATH, note that windows won't

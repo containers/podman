@@ -17,8 +17,8 @@ import (
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"

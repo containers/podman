@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/image/v4/signature"
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/transports/alltransports"
+	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"

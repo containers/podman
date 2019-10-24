@@ -32,7 +32,8 @@ func (c *Client) initializeNativeClient(trFunc func() *http.Transport) {
 		return
 	}
 	namedPipePath := c.endpointURL.Path
-	dialFunc := func(network, addr string) (net.Conn, error) {
+	//nolint:unparam
+	dialFunc := func(_, addr string) (net.Conn, error) {
 		timeout := namedPipeConnectTimeout
 		return winio.DialPipe(namedPipePath, &timeout)
 	}

@@ -12,14 +12,14 @@ import (
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/docker"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/manifest"
-	"github.com/containers/image/v4/signature"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/signature"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
@@ -96,7 +96,7 @@ type PushOptions struct {
 	// github.com/containers/image/types SystemContext to hold credentials
 	// and other authentication/authorization information.
 	SystemContext *types.SystemContext
-	// ManifestType is the format to use when saving the imge using the 'dir' transport
+	// ManifestType is the format to use when saving the image using the 'dir' transport
 	// possible options are oci, v2s1, and v2s2
 	ManifestType string
 	// BlobDirectory is the name of a directory in which we'll look for
@@ -309,7 +309,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 
 	img, err := is.Transport.GetStoreImage(b.store, dest)
-	if err != nil && err != storage.ErrImageUnknown {
+	if err != nil && errors.Cause(err) != storage.ErrImageUnknown {
 		return imgID, nil, "", errors.Wrapf(err, "error locating image %q in local storage", transports.ImageName(dest))
 	}
 	if err == nil {

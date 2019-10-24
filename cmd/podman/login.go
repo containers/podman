@@ -6,14 +6,15 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/v4/docker"
-	"github.com/containers/image/v4/pkg/docker/config"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/pkg/docker/config"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -134,15 +135,15 @@ func loginCmd(c *cliconfig.LoginValues) error {
 			return err
 		}
 	}
-	switch err {
-	case nil:
+	if err == nil {
 		fmt.Println("Login Succeeded!")
 		return nil
-	case docker.ErrUnauthorizedForCredentials:
-		return errors.Errorf("error logging into %q: invalid username/password", server)
-	default:
-		return errors.Wrapf(err, "error authenticating creds for %q", server)
 	}
+	if unauthorizedError, ok := err.(docker.ErrUnauthorizedForCredentials); ok {
+		logrus.Debugf("error logging into %q: %v", server, unauthorizedError)
+		return errors.Errorf("error logging into %q: invalid username/password", server)
+	}
+	return errors.Wrapf(err, "error authenticating creds for %q", server)
 }
 
 // getUserAndPass gets the username and password from STDIN if not given

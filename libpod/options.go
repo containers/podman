@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/namespaces"

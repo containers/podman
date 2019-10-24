@@ -20,16 +20,16 @@ func ParseDockerfile(r io.Reader) (*parser.Node, error) {
 
 // Environment variable interpolation will happen on these statements only.
 var replaceEnvAllowed = map[string]bool{
-	command.Env:       true,
-	command.Label:     true,
-	command.Add:       true,
-	command.Copy:      true,
-	command.Workdir:   true,
-	command.Expose:    true,
-	command.Volume:    true,
-	command.User:      true,
-	commandStopSignal: true,
-	commandArg:        true,
+	command.Env:        true,
+	command.Label:      true,
+	command.Add:        true,
+	command.Copy:       true,
+	command.Workdir:    true,
+	command.Expose:     true,
+	command.Volume:     true,
+	command.User:       true,
+	command.StopSignal: true,
+	command.Arg:        true,
 }
 
 // Certain commands are allowed to have their args split into more
