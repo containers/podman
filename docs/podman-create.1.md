@@ -515,13 +515,16 @@ This works for both background and foreground containers.
 **--network**, **--net**="*bridge*"
 
 Set the Network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
-                'bridge': create a network stack on the default bridge
-                'none': no networking
-                'container:<name|id>': reuse another container's network stack
-                'host': use the Podman host network stack.  Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-                '<network-name>|<network-id>': connect to a user-defined network, multiple networks should be comma separated
-                'ns:<path>': path to a network namespace to join
-                'slirp4netns': use slirp4netns to create a user network stack.  This is the default for rootless containers
+
+Valid values are:
+
+- `bridge`: create a network stack on the default bridge
+- `none`: no networking
+- `container:<name|id>`: reuse another container's network stack
+- `host`: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- `<network-name>|<network-id>`: connect to a user-defined network, multiple networks should be comma separated
+- `ns:<path>`: path to a network namespace to join
+- `slirp4netns`: use slirp4netns to create a user network stack.  This is the default for rootless containers
 
 **--network-alias**=*alias*
 
@@ -626,6 +629,7 @@ If container is running in --read-only mode, then mount a read-write tmpfs on /r
 
 Restart policy to follow when containers exit.
 Restart policy will not take effect if a container is stopped via the `podman kill` or `podman stop` commands.
+
 Valid values are:
 
 - `no`                       : Do not restart containers on exit

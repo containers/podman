@@ -526,6 +526,9 @@ This works for both background and foreground containers.
 **--network**, **--net**=*node*
 
 Set the Network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
+
+Valid values are:
+
 - `bridge`: create a network stack on the default bridge
 - `none`: no networking
 - `container:<name|id>`: reuse another container's network stack
@@ -645,6 +648,7 @@ If container is running in --read-only mode, then mount a read-write tmpfs on /r
 
 Restart policy to follow when containers exit.
 Restart policy will not take effect if a container is stopped via the `podman kill` or `podman stop` commands.
+
 Valid values are:
 
 - `no`                       : Do not restart containers on exit
