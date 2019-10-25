@@ -530,7 +530,7 @@ Set the Network mode for the container. Invalid if using **--dns**, **--dns-opti
 - `none`: no networking
 - `container:<name|id>`: reuse another container's network stack
 - `host`: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
-- `<network-name>|<network-id>`: connect to a user-defined network
+- `<network-name>|<network-id>`: connect to a user-defined network, multiple networks should be comma separated
 - `ns:<path>`: path to a network namespace to join
 - `slirp4netns`: use slirp4netns to create a user network stack.  This is the default for rootless containers
 
