@@ -550,6 +550,7 @@ func (c *Container) setupSystemd(mounts []spec.Mount, g generate.Generator) erro
 			Options:     []string{"bind", "nodev", "noexec", "nosuid"},
 		}
 		g.AddMount(systemdMnt)
+		g.AddLinuxMaskedPaths("/sys/fs/cgroup/systemd/release_agent")
 	}
 
 	return nil
