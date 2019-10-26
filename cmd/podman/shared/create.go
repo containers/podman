@@ -94,7 +94,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			ArchitectureChoice: c.String("override-arch"),
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(c.String("authfile")), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
+		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
 		if err != nil {
 			return nil, nil, err
 		}

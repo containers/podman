@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
@@ -44,6 +46,11 @@ func runCmd(c *cliconfig.RunValues) error {
 	if !remote && c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
 		defer span.Finish()
+	}
+	if c.String("authfile") != "" {
+		if _, err := os.Stat(c.String("authfile")); err != nil {
+			return errors.Wrapf(err, "error checking authfile path %s", c.String("authfile"))
+		}
 	}
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err

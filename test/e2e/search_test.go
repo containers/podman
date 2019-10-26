@@ -391,4 +391,12 @@ registries = ['{{.Host}}:{{.Port}}']`
 		// cleanup
 		resetRegistriesConfigEnv()
 	})
+
+	// search should fail with nonexist authfile
+	It("podman search fail with nonexist --authfile", func() {
+		SkipIfRemote()
+		search := podmanTest.Podman([]string{"search", "--authfile", "/tmp/nonexist", ALPINE})
+		search.WaitWithDefaultTimeout()
+		Expect(search.ExitCode()).To(Not(Equal(0)))
+	})
 })

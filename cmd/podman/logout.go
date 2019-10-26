@@ -3,11 +3,11 @@ package main
 import (
 	"fmt"
 
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +40,7 @@ func init() {
 	logoutCommand.SetUsageTemplate(UsageTemplate())
 	flags := logoutCommand.Flags()
 	flags.BoolVarP(&logoutCommand.All, "all", "a", false, "Remove the cached credentials for all registries in the auth file")
-	flags.StringVar(&logoutCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+	flags.StringVar(&logoutCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
@@ -59,7 +59,10 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 		server = scrubServer(args[0])
 	}
 
-	sc := image.GetSystemContext("", c.Authfile, false)
+	sc, err := shared.GetSystemContext(c.Authfile)
+	if err != nil {
+		return err
+	}
 
 	if c.All {
 		if err := config.RemoveAllAuthentication(sc); err != nil {
@@ -69,7 +72,7 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 		return nil
 	}
 
-	err := config.RemoveAuthentication(sc, server)
+	err = config.RemoveAuthentication(sc, server)
 	switch errors.Cause(err) {
 	case nil:
 		fmt.Printf("Removed login credentials for %s\n", server)

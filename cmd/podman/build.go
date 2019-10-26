@@ -155,6 +155,11 @@ func buildCmd(c *cliconfig.BuildValues) error {
 			tags = tags[1:]
 		}
 	}
+	if c.BudResults.Authfile != "" {
+		if _, err := os.Stat(c.BudResults.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.BudResults.Authfile)
+		}
+	}
 
 	pullPolicy := imagebuildah.PullNever
 	if c.Pull {

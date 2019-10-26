@@ -6,24 +6,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/pkg/util"
+	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/google/shlex"
+	"github.com/pkg/errors"
 )
 
-func GetAuthFile(authfile string) string {
+func GetSystemContext(authfile string) (*types.SystemContext, error) {
 	if authfile != "" {
-		return authfile
+		if _, err := os.Stat(authfile); err != nil {
+			return nil, errors.Wrapf(err, "error checking authfile path %s", authfile)
+		}
 	}
-
-	authfile = os.Getenv("REGISTRY_AUTH_FILE")
-	if authfile != "" {
-		return authfile
-	}
-
-	if runtimeDir, err := util.GetRuntimeDir(); err == nil {
-		return filepath.Join(runtimeDir, "containers/auth.json")
-	}
-	return ""
+	return image.GetSystemContext("", authfile, false), nil
 }
 
 func substituteCommand(cmd string) (string, error) {

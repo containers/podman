@@ -6,12 +6,12 @@ import (
 	"os"
 	"strings"
 
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
@@ -60,7 +60,7 @@ func init() {
 	markFlagHidden(flags, "override-os")
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&pullCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pullCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&pullCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&pullCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&pullCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
@@ -94,6 +94,12 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	}
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments. Requires exactly 1")
+	}
+
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
 	}
 
 	arr := strings.SplitN(args[0], ":", 2)

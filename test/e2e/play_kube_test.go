@@ -209,6 +209,16 @@ var _ = Describe("Podman generate kube", func() {
 		processTestResult(f)
 	})
 
+	It("podman play kube fail with nonexist authfile", func() {
+		err := generateKubeYaml(getPod(), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", "--authfile", "/tmp/nonexist", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Not(Equal(0)))
+
+	})
+
 	It("podman play kube test correct command", func() {
 		err := generateKubeYaml(getPod(), kubeYaml)
 		Expect(err).To(BeNil())
