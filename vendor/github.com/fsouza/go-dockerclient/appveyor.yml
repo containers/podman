@@ -6,11 +6,9 @@ environment:
   GOPATH: c:\gopath
   GOPROXY: https://proxy.golang.org
   GO111MODULE: on
-  SKIP_FMT_CHECK: 1
   matrix:
-    - GOVERSION: "1.11.13"
-    - GOVERSION: "1.12.9"
-    - GOVERSION: "1.13rc1"
+    - GOVERSION: "1.12.10"
+    - GOVERSION: "1.13.1"
 install:
   - choco install make
   - set PATH=%GOPATH%\bin;c:\go\bin;%PATH%
@@ -18,8 +16,8 @@ install:
   - appveyor DownloadFile https://storage.googleapis.com/golang/go%GOVERSION%.windows-amd64.zip
   - 7z x go%GOVERSION%.windows-amd64.zip -y -oC:\ > NUL
 build_script:
-  - make testdeps
+  - make pretest
 test_script:
-  - make pretest gotest
+  - make gotest
 matrix:
   fast_finish: true

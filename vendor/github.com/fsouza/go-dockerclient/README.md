@@ -118,7 +118,7 @@ All development commands can be seen in the [Makefile](Makefile).
 
 Commited code must pass:
 
-* [staticcheck](https://staticcheck.io/)
+* [golangci-lint](integration_unix_test.go)
 * [gofumpt](https://github.com/mvdan/gofumpt)
 * [go test](https://golang.org/cmd/go/#hdr-Test_packages)
 

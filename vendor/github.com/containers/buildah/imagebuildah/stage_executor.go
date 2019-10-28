@@ -13,12 +13,12 @@ import (
 	"github.com/containers/buildah"
 	buildahdocker "github.com/containers/buildah/docker"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/manifest"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -759,6 +759,12 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			s.executor.log(commitMessage)
 		}
 	}
+	logCacheHit := func(cacheID string) {
+		if !s.executor.quiet {
+			cacheHitMessage := "--> Using cache"
+			fmt.Fprintf(s.executor.out, "%s %s\n", cacheHitMessage, cacheID)
+		}
+	}
 	logImageID := func(imgID string) {
 		if s.executor.iidfile == "" {
 			fmt.Fprintf(s.executor.out, "%s\n", imgID)
@@ -816,6 +822,9 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			if strings.Contains(n, "--from") && (command == "COPY" || command == "ADD") {
 				var mountPoint string
 				arr := strings.Split(n, "=")
+				if len(arr) != 2 {
+					return "", nil, errors.Errorf("%s: invalid --from flag, should be --from=<name|index>", command)
+				}
 				otherStage, ok := s.executor.stages[arr[1]]
 				if !ok {
 					if mountPoint, err = s.getImageRootfs(ctx, stage, arr[1]); err != nil {
@@ -906,7 +915,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 			}
 			if cacheID != "" {
 				// Note the cache hit.
-				fmt.Fprintf(s.executor.out, "--> Using cache %s\n", cacheID)
+				logCacheHit(cacheID)
 			} else {
 				// We're not going to find any more cache hits.
 				checkForLayers = false

@@ -32,8 +32,8 @@ import (
 	"time"
 
 	"github.com/docker/docker/pkg/homedir"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/fsouza/go-dockerclient/internal/jsonmessage"
 )
 
 const (
@@ -54,7 +54,9 @@ var (
 	ErrInactivityTimeout = errors.New("inactivity time exceeded timeout")
 
 	apiVersion112, _ = NewAPIVersion("1.12")
+	apiVersion118, _ = NewAPIVersion("1.18")
 	apiVersion119, _ = NewAPIVersion("1.19")
+	apiVersion121, _ = NewAPIVersion("1.21")
 	apiVersion124, _ = NewAPIVersion("1.24")
 	apiVersion125, _ = NewAPIVersion("1.25")
 	apiVersion135, _ = NewAPIVersion("1.35")
@@ -269,11 +271,12 @@ func NewVersionedTLSClient(endpoint string, cert, key, ca, apiVersionString stri
 // See https://github.com/docker/compose/blob/81707ef1ad94403789166d2fe042c8a718a4c748/compose/cli/docker_client.py#L7.
 // See https://github.com/moby/moby/blob/28d7dba41d0c0d9c7f0dafcc79d3c59f2b3f5dc3/client/options.go#L51
 func NewClientFromEnv() (*Client, error) {
-	client, err := NewVersionedClientFromEnv(os.Getenv("DOCKER_API_VERSION"))
+	apiVersionString := os.Getenv("DOCKER_API_VERSION")
+	client, err := NewVersionedClientFromEnv(apiVersionString)
 	if err != nil {
 		return nil, err
 	}
-	client.SkipServerVersionCheck = true
+	client.SkipServerVersionCheck = apiVersionString == ""
 	return client, nil
 }
 
@@ -397,7 +400,7 @@ func (c *Client) Ping() error {
 // See https://goo.gl/wYfgY1 for more details.
 func (c *Client) PingWithContext(ctx context.Context) error {
 	path := "/_ping"
-	resp, err := c.do("GET", path, doOptions{context: ctx})
+	resp, err := c.do(http.MethodGet, path, doOptions{context: ctx})
 	if err != nil {
 		return err
 	}
@@ -409,7 +412,7 @@ func (c *Client) PingWithContext(ctx context.Context) error {
 }
 
 func (c *Client) getServerAPIVersionString() (version string, err error) {
-	resp, err := c.do("GET", "/version", doOptions{})
+	resp, err := c.do(http.MethodGet, "/version", doOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -465,7 +468,7 @@ func (c *Client) do(method, path string, doOptions doOptions) (*http.Response, e
 	req.Header.Set("User-Agent", userAgent)
 	if doOptions.data != nil {
 		req.Header.Set("Content-Type", "application/json")
-	} else if method == "POST" {
+	} else if method == http.MethodPost {
 		req.Header.Set("Content-Type", "plain/text")
 	}
 
@@ -520,7 +523,7 @@ func chooseError(ctx context.Context, err error) error {
 }
 
 func (c *Client) stream(method, path string, streamOptions streamOptions) error {
-	if (method == "POST" || method == "PUT") && streamOptions.in == nil {
+	if (method == http.MethodPost || method == http.MethodPut) && streamOptions.in == nil {
 		streamOptions.in = bytes.NewReader(nil)
 	}
 	if path != "/version" && !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
@@ -529,11 +532,11 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 			return err
 		}
 	}
-	return c.streamUrl(method, c.getURL(path), streamOptions)
+	return c.streamURL(method, c.getURL(path), streamOptions)
 }
 
-func (c *Client) streamUrl(method, url string, streamOptions streamOptions) error {
-	if (method == "POST" || method == "PUT") && streamOptions.in == nil {
+func (c *Client) streamURL(method, url string, streamOptions streamOptions) error {
+	if (method == http.MethodPost || method == http.MethodPut) && streamOptions.in == nil {
 		streamOptions.in = bytes.NewReader(nil)
 	}
 	if !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
@@ -547,7 +550,7 @@ func (c *Client) streamUrl(method, url string, streamOptions streamOptions) erro
 		return err
 	}
 	req.Header.Set("User-Agent", userAgent)
-	if method == "POST" {
+	if method == http.MethodPost {
 		req.Header.Set("Content-Type", "plain/text")
 	}
 	for key, val := range streamOptions.headers {
@@ -606,6 +609,7 @@ func (c *Client) streamUrl(method, url string, streamOptions streamOptions) erro
 
 			return chooseError(subCtx, err)
 		}
+		defer resp.Body.Close()
 	} else {
 		if resp, err = c.HTTPClient.Do(req.WithContext(subCtx)); err != nil {
 			if strings.Contains(err.Error(), "connection refused") {
@@ -613,11 +617,11 @@ func (c *Client) streamUrl(method, url string, streamOptions streamOptions) erro
 			}
 			return chooseError(subCtx, err)
 		}
+		defer resp.Body.Close()
 		if streamOptions.reqSent != nil {
 			close(streamOptions.reqSent)
 		}
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return newError(resp)
 	}
@@ -776,9 +780,10 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) (Close
 	errs := make(chan error, 1)
 	quit := make(chan struct{})
 	go func() {
-		//lint:ignore SA1019 this is needed here
+		//nolint:staticcheck
 		clientconn := httputil.NewClientConn(dial, nil)
 		defer clientconn.Close()
+		//nolint:bodyclose
 		clientconn.Do(req)
 		if hijackOptions.success != nil {
 			hijackOptions.success <- struct{}{}
@@ -874,25 +879,26 @@ func (c *Client) getURL(path string) string {
 }
 
 func (c *Client) getPath(basepath string, opts interface{}) (string, error) {
+	queryStr, requiredAPIVersion := queryStringVersion(opts)
+	return c.pathVersionCheck(basepath, queryStr, requiredAPIVersion)
+}
+
+func (c *Client) pathVersionCheck(basepath, queryStr string, requiredAPIVersion APIVersion) (string, error) {
 	urlStr := strings.TrimRight(c.endpointURL.String(), "/")
 	if c.endpointURL.Scheme == unixProtocol || c.endpointURL.Scheme == namedPipeProtocol {
 		urlStr = ""
 	}
-	queryStr, requiredAPIVersion := queryStringVersion(opts)
-
 	if c.requestedAPIVersion != nil {
 		if c.requestedAPIVersion.GreaterThanOrEqualTo(requiredAPIVersion) {
 			return fmt.Sprintf("%s/v%s%s?%s", urlStr, c.requestedAPIVersion, basepath, queryStr), nil
-		} else {
-			return "", fmt.Errorf("API %s requires version %s, requested version %s is insufficient",
-				basepath, requiredAPIVersion, c.requestedAPIVersion)
 		}
+		return "", fmt.Errorf("API %s requires version %s, requested version %s is insufficient",
+			basepath, requiredAPIVersion, c.requestedAPIVersion)
 	}
 	if requiredAPIVersion != nil {
 		return fmt.Sprintf("%s/v%s%s?%s", urlStr, requiredAPIVersion, basepath, queryStr), nil
-	} else {
-		return fmt.Sprintf("%s%s?%s", urlStr, basepath, queryStr), nil
 	}
+	return fmt.Sprintf("%s%s?%s", urlStr, basepath, queryStr), nil
 }
 
 // getFakeNativeURL returns the URL needed to make an HTTP request over a UNIX
@@ -922,7 +928,7 @@ func queryStringVersion(opts interface{}) (string, APIVersion) {
 	if value.Kind() != reflect.Struct {
 		return "", nil
 	}
-	var apiVersion APIVersion = nil
+	var apiVersion APIVersion
 	items := url.Values(map[string][]string{})
 	for i := 0; i < value.NumField(); i++ {
 		field := value.Type().Field(i)
@@ -1002,7 +1008,7 @@ func addQueryStringValue(items url.Values, key string, v reflect.Value) bool {
 		if vLen > 0 {
 			for i := 0; i < vLen; i++ {
 				if addQueryStringValue(items, key, v.Index(i)) {
-					valuesAdded += 1
+					valuesAdded++
 				}
 			}
 		}

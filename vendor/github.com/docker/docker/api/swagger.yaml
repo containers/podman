@@ -3287,7 +3287,7 @@ definitions:
 
           <p><br /></p>
 
-          - "ingress" makes the target port accessible on on every node,
+          - "ingress" makes the target port accessible on every node,
             regardless of whether there is a task for the service running on
             that node or not.
           - "host" bypasses the routing mesh and publish the port directly on
@@ -3305,8 +3305,8 @@ definitions:
     type: "object"
     properties:
       Mode:
-        description: "The mode of resolution to use for internal load balancing
-      between tasks."
+        description: |
+          The mode of resolution to use for internal load balancing between tasks.
         type: "string"
         enum:
           - "vip"
@@ -4873,7 +4873,7 @@ paths:
                       Note that a running container can be _paused_. The `Running` and `Paused`
                       booleans are not mutually exclusive:
 
-                      When pausing a container (on Linux), the cgroups freezer is used to suspend
+                      When pausing a container (on Linux), the freezer cgroup is used to suspend
                       all processes in the container. Freezing the process requires the process to
                       be running. As a result, paused containers are both `Running` _and_ `Paused`.
 
@@ -5543,8 +5543,6 @@ paths:
           description: "no error"
         304:
           description: "container already started"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
         404:
           description: "no such container"
           schema:
@@ -5576,8 +5574,6 @@ paths:
           description: "no error"
         304:
           description: "container already stopped"
-          schema:
-            $ref: "#/definitions/ErrorResponse"
         404:
           description: "no such container"
           schema:
@@ -5768,9 +5764,9 @@ paths:
     post:
       summary: "Pause a container"
       description: |
-        Use the cgroups freezer to suspend all processes in a container.
+        Use the freezer cgroup to suspend all processes in a container.
 
-        Traditionally, when suspending a process the `SIGSTOP` signal is used, which is observable by the process being suspended. With the cgroups freezer the process is unaware, and unable to capture, that it is being suspended, and subsequently resumed.
+        Traditionally, when suspending a process the `SIGSTOP` signal is used, which is observable by the process being suspended. With the freezer cgroup the process is unaware, and unable to capture, that it is being suspended, and subsequently resumed.
       operationId: "ContainerPause"
       responses:
         204:
@@ -6493,10 +6489,11 @@ paths:
           type: "string"
         - name: "networkmode"
           in: "query"
-          description: "Sets the networking mode for the run commands during
-        build. Supported standard values are: `bridge`, `host`, `none`, and
-        `container:<name|id>`. Any other value is taken as a custom network's
-        name to which this container should connect to."
+          description: |
+            Sets the networking mode for the run commands during build. Supported
+            standard values are: `bridge`, `host`, `none`, and `container:<name|id>`.
+            Any other value is taken as a custom network's name or ID to which this
+            container should connect to.
           type: "string"
         - name: "Content-type"
           in: "header"
@@ -9585,17 +9582,19 @@ paths:
           type: "integer"
         - name: "registryAuthFrom"
           in: "query"
+          description: |
+            If the `X-Registry-Auth` header is not specified, this parameter
+            indicates where to find registry authorization credentials.
           type: "string"
-          description: "If the X-Registry-Auth header is not specified, this
-  parameter indicates where to find registry authorization credentials. The
-  valid values are `spec` and `previous-spec`."
+          enum: ["spec", "previous-spec"]
           default: "spec"
         - name: "rollback"
           in: "query"
+          description: |
+            Set to this parameter to `previous` to cause a server-side rollback
+            to the previous service spec. The supplied spec will be ignored in
+            this case.
           type: "string"
-          description: "Set to this parameter to `previous` to cause a
-  server-side rollback to the previous service spec. The supplied spec will be
-  ignored in this case."
         - name: "X-Registry-Auth"
           in: "header"
           description: "A base64-encoded auth configuration for pulling from private registries. [See the authentication section for details.](#section/Authentication)"

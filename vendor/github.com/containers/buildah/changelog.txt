@@ -1,3 +1,25 @@
+- Changelog for v1.11.4 (2019-10-28)
+  * buildah: add a "manifest" command
+  * manifests: add the module
+  * pkg/supplemented: add a package for grouping images together
+  * pkg/manifests: add a manifest list build/manipulation API
+  * Update for ErrUnauthorizedForCredentials API change in containers/image
+  * Update for manifest-lists API changes in containers/image
+  * version: also note the version of containers/image
+  * Move to containers/image v5.0.0
+  * Enable --device directory as src device
+  * Fix git build with branch specified
+  * Bump github.com/openshift/imagebuilder from 1.1.0 to 1.1.1
+  * Bump github.com/fsouza/go-dockerclient from 1.4.4 to 1.5.0
+  * Add clarification to the Tutorial for new users
+  * Silence "using cache" to ensure -q is fully quiet
+  * Add OWNERS File to Buildah
+  * Bump github.com/containers/storage from 1.13.4 to 1.13.5
+  * Move runtime flag to bud from common
+  * Commit: check for storage.ErrImageUnknown using errors.Cause()
+  * Fix crash when invalid COPY --from flag is specified.
+  * Bump back to v1.12.0-dev
+
 - Changelog for v1.11.3 (2019-10-04)
   * Update c/image to v4.0.1
   * Bump github.com/spf13/pflag from 1.0.3 to 1.0.5

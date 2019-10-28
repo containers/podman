@@ -13,11 +13,11 @@ import (
 	"time"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/image"
-	"github.com/containers/image/v4/manifest"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
@@ -596,7 +596,7 @@ func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *
 	return i.manifest, i.manifestType, nil
 }
 
-func (i *containerImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
+func (i *containerImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
 	return nil, nil
 }
 
