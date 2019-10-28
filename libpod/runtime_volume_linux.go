@@ -48,6 +48,15 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	}
 	volume.config.CreatedTime = time.Now()
 
+	// Check if volume with given name exists.
+	exists, err := r.state.HasVolume(volume.config.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error checking if volume with name %s exists", volume.config.Name)
+	}
+	if exists {
+		return nil, errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists", volume.config.Name)
+	}
+
 	if volume.config.Driver == define.VolumeDriverLocal {
 		logrus.Debugf("Validating options for local driver")
 		// Validate options
