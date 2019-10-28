@@ -32,9 +32,7 @@ func (c *Container) Init(ctx context.Context) (err error) {
 		}
 	}
 
-	if !(c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has already been created in runtime", c.ID())
 	}
 
@@ -176,15 +174,12 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		}
 	}
 
-	if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateUnknown ||
-		c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created, running, or stopped containers. %s is in state %s", c.ID(), c.state.State.String())
+	if c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+		return define.ErrCtrStopped
 	}
 
-	if c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited {
-		return define.ErrCtrStopped
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
 	return c.stop(timeout, false)
@@ -201,6 +196,7 @@ func (c *Container) Kill(signal uint) error {
 		}
 	}
 
+	// TODO: Is killing a paused container OK?
 	if c.state.State != define.ContainerStateRunning {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only kill running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
@@ -234,10 +230,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 		}
 	}
 
-	conState := c.state.State
-
-	// TODO can probably relax this once we track exec sessions
-	if conState != define.ContainerStateRunning {
+	if c.state.State != define.ContainerStateRunning {
 		return define.ExecErrorCodeCannotInvoke, errors.Wrapf(define.ErrCtrStateInvalid, "cannot exec into container that is not running")
 	}
 
@@ -391,11 +384,10 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		c.lock.Unlock()
 	}
 
-	if c.state.State != define.ContainerStateCreated &&
-		c.state.State != define.ContainerStateRunning &&
-		c.state.State != define.ContainerStateExited {
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
+
 	defer c.newContainerEvent(events.Attach)
 	return c.attach(streams, keys, resize, false, nil)
 }
@@ -432,7 +424,7 @@ func (c *Container) Unmount(force bool) error {
 			return errors.Wrapf(err, "can't determine how many times %s is mounted, refusing to unmount", c.ID())
 		}
 		if mounted == 1 {
-			if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+			if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 				return errors.Wrapf(define.ErrCtrStateInvalid, "cannot unmount storage for container %s as it is running or paused", c.ID())
 			}
 			if len(c.state.ExecSessions) != 0 {
@@ -574,7 +566,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	// Check if state is good
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, refusing to clean up", c.ID())
 	}
 
@@ -652,9 +644,7 @@ func (c *Container) Sync() error {
 
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if (c.state.State != define.ContainerStateUnknown) &&
-		(c.state.State != define.ContainerStateConfigured) &&
-		(c.state.State != define.ContainerStateExited) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopped) {
 		oldState := c.state.State
 		if err := c.ociRuntime.UpdateContainerStatus(c); err != nil {
 			return err
@@ -666,6 +656,7 @@ func (c *Container) Sync() error {
 			}
 		}
 	}
+
 	defer c.newContainerEvent(events.Sync)
 	return nil
 }
@@ -839,13 +830,4 @@ func (c *Container) Restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 	defer c.newContainerEvent(events.Restore)
 	return c.restore(ctx, options)
-}
-
-// AutoRemove indicates whether the container will be removed after it is executed
-func (c *Container) AutoRemove() bool {
-	spec := c.config.Spec
-	if spec.Annotations == nil {
-		return false
-	}
-	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

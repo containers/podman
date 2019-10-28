@@ -328,7 +328,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 
 	// Is the container running again?
 	// If so, we don't have to do anything
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return false, nil
 	} else if c.state.State == define.ContainerStateUnknown {
 		return false, errors.Wrapf(define.ErrInternal, "invalid container state encountered in restart attempt!")
@@ -359,8 +359,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 		if err := c.reinit(ctx, true); err != nil {
 			return false, err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		// Initialize the container
 		if err := c.init(ctx, true); err != nil {
 			return false, err
@@ -370,6 +369,18 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 		return false, err
 	}
 	return true, nil
+}
+
+// Ensure that the container is in a specific state or state.
+// Returns true if the container is in one of the given states,
+// or false otherwise.
+func (c *Container) ensureState(states ...define.ContainerStatus) bool {
+	for _, state := range states {
+		if state == c.state.State {
+			return true
+		}
+	}
+	return false
 }
 
 // Sync this container with on-disk state and runtime status
@@ -382,9 +393,7 @@ func (c *Container) syncContainer() error {
 	}
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
-	if (c.state.State != define.ContainerStateUnknown) &&
-		(c.state.State != define.ContainerStateConfigured) &&
-		(c.state.State != define.ContainerStateExited) {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStatePaused) {
 		oldState := c.state.State
 
 		if err := c.checkExitFile(); err != nil {
@@ -516,7 +525,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 
 // Tear down a container's storage prior to removal
 func (c *Container) teardownStorage() error {
-	if c.state.State == define.ContainerStateRunning || c.state.State == define.ContainerStatePaused {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove storage for container %s as it is running or paused", c.ID())
 	}
 
@@ -721,10 +730,7 @@ func (c *Container) save() error {
 // Otherwise, this function will return with error if there are dependencies of this container that aren't running.
 func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err error) {
 	// Container must be created or stopped to be started
-	if !(c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateCreated ||
-		c.state.State == define.ContainerStateStopped ||
-		c.state.State == define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s must be in Created or Stopped state to be started", c.ID())
 	}
 
@@ -755,8 +761,7 @@ func (c *Container) prepareToStart(ctx context.Context, recursive bool) (err err
 		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		// Or initialize it if necessary
 		if err := c.init(ctx, false); err != nil {
 			return err
@@ -987,7 +992,7 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 
 	// If the container is not ContainerStateStopped or
 	// ContainerStateCreated, do nothing.
-	if c.state.State != define.ContainerStateStopped && c.state.State != define.ContainerStateCreated {
+	if !c.ensureState(define.ContainerStateStopped, define.ContainerStateCreated) {
 		return nil
 	}
 
@@ -1078,8 +1083,7 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
+	} else if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		if err := c.init(ctx, false); err != nil {
 			return err
 		}
@@ -1205,7 +1209,7 @@ func (c *Container) unpause() error {
 
 // Internal, non-locking function to restart a container
 func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err error) {
-	if c.state.State == define.ContainerStateUnknown || c.state.State == define.ContainerStatePaused {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "unable to restart a container in a paused or unknown state")
 	}
 
@@ -1733,9 +1737,8 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in invalid state", c.ID())
 	}
 
-	if c.state.State == define.ContainerStateRunning ||
-		c.state.State == define.ContainerStatePaused {
-		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed", c.ID(), c.state.State.String())
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
 	if len(c.state.ExecSessions) != 0 {
@@ -1816,7 +1819,7 @@ func (c *Container) sortUserVolumes(ctrSpec *spec.Spec) ([]*ContainerNamedVolume
 // Check for an exit file, and handle one if present
 func (c *Container) checkExitFile() error {
 	// If the container's not running, nothing to do.
-	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
+	if !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
 		return nil
 	}
 
