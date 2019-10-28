@@ -5,6 +5,7 @@ package libpod
 import (
 	"crypto/rand"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -131,7 +132,7 @@ func checkSlirpFlags(path string) (bool, bool, bool, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, false, false, err
+		return false, false, false, errors.Wrapf(err, "slirp4netns %q", out)
 	}
 	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), strings.Contains(string(out), "--enable-sandbox"), nil
 }
@@ -158,6 +159,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
 	apiSocket := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
+	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
 	if havePortMapping {
@@ -165,7 +167,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 	dhp, mtu, sandbox, err := checkSlirpFlags(path)
 	if err != nil {
-		return errors.Wrapf(err, "error checking slirp4netns binary %s", path)
+		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
 	if dhp {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
@@ -210,6 +212,18 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	// Leak one end of the pipe in slirp4netns, the other will be sent to conmon
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncR, syncW)
 
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open slirp4netns log file %s", logPath)
+	}
+	defer logFile.Close()
+	// Unlink immediately the file so we won't need to worry about cleaning it up later.
+	// It is still accessible through the open fd logFile.
+	if err := os.Remove(logPath); err != nil {
+		return errors.Wrapf(err, "delete file %s", logPath)
+	}
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
 	if err := cmd.Start(); err != nil {
 		return errors.Wrapf(err, "failed to start slirp4netns process")
 	}
@@ -238,7 +252,15 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 					continue
 				}
 				if status.Exited() {
-					return errors.New("slirp4netns failed")
+					// Seek at the beginning of the file and read all its content
+					if _, err := logFile.Seek(0, 0); err != nil {
+						logrus.Errorf("could not seek log file: %q", err)
+					}
+					logContent, err := ioutil.ReadAll(logFile)
+					if err != nil {
+						return errors.Wrapf(err, "slirp4netns failed")
+					}
+					return errors.Errorf("slirp4netns failed: %q", logContent)
 				}
 				if status.Signaled() {
 					return errors.New("slirp4netns killed by signal")
