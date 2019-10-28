@@ -44,11 +44,11 @@ echo $rand        |   0 | $rand
         # FIXME: The </dev/null is a hack, necessary because as of 2019-09
         #        podman-remote has a bug in which it silently slurps up stdin,
         #        including the output of parse_table (i.e. tests to be run).
-        run_podman $expected_rc run $IMAGE "$@" </dev/null
+        run_podman $expected_rc --log-level=debug run $IMAGE "$@" </dev/null
 
         # FIXME: remove conditional once podman-remote issue #4096 is fixed
         if ! is_remote; then
-            is "$output" "$expected_output" "podman run $cmd - output"
+            is "$output" "$expected_output" "podman --log-level=debug run $cmd - output"
         fi
 
         tests_run=$(expr $tests_run + 1)
