@@ -165,4 +165,16 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(126))
 	})
 
+	It("podman exec selinux check", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session.WaitWithDefaultTimeout()
+		session1 := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Equal(session1.OutputToString()))
+	})
+
 })
