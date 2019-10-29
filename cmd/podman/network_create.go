@@ -46,7 +46,7 @@ func init() {
 	// TODO enable when IPv6 is working
 	//flags.BoolVar(&networkCreateCommand.IPV6, "IPv6", false, "enable IPv6 networking")
 	flags.IPNetVar(&networkCreateCommand.Network, "subnet", net.IPNet{}, "subnet in CIDR format")
-
+	flags.BoolVar(&networkCreateCommand.DisableDNS, "disable-dns", false, "disable dns plugin")
 }
 
 func networkcreateCmd(c *cliconfig.NetworkCreateValues) error {

@@ -267,6 +267,7 @@ type MountValues struct {
 type NetworkCreateValues struct {
 	PodmanCommand
 	Driver     string
+	DisableDNS bool
 	Gateway    net.IP
 	Internal   bool
 	IPamDriver string

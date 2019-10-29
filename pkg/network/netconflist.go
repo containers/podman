@@ -2,6 +2,8 @@ package network
 
 import (
 	"net"
+	"os"
+	"path/filepath"
 )
 
 // NcList describes a generic map
@@ -110,4 +112,23 @@ func NewFirewallPlugin() FirewallConfig {
 		PluginType: "firewall",
 		Backend:    "iptables",
 	}
+}
+
+// NewDNSNamePlugin creates the dnsname config with a given
+// domainname
+func NewDNSNamePlugin(domainName string) DNSNameConfig {
+	return DNSNameConfig{
+		PluginType: "dnsname",
+		DomainName: domainName,
+	}
+}
+
+// HasDNSNamePlugin looks to see if the dnsname cni plugin is present
+func HasDNSNamePlugin(paths []string) bool {
+	for _, p := range paths {
+		if _, err := os.Stat(filepath.Join(p, "dnsname")); err == nil {
+			return true
+		}
+	}
+	return false
 }
