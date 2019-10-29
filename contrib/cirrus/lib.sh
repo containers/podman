@@ -43,7 +43,7 @@ if type -P git &> /dev/null && [[ -d "$GOSRC/.git" ]]
 then
     CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git show-ref --hash=8 HEAD || date +%s)}
 else # pick something unique and obviously not from Cirrus
-    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-no_git_$(date +%s)}
+    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-unknown_$(date +%s)}
 fi
 
 # Defaults when not running under CI
@@ -231,6 +231,42 @@ ircmsg() {
     $SCRIPT $NICK $@
     echo "Ignoring exit($?)"
     set -e
+}
+
+# This covers all possible human & CI workflow parallel & serial combinations
+# where at least one caller must definitively discover if within a commit range
+# there is at least one release tag not having any '-' characters (return 0)
+# or otherwise (return non-0).
+is_release() {
+    req_env_var CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO
+    local range="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
+    # Easy check first, default non-useful values
+    if echo "${range}$CIRRUS_TAG" | grep -iq 'unknown'; then
+        die 11 "is_release() unusable range ${range} or tag $CIRRUS_TAG"
+    fi
+    # Next easy check, is CIRRUS_TAG set
+    unset RELVER
+    if [[ -n "$CIRRUS_TAG" ]]; then
+        RELVER="$CIRRUS_TAG"
+    else # Lastly, look through the range for tags
+        git fetch --all --tags &> /dev/null|| \
+            die 12 "is_release() failed to fetch tags"
+        RELVER=$(git log --pretty='format:%d' $range | \
+                 grep '(tag:' | sed -r -e 's/\s+[(]tag:\s+(v[0-9].*)[)]/\1/' | \
+                 sort -uV | tail -1)
+        [[ "$?" -eq "0" ]] || \
+            die 13 "is_release() failed to parse tags"
+    fi
+    echo "Found \$RELVER $RELVER"
+    if [[ -n "$RELVER" ]]; then
+        if echo "$RELVER" | grep -q '-'; then
+            return 2
+        else
+            return 0
+        fi
+    else
+        return 1
+    fi
 }
 
 setup_rootless() {

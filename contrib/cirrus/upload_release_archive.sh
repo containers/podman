@@ -17,8 +17,15 @@ then
     BUCKET="libpod-pr-releases"
 elif [[ -n "$CIRRUS_BRANCH" ]]
 then
-    PR_OR_BRANCH="$CIRRUS_BRANCH"
-    BUCKET="libpod-$CIRRUS_BRANCH-releases"
+    # Only release non-development tagged commit ranges
+    if is_release
+    then
+        PR_OR_BRANCH="$CIRRUS_BRANCH"
+        BUCKET="libpod-$CIRRUS_BRANCH-releases"
+    else
+        warn "" "Skipping release processing: Commit range|CIRRUS_TAG is development tagged."
+        exit 0
+    fi
 else
     die 1 "Expecting either \$CIRRUS_PR or \$CIRRUS_BRANCH to be non-empty."
 fi
@@ -63,6 +70,10 @@ do
     then
         echo "Warning: Not processing $filename (invalid extension '$EXT')"
         continue
+    fi
+    if [[ "$EXT" =~ "gz" ]]
+    then
+        EXT="tar.gz"
     fi
 
     [[ "$OS_RELEASE_ID" == "ubuntu" ]] || \
