@@ -269,7 +269,7 @@ func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig
 				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
 				continue
 			}
-			failures[ctr.ID()] = errors.Wrapf(err, "error unmounting continaner %s", ctr.ID())
+			failures[ctr.ID()] = errors.Wrapf(err, "error unmounting container %s", ctr.ID())
 		} else {
 			ok = append(ok, ctr.ID())
 		}
