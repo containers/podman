@@ -72,8 +72,8 @@ LIBPOD := ${PROJECT}/libpod
 GCFLAGS ?= all=-trimpath=${PWD}
 ASMFLAGS ?= all=-trimpath=${PWD}
 LDFLAGS_PODMAN ?= $(LDFLAGS) \
-	  -X $(LIBPOD).gitCommit=$(GIT_COMMIT) \
-	  -X $(LIBPOD).buildInfo=$(BUILD_INFO) \
+	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
+	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
 	  -X $(LIBPOD).installPrefix=$(PREFIX) \
 	  -X $(LIBPOD).etcDir=$(ETCDIR)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
