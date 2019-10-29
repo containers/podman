@@ -704,6 +704,24 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 			}
 
 		}
+		if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
+			if seopt.User != "" {
+				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=user:%s", seopt.User))
+				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("user:%s", seopt.User))
+			}
+			if seopt.Role != "" {
+				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=role:%s", seopt.Role))
+				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("role:%s", seopt.Role))
+			}
+			if seopt.Type != "" {
+				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=type:%s", seopt.Type))
+				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("type:%s", seopt.Type))
+			}
+			if seopt.Level != "" {
+				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=level:%s", seopt.Level))
+				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("level:%s", seopt.Level))
+			}
+		}
 		if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
 			for _, capability := range caps.Add {
 				containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
