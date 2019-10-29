@@ -251,19 +251,10 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 	}
 
 	if config.SeccompProfilePath == "" {
-		if _, err := os.Stat(libpod.SeccompOverridePath); err == nil {
-			config.SeccompProfilePath = libpod.SeccompOverridePath
-		} else {
-			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
-			}
-			if _, err := os.Stat(libpod.SeccompDefaultPath); err != nil {
-				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
-				}
-			} else {
-				config.SeccompProfilePath = libpod.SeccompDefaultPath
-			}
+		var err error
+		config.SeccompProfilePath, err = libpod.DefaultSeccompPath()
+		if err != nil {
+			return err
 		}
 	}
 	config.LabelOpts = labelOpts

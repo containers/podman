@@ -713,6 +713,11 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 			}
 		}
 	}
+	var err error
+	containerConfig.SeccompProfilePath, err = libpod.DefaultSeccompPath()
+	if err != nil {
+		return nil, err
+	}
 
 	containerConfig.Command = []string{}
 	if imageData != nil && imageData.Config != nil {
