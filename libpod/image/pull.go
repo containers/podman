@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	cp "github.com/containers/image/v4/copy"
-	"github.com/containers/image/v4/directory"
-	"github.com/containers/image/v4/docker"
-	dockerarchive "github.com/containers/image/v4/docker/archive"
-	"github.com/containers/image/v4/docker/tarfile"
-	ociarchive "github.com/containers/image/v4/oci/archive"
-	oci "github.com/containers/image/v4/oci/layout"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/transports/alltransports"
-	"github.com/containers/image/v4/types"
+	cp "github.com/containers/image/v5/copy"
+	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/tarfile"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	oci "github.com/containers/image/v5/oci/layout"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/registries"
 	"github.com/hashicorp/go-multierror"
@@ -223,6 +223,10 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 
 	var goal *pullGoal
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
@@ -246,6 +250,10 @@ func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.Imag
 	defer span.Finish()
 
 	sc := GetSystemContext(signaturePolicyPath, authfile, false)
+	if dockerOptions != nil {
+		sc.OSChoice = dockerOptions.OSChoice
+		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
+	}
 	goal, err := ir.pullGoalFromImageReference(ctx, srcRef, transports.ImageName(srcRef), sc)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error determining pull goal for image %q", transports.ImageName(srcRef))

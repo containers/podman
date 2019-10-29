@@ -1,9 +1,8 @@
 dist: xenial
 language: go
 go:
-  - 1.11.x
   - 1.12.x
-  - 1.13rc1
+  - 1.13.x
 os:
   - linux
   - osx
@@ -17,7 +16,6 @@ env:
     - GO111MODULE=on
 install:
   - travis-scripts/win-setup.bash
-  - make testdeps
 script:
   - travis_wait 25 travis-scripts/run-tests.bash
 services:

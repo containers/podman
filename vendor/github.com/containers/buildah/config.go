@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/v4/manifest"
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/stringid"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"

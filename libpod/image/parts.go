@@ -3,7 +3,7 @@ package image
 import (
 	"strings"
 
-	"github.com/containers/image/v4/docker/reference"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/pkg/errors"
 )
 

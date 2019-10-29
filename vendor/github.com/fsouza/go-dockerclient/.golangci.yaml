@@ -1,0 +1,29 @@
+run:
+  deadline: 5m
+
+  skip-dirs:
+    - internal
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - bodyclose
+        - goconst
+        - gosec
+        - scopelint
+    - path: testing[/\\].+\.go
+      linters:
+        - gosec
+
+linters:
+  enable-all: true
+  disable:
+    - dupl
+    - errcheck
+    - funlen
+    - gochecknoglobals
+    - gocognit
+    - goconst
+    - lll
+    - wsl

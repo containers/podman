@@ -9,6 +9,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
@@ -360,7 +361,11 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		RuntimeArgs:             runtimeFlags,
 		SignaturePolicyPath:     c.SignaturePolicy,
 		Squash:                  c.Squash,
-		Target:                  c.Target,
+		SystemContext: &types.SystemContext{
+			OSChoice:           c.OverrideOS,
+			ArchitectureChoice: c.OverrideArch,
+		},
+		Target: c.Target,
 	}
 	return runtime.Build(getContext(), c, options, containerfiles)
 }

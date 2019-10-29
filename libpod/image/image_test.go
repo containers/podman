@@ -247,6 +247,19 @@ func TestImage_RepoDigests(t *testing.T) {
 			}
 
 			assert.Equal(t, test.expected, actual)
+
+			image = &Image{
+				image: &storage.Image{
+					Names:   test.names,
+					Digests: []digest.Digest{dgst},
+				},
+			}
+			actual, err = image.RepoDigests()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, actual)
 		})
 	}
 }

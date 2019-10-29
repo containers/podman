@@ -1557,6 +1557,10 @@ oomKillDisable [?bool](#?bool)
 
 oomScoreAdj [?int](#?int)
 
+overrideArch [?string](#?string)
+
+overrideOS [?string](#?string)
+
 pid [?string](#?string)
 
 pidsLimit [?int](#?int)
@@ -1670,6 +1674,8 @@ detachKeys [?string](#?string)
 id [string](https://godoc.org/builtin#string)
 
 digest [string](https://godoc.org/builtin#string)
+
+digests [[]string](#[]string)
 
 parentId [string](https://godoc.org/builtin#string)
 

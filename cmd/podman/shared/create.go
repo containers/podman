@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/image/v4/manifest"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
@@ -89,7 +89,12 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, nil, err
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(c.String("authfile")), writer, nil, image.SigningOptions{}, nil, pullType)
+		dockerRegistryOptions := image.DockerRegistryOptions{
+			OSChoice:           c.String("override-os"),
+			ArchitectureChoice: c.String("override-arch"),
+		}
+
+		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, GetAuthFile(c.String("authfile")), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -246,19 +251,10 @@ func parseSecurityOpt(config *cc.CreateConfig, securityOpts []string, runtime *l
 	}
 
 	if config.SeccompProfilePath == "" {
-		if _, err := os.Stat(libpod.SeccompOverridePath); err == nil {
-			config.SeccompProfilePath = libpod.SeccompOverridePath
-		} else {
-			if !os.IsNotExist(err) {
-				return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompOverridePath)
-			}
-			if _, err := os.Stat(libpod.SeccompDefaultPath); err != nil {
-				if !os.IsNotExist(err) {
-					return errors.Wrapf(err, "can't check if %q exists", libpod.SeccompDefaultPath)
-				}
-			} else {
-				config.SeccompProfilePath = libpod.SeccompDefaultPath
-			}
+		var err error
+		config.SeccompProfilePath, err = libpod.DefaultSeccompPath()
+		if err != nil {
+			return err
 		}
 	}
 	config.LabelOpts = labelOpts

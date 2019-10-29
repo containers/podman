@@ -189,3 +189,20 @@ func programVersion(mountProgram string) (string, error) {
 	}
 	return strings.TrimSuffix(output, "\n"), nil
 }
+
+func DefaultSeccompPath() (string, error) {
+	_, err := os.Stat(SeccompOverridePath)
+	if err == nil {
+		return SeccompOverridePath, nil
+	}
+	if !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "can't check if %q exists", SeccompOverridePath)
+	}
+	if _, err := os.Stat(SeccompDefaultPath); err != nil {
+		if !os.IsNotExist(err) {
+			return "", errors.Wrapf(err, "can't check if %q exists", SeccompDefaultPath)
+		}
+		return "", nil
+	}
+	return SeccompDefaultPath, nil
+}

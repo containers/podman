@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/image/v4/transports"
-	"github.com/containers/image/v4/transports/alltransports"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/stretchr/testify/assert"

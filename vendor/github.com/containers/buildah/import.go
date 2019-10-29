@@ -5,9 +5,9 @@ import (
 
 	"github.com/containers/buildah/docker"
 	"github.com/containers/buildah/util"
-	"github.com/containers/image/v4/manifest"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/manifest"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"

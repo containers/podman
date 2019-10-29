@@ -58,7 +58,8 @@ type VolumeRemoveOpts (
 
 type Image (
   id: string,
-  digest:   string,
+  digest: string,
+  digests: []string,
   parentId: string,
   repoTags: []string,
   repoDigests: []string,
@@ -342,6 +343,8 @@ type Create (
     noHosts: ?bool,
     oomKillDisable: ?bool,
     oomScoreAdj: ?int,
+    overrideArch: ?string,
+    overrideOS: ?string,
     pid: ?string,
     pidsLimit: ?int,
     pod: ?string,

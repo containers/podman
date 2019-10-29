@@ -17,8 +17,8 @@ import (
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/v4/docker/reference"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
@@ -146,6 +146,7 @@ type remoteImage struct {
 	InputName   string
 	Names       []string
 	Digest      digest.Digest
+	Digests     []digest.Digest
 	isParent    bool
 	Runtime     *LocalRuntime
 	TopLayer    string
@@ -226,10 +227,15 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 	if err != nil {
 		return nil, err
 	}
+	var digests []digest.Digest
+	for _, d := range i.Digests {
+		digests = append(digests, digest.Digest(d))
+	}
 	ri := remoteImage{
 		InputName:   name,
 		ID:          i.Id,
 		Digest:      digest.Digest(i.Digest),
+		Digests:     digests,
 		Labels:      i.Labels,
 		RepoTags:    i.RepoTags,
 		RepoDigests: i.RepoTags,
@@ -350,6 +356,11 @@ func (ci *ContainerImage) Size(ctx context.Context) (*uint64, error) {
 // Digest returns the image's digest
 func (ci *ContainerImage) Digest() digest.Digest {
 	return ci.remoteImage.Digest
+}
+
+// Digests returns the image's digests
+func (ci *ContainerImage) Digests() []digest.Digest {
+	return append([]digest.Digest{}, ci.remoteImage.Digests...)
 }
 
 // Labels returns a map of the image's labels

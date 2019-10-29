@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/v4/docker"
-	dockerarchive "github.com/containers/image/v4/docker/archive"
-	"github.com/containers/image/v4/transports/alltransports"
-	"github.com/containers/image/v4/types"
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
@@ -54,6 +54,10 @@ func init() {
 	flags.BoolVar(&pullCommand.AllTags, "all-tags", false, "All tagged images in the repository will be pulled")
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&pullCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
+	flags.StringVar(&pullCommand.OverrideArch, "override-arch", "", "use `ARCH` instead of the architecture of the machine for choosing images")
+	markFlagHidden(flags, "override-arch")
+	flags.StringVar(&pullCommand.OverrideOS, "override-os", "", "use `OS` instead of the running OS for choosing images")
+	markFlagHidden(flags, "override-os")
 	// Disabled flags for the remote client
 	if !remote {
 		flags.StringVar(&pullCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -122,6 +126,8 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 	dockerRegistryOptions := image.DockerRegistryOptions{
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      c.CertDir,
+		OSChoice:            c.OverrideOS,
+		ArchitectureChoice:  c.OverrideArch,
 	}
 	if c.IsSet("tls-verify") {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)

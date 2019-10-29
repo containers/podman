@@ -131,6 +131,8 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		Network:                StringToPtr(g.Find("network")),
 		OomKillDisable:         BoolToPtr(g.Find("oom-kill-disable")),
 		OomScoreAdj:            AnyIntToInt64Ptr(g.Find("oom-score-adj")),
+		OverrideOS:             StringToPtr(g.Find("override-os")),
+		OverrideArch:           StringToPtr(g.Find("override-arch")),
 		Pid:                    StringToPtr(g.Find("pid")),
 		PidsLimit:              AnyIntToInt64Ptr(g.Find("pids-limit")),
 		Pod:                    StringToPtr(g.Find("pod")),
@@ -389,6 +391,8 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["no-hosts"] = boolFromVarlink(opts.NoHosts, "no-hosts", false)
 	m["oom-kill-disable"] = boolFromVarlink(opts.OomKillDisable, "oon-kill-disable", false)
 	m["oom-score-adj"] = intFromVarlink(opts.OomScoreAdj, "oom-score-adj", nil)
+	m["override-os"] = stringFromVarlink(opts.OverrideOS, "override-os", nil)
+	m["override-arch"] = stringFromVarlink(opts.OverrideArch, "override-arch", nil)
 	m["pid"] = stringFromVarlink(opts.Pid, "pid", nil)
 	m["pids-limit"] = int64FromVarlink(opts.PidsLimit, "pids-limit", nil)
 	m["pod"] = stringFromVarlink(opts.Pod, "pod", nil)

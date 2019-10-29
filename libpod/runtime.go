@@ -16,8 +16,8 @@ import (
 	"syscall"
 
 	"github.com/BurntSushi/toml"
-	is "github.com/containers/image/v4/storage"
-	"github.com/containers/image/v4/types"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
