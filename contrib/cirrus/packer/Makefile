@@ -34,7 +34,7 @@ guard-%:
 	fi;
 
 %.json: %.yml
-	@python3 -c 'import json,yaml; json.dump( yaml.load(open("$<").read()), open("$@","w"), indent=2);'
+	@python3 -c 'import json,yaml; json.dump( yaml.safe_load(open("$<").read()), open("$@","w"), indent=2);'
 
 ${PACKER_DIST_FILENAME}:
 	@curl -L --silent --show-error \
