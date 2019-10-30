@@ -3,8 +3,8 @@
 package libpod
 
 import (
-	"io/ioutil"
 	"os/exec"
+	"strings"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
@@ -72,16 +72,10 @@ func (v *Volume) mount() error {
 	mountArgs = append(mountArgs, volDevice, v.config.MountPoint)
 	mountCmd := exec.Command(mountPath, mountArgs...)
 
-	errPipe, err := mountCmd.StderrPipe()
-	if err != nil {
-		return errors.Wrapf(err, "error getting stderr pipe for mount")
-	}
-	if err := mountCmd.Start(); err != nil {
-		out, err2 := ioutil.ReadAll(errPipe)
-		if err2 != nil {
-			return errors.Wrapf(err2, "error reading mount STDERR")
-		}
-		return errors.Wrapf(errors.New(string(out)), "error mounting volume %s", v.Name())
+	logrus.Debugf("Running mount command: %s %s", mountPath, strings.Join(mountArgs, " "))
+	if output, err := mountCmd.CombinedOutput(); err != nil {
+		logrus.Debugf("Mount failed with %v", err)
+		return errors.Wrapf(errors.Errorf(string(output)), "error mounting volume %s", v.Name())
 	}
 
 	logrus.Debugf("Mounted volume %s", v.Name())
