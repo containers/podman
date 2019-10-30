@@ -74,3 +74,13 @@ func checkIfFileExists(name string) bool {
 	}
 	return !file.IsDir()
 }
+
+// Check if a file is or is not a directory
+func fileIsDir(name string) bool {
+	file, err := os.Stat(name)
+	// All errors return file == nil
+	if err != nil {
+		return false
+	}
+	return file.IsDir()
+}
