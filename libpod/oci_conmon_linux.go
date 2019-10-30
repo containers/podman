@@ -1023,8 +1023,8 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 	if err != nil {
 		return nil, err
 	}
-
 	pspec := c.config.Spec.Process
+	pspec.SelinuxLabel = c.config.ProcessLabel
 	pspec.Args = cmd
 	// We need to default this to false else it will inherit terminal as true
 	// from the container.
