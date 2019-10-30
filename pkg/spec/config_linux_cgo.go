@@ -5,9 +5,9 @@ package createconfig
 import (
 	"io/ioutil"
 
-	"github.com/docker/docker/profiles/seccomp"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	seccomp "github.com/seccomp/containers-golang"
 )
 
 func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
