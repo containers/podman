@@ -5,6 +5,7 @@
 /docs/*.[158]
 /docs/*.[158].gz
 /docs/remote
+/docs/build/
 *.o
 *.orig
 /pause/pause.o
@@ -25,3 +26,4 @@ release.txt
 podman-remote*.zip
 podman*.tar.gz
 .idea*
+.vscode*

@@ -167,13 +167,11 @@ podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on 
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
 .PHONY: podman.msi
-podman.msi: podman-remote podman-remote-windows docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
-	rm -rf bin/windows
-	mkdir -p bin/windows
-	docs/podman-remote.sh windows bin/windows docs
-	find bin/windows -print \
-	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix bin/windows/ >bin/windows/pages.wsx
-	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=bin/windows -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs bin/windows/pages.wsx
+podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	$(eval DOCFILE := docs/build/remote/windows)
+	find $(DOCFILE) -print \
+	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix $(DOCFILE)/ >$(DOCFILE)/pages.wsx
+	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=$(DOCFILE) -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
@@ -196,7 +194,6 @@ clean: ## Clean artifacts
 		$(wildcard podman*.tar.gz) \
 		bin \
 		build \
-		docs/remote \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
 		test/testdata/redis-image \
@@ -310,24 +307,26 @@ install.catatonit:
 
 test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
 
-MANPAGES_MD ?= $(wildcard docs/source/man/*.md pkg/*/docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
-MANPAGES_DEST ?= $(subst source,build,$(MANPAGES))
+MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
 $(MANPAGES): %: %.md .gopathok
-	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source,build,$@)
+	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
 docdir:
 	mkdir -p docs/build/man
 
 docs: docdir $(MANPAGES) ## Generate documentation
 
-install-podman-remote-docs: podman-remote docs
-	rm -rf docs/remote
-	docs/podman-remote.sh darwin docs/remote docs
+install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
+	rm -rf docs/build/remote
+	mkdir -p docs/build/remote
+	ln -sf $(shell pwd)/docs/source/markdown/links docs/build/man/
+	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 man-page-check:
-	./hack/man-page-checker
+	hack/man-page-checker
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
@@ -351,7 +350,7 @@ podman-v$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 
 # Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
 podman-remote-v$(RELEASE_NUMBER)-%.zip:
-	$(MAKE) podman-remote-$* install-podman-remote-docs release.txt \
+	$(MAKE) podman-remote-$* install-podman-remote-$*-docs release.txt \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
 	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
@@ -361,13 +360,7 @@ podman-remote-v$(RELEASE_NUMBER)-%.zip:
 	# release.txt location and content depended upon by automated tooling
 	cp release.txt "$(TMPDIR)/"
 	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
-	cp -r ./docs/remote "$(TMPDIR)/$(SUBDIR)/docs/"
-	$(eval DOCFILE := $(TMPDIR)/$(SUBDIR)/docs/podman.1)
-	cp docs/podman-remote.1 "$(DOCFILE)"
-	sed -i 's/podman\\*-remote/podman/g' "$(DOCFILE)"
-	sed -i 's/Podman\\*-remote/Podman\ for\ $*/g' "$(DOCFILE)"
-	sed -i 's/podman\.conf/podman\-remote\.conf/g' "$(DOCFILE)"
-	sed -i 's/A\ remote\ CLI\ for\ Podman\:\ //g' "$(DOCFILE)"
+	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
 	cd "$(TMPDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./release.txt" "./"
 	-rm -rf "$(TMPDIR)"
@@ -412,7 +405,7 @@ install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.config:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)

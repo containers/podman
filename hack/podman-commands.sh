@@ -34,7 +34,7 @@ function podman_man() {
         # This md file has a table of the form:
         #   | [podman-cmd(1)\[(podman-cmd.1.md)   | Description ... |
         # For all such, print the 'cmd' portion (the one in brackets).
-        sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/source/man/$1.1.md
+        sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/source/markdown/$1.1.md
 
         # Special case: there is no podman-help man page, nor need for such.
         echo "help"
@@ -48,7 +48,7 @@ function podman_man() {
         #    | cmd | [podman-cmd(1)](podman-cmd.1.md) | Description ... |
         # For all such we find, with 'podman- in the second column, print the
         # first column (with whitespace trimmed)
-        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/source/man/$1.1.md
+        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/source/markdown/$1.1.md
     fi
 }
 
