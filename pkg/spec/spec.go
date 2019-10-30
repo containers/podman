@@ -631,6 +631,19 @@ func addIpcNS(config *CreateConfig, g *generate.Generator) error {
 
 func addCgroupNS(config *CreateConfig, g *generate.Generator) error {
 	cgroupMode := config.CgroupMode
+
+	if cgroupMode.IsDefaultValue() {
+		// If the value is not specified, default to "private" on cgroups v2 and "host" on cgroups v1.
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if unified {
+			cgroupMode = "private"
+		} else {
+			cgroupMode = "host"
+		}
+	}
 	if cgroupMode.IsNS() {
 		return g.AddOrReplaceLinuxNamespace(string(spec.CgroupNamespace), NS(string(cgroupMode)))
 	}

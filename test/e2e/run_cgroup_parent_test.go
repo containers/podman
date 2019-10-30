@@ -40,7 +40,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 			Skip("Must be containerized to run this test.")
 		}
 		cgroup := "/zzz"
-		run := podmanTest.Podman([]string{"run", "--cgroup-parent", cgroup, fedoraMinimal, "cat", "/proc/self/cgroup"})
+		run := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroup-parent", cgroup, fedoraMinimal, "cat", "/proc/self/cgroup"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ok, _ := run.GrepString(cgroup)
@@ -52,7 +52,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 		if !Containerized() && podmanTest.CgroupManager != "cgroupfs" {
 			cgroup = "/machine.slice"
 		}
-		run := podmanTest.Podman([]string{"run", fedoraMinimal, "cat", "/proc/self/cgroup"})
+		run := podmanTest.Podman([]string{"run", "--cgroupns=host", fedoraMinimal, "cat", "/proc/self/cgroup"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ok, _ := run.GrepString(cgroup)
@@ -64,7 +64,7 @@ var _ = Describe("Podman run with --cgroup-parent", func() {
 			Skip("Requires Systemd cgroup manager support")
 		}
 		cgroup := "aaaa.slice"
-		run := podmanTest.Podman([]string{"run", "--cgroup-parent", cgroup, fedoraMinimal, "cat", "/proc/1/cgroup"})
+		run := podmanTest.Podman([]string{"run", "--cgroupns=host", "--cgroup-parent", cgroup, fedoraMinimal, "cat", "/proc/1/cgroup"})
 		run.WaitWithDefaultTimeout()
 		Expect(run.ExitCode()).To(Equal(0))
 		ok, _ := run.GrepString(cgroup)
