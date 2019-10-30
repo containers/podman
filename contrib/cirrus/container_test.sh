@@ -89,7 +89,7 @@ if [ "${CONTAINER_RUNTIME}" == "none" ]; then
 fi
 
 
-export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
+export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
 
 # Validate
 if [ $validate -eq 1 ]; then

@@ -83,7 +83,6 @@ $BIGTO $SUDOAPTGET install \
     libnet1 \
     libnet1-dev \
     libnl-3-dev \
-    libostree-dev \
     libvarlink \
     libprotobuf-c-dev \
     libprotobuf-dev \

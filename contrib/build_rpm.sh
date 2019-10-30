@@ -28,7 +28,6 @@ declare -a PKGS=(device-mapper-devel \
                 libseccomp-devel \
                 libselinux-devel \
                 make \
-                ostree-devel \
                 golang-github-cpuguy83-go-md2man \
                 rpm-build \
                 btrfs-progs-devel \

@@ -114,7 +114,6 @@ sudo yum install -y \
   libseccomp-devel \
   libselinux-devel \
   make \
-  ostree-devel \
   pkgconfig \
   runc \
   containers-common
@@ -136,7 +135,6 @@ sudo apt-get install \
   libglib2.0-dev \
   libgpgme-dev \
   libgpg-error-dev \
-  libostree-dev \
   libprotobuf-dev \
   libprotobuf-c0-dev \
   libseccomp-dev \
@@ -177,34 +175,6 @@ echo 'kernel.unprivileged_userns_clone=1' > /etc/sysctl.d/userns.conf
 
 If any dependencies cannot be installed or are not sufficiently current, they have to be built from source.
 This will mainly affect Debian, Ubuntu, and related distributions, or RHEL where no subscription is active (e.g. Cloud VMs).
-
-#### ostree
-
-A copy of the development libraries for `ostree` is necessary, either in the form of the `libostree-dev` package
-from the [flatpak](https://launchpad.net/~alexlarsson/+archive/ubuntu/flatpak) PPA,
-or built [from source](https://github.com/ostreedev/ostree/blob/master/docs/contributing-tutorial.md)
-(see also [here](https://ostree.readthedocs.io/en/latest/#building)). As of Ubuntu 18.04, `libostree-dev` is available in the main repositories,
-and the PPA is no longer required.
-
-To build, use the following (running `make` can take a while):
-```bash
-git clone https://github.com/ostreedev/ostree ~/ostree
-cd ~/ostree
-git submodule update --init
-
-# for Fedora, CentOS, RHEL
-sudo yum install -y automake bison e2fsprogs-devel fuse-devel gpgme-devel libseccomp-devel libtool systemd-devel xz-devel zlib-devel
-
-# for Debian, Ubuntu etc.
-sudo apt-get install -y automake bison e2fsprogs e2fslibs-dev fuse libfuse-dev libgpgme-dev liblzma-dev libseccomp-dev libsystemd-dev libtool zlib1g
-
-# for all distributions
-./autogen.sh --prefix=/usr --libdir=/usr/lib64 --sysconfdir=/etc
-# remove --nonet option due to https:/github.com/ostreedev/ostree/issues/1374
-sed -i '/.*--nonet.*/d' ./Makefile-man.am
-make
-sudo make install
-```
 
 #### golang
 
@@ -324,8 +294,6 @@ make BUILDTAGS='seccomp apparmor'
 | exclude_graphdriver_btrfs        | exclude btrfs                      | libbtrfs             |
 | exclude_graphdriver_devicemapper | exclude device-mapper              | libdm                |
 | libdm_no_deferred_remove         | exclude deferred removal in libdm  | libdm                |
-| ostree                           | ostree support (requires selinux)  | ostree-1, libselinux |
-| containers_image_ostree_stub     | exclude ostree                     |                      |
 | seccomp                          | syscall filtering                  | libseccomp           |
 | selinux                          | selinux process and mount labeling |                      |
 | systemd                          | journald logging                   | libsystemd           |

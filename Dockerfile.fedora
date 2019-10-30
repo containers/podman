@@ -22,7 +22,6 @@ RUN dnf -y install btrfs-progs-devel \
               containers-common \
               runc \
               make \
-              ostree-devel \
               lsof \
               which\
               golang-github-cpuguy83-go-md2man \
