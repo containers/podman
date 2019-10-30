@@ -241,7 +241,8 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	if len(containerfiles) == 0 {
 		if checkIfFileExists(filepath.Join(contextDir, "Containerfile")) {
 			containerfiles = append(containerfiles, filepath.Join(contextDir, "Containerfile"))
-		} else {
+		}
+		if checkIfFileExists(filepath.Join(contextDir, "Dockerfile")) {
 			containerfiles = append(containerfiles, filepath.Join(contextDir, "Dockerfile"))
 		}
 	}
