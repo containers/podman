@@ -239,7 +239,7 @@ var _ = Describe("Podman create", func() {
 
 		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "nginx"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman create using image list by tag", func() {

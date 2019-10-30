@@ -18,7 +18,7 @@ func incByte(subnet *net.IPNet, idx int, shift uint) error {
 		subnet.IP[idx] = 0
 		return incByte(subnet, idx-1, 0)
 	}
-	subnet.IP[idx] += (1 << shift)
+	subnet.IP[idx] += 1 << shift
 	return nil
 }
 
@@ -58,7 +58,7 @@ func LastIPInSubnet(addr *net.IPNet) (net.IP, error) { //nolint:interfacer
 	}
 	hostStart := ones / 8
 	// Handle the first host byte
-	cidr.IP[hostStart] |= (0xff & cidr.Mask[hostStart])
+	cidr.IP[hostStart] |= 0xff & cidr.Mask[hostStart]
 	// Fill the rest with ones
 	for i := hostStart; i < len(cidr.IP); i++ {
 		cidr.IP[i] = 0xff
