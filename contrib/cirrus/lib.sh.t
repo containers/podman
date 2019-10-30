@@ -138,16 +138,19 @@ function test_is_release() {
 }
 
 #                FROM    TO    TAG    RET    MSG
-#test_is_release ""      ""    ""     ""     ""
-
-test_is_release  ""      ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_BASE_SHA to be non-empty"
+test_is_release  ""      ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_CHANGE_IN_REPO to be non-empty"
 test_is_release  "x"     ""    ""     "9"     "FATAL: is_release() requires \$CIRRUS_CHANGE_IN_REPO to be non-empty"
 
-test_is_release  "unknown" "x" ""     "11"    "is_release() unusable range unknown..x or tag "
-test_is_release  "x" "unknown" ""     "11"    "is_release() unusable range x..unknown or tag "
-test_is_release  "x" "x" "unknown"    "11"    "is_release() unusable range x..x or tag unknown"
+# post-merge / tag-push testing, FROM will be set 'unknown' by (lib.sh default)
+test_is_release  "unknown" "x" ""     "1"    ""
+# post-merge / tag-push testing, oddball tag is set, FROM will be set 'unknown'
+test_is_release "unknown"  "unknown" "test-tag" "2"    "Found \$RELVER test-tag"
+# post-merge / tag-push testing, sane tag is set, FROM will be set 'unknown'
+test_is_release "unknown"  "unknown" "0.0.0" "0"    "Found \$RELVER 0.0.0"
+# hack/get_ci_vm or PR testing, FROM and TO are set, no tag is set
+test_is_release  "x"     "x"   ""     "1"    ""
 
-# Negative-testing git with this function is very difficult, assume it works
+# Negative-testing git with this function is very difficult, assume git works
 # test_is_release ... "is_release() failed to fetch tags"
 # test_is_release ... "is_release() failed to parse tags"
 
