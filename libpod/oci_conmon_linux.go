@@ -1220,14 +1220,6 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 		mustCreateCgroup = false
 	}
 
-	if rootless.IsRootless() {
-		ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
-		if err != nil {
-			return err
-		}
-		mustCreateCgroup = !ownsCgroup
-	}
-
 	if mustCreateCgroup {
 		cgroupParent := ctr.CgroupParent()
 		if r.cgroupManager == SystemdCgroupsManager {
