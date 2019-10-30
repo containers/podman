@@ -27,7 +27,6 @@ BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
-	$(shell hack/ostree_tag.sh) \
 	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	exclude_graphdriver_devicemapper \
@@ -46,7 +45,7 @@ $(warning \
 	Install libsystemd for journald support)
 endif
 
-BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
+BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
@@ -156,7 +155,7 @@ gofmt: ## Verify the source code gofmt
 	git diff --exit-code
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO_BUILD) -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
@@ -493,14 +492,6 @@ endef
 		   $(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
-.install.ostree: .gopathok
-	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(FIRST_GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(FIRST_GOPATH)src/github.com/ostreedev/ostree ; \
-		./autogen.sh --prefix=/usr/local; \
-		make all install; \
-	fi
-
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
 varlink_api_generate: .gopathok API.md
 
@@ -528,7 +519,7 @@ build-all-new-commits:
 	git rebase $(GIT_BASE_BRANCH) -x make
 
 build-no-cgo:
-	env BUILDTAGS="containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
+	env BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
 
 vendor:
 	export GO111MODULE=on \

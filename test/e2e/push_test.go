@@ -203,23 +203,6 @@ var _ = Describe("Podman push", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
-	It("podman push to local ostree", func() {
-		if !IsCommandAvailable("ostree") {
-			Skip("ostree is not installed")
-		}
-
-		ostreePath := filepath.Join(podmanTest.TempDir, "ostree/repo")
-		os.MkdirAll(ostreePath, os.ModePerm)
-
-		setup := SystemExec("ostree", []string{strings.Join([]string{"--repo=", ostreePath}, ""), "init"})
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		session := podmanTest.PodmanNoCache([]string{"push", ALPINE, strings.Join([]string{"ostree:alp@", ostreePath}, "")})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-	})
-
 	It("podman push to docker-archive no reference", func() {
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
 		session := podmanTest.PodmanNoCache([]string{"push", ALPINE,

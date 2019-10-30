@@ -69,8 +69,6 @@ ooe.sh sudo dnf install -y \
     make \
     msitools \
     nmap-ncat \
-    ostree \
-    ostree-devel \
     pandoc \
     podman \
     procps-ng \

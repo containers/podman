@@ -63,7 +63,6 @@ BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
 BuildRequires: libseccomp-devel
 BuildRequires: libselinux-devel
-BuildRequires: ostree-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: systemd-devel
@@ -139,7 +138,6 @@ Provides: bundled(golang(github.com/opencontainers/runtime-spec)) = v1.0.0
 Provides: bundled(golang(github.com/opencontainers/runtime-tools)) = 625e2322645b151a7cbb93a8b42920933e72167f
 Provides: bundled(golang(github.com/opencontainers/selinux)) = b6fa367ed7f534f9ba25391cc2d467085dbb445a
 Provides: bundled(golang(github.com/openshift/imagebuilder)) = master
-Provides: bundled(golang(github.com/ostreedev/ostree-go)) = master
 Provides: bundled(golang(github.com/pkg/errors)) = v0.8.0
 Provides: bundled(golang(github.com/pmezard/go-difflib)) = 792786c7400a136282c1664665ae0a8db921c6c2
 Provides: bundled(golang(github.com/pquerna/ffjson)) = d49c2bc1aa135aad0c6f4fc2056623ec78f5d5ac
@@ -383,7 +381,7 @@ mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 
-export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) containers_image_ostree_stub"
+export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 BUILDTAGS=$BUILDTAGS make
 popd
 

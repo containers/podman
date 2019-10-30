@@ -36,7 +36,6 @@ RUN dnf -y install --exclude container-selinux \
      libseccomp-devel \
      libselinux-devel \
      make \
-     ostree-devel \
      pkgconfig \
      runc \
      fuse-overlayfs \

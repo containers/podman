@@ -19,7 +19,6 @@ RUN dnf -y install \
       lsof \
       make \
       nmap-ncat \
-      ostree-devel \
       procps-ng \
       python \
       python3-dateutil \

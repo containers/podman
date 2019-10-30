@@ -12,7 +12,7 @@ podman\-push - Push an image from local storage to elsewhere
 Pushes an image from local storage to a specified destination.
 Push is mainly used to push images to registries, however **podman push**
 can be used to save images to tarballs and directories using the following
-transports: **dir:**, **docker-archive:**, **docker-daemon:**, **oci-archive:**, and **ostree:**.
+transports: **dir:**, **docker-archive:**, **docker-daemon:** and **oci-archive:**.
 
 ## imageID
 Image stored in local container/storage
@@ -40,9 +40,6 @@ Image stored in local container/storage
 
   **oci-archive:**_path_**:**_tag_
   An image _tag_ in a directory compliant with "Open Container Image Layout Specification" at _path_.
-
-  **ostree:**_image_[**@**_/absolute/repo/path_]
-  An image in local OSTree repository.  _/absolute/repo/path_ defaults to _/ostree/repo_.
 
 ## OPTIONS
 
