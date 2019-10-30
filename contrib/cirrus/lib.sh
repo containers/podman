@@ -238,34 +238,46 @@ ircmsg() {
 # there is at least one release tag not having any '-' characters (return 0)
 # or otherwise (return non-0).
 is_release() {
-    req_env_var CIRRUS_BASE_SHA CIRRUS_CHANGE_IN_REPO
-    local range="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
-    # Easy check first, default non-useful values
-    if echo "${range}$CIRRUS_TAG" | grep -iq 'unknown'; then
-        die 11 "is_release() unusable range ${range} or tag $CIRRUS_TAG"
-    fi
-    # Next easy check, is CIRRUS_TAG set
     unset RELVER
+    local ret
+    req_env_var CIRRUS_CHANGE_IN_REPO
     if [[ -n "$CIRRUS_TAG" ]]; then
         RELVER="$CIRRUS_TAG"
-    else # Lastly, look through the range for tags
-        git fetch --all --tags &> /dev/null|| \
-            die 12 "is_release() failed to fetch tags"
-        RELVER=$(git log --pretty='format:%d' $range | \
-                 grep '(tag:' | sed -r -e 's/\s+[(]tag:\s+(v[0-9].*)[)]/\1/' | \
-                 sort -uV | tail -1)
-        [[ "$?" -eq "0" ]] || \
+    elif [[ ! "$CIRRUS_BASE_SHA" =~ "unknown" ]]
+    then
+        # Normally not possible for this to be empty, except when unittesting.
+        req_env_var CIRRUS_BASE_SHA
+        local range="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
+        if echo "${range}$CIRRUS_TAG" | grep -iq 'unknown'; then
+            die 11 "is_release() unusable range ${range} or tag $CIRRUS_TAG"
+        fi
+
+        if type -P git &> /dev/null
+        then
+            git fetch --all --tags &> /dev/null|| \
+                die 12 "is_release() failed to fetch tags"
+            RELVER=$(git log --pretty='format:%d' $range | \
+                     grep '(tag:' | sed -r -e 's/\s+[(]tag:\s+(v[0-9].*)[)]/\1/' | \
+                     sort -uV | tail -1)
+            ret=$?
+        else
+            warn -1 "Git command not found while checking for release"
+            ret="-1"
+        fi
+        [[ "$ret" -eq "0" ]] || \
             die 13 "is_release() failed to parse tags"
+    else  # Not testing a PR, but neither CIRRUS_BASE_SHA or CIRRUS_TAG are set
+        return 1
     fi
-    echo "Found \$RELVER $RELVER"
     if [[ -n "$RELVER" ]]; then
+        echo "Found \$RELVER $RELVER"
         if echo "$RELVER" | grep -q '-'; then
-            return 2
+            return 2  # development tag
         else
             return 0
         fi
     else
-        return 1
+        return 1  # not a release
     fi
 }
 
