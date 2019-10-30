@@ -22,4 +22,5 @@ jobs:
         stale-pr-label: 'stale-pr'
         days-before-stale: 30
         days-before-close: 7
+        exempt-issue-label: 'do-not-close'
         exempt-pr-label: 'do-not-close'
