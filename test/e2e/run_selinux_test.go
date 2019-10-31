@@ -170,7 +170,7 @@ var _ = Describe("Podman run", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/1/attr/current"})
 		session.WaitWithDefaultTimeout()
 		session1 := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
 		session1.WaitWithDefaultTimeout()
