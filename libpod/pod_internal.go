@@ -66,13 +66,13 @@ func (p *Pod) refresh() error {
 	// We need to recreate the pod's cgroup
 	if p.config.UsePodCgroup {
 		switch p.runtime.config.CgroupManager {
-		case SystemdCgroupsManager:
+		case define.SystemdCgroupsManager:
 			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
 			if err != nil {
 				logrus.Errorf("Error creating CGroup for pod %s: %v", p.ID(), err)
 			}
 			p.state.CgroupPath = cgroupPath
-		case CgroupfsCgroupsManager:
+		case define.CgroupfsCgroupsManager:
 			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
 
 			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)

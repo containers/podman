@@ -75,7 +75,7 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	if config == nil {
 		ctr.config.ID = stringid.GenerateNonCryptoID()
-		ctr.config.ShmSize = DefaultShmSize
+		ctr.config.ShmSize = define.DefaultShmSize
 	} else {
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
@@ -215,7 +215,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Only if we're actually configuring CGroups.
 	if !ctr.config.NoCgroups {
 		switch r.config.CgroupManager {
-		case CgroupfsCgroupsManager:
+		case define.CgroupfsCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				if pod != nil && pod.config.UsePodCgroup {
 					podCgroup, err := pod.CgroupPath()
@@ -232,7 +232,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
 				return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 			}
-		case SystemdCgroupsManager:
+		case define.SystemdCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				if pod != nil && pod.config.UsePodCgroup {
 					podCgroup, err := pod.CgroupPath()
