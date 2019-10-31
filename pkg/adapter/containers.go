@@ -656,20 +656,25 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 
 			return exitCode, nil
 		}
-		if ctrRunning {
-			fmt.Println(ctr.ID())
-			continue
-		}
-		// Handle non-attach start
-		// If the container is in a pod, also set to recursively start dependencies
-		if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
-			if lastError != nil {
-				fmt.Fprintln(os.Stderr, lastError)
+		// Start the container if it's not running already.
+		if !ctrRunning {
+			// Handle non-attach start
+			// If the container is in a pod, also set to recursively start dependencies
+			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				lastError = errors.Wrapf(err, "unable to start container %q", container)
+				continue
 			}
-			lastError = errors.Wrapf(err, "unable to start container %q", container)
-			continue
 		}
-		fmt.Println(ctr.ID())
+		// Check if the container is referenced by ID or by name and print
+		// it accordingly.
+		if strings.HasPrefix(ctr.ID(), container) {
+			fmt.Println(ctr.ID())
+		} else {
+			fmt.Println(container)
+		}
 	}
 	return exitCode, lastError
 }

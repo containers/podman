@@ -57,15 +57,32 @@ var _ = Describe("Podman start", func() {
 		session = podmanTest.Podman([]string{"container", "start", cid})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(cid))
+	})
+
+	It("podman container start single container by short id", func() {
+		session := podmanTest.Podman([]string{"container", "create", "-d", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+		session = podmanTest.Podman([]string{"container", "start", cid[0:10]})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Equal(cid))
 	})
 
 	It("podman start single container by name", func() {
-		session := podmanTest.Podman([]string{"create", "-d", "--name", "foobar99", ALPINE, "ls"})
+		name := "foobar99"
+		session := podmanTest.Podman([]string{"create", "-d", "--name", name, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"start", "foobar99"})
+		session = podmanTest.Podman([]string{"start", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+		if podmanTest.RemoteTest {
+			Skip("Container-start name check doesn't work on remote client. It always returns the full ID.")
+		}
+		Expect(session.OutputToString()).To(Equal(name))
 	})
 
 	It("podman start multiple containers", func() {
