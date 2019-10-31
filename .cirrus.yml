@@ -32,7 +32,7 @@ env:
     ###
     _BUILT_IMAGE_SUFFIX: "libpod-5642998972416000"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
@@ -331,7 +331,7 @@ testing_task:
     gce_instance:
         matrix:
             # Images are generated separately, from build_images_task (below)
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            #image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
             # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -589,8 +589,8 @@ verify_test_built_images_task:
             TEST_REMOTE_CLIENT: false
         matrix:
             # Required env. var. by check_image_script
-            PACKER_BUILDER_NAME: "fedora-29"
             PACKER_BUILDER_NAME: "fedora-30"
+            #PACKER_BUILDER_NAME: "fedora-31"
             PACKER_BUILDER_NAME: "xfedora-30"
             PACKER_BUILDER_NAME: "ubuntu-18"
             # TODO support $UBUNTU_CACHE_IMAGE_NAME: PACKER_BUILDER_NAME: "ubuntu-19"
