@@ -136,7 +136,9 @@ gating_task:
 # in sync at all times.
 vendor_task:
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     depends_on:
         - "gating"
@@ -166,7 +168,9 @@ vendor_task:
 # whether the git tree is clean.
 varlink_api_task:
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     depends_on:
         - "gating"
@@ -201,8 +205,10 @@ build_each_commit_task:
         - "vendor"
         - "varlink_api"
 
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
-             $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     gce_instance:
         image_project: "libpod-218412"
@@ -232,8 +238,10 @@ build_without_cgo_task:
         - "vendor"
         - "varlink_api"
 
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH &&
-             $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     gce_instance:
         image_project: "libpod-218412"
@@ -326,7 +334,9 @@ testing_task:
         - "build_without_cgo"
 
     # Only test build cache-images, if that's what's requested
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     gce_instance:
         matrix:
@@ -381,7 +391,9 @@ special_testing_rootless_task:
         - "build_each_commit"
         - "build_without_cgo"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     env:
         ADD_SECOND_PARTITION: true
@@ -413,7 +425,9 @@ special_testing_in_podman_task:
         - "build_each_commit"
         - "build_without_cgo"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     env:
         ADD_SECOND_PARTITION: true
@@ -439,7 +453,9 @@ special_testing_cross_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     env:
         matrix:
@@ -473,7 +489,9 @@ special_testing_cgroupv2_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     gce_instance:
         image_name: "${SPECIAL_FEDORA_CACHE_IMAGE_NAME}"
@@ -503,7 +521,9 @@ special_testing_endpoint_task:
         - "varlink_api"
         - "vendor"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     env:
         SPECIALMODE: 'endpoint'  # See docs
@@ -525,7 +545,9 @@ test_building_snap_task:
     depends_on:
         - "gating"
 
-    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:IMG' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ 'CI:DOCS'
 
     container:
         image: yakshaveinc/snapcraft:core18
@@ -539,7 +561,7 @@ test_build_cache_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+        $CIRRUS_CHANGE_MESSAGE =~ 'CI:IMG'
 
     depends_on:
         - "gating"
@@ -571,7 +593,7 @@ verify_test_built_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+        $CIRRUS_CHANGE_MESSAGE =~ 'CI:IMG'
 
 
     depends_on:
@@ -638,6 +660,26 @@ upload_snap_task:
         - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
 
 
+test_docs_task:
+
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE =~ 'CI:DOCS'
+    depends_on:
+        - "gating"
+        - "vendor"
+          #- "test_docs"
+          #- "varlink_api"
+          #- "build_each_commit"
+    stub_script: '/bin/true'
+
+
+#publish_docs_task:
+#
+#    only_if: $CIRRUS_BRANCH == $DEST_BRANCH &&
+#             $CIRRUS_TAG =~ '^v[0-9]\.[0-9]\.[0-9]$'
+
+
 # Post message to IRC if everything passed PR testing
 success_task:
 
@@ -664,6 +706,7 @@ success_task:
         - "test_building_snap"
         - "upload_snap"
         - "verify_test_built_images"
+        - "test_docs"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
