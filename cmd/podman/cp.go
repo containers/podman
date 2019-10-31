@@ -257,8 +257,15 @@ func parsePath(runtime *libpod.Runtime, path string) (*libpod.Container, string)
 	return nil, path
 }
 
+func evalSymlinks(path string) (string, error) {
+	if path == os.Stdin.Name() {
+		return path, nil
+	}
+	return filepath.EvalSymlinks(path)
+}
+
 func getPathInfo(path string) (string, os.FileInfo, error) {
-	path, err := filepath.EvalSymlinks(path)
+	path, err := evalSymlinks(path)
 	if err != nil {
 		return "", nil, errors.Wrapf(err, "error evaluating symlinks %q", path)
 	}
@@ -270,7 +277,7 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 }
 
 func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
-	srcPath, err := filepath.EvalSymlinks(src)
+	srcPath, err := evalSymlinks(src)
 	if err != nil {
 		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
 	}
