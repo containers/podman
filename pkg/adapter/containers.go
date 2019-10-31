@@ -891,7 +891,7 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = wPipe
 	streams.ErrorStream = wPipe
-	streams.InputStream = os.Stdin
+	streams.InputStream = bufio.NewReader(os.Stdin)
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true
@@ -969,7 +969,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.OutputStream = os.Stdout
 	streams.ErrorStream = os.Stderr
 	if cli.Interactive {
-		streams.InputStream = os.Stdin
+		streams.InputStream = bufio.NewReader(os.Stdin)
 		streams.AttachInput = true
 	}
 	streams.AttachOutput = true

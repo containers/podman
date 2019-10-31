@@ -32,7 +32,7 @@ func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.
 
 	streams := libpod.AttachStreams{
 		OutputStream: stdoutWriter,
-		InputStream:  pr,
+		InputStream:  bufio.NewReader(pr),
 		// Runc eats the error stream
 		ErrorStream:  stdoutWriter,
 		AttachInput:  true,

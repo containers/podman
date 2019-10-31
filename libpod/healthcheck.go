@@ -133,7 +133,9 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	streams := new(AttachStreams)
 	streams.OutputStream = hcw
 	streams.ErrorStream = hcw
-	streams.InputStream = os.Stdin
+
+	streams.InputStream = bufio.NewReader(os.Stdin)
+
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true

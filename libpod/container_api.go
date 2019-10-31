@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"bufio"
 	"context"
 	"io"
 	"io/ioutil"
@@ -361,7 +362,7 @@ type AttachStreams struct {
 	// ErrorStream will be attached to container's STDERR
 	ErrorStream io.WriteCloser
 	// InputStream will be attached to container's STDIN
-	InputStream io.Reader
+	InputStream *bufio.Reader
 	// AttachOutput is whether to attach to STDOUT
 	// If false, stdout will not be attached
 	AttachOutput bool
