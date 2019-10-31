@@ -1,28 +1,21 @@
 package libpod
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
-	"os/user"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
-	"github.com/BurntSushi/toml"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
-	"github.com/containers/libpod/pkg/cgroups"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -33,75 +26,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// RuntimeStateStore is a constant indicating which state store implementation
-// should be used by libpod
-type RuntimeStateStore int
-
-const (
-	// InvalidStateStore is an invalid state store
-	InvalidStateStore RuntimeStateStore = iota
-	// InMemoryStateStore is an in-memory state that will not persist data
-	// on containers and pods between libpod instances or after system
-	// reboot
-	InMemoryStateStore RuntimeStateStore = iota
-	// SQLiteStateStore is a state backed by a SQLite database
-	// It is presently disabled
-	SQLiteStateStore RuntimeStateStore = iota
-	// BoltDBStateStore is a state backed by a BoltDB database
-	BoltDBStateStore RuntimeStateStore = iota
-)
-
-var (
-	// InstallPrefix is the prefix where podman will be installed.
-	// It can be overridden at build time.
-	installPrefix = "/usr"
-	// EtcDir is the sysconfdir where podman should look for system config files.
-	// It can be overridden at build time.
-	etcDir = "/etc"
-
-	// SeccompDefaultPath defines the default seccomp path
-	SeccompDefaultPath = installPrefix + "/share/containers/seccomp.json"
-	// SeccompOverridePath if this exists it overrides the default seccomp path
-	SeccompOverridePath = etcDir + "/crio/seccomp.json"
-
-	// ConfigPath is the path to the libpod configuration file
-	// This file is loaded to replace the builtin default config before
-	// runtime options (e.g. WithStorageConfig) are applied.
-	// If it is not present, the builtin default config is used instead
-	// This path can be overridden when the runtime is created by using
-	// NewRuntimeFromConfig() instead of NewRuntime()
-	ConfigPath = installPrefix + "/share/containers/libpod.conf"
-	// OverrideConfigPath is the path to an override for the default libpod
-	// configuration file. If OverrideConfigPath exists, it will be used in
-	// place of the configuration file pointed to by ConfigPath.
-	OverrideConfigPath = etcDir + "/containers/libpod.conf"
-
-	// DefaultSHMLockPath is the default path for SHM locks
-	DefaultSHMLockPath = "/libpod_lock"
-	// DefaultRootlessSHMLockPath is the default path for rootless SHM locks
-	DefaultRootlessSHMLockPath = "/libpod_rootless_lock"
-
-	// DefaultDetachKeys is the default keys sequence for detaching a
-	// container
-	DefaultDetachKeys = "ctrl-p,ctrl-q"
-
-	// minConmonMajor is the major version required for conmon
-	minConmonMajor = 2
-
-	// minConmonMinor is the minor version required for conmon
-	minConmonMinor = 0
-
-	// minConmonPatch is the sub-minor version required for conmon
-	minConmonPatch = 1
-)
-
 // A RuntimeOption is a functional option which alters the Runtime created by
 // NewRuntime
 type RuntimeOption func(*Runtime) error
 
 // Runtime is the core libpod runtime
 type Runtime struct {
-	config *RuntimeConfig
+	config *config.Config
 
 	state             State
 	store             storage.Store
@@ -113,7 +44,6 @@ type Runtime struct {
 	conmonPath        string
 	imageRuntime      *image.Runtime
 	lockManager       lock.Manager
-	configuredFrom    *runtimeConfiguredFrom
 
 	// doRenumber indicates that the runtime should perform a lock renumber
 	// during initialization.
@@ -139,223 +69,6 @@ type Runtime struct {
 
 	// noStore indicates whether we need to interact with a store or not
 	noStore bool
-}
-
-// RuntimeConfig contains configuration options used to set up the runtime
-type RuntimeConfig struct {
-	// StorageConfig is the configuration used by containers/storage
-	// Not included in on-disk config, use the dedicated containers/storage
-	// configuration file instead
-	StorageConfig storage.StoreOptions `toml:"-"`
-	// VolumePath is the default location that named volumes will be created
-	// under. This convention is followed by the default volume driver, but
-	// may not be by other drivers.
-	VolumePath string `toml:"volume_path"`
-	// ImageDefaultTransport is the default transport method used to fetch
-	// images
-	ImageDefaultTransport string `toml:"image_default_transport"`
-	// SignaturePolicyPath is the path to a signature policy to use for
-	// validating images
-	// If left empty, the containers/image default signature policy will
-	// be used
-	SignaturePolicyPath string `toml:"signature_policy_path,omitempty"`
-	// StateType is the type of the backing state store.
-	// Avoid using multiple values for this with the same containers/storage
-	// configuration on the same system. Different state types do not
-	// interact, and each will see a separate set of containers, which may
-	// cause conflicts in containers/storage
-	// As such this is not exposed via the config file
-	StateType RuntimeStateStore `toml:"-"`
-	// OCIRuntime is the OCI runtime to use.
-	OCIRuntime string `toml:"runtime"`
-	// OCIRuntimes are the set of configured OCI runtimes (default is runc)
-	OCIRuntimes map[string][]string `toml:"runtimes"`
-	// RuntimeSupportsJSON is the list of the OCI runtimes that support
-	// --format=json.
-	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
-	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
-	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
-	// RuntimePath is the path to OCI runtime binary for launching
-	// containers.
-	// The first path pointing to a valid file will be used
-	// This is used only when there are no OCIRuntime/OCIRuntimes defined.  It
-	// is used only to be backward compatible with older versions of Podman.
-	RuntimePath []string `toml:"runtime_path"`
-	// ConmonPath is the path to the Conmon binary used for managing
-	// containers
-	// The first path pointing to a valid file will be used
-	ConmonPath []string `toml:"conmon_path"`
-	// ConmonEnvVars are environment variables to pass to the Conmon binary
-	// when it is launched
-	ConmonEnvVars []string `toml:"conmon_env_vars"`
-	// CGroupManager is the CGroup Manager to use
-	// Valid values are "cgroupfs" and "systemd"
-	CgroupManager string `toml:"cgroup_manager"`
-	// InitPath is the path to the container-init binary.
-	InitPath string `toml:"init_path"`
-	// StaticDir is the path to a persistent directory to store container
-	// files
-	StaticDir string `toml:"static_dir"`
-	// TmpDir is the path to a temporary directory to store per-boot
-	// container files
-	// Must be stored in a tmpfs
-	TmpDir string `toml:"tmp_dir"`
-	// MaxLogSize is the maximum size of container logfiles
-	MaxLogSize int64 `toml:"max_log_size,omitempty"`
-	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime
-	NoPivotRoot bool `toml:"no_pivot_root"`
-	// CNIConfigDir sets the directory where CNI configuration files are
-	// stored
-	CNIConfigDir string `toml:"cni_config_dir"`
-	// CNIPluginDir sets a number of directories where the CNI network
-	// plugins can be located
-	CNIPluginDir []string `toml:"cni_plugin_dir"`
-	// CNIDefaultNetwork is the network name of the default CNI network
-	// to attach pods to
-	CNIDefaultNetwork string `toml:"cni_default_network,omitempty"`
-	// HooksDir holds paths to the directories containing hooks
-	// configuration files. When the same filename is present in in
-	// multiple directories, the file in the directory listed last in
-	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir"`
-	// DefaultMountsFile is the path to the default mounts file for testing
-	// purposes only
-	DefaultMountsFile string `toml:"-"`
-	// Namespace is the libpod namespace to use.
-	// Namespaces are used to create scopes to separate containers and pods
-	// in the state.
-	// When namespace is set, libpod will only view containers and pods in
-	// the same namespace. All containers and pods created will default to
-	// the namespace set here.
-	// A namespace of "", the empty string, is equivalent to no namespace,
-	// and all containers and pods will be visible.
-	// The default namespace is "".
-	Namespace string `toml:"namespace,omitempty"`
-
-	// InfraImage is the image a pod infra container will use to manage namespaces
-	InfraImage string `toml:"infra_image"`
-	// InfraCommand is the command run to start up a pod infra container
-	InfraCommand string `toml:"infra_command"`
-	// EnablePortReservation determines whether libpod will reserve ports on
-	// the host when they are forwarded to containers.
-	// When enabled, when ports are forwarded to containers, they are
-	// held open by conmon as long as the container is running, ensuring
-	// that they cannot be reused by other programs on the host.
-	// However, this can cause significant memory usage if a container has
-	// many ports forwarded to it. Disabling this can save memory.
-	EnablePortReservation bool `toml:"enable_port_reservation"`
-	// EnableLabeling indicates wether libpod will support container labeling
-	EnableLabeling bool `toml:"label"`
-	// NetworkCmdPath is the path to the slirp4netns binary
-	NetworkCmdPath string `toml:"network_cmd_path"`
-
-	// NumLocks is the number of locks to make available for containers and
-	// pods.
-	NumLocks uint32 `toml:"num_locks,omitempty"`
-
-	// LockType is the type of locking to use.
-	LockType string `toml:"lock_type,omitempty"`
-
-	// EventsLogger determines where events should be logged
-	EventsLogger string `toml:"events_logger"`
-	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"events_logfile_path"`
-	//DetachKeys is the sequence of keys used to detach a container
-	DetachKeys string `toml:"detach_keys"`
-
-	// SDNotify tells Libpod to allow containers to notify the host
-	// systemd of readiness using the SD_NOTIFY mechanism
-	SDNotify bool
-	// CgroupCheck verifies if the cgroup check for correct OCI runtime has been done.
-	CgroupCheck bool `toml:"cgroup_check,omitempty"`
-}
-
-// runtimeConfiguredFrom is a struct used during early runtime init to help
-// assemble the full RuntimeConfig struct from defaults.
-// It indicated whether several fields in the runtime configuration were set
-// explicitly.
-// If they were not, we may override them with information from the database,
-// if it exists and differs from what is present in the system already.
-type runtimeConfiguredFrom struct {
-	storageGraphDriverSet    bool
-	storageGraphRootSet      bool
-	storageRunRootSet        bool
-	libpodStaticDirSet       bool
-	libpodTmpDirSet          bool
-	volPathSet               bool
-	conmonPath               bool
-	conmonEnvVars            bool
-	initPath                 bool
-	ociRuntimes              bool
-	runtimePath              bool
-	cniPluginDir             bool
-	noPivotRoot              bool
-	runtimeSupportsJSON      bool
-	runtimeSupportsNoCgroups bool
-	ociRuntime               bool
-}
-
-func defaultRuntimeConfig() (RuntimeConfig, error) {
-	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-	if err != nil {
-		return RuntimeConfig{}, err
-	}
-	graphRoot := storeOpts.GraphRoot
-	if graphRoot == "" {
-		logrus.Warnf("Storage configuration is unset - using hardcoded default paths")
-		graphRoot = "/var/lib/containers/storage"
-	}
-	volumePath := filepath.Join(graphRoot, "volumes")
-	staticDir := filepath.Join(graphRoot, "libpod")
-	return RuntimeConfig{
-		// Leave this empty so containers/storage will use its defaults
-		StorageConfig:         storage.StoreOptions{},
-		VolumePath:            volumePath,
-		ImageDefaultTransport: DefaultTransport,
-		StateType:             BoltDBStateStore,
-		OCIRuntime:            "runc",
-		OCIRuntimes: map[string][]string{
-			"runc": {
-				"/usr/bin/runc",
-				"/usr/sbin/runc",
-				"/usr/local/bin/runc",
-				"/usr/local/sbin/runc",
-				"/sbin/runc",
-				"/bin/runc",
-				"/usr/lib/cri-o-runc/sbin/runc",
-				"/run/current-system/sw/bin/runc",
-			},
-		},
-		ConmonPath: []string{
-			"/usr/libexec/podman/conmon",
-			"/usr/local/lib/podman/conmon",
-			"/usr/bin/conmon",
-			"/usr/sbin/conmon",
-			"/usr/local/bin/conmon",
-			"/usr/local/sbin/conmon",
-			"/run/current-system/sw/bin/conmon",
-		},
-		ConmonEnvVars: []string{
-			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-		},
-		InitPath:              define.DefaultInitPath,
-		CgroupManager:         SystemdCgroupsManager,
-		StaticDir:             staticDir,
-		TmpDir:                "",
-		MaxLogSize:            -1,
-		NoPivotRoot:           false,
-		CNIConfigDir:          etcDir + "/cni/net.d/",
-		CNIPluginDir:          []string{"/usr/libexec/cni", "/usr/lib/cni", "/usr/local/lib/cni", "/opt/cni/bin"},
-		InfraCommand:          define.DefaultInfraCommand,
-		InfraImage:            define.DefaultInfraImage,
-		EnablePortReservation: true,
-		EnableLabeling:        true,
-		NumLocks:              2048,
-		EventsLogger:          events.DefaultEventerType.String(),
-		DetachKeys:            DefaultDetachKeys,
-		LockType:              "shm",
-	}, nil
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
@@ -400,28 +113,6 @@ func SetXdgDirs() error {
 	return nil
 }
 
-func getDefaultTmpDir() (string, error) {
-	if !rootless.IsRootless() {
-		return "/var/run/libpod", nil
-	}
-
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return "", err
-	}
-	libpodRuntimeDir := filepath.Join(runtimeDir, "libpod")
-
-	if err := os.Mkdir(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
-		if !os.IsExist(err) {
-			return "", errors.Wrapf(err, "cannot mkdir %s", libpodRuntimeDir)
-		} else if err := os.Chmod(libpodRuntimeDir, 0700|os.ModeSticky); err != nil {
-			// The directory already exist, just set the sticky bit
-			return "", errors.Wrapf(err, "could not set sticky bit on %s", libpodRuntimeDir)
-		}
-	}
-	return filepath.Join(libpodRuntimeDir, "tmp"), nil
-}
-
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime, err error) {
@@ -440,260 +131,14 @@ func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	return newRuntimeFromConfig(ctx, userConfigPath, options...)
 }
 
-func homeDir() (string, error) {
-	home := os.Getenv("HOME")
-	if home == "" {
-		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
-		if err != nil {
-			return "", errors.Wrapf(err, "unable to resolve HOME directory")
-		}
-		home = usr.HomeDir
-	}
-	return home, nil
-}
-
-func getRootlessConfigPath() (string, error) {
-	home, err := homeDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(home, ".config/containers/libpod.conf"), nil
-}
-
-func getConfigPath() (string, error) {
-	if rootless.IsRootless() {
-		path, err := getRootlessConfigPath()
-		if err != nil {
-			return "", err
-		}
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-		return "", err
-	}
-	if _, err := os.Stat(OverrideConfigPath); err == nil {
-		// Use the override configuration path
-		return OverrideConfigPath, nil
-	}
-	if _, err := os.Stat(ConfigPath); err == nil {
-		return ConfigPath, nil
-	}
-	return "", nil
-}
-
-// DefaultRuntimeConfig reads default config path and returns the RuntimeConfig
-func DefaultRuntimeConfig() (*RuntimeConfig, error) {
-	configPath, err := getConfigPath()
-	if err != nil {
-		return nil, err
-	}
-
-	contents, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
-	}
-
-	// This is ugly, but we need to decode twice.
-	// Once to check if libpod static and tmp dirs were explicitly
-	// set (not enough to check if they're not the default value,
-	// might have been explicitly configured to the default).
-	// A second time to actually get a usable config.
-	tmpConfig := new(RuntimeConfig)
-	if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
-		return nil, errors.Wrapf(err, "error decoding configuration file %s",
-			configPath)
-	}
-	return tmpConfig, nil
-}
-
 func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
-	runtime.config = new(RuntimeConfig)
-	runtime.configuredFrom = new(runtimeConfiguredFrom)
 
-	// Copy the default configuration
-	tmpDir, err := getDefaultTmpDir()
+	conf, err := config.NewConfig(userConfigPath)
 	if err != nil {
 		return nil, err
 	}
-
-	// storage.conf
-	storageConfFile, err := storage.DefaultConfigFile(rootless.IsRootless())
-	if err != nil {
-		return nil, err
-	}
-
-	createStorageConfFile := false
-	if _, err := os.Stat(storageConfFile); os.IsNotExist(err) {
-		createStorageConfFile = true
-	}
-
-	defRunConf, err := defaultRuntimeConfig()
-	if err != nil {
-		return nil, err
-	}
-	if err := JSONDeepCopy(defRunConf, runtime.config); err != nil {
-		return nil, errors.Wrapf(err, "error copying runtime default config")
-	}
-	runtime.config.TmpDir = tmpDir
-
-	storageConf, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
-	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving storage config")
-	}
-	runtime.config.StorageConfig = storageConf
-	runtime.config.StaticDir = filepath.Join(storageConf.GraphRoot, "libpod")
-	runtime.config.VolumePath = filepath.Join(storageConf.GraphRoot, "volumes")
-
-	configPath, err := getConfigPath()
-	if err != nil {
-		return nil, err
-	}
-	if rootless.IsRootless() {
-		home, err := homeDir()
-		if err != nil {
-			return nil, err
-		}
-		if runtime.config.SignaturePolicyPath == "" {
-			newPath := filepath.Join(home, ".config/containers/policy.json")
-			if _, err := os.Stat(newPath); err == nil {
-				runtime.config.SignaturePolicyPath = newPath
-			}
-		}
-	}
-
-	if userConfigPath != "" {
-		configPath = userConfigPath
-		if _, err := os.Stat(configPath); err != nil {
-			// If the user specified a config file, we must fail immediately
-			// when it doesn't exist
-			return nil, errors.Wrapf(err, "cannot stat %s", configPath)
-		}
-	}
-
-	// If we have a valid configuration file, load it in
-	if configPath != "" {
-		contents, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading configuration file %s", configPath)
-		}
-
-		// This is ugly, but we need to decode twice.
-		// Once to check if libpod static and tmp dirs were explicitly
-		// set (not enough to check if they're not the default value,
-		// might have been explicitly configured to the default).
-		// A second time to actually get a usable config.
-		tmpConfig := new(RuntimeConfig)
-		if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
-			return nil, errors.Wrapf(err, "error decoding configuration file %s",
-				configPath)
-		}
-
-		if err := cgroupV2Check(configPath, tmpConfig); err != nil {
-			return nil, err
-		}
-
-		if tmpConfig.StaticDir != "" {
-			runtime.configuredFrom.libpodStaticDirSet = true
-		}
-		if tmpConfig.TmpDir != "" {
-			runtime.configuredFrom.libpodTmpDirSet = true
-		}
-		if tmpConfig.VolumePath != "" {
-			runtime.configuredFrom.volPathSet = true
-		}
-		if tmpConfig.ConmonPath != nil {
-			runtime.configuredFrom.conmonPath = true
-		}
-		if tmpConfig.ConmonEnvVars != nil {
-			runtime.configuredFrom.conmonEnvVars = true
-		}
-		if tmpConfig.InitPath != "" {
-			runtime.configuredFrom.initPath = true
-		}
-		if tmpConfig.OCIRuntimes != nil {
-			runtime.configuredFrom.ociRuntimes = true
-		}
-		if tmpConfig.RuntimePath != nil {
-			runtime.configuredFrom.runtimePath = true
-		}
-		if tmpConfig.CNIPluginDir != nil {
-			runtime.configuredFrom.cniPluginDir = true
-		}
-		if tmpConfig.NoPivotRoot {
-			runtime.configuredFrom.noPivotRoot = true
-		}
-		if tmpConfig.RuntimeSupportsJSON != nil {
-			runtime.configuredFrom.runtimeSupportsJSON = true
-		}
-		if tmpConfig.RuntimeSupportsNoCgroups != nil {
-			runtime.configuredFrom.runtimeSupportsNoCgroups = true
-		}
-		if tmpConfig.OCIRuntime != "" {
-			runtime.configuredFrom.ociRuntime = true
-		}
-
-		if _, err := toml.Decode(string(contents), runtime.config); err != nil {
-			return nil, errors.Wrapf(err, "error decoding configuration file %s", configPath)
-		}
-	} else if rootless.IsRootless() {
-		// If the configuration file was not found but we are running in rootless, a subset of the
-		// global config file is used.
-		for _, path := range []string{OverrideConfigPath, ConfigPath} {
-			contents, err := ioutil.ReadFile(path)
-			if err != nil {
-				// Ignore any error, the file might not be readable by us.
-				continue
-			}
-			tmpConfig := new(RuntimeConfig)
-			if _, err := toml.Decode(string(contents), tmpConfig); err != nil {
-				return nil, errors.Wrapf(err, "error decoding configuration file %s", path)
-			}
-
-			// Cherry pick the settings we want from the global configuration
-			if !runtime.configuredFrom.conmonPath {
-				runtime.config.ConmonPath = tmpConfig.ConmonPath
-			}
-			if !runtime.configuredFrom.conmonEnvVars {
-				runtime.config.ConmonEnvVars = tmpConfig.ConmonEnvVars
-			}
-			if !runtime.configuredFrom.initPath {
-				runtime.config.InitPath = tmpConfig.InitPath
-			}
-			if !runtime.configuredFrom.ociRuntimes {
-				runtime.config.OCIRuntimes = tmpConfig.OCIRuntimes
-			}
-			if !runtime.configuredFrom.runtimePath {
-				runtime.config.RuntimePath = tmpConfig.RuntimePath
-			}
-			if !runtime.configuredFrom.cniPluginDir {
-				runtime.config.CNIPluginDir = tmpConfig.CNIPluginDir
-			}
-			if !runtime.configuredFrom.noPivotRoot {
-				runtime.config.NoPivotRoot = tmpConfig.NoPivotRoot
-			}
-			if !runtime.configuredFrom.runtimeSupportsJSON {
-				runtime.config.RuntimeSupportsJSON = tmpConfig.RuntimeSupportsJSON
-			}
-			if !runtime.configuredFrom.runtimeSupportsNoCgroups {
-				runtime.config.RuntimeSupportsNoCgroups = tmpConfig.RuntimeSupportsNoCgroups
-			}
-			if !runtime.configuredFrom.ociRuntime {
-				runtime.config.OCIRuntime = tmpConfig.OCIRuntime
-			}
-
-			cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
-			if err != nil {
-				return nil, err
-			}
-			if cgroupsV2 {
-				runtime.config.CgroupCheck = true
-			}
-
-			break
-		}
-	}
+	runtime.config = conf
 
 	// Overwrite config with user-given configuration options
 	for _, opt := range options {
@@ -702,36 +147,6 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 		}
 	}
 
-	if rootless.IsRootless() && configPath == "" {
-		if createStorageConfFile {
-			if err := util.WriteStorageConfigFile(&runtime.config.StorageConfig, storageConfFile); err != nil {
-				return nil, errors.Wrapf(err, "cannot write config file %s", storageConfFile)
-			}
-		}
-
-		configPath, err := getRootlessConfigPath()
-		if err != nil {
-			return nil, err
-		}
-		if configPath != "" {
-			if err := os.MkdirAll(filepath.Dir(configPath), 0711); err != nil {
-				return nil, err
-			}
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0600)
-			if err != nil && !os.IsExist(err) {
-				return nil, errors.Wrapf(err, "cannot open file %s", configPath)
-			}
-			if err == nil {
-				defer file.Close()
-				enc := toml.NewEncoder(file)
-				if err := enc.Encode(runtime.config); err != nil {
-					if removeErr := os.Remove(configPath); removeErr != nil {
-						logrus.Debugf("unable to remove %s: %q", configPath, err)
-					}
-				}
-			}
-		}
-	}
 	if err := makeRuntime(ctx, runtime); err != nil {
 		return nil, err
 	}
@@ -758,9 +173,9 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 		}
 
 	case "", "shm":
-		lockPath := DefaultSHMLockPath
+		lockPath := define.DefaultSHMLockPath
 		if rootless.IsRootless() {
-			lockPath = fmt.Sprintf("%s_%d", DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
+			lockPath = fmt.Sprintf("%s_%d", define.DefaultRootlessSHMLockPath, rootless.GetRootlessUID())
 		}
 		// Set up the lock manager
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
@@ -794,119 +209,14 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	return manager, nil
 }
 
-// probeConmon calls conmon --version and verifies it is a new enough version for
-// the runtime expectations podman currently has
-func probeConmon(conmonBinary string) error {
-	versionFormatErr := "conmon version changed format"
-	cmd := exec.Command(conmonBinary, "--version")
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return err
-	}
-	r := regexp.MustCompile(`^conmon version (?P<Major>\d+).(?P<Minor>\d+).(?P<Patch>\d+)`)
-
-	matches := r.FindStringSubmatch(out.String())
-	if len(matches) != 4 {
-		return errors.Wrapf(err, versionFormatErr)
-	}
-	major, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return errors.Wrapf(err, versionFormatErr)
-	}
-	if major < minConmonMajor {
-		return define.ErrConmonOutdated
-	}
-	if major > minConmonMajor {
-		return nil
-	}
-
-	minor, err := strconv.Atoi(matches[2])
-	if err != nil {
-		return errors.Wrapf(err, versionFormatErr)
-	}
-	if minor < minConmonMinor {
-		return define.ErrConmonOutdated
-	}
-	if minor > minConmonMinor {
-		return nil
-	}
-
-	patch, err := strconv.Atoi(matches[3])
-	if err != nil {
-		return errors.Wrapf(err, versionFormatErr)
-	}
-	if patch < minConmonPatch {
-		return define.ErrConmonOutdated
-	}
-	if patch > minConmonPatch {
-		return nil
-	}
-
-	return nil
-}
-
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
-	// Let's sanity-check some paths first.
-	// Relative paths can cause nasty bugs, because core paths we use could
-	// shift between runs (or even parts of the program - the OCI runtime
-	// uses a different working directory than we do, for example.
-	if !filepath.IsAbs(runtime.config.StaticDir) {
-		return errors.Wrapf(define.ErrInvalidArg, "static directory must be an absolute path - instead got %q", runtime.config.StaticDir)
-	}
-	if !filepath.IsAbs(runtime.config.TmpDir) {
-		return errors.Wrapf(define.ErrInvalidArg, "temporary directory must be an absolute path - instead got %q", runtime.config.TmpDir)
-	}
-	if !filepath.IsAbs(runtime.config.VolumePath) {
-		return errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", runtime.config.VolumePath)
-	}
-
 	// Find a working conmon binary
-	foundConmon := false
-	foundOutdatedConmon := false
-	for _, path := range runtime.config.ConmonPath {
-		stat, err := os.Stat(path)
-		if err != nil {
-			continue
-		}
-		if stat.IsDir() {
-			continue
-		}
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("conmon at %s invalid: %v", path, err)
-			foundOutdatedConmon = true
-			continue
-		}
-		foundConmon = true
-		runtime.conmonPath = path
-		logrus.Debugf("using conmon: %q", path)
-		break
-	}
-
-	// Search the $PATH as last fallback
-	if !foundConmon {
-		if conmon, err := exec.LookPath("conmon"); err == nil {
-			if err := probeConmon(conmon); err != nil {
-				logrus.Warnf("conmon at %s is invalid: %v", conmon, err)
-				foundOutdatedConmon = true
-			} else {
-				foundConmon = true
-				runtime.conmonPath = conmon
-				logrus.Debugf("using conmon from $PATH: %q", conmon)
-			}
-		}
-	}
-
-	if !foundConmon {
-		if foundOutdatedConmon {
-			return errors.Errorf("please update to v%d.%d.%d or later: %v", minConmonMajor, minConmonMinor, minConmonPatch, define.ErrConmonOutdated)
-		}
-		return errors.Wrapf(define.ErrInvalidArg,
-			"could not find a working conmon binary (configured options: %v)",
-			runtime.config.ConmonPath)
+	if cPath, err := runtime.config.FindConmon(); err != nil {
+		return err
+	} else {
+		runtime.conmonPath = cPath
 	}
 
 	// Make the static files directory if it does not exist
@@ -918,17 +228,22 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 	}
 
-	// Set up the state
+	// Set up the state.
+	//
+	// TODO - if we further break out the state implementation into
+	// libpod/state, the config could take care of the code below.  It
+	// would further allow to move the types and consts into a coherent
+	// package.
 	switch runtime.config.StateType {
-	case InMemoryStateStore:
+	case define.InMemoryStateStore:
 		state, err := NewInMemoryState()
 		if err != nil {
 			return err
 		}
 		runtime.state = state
-	case SQLiteStateStore:
+	case define.SQLiteStateStore:
 		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
-	case BoltDBStateStore:
+	case define.BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
 
 		state, err := NewBoltState(dbPath, runtime)
@@ -937,7 +252,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.state = state
 	default:
-		return errors.Wrapf(define.ErrInvalidArg, "unrecognized state type passed")
+		return errors.Wrapf(define.ErrInvalidArg, "unrecognized state type passed (%v)", runtime.config.StateType)
 	}
 
 	// Grab config from the database so we can reset some defaults
@@ -946,51 +261,9 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		return errors.Wrapf(err, "error retrieving runtime configuration from database")
 	}
 
-	// Reset defaults if they were not explicitly set
-	if !runtime.configuredFrom.storageGraphDriverSet && dbConfig.GraphDriver != "" {
-		if runtime.config.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
-			runtime.config.StorageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
-				runtime.config.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
-		}
-		runtime.config.StorageConfig.GraphDriverName = dbConfig.GraphDriver
+	if err := runtime.config.MergeDBConfig(dbConfig); err != nil {
+		return errors.Wrapf(err, "error merging database config into runtime config")
 	}
-	if !runtime.configuredFrom.storageGraphRootSet && dbConfig.StorageRoot != "" {
-		if runtime.config.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
-			runtime.config.StorageConfig.GraphRoot != "" {
-			logrus.Debugf("Overriding graph root %q with %q from database",
-				runtime.config.StorageConfig.GraphRoot, dbConfig.StorageRoot)
-		}
-		runtime.config.StorageConfig.GraphRoot = dbConfig.StorageRoot
-	}
-	if !runtime.configuredFrom.storageRunRootSet && dbConfig.StorageTmp != "" {
-		if runtime.config.StorageConfig.RunRoot != dbConfig.StorageTmp &&
-			runtime.config.StorageConfig.RunRoot != "" {
-			logrus.Debugf("Overriding run root %q with %q from database",
-				runtime.config.StorageConfig.RunRoot, dbConfig.StorageTmp)
-		}
-		runtime.config.StorageConfig.RunRoot = dbConfig.StorageTmp
-	}
-	if !runtime.configuredFrom.libpodStaticDirSet && dbConfig.LibpodRoot != "" {
-		if runtime.config.StaticDir != dbConfig.LibpodRoot && runtime.config.StaticDir != "" {
-			logrus.Debugf("Overriding static dir %q with %q from database", runtime.config.StaticDir, dbConfig.LibpodRoot)
-		}
-		runtime.config.StaticDir = dbConfig.LibpodRoot
-	}
-	if !runtime.configuredFrom.libpodTmpDirSet && dbConfig.LibpodTmp != "" {
-		if runtime.config.TmpDir != dbConfig.LibpodTmp && runtime.config.TmpDir != "" {
-			logrus.Debugf("Overriding tmp dir %q with %q from database", runtime.config.TmpDir, dbConfig.LibpodTmp)
-		}
-		runtime.config.TmpDir = dbConfig.LibpodTmp
-	}
-	if !runtime.configuredFrom.volPathSet && dbConfig.VolumePath != "" {
-		if runtime.config.VolumePath != dbConfig.VolumePath && runtime.config.VolumePath != "" {
-			logrus.Debugf("Overriding volume path %q with %q from database", runtime.config.VolumePath, dbConfig.VolumePath)
-		}
-		runtime.config.VolumePath = dbConfig.VolumePath
-	}
-
-	runtime.config.EventsLogFilePath = filepath.Join(runtime.config.TmpDir, "events", "events.log")
 
 	logrus.Debugf("Using graph driver %s", runtime.config.StorageConfig.GraphDriverName)
 	logrus.Debugf("Using graph root %s", runtime.config.StorageConfig.GraphRoot)
@@ -1269,7 +542,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 }
 
 // GetConfig returns a copy of the configuration used by the runtime
-func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
+func (r *Runtime) GetConfig() (*config.Config, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
@@ -1277,7 +550,7 @@ func (r *Runtime) GetConfig() (*RuntimeConfig, error) {
 		return nil, define.ErrRuntimeStopped
 	}
 
-	config := new(RuntimeConfig)
+	config := new(config.Config)
 
 	// Copy so the caller won't be able to modify the actual config
 	if err := JSONDeepCopy(r.config, config); err != nil {
@@ -1498,57 +771,4 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 // GetOCIRuntimePath retrieves the path of the default OCI runtime.
 func (r *Runtime) GetOCIRuntimePath() string {
 	return r.defaultOCIRuntime.Path()
-}
-
-// Since runc does not currently support cgroupV2
-// Change to default crun on first running of libpod.conf
-// TODO Once runc has support for cgroups, this function should be removed.
-func cgroupV2Check(configPath string, tmpConfig *RuntimeConfig) error {
-	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
-		if tmpConfig.CgroupManager == SystemdCgroupsManager {
-			// If we are running rootless and the systemd manager is requested, be sure that dbus is accessible
-			session := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
-			hasSession := session != ""
-			if hasSession && strings.HasPrefix(session, "unix:path=") {
-				_, err := os.Stat(strings.TrimPrefix(session, "unix:path="))
-				hasSession = err == nil
-			}
-
-			if !hasSession {
-				logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
-				logrus.Warningf("For using systemd, you may need to login using an user session")
-				logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibily as root)", rootless.GetRootlessUID())
-				logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
-
-				tmpConfig.CgroupManager = CgroupfsCgroupsManager
-			}
-
-		}
-		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return err
-		}
-		if cgroupsV2 {
-			path, err := exec.LookPath("crun")
-			if err != nil {
-				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
-				// Can't find crun path so do nothing
-				return nil
-			}
-			tmpConfig.CgroupCheck = true
-			tmpConfig.OCIRuntime = path
-			file, err := os.OpenFile(configPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-			if err != nil {
-				return errors.Wrapf(err, "cannot open file %s", configPath)
-			}
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tmpConfig); err != nil {
-				if removeErr := os.Remove(configPath); removeErr != nil {
-					logrus.Debugf("unable to remove %s: %q", configPath, err)
-				}
-			}
-		}
-	}
-	return nil
 }

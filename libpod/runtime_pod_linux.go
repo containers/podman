@@ -76,7 +76,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 
 	// Check CGroup parent sanity, and set it if it was not set
 	switch r.config.CgroupManager {
-	case CgroupfsCgroupsManager:
+	case define.CgroupfsCgroupsManager:
 		if pod.config.CgroupParent == "" {
 			pod.config.CgroupParent = CgroupfsDefaultCgroupParent
 		} else if strings.HasSuffix(path.Base(pod.config.CgroupParent), ".slice") {
@@ -89,7 +89,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		if pod.config.UsePodCgroup {
 			pod.state.CgroupPath = filepath.Join(pod.config.CgroupParent, pod.ID())
 		}
-	case SystemdCgroupsManager:
+	case define.SystemdCgroupsManager:
 		if pod.config.CgroupParent == "" {
 			if rootless.IsRootless() {
 				pod.config.CgroupParent = SystemdDefaultRootlessCgroupParent
@@ -200,7 +200,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	// the pod and conmon CGroups with a PID limit to prevent them from
 	// spawning any further processes (particularly cleanup processes) which
 	// would prevent removing the CGroups.
-	if p.runtime.config.CgroupManager == CgroupfsCgroupsManager {
+	if p.runtime.config.CgroupManager == define.CgroupfsCgroupsManager {
 		// Get the conmon CGroup
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
@@ -251,7 +251,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		logrus.Debugf("Removing pod cgroup %s", p.state.CgroupPath)
 
 		switch p.runtime.config.CgroupManager {
-		case SystemdCgroupsManager:
+		case define.SystemdCgroupsManager:
 			if err := deleteSystemdCgroup(p.state.CgroupPath); err != nil {
 				if removalErr == nil {
 					removalErr = errors.Wrapf(err, "error removing pod %s cgroup", p.ID())
@@ -259,7 +259,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 					logrus.Errorf("Error deleting pod %s cgroup %s: %v", p.ID(), p.state.CgroupPath, err)
 				}
 			}
-		case CgroupfsCgroupsManager:
+		case define.CgroupfsCgroupsManager:
 			// Delete the cgroupfs cgroup
 			// Make sure the conmon cgroup is deleted first
 			// Since the pod is almost gone, don't bother failing

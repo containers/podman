@@ -1059,9 +1059,9 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
 	switch c.runtime.config.CgroupManager {
-	case CgroupfsCgroupsManager:
+	case define.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case SystemdCgroupsManager:
+	case define.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			return filepath.Join(c.config.CgroupParent, fmt.Sprintf("user-%d.slice/user@%d.service/user.slice", uid, uid), createUnitName("libpod", c.ID())), nil

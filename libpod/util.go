@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"
@@ -19,10 +20,6 @@ import (
 
 // Runtime API constants
 const (
-	// DefaultTransport is a prefix that we apply to an image name
-	// to check docker hub first for the image
-	DefaultTransport = "docker://"
-
 	unknownPackage = "Unknown"
 )
 
@@ -191,18 +188,18 @@ func programVersion(mountProgram string) (string, error) {
 }
 
 func DefaultSeccompPath() (string, error) {
-	_, err := os.Stat(SeccompOverridePath)
+	_, err := os.Stat(config.SeccompOverridePath)
 	if err == nil {
-		return SeccompOverridePath, nil
+		return config.SeccompOverridePath, nil
 	}
 	if !os.IsNotExist(err) {
-		return "", errors.Wrapf(err, "can't check if %q exists", SeccompOverridePath)
+		return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompOverridePath)
 	}
-	if _, err := os.Stat(SeccompDefaultPath); err != nil {
+	if _, err := os.Stat(config.SeccompDefaultPath); err != nil {
 		if !os.IsNotExist(err) {
-			return "", errors.Wrapf(err, "can't check if %q exists", SeccompDefaultPath)
+			return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompDefaultPath)
 		}
 		return "", nil
 	}
-	return SeccompDefaultPath, nil
+	return config.SeccompDefaultPath, nil
 }
