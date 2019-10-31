@@ -52,7 +52,7 @@ func init() {
 	flags.BoolVarP(&logsCommand.Follow, "follow", "f", false, "Follow log output.  The default is false")
 	flags.BoolVarP(&logsCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&logsCommand.Since, "since", "", "Show logs since TIMESTAMP")
-	flags.Uint64Var(&logsCommand.Tail, "tail", 0, "Output the specified number of LINES at the end of the logs.  Defaults to 0, which prints all lines")
+	flags.Int64Var(&logsCommand.Tail, "tail", -1, "Output the specified number of LINES at the end of the logs.  Defaults to -1, which prints all lines")
 	flags.BoolVarP(&logsCommand.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
 	markFlagHidden(flags, "details")
 	flags.SetInterspersed(false)

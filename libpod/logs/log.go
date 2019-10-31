@@ -31,7 +31,7 @@ type LogOptions struct {
 	Details    bool
 	Follow     bool
 	Since      time.Time
-	Tail       uint64
+	Tail       int64
 	Timestamps bool
 	Multi      bool
 	WaitGroup  *sync.WaitGroup
@@ -54,8 +54,10 @@ func GetLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 		logTail []*LogLine
 	)
 	// whence 0=origin, 2=end
-	if options.Tail > 0 {
+	if options.Tail >= 0 {
 		whence = 2
+	}
+	if options.Tail > 0 {
 		logTail, err = getTailLog(path, int(options.Tail))
 		if err != nil {
 			return nil, nil, err

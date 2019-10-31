@@ -739,7 +739,7 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	options := logs.LogOptions{
 		Follow:     follow,
 		Since:      sinceTime,
-		Tail:       uint64(tail),
+		Tail:       tail,
 		Timestamps: timestamps,
 	}
 
@@ -747,7 +747,11 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	if len(names) > 1 {
 		options.Multi = true
 	}
-	logChannel := make(chan *logs.LogLine, int(tail)*len(names)+1)
+	tailLen := int(tail)
+	if tailLen < 0 {
+		tailLen = 0
+	}
+	logChannel := make(chan *logs.LogLine, tailLen*len(names)+1)
 	containers, err := shortcuts.GetContainersByContext(false, latest, names, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())

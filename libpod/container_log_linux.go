@@ -6,6 +6,7 @@ package libpod
 import (
 	"fmt"
 	"io"
+	"math"
 	"strings"
 	"time"
 
@@ -30,7 +31,11 @@ const (
 
 func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *logs.LogLine) error {
 	var config journal.JournalReaderConfig
-	config.NumFromTail = options.Tail
+	if options.Tail < 0 {
+		config.NumFromTail = math.MaxUint64
+	} else {
+		config.NumFromTail = uint64(options.Tail)
+	}
 	config.Formatter = journalFormatter
 	defaultTime := time.Time{}
 	if options.Since != defaultTime {
@@ -54,7 +59,7 @@ func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *l
 	if r == nil {
 		return errors.Errorf("journal reader creation failed")
 	}
-	if options.Tail == 0 {
+	if options.Tail == math.MaxInt64 {
 		r.Rewind()
 	}
 
