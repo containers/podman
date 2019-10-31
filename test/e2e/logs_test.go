@@ -57,6 +57,18 @@ var _ = Describe("Podman logs", func() {
 		Expect(len(results.OutputToStringArray())).To(Equal(2))
 	})
 
+	It("podman logs tail zero lines", func() {
+		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		results := podmanTest.Podman([]string{"logs", "--tail", "0", cid})
+		results.WaitWithDefaultTimeout()
+		Expect(results.ExitCode()).To(Equal(0))
+		Expect(len(results.OutputToStringArray())).To(Equal(0))
+	})
+
 	It("podman logs tail 99 lines", func() {
 		logc := podmanTest.Podman([]string{"run", "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
 		logc.WaitWithDefaultTimeout()

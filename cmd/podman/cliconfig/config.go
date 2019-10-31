@@ -251,7 +251,7 @@ type LogsValues struct {
 	Details    bool
 	Follow     bool
 	Since      string
-	Tail       uint64
+	Tail       int64
 	Timestamps bool
 	Latest     bool
 }
