@@ -26,7 +26,6 @@ dnf install -y \
   libselinux-utils \
   make \
   openssl \
-  ostree-devel \
   skopeo-containers \
   which
 

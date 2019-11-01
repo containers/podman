@@ -248,28 +248,36 @@ func (b *Builder) copyWithTar(tarIDMappingOptions *IDMappingOptions, chownOpts *
 // location into our working container, mapping permissions using the
 // container's ID maps, possibly overridden using the passed-in chownOpts
 func (b *Builder) untarPath(chownOpts *idtools.IDPair, hasher io.Writer, dryRun bool) func(src, dest string) error {
-	if hasher != nil && b.ContentDigester.Hash() != nil {
-		hasher = io.MultiWriter(hasher, b.ContentDigester.Hash())
-	}
-	if hasher == nil {
-		hasher = b.ContentDigester.Hash()
-	}
 	convertedUIDMap, convertedGIDMap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
 	if dryRun {
 		return func(src, dest string) error {
-			if hasher == nil {
-				hasher = ioutil.Discard
+			thisHasher := hasher
+			if thisHasher != nil && b.ContentDigester.Hash() != nil {
+				thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
+			}
+			if thisHasher == nil {
+				thisHasher = b.ContentDigester.Hash()
 			}
 			f, err := os.Open(src)
 			if err != nil {
 				return errors.Wrapf(err, "error opening %q", src)
 			}
 			defer f.Close()
-			_, err = io.Copy(hasher, f)
+			_, err = io.Copy(thisHasher, f)
 			return err
 		}
 	}
-	return chrootarchive.UntarPathAndChown(chownOpts, hasher, convertedUIDMap, convertedGIDMap)
+	return func(src, dest string) error {
+		thisHasher := hasher
+		if thisHasher != nil && b.ContentDigester.Hash() != nil {
+			thisHasher = io.MultiWriter(thisHasher, b.ContentDigester.Hash())
+		}
+		if thisHasher == nil {
+			thisHasher = b.ContentDigester.Hash()
+		}
+		untarPathAndChown := chrootarchive.UntarPathAndChown(chownOpts, thisHasher, convertedUIDMap, convertedGIDMap)
+		return untarPathAndChown(src, dest)
+	}
 }
 
 // tarPath returns a function which creates an archive of a specified location,

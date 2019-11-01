@@ -55,7 +55,7 @@ github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
 github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
-# github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e
+# github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser
@@ -317,7 +317,7 @@ github.com/morikuni/aec
 github.com/mrunalp/fileutils
 # github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
 github.com/mtrmac/gpgme
-# github.com/onsi/ginkgo v1.10.1
+# github.com/onsi/ginkgo v1.10.2
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config

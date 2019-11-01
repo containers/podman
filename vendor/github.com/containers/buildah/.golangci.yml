@@ -2,7 +2,6 @@
 run:
   build-tags:
     - apparmor
-    - ostree
     - seccomp
     - selinux
   concurrency: 6
