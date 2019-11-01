@@ -14,7 +14,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "master"
+    DEST_BRANCH: "v1.6"
     # Overrides default location (/tmp/cirrus) for repo clone
     GOPATH: "/var/tmp/go"
     GOSRC: "/var/tmp/go/src/github.com/containers/libpod"
