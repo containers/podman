@@ -22,8 +22,11 @@ type HttpServer struct {
 	done     chan struct{}
 	listener net.Listener
 }
+var libpodRuntime *libpod.Runtime
 
 func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
+	libpodRuntime = runtime
+
 	listeners, err := activation.Listeners()
 	if err != nil {
 		log.Panicf("Cannot retrieve listeners: %s", err)
@@ -50,17 +53,8 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	}()
 
 	// TODO: build this into a map...
-	http.HandleFunc("/v1.24/images/json", func(w http.ResponseWriter, r *http.Request) {
-		images, err := runtime.ImageRuntime().GetImages()
-		if err != nil {
-			log.Panicf("Failed to get images: %s", err)
-		}
-		buffer, err := json.Marshal(images)
-		if err != nil {
-			log.Panicf("Failed to marshal images to json: %s", err)
-		}
-		io.WriteString(w, string(buffer))
-	})
+	http.Handle("/v1.24/images/json", serviceHandler(images))
+	http.Handle("/v1.24/containers/json", serviceHandler(containers))
 	return &HttpServer{server, done, listeners[0]}, nil
 }
 
@@ -69,7 +63,7 @@ func (s *HttpServer) Serve() error {
 	if err != nil {
 		log.Panicf("Cannot start server: %s", err)
 	}
-	<- s.done
+	<-s.done
 	return nil
 }
 
@@ -80,4 +74,26 @@ func (s *HttpServer) Shutdown() error {
 
 func (s *HttpServer) Close() error {
 	return s.Close()
+}
+
+type serviceHandler func(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime)
+
+func (h serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h(w, r, libpodRuntime)
+}
+
+func images(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	images, err := runtime.ImageRuntime().GetImages()
+	if err != nil {
+		log.Panicf("Failed to get images: %s", err)
+	}
+	buffer, err := json.Marshal(images)
+	if err != nil {
+		log.Panicf("Failed to marshal images to json: %s", err)
+	}
+	io.WriteString(w, string(buffer))
+}
+
+func containers(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	http.NotFound(w, r)
 }
