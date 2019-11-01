@@ -38,7 +38,8 @@ func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod
 	return getRuntime(ctx, c, false, false, true, true, "")
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool, newRuntime string) (*libpod.Runtime, error) {
+func
+getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool, newRuntime string) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false

@@ -26,6 +26,10 @@ func getMainCommands() []*cobra.Command {
 	if len(_varlinkCommand.Use) > 0 {
 		rootCommands = append(rootCommands, _varlinkCommand)
 	}
+
+	if len(_serviceCommand.Use) > 0 {
+		rootCommands = append(rootCommands, _serviceCommand)
+	}
 	return rootCommands
 }
 

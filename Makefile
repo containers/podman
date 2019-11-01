@@ -31,7 +31,8 @@ BUILDTAGS ?= \
 	$(shell hack/systemd_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp \
-	varlink
+	varlink \
+	service
 
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
