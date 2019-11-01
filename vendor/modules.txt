@@ -317,7 +317,7 @@ github.com/morikuni/aec
 github.com/mrunalp/fileutils
 # github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
 github.com/mtrmac/gpgme
-# github.com/onsi/ginkgo v1.10.1
+# github.com/onsi/ginkgo v1.10.3
 github.com/onsi/ginkgo/ginkgo
 github.com/onsi/ginkgo
 github.com/onsi/ginkgo/config
