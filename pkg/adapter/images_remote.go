@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
@@ -27,11 +26,11 @@ func (i *ContainerImage) Inspect(ctx context.Context) (*inspect.ImageData, error
 }
 
 // Tree ...
-func (r *LocalRuntime) Tree(c *cliconfig.TreeValues) (*image.InfoImage, map[string]*image.LayerInfo, *ContainerImage, error) {
+func (r *LocalRuntime) Tree(imageOrID string) (*image.InfoImage, map[string]*image.LayerInfo, *ContainerImage, error) {
 	layerInfoMap := make(map[string]*image.LayerInfo)
 	imageInfo := &image.InfoImage{}
 
-	img, err := r.NewImageFromLocal(c.InputArgs[0])
+	img, err := r.NewImageFromLocal(imageOrID)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -44,7 +43,7 @@ func (r *LocalRuntime) Tree(c *cliconfig.TreeValues) (*image.InfoImage, map[stri
 		return nil, nil, nil, errors.Wrap(err, "failed to unmarshal image layers")
 	}
 
-	reply, err = iopodman.BuildImageHierarchyMap().Call(r.Conn, c.InputArgs[0])
+	reply, err = iopodman.BuildImageHierarchyMap().Call(r.Conn, imageOrID)
 	if err != nil {
 		return nil, nil, nil, errors.Wrap(err, "failed to get build image map")
 	}
