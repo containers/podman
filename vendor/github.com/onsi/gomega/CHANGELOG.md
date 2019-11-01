@@ -1,3 +1,8 @@
+## 1.7.1
+
+### Fixes
+- Bump go-yaml version to cover fixed ddos heuristic (#362) [95e431e]
+
 ## 1.7.0
 
 ### Features
