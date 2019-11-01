@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= 2b0892e757c878cdb087dd22b8986bccef0276ed
+EPOCH_TEST_COMMIT ?= ac73fd3fe5dcbf2647d589f9c9f37fe9531ed663
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -27,7 +27,6 @@ BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
-	$(shell hack/ostree_tag.sh) \
 	$(shell hack/selinux_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	exclude_graphdriver_devicemapper \
@@ -46,7 +45,7 @@ $(warning \
 	Install libsystemd for journald support)
 endif
 
-BUILDTAGS_CROSS ?= containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
+BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
 endif
@@ -74,8 +73,8 @@ ASMFLAGS ?= all=-trimpath=${PWD}
 LDFLAGS_PODMAN ?= $(LDFLAGS) \
 	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
-	  -X $(LIBPOD).installPrefix=$(PREFIX) \
-	  -X $(LIBPOD).etcDir=$(ETCDIR)
+	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
+	  -X $(LIBPOD)/config._etcDir=$(ETCDIR)
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 # Rarely if ever should integration tests take more than 50min,
@@ -156,7 +155,7 @@ gofmt: ## Verify the source code gofmt
 	git diff --exit-code
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO_BUILD) -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
@@ -168,13 +167,11 @@ podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on 
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
 .PHONY: podman.msi
-podman.msi: podman-remote podman-remote-windows docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
-	rm -rf bin/windows
-	mkdir -p bin/windows
-	docs/podman-remote.sh windows bin/windows docs
-	find bin/windows -print \
-	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix bin/windows/ >bin/windows/pages.wsx
-	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=bin/windows -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs bin/windows/pages.wsx
+podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
+	$(eval DOCFILE := docs/build/remote/windows)
+	find $(DOCFILE) -print \
+	|wixl-heat --var var.ManSourceDir --component-group ManFiles --directory-ref INSTALLDIR --prefix $(DOCFILE)/ >$(DOCFILE)/pages.wsx
+	wixl -D VERSION=$(RELEASE_NUMBER) -D ManSourceDir=$(DOCFILE) -o podman-v$(RELEASE_NUMBER).msi contrib/msi/podman.wxs $(DOCFILE)/pages.wsx
 
 podman-remote-%: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build podman for a specific GOOS
 	$(eval BINSFX := $(shell test "$*" != "windows" || echo ".exe"))
@@ -197,7 +194,6 @@ clean: ## Clean artifacts
 		$(wildcard podman*.tar.gz) \
 		bin \
 		build \
-		docs/remote \
 		test/checkseccomp/checkseccomp \
 		test/goecho/goecho \
 		test/testdata/redis-image \
@@ -206,9 +202,7 @@ clean: ## Clean artifacts
 		libpod/pod_ffjson.go \
 		libpod/container_easyjson.go \
 		libpod/pod_easyjson.go \
-		$(MANPAGES) ||:
-	find . -name \*~ -delete
-	find . -name \#\* -delete
+		docs/build
 
 libpodimage: ## Build the libpod image
 	${CONTAINER_RUNTIME} build -t ${LIBPOD_IMAGE} .
@@ -313,20 +307,26 @@ install.catatonit:
 
 test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit
 
-MANPAGES_MD ?= $(wildcard docs/*.md pkg/*/docs/*.md)
+MANPAGES_MD ?= $(wildcard docs/source/markdown/*.md pkg/*/docs/*.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
+MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
 $(MANPAGES): %: %.md .gopathok
-	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $@
+	@sed -e 's/\((podman.*\.md)\)//' -e 's/\[\(podman.*\)\]/\1/' $<  | $(GOMD2MAN) -in /dev/stdin -out $(subst source/markdown,build/man,$@)
 
-docs: $(MANPAGES) ## Generate documentation
+docdir:
+	mkdir -p docs/build/man
 
-install-podman-remote-docs: podman-remote docs
-	rm -rf docs/remote
-	docs/podman-remote.sh darwin docs/remote docs
+docs: docdir $(MANPAGES) ## Generate documentation
+
+install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
+	rm -rf docs/build/remote
+	mkdir -p docs/build/remote
+	ln -sf $(shell pwd)/docs/source/markdown/links docs/build/man/
+	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 man-page-check:
-	./hack/man-page-checker
+	hack/man-page-checker
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
@@ -350,7 +350,7 @@ podman-v$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 
 # Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
 podman-remote-v$(RELEASE_NUMBER)-%.zip:
-	$(MAKE) podman-remote-$* install-podman-remote-docs release.txt \
+	$(MAKE) podman-remote-$* install-podman-remote-$*-docs release.txt \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
 	$(eval TMPDIR := $(shell mktemp -d -p '' $podman_remote_XXXX))
@@ -360,13 +360,7 @@ podman-remote-v$(RELEASE_NUMBER)-%.zip:
 	# release.txt location and content depended upon by automated tooling
 	cp release.txt "$(TMPDIR)/"
 	cp ./bin/podman-remote-$*$(BINSFX) "$(TMPDIR)/$(SUBDIR)/podman$(BINSFX)"
-	cp -r ./docs/remote "$(TMPDIR)/$(SUBDIR)/docs/"
-	$(eval DOCFILE := $(TMPDIR)/$(SUBDIR)/docs/podman.1)
-	cp docs/podman-remote.1 "$(DOCFILE)"
-	sed -i 's/podman\\*-remote/podman/g' "$(DOCFILE)"
-	sed -i 's/Podman\\*-remote/Podman\ for\ $*/g' "$(DOCFILE)"
-	sed -i 's/podman\.conf/podman\-remote\.conf/g' "$(DOCFILE)"
-	sed -i 's/A\ remote\ CLI\ for\ Podman\:\ //g' "$(DOCFILE)"
+	cp -r ./docs/build/remote/$* "$(TMPDIR)/$(SUBDIR)/docs/"
 	cd "$(TMPDIR)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./release.txt" "./"
 	-rm -rf "$(TMPDIR)"
@@ -409,9 +403,9 @@ install.bin: podman
 install.man: docs
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man1
-	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES)) -t $(DESTDIR)$(MANDIR)/man5
-	install ${SELINUXOPT} -m 644 docs/links/*1 -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) -t $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.config:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
@@ -448,16 +442,16 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
-	for i in $(filter %.1,$(MANPAGES)); do \
+	for i in $(filter %.1,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
 	done; \
-	for i in $(filter %.5,$(MANPAGES)); do \
+	for i in $(filter %.5,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
-	GIT_CHECK_EXCLUDE="./vendor:docs/rtd/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
@@ -496,14 +490,6 @@ endef
 		   $(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
-.install.ostree: .gopathok
-	if ! pkg-config ostree-1 2> /dev/null ; then \
-		git clone https://github.com/ostreedev/ostree $(FIRST_GOPATH)/src/github.com/ostreedev/ostree ; \
-		cd $(FIRST_GOPATH)src/github.com/ostreedev/ostree ; \
-		./autogen.sh --prefix=/usr/local; \
-		make all install; \
-	fi
-
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
 varlink_api_generate: .gopathok API.md
 
@@ -531,7 +517,7 @@ build-all-new-commits:
 	git rebase $(GIT_BASE_BRANCH) -x make
 
 build-no-cgo:
-	env BUILDTAGS="containers_image_openpgp containers_image_ostree_stub exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
+	env BUILDTAGS="containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_disk_quota" CGO_ENABLED=0 $(MAKE)
 
 vendor:
 	export GO111MODULE=on \
