@@ -148,12 +148,12 @@ func getMountsMap(path string) (string, string, error) {
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless bool) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless)
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless, disableFips bool) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless, disableFips)
 }
 
 // SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless bool) []rspec.Mount {
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -180,6 +180,10 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 		}
 	}
 
+	// Only add FIPS secret mount if disableFips=false
+	if disableFips {
+		return secretMounts
+	}
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {

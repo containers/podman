@@ -68,7 +68,6 @@ packages:
     - golang
     - libassuan-devel
     - make
-    - ostree-devel
     - skopeo-containers
 
 required: false

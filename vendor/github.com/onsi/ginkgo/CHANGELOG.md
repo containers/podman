@@ -1,20 +1,26 @@
+## 1.10.2
+
+### Fixes
+- speed up table entry generateIt() (#609) [5049dc5]
+- Fix. Write errors to stderr instead of stdout (#610) [7bb3091]
+
 ## 1.10.1
 
-## Fixes
+### Fixes
 - stack backtrace: fix skipping (#600) [2a4c0bd]
 
 ## 1.10.0
 
-## Fixes
+### Fixes
 - stack backtrace: fix alignment and skipping [66915d6]
 - fix typo in documentation [8f97b93]
 
 ## 1.9.0
 
-## Features
+### Features
 - Option to print output into report, when tests have passed [0545415]
 
-## Fixes
+### Fixes
 - Fixed typos in comments [0ecbc58]
 - gofmt code [a7f8bfb]
 - Simplify code [7454d00]
