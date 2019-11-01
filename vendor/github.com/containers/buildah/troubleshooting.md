@@ -82,9 +82,9 @@ the command with single quotes and use `bash -c`.  The previous examples would b
 changed to:
 
 ```console
-# buildah run bash -c '$whalecontainer /usr/games/fortune -a | cowsay'
-# buildah run bash -c '$newcontainer echo "daemon off;" >> /etc/nginx/nginx.conf'
-# buildah run bash -c '$newcontainer echo "nginx on Fedora" > /usr/share/nginx/html/index.html'
+# buildah run $whalecontainer bash -c '/usr/games/fortune -a | cowsay'
+# buildah run $newcontainer bash -c 'echo "daemon off;" >> /etc/nginx/nginx.conf'
+# buildah run $newcontainer bash -c 'echo "nginx on Fedora" > /usr/share/nginx/html/index.html'
 ```
 
 ---
