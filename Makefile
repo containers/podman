@@ -31,11 +31,10 @@ BUILDTAGS ?= \
 	$(shell hack/systemd_tag.sh) \
 	exclude_graphdriver_devicemapper \
 	seccomp \
-	varlink
+	varlink \
+	service
 PYTHON ?= $(shell command -v python python3|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
-
-
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
