@@ -70,6 +70,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 		if strings.ToLower(ans)[0] != 'y' {
 			return nil
 		}
+		c.Force = true
 	}
 
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
