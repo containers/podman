@@ -55,7 +55,7 @@ github.com/containernetworking/plugins/pkg/ip
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
 github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
-# github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e
+# github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 github.com/containers/buildah
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/chrootuser

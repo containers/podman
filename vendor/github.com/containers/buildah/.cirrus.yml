@@ -29,7 +29,7 @@ env:
     ####
     # Command to prefix every output line with a timestamp
     # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
-    _TIMESTAMP: 'awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk'
+    _TIMESTAMP: 'awk -f ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk'
     _DFCMD: 'df -lhTx tmpfs'
     _RAUDITCMD: 'cat /var/log/audit/audit.log'
     _UAUDITCMD: 'cat /var/log/kern.log'
@@ -75,8 +75,36 @@ testing_task:
         failure_journal_log_script: '${_JOURNALCMD} || true'
 
 
+# This task runs `make vendor` followed by ./hack/tree_status.sh to check
+# whether the git tree is clean.  The reasoning for that is to make sure
+# that the vendor.conf, the code and the vendored packages in ./vendor are
+# in sync at all times.
+vendor_task:
+
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    env:
+        CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/buildah"
+        GOPATH: "/go"
+        GOSRC: "/go/src/github.com/containers/buildah"
+
+    # Runs within Cirrus's "community cluster"
+    container:
+        image: docker.io/library/golang:1.13
+        cpu: 1
+        memory: 1
+
+    timeout_in: 30m
+
+    vendor_script:
+        - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
+        - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
+
 # Update metadata on VM images referenced by this repository state
 meta_task:
+
+    depends_on:
+        - "vendor"
 
     container:
         image: "quay.io/libpod/imgts:latest"  # see contrib/imgts

@@ -7,7 +7,6 @@ package cli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -269,10 +268,6 @@ func GetDefaultAuthFile() string {
 	authfile := os.Getenv("REGISTRY_AUTH_FILE")
 	if authfile != "" {
 		return authfile
-	}
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-	if runtimeDir != "" {
-		return filepath.Join(runtimeDir, "containers/auth.json")
 	}
 	return ""
 }
