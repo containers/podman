@@ -11,7 +11,7 @@ require (
 	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.1
 	github.com/containernetworking/plugins v0.8.2
-	github.com/containers/buildah v1.11.4-0.20191028173731-21b4778b359e
+	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/psgo v1.3.2
 	github.com/containers/storage v1.13.5
