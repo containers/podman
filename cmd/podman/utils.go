@@ -68,7 +68,8 @@ func aliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 // Check if a file exists and is not a directory
 func checkIfFileExists(name string) bool {
 	file, err := os.Stat(name)
-	if os.IsNotExist(err) {
+	// All errors return file == nil
+	if err != nil {
 		return false
 	}
 	return !file.IsDir()
