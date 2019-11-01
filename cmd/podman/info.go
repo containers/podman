@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	rt "runtime"
+	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -88,6 +89,9 @@ func infoCmd(c *cliconfig.InfoValues) error {
 
 	var out formats.Writer
 	infoOutputFormat := c.Format
+	if strings.Join(strings.Fields(infoOutputFormat), "") == "{{json.}}" {
+		infoOutputFormat = formats.JSONString
+	}
 	switch infoOutputFormat {
 	case formats.JSONString:
 		out = formats.JSONStruct{Output: info}
