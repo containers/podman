@@ -1,3 +1,12 @@
+- Changelog for v1.6.3 (2019-11-01):
+  * Update containers/buildah
+  * Update Cirrus branch info for new branch
+  * Add release notes for v1.6.3
+  * Update document formatting and packaging code
+  * Restructure documentation dir
+  * container start: fix regression when using name
+  * add libpod/config
+
 - Changelog for v1.6.3-rc1 (2019-10-30)
   * Wait for `mount` command to finish when mounting volume
   * Cirrus: Fix upload_release_archive on branch or tag
