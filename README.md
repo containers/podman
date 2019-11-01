@@ -106,7 +106,7 @@ Information on how Podman configures [OCI Hooks][spec-hooks] to run when launchi
 **[Podman API](API.md)**
 Documentation on the Podman API using [Varlink](https://www.varlink.org/).
 
-**[Podman Commands](commands.md)**
+**[Podman Commands](https://podman.readthedocs.io/en/latest/Commands.html)**
 A list of the Podman commands with links to their man pages and in many cases videos
 showing the commands in use.
 
