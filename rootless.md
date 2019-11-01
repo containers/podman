@@ -6,6 +6,7 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
 
 * Podman can not create containers that bind to ports < 1024.
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
+  * You can modify the `net.ipv4.ip_unprivileged_port_start` sysctl to change the lowest port.  For example `sysctl net.ipv4.ip_unprivileged_port_start=443` allows rootless Podman containers to bind to ports >= 443.
 * “How To” documentation is patchy at best.
 * If /etc/subuid and /etc/subgid are not setup for a user, then podman commands
 can easily fail
@@ -13,11 +14,11 @@ can easily fail
   * We are working to get support for NSSWITCH on the /etc/subuid and /etc/subgid files.
 * No cgroup V1 Support
   * cgroup V1 does not safely support cgroup delegation.
-  * However, cgroup V2 provides cgroup delegation and is available on Fedora starting with version 29 and other Linux distributions.
-* Some systemd's unit configuration options do not work in the rootless container
-  * systemd fails to apply several options and failures are silently ignored (e.g. CPUShares, MemoryLimit).
+  * As of Fedora 31 defaults to cgroup V2, which has full support of rootless cgroup management.  Note this requires the --cgroup-manager within rootless containers to use systemd, which new containers will get by default.
+* Some system unit configuration options do not work in the rootless container
+  * systemd fails to apply several options and failures are silently ignored (e.g. CPUShares, MemoryLimit). Should work on cgroup V2.
   * Use of certain options will cause service startup failures (e.g. PrivateNetwork).
-* Can not share container images with CRI-O or other users
+* Can not share container images with CRI-O or other rootfull users
 * Difficult to use additional stores for sharing content
 * Does not work on NFS or parallel filesystem homedirs (e.g. [GPFS](https://www.ibm.com/support/knowledgecenter/en/SSFKCN/gpfs_welcome.html))
   * NFS and parallel filesystems enforce file creation on different UIDs on the server side and does not understand User Namespace.
@@ -35,9 +36,9 @@ can easily fail
 * Requires new shadow-utils (not found in older (RHEL7/Centos7 distros) Should be fixed in RHEL7.7 release)
 * A few commands do not work.
   * mount/unmount (on fuse-overlay)
-     * Only works if you enter the mount namespace with a tool like buildah unshare
-  * podman stats (Without cgroup V2 support)
+     * Only works if you enter the mount namespace with podman unshare
+  * podman stats (Works with cgroup V2 support)
   * Checkpoint and Restore (CRIU requires root)
-  * Pause and Unpause (no freezer cgroup)
+  * Pause and Unpause (Works with cgroup V2 support)
 * Issues with higher UIDs can cause builds to fail
   * If a build is attempting to use a UID that is not mapped into the user namespace mapping for a container, then builds will not be able to put the UID in an image.
