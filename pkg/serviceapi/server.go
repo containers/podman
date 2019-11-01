@@ -3,6 +3,7 @@ package serviceapi
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -22,6 +23,7 @@ type HttpServer struct {
 	done     chan struct{}
 	listener net.Listener
 }
+
 var libpodRuntime *libpod.Runtime
 
 func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
@@ -83,14 +85,27 @@ func (h serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func images(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "" && contentType != "application/json" {
+		http.Error(w,
+			fmt.Sprintf("%s is not a supported Content-Type", r.Header.Get("Content-Type")),
+			http.StatusUnsupportedMediaType)
+		return
+	}
+
 	images, err := runtime.ImageRuntime().GetImages()
 	if err != nil {
-		log.Panicf("Failed to get images: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
 	buffer, err := json.Marshal(images)
 	if err != nil {
-		log.Panicf("Failed to marshal images to json: %s", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	io.WriteString(w, string(buffer))
 }
 
