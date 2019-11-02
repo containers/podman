@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/serviceapi"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +19,7 @@ func initConfig() {
 func main() {
 	cobra.OnInitialize(initConfig)
 
-	var cancel context.CancelFunc
-	_, cancel = context.WithTimeout(context.Background(), time.Duration(50)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(50)*time.Millisecond)
 	defer cancel()
 
 	config := cliconfig.PodmanCommand{
@@ -31,11 +31,24 @@ func main() {
 	// Create a single runtime for http
 	runtime, err := libpodruntime.GetRuntimeDisableFDs(context.Background(), &config)
 	if err != nil {
-		log.Panicf("error creating libpod runtime: %s", err)
+		fmt.Printf("error creating libpod runtime: %s", err.Error())
+		os.Exit(1)
 	}
 	defer runtime.DeferredShutdown(false)
 
-	server, _ := serviceapi.NewServer(runtime)
-	_ = server.Serve()
-	defer server.Shutdown()
+	server, err := serviceapi.NewServer(runtime)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	err = server.Serve()
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+	defer func() {
+		if e := server.Shutdown(ctx); e != nil {
+			fmt.Println(err.Error())
+		}
+	}()
 }
