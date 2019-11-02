@@ -338,7 +338,7 @@ func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) e
 	return newImage.Save(ctx, source, c.Format, c.Output, additionalTags, c.Quiet, c.Compress)
 }
 
-// LoadImage is a wrapper function for libpod PruneVolumes
+// LoadImage is a wrapper function for libpod LoadImage
 func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfig.LoadValues) (string, error) {
 	var (
 		writer io.Writer
