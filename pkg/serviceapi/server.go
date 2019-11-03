@@ -10,14 +10,18 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/coreos/go-systemd/activation"
 )
 
+const ApiVersion = "v1.24"
+
 type HttpServer struct {
 	http.Server
+	router   *mux.Router
 	done     chan struct{}
 	listener net.Listener
 }
@@ -39,7 +43,13 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	server := HttpServer{http.Server{}, done, listeners[0]}
+	router := mux.NewRouter()
+	registerImagesHandlers(router)
+	registerContainersHandlers(router)
+	registerPodsHandlers(router)
+	registerInfoHandlers(router)
+
+	server := HttpServer{http.Server{}, router, done, listeners[0]}
 	go func() {
 		<-quit
 		log.Debugf("HttpServer is shutting down")
@@ -52,14 +62,11 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 		close(done)
 	}()
 
-	// TODO: build this into a map...
-	http.Handle("/v1.24/images/json", serviceHandler(images))
-	http.Handle("/v1.24/containers/json", serviceHandler(containers))
 	return &server, nil
 }
 
 func (s *HttpServer) Serve() error {
-	err := http.Serve(s.listener, nil)
+	err := http.Serve(s.listener, s.router)
 	if err != nil {
 		return errors.Wrap(err, "Failed to start HttpServer")
 	}
@@ -74,4 +81,8 @@ func (s *HttpServer) Shutdown(ctx context.Context) error {
 
 func (s *HttpServer) Close() error {
 	return s.Server.Close()
+}
+
+func versionedPath(p string) string {
+	return "/" + ApiVersion + p
 }
