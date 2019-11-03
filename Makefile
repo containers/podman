@@ -376,7 +376,7 @@ podman-remote-%-release:
 	$(MAKE) podman-remote-v$(RELEASE_NUMBER)-$*.zip
 
 docker-docs: docs
-	(cd docs; ./dckrman.sh *.1)
+	(cd docs; ./dckrman.sh ./build/man/*.1)
 
 changelog: ## Generate changelog
 	@echo "Creating changelog from $(CHANGELOG_BASE) to $(CHANGELOG_TARGET)"
@@ -425,7 +425,7 @@ install.cni:
 install.docker: docker-docs
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR) $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 755 docker $(DESTDIR)$(BINDIR)/docker
-	install ${SELINUXOPT} -m 644 docs/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
+	install ${SELINUXOPT} -m 644 docs/build/man/docker*.1 -t $(DESTDIR)$(MANDIR)/man1
 
 install.systemd:
 	install ${SELINUXOPT} -m 755 -d ${DESTDIR}${SYSTEMDDIR}  ${DESTDIR}${USERSYSTEMDDIR} ${DESTDIR}${TMPFILESDIR}
