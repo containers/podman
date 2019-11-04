@@ -2,16 +2,12 @@ package serviceapi
 
 import (
 	"context"
-	goRuntime "runtime"
 	"time"
 
-	podmanDefine "github.com/containers/libpod/libpod/define"
 	podmanImage "github.com/containers/libpod/libpod/image"
 	podmanInspect "github.com/containers/libpod/pkg/inspect"
-	"github.com/containers/storage/pkg/system"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
 	"github.com/pkg/errors"
 )
 
@@ -30,7 +26,63 @@ type ImageSummary struct {
 type Info struct {
 	docker.Info
 	BuildahVersion string
-	Rootless bool
+	CgroupVersion  string
+	Rootless       bool
+	SwapFree       int64
+	SwapTotal      int64
+	Uptime         string
+}
+
+type Container struct {
+	docker.ContainerJSON
+}
+
+type ContainerStats struct {
+	docker.ContainerStats
+}
+
+type Ping struct {
+	docker.Ping
+}
+
+type Version struct {
+	docker.Version
+}
+
+type DiskUsage struct {
+	docker.DiskUsage
+}
+
+type VolumesPruneReport struct {
+	docker.VolumesPruneReport
+}
+
+type ImagesPruneReport struct {
+	docker.ImagesPruneReport
+}
+
+type BuildCachePruneReport struct {
+	docker.BuildCachePruneReport
+}
+
+type NetworkPruneReport struct {
+	docker.NetworksPruneReport
+}
+
+type SecretCreateResponse struct {
+	docker.SecretCreateResponse
+}
+
+type ConfigCreateResponse struct {
+	docker.ConfigCreateResponse
+}
+
+type PushResult struct {
+	docker.PushResult
+}
+
+type BuildResult struct {
+	docker.BuildResult
 }
 
 func ImageToImageSummary(p *podmanImage.Image) (*ImageSummary, error) {
@@ -102,79 +154,4 @@ func ImageDataToImageInspect(p *podmanInspect.ImageData) (*ImageInspect, error) 
 		Variant:         "",
 		VirtualSize:     p.VirtualSize,
 	}}, nil
-}
-
-func InfoDataToInfo(p []podmanDefine.InfoData) (*Info, error) {
-	memInfo, err := system.ReadMemInfo()
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to obtain system memory info")
-	}
-
-	return &Info{Info: docker.Info{
-		Architecture:       goRuntime.GOARCH,
-		BridgeNfIP6tables:  false,
-		BridgeNfIptables:   false,
-		CPUCfsPeriod:       false,
-		CPUCfsQuota:        false,
-		CPUSet:             false,
-		CPUShares:          false,
-		CgroupDriver:       "",
-		ClusterAdvertise:   "",
-		ClusterStore:       "",
-		ContainerdCommit:   docker.Commit{},
-		Containers:         0,
-		ContainersPaused:   0,
-		ContainersRunning:  0,
-		ContainersStopped:  0,
-		Debug:              false,
-		DefaultRuntime:     "",
-		DockerRootDir:      "",
-		Driver:             "",
-		DriverStatus:       nil,
-		ExperimentalBuild:  false,
-		GenericResources:   nil,
-		HTTPProxy:          "",
-		HTTPSProxy:         "",
-		ID:                 "podman",
-		IPv4Forwarding:     false,
-		Images:             0,
-		IndexServerAddress: "",
-		InitBinary:         "",
-		InitCommit:         docker.Commit{},
-		Isolation:          "",
-		KernelMemory:       false,
-		KernelMemoryTCP:    false,
-		KernelVersion:      "",
-		Labels:             nil,
-		LiveRestoreEnabled: false,
-		LoggingDriver:      "",
-		MemTotal:           memInfo.MemTotal,
-		MemoryLimit:        false,
-		NCPU:               goRuntime.NumCPU(),
-		NEventsListener:    0,
-		NFd:                0,
-		NGoroutines:        0,
-		Name:               "",
-		NoProxy:            "",
-		OSType:             "",
-		OSVersion:          "",
-		OomKillDisable:     false,
-		OperatingSystem:    goRuntime.GOOS,
-		PidsLimit:          false,
-		Plugins:            docker.PluginsInfo{},
-		ProductLicense:     "",
-		RegistryConfig:     nil,
-		RuncCommit:         docker.Commit{},
-		Runtimes:           nil,
-		SecurityOptions:    nil,
-		ServerVersion:      "",
-		SwapLimit:          false,
-		Swarm:              swarm.Info{},
-		SystemStatus:       nil,
-		SystemTime:         time.Now().Format(time.RFC3339Nano),
-		Warnings:           nil,
-	},
-		Rootless: false,
-		BuildahVersion: "",
-	}, nil
 }
