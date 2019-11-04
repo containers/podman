@@ -11,13 +11,13 @@ Pod
 
 :doc:`pause <markdown/podman-pause.1>` Pause one or more pods
 
-:doc:`prune <markdown/podman-pod-prune.1>` Remove all stopped pods
+:doc:`prune <markdown/podman-pod-prune.1>` Remove all stopped pods and their containers
 
 :doc:`ps <markdown/podman-pod-ps.1>` List pods
 
 :doc:`restart <markdown/podman-pod-restart.1>` Restart one or more pods
 
-:doc:`rm <markdown/podman-pod-rm.1>` Remove one or more pods
+:doc:`rm <markdown/podman-pod-rm.1>` Remove one or more stopped pods and containers
 
 :doc:`start <markdown/podman-pod-start.1>` Start one or more pods
 
