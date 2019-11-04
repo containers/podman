@@ -11,7 +11,6 @@ popularized by Kubernetes.  Libpod also contains the Pod Manager tool `(Podman)`
 * Automated continuous release downloads (including remote-client):
   * [Latest remote client for Windows](https://storage.googleapis.com/libpod-master-releases/podman-remote-latest-master-windows-amd64.msi)
   * [Latest remote client for MacOS](https://storage.googleapis.com/libpod-master-releases/podman-remote-latest-master-darwin-amd64.zip)
-  * [Latest Snap package](https://snapcraft.io/podman)
 
 ## Overview and scope
 
