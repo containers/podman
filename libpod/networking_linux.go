@@ -295,7 +295,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 		defer close(chWait)
 
 		// wait that API socket file appears before trying to use it.
-		if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout*time.Millisecond); err != nil {
+		if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout); err != nil {
 			return errors.Wrapf(err, "waiting for slirp4nets to create the api socket file %s", apiSocket)
 		}
 
