@@ -208,6 +208,39 @@ var _ = Describe("Podman generate kube", func() {
 		Expect(psOut).To(ContainSubstring("test2"))
 	})
 
+	It("podman generate with user and reimport kube on pod", func() {
+		podName := "toppod"
+		_, rc, _ := podmanTest.CreatePod(podName)
+		Expect(rc).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"create", "--pod", podName, "--name", "test1", "--user", "100:200", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.Config.User}}", "test1"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		Expect(inspect.OutputToString()).To(ContainSubstring("100:200"))
+
+		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
+		kube := podmanTest.Podman([]string{"generate", "kube", "-f", outputFile, podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "-af"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"play", "kube", outputFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect1 := podmanTest.Podman([]string{"inspect", "--format", "{{.Config.User}}", "test1"})
+		inspect1.WaitWithDefaultTimeout()
+		Expect(inspect1.ExitCode()).To(Equal(0))
+		Expect(inspect1.OutputToString()).To(ContainSubstring(inspect.OutputToString()))
+	})
+
 	It("podman generate kube with volume", func() {
 		vol1 := filepath.Join(podmanTest.TempDir, "vol-test1")
 		err := os.MkdirAll(vol1, 0755)

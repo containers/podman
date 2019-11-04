@@ -666,6 +666,58 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 	return infraPorts
 }
 
+func setupSecurityContext(containerConfig *createconfig.CreateConfig, containerYAML v1.Container) {
+	if containerYAML.SecurityContext == nil {
+		return
+	}
+	if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
+		containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
+	}
+	if containerYAML.SecurityContext.Privileged != nil {
+		containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
+	}
+
+	if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
+		containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
+	}
+
+	if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
+		if seopt.User != "" {
+			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=user:%s", seopt.User))
+			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("user:%s", seopt.User))
+		}
+		if seopt.Role != "" {
+			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=role:%s", seopt.Role))
+			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("role:%s", seopt.Role))
+		}
+		if seopt.Type != "" {
+			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=type:%s", seopt.Type))
+			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("type:%s", seopt.Type))
+		}
+		if seopt.Level != "" {
+			containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=level:%s", seopt.Level))
+			containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("level:%s", seopt.Level))
+		}
+	}
+	if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
+		for _, capability := range caps.Add {
+			containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
+		}
+		for _, capability := range caps.Drop {
+			containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
+		}
+	}
+	if containerYAML.SecurityContext.RunAsUser != nil {
+		containerConfig.User = fmt.Sprintf("%d", *containerYAML.SecurityContext.RunAsUser)
+	}
+	if containerYAML.SecurityContext.RunAsGroup != nil {
+		if containerConfig.User == "" {
+			containerConfig.User = "0"
+		}
+		containerConfig.User = fmt.Sprintf("%s:%d", containerConfig.User, *containerYAML.SecurityContext.RunAsGroup)
+	}
+}
+
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
 func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID string) (*createconfig.CreateConfig, error) {
 	var (
@@ -690,47 +742,8 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		containerConfig.User = imageData.Config.User
 	}
 
-	if containerYAML.SecurityContext != nil {
-		if containerConfig.SecurityOpts != nil {
-			if containerYAML.SecurityContext.ReadOnlyRootFilesystem != nil {
-				containerConfig.ReadOnlyRootfs = *containerYAML.SecurityContext.ReadOnlyRootFilesystem
-			}
-			if containerYAML.SecurityContext.Privileged != nil {
-				containerConfig.Privileged = *containerYAML.SecurityContext.Privileged
-			}
+	setupSecurityContext(&containerConfig, containerYAML)
 
-			if containerYAML.SecurityContext.AllowPrivilegeEscalation != nil {
-				containerConfig.NoNewPrivs = !*containerYAML.SecurityContext.AllowPrivilegeEscalation
-			}
-
-		}
-		if seopt := containerYAML.SecurityContext.SELinuxOptions; seopt != nil {
-			if seopt.User != "" {
-				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=user:%s", seopt.User))
-				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("user:%s", seopt.User))
-			}
-			if seopt.Role != "" {
-				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=role:%s", seopt.Role))
-				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("role:%s", seopt.Role))
-			}
-			if seopt.Type != "" {
-				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=type:%s", seopt.Type))
-				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("type:%s", seopt.Type))
-			}
-			if seopt.Level != "" {
-				containerConfig.SecurityOpts = append(containerConfig.SecurityOpts, fmt.Sprintf("label=level:%s", seopt.Level))
-				containerConfig.LabelOpts = append(containerConfig.LabelOpts, fmt.Sprintf("level:%s", seopt.Level))
-			}
-		}
-		if caps := containerYAML.SecurityContext.Capabilities; caps != nil {
-			for _, capability := range caps.Add {
-				containerConfig.CapAdd = append(containerConfig.CapAdd, string(capability))
-			}
-			for _, capability := range caps.Drop {
-				containerConfig.CapDrop = append(containerConfig.CapDrop, string(capability))
-			}
-		}
-	}
 	var err error
 	containerConfig.SeccompProfilePath, err = libpod.DefaultSeccompPath()
 	if err != nil {
