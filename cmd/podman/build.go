@@ -238,6 +238,9 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	if contextDir == "" {
 		return errors.Errorf("no context directory specified, and no containerfile specified")
 	}
+	if !fileIsDir(contextDir) {
+		return errors.Errorf("context must be a directory: %v", contextDir)
+	}
 	if len(containerfiles) == 0 {
 		if checkIfFileExists(filepath.Join(contextDir, "Containerfile")) {
 			containerfiles = append(containerfiles, filepath.Join(contextDir, "Containerfile"))
