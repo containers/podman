@@ -20,9 +20,7 @@ it in the **libpod.conf** file: see **libpod.conf(5)** for more information.
 ## OPTIONS
 **--detach-keys**=*sequence*
 
-Override the key sequence for detaching a container. Format is a single character `[a-Z]` or
-a comma separated sequence of `ctrl-<value>`, where `<value>` is one of:
-`a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`.
+Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
 
 **--latest**, **-l**
 
