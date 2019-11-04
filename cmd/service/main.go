@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/containers/storage/pkg/reexec"
 	"os"
 	"time"
 
@@ -17,6 +18,12 @@ func initConfig() {
 }
 
 func main() {
+	if reexec.Init() {
+		// We were invoked with a different argv[0] indicating that we
+		// had a specific job to do as a subprocess, and it's done.
+		return
+	}
+
 	cobra.OnInitialize(initConfig)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(50)*time.Millisecond)
