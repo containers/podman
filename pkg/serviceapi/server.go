@@ -17,7 +17,8 @@ import (
 	"github.com/coreos/go-systemd/activation"
 )
 
-const ApiVersion = "v1.24"
+// See https://docs.docker.com/engine/api/v1.40/
+const ApiVersion = "v1.40"
 
 type HttpServer struct {
 	http.Server
@@ -48,6 +49,7 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	registerContainersHandlers(router)
 	registerPodsHandlers(router)
 	registerInfoHandlers(router)
+	registerNotFoundHandlers(router) // Should always be last in list!
 
 	server := HttpServer{http.Server{}, router, done, listeners[0]}
 	go func() {
