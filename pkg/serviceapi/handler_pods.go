@@ -8,7 +8,7 @@ import (
 )
 
 func registerPodsHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/pods/"), serviceHandler(pods))
+	r.Handle(unversionedPath("/pods/"), serviceHandler(pods))
 	return nil
 }
 

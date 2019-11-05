@@ -69,10 +69,6 @@ type NetworkPruneReport struct {
 	docker.NetworksPruneReport
 }
 
-type SecretCreateResponse struct {
-	docker.SecretCreateResponse
-}
-
 type ConfigCreateResponse struct {
 	docker.ConfigCreateResponse
 }
@@ -83,6 +79,13 @@ type PushResult struct {
 
 type BuildResult struct {
 	docker.BuildResult
+}
+
+type ContainerWaitOKBody struct {
+	StatusCode int
+	Error struct {
+		Message string
+	}
 }
 
 func ImageToImageSummary(p *podmanImage.Image) (*ImageSummary, error) {
