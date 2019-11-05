@@ -187,6 +187,9 @@ func programVersion(mountProgram string) (string, error) {
 	return strings.TrimSuffix(output, "\n"), nil
 }
 
+// DefaultSeccompPath returns the path to the default seccomp.json file
+// if it exists, first it checks OverrideSeccomp and then default.
+// If neither exist function returns ""
 func DefaultSeccompPath() (string, error) {
 	_, err := os.Stat(config.SeccompOverridePath)
 	if err == nil {
