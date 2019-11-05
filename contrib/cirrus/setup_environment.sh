@@ -49,6 +49,10 @@ case "${OS_RELEASE_ID}" in
             bash "$SCRIPT_BASE/add_second_partition.sh"; fi
 
         if [[ "$OS_RELEASE_VER" == "31" ]]; then
+            warn "Switching io schedular to deadline to avoid RHBZ 1767539"
+            warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
+            echo "mq-deadline" > /sys/block/sda/queue/scheduler
+            cat /sys/block/sda/queue/scheduler
             warn "Testing with crun instead of runc"
             X=$(echo "export export OCI_RUNTIME=/usr/bin/crun" | \
                 tee -a /etc/environment) && eval "$X" && echo "$X"
