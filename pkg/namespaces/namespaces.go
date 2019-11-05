@@ -25,6 +25,11 @@ func (n CgroupMode) IsHost() bool {
 	return n == hostType
 }
 
+// IsDefaultValue indicates whether the cgroup namespace has the default value.
+func (n CgroupMode) IsDefaultValue() bool {
+	return n == ""
+}
+
 // IsNS indicates a cgroup namespace passed in by path (ns:<path>)
 func (n CgroupMode) IsNS() bool {
 	return strings.HasPrefix(string(n), nsType)
