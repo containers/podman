@@ -1,3 +1,4 @@
+// Package serviceapi provides a container compatible interface
 package serviceapi
 
 import (
@@ -18,7 +19,10 @@ import (
 )
 
 // See https://docs.docker.com/engine/api/v1.40/
-const ApiVersion = "v1.40"
+const (
+	DefaultApiVersion = "1.40"
+	MinimalApiVersion = "1.24"
+)
 
 type HttpServer struct {
 	http.Server
@@ -29,6 +33,7 @@ type HttpServer struct {
 
 var libpodRuntime *libpod.Runtime
 
+// NewServer will create and configure a new API HTTP server
 func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	libpodRuntime = runtime
 
@@ -44,12 +49,25 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	// Build routing rules for requests, based on URL path
 	router := mux.NewRouter()
-	registerImagesHandlers(router)
-	registerContainersHandlers(router)
-	registerPodsHandlers(router)
-	registerInfoHandlers(router)
-	registerNotFoundHandlers(router) // Should always be last in list!
+	for _, fn := range []func(*mux.Router) error{
+		registerAuthHandlers,
+		registerContainersHandlers,
+		registerDistributionHandlers,
+		registerImagesHandlers,
+		registerInfoHandlers,
+		registerMonitorHandlers,
+		registerPingHandlers,
+		registerPluginsHandlers,
+		registerPodsHandlers,
+		registerSwarmHandlers,
+		registerSystemHandlers,
+		registerVersionHandlers,
+	} {
+		fn(router)
+	}
+	registerNotFoundHandlers(router) // Should always be called last!
 
 	server := HttpServer{http.Server{}, router, done, listeners[0]}
 	go func() {
@@ -67,6 +85,7 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 	return &server, nil
 }
 
+// Serve starts responding to HTTP requests
 func (s *HttpServer) Serve() error {
 	err := http.Serve(s.listener, s.router)
 	if err != nil {
@@ -76,15 +95,19 @@ func (s *HttpServer) Serve() error {
 	return nil
 }
 
+// Shutdown is a clean shutdown waiting on existing clients
 func (s *HttpServer) Shutdown(ctx context.Context) error {
 	<-s.done
 	return s.Server.Shutdown(ctx)
 }
 
+// Close immediately stops responding to clients and exits
 func (s *HttpServer) Close() error {
 	return s.Server.Close()
 }
 
-func versionedPath(p string) string {
-	return "/" + ApiVersion + p
+// unversionedPath prepends the version parsing code
+// any handler may override this default when registering URL(s)
+func unversionedPath(p string) string {
+	return "/v{version:[0-9.]*}" + p
 }
