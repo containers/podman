@@ -12,21 +12,15 @@ import (
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func registerImagesHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/images/json"), serviceHandler(getImages)).Methods("GET")
-	r.Handle(versionedPath("/images/{name:..*}/json"), serviceHandler(image))
-	r.Handle(versionedPath("/images/{name:..*}/tag"), serviceHandler(tagImage))
-	r.Handle(versionedPath("/images/create"), serviceHandler(createImage))
+	r.Handle(unversionedPath("/images/json"), serviceHandler(getImages)).Methods("GET")
+	r.Handle(unversionedPath("/images/{name:..*}/json"), serviceHandler(image))
+	r.Handle(unversionedPath("/images/{name:..*}/tag"), serviceHandler(tagImage)).Methods("POST")
+	r.Handle(unversionedPath("/images/create"), serviceHandler(createImage)).Methods("POST")
 	return nil
-}
-
-// this is temporary and will be removed by Brent ASAP! Like  next PR
-func sendJSONResponse(w http.ResponseWriter, msg []byte) error {
-	w.Header().Set("Content-Type", "application/json")
-	_, err := io.WriteString(w, string(msg))
-	return err
 }
 
 func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -39,24 +33,24 @@ func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 	ctx := context.Background()
 	fromImage := r.Form.Get("fromImage")
 	// TODO
-	// We are eating the output right now because we havent taked about how to deal with multiple reponses yet
+	// We are eating the output right now because we haven't talked about how to deal with multiple responses yet
 	_, err := runtime.ImageRuntime().New(ctx, fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageAlways)
 	if err != nil {
-		apiError(w, fmt.Sprintf("unable to pull%s: %s", fromImage, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 	// Success
-	w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "")
 	return
 }
 
 func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/images/(name)/tag
+	// /v1.xx/images/(name)/tag
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		noSuchImageError(w, name)
+		Error(w, "Something went wrong.", http.StatusNotFound, err)
 		return
 	}
 	tag := "latest"
@@ -64,26 +58,25 @@ func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		tag = r.Form.Get("tag")
 	}
 	if len(r.Form.Get("repo")) < 1 {
-		apiError(w, fmt.Sprint("repo parameter is required"), http.StatusBadRequest)
+		Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
 		return
 	}
 	repo := r.Form.Get("repo")
 	tagName := fmt.Sprintf("%s:%s", repo, tag)
 	if err := newImage.TagImage(tagName); err != nil {
-		apiError(w, fmt.Sprintf("unable to tag %s: %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 	// Success is a 201?
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprintln(w, "")
-	return
 }
 
 func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		noSuchImageError(w, name)
+		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 	ctx := context.Background()
@@ -94,34 +87,34 @@ func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		if len(r.Form.Get("force")) > 0 {
 			force, err = strconv.ParseBool(r.Form.Get("force"))
 			if err != nil {
-				apiError(w, fmt.Sprintf("unable to parse value for force: %s", err.Error()), http.StatusInternalServerError)
+				Error(w, "Something went wrong.", http.StatusBadRequest, err)
 				return
 			}
 		}
 		r, err := runtime.RemoveImage(ctx, newImage, force)
 		if err != nil {
-			apiError(w, fmt.Sprintf("unable to delete %s: %s", name, err.Error()), http.StatusInternalServerError)
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 			return
 		}
 		// TODO
 		// This will need to be fixed for proper response, like Deleted: and Untagged:
 		buffer, _ := json.Marshal(r)
-		sendJSONResponse(w, buffer)
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		io.WriteString(w, string(buffer))
 		return
 	}
 
 	info, err := newImage.Inspect(context.Background())
 	if err != nil {
-		apiError(w, fmt.Sprintf("Failed to inspect Image '%s'", name), http.StatusInternalServerError)
+		Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "Failed to inspect image %s", name))
 		return
 	}
 
 	inspect, err := ImageDataToImageInspect(info)
 	buffer, err := json.Marshal(inspect)
 	if err != nil {
-		apiError(w,
-			fmt.Sprintf("Failed to convert API ImageInspect '%s' to json: %s", inspect.ID, err.Error()),
-			http.StatusInternalServerError)
+		Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err,"Failed to convert API ImageInspect '%s' to json", inspect.ID))
 		return
 	}
 
@@ -139,17 +132,12 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 		// This is where you can override the golang default value for one of fields
 	}
 
-	if err := r.ParseForm(); err != nil {
-		apiError(w, fmt.Sprintf("Failed to parse input: %s", err.Error()), http.StatusBadRequest)
-		return
-	}
-
 	var err error
 	t := r.Form.Get("all")
 	if t != "" {
 		query.all, err = strconv.ParseBool(t)
 		if err != nil {
-			apiError(w, fmt.Sprintf("Failed to parse 'all' parameter %s: %s", t, err.Error()), http.StatusBadRequest)
+			Error(w, "Server error", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse 'all' parameter %s", t))
 			return
 		}
 	}
@@ -164,7 +152,7 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 	if t != "" {
 		query.digests, err = strconv.ParseBool(t)
 		if err != nil {
-			apiError(w, fmt.Sprintf("Failed to parse 'digests' parameter %s: %s", t, err.Error()), http.StatusBadRequest)
+			Error(w, "Server error", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse 'digests' parameter %s", t))
 			return
 		}
 	}
@@ -174,9 +162,7 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 
 	images, err := runtime.ImageRuntime().GetImages()
 	if err != nil {
-		apiError(w,
-			fmt.Sprintf("Failed to obtain the list of images from storage: %s", err.Error()),
-			http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain the list of images from storage"))
 		return
 	}
 
@@ -184,9 +170,7 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 	for _, img := range images {
 		i, err := ImageToImageSummary(img)
 		if err != nil {
-			apiError(w,
-				fmt.Sprintf("Failed to convert storage image '%s' to API image: %s", img.ID(), err.Error()),
-				http.StatusInternalServerError)
+			Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert storage image '%s' to API image"))
 			return
 		}
 		summaries = append(summaries, i)
@@ -194,9 +178,7 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 
 	buffer, err := json.Marshal(summaries)
 	if err != nil {
-		apiError(w,
-			fmt.Sprintf("Failed to convert API images to json: %s", err.Error()),
-			http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to marshal API image(s) '%s' to json"))
 		return
 	}
 
