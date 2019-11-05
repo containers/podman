@@ -2,38 +2,44 @@ package serviceapi
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	goRuntime "runtime"
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func registerInfoHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/info"), serviceHandler(info))
+	r.Handle(unversionedPath("/info"), serviceHandler(info)).Methods("GET")
 	return nil
 }
 
 func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	infoData, err := runtime.Info()
 	if err != nil {
-		apiError(w, fmt.Sprintf("Failed to obtain system memory info: %s", err), http.StatusInternalServerError)
-		return
-	}
-	configInfo, err := runtime.GetConfig()
-	if err != nil {
-		apiError(w, fmt.Sprintf("Failed to obtain runtime config: %s", err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
 	hostInfo := infoData[0].Data
 	storeInfo := infoData[1].Data
 
+	configInfo, err := runtime.GetConfig()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
+		return
+	}
+	versionInfo, err := define.GetVersion()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
+		return
+	}
 	var graphStatus [][2]string
 	for k, v := range storeInfo["GraphStatus"].(map[string]string) {
 		graphStatus = append(graphStatus, [2]string{k, v})
@@ -96,7 +102,7 @@ func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		RuncCommit:         docker.Commit{},
 		Runtimes:           nil,
 		SecurityOptions:    nil,
-		ServerVersion:      "",
+		ServerVersion:      versionInfo.Version,
 		SwapLimit:          false,
 		Swarm:              swarm.Info{},
 		SystemStatus:       nil,
@@ -113,9 +119,7 @@ func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 
 	buffer, err := json.Marshal(info)
 	if err != nil {
-		apiError(w,
-			fmt.Sprintf("Failed to convert API images to json: %s", err.Error()),
-			http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

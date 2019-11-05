@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"syscall"
@@ -12,18 +13,19 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func registerContainersHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/containers/"), serviceHandler(containers))
-	r.Handle(versionedPath("/containers/{name:..*}/json"), serviceHandler(container))
-	r.Handle(versionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/rename"), serviceHandler(renameContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/restart"), serviceHandler(restartContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/stop"), serviceHandler(stopContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/unpause"), serviceHandler(unpauseContainer))
-	r.Handle(versionedPath("/containers/{name:..*}/wait"), serviceHandler(waitContainer))
+	r.Handle(unversionedPath("/containers/"), serviceHandler(containers))
+	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container))
+	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/rename"), serviceHandler(unsupportedHandler))
+	r.Handle(unversionedPath("/containers/{name:..*}/restart"), serviceHandler(restartContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/stop"), serviceHandler(stopContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/unpause"), serviceHandler(unpauseContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/wait"), serviceHandler(waitContainer))
 	return nil
 }
 
@@ -36,7 +38,7 @@ func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, "no such container", http.StatusNotFound, err)
 		return
 	}
 
@@ -47,23 +49,31 @@ func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 		if len(r.Form.Get("force")) > 0 {
 			force, err = strconv.ParseBool(r.Form.Get("force"))
 			if err != nil {
-				apiError(w, "unable to parse bool", http.StatusInternalServerError)
+				Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'force': %s", r.Form.Get("force")))
+				return
 			}
 		}
-		if len(r.Form.Get("b")) > 0 {
+		if len(r.Form.Get("v")) > 0 {
 			vols, err = strconv.ParseBool(r.Form.Get("v"))
 			if err != nil {
-				apiError(w, "unable to parse bool", http.StatusInternalServerError)
+				Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'v': %s", r.Form.Get("v")))
+				return
 			}
 		}
-		if err := runtime.RemoveContainer(ctx, con, force, vols); err != nil {
-			apiError(w, fmt.Sprintf("unable to remove %s: %s", name, err.Error()), http.StatusInternalServerError)
+		if len(r.Form.Get("link")) > 0 {
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("DELETE /containers/{id}?link parameter is not supported."))
 			return
 		}
-		// TODO need to send a 204 on success
+
+		if err := runtime.RemoveContainer(ctx, con, force, vols); err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+		fmt.Fprintln(w, "")
 		return
 	}
-	apiError(w, fmt.Sprint("not implemented"), http.StatusInternalServerError)
+	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New(fmt.Sprintf("%s is not implemented for containers", r.Method)))
 	return
 }
 
@@ -72,19 +82,19 @@ func killContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		http.Error(w, fmt.Sprintf("container '%s' not found", name), http.StatusNotFound)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("unable to get state for %s : %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
 	// If the container is stopped already, send a 409
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		containerNotRunningError(w, con.ID())
+		Error(w, fmt.Sprintf("Container %s is not running", name), http.StatusConflict, errors.New(fmt.Sprintf("Cannot kill container %s, it is not running", name)))
 		return
 	}
 
@@ -92,12 +102,12 @@ func killContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 	if len(r.Form.Get("signal")) > 0 {
 		sig, err = signal.ParseSignal(r.Form.Get("signal"))
 		if err != nil {
-			apiError(w, fmt.Sprintf("unable to parse signal %s: %s", r.Form.Get("signal"), err.Error()), http.StatusInternalServerError)
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "unable to parse signal %s", r.Form.Get("signal")))
 			return
 		}
 	}
 	if err := con.Kill(uint(sig)); err != nil {
-		apiError(w, fmt.Sprintf("unable to kill container %s: %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill container %s", name))
 		return
 	}
 	// Success
@@ -111,53 +121,61 @@ func waitContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
+
 	exitCode, err := con.Wait()
+
+	msg := ""
 	if err != nil {
-		http.Error(w, fmt.Sprintf("unable to wait on %s: %s", name, err.Error()), http.StatusInternalServerError)
+		msg = err.Error()
+	}
+	buffer, err := json.Marshal(ContainerWaitOKBody{
+		StatusCode: int(exitCode),
+		Error: struct {
+			Message string
+		}{
+			Message: msg,
+		},
+	})
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	// TODO this needs to be formed in a struct for wait
-	m := make(map[string]int32)
-	m["StatusCode"] = exitCode
-	buffer, err := json.Marshal(m)
-	if err != nil {
-		apiError(w, fmt.Sprintf("unable to marshal reponse  %s", err.Error()), http.StatusInternalServerError)
-		return
-	}
-	sendJSONResponse(w, buffer)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	io.WriteString(w, string(buffer))
 }
 
 func stopContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/stop
+	// /v1.xx/containers/(name)/stop
 	var (
 		stopError error
 	)
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		apiError(w, fmt.Sprintf("unable to get state for %s : %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, fmt.Sprintf("unable to get state for %s : %s", name)))
 		return
 	}
 
 	// If the container is stopped already, send a 302
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		apiError(w, fmt.Sprintf("container %s is already stopped ", name), http.StatusFound)
+		Error(w, "Something went wrong.", http.StatusNotModified, errors.Wrapf(err, fmt.Sprintf("container %s is already stopped ", name)))
 		return
 	}
 
 	if len(r.Form.Get("t")) > 0 {
 		timeout, err := strconv.Atoi(r.Form.Get("t"))
 		if err != nil {
-			apiError(w, fmt.Sprintf("unable to convert %s to timeout: %s", r.Form.Get("t"), err.Error()), http.StatusInternalServerError)
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 't': %s", r.Form.Get("t")))
 			return
 		}
 		stopError = con.StopWithTimeout(uint(timeout))
@@ -165,7 +183,7 @@ func stopContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 		stopError = con.Stop()
 	}
 	if stopError != nil {
-		apiError(w, fmt.Sprintf("fail to stop %s: %s", name, stopError.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, fmt.Sprintf("failed to stop %s", name)))
 		return
 	}
 	// Success
@@ -179,13 +197,13 @@ func pauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
 
 	// the api does not error if the container is already paused, so just into it
 	if err := con.Pause(); err != nil {
-		apiError(w, fmt.Sprintf("unable to pause %s: %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
@@ -196,24 +214,23 @@ func pauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 }
 
 func unpauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/unpause
+	// /v1.xx/containers/(name)/unpause
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
 
 	// the api does not error if the container is already paused, so just into it
 	if err := con.Unpause(); err != nil {
-		apiError(w, fmt.Sprintf("unable to unpause %s: %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
 	// Success
 	w.WriteHeader(http.StatusNoContent)
 	fmt.Fprintln(w, "")
-	return
 }
 
 func restartContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -221,19 +238,21 @@ func restartContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Ru
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		noSuchContainerError(w, name)
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		http.Error(w, fmt.Sprintf("unable to get state for %s : %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
+	// FIXME: This is not in the swagger.yml...
 	// If the container is stopped already, send a 409
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		http.Error(w, fmt.Sprintf("container %s is not running", name), http.StatusConflict)
+		msg := fmt.Sprintf("Container %s is not running", name)
+		Error(w, msg, http.StatusConflict, errors.New(msg))
 		return
 	}
 
@@ -242,13 +261,13 @@ func restartContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Ru
 	if len(r.Form.Get("t")) > 0 {
 		t, err := strconv.Atoi(r.Form.Get("t"))
 		if err != nil {
-			apiError(w, fmt.Sprintf("unable to parse timeout %s : %s", r.Form.Get("t"), err.Error()), http.StatusInternalServerError)
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 't': %s", r.Form.Get("t")))
 			return
 		}
 		timeout = uint(t)
 	}
 	if err := con.RestartWithTimeout(ctx, timeout); err != nil {
-		apiError(w, fmt.Sprintf("unable to restart %s : %s", name, err.Error()), http.StatusInternalServerError)
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
