@@ -460,15 +460,20 @@ special_testing_in_podman_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-    # Make sure F31 container images can run podman on F30 or F31 host
     gce_instance:
         matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            # FIXME: Integration testing currently broken for F31 hosts
+            # Error: container_linux.go:345: starting container process caused "process_linux.go:281: applying cgroup configuration for process caused \"mountpoint for cgroup not found\"": OCI runtime error
+            # image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
 
     env:
         ADD_SECOND_PARTITION: true
         SPECIALMODE: 'in_podman'  # See docs
+        # TODO: Support both runc and crun (cgroups v1 and v2 container images)
+        # matrix:
+        #   IN_PODMAN_IMAGE: "quay.io/libpod/in_podman:latest"
+        #   IN_PODMAN_IMAGE: "quay.io/libpod/in_podman_cgv2:latest"
 
     timeout_in: 60m
 
