@@ -230,7 +230,12 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
-		// could be trying to pull from registry with short name
+		// We might be pulling with an unqualified image reference in which case
+		// we need to make sure that we're not using any other transport.
+		srcTransport := alltransports.TransportFromImageName(inputName)
+		if srcTransport != nil && srcTransport.Name() != DockerTransport {
+			return nil, err
+		}
 		goal, err = ir.pullGoalFromPossiblyUnqualifiedName(inputName)
 		if err != nil {
 			return nil, errors.Wrap(err, "error getting default registries to try")
@@ -347,6 +352,7 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	if err != nil {
 		return nil, err
 	}
+
 	if decomposedImage.hasRegistry {
 		srcRef, err := docker.ParseReference("//" + inputName)
 		if err != nil {
