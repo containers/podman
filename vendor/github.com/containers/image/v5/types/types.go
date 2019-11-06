@@ -490,9 +490,10 @@ type SystemContext struct {
 	OSChoice string
 	// If not "", overrides the system's default directory containing a blob info cache.
 	BlobInfoCacheDir string
-
 	// Additional tags when creating or copying a docker-archive.
 	DockerArchiveAdditionalTags []reference.NamedTagged
+	// If not "", overrides the temporary directory to use for storing big files
+	BigFilesTemporaryDir string
 
 	// === OCI.Transport overrides ===
 	// If not "", a directory containing a CA certificate (ending with ".crt"),

@@ -47,7 +47,14 @@ type layerInfo struct {
 // 	To do for both the NewSourceFromFile and NewSourceFromStream functions
 
 // NewSourceFromFile returns a tarfile.Source for the specified path.
+// Deprecated: Please use NewSourceFromFileWithContext which will allows you to configure temp directory
+// for big files through SystemContext.BigFilesTemporaryDir
 func NewSourceFromFile(path string) (*Source, error) {
+	return NewSourceFromFileWithContext(nil, path)
+}
+
+// NewSourceFromFileWithContext returns a tarfile.Source for the specified path.
+func NewSourceFromFileWithContext(sys *types.SystemContext, path string) (*Source, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error opening file %q", path)
@@ -66,16 +73,25 @@ func NewSourceFromFile(path string) (*Source, error) {
 			tarPath: path,
 		}, nil
 	}
-	return NewSourceFromStream(stream)
+	return NewSourceFromStreamWithSystemContext(sys, stream)
 }
 
 // NewSourceFromStream returns a tarfile.Source for the specified inputStream,
 // which can be either compressed or uncompressed. The caller can close the
 // inputStream immediately after NewSourceFromFile returns.
+// Deprecated: Please use NewSourceFromStreamWithSystemContext which will allows you to configure
+// temp directory for big files through SystemContext.BigFilesTemporaryDir
 func NewSourceFromStream(inputStream io.Reader) (*Source, error) {
+	return NewSourceFromStreamWithSystemContext(nil, inputStream)
+}
+
+// NewSourceFromStreamWithSystemContext returns a tarfile.Source for the specified inputStream,
+// which can be either compressed or uncompressed. The caller can close the
+// inputStream immediately after NewSourceFromFile returns.
+func NewSourceFromStreamWithSystemContext(sys *types.SystemContext, inputStream io.Reader) (*Source, error) {
 	// FIXME: use SystemContext here.
 	// Save inputStream to a temporary file
-	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(), "docker-tar")
+	tarCopyFile, err := ioutil.TempFile(tmpdir.TemporaryDirectoryForBigFiles(sys), "docker-tar")
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating temporary file")
 	}

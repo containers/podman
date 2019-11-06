@@ -341,8 +341,8 @@ func (s *storageImageSource) GetSignatures(ctx context.Context, instanceDigest *
 
 // newImageDestination sets us up to write a new image, caching blobs in a temporary directory until
 // it's time to Commit() the image
-func newImageDestination(imageRef storageReference) (*storageImageDestination, error) {
-	directory, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(), "storage")
+func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*storageImageDestination, error) {
+	directory, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "storage")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating a temporary directory")
 	}
