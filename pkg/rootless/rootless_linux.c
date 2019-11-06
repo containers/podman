@@ -24,8 +24,8 @@
 
 int renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
 {
-# ifdef __NR_renameat2
-  return (int) syscall (__NR_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
+# ifdef SYS_renameat2
+  return (int) syscall (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
 # else
   /* no way to implement it atomically.  */
   errno = ENOSYS;
