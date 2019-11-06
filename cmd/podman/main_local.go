@@ -16,7 +16,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
@@ -34,9 +33,6 @@ const remote = false
 
 func init() {
 	cgroupManager := define.SystemdCgroupsManager
-	if runtimeConfig, err := config.NewConfig(""); err == nil {
-		cgroupManager = runtimeConfig.CgroupManager
-	}
 	cgroupHelp := "Cgroup manager to use (cgroupfs or systemd)"
 	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
 	if rootless.IsRootless() && !cgroupv2 {
