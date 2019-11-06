@@ -54,6 +54,7 @@ func (e EventJournalD) Write(ee Event) error {
 
 // Read reads events from the journal and sends qualified events to the event channel
 func (e EventJournalD) Read(options ReadOptions) error {
+	defer close(options.EventChannel)
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate event options")
@@ -87,7 +88,6 @@ func (e EventJournalD) Read(options ReadOptions) error {
 	if err != nil {
 		return err
 	}
-	defer close(options.EventChannel)
 	for {
 		if _, err := j.Next(); err != nil {
 			return err
