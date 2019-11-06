@@ -17,6 +17,8 @@ func registerSwarmHandlers(r *mux.Router) error {
 	return nil
 }
 
+// noSwarm returns http.StatusServiceUnavailable rather than something like http.StatusInternalServerError,
+// this allows the client to decide if they still can talk to us
 func noSwarm(w http.ResponseWriter, r *http.Request) {
 	Error(w, "node is not part of a swarm", http.StatusServiceUnavailable, errors.New("swarm is not supported by podman"))
 }

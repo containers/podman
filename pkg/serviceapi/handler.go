@@ -33,6 +33,6 @@ func (w ServiceWriter) WriteJSON(code int, value interface{}) error {
 	w.WriteHeader(code)
 
 	coder := json.NewEncoder(w)
-	coder.SetEscapeHTML(false)
+	coder.SetEscapeHTML(true)
 	return coder.Encode(value)
 }

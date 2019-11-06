@@ -14,11 +14,12 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Errorf(err.Error())
 
-	w.(ServiceWriter).WriteJSON(code, struct {
-		message string
-	}{
-		apiMessage,
-	})
+	w.(ServiceWriter).WriteJSON(code,
+		struct {
+			Message string `json:"message"`
+		}{
+			apiMessage,
+		})
 }
 
 func noSuchContainerError(w http.ResponseWriter, nameOrId string, err error) {
