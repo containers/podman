@@ -82,13 +82,21 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	// Also add mounts + volumes directly from createconfig.
 	// Start with --volume.
 	for dest, mount := range volumeMounts {
-		if _, ok := unifiedMounts[dest]; ok {
+		if oldMount, ok := unifiedMounts[dest]; ok {
+			// Identical mounts are allowed, just dedup them.
+			if mountsEqual(mount, oldMount) {
+				continue
+			}
 			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedMounts[dest] = mount
 	}
 	for dest, volume := range volumeVolumes {
-		if _, ok := unifiedVolumes[dest]; ok {
+		if oldVolume, ok := unifiedVolumes[dest]; ok {
+			// Identical volumes are allowed, just dedup them.
+			if namedVolumesEqual(volume, oldVolume) {
+				continue
+			}
 			return nil, nil, errors.Wrapf(errDuplicateDest, dest)
 		}
 		unifiedVolumes[dest] = volume
@@ -918,4 +926,51 @@ func findMount(target string, mounts []*pmount.Info) (*pmount.Info, error) {
 		}
 	}
 	return bestSoFar, nil
+}
+
+// Check if two spec.Mount structs are equal
+func mountsEqual(a, b spec.Mount) bool {
+	if a.Destination != b.Destination {
+		return false
+	}
+	if a.Type != b.Type {
+		return false
+	}
+	if a.Source != b.Source {
+		return false
+	}
+	return mountOptsEqual(a.Options, b.Options)
+}
+
+// Check if two named volumes are equal
+func namedVolumesEqual(a, b *libpod.ContainerNamedVolume) bool {
+	if a.Name != b.Name {
+		return false
+	}
+	if a.Dest != b.Dest {
+		return false
+	}
+	return mountOptsEqual(a.Options, b.Options)
+}
+
+// Check if two sets of mount options are equal
+func mountOptsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	// Quick short-circuit to avoid map allocation for the most common case
+	// (no options).
+	if len(a) == 0 {
+		return true
+	}
+	optsMap := make(map[string]bool)
+	for _, opt := range a {
+		optsMap[opt] = true
+	}
+	for _, opt := range b {
+		if _, exists := optsMap[opt]; !exists {
+			return false
+		}
+	}
+	return true
 }

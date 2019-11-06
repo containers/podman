@@ -375,4 +375,20 @@ var _ = Describe("Podman run with volumes", func() {
 		volMount.WaitWithDefaultTimeout()
 		Expect(volMount.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman mount with duplicate volumes conflicting succeeds", func() {
+		mount1 := "/tmp:/testmnt"
+		mount2 := "/tmp:/testmnt2:ro,rshared"
+		volume1 := "testvol:/testvol"
+		volume2 := "testvol2:/testvol2:ro,rshared"
+
+		for _, vol := range []string{mount1, mount2, volume1, volume2} {
+			dst := strings.Split(vol, ":")[1]
+			test := podmanTest.Podman([]string{"create", "-v", vol, "-v", vol, ALPINE, "grep", dst, "/proc/self/mountinfo"})
+			test.WaitWithDefaultTimeout()
+			Expect(test.ExitCode()).To(Equal(0))
+			found, matches := test.GrepString(dst)
+			Expect(found).Should(BeTrue())
+		}
+	})
 })
