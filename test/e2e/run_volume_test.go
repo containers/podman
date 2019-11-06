@@ -116,6 +116,28 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(ContainSubstring("/run/test rw,nosuid,nodev,noexec,relatime - tmpfs"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,tmpcopyup", ALPINE, "ls", "/etc/ssl"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("certs"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,tmpcopyup,notmpcopyup", ALPINE, "ls", "/etc/ssl"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,tmpcopyup", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,notmpcopyup", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,notmpcopyup", ALPINE, "ls", "/etc/ssl"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("certs")))
 	})
 
 	It("podman run with conflicting volumes errors", func() {
