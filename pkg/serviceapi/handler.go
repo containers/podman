@@ -21,7 +21,9 @@ func (h serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if contentType != "" && contentType != "application/json" {
 		logrus.Errorf("%s is not a supported Content-Type", r.Header.Get("Content-Type"))
 	}
-
+	if err := r.ParseForm(); err != nil {
+		logrus.Errorf("unable to parse form: %q", err)
+	}
 	// Call our specialized handler
 	h(ServiceWriter{w}, r, libpodRuntime)
 }
