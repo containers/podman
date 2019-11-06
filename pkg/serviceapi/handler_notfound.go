@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	log "github.com/sirupsen/logrus"
 )
 
 func registerNotFoundHandlers(r *mux.Router) error {
@@ -13,7 +14,7 @@ func registerNotFoundHandlers(r *mux.Router) error {
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
-	http.Error(w,
-		fmt.Sprintf("%d %s for '%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.URL.String()),
-		http.StatusNotFound)
+	msg := fmt.Sprintf("%d %s for '%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.URL.String())
+	log.Debugf(msg)
+	http.Error(w, msg, http.StatusNotFound)
 }
