@@ -1,8 +1,6 @@
 package serviceapi
 
 import (
-	"encoding/json"
-	"io"
 	"net/http"
 	goRuntime "runtime"
 	"time"
@@ -117,12 +115,5 @@ func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Uptime:         hostInfo["uptime"].(string),
 	}
 
-	buffer, err := json.Marshal(info)
-	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, string(buffer))
+	w.(ServiceWriter).WriteJSON(http.StatusOK, info)
 }

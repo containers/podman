@@ -2,9 +2,7 @@ package serviceapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 
@@ -40,9 +38,7 @@ func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 		return
 	}
 	// Success
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "")
-	return
+	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
 }
 
 func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -67,9 +63,7 @@ func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	// Success is a 201?
-	w.WriteHeader(http.StatusCreated)
-	fmt.Fprintln(w, "")
+	w.(ServiceWriter).WriteJSON(http.StatusCreated, "")
 }
 
 func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -98,11 +92,7 @@ func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		}
 		// TODO
 		// This will need to be fixed for proper response, like Deleted: and Untagged:
-		buffer, _ := json.Marshal(r)
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		io.WriteString(w, string(buffer))
-		return
+		w.(ServiceWriter).WriteJSON(http.StatusOK, r)
 	}
 
 	info, err := newImage.Inspect(context.Background())
@@ -112,15 +102,12 @@ func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	}
 
 	inspect, err := ImageDataToImageInspect(info)
-	buffer, err := json.Marshal(inspect)
 	if err != nil {
-		Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err,"Failed to convert API ImageInspect '%s' to json", inspect.ID))
+		Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert ImageData to ImageInspect '%s'", inspect.ID))
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, string(buffer))
+	w.(ServiceWriter).WriteJSON(http.StatusOK, inspect)
 }
 
 func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -176,13 +163,5 @@ func getImages(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 		summaries = append(summaries, i)
 	}
 
-	buffer, err := json.Marshal(summaries)
-	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to marshal API image(s) '%s' to json"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, string(buffer))
+	w.(ServiceWriter).WriteJSON(http.StatusOK, summaries)
 }

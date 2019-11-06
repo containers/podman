@@ -1,9 +1,7 @@
 package serviceapi
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	goRuntime "runtime"
 	"time"
@@ -20,7 +18,6 @@ func registerVersionHandlers(r *mux.Router) error {
 	return nil
 }
 
-
 func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	versionInfo, err := define.GetVersion()
 	if err != nil {
@@ -35,7 +32,7 @@ func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 	}
 	hostInfo := infoData[0].Data
 
-	buffer, err := json.Marshal(Version{docker.Version{
+	w.(ServiceWriter).WriteJSON(http.StatusOK, Version{docker.Version{
 		Platform: struct {
 			Name string
 		}{
@@ -53,12 +50,4 @@ func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 		Experimental:  true,
 		BuildTime:     time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 	}})
-	if err != nil {
-		Error(w, "server error", http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, string(buffer))
 }
