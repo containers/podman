@@ -41,6 +41,7 @@ func (e EventLogFile) Write(ee Event) error {
 
 // Reads from the log file
 func (e EventLogFile) Read(options ReadOptions) error {
+	defer close(options.EventChannel)
 	eventOptions, err := generateEventOptions(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return errors.Wrapf(err, "unable to generate event options")
@@ -68,7 +69,6 @@ func (e EventLogFile) Read(options ReadOptions) error {
 			options.EventChannel <- event
 		}
 	}
-	close(options.EventChannel)
 	return nil
 }
 
