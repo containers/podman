@@ -83,7 +83,7 @@ type BuildResult struct {
 
 type ContainerWaitOKBody struct {
 	StatusCode int
-	Error struct {
+	Error      struct {
 		Message string
 	}
 }
