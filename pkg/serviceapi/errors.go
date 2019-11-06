@@ -1,6 +1,7 @@
 package serviceapi
 
 import (
+	"fmt"
 	"net/http"
 
 	log "github.com/sirupsen/logrus"
@@ -18,4 +19,24 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	}{
 		apiMessage,
 	})
+}
+
+func noSuchContainerError(w http.ResponseWriter, nameOrId string, err error) {
+	msg := fmt.Sprintf("No such container: %s", nameOrId)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
+func noSuchImageError(w http.ResponseWriter, nameOrId string, err error) {
+	msg := fmt.Sprintf("No such image: %s", nameOrId)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
+func noSuchPodError(w http.ResponseWriter, nameOrId string, err error) {
+	msg := fmt.Sprintf("No such pod: %s", nameOrId)
+	Error(w, msg, http.StatusNotFound, err)
+}
+
+func containerNotRunningError(w http.ResponseWriter, containerID string, err error) {
+	msg := fmt.Sprintf("Container %s is not running: %s", containerID)
+	Error(w, msg, http.StatusConflict, err)
 }
