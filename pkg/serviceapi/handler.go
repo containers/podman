@@ -1,11 +1,16 @@
 package serviceapi
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/sirupsen/logrus"
 )
+
+type ServiceWriter struct {
+	http.ResponseWriter
+}
 
 // serviceHandler type defines a specialized http.Handler, included is the podman runtime
 type serviceHandler func(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime)
@@ -18,5 +23,14 @@ func (h serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call our specialized handler
-	h(w, r, libpodRuntime)
+	h(ServiceWriter{w}, r, libpodRuntime)
+}
+
+func (w ServiceWriter) WriteJSON(code int, value interface{}) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+
+	coder := json.NewEncoder(w)
+	coder.SetEscapeHTML(false)
+	return coder.Encode(value)
 }

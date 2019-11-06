@@ -25,6 +25,7 @@ func pingHEAD(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 }
 
 func setHeaders(w http.ResponseWriter) {
+	// ServiceWriter.WriteJSON is not a good fit here
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("API-Version", DefaultApiVersion)
 	w.Header().Set("BuildKit-Version", "")

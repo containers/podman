@@ -2,9 +2,7 @@ package serviceapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strconv"
 	"syscall"
@@ -17,7 +15,6 @@ import (
 )
 
 func registerContainersHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/containers/"), serviceHandler(containers))
 	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container))
 	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
 	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer))
@@ -29,12 +26,8 @@ func registerContainersHandlers(r *mux.Router) error {
 	return nil
 }
 
-func containers(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	http.NotFound(w, r)
-}
-
 func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/json
+	// /{version}/containers/(name)/json
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -69,8 +62,7 @@ func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
-		fmt.Fprintln(w, "")
+		w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 		return
 	}
 	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New(fmt.Sprintf("%s is not implemented for containers", r.Method)))
@@ -78,7 +70,7 @@ func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 }
 
 func killContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/kill
+	// /{version}/containers/(name)/kill
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -111,13 +103,11 @@ func killContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 		return
 	}
 	// Success
-	w.WriteHeader(http.StatusNoContent)
-	fmt.Fprintln(w, "")
-	return
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 }
 
 func waitContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/wait
+	// /{version}/containers/(name)/wait
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -127,11 +117,11 @@ func waitContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 
 	exitCode, err := con.Wait()
 
-	msg := ""
+	var msg string
 	if err != nil {
 		msg = err.Error()
 	}
-	buffer, err := json.Marshal(ContainerWaitOKBody{
+	w.(ServiceWriter).WriteJSON(http.StatusOK, ContainerWaitOKBody{
 		StatusCode: int(exitCode),
 		Error: struct {
 			Message string
@@ -139,17 +129,10 @@ func waitContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 			Message: msg,
 		},
 	})
-	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	io.WriteString(w, string(buffer))
 }
 
 func stopContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.xx/containers/(name)/stop
+	// /{version}/containers/(name)/stop
 	var (
 		stopError error
 	)
@@ -187,13 +170,11 @@ func stopContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runti
 		return
 	}
 	// Success
-	w.WriteHeader(http.StatusNoContent)
-	fmt.Fprintln(w, "")
-	return
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 }
 
 func pauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/pause
+	// /{version}/containers/(name)/pause
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -206,15 +187,12 @@ func pauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-
 	// Success
-	w.WriteHeader(http.StatusNoContent)
-	fmt.Fprintln(w, "")
-	return
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 }
 
 func unpauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.xx/containers/(name)/unpause
+	// /{version}/containers/(name)/unpause
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -229,12 +207,11 @@ func unpauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Ru
 	}
 
 	// Success
-	w.WriteHeader(http.StatusNoContent)
-	fmt.Fprintln(w, "")
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 }
 
 func restartContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /v1.24/containers/(name)/restart
+	// /{version}/containers/(name)/restart
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -272,7 +249,6 @@ func restartContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Ru
 	}
 
 	// Success
-	w.WriteHeader(http.StatusNoContent)
-	fmt.Fprintln(w, "")
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 	return
 }
