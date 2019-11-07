@@ -407,5 +407,5 @@ func checkRemoteImageForLabel(ctx context.Context, label string, imageInfo pullR
 			return nil
 		}
 	}
-	return errors.Errorf("%s has no label %s", imageInfo.image, label)
+	return errors.Errorf("%s has no label %s in %q", imageInfo.image, label, remoteInspect.Labels)
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/containers/libpod/libpod"
 	image2 "github.com/containers/libpod/libpod/image"
@@ -32,21 +31,20 @@ func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 	*/
 	ctx := context.Background()
 	fromImage := r.Form.Get("fromImage")
+
+	tag := r.Form.Get("tag")
+	if tag != "" {
+		fromImage = fmt.Sprintf("%s:%s", fromImage, tag)
+	}
+
 	// TODO
 	// We are eating the output right now because we haven't talked about how to deal with multiple responses yet
-	img, err := runtime.ImageRuntime().New(ctx, fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageAlways)
+	img, err := runtime.ImageRuntime().New(ctx, fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
-	name := fromImage
-	tag := "latest"
-	idx := strings.LastIndexByte(fromImage, ':')
-	if idx != -1 {
-		name = fromImage[:idx]
-		tag = fromImage[idx:]
-	}
 	// Success
 	w.(ServiceWriter).WriteJSON(http.StatusOK, struct {
 		Status         string            `json:"status"`
@@ -55,7 +53,7 @@ func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 		ProgressDetail map[string]string `json:"progressDetail"`
 		Id             string            `json:"id"`
 	}{
-		Status:         fmt.Sprintf("Pulling image (%s) from %s", tag, name),
+		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, fromImage),
 		ProgressDetail: map[string]string{},
 		Id:             img.ID(),
 	})
