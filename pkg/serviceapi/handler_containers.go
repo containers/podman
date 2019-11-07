@@ -15,6 +15,7 @@ import (
 )
 
 func registerContainersHandlers(r *mux.Router) error {
+	r.Handle(unversionedPath("/containers/{name:..*}"), serviceHandler(removeContainer)).Methods("DELETE")
 	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container))
 	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
 	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer))
@@ -26,8 +27,8 @@ func registerContainersHandlers(r *mux.Router) error {
 	return nil
 }
 
-func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	// /{version}/containers/(name)/json
+func removeContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	// _X DELETE /{version}/containers/(name)/
 	name := mux.Vars(r)["name"]
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
@@ -36,35 +37,35 @@ func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 	}
 
 	ctx := context.Background()
-	switch r.Method {
-	case "DELETE":
-		var force, vols bool
-		if len(r.Form.Get("force")) > 0 {
-			force, err = strconv.ParseBool(r.Form.Get("force"))
-			if err != nil {
-				Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'force': %s", r.Form.Get("force")))
-				return
-			}
-		}
-		if len(r.Form.Get("v")) > 0 {
-			vols, err = strconv.ParseBool(r.Form.Get("v"))
-			if err != nil {
-				Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'v': %s", r.Form.Get("v")))
-				return
-			}
-		}
-		if len(r.Form.Get("link")) > 0 {
-			Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("DELETE /containers/{id}?link parameter is not supported."))
+	var force, vols bool
+	if len(r.Form.Get("force")) > 0 {
+		force, err = strconv.ParseBool(r.Form.Get("force"))
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'force': %s", r.Form.Get("force")))
 			return
 		}
-
-		if err := runtime.RemoveContainer(ctx, con, force, vols); err != nil {
-			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+	}
+	if len(r.Form.Get("v")) > 0 {
+		vols, err = strconv.ParseBool(r.Form.Get("v"))
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Unable to parse parameter 'v': %s", r.Form.Get("v")))
 			return
 		}
-		w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
+	}
+	if len(r.Form.Get("link")) > 0 {
+		Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("DELETE /containers/{id}?link parameter is not supported."))
 		return
 	}
+
+	if err := runtime.RemoveContainer(ctx, con, force, vols); err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
+	return
+}
+
+func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New(fmt.Sprintf("%s is not implemented for containers", r.Method)))
 	return
 }
