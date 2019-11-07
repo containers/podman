@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -47,6 +48,12 @@ func defaultConfigFromMemory() (*Config, error) {
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = define.BoltDBStateStore
 	c.OCIRuntime = "runc"
+
+	// If we're running on cgroups v2, default to using crun.
+	if onCgroupsv2, _ := cgroups.IsCgroup2UnifiedMode(); onCgroupsv2 {
+		c.OCIRuntime = "crun"
+	}
+
 	c.OCIRuntimes = map[string][]string{
 		"runc": {
 			"/usr/bin/runc",
@@ -58,7 +65,15 @@ func defaultConfigFromMemory() (*Config, error) {
 			"/usr/lib/cri-o-runc/sbin/runc",
 			"/run/current-system/sw/bin/runc",
 		},
-		// TODO - should we add "crun" defaults here as well?
+		"crun": {
+			"/usr/bin/crun",
+			"/usr/sbin/crun",
+			"/usr/local/bin/crun",
+			"/usr/local/sbin/crun",
+			"/sbin/crun",
+			"/bin/crun",
+			"/run/current-system/sw/bin/crun",
+		},
 	}
 	c.ConmonPath = []string{
 		"/usr/libexec/podman/conmon",
