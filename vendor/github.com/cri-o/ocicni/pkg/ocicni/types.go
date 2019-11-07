@@ -44,6 +44,9 @@ type RuntimeConfig struct {
 	// with the hostlocal IP allocator. If left unset, an IP will be
 	// dynamically allocated.
 	IP string
+	// MAC is a static MAC address to be assigned to the network interface.
+	// If left unset, a MAC will be dynamically allocated.
+	MAC string
 	// PortMappings is the port mapping of the sandbox.
 	PortMappings []PortMapping
 	// Bandwidth is the bandwidth limiting of the pod
@@ -75,14 +78,33 @@ type PodNetwork struct {
 	// NetNS is the network namespace path of the sandbox.
 	NetNS string
 
-	// Networks is a list of CNI network names to attach to the sandbox
-	// Leave this list empty to attach the default network to the sandbox
-	Networks []string
+	// Networks is a list of CNI network names (and optional interface
+	// names) to attach to the sandbox. Leave this list empty to attach the
+	// default network to the sandbox
+	Networks []NetAttachment
 
 	// NetworkConfig is configuration specific to a single CNI network.
 	// It is optional, and can be omitted for some or all specified networks
 	// without issue.
 	RuntimeConfig map[string]RuntimeConfig
+}
+
+// NetAttachment describes a container network attachment
+type NetAttachment struct {
+	// NetName contains the name of the CNI network to which the container
+	// should be or is attached
+	Name string
+	// Ifname contains the optional interface name of the attachment
+	Ifname string
+}
+
+// NetResult contains the result the network attachment operation
+type NetResult struct {
+	// Result is the CNI Result
+	Result types.Result
+	// NetAttachment contains the network and interface names of this
+	// network attachment
+	NetAttachment
 }
 
 // CNIPlugin is the interface that needs to be implemented by a plugin
@@ -98,13 +120,13 @@ type CNIPlugin interface {
 	// SetUpPod is the method called after the sandbox container of
 	// the pod has been created but before the other containers of the
 	// pod are launched.
-	SetUpPod(network PodNetwork) ([]types.Result, error)
+	SetUpPod(network PodNetwork) ([]NetResult, error)
 
 	// TearDownPod is the method called before a pod's sandbox container will be deleted
 	TearDownPod(network PodNetwork) error
 
 	// Status is the method called to obtain the ipv4 or ipv6 addresses of the pod sandbox
-	GetPodNetworkStatus(network PodNetwork) ([]types.Result, error)
+	GetPodNetworkStatus(network PodNetwork) ([]NetResult, error)
 
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error

@@ -794,6 +794,11 @@ type ContainerCheckpointOptions struct {
 	// important to be able to restore a container multiple
 	// times with '--import --name'.
 	IgnoreStaticIP bool
+	// IgnoreStaticMAC tells the API to ignore the MAC set
+	// during 'podman run' with '--mac-address'. This is especially
+	// important to be able to restore a container multiple
+	// times with '--import --name'.
+	IgnoreStaticMAC bool
 }
 
 // Checkpoint checkpoints a container

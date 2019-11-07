@@ -522,6 +522,9 @@ vendor:
 		$(GO) mod vendor && \
 		$(GO) mod verify
 
+vendor-in-container:
+	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.12 make vendor
+
 .PHONY: \
 	.gopathok \
 	binaries \

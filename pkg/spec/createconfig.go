@@ -396,6 +396,14 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 		options = append(options, libpod.WithStaticIP(ip))
 	}
 
+	if c.MacAddress != "" {
+		mac, err := net.ParseMAC(c.MacAddress)
+		if err != nil {
+			return nil, errors.Wrapf(define.ErrInvalidArg, "cannot parse %s as MAC address: %v", c.MacAddress, err)
+		}
+		options = append(options, libpod.WithStaticMAC(mac))
+	}
+
 	options = append(options, libpod.WithPrivileged(c.Privileged))
 
 	useImageVolumes := c.ImageVolumeType == TypeBind

@@ -334,6 +334,10 @@ var _ = Describe("Podman checkpoint", func() {
 		IPBefore.WaitWithDefaultTimeout()
 		Expect(IPBefore.ExitCode()).To(Equal(0))
 
+		MACBefore := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.MacAddress}}"})
+		MACBefore.WaitWithDefaultTimeout()
+		Expect(MACBefore.ExitCode()).To(Equal(0))
+
 		result := podmanTest.Podman([]string{"container", "checkpoint", "test_name"})
 		result.WaitWithDefaultTimeout()
 
@@ -348,8 +352,15 @@ var _ = Describe("Podman checkpoint", func() {
 		IPAfter.WaitWithDefaultTimeout()
 		Expect(IPAfter.ExitCode()).To(Equal(0))
 
+		MACAfter := podmanTest.Podman([]string{"inspect", "-l", "--format={{.NetworkSettings.MacAddress}}"})
+		MACAfter.WaitWithDefaultTimeout()
+		Expect(MACAfter.ExitCode()).To(Equal(0))
+
 		// Check that IP address did not change between checkpointing and restoring
 		Expect(IPBefore.OutputToString()).To(Equal(IPAfter.OutputToString()))
+
+		// Check that MAC address did not change between checkpointing and restoring
+		Expect(MACBefore.OutputToString()).To(Equal(MACAfter.OutputToString()))
 
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))

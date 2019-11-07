@@ -794,6 +794,15 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		c.config.StaticIP = nil
 	}
 
+	// If a container is restored multiple times from an exported checkpoint with
+	// the help of '--import --name', the restore will fail if during 'podman run'
+	// a static container MAC address was set with '--mac-address'. The user
+	// can tell the restore process to ignore the static MAC with
+	// '--ignore-static-mac'
+	if options.IgnoreStaticMAC {
+		c.config.StaticMAC = nil
+	}
+
 	// Read network configuration from checkpoint
 	// Currently only one interface with one IP is supported.
 	networkStatusFile, err := os.Open(filepath.Join(c.bundlePath(), "network.status"))
@@ -803,9 +812,9 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	// TODO: This implicit restoring with or without IP depending on an
 	//       unrelated restore parameter (--name) does not seem like the
 	//       best solution.
-	if err == nil && options.Name == "" && !options.IgnoreStaticIP {
+	if err == nil && options.Name == "" && (!options.IgnoreStaticIP || !options.IgnoreStaticMAC) {
 		// The file with the network.status does exist. Let's restore the
-		// container with the same IP address as during checkpointing.
+		// container with the same IP address / MAC address as during checkpointing.
 		defer networkStatusFile.Close()
 		var networkStatus []*cnitypes.Result
 		networkJSON, err := ioutil.ReadAll(networkStatusFile)
@@ -815,16 +824,35 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err := json.Unmarshal(networkJSON, &networkStatus); err != nil {
 			return err
 		}
-		// Take the first IP address
-		var IP net.IP
-		if len(networkStatus) > 0 {
-			if len(networkStatus[0].IPs) > 0 {
-				IP = networkStatus[0].IPs[0].Address.IP
+		if !options.IgnoreStaticIP {
+			// Take the first IP address
+			var IP net.IP
+			if len(networkStatus) > 0 {
+				if len(networkStatus[0].IPs) > 0 {
+					IP = networkStatus[0].IPs[0].Address.IP
+				}
+			}
+			if IP != nil {
+				// Tell CNI which IP address we want.
+				c.requestedIP = IP
 			}
 		}
-		if IP != nil {
-			// Tell CNI which IP address we want.
-			c.requestedIP = IP
+		if !options.IgnoreStaticMAC {
+			// Take the first device with a defined sandbox.
+			var MAC net.HardwareAddr
+			for _, n := range networkStatus[0].Interfaces {
+				if n.Sandbox != "" {
+					MAC, err = net.ParseMAC(n.Mac)
+					if err != nil {
+						return errors.Wrapf(err, "failed to parse MAC %v", n.Mac)
+					}
+					break
+				}
+			}
+			if MAC != nil {
+				// Tell CNI which MAC address we want.
+				c.requestedMAC = MAC
+			}
 		}
 	}
 
@@ -1314,7 +1342,7 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 // Teardown CNI config on refresh
 func (c *Container) refreshCNI() error {
 	// Let's try and delete any lingering network config...
-	podNetwork := c.runtime.getPodNetwork(c.ID(), c.config.Name, "", c.config.Networks, c.config.PortMappings, c.config.StaticIP)
+	podNetwork := c.runtime.getPodNetwork(c.ID(), c.config.Name, "", c.config.Networks, c.config.PortMappings, c.config.StaticIP, c.config.StaticMAC)
 	return c.runtime.netPlugin.TearDownPod(podNetwork)
 }
 

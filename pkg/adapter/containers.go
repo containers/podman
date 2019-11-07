@@ -538,12 +538,13 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 	)
 
 	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Keep,
-		TCPEstablished: c.TcpEstablished,
-		TargetFile:     c.Import,
-		Name:           c.Name,
-		IgnoreRootfs:   c.IgnoreRootfs,
-		IgnoreStaticIP: c.IgnoreStaticIP,
+		Keep:            c.Keep,
+		TCPEstablished:  c.TcpEstablished,
+		TargetFile:      c.Import,
+		Name:            c.Name,
+		IgnoreRootfs:    c.IgnoreRootfs,
+		IgnoreStaticIP:  c.IgnoreStaticIP,
+		IgnoreStaticMAC: c.IgnoreStaticMAC,
 	}
 
 	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
