@@ -21,16 +21,23 @@ created by the other.
 
 ## GLOBAL OPTIONS
 
-**--help**, **-h**
-
-Print usage statement
-
 **--cgroup-manager**=*manager*
 
 CGroup manager to use for container cgroups. Supported values are cgroupfs or systemd. Default is systemd unless overridden in the libpod.conf file.
 
 Note: Setting this flag can cause certain commands to break when called on containers previously created by the other CGroup manager type.
 Note: CGroup manager is not supported in rootless mode when using CGroups Version V1.
+
+**--cni-config-dir**
+Path of the configuration directory for CNI networks.  (Default: `/etc/cni/net.d`)
+
+**--config**
+Path of a libpod config file detailing container server configuration options
+
+Default libpod config file is /usr/share/containers/libpod.conf.  Override file is in /etc/containers/libpod.conf.  In rootless mode the config file will be read from $HOME/.config/containers/libpod.conf.
+
+**--conmon**
+Path of the conmon binary (Default path is configured in `libpod.conf`)
 
 **--cpu-profile**=*path*
 
@@ -39,6 +46,10 @@ Path to where the cpu performance results should be written
 **--events-backend**=*type*
 
 Backend to use for storing events. Allowed values are **file**, **journald**, and **none**.
+
+**--help**, **-h**
+
+Print usage statement
 
 **--hooks-dir**=*path*
 
@@ -58,29 +69,29 @@ Podman and libpod currently support an additional `precreate` state which is cal
 
 **--log-level**=*level*
 
-Log messages above specified level: debug, info, warn, error (default), fatal or panic
+Log messages above specified level: debug, info, warn, error (default), fatal or panic (default: "error")
 
 **--namespace**=*namespace*
 
 Set libpod namespace. Namespaces are used to separate groups of containers and pods in libpod's state.
 When namespace is set, created containers and pods will join the given namespace, and only containers and pods in the given namespace will be visible to Podman.
 
+**--network-cmd-path**=*path*
+Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
+
 **--root=***value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
-Default root dir is configured in /etc/containers/storage.conf.
+Default root dir is configured in `/etc/containers/storage.conf`.
 
 **--runroot**=*value*
 
 Storage state directory where all state information is stored (default: "/var/run/containers/storage" for UID 0, "/var/run/user/$UID/run" for other users).
-Default state dir is configured in /etc/containers/storage.conf.
+Default state dir is configured in `/etc/containers/storage.conf`.
 
 **--runtime**=*value*
 
 Name of the OCI runtime as specified in libpod.conf or absolute path to the OCI compatible binary used to run containers.
-
-**--network-cmd-path**=*path*
-Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
 **--storage-driver**=*value*
 
@@ -95,9 +106,15 @@ Storage driver option, Default storage driver options are configured in /etc/con
 
 **--syslog**
 
-output logging information to syslog as well as the console
+Output logging information to syslog as well as the console.
 
 On remote clients, logging is directed to the file ~/.config/containers/podman.log
+
+**--tmpdir**
+
+Path to the tmp directory, for libpod runtime content.
+
+NOTE --tmpdir is not used for the temporary storage of downloaded images.  Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
 
 **--version**, **-v**
 
