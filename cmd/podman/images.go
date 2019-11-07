@@ -291,6 +291,10 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 				if len(tag) == 71 && strings.HasPrefix(tag, "sha256:") {
 					imageDigest = digest.Digest(tag)
 					tag = ""
+				} else {
+					if img.Digest() != "" {
+						imageDigest = img.Digest()
+					}
 				}
 				params := imagesTemplateParams{
 					Repository:  repo,
