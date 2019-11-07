@@ -109,5 +109,5 @@ func (s *HttpServer) Close() error {
 // unversionedPath prepends the version parsing code
 // any handler may override this default when registering URL(s)
 func unversionedPath(p string) string {
-	return "/v{version:[0-9.]*}" + p
+	return "/v{version:[0-9][0-9.]*}" + p
 }
