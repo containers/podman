@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/containers/libpod/libpod"
 	image2 "github.com/containers/libpod/libpod/image"
@@ -32,13 +33,31 @@ func createImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 	fromImage := r.Form.Get("fromImage")
 	// TODO
 	// We are eating the output right now because we haven't talked about how to deal with multiple responses yet
-	_, err := runtime.ImageRuntime().New(ctx, fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageAlways)
+	img, err := runtime.ImageRuntime().New(ctx, fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageAlways)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
+
+	name := fromImage
+	tag := "latest"
+	idx := strings.LastIndexByte(fromImage, ':')
+	if idx != -1 {
+		name = fromImage[:idx]
+		tag = fromImage[idx:]
+	}
 	// Success
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	w.(ServiceWriter).WriteJSON(http.StatusOK, struct {
+		Status         string            `json:"status"`
+		Error          string            `json:"error"`
+		Progress       string            `json:"progress"`
+		ProgressDetail map[string]string `json:"progressDetail"`
+		Id             string            `json:"id"`
+	}{
+		Status:         fmt.Sprintf("Pulling image (%s) from %s", tag, name),
+		ProgressDetail: map[string]string{},
+		Id:             img.ID(),
+	})
 }
 
 func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -46,7 +65,7 @@ func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusNotFound, err)
+		noSuchImageError(w, name, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 	tag := "latest"
@@ -70,7 +89,7 @@ func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		noSuchImageError(w, name, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 	ctx := context.Background()
