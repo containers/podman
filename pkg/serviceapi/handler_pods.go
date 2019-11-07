@@ -6,8 +6,11 @@ import (
 	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"syscall"
 
+	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/docker/docker/pkg/signal"
@@ -16,11 +19,13 @@ import (
 
 func registerPodsHandlers(r *mux.Router) error {
 	r.Handle(unversionedPath("/libpod/pods/"), serviceHandler(pods))
+	r.Handle(unversionedPath("/libpod/pods/create"), serviceHandler(podCreate))
+	r.Handle(unversionedPath("/libpod/pods/prune"), serviceHandler(podPrune))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}"), serviceHandler(podDelete)).Methods("DELETE")
+	r.Handle(unversionedPath("/libpod/pods/{name:..*}"), serviceHandler(podInspect)).Methods("GET")
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/exists"), serviceHandler(podExists))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/kill"), serviceHandler(podKill))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/pause"), serviceHandler(podPause))
-	r.Handle(unversionedPath("/libpod/pods/prune"), serviceHandler(podPrune))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/unpause"), serviceHandler(podUnpause))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/restart"), serviceHandler(podRestart))
 	r.Handle(unversionedPath("/libpod/pods/{name:..*}/start"), serviceHandler(podStart))
@@ -28,8 +33,129 @@ func registerPodsHandlers(r *mux.Router) error {
 	return nil
 }
 
+func podCreate(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	var (
+		options []libpod.PodCreateOption
+		err     error
+		labels  map[string]string
+	)
+	ctx := context.Background()
+	infra := true
+	if len(r.Form.Get("infra-command")) > 0 || len(r.Form.Get("infra-image ")) > 0 {
+		Error(w, "Something went wrong.", http.StatusInternalServerError,
+			errors.New("infra-command and infra-image are not implemented yet"))
+		return
+	}
+	//TODO long term we should break the following out of adapter and into libpod proper
+	// so that the cli and api can share the creation of a pod with the same options
+	if len(r.Form.Get("cgroup-parent")) > 0 {
+		options = append(options, libpod.WithPodCgroupParent(r.Form.Get("cgroup-parent")))
+	}
+
+	if len(r.Form.Get("labels")) > 0 {
+		labelList := strings.Split(r.Form.Get("labels"), "s")
+		if err := parse.ReadKVStrings(labels, []string{}, labelList); err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if len(labels) != 0 {
+		options = append(options, libpod.WithPodLabels(labels))
+	}
+
+	if len(r.Form.Get("name")) > 0 {
+		options = append(options, libpod.WithPodName(r.Form.Get("name")))
+	}
+
+	if len(r.Form.Get("hostname")) > 0 {
+		options = append(options, libpod.WithPodHostname(r.Form.Get("hostname")))
+	}
+
+	if len(r.Form.Get("infra")) > 0 {
+		infra, err = strconv.ParseBool(r.Form.Get("infra"))
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusBadRequest, err)
+			return
+		}
+	}
+	if infra {
+		//TODO infra-image and infra-command are not supported in the libpod API yet.  Will fix
+		// when implemented in libpod
+		options = append(options, libpod.WithInfraContainer())
+		sharedNamespaces := shared.DefaultKernelNamespaces
+		if len(r.Form.Get("shared")) > 0 {
+			sharedNamespaces = r.Form.Get("shared")
+		}
+		nsOptions, err := shared.GetNamespaceOptions(strings.Split(sharedNamespaces, ","))
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+		options = append(options, nsOptions...)
+	}
+
+	if len(r.Form.Get("publish")) > 0 {
+		ports := strings.Split(r.Form.Get("publish"), "s")
+		portBindings, err := shared.CreatePortBindings(ports)
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+		options = append(options, libpod.WithInfraContainerPorts(portBindings))
+
+	}
+	// always have containers use pod cgroups
+	// User Opt out is not yet supported
+	options = append(options, libpod.WithPodCgroups())
+
+	_, err = runtime.NewPod(ctx, options...)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusCreated, "")
+}
+
 func pods(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	http.NotFound(w, r)
+	var podInspectData []*libpod.PodInspect
+
+	filters := r.Form.Get("filter")
+	if len(filters) > 0 {
+		Error(w, "filters are not implemented yet", http.StatusInternalServerError, define.ErrNotImplemented)
+		return
+	}
+
+	pods, err := runtime.GetAllPods()
+	if err != nil {
+		Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		return
+	}
+	for _, pod := range pods {
+		data, err := pod.Inspect()
+		if err != nil {
+			Error(w, "Something went wrong", http.StatusInternalServerError, err)
+			return
+		}
+		podInspectData = append(podInspectData, data)
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusOK, podInspectData)
+}
+
+func podInspect(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	name := mux.Vars(r)["name"]
+	pod, err := runtime.LookupPod(name)
+	if err != nil {
+		noSuchPodError(w, name, err)
+		return
+	}
+
+	podData, err := pod.Inspect()
+	if err != nil {
+		Error(w, "Something went wrong", http.StatusInternalServerError, err)
+		return
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusOK, podData)
 }
 
 func podStop(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
@@ -188,7 +314,7 @@ func podPrune(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		// TODO We need to make a libpod.PruneVolumes or this code will be a mess.  Volumes
 		// already does this right.  It will also help clean this code path up with less
 		// conditionals. We do this when we integrate with libpod again.
-		Error(w, "not implemented", http.StatusInternalServerError, nil)
+		Error(w, "not implemented", http.StatusInternalServerError, errors.New("not implemented"))
 		return
 	}
 	if err != nil {

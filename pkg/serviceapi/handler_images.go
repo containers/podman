@@ -16,6 +16,7 @@ import (
 
 func registerImagesHandlers(r *mux.Router) error {
 	r.Handle(unversionedPath("/images/json"), serviceHandler(getImages)).Methods("GET")
+	r.Handle(unversionedPath("/images/{name:..*}"), serviceHandler(removeImage)).Methods("DELETE")
 	r.Handle(unversionedPath("/images/{name:..*}/json"), serviceHandler(image))
 	r.Handle(unversionedPath("/images/{name:..*}/tag"), serviceHandler(tagImage)).Methods("POST")
 	r.Handle(unversionedPath("/images/create"), serviceHandler(createImage)).Methods("POST")
@@ -85,7 +86,7 @@ func tagImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	w.(ServiceWriter).WriteJSON(http.StatusCreated, "")
 }
 
-func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func removeImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
@@ -94,26 +95,31 @@ func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	}
 	ctx := context.Background()
 
-	switch r.Method {
-	case "DELETE":
-		force := false
-		if len(r.Form.Get("force")) > 0 {
-			force, err = strconv.ParseBool(r.Form.Get("force"))
-			if err != nil {
-				Error(w, "Something went wrong.", http.StatusBadRequest, err)
-				return
-			}
-		}
-		r, err := runtime.RemoveImage(ctx, newImage, force)
+	force := false
+	if len(r.Form.Get("force")) > 0 {
+		force, err = strconv.ParseBool(r.Form.Get("force"))
 		if err != nil {
-			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			Error(w, "Something went wrong.", http.StatusBadRequest, err)
 			return
 		}
-		// TODO
-		// This will need to be fixed for proper response, like Deleted: and Untagged:
-		w.(ServiceWriter).WriteJSON(http.StatusOK, r)
 	}
+	_, err = runtime.RemoveImage(ctx, newImage, force)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	// TODO
+	// This will need to be fixed for proper response, like Deleted: and Untagged:
+	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
 
+}
+func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	name := mux.Vars(r)["name"]
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		return
+	}
 	info, err := newImage.Inspect(context.Background())
 	if err != nil {
 		Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "Failed to inspect image %s", name))
