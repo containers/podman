@@ -34,6 +34,7 @@ type Span struct {
 
 	tracer *Tracer
 
+	// TODO: (breaking change) change to use a pointer
 	context SpanContext
 
 	// The name of the "operation" this span is an instance of.
@@ -65,18 +66,26 @@ type Span struct {
 }
 
 // Tag is a simple key value wrapper.
-// TODO deprecate in the next major release, use opentracing.Tag instead.
+// TODO (breaking change) deprecate in the next major release, use opentracing.Tag instead.
 type Tag struct {
 	key   string
 	value interface{}
 }
 
+// NewTag creates a new Tag.
+// TODO (breaking change) deprecate in the next major release, use opentracing.Tag instead.
+func NewTag(key string, value interface{}) Tag {
+	return Tag{key: key, value: value}
+}
+
 // SetOperationName sets or changes the operation name.
 func (s *Span) SetOperationName(operationName string) opentracing.Span {
 	s.Lock()
-	defer s.Unlock()
-	if s.context.IsSampled() {
-		s.operationName = operationName
+	s.operationName = operationName
+	s.Unlock()
+	if !s.isSamplingFinalized() {
+		decision := s.tracer.sampler.OnSetOperationName(s, operationName)
+		s.applySamplingDecision(decision, true)
 	}
 	s.observer.OnSetOperationName(operationName)
 	return s
@@ -84,14 +93,24 @@ func (s *Span) SetOperationName(operationName string) opentracing.Span {
 
 // SetTag implements SetTag() of opentracing.Span
 func (s *Span) SetTag(key string, value interface{}) opentracing.Span {
+	return s.setTagInternal(key, value, true)
+}
+
+func (s *Span) setTagInternal(key string, value interface{}, lock bool) opentracing.Span {
 	s.observer.OnSetTag(key, value)
 	if key == string(ext.SamplingPriority) && !setSamplingPriority(s, value) {
 		return s
 	}
-	s.Lock()
-	defer s.Unlock()
-	if s.context.IsSampled() {
-		s.setTagNoLocking(key, value)
+	if !s.isSamplingFinalized() {
+		decision := s.tracer.sampler.OnSetTag(s, key, value)
+		s.applySamplingDecision(decision, lock)
+	}
+	if s.isWriteable() {
+		if lock {
+			s.Lock()
+			defer s.Unlock()
+		}
+		s.appendTagNoLocking(key, value)
 	}
 	return s
 }
@@ -121,14 +140,38 @@ func (s *Span) Duration() time.Duration {
 func (s *Span) Tags() opentracing.Tags {
 	s.Lock()
 	defer s.Unlock()
-	var result = make(opentracing.Tags)
+	var result = make(opentracing.Tags, len(s.tags))
 	for _, tag := range s.tags {
 		result[tag.key] = tag.value
 	}
 	return result
 }
 
-func (s *Span) setTagNoLocking(key string, value interface{}) {
+// Logs returns micro logs for span
+func (s *Span) Logs() []opentracing.LogRecord {
+	s.Lock()
+	defer s.Unlock()
+
+	return append([]opentracing.LogRecord(nil), s.logs...)
+}
+
+// References returns references for this span
+func (s *Span) References() []opentracing.SpanReference {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.references == nil || len(s.references) == 0 {
+		return nil
+	}
+
+	result := make([]opentracing.SpanReference, len(s.references))
+	for i, r := range s.references {
+		result[i] = opentracing.SpanReference{Type: r.Type, ReferencedContext: r.Context}
+	}
+	return result
+}
+
+func (s *Span) appendTagNoLocking(key string, value interface{}) {
 	s.tags = append(s.tags, Tag{key: key, value: value})
 }
 
@@ -148,7 +191,7 @@ func (s *Span) logFieldsNoLocking(fields ...log.Field) {
 		Fields:    fields,
 		Timestamp: time.Now(),
 	}
-	s.appendLog(lr)
+	s.appendLogNoLocking(lr)
 }
 
 // LogKV implements opentracing.Span API
@@ -185,12 +228,12 @@ func (s *Span) Log(ld opentracing.LogData) {
 		if ld.Timestamp.IsZero() {
 			ld.Timestamp = s.tracer.timeNow()
 		}
-		s.appendLog(ld.ToLogRecord())
+		s.appendLogNoLocking(ld.ToLogRecord())
 	}
 }
 
 // this function should only be called while holding a Write lock
-func (s *Span) appendLog(lr opentracing.LogRecord) {
+func (s *Span) appendLogNoLocking(lr opentracing.LogRecord) {
 	// TODO add logic to limit number of logs per span (issue #46)
 	s.logs = append(s.logs, lr)
 }
@@ -224,17 +267,25 @@ func (s *Span) FinishWithOptions(options opentracing.FinishOptions) {
 	}
 	s.observer.OnFinish(options)
 	s.Lock()
+	s.duration = options.FinishTime.Sub(s.startTime)
+	s.Unlock()
+	if !s.isSamplingFinalized() {
+		decision := s.tracer.sampler.OnFinishSpan(s)
+		s.applySamplingDecision(decision, true)
+	}
 	if s.context.IsSampled() {
-		s.duration = options.FinishTime.Sub(s.startTime)
-		// Note: bulk logs are not subject to maxLogsPerSpan limit
-		if options.LogRecords != nil {
-			s.logs = append(s.logs, options.LogRecords...)
-		}
-		for _, ld := range options.BulkLogData {
-			s.logs = append(s.logs, ld.ToLogRecord())
+		if len(options.LogRecords) > 0 || len(options.BulkLogData) > 0 {
+			s.Lock()
+			// Note: bulk logs are not subject to maxLogsPerSpan limit
+			if options.LogRecords != nil {
+				s.logs = append(s.logs, options.LogRecords...)
+			}
+			for _, ld := range options.BulkLogData {
+				s.logs = append(s.logs, ld.ToLogRecord())
+			}
+			s.Unlock()
 		}
 	}
-	s.Unlock()
 	// call reportSpan even for non-sampled traces, to return span to the pool
 	// and update metrics counter
 	s.tracer.reportSpan(s)
@@ -300,23 +351,62 @@ func (s *Span) serviceName() string {
 	return s.tracer.serviceName
 }
 
+func (s *Span) applySamplingDecision(decision SamplingDecision, lock bool) {
+	if !decision.Retryable {
+		s.context.samplingState.setFinal()
+	}
+	if decision.Sample {
+		s.context.samplingState.setSampled()
+		if len(decision.Tags) > 0 {
+			if lock {
+				s.Lock()
+				defer s.Unlock()
+			}
+			for _, tag := range decision.Tags {
+				s.appendTagNoLocking(tag.key, tag.value)
+			}
+		}
+	}
+}
+
+// Span can be written to if it is sampled or the sampling decision has not been finalized.
+func (s *Span) isWriteable() bool {
+	state := s.context.samplingState
+	return !state.isFinal() || state.isSampled()
+}
+
+func (s *Span) isSamplingFinalized() bool {
+	return s.context.samplingState.isFinal()
+}
+
 // setSamplingPriority returns true if the flag was updated successfully, false otherwise.
+// The behavior of setSamplingPriority is surprising
+// If noDebugFlagOnForcedSampling is set
+//     setSamplingPriority(span, 1) always sets only flagSampled
+// If noDebugFlagOnForcedSampling is unset, and isDebugAllowed passes
+//     setSamplingPriority(span, 1) sets both flagSampled and flagDebug
+// However,
+//     setSamplingPriority(span, 0) always only resets flagSampled
+//
+// This means that doing a setSamplingPriority(span, 1) followed by setSamplingPriority(span, 0) can
+// leave flagDebug set
 func setSamplingPriority(s *Span, value interface{}) bool {
 	val, ok := value.(uint16)
 	if !ok {
 		return false
 	}
-	s.Lock()
-	defer s.Unlock()
 	if val == 0 {
-		s.context.flags = s.context.flags & (^flagSampled)
+		s.context.samplingState.unsetSampled()
+		s.context.samplingState.setFinal()
 		return true
 	}
 	if s.tracer.options.noDebugFlagOnForcedSampling {
-		s.context.flags = s.context.flags | flagSampled
+		s.context.samplingState.setSampled()
+		s.context.samplingState.setFinal()
 		return true
 	} else if s.tracer.isDebugAllowed(s.operationName) {
-		s.context.flags = s.context.flags | flagDebug | flagSampled
+		s.context.samplingState.setDebugAndSampled()
+		s.context.samplingState.setFinal()
 		return true
 	}
 	return false
@@ -326,5 +416,5 @@ func setSamplingPriority(s *Span, value interface{}) bool {
 func EnableFirehose(s *Span) {
 	s.Lock()
 	defer s.Unlock()
-	s.context.flags |= flagFirehose
+	s.context.samplingState.setFirehose()
 }

@@ -16,6 +16,8 @@ package jaeger
 
 import (
 	"time"
+
+	"github.com/uber/jaeger-client-go/log"
 )
 
 // SamplerOption is a function that sets some option on the sampler
@@ -27,10 +29,13 @@ var SamplerOptions samplerOptions
 type samplerOptions struct {
 	metrics                 *Metrics
 	maxOperations           int
-	sampler                 Sampler
+	sampler                 SamplerV2
 	logger                  Logger
 	samplingServerURL       string
 	samplingRefreshInterval time.Duration
+	samplingFetcher         SamplingStrategyFetcher
+	samplingParser          SamplingStrategyParser
+	updaters                []SamplerUpdater
 }
 
 // Metrics creates a SamplerOption that initializes Metrics on the sampler,
@@ -53,7 +58,7 @@ func (samplerOptions) MaxOperations(maxOperations int) SamplerOption {
 // to use before a remote sampler is created and used.
 func (samplerOptions) InitialSampler(sampler Sampler) SamplerOption {
 	return func(o *samplerOptions) {
-		o.sampler = sampler
+		o.sampler = samplerV1toV2(sampler)
 	}
 }
 
@@ -78,4 +83,66 @@ func (samplerOptions) SamplingRefreshInterval(samplingRefreshInterval time.Durat
 	return func(o *samplerOptions) {
 		o.samplingRefreshInterval = samplingRefreshInterval
 	}
+}
+
+// SamplingStrategyFetcher creates a SamplerOption that initializes sampling strategy fetcher.
+func (samplerOptions) SamplingStrategyFetcher(fetcher SamplingStrategyFetcher) SamplerOption {
+	return func(o *samplerOptions) {
+		o.samplingFetcher = fetcher
+	}
+}
+
+// SamplingStrategyParser creates a SamplerOption that initializes sampling strategy parser.
+func (samplerOptions) SamplingStrategyParser(parser SamplingStrategyParser) SamplerOption {
+	return func(o *samplerOptions) {
+		o.samplingParser = parser
+	}
+}
+
+// Updaters creates a SamplerOption that initializes sampler updaters.
+func (samplerOptions) Updaters(updaters ...SamplerUpdater) SamplerOption {
+	return func(o *samplerOptions) {
+		o.updaters = updaters
+	}
+}
+
+func (o *samplerOptions) applyOptionsAndDefaults(opts ...SamplerOption) *samplerOptions {
+	for _, option := range opts {
+		option(o)
+	}
+	if o.sampler == nil {
+		o.sampler = newProbabilisticSampler(0.001)
+	}
+	if o.logger == nil {
+		o.logger = log.NullLogger
+	}
+	if o.maxOperations <= 0 {
+		o.maxOperations = defaultMaxOperations
+	}
+	if o.samplingServerURL == "" {
+		o.samplingServerURL = DefaultSamplingServerURL
+	}
+	if o.metrics == nil {
+		o.metrics = NewNullMetrics()
+	}
+	if o.samplingRefreshInterval <= 0 {
+		o.samplingRefreshInterval = defaultSamplingRefreshInterval
+	}
+	if o.samplingFetcher == nil {
+		o.samplingFetcher = &httpSamplingStrategyFetcher{
+			serverURL: o.samplingServerURL,
+			logger:    o.logger,
+		}
+	}
+	if o.samplingParser == nil {
+		o.samplingParser = new(samplingStrategyParser)
+	}
+	if o.updaters == nil {
+		o.updaters = []SamplerUpdater{
+			&AdaptiveSamplerUpdater{MaxOperations: o.maxOperations},
+			new(ProbabilisticSamplerUpdater),
+			new(RateLimitingSamplerUpdater),
+		}
+	}
+	return o
 }

@@ -182,6 +182,29 @@ are available:
   1. `RateLimitingSampler` can be used to allow only a certain fixed
      number of traces to be sampled per second.
 
+#### Delayed sampling
+
+Version 2.20 introduced the ability to delay sampling decisions in the life cycle
+of the root span. It involves several features and architectural changes:
+  * **Shared sampling state**: the sampling state is shared across all local
+    (i.e. in-process) spans for a given trace.
+  * **New `SamplerV2` API** allows the sampler to be called at multiple points 
+    in the life cycle of a span:
+    * on span creation
+    * on overwriting span operation name
+    * on setting span tags
+    * on finishing the span
+  * **Final/non-final sampling state**: the new `SamplerV2` API allows the sampler
+    to indicate if the negative sampling decision is final or not (positive sampling
+    decisions are always final). If the decision is not final, the sampler will be
+    called again on further span life cycle events, like setting tags.
+
+These new features are used in the experimental `x.TagMatchingSampler`, which
+can sample a trace based on a certain tag added to the root
+span or one of its local (in-process) children. The sampler can be used with
+another experimental `x.PrioritySampler` that allows multiple samplers to try
+to make a sampling decision, in a certain priority order.
+
 ### Baggage Injection
 
 The OpenTracing spec allows for [baggage][baggage], which are key value pairs that are added
