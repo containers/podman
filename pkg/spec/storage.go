@@ -514,11 +514,17 @@ func getTmpfsMount(args []string) (spec.Mount, error) {
 		Source: TypeTmpfs,
 	}
 
-	var setDest, setRORW, setSuid, setDev, setExec bool
+	var setDest, setRORW, setSuid, setDev, setExec, setTmpcopyup bool
 
 	for _, val := range args {
 		kv := strings.Split(val, "=")
 		switch kv[0] {
+		case "tmpcopyup", "notmpcopyup":
+			if setTmpcopyup {
+				return newMount, errors.Wrapf(optionArgError, "cannot pass 'tmpcopyup' and 'notmpcopyup' options more than once")
+			}
+			setTmpcopyup = true
+			newMount.Options = append(newMount.Options, kv[0])
 		case "ro", "rw":
 			if setRORW {
 				return newMount, errors.Wrapf(optionArgError, "cannot pass 'ro' and 'rw' options more than once")
