@@ -442,7 +442,7 @@ github.com/stretchr/testify/require
 github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia v2.3.0+incompatible
 github.com/tchap/go-patricia/patricia
-# github.com/uber/jaeger-client-go v2.19.0+incompatible
+# github.com/uber/jaeger-client-go v2.20.0+incompatible
 github.com/uber/jaeger-client-go
 github.com/uber/jaeger-client-go/config
 github.com/uber/jaeger-client-go/internal/baggage
@@ -491,6 +491,8 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.1.0
 github.com/xeipuuv/gojsonschema
+# go.uber.org/atomic v1.4.0
+go.uber.org/atomic
 # golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/openpgp

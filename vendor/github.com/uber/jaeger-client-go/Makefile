@@ -1,5 +1,5 @@
 PROJECT_ROOT=github.com/uber/jaeger-client-go
-PACKAGES := $(shell go list ./... | awk -F/ 'NR>1 {print "./"$$4"/..."}' | grep -v -e ./thrift-gen/... -e ./thrift/... | sort -u)
+PACKAGES := . $(shell go list ./... | awk -F/ 'NR>1 {print "./"$$4"/..."}' | grep -v -e ./thrift-gen/... -e ./thrift/... | sort -u)
 # all .go files that don't exist in hidden directories
 ALL_SRC := $(shell find . -name "*.go" | grep -v -e vendor -e thrift-gen -e ./thrift/ \
         -e ".*/\..*" \
@@ -125,3 +125,4 @@ ifeq ($(CI_SKIP_LINT),true)
 else
 	make lint
 endif
+

@@ -28,6 +28,8 @@ import (
 // Reporter is called by the tracer when a span is completed to report the span to the tracing collector.
 type Reporter interface {
 	// Report submits a new span to collectors, possibly asynchronously and/or with buffering.
+	// If the reporter is processing Span asynchronously then it needs to Retain() the span,
+	// and then Release() it when no longer needed, to avoid span data corruption.
 	Report(span *Span)
 
 	// Close does a clean shutdown of the reporter, flushing any traces that may be buffered in memory.

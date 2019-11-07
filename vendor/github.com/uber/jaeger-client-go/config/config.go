@@ -86,6 +86,9 @@ type SamplerConfig struct {
 	// jaeger-agent for the appropriate sampling strategy.
 	// Can be set by exporting an environment variable named JAEGER_SAMPLER_REFRESH_INTERVAL
 	SamplingRefreshInterval time.Duration `yaml:"samplingRefreshInterval"`
+
+	// Options can be used to programmatically pass additional options to the Remote sampler.
+	Options []jaeger.SamplerOption
 }
 
 // ReporterConfig configures the reporter. All fields are optional.
@@ -357,6 +360,7 @@ func (sc *SamplerConfig) NewSampler(
 		if sc.SamplingRefreshInterval != 0 {
 			options = append(options, jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval))
 		}
+		options = append(options, sc.Options...)
 		return jaeger.NewRemotelyControlledSampler(serviceName, options...), nil
 	}
 	return nil, fmt.Errorf("Unknown sampler type %v", sc.Type)
