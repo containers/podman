@@ -400,17 +400,8 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		}
 	}
 
-	config, err := r.Runtime.GetConfig()
-	if err != nil {
-		return exitCode, err
-	}
-	detachKeys := c.String("detach-keys")
-	if detachKeys == "" {
-		detachKeys = config.DetachKeys
-	}
-
 	// if the container was created as part of a pod, also start its dependencies, if any.
-	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, detachKeys, c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
+	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately

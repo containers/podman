@@ -152,7 +152,7 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 func processDetachKeys(keys string) ([]byte, error) {
 	// Check the validity of the provided keys first
 	if len(keys) == 0 {
-		keys = define.DefaultDetachKeys
+		return []byte{}, nil
 	}
 	detachKeys, err := term.ToBytes(keys)
 	if err != nil {
