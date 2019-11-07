@@ -487,13 +487,16 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		if err := c.syncContainer(); err != nil {
 			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
 		}
+
 		logrus.Debugf("Looking in container for user: %s", c.User())
-		u, err := lookup.GetUser(c.state.Mountpoint, c.User())
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.User(), nil)
 		if err != nil {
 			return nil, err
 		}
-		user := int64(u.Uid)
-		sc.RunAsUser = &user
+		uid := int64(execUser.Uid)
+		gid := int64(execUser.Gid)
+		sc.RunAsUser = &uid
+		sc.RunAsGroup = &gid
 	}
 	return &sc, nil
 }

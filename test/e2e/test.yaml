@@ -24,6 +24,9 @@ spec:
     name: test
     resources: {}
     securityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
       allowPrivilegeEscalation: true
       capabilities: {}
       privileged: false
