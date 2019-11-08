@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -48,6 +49,12 @@ func createCmd(c *cliconfig.CreateValues) error {
 	if c.Bool("trace") {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "createCmd")
 		defer span.Finish()
+	}
+
+	if c.String("authfile") != "" {
+		if _, err := os.Stat(c.String("authfile")); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.String("authfile"))
+		}
 	}
 
 	if err := createInit(&c.PodmanCommand); err != nil {

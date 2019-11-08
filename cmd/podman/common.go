@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
@@ -112,7 +112,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Attach to STDIN, STDOUT or STDERR (default [])",
 	)
 	createFlags.String(
-		"authfile", shared.GetAuthFile(""),
+		"authfile", buildahcli.GetDefaultAuthFile(),
 		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
 	createFlags.String(

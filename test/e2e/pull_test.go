@@ -353,4 +353,11 @@ var _ = Describe("Podman pull", func() {
 		rmi.WaitWithDefaultTimeout()
 		Expect(rmi.ExitCode()).To(Equal(0))
 	})
+
+	It("podman pull from docker with nonexist --authfile", func() {
+		SkipIfRemote()
+		session := podmanTest.PodmanNoCache([]string{"pull", "--authfile", "/tmp/nonexist", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })

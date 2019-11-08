@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
@@ -59,7 +59,7 @@ func init() {
 
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&pushCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pushCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&pushCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 		flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
@@ -73,6 +73,12 @@ func pushCmd(c *cliconfig.PushValues) error {
 		registryCreds *types.DockerAuthConfig
 		destName      string
 	)
+
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
+	}
 
 	args := c.InputArgs
 	if len(args) == 0 || len(args) > 2 {

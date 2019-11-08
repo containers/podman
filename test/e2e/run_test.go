@@ -992,4 +992,11 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
 	})
+
+	It("podman run should fail with nonexist authfile", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"run", "--authfile", "/tmp/nonexist", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Not(Equal(0)))
+	})
 })

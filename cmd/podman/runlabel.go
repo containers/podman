@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
@@ -60,7 +61,7 @@ func init() {
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&runlabelCommand.Authfile, "authfile", shared.GetAuthFile(""), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&runlabelCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
 		flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
@@ -96,6 +97,12 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.DeferredShutdown(false)
+
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
+	}
 
 	args := c.InputArgs
 	if len(args) < 2 {
