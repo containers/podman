@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	ann "github.com/containers/libpod/pkg/annotations"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
@@ -600,7 +601,7 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 		if err != nil {
 			return nil, err
 		}
-		createConfig, err := kubeContainerToCreateConfig(ctx, container, r.Runtime, newImage, namespaces, volumes, pod.ID())
+		createConfig, err := kubeContainerToCreateConfig(ctx, container, r.Runtime, newImage, namespaces, volumes, pod.ID(), podInfraID)
 		if err != nil {
 			return nil, err
 		}
@@ -719,7 +720,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID string) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, infraID string) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig
@@ -799,6 +800,13 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	// Set default environment variables and incorporate data from image, if necessary
 	envs := shared.EnvVariablesFromData(imageData)
+
+	annotations := make(map[string]string)
+	if infraID != "" {
+		annotations[ann.SandboxID] = infraID
+		annotations[ann.ContainerType] = ann.ContainerTypeContainer
+	}
+	containerConfig.Annotations = annotations
 
 	// Environment Variables
 	for _, e := range containerYAML.Env {
