@@ -150,15 +150,15 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: docker.io/library/golang:1.13
         cpu: 4
         memory: 12
 
     timeout_in: 30m
 
     vendor_script:
-        - '/usr/local/bin/entrypoint.sh vendor |& ${TIMESTAMP}'
-        - 'cd ${GOSRC} && ./hack/tree_status.sh |& ${TIMESTAMP}'
+        - 'cd ${CIRRUS_WORKING_DIR} && make vendor'
+        - 'cd ${CIRRUS_WORKING_DIR} && ./hack/tree_status.sh'
 
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'

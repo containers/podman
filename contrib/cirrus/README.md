@@ -27,7 +27,7 @@ task (pass or fail) is set based on the exit status of the last script to execut
 4. ``lint``: Execute regular `make lint` to check for any code cruft.
    Should also run for less than a few minutes.
 
-5. ``vendor``: runs `make vendor` followed by `./hack/tree_status.sh` to check
+5. ``vendor``: runs `make vendor-in-container` followed by `./hack/tree_status.sh` to check
    whether the git tree is clean. The reasoning for that is to make sure that
    the vendor.conf, the code and the vendored packages in ./vendor are in sync
    at all times.
