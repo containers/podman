@@ -101,18 +101,23 @@ func removeImage(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime
 			return
 		}
 	}
-	_, err = runtime.RemoveImage(ctx, newImage, force)
+	id, err := runtime.RemoveImage(ctx, newImage, force)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 	// TODO
 	// This will need to be fixed for proper response, like Deleted: and Untagged:
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	w.(ServiceWriter).WriteJSON(http.StatusOK, struct {
+		Deleted string `json:"Deleted"`
+	}{
+		Deleted: id,
+	})
 
 }
 func image(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	name := mux.Vars(r)["name"]
+
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
