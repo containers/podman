@@ -15,16 +15,17 @@ import (
 )
 
 func registerContainersHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/containers/create"), serviceHandler(createContainer))
+	r.Handle(unversionedPath("/containers/create"), serviceHandler(createContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/json"), serviceHandler(listContainers)).Methods("GET")
 	r.Handle(unversionedPath("/containers/{name:..*}"), serviceHandler(removeContainer)).Methods("DELETE")
-	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container))
-	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
-	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer))
-	r.Handle(unversionedPath("/containers/{name:..*}/rename"), serviceHandler(unsupportedHandler))
-	r.Handle(unversionedPath("/containers/{name:..*}/restart"), serviceHandler(restartContainer))
-	r.Handle(unversionedPath("/containers/{name:..*}/stop"), serviceHandler(stopContainer))
-	r.Handle(unversionedPath("/containers/{name:..*}/unpause"), serviceHandler(unpauseContainer))
-	r.Handle(unversionedPath("/containers/{name:..*}/wait"), serviceHandler(waitContainer))
+	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container)).Methods("GET")
+	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/rename"), serviceHandler(unsupportedHandler)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/restart"), serviceHandler(restartContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/stop"), serviceHandler(stopContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/unpause"), serviceHandler(unpauseContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/wait"), serviceHandler(waitContainer)).Methods("POST")
 	return nil
 }
 
@@ -66,9 +67,52 @@ func removeContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Run
 	return
 }
 
+func listContainers(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	containers, err := runtime.GetAllContainers()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+
+	infoData, err := runtime.Info()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
+		return
+	}
+
+	var list = make([]*Container, len(containers))
+	for i, ctnr := range containers {
+		api, err := LibpodToContainer(ctnr, infoData)
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+		list[i] = api
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusOK, list)
+}
+
 func container(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New(fmt.Sprintf("%s is not implemented for containers", r.Method)))
-	return
+	name := mux.Vars(r)["name"]
+
+	ctnr, err := runtime.LookupContainer(name)
+	if err != nil {
+		noSuchContainerError(w, name, err)
+		return
+	}
+
+	infoData, err := runtime.Info()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
+		return
+	}
+
+	api, err := LibpodToContainer(ctnr, infoData)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	w.(ServiceWriter).WriteJSON(http.StatusOK, api)
 }
 
 func killContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {

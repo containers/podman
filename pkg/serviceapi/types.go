@@ -2,13 +2,17 @@ package serviceapi
 
 import (
 	"context"
-	"github.com/docker/docker/api/types/network"
+	"fmt"
+	goRuntime "runtime"
 	"time"
 
-	podmanImage "github.com/containers/libpod/libpod/image"
-	podmanInspect "github.com/containers/libpod/pkg/inspect"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	libpodImage "github.com/containers/libpod/libpod/image"
+	libpodInspect "github.com/containers/libpod/pkg/inspect"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
+	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/pkg/errors"
 )
 
@@ -35,8 +39,8 @@ type Info struct {
 }
 
 type Container struct {
-	docker.ContainerCreateConfig
 	docker.ContainerJSON
+	docker.ContainerCreateConfig
 }
 
 type ContainerStats struct {
@@ -94,45 +98,45 @@ type CreateContainer struct {
 	Name string
 	dockerContainer.Config
 	HostConfig       dockerContainer.HostConfig
-	NetworkingConfig network.NetworkingConfig
+	NetworkingConfig dockerNetwork.NetworkingConfig
 }
 
-func ImageToImageSummary(p *podmanImage.Image) (*ImageSummary, error) {
-	containers, err := p.Containers()
+func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
+	containers, err := l.Containers()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Containers for image %s", p.ID())
+		return nil, errors.Wrapf(err, "Failed to obtain Containers for image %s", l.ID())
 	}
 	containerCount := len(containers)
 
 	var digests []string
-	for _, d := range p.Digests() {
+	for _, d := range l.Digests() {
 		digests = append(digests, string(d))
 	}
 
-	tags, err := p.RepoTags()
+	tags, err := l.RepoTags()
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", p.ID())
+		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", l.ID())
 	}
 
 	// FIXME: GetParent() panics
-	// parent, err := p.GetParent(context.TODO())
+	// parent, err := l.GetParent(context.TODO())
 	// if err != nil {
-	// 	return nil, errors.Wrapf(err, "Failed to obtain ParentID for image %s", p.ID())
+	// 	return nil, errors.Wrapf(err, "Failed to obtain ParentID for image %s", l.ID())
 	// }
 
-	labels, err := p.Labels(context.TODO())
+	labels, err := l.Labels(context.TODO())
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Labels for image %s", p.ID())
+		return nil, errors.Wrapf(err, "Failed to obtain Labels for image %s", l.ID())
 	}
 
-	size, err := p.Size(context.TODO())
+	size, err := l.Size(context.TODO())
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain Size for image %s", p.ID())
+		return nil, errors.Wrapf(err, "Failed to obtain Size for image %s", l.ID())
 	}
 	return &ImageSummary{docker.ImageSummary{
 		Containers:  int64(containerCount),
-		Created:     p.Created().Unix(),
-		ID:          p.ID(),
+		Created:     l.Created().Unix(),
+		ID:          l.ID(),
 		Labels:      labels,
 		ParentID:    "parent.ID()",
 		RepoDigests: digests,
@@ -143,27 +147,99 @@ func ImageToImageSummary(p *podmanImage.Image) (*ImageSummary, error) {
 	}}, nil
 }
 
-func ImageDataToImageInspect(p *podmanInspect.ImageData) (*ImageInspect, error) {
+func ImageDataToImageInspect(l *libpodInspect.ImageData) (*ImageInspect, error) {
 	return &ImageInspect{docker.ImageInspect{
-		Architecture:    p.Architecture,
-		Author:          p.Author,
-		Comment:         p.Comment,
+		Architecture:    l.Architecture,
+		Author:          l.Author,
+		Comment:         l.Comment,
 		Config:          &dockerContainer.Config{},
 		Container:       "",
 		ContainerConfig: nil,
-		Created:         p.Created.Format(time.RFC3339Nano),
+		Created:         l.Created.Format(time.RFC3339Nano),
 		DockerVersion:   "",
 		GraphDriver:     docker.GraphDriverData{},
-		ID:              p.ID,
+		ID:              l.ID,
 		Metadata:        docker.ImageMetadata{},
-		Os:              p.Os,
-		OsVersion:       p.Version,
-		Parent:          p.Parent,
-		RepoDigests:     p.RepoDigests,
-		RepoTags:        p.RepoTags,
+		Os:              l.Os,
+		OsVersion:       l.Version,
+		Parent:          l.Parent,
+		RepoDigests:     l.RepoDigests,
+		RepoTags:        l.RepoTags,
 		RootFS:          docker.RootFS{},
-		Size:            p.Size,
+		Size:            l.Size,
 		Variant:         "",
-		VirtualSize:     p.VirtualSize,
+		VirtualSize:     l.VirtualSize,
 	}}, nil
+}
+
+func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {
+
+	hostInfo := infoData[0].Data
+	// storeInfo := infoData[1].Data
+
+	_, imageId := l.Image()
+
+	sizeRW, err := l.RWSize()
+	if err != nil {
+		return nil, err
+	}
+
+	SizeRootFs, err := l.RootFsSize()
+	if err != nil {
+		return nil, err
+	}
+
+	bindMounts, err := l.BindMounts()
+	if err != nil {
+		return nil, err
+	}
+
+	mountPoints := make([]docker.MountPoint, len(bindMounts))
+	i := 0
+	for k, v := range bindMounts {
+		mountPoints[i] = docker.MountPoint{
+			Type:        "",
+			Name:        "",
+			Source:      k,
+			Destination: v,
+			Driver:      "",
+			Mode:        "",
+			RW:          false,
+			Propagation: "",
+		}
+		i++
+	}
+
+	return &Container{docker.ContainerJSON{
+		ContainerJSONBase: &docker.ContainerJSONBase{
+			ID:              l.ID(),
+			Created:         l.CreatedTime().Format(time.RFC3339),
+			Path:            l.CheckpointPath(),
+			Args:            l.Command(),
+			State:           nil,
+			Image:           imageId,
+			ResolvConfPath:  "",
+			HostnamePath:    "/etc/hostname",
+			HostsPath:       "/etc/hosts",
+			LogPath:         l.LogPath(),
+			Node:            nil,
+			Name:            l.Name(),
+			RestartCount:    int(l.RestartRetries()),
+			Driver:          "",
+			Platform:        fmt.Sprintf("%s/%s/%s", goRuntime.GOOS, goRuntime.GOARCH, hostInfo["Distribution"].(map[string]interface{})["distribution"].(string)),
+			MountLabel:      l.MountLabel(),
+			ProcessLabel:    l.ProcessLabel(),
+			AppArmorProfile: "",
+			ExecIDs:         nil,
+			HostConfig:      nil,
+			GraphDriver:     docker.GraphDriverData{},
+			SizeRw:          &sizeRW,
+			SizeRootFs:      &SizeRootFs,
+		},
+		Mounts:          mountPoints,
+		Config:          nil,
+		NetworkSettings: nil,
+	},
+		docker.ContainerCreateConfig{},
+	}, nil
 }
