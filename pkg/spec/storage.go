@@ -160,7 +160,7 @@ func (config *CreateConfig) parseVolumes(runtime *libpod.Runtime) ([]spec.Mount,
 	}
 
 	// If requested, add tmpfs filesystems for read-only containers.
-	if config.ReadOnlyRootfs && config.ReadOnlyTmpfs {
+	if config.Security.ReadOnlyRootfs && config.Security.ReadOnlyTmpfs {
 		readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
 		options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
 		for _, dest := range readonlyTmpfs {
@@ -807,7 +807,7 @@ func (config *CreateConfig) addContainerInitBinary(path string) (spec.Mount, err
 	if path == "" {
 		return mount, fmt.Errorf("please specify a path to the container-init binary")
 	}
-	if !config.PidMode.IsPrivate() {
+	if !config.Pid.PidMode.IsPrivate() {
 		return mount, fmt.Errorf("cannot add init binary as PID 1 (PID namespace isn't private)")
 	}
 	if config.Systemd {

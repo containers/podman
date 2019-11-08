@@ -382,8 +382,8 @@ github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/error
 # github.com/opencontainers/selinux v1.3.0
-github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/go-selinux
+github.com/opencontainers/selinux/go-selinux/label
 # github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible
 github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.1
