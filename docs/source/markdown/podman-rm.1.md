@@ -42,7 +42,8 @@ The storage option conflicts with the **--all**, **--latest**, and **--volumes**
 
 **--volumes**, **-v**
 
-Remove the volumes associated with the container.
+Remove anonymous volumes associated with the container. This does not include named volumes
+created with `podman volume create`, or the `--volume` option of `podman run` and `podman create`.
 
 ## EXAMPLE
 Remove a container by its name *mywebserver*
