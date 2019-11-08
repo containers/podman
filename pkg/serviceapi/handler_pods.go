@@ -34,6 +34,8 @@ func registerPodsHandlers(r *mux.Router) error {
 }
 
 func podCreate(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	//TODO This is ALL wrong.  Brent to completely redo.  Should be using JSON structures
+	// and not forms.
 	var (
 		options []libpod.PodCreateOption
 		err     error

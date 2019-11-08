@@ -15,6 +15,7 @@ import (
 )
 
 func registerContainersHandlers(r *mux.Router) error {
+	r.Handle(unversionedPath("/containers/create"), serviceHandler(createContainer))
 	r.Handle(unversionedPath("/containers/{name:..*}"), serviceHandler(removeContainer)).Methods("DELETE")
 	r.Handle(unversionedPath("/containers/{name:..*}/json"), serviceHandler(container))
 	r.Handle(unversionedPath("/containers/{name:..*}/kill"), serviceHandler(killContainer))
