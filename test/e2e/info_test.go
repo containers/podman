@@ -45,4 +45,10 @@ var _ = Describe("Podman Info", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 	})
+	It("podman info --format GO template", func() {
+		session := podmanTest.Podman([]string{"info", "--format", "{{ json .}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
 })
