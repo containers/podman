@@ -179,7 +179,7 @@ func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.
 	labels["app"] = removeUnderscores(podName)
 	om := v12.ObjectMeta{
 		// The name of the pod is container_name-libpod
-		Name:   removeUnderscores(podName),
+		Name:   removeUnderscores(podName) + "-libpod",
 		Labels: labels,
 		// CreationTimestamp seems to be required, so adding it; in doing so, the timestamp
 		// will reflect time this is run (not container create time) because the conversion
@@ -207,7 +207,20 @@ func simplePodWithV1Container(ctr *Container) (*v1.Pod, error) {
 		return nil, err
 	}
 	containers = append(containers, kubeCtr)
-	return addContainersAndVolumesToPodObject(containers, kubeVols, ctr.Name()), nil
+	pod := addContainersAndVolumesToPodObject(containers, kubeVols, ctr.Name())
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string, len(ctr.config.Labels))
+	}
+	for v, k := range ctr.config.Labels {
+		pod.Labels[k] = v
+	}
+	if pod.Annotations == nil {
+		pod.Annotations = make(map[string]string, len(ctr.config.Spec.Annotations))
+	}
+	for k, v := range ctr.config.Spec.Annotations {
+		pod.Annotations[k] = v
+	}
+	return pod, nil
 
 }
 

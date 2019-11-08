@@ -485,6 +485,9 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 
 	podOptions = append(podOptions, libpod.WithInfraContainer())
 	podOptions = append(podOptions, libpod.WithPodName(podName))
+	if len(podYAML.Labels) != 0 {
+		podOptions = append(podOptions, libpod.WithPodLabels(podYAML.Labels))
+	}
 	// TODO for now we just used the default kernel namespaces; we need to add/subtract this from yaml
 
 	hostname := podYAML.Spec.Hostname
