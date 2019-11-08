@@ -2,6 +2,7 @@ package serviceapi
 
 import (
 	"context"
+	"github.com/docker/docker/api/types/network"
 	"time"
 
 	podmanImage "github.com/containers/libpod/libpod/image"
@@ -34,6 +35,7 @@ type Info struct {
 }
 
 type Container struct {
+	docker.ContainerCreateConfig
 	docker.ContainerJSON
 }
 
@@ -86,6 +88,13 @@ type ContainerWaitOKBody struct {
 	Error      struct {
 		Message string
 	}
+}
+
+type CreateContainer struct {
+	Name string
+	dockerContainer.Config
+	HostConfig       dockerContainer.HostConfig
+	NetworkingConfig network.NetworkingConfig
 }
 
 func ImageToImageSummary(p *podmanImage.Image) (*ImageSummary, error) {
