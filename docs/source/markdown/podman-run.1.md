@@ -210,6 +210,10 @@ Specify the key sequence for detaching a container. Format is a single character
 
 Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
 
+Note: if the user only has access rights via a group then accessing the device
+from inside a rootless container will fail. The `crun` runtime offers a
+workaround for this by adding the option `--annotation io.crun.keep_original_groups=1`.
+
 **--device-read-bps**=*path*
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
