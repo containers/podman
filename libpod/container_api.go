@@ -404,6 +404,11 @@ func (c *Container) Mount() (string, error) {
 			return "", err
 		}
 	}
+
+	if c.state.State == define.ContainerStateRemoving {
+		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
 	defer c.newContainerEvent(events.Mount)
 	return c.mount()
 }
@@ -488,7 +493,12 @@ func (c *Container) Export(path string) error {
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Export)
+
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
+	}
+
+	defer c.newContainerEvent(events.Mount)
 	return c.export(path)
 }
 
@@ -674,6 +684,10 @@ func (c *Container) Refresh(ctx context.Context) error {
 		}
 	}
 
+	if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot refresh containers that are being removed")
+	}
+
 	wasCreated := false
 	if c.state.State == define.ContainerStateCreated {
 		wasCreated = true
@@ -819,7 +833,6 @@ func (c *Container) Checkpoint(ctx context.Context, options ContainerCheckpointO
 			return err
 		}
 	}
-	defer c.newContainerEvent(events.Checkpoint)
 	return c.checkpoint(ctx, options)
 }
 

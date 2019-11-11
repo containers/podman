@@ -719,7 +719,8 @@ func (c *Container) isStopped() (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused, nil
+
+	return !c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused), nil
 }
 
 // save container state to the database
@@ -1057,6 +1058,8 @@ func (c *Container) initAndStart(ctx context.Context) (err error) {
 	// If we are ContainerStateUnknown, throw an error
 	if c.state.State == define.ContainerStateUnknown {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is in an unknown state", c.ID())
+	} else if c.state.State == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot start container %s as it is being removed", c.ID())
 	}
 
 	// If we are running, do nothing
