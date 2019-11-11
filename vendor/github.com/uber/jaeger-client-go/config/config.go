@@ -76,16 +76,25 @@ type SamplerConfig struct {
 	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MANAGER_HOST_PORT
 	SamplingServerURL string `yaml:"samplingServerURL"`
 
-	// MaxOperations is the maximum number of operations that the sampler
-	// will keep track of. If an operation is not tracked, a default probabilistic
-	// sampler will be used rather than the per operation specific sampler.
-	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MAX_OPERATIONS
-	MaxOperations int `yaml:"maxOperations"`
-
 	// SamplingRefreshInterval controls how often the remotely controlled sampler will poll
 	// jaeger-agent for the appropriate sampling strategy.
 	// Can be set by exporting an environment variable named JAEGER_SAMPLER_REFRESH_INTERVAL
 	SamplingRefreshInterval time.Duration `yaml:"samplingRefreshInterval"`
+
+	// MaxOperations is the maximum number of operations that the PerOperationSampler
+	// will keep track of. If an operation is not tracked, a default probabilistic
+	// sampler will be used rather than the per operation specific sampler.
+	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MAX_OPERATIONS.
+	MaxOperations int `yaml:"maxOperations"`
+
+	// Opt-in feature for applications that require late binding of span name via explicit
+	// call to SetOperationName when using PerOperationSampler. When this feature is enabled,
+	// the sampler will return retryable=true from OnCreateSpan(), thus leaving the sampling
+	// decision as non-final (and the span as writeable). This may lead to degraded performance
+	// in applications that always provide the correct span name on trace creation.
+	//
+	// For backwards compatibility this option is off by default.
+	OperationNameLateBinding bool `yaml:"operationNameLateBinding"`
 
 	// Options can be used to programmatically pass additional options to the Remote sampler.
 	Options []jaeger.SamplerOption
@@ -335,7 +344,7 @@ func (sc *SamplerConfig) NewSampler(
 			return jaeger.NewProbabilisticSampler(sc.Param)
 		}
 		return nil, fmt.Errorf(
-			"Invalid Param for probabilistic sampler: %v. Expecting value between 0 and 1",
+			"invalid Param for probabilistic sampler; expecting value between 0 and 1, received %v",
 			sc.Param,
 		)
 	}
@@ -353,17 +362,14 @@ func (sc *SamplerConfig) NewSampler(
 			jaeger.SamplerOptions.Metrics(metrics),
 			jaeger.SamplerOptions.InitialSampler(initSampler),
 			jaeger.SamplerOptions.SamplingServerURL(sc.SamplingServerURL),
-		}
-		if sc.MaxOperations != 0 {
-			options = append(options, jaeger.SamplerOptions.MaxOperations(sc.MaxOperations))
-		}
-		if sc.SamplingRefreshInterval != 0 {
-			options = append(options, jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval))
+			jaeger.SamplerOptions.MaxOperations(sc.MaxOperations),
+			jaeger.SamplerOptions.OperationNameLateBinding(sc.OperationNameLateBinding),
+			jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval),
 		}
 		options = append(options, sc.Options...)
 		return jaeger.NewRemotelyControlledSampler(serviceName, options...), nil
 	}
-	return nil, fmt.Errorf("Unknown sampler type %v", sc.Type)
+	return nil, fmt.Errorf("unknown sampler type (%s)", sc.Type)
 }
 
 // NewReporter instantiates a new reporter that submits spans to the collector

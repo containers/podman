@@ -363,6 +363,9 @@ type PerOperationSamplerParams struct {
 
 // NewPerOperationSampler returns a new PerOperationSampler.
 func NewPerOperationSampler(params PerOperationSamplerParams) *PerOperationSampler {
+	if params.MaxOperations <= 0 {
+		params.MaxOperations = defaultMaxOperations
+	}
 	samplers := make(map[string]*GuaranteedThroughputProbabilisticSampler)
 	for _, strategy := range params.Strategies.PerOperationStrategies {
 		sampler := newGuaranteedThroughputProbabilisticSampler(

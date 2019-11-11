@@ -1,6 +1,16 @@
 Changes by Version
 ==================
 
+2.20.1 (2019-11-08)
+-------------------
+
+Minor patch via https://github.com/jaegertracing/jaeger-client-go/pull/468
+
+- Make `AdaptiveSamplerUpdater` usable with default values; Resolves #467
+- Create `OperationNameLateBinding` sampler option and config option
+- Make `SamplerOptions` var of public type, so that its functions are discoverable via godoc
+
+
 2.20.0 (2019-11-06)
 -------------------
 

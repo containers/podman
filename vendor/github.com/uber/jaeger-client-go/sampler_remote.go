@@ -258,8 +258,9 @@ func (u *RateLimitingSamplerUpdater) Update(sampler SamplerV2, strategy interfac
 // -----------------------
 
 // AdaptiveSamplerUpdater is used by RemotelyControlledSampler to parse sampling configuration.
+// Fields have the same meaning as in PerOperationSamplerParams.
 type AdaptiveSamplerUpdater struct {
-	MaxOperations            int // required
+	MaxOperations            int
 	OperationNameLateBinding bool
 }
 
