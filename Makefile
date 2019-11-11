@@ -410,6 +410,9 @@ install.man: docs
 install.config:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
 	install ${SELINUXOPT} -m 644 libpod.conf $(DESTDIR)$(SHAREDIR_CONTAINERS)/libpod.conf
+
+install.seccomp:
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(SHAREDIR_CONTAINERS)
 	install ${SELINUXOPT} -m 644 seccomp.json $(DESTDIR)$(SHAREDIR_CONTAINERS)/seccomp.json
 
 install.completions:
