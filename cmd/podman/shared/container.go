@@ -195,6 +195,8 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 		status = "Paused"
 	case define.ContainerStateCreated.String(), define.ContainerStateConfigured.String():
 		status = "Created"
+	case define.ContainerStateRemoving.String():
+		status = "Removing"
 	default:
 		status = "Error"
 	}

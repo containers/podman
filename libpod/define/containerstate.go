@@ -25,6 +25,9 @@ const (
 	// ContainerStateExited indicates the the container has stopped and been
 	// cleaned up
 	ContainerStateExited ContainerStatus = iota
+	// ContainerStateRemoving indicates the container is in the process of
+	// being removed.
+	ContainerStateRemoving ContainerStatus = iota
 )
 
 // ContainerStatus returns a string representation for users
@@ -45,6 +48,8 @@ func (t ContainerStatus) String() string {
 		return "paused"
 	case ContainerStateExited:
 		return "exited"
+	case ContainerStateRemoving:
+		return "removing"
 	}
 	return "bad state"
 }
@@ -67,6 +72,8 @@ func StringToContainerStatus(status string) (ContainerStatus, error) {
 		return ContainerStatePaused, nil
 	case ContainerStateExited.String():
 		return ContainerStateExited, nil
+	case ContainerStateRemoving.String():
+		return ContainerStateRemoving, nil
 	default:
 		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
 	}
