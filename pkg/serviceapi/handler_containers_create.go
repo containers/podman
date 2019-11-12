@@ -3,6 +3,12 @@ package serviceapi
 import (
 	"context"
 	"encoding/json"
+	"github.com/containers/libpod/libpod/define"
+	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/storage"
+	"github.com/docker/docker/pkg/signal"
+	"golang.org/x/sys/unix"
 	"net/http"
 
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -17,24 +23,59 @@ func createContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Run
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	cc, err := makeCreateConfig(input)
+
+	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	cc, err := makeCreateConfig(input, newImage)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
 	var pod *libpod.Pod
-	_, err = shared.CreateContainerFromCreateConfig(runtime, &cc, ctx, pod)
+	ctr, err := shared.CreateContainerFromCreateConfig(runtime, &cc, ctx, pod)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
+
+	type ctrCreateResponse struct {
+		Id       string   `json:"Id"`
+		Warnings []string `json:"Warnings"`
+	}
+	response := ctrCreateResponse{
+		Id:       ctr.ID(),
+		Warnings: []string{}}
+
+	w.(ServiceWriter).WriteJSON(http.StatusCreated, response)
 	return
 }
 
-func makeCreateConfig(input CreateContainer) (createconfig.CreateConfig, error) {
+func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconfig.CreateConfig, error) {
+	var err error
+	stopSignal := unix.SIGTERM
+	if len(input.StopSignal) > 0 {
+		stopSignal, err = signal.ParseSignal(input.StopSignal)
+		if err != nil {
+			return createconfig.CreateConfig{}, err
+		}
+	}
+
+	workDir := "/"
+	if len(input.WorkingDir) > 0 {
+		workDir = input.WorkingDir
+	}
+
+	stopTimeout := uint(define.CtrRemoveTimeout)
+	if input.StopTimeout != nil {
+		stopTimeout = uint(*input.StopTimeout)
+	}
+
 	m := createconfig.CreateConfig{
-		Annotations:   nil,
+		Annotations:   nil, //podman
 		Args:          nil,
 		CapAdd:        input.HostConfig.CapAdd,
 		CapDrop:       input.HostConfig.CapDrop,
@@ -62,10 +103,10 @@ func makeCreateConfig(input CreateContainer) (createconfig.CreateConfig, error) 
 		//Init:               input.HostConfig.Init,
 		InitPath:          "", // tbd
 		Image:             input.Image,
-		ImageID:           "",  // added later
-		BuiltinImgVolumes: nil, //podman
-		IDMappings:        nil, //podman
-		ImageVolumeType:   "",  //podman
+		ImageID:           newImage.ID(),
+		BuiltinImgVolumes: nil,                         //podman
+		IDMappings:        &storage.IDMappingOptions{}, //podman //TODO <--- fix this
+		ImageVolumeType:   "",                          //podman
 		Interactive:       false,
 		//IpcMode:           input.HostConfig.IpcMode,
 		IP6Address:  "",
@@ -91,23 +132,23 @@ func makeCreateConfig(input CreateContainer) (createconfig.CreateConfig, error) 
 		ReadOnlyRootfs: input.HostConfig.ReadonlyRootfs,
 		ReadOnlyTmpfs:  false, //podman
 		Resources:      createconfig.CreateResourceConfig{},
-		//RestartPolicy:      input.HostConfig.RestartPolicy,
-		Rm: input.HostConfig.AutoRemove,
-		//StopSignal:         input.StopSignal,
-		//StopTimeout:        input.StopTimeout,
-		Sysctl:  input.HostConfig.Sysctls,
-		Systemd: false, //podman
+		RestartPolicy:  input.HostConfig.RestartPolicy.Name,
+		Rm:             input.HostConfig.AutoRemove,
+		StopSignal:     stopSignal,
+		StopTimeout:    stopTimeout,
+		Sysctl:         input.HostConfig.Sysctls,
+		Systemd:        false, //podman
 		//Tmpfs:              input.HostConfig.Tmpfs,
-		Tty: input.Tty,
-		//UsernsMode:         input.HostConfig.UsernsMode,
-		User: input.User,
+		Tty:        input.Tty,
+		UsernsMode: namespaces.UsernsMode(input.HostConfig.UsernsMode),
+		User:       input.User,
 		//UtsMode:            input.HostConfig.UTSMode,
 		Mounts: nil, //we populate
 		//MountsFlag:         input.HostConfig.Mounts,
 		NamedVolumes: nil, // we populate
 		//Volumes:            input.Volumes,
 		VolumesFrom:        input.HostConfig.VolumesFrom,
-		WorkDir:            input.WorkingDir,
+		WorkDir:            workDir,
 		LabelOpts:          nil,   // we populate
 		NoNewPrivs:         false, // we populate
 		ApparmorProfile:    "",    // we populate
@@ -116,6 +157,5 @@ func makeCreateConfig(input CreateContainer) (createconfig.CreateConfig, error) 
 		Rootfs:             "",    //podman
 		Syslog:             false, //podman
 	}
-
 	return m, nil
 }
