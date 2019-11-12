@@ -1,7 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
@@ -34,9 +37,23 @@ func init() {
 	pruneImagesCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneImagesCommand.Flags()
 	flags.BoolVarP(&pruneImagesCommand.All, "all", "a", false, "Remove all unused images, not just dangling ones")
+	flags.BoolVarP(&pruneImagesCommand.Force, "force", "f", false, "Do not prompt for confirmation")
 }
 
 func pruneImagesCmd(c *cliconfig.PruneImagesValues) error {
+	if !c.Force {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf(`
+WARNING! This will remove all dangling images.
+Are you sure you want to continue? [y/N] `)
+		ans, err := reader.ReadString('\n')
+		if err != nil {
+			return errors.Wrapf(err, "error reading input")
+		}
+		if strings.ToLower(ans)[0] != 'y' {
+			return nil
+		}
+	}
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")

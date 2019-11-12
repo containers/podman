@@ -175,7 +175,8 @@ type HistoryValues struct {
 }
 type PruneImagesValues struct {
 	PodmanCommand
-	All bool
+	All   bool
+	Force bool
 }
 
 type PruneContainersValues struct {
