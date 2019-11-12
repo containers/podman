@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	goruntime "runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -88,9 +89,11 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, nil, err
 		}
 
+		overrideOS := c.String("override-os")
+		overrideArch := c.String("override-arch")
 		dockerRegistryOptions := image.DockerRegistryOptions{
-			OSChoice:           c.String("override-os"),
-			ArchitectureChoice: c.String("override-arch"),
+			OSChoice:           overrideOS,
+			ArchitectureChoice: overrideArch,
 		}
 
 		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
@@ -101,6 +104,15 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, nil, err
 		}
+
+		if overrideOS == "" && data.Os != goruntime.GOOS {
+			return nil, nil, errors.Errorf("incompatible image OS %q on %q host", data.Os, goruntime.GOOS)
+		}
+
+		if overrideArch == "" && data.Architecture != goruntime.GOARCH {
+			return nil, nil, errors.Errorf("incompatible image architecture %q on %q host", data.Architecture, goruntime.GOARCH)
+		}
+
 		names := newImage.Names()
 		if len(names) > 0 {
 			imageName = names[0]
