@@ -360,7 +360,6 @@ LABEL "com.example.vendor"="Example Vendor"
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		output = session.OutputToString()
-		Expect(output).To(Not(MatchRegexp("<missing>")))
 		Expect(output).To(Not(MatchRegexp("error")))
 
 		session = podmanTest.Podman([]string{"history", "--quiet", "foo"})
