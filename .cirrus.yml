@@ -426,7 +426,6 @@ build_cache_images_task:
     depends_on:
         - "gating"
         - "testing"
-        - "rootless_testing"
 
     # VMs created by packer are not cleaned up by cirrus
     auto_cancellation: $CI != "true"
