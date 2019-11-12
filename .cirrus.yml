@@ -92,7 +92,7 @@ gating_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:master"
         cpu: 4
         memory: 12
 
@@ -184,7 +184,7 @@ varlink_api_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:master"
         cpu: 4
         memory: 12
 
@@ -273,7 +273,7 @@ meta_task:
         - "build_without_cgo"
 
     container:
-        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
+        image: "quay.io/libpod/imgts:master"  # see contrib/imgts
         cpu: 1
         memory: 1
 
@@ -309,7 +309,7 @@ image_prune_task:
         - "meta"
 
     container:
-        image: "quay.io/libpod/imgprune:latest"  # see contrib/imgprune
+        image: "quay.io/libpod/imgprune:master"  # see contrib/imgprune
         cpu: 1
         memory: 1
 
@@ -714,7 +714,7 @@ success_task:
         GOSRC: "/go/src/github.com/containers/libpod"
 
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:master"
         cpu: 1
         memory: 1
 
