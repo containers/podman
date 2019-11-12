@@ -75,7 +75,7 @@ TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
 # IN_PODMAN container image
-IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
+IN_PODMAN_IMAGE="quay.io/libpod/in_podman:v1.4.2-stable"
 
 # When running as root, this may be empty or not, as a user, it MUST be set.
 if [[ "$USER" == "root" ]]
