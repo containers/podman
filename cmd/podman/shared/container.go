@@ -453,7 +453,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 	psResults := []PsContainerOutput{}
 
 	// If the number of containers in question is less than the number of
-	// proposed parallel operations, we shouldnt spawn so many workers.
+	// proposed parallel operations, we shouldn't spawn so many workers.
 	if workers > len(containers) {
 		workers = len(containers)
 	}
@@ -694,7 +694,7 @@ func portsToString(ports []ocicni.PortMapping) string {
 		portgroup, ok := portGroupMap[portMapKey]
 		if !ok {
 			portGroupMap[portMapKey] = &portGroup{first: v.ContainerPort, last: v.ContainerPort}
-			// This list is required to travese portGroupMap.
+			// This list is required to traverse portGroupMap.
 			groupKeyList = append(groupKeyList, portMapKey)
 			continue
 		}

@@ -267,7 +267,7 @@ echo -e "\n${YEL}Removing and re-creating $GOSRC on $VMNAME.${NOR}"
 showrun $SSH_CMD --command "rm -rf $GOSRC"
 showrun $SSH_CMD --command "mkdir -p $GOSRC"
 
-echo -e "\n${YEL}Transfering tarball to $VMNAME.${NOR}"
+echo -e "\n${YEL}Transferring tarball to $VMNAME.${NOR}"
 wait
 showrun $SCP_CMD $HOME/$TARBALL $SSHUSER@$VMNAME:/tmp/$TARBALL
 

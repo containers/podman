@@ -145,7 +145,7 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 
   // Set mutexes to robust - if a process dies while holding a mutex, we'll get
   // a special error code on the next attempt to lock it.
-  // This should prevent panicing processes from leaving the state unusable.
+  // This should prevent panicking processes from leaving the state unusable.
   ret_code = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
   if (ret_code != 0) {
     *error_code = -1 * ret_code;
@@ -298,7 +298,7 @@ int32_t close_lock_shm(shm_struct_t *shm) {
 // Allocate the first available semaphore
 // Returns a positive integer guaranteed to be less than UINT32_MAX on success,
 // or negative errno values on failure
-// On sucess, the returned integer is the number of the semaphore allocated
+// On success, the returned integer is the number of the semaphore allocated
 int64_t allocate_semaphore(shm_struct_t *shm) {
   int ret_code, i;
   bitmap_t test_map;

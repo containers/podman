@@ -2,7 +2,7 @@
 
 # To get zsh to reread this file: unset -f _podman;rm -f ~/.zcompdump;compinit
 
-# On rereads, reset cache. (Not that the cacheing works, but some day it might)
+# On rereads, reset cache. (Not that the caching works, but some day it might)
 unset -m '_podman_*'
 
 ###############################################################################

@@ -178,7 +178,7 @@ func (r *LocalRuntime) LookupContainersWithStatus(filters []string) ([]*Containe
 	if err != nil {
 		return nil, err
 	}
-	// This is not performance savy; if this turns out to be a problematic series of lookups, we need to
+	// This is not performance savvy; if this turns out to be a problematic series of lookups, we need to
 	// create a new endpoint to speed things up
 	for _, ctr := range ctrs {
 		container, err := r.LookupContainer(ctr.Id)
@@ -617,7 +617,7 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 		return err
 	}
 	if c.All {
-		// We dont have a great way to get all the running containers, so need to get all and then
+		// We don't have a great way to get all the running containers, so need to get all and then
 		// check status on them bc checkpoint considers checkpointing a stopped container an error
 		var runningIds []string
 		for _, id := range ids {
@@ -660,7 +660,7 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 		return err
 	}
 	if c.All {
-		// We dont have a great way to get all the exited containers, so need to get all and then
+		// We don't have a great way to get all the exited containers, so need to get all and then
 		// check status on them bc checkpoint considers restoring a running container an error
 		var exitedIDs []string
 		for _, id := range ids {

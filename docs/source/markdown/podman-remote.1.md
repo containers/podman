@@ -17,7 +17,7 @@ Podman uses Buildah(1) internally to create container images. Both tools share i
 (not container) storage, hence each can use or manipulate images (but not containers)
 created by the other.
 
-Podman-remote provides a local client interacting with a Podman backend node through a varlink ssh connection. In this context, a Podman node is a Linux system with Podman installed on it and the varlink service activated. Credentials for this session can be passed in using flags, enviroment variables, or in `podman-remote.conf`
+Podman-remote provides a local client interacting with a Podman backend node through a varlink ssh connection. In this context, a Podman node is a Linux system with Podman installed on it and the varlink service activated. Credentials for this session can be passed in using flags, environment variables, or in `podman-remote.conf`
 
 **podman [GLOBAL OPTIONS]**
 

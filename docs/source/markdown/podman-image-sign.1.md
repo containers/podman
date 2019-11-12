@@ -41,7 +41,7 @@ The write (and read) location for signatures is defined in YAML-based
 configuration files in /etc/containers/registries.d/.  When you sign
 an image, Podman will use those configuration files to determine
 where to write the signature based on the the name of the originating
-registry or a default storage value unless overriden with the --directory
+registry or a default storage value unless overridden with the --directory
 option. For example, consider the following configuration file.
 
 docker:

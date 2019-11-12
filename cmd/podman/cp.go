@@ -192,7 +192,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount {
 			path, err := pathWithBindMountSource(mount, srcPath)
 			if err != nil {
-				return errors.Wrapf(err, "error getting source path from bind moutn %s", mount.Destination)
+				return errors.Wrapf(err, "error getting source path from bind mount %s", mount.Destination)
 			}
 			srcPath = path
 		} else if filepath.IsAbs(srcPath) {

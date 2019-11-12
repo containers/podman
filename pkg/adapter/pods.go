@@ -36,7 +36,7 @@ const (
 )
 
 // PodContainerStats is struct containing an adapter Pod and a libpod
-// ContainerStats and is used primarily for outputing pod stats.
+// ContainerStats and is used primarily for outputting pod stats.
 type PodContainerStats struct {
 	Pod            *Pod
 	ContainerStats map[string]*libpod.ContainerStats

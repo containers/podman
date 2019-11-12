@@ -88,7 +88,7 @@ func TestReadRemoteConfig(t *testing.T) {
 		{"good", args{reader: strings.NewReader(goodConfig)}, makeGoodResult(), false},
 		// a connection with no destination is an error
 		{"nodest", args{reader: strings.NewReader(noDest)}, nil, true},
-		// a connnection with no user is OK
+		// a connection with no user is OK
 		{"nouser", args{reader: strings.NewReader(noUser)}, makeNoUserResult(), false},
 	}
 	for _, tt := range tests {

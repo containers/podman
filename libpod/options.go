@@ -386,8 +386,7 @@ func WithNamespace(ns string) RuntimeOption {
 
 // WithVolumePath sets the path under which all named volumes
 // should be created.
-// The path changes based on whethe rthe user is running as root
-// or not.
+// The path changes based on whether the user is running as root or not.
 func WithVolumePath(volPath string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
