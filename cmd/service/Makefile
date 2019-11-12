@@ -1,3 +1,3 @@
 .PHONY service
 service: main.go
-	go build .
+	go build -tags "seccomp" .

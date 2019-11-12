@@ -23,6 +23,7 @@ func registerContainersHandlers(r *mux.Router) error {
 	r.Handle(unversionedPath("/containers/{name:..*}/pause"), serviceHandler(pauseContainer)).Methods("POST")
 	r.Handle(unversionedPath("/containers/{name:..*}/rename"), serviceHandler(unsupportedHandler)).Methods("POST")
 	r.Handle(unversionedPath("/containers/{name:..*}/restart"), serviceHandler(restartContainer)).Methods("POST")
+	r.Handle(unversionedPath("/containers/{name:..*}/start"), serviceHandler(startContainer)).Methods("POST")
 	r.Handle(unversionedPath("/containers/{name:..*}/stop"), serviceHandler(stopContainer)).Methods("POST")
 	r.Handle(unversionedPath("/containers/{name:..*}/unpause"), serviceHandler(unpauseContainer)).Methods("POST")
 	r.Handle(unversionedPath("/containers/{name:..*}/wait"), serviceHandler(waitContainer)).Methods("POST")
@@ -253,6 +254,31 @@ func unpauseContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Ru
 	}
 
 	// Success
+	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
+}
+
+func startContainer(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+	ctx := context.Background()
+	name := mux.Vars(r)["name"]
+	con, err := runtime.LookupContainer(name)
+	if err != nil {
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
+		return
+	}
+	state, err := con.State()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	if state == define.ContainerStateRunning {
+		msg := fmt.Sprintf("Container %s is already running", name)
+		Error(w, msg, http.StatusNotModified, errors.New(msg))
+		return
+	}
+	if err := con.Start(ctx, false); err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
 	w.(ServiceWriter).WriteJSON(http.StatusNoContent, "")
 }
 
