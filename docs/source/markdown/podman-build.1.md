@@ -342,8 +342,8 @@ than the one in storage. Raise an error if the image is not in any listed
 registry and is not present locally.
 
 If the flag is disabled (with *--pull=false*), do not pull the image from the
-registry, use only the local version. Raise an error if the image is not
-present locally.
+registry, unless there is no local image. Raise an error if the image is not
+in any registry and is not present locally.
 
 Defaults to *true*.
 
@@ -351,6 +351,11 @@ Defaults to *true*.
 
 Pull the image from the first registry it is found in as listed in registries.conf.
 Raise an error if not found in the registries, even if the image is present locally.
+
+**--pull-never**
+
+Do not pull the image from the registry, use only the local version. Raise an error
+if the image is not present locally.
 
 **--quiet**, **-q**
 

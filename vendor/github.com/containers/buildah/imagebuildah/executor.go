@@ -339,6 +339,11 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	var cleanupImages []string
 	cleanupStages := make(map[int]*StageExecutor)
 
+	stdout := b.out
+	if b.quiet {
+		b.out = ioutil.Discard
+	}
+
 	cleanup := func() error {
 		var lastErr error
 		// Clean up any containers associated with the final container
@@ -526,6 +531,10 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	if b.iidfile != "" {
 		if err = ioutil.WriteFile(b.iidfile, []byte(imageID), 0644); err != nil {
 			return imageID, ref, errors.Wrapf(err, "failed to write image ID to file %q", b.iidfile)
+		}
+	} else {
+		if _, err := stdout.Write([]byte(imageID + "\n")); err != nil {
+			return imageID, ref, errors.Wrapf(err, "failed to write image ID to stdout")
 		}
 	}
 

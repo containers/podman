@@ -1244,6 +1244,7 @@ _podman_build() {
 	  --no-cache
 	  --pull
 	  --pull-always
+	  --pull-never
 	  --quiet
 	  -q
 	  --rm
