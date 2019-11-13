@@ -27,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.12.0-dev"
+	Version = "1.11.5"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -40,7 +40,7 @@ const (
 	stateFile = Package + ".json"
 )
 
-// PullPolicy takes the value PullIfMissing, PullAlways, or PullNever.
+// PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
 type PullPolicy int
 
 const (
@@ -52,6 +52,11 @@ const (
 	// take, signalling that a fresh, possibly updated, copy of the image
 	// should be pulled from a registry before the build proceeds.
 	PullAlways
+	// PullIfNewer is one of the values that BuilderOptions.PullPolicy
+	// can take, signalling that the source image should only be pulled
+	// from a registry if a local copy is not already present or if a
+	// newer version the image is present on the repository.
+	PullIfNewer
 	// PullNever is one of the values that BuilderOptions.PullPolicy can
 	// take, signalling that the source image should not be pulled from a
 	// registry if a local copy of it is not already present.
@@ -65,6 +70,8 @@ func (p PullPolicy) String() string {
 		return "PullIfMissing"
 	case PullAlways:
 		return "PullAlways"
+	case PullIfNewer:
+		return "PullIfNewer"
 	case PullNever:
 		return "PullNever"
 	}

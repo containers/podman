@@ -68,21 +68,25 @@ script:
     # Fail fast
     - set -e
     # Let's do some docker stuff just for verification purposes
-    - docker ps --all
-    - docker images
-    - ls -alF /home/travis/auth
-    - docker pull docker.io/alpine
-    - echo testpassword | docker login localhost:5000 --username testuser --password-stdin
-    - docker tag alpine localhost:5000/my-alpine
-    - docker push localhost:5000/my-alpine
-    - docker ps --all
-    - docker images
-    - docker rmi docker.io/alpine
-    - docker rmi localhost:5000/my-alpine
-    - docker pull localhost:5000/my-alpine
-    - docker ps --all
-    - docker images
-    - docker rmi localhost:5000/my-alpine
+# Commented out the following in order to get travis runs
+# under the 50 minute requirement.  Do not remove as we may
+# want to use this in cirrius testing when we move there.
+#    - docker ps --all
+#    - docker images
+#    - ls -alF /home/travis/auth
+#    - docker pull docker.io/alpine
+#    - echo testpassword | docker login localhost:5000 --username testuser --password-stdin
+#    - docker tag alpine localhost:5000/my-alpine
+#    - docker push localhost:5000/my-alpine
+#    - docker ps --all
+#    - docker images
+#    - docker rmi docker.io/alpine
+#    - docker rmi localhost:5000/my-alpine
+#    - docker pull localhost:5000/my-alpine
+#    - docker ps --all
+#    - docker images
+#    - docker rmi localhost:5000/my-alpine
+# End Speed up comment
     # Setting up  Docker Registry is complete, let's do Buildah testing!
     - make install.tools -j4
     - make install.libseccomp.sudo all runc validate lint SECURITYTAGS="apparmor seccomp"

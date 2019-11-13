@@ -318,7 +318,7 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 			// directory.
 			contextSrc, err := securejoin.SecureJoin(contextDir, src)
 			if err != nil {
-				return "", errors.Wrapf(err, "error joining %q and %q", contextDir, src)
+				return "", errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
 			}
 			sources = append(sources, contextSrc)
 		}
@@ -432,7 +432,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 				// directory.
 				srcSecure, err := securejoin.SecureJoin(contextDir, src)
 				if err != nil {
-					return err
+					return errors.Wrapf(err, "forbidden path for %q, it is outside of the build context %q", src, contextDir)
 				}
 				if hadFinalPathSeparator {
 					// If destination is a folder, we need to take extra care to

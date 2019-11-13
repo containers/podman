@@ -8,10 +8,9 @@ require (
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc // indirect
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.2
-	github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982
+	github.com/containers/buildah v1.11.5
 	github.com/containers/conmon v2.0.2+incompatible // indirect
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/psgo v1.3.2
@@ -22,7 +21,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.7.1+incompatible
-	github.com/docker/docker v1.4.2-0.20190927142053-ada3c14355ce
+	github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
 	github.com/docker/docker-credential-helpers v0.6.3
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
@@ -33,7 +32,7 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/godbus/dbus v0.0.0-20181101234600-2ff6f7ffd60f
+	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
@@ -68,7 +67,7 @@ require (
 	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20190902133755-9109b7679e13
+	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
