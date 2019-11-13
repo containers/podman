@@ -106,7 +106,7 @@ func (p *Pool) newWorker(slot int) {
 }
 
 // DefaultPoolSize provides the maximum number of parallel workers (int) as calculated by a basic
-// heuristic. This can be overriden by the --max-workers primary switch to podman.
+// heuristic. This can be overridden by the --max-workers primary switch to podman.
 func DefaultPoolSize(name string) int {
 	numCpus := runtime.NumCPU()
 	switch name {

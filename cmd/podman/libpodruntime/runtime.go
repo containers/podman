@@ -157,7 +157,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 
 	// TODO flag to set CNI plugins dir?
 
-	// TODO I dont think these belong here?
+	// TODO I don't think these belong here?
 	// Will follow up with a different PR to address
 	//
 	// Pod create options

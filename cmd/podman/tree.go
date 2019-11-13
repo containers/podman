@@ -115,7 +115,7 @@ func printImageChildren(layerMap map[string]*image.LayerInfo, layerID string, pr
 		// add continueItem i.e. '|' for next iteration prefix
 		prefix = prefix + continueItem
 	} else if len(ll.ChildID) > 1 || len(ll.ChildID) == 0 {
-		// The above condition ensure, alignment happens for node, which has more then 1 childern.
+		// The above condition ensure, alignment happens for node, which has more then 1 children.
 		// If node is last in printing hierarchy, it should not be printed as middleItem i.e. ├──
 		intend = lastItem
 		prefix = prefix + " "

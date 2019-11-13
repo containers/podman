@@ -450,7 +450,7 @@ func (r *LocalRuntime) GetFileFromRemoteHost(remoteFilePath, outputPath string, 
 
 	reader := r.Conn.Reader
 	if _, err := io.CopyN(writer, reader, length); err != nil {
-		return errors.Wrap(err, "file transer failed")
+		return errors.Wrap(err, "file transfer failed")
 	}
 	return nil
 }

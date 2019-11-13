@@ -445,7 +445,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	}
 	for _, c := range containers {
 		containerStatus := "unknown"
-		// Ignoring possible errors here because we dont want this to be
+		// Ignoring possible errors here because we don't want this to be
 		// catastrophic in nature
 		containerState, err := c.State()
 		if err == nil {

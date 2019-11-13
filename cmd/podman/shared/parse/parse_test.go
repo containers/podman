@@ -82,8 +82,8 @@ func TestValidateFileName(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{name: "good", args: args{filename: "/som/rand/path"}, wantErr: false},
-		{name: "good", args: args{filename: "som/rand/path"}, wantErr: false},
+		{name: "good", args: args{filename: "/some/rand/path"}, wantErr: false},
+		{name: "good", args: args{filename: "some/rand/path"}, wantErr: false},
 		{name: "good", args: args{filename: "/"}, wantErr: false},
 		{name: "bad", args: args{filename: "/:"}, wantErr: true},
 		{name: "bad", args: args{filename: ":/"}, wantErr: true},

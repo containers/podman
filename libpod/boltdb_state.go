@@ -2235,7 +2235,7 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 			if ctr == nil {
 				// This should never happen
 				// State is inconsistent
-				return errors.Wrapf(define.ErrNoSuchCtr, "pod %s referenced nonexistant container %s", pod.ID(), string(id))
+				return errors.Wrapf(define.ErrNoSuchCtr, "pod %s referenced nonexistent container %s", pod.ID(), string(id))
 			}
 			ctrDeps := ctr.Bucket(dependenciesBkt)
 			// This should never be nil, but if it is, we're

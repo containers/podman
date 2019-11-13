@@ -59,7 +59,7 @@ func (r *Runtime) GetVolume(name string) (*Volume, error) {
 	return vol, nil
 }
 
-// LookupVolume retrieves a volume by unambigious partial name.
+// LookupVolume retrieves a volume by unambiguous partial name.
 func (r *Runtime) LookupVolume(name string) (*Volume, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()

@@ -330,7 +330,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
 		}
-		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we dont need to yap about registries.
+		// If the image passed in was fully-qualified, we will have 1 refpair.  Bc the image is fq'd, we don't need to yap about registries.
 		if !goal.usedSearchRegistries {
 			if pullErrors != nil && len(pullErrors.Errors) > 0 { // this should always be true
 				return nil, errors.Wrap(pullErrors.Errors[0], "unable to pull image")

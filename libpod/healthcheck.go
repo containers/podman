@@ -31,7 +31,7 @@ const (
 	// HealthCheckNotDefined means the container has no health
 	// check defined in it
 	HealthCheckNotDefined HealthCheckStatus = iota
-	// HealthCheckInternalError means somes something failed obtaining or running
+	// HealthCheckInternalError means some something failed obtaining or running
 	// a given health check
 	HealthCheckInternalError HealthCheckStatus = iota
 	// HealthCheckDefined means the healthcheck was found on the container

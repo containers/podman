@@ -139,7 +139,7 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 	return &mergedConfig, nil
 }
 
-// HaveMatchRegistry checks if trust settings for the registry have been configed in yaml file
+// HaveMatchRegistry checks if trust settings for the registry have been configured in yaml file
 func HaveMatchRegistry(key string, registryConfigs *RegistryConfiguration) *RegistryNamespace {
 	searchKey := key
 	if !strings.Contains(searchKey, "/") {

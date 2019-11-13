@@ -12,7 +12,7 @@ HOME="$(getent passwd $USER | cut -d : -f 6)"
 [[ -n "$UID" ]] || UID=$(getent passwd $USER | cut -d : -f 3)
 GID=$(getent passwd $USER | cut -d : -f 4)
 
-# Essential default paths, many are overriden when executing under Cirrus-CI
+# Essential default paths, many are overridden when executing under Cirrus-CI
 export GOPATH="${GOPATH:-/var/tmp/go}"
 if type -P go &> /dev/null
 then
@@ -82,7 +82,7 @@ PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
 LILTO="timeout_attempt_delay_command 24s 5 30s"
 BIGTO="timeout_attempt_delay_command 300s 5 30s"
 
-# Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
+# Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
 # Unsafe env. vars for display
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
@@ -319,7 +319,7 @@ setup_rootless() {
             tee -a /etc/subuid >> /etc/subgid
 
     # Env. vars set by Cirrus and setup_environment.sh must be explicitly
-    # transfered to the test-user.
+    # transferred to the test-user.
     echo "Configuring rootless user's environment variables:"
     echo "# Added by $GOSRC/$SCRIPT_PATH/lib.sh setup_rootless()"
     _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \

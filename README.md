@@ -36,7 +36,7 @@ This project tests all builds against each supported version of Fedora, the late
 
 ## Communications
 
-If you think you've identified a security issue in the project, please *DO NOT* report the issue publically via the Github issue tracker, mailing list, or IRC.
+If you think you've identified a security issue in the project, please *DO NOT* report the issue publicly via the Github issue tracker, mailing list, or IRC.
 Instead, send an email with as many details as possible to `security@lists.podman.io`. This is a private mailing list for the core maintainers.
 
 For general questions and discussion, please use the

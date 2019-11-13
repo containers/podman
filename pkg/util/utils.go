@@ -84,7 +84,7 @@ func ParseChanges(option string) (key string, vals []string, err error) {
 		if len(tokens) < 2 {
 			return "", []string{}, fmt.Errorf("invalid key value %s", option)
 		}
-		key = strings.Trim(tokens[0], " ") // Need to trim whitespace part of delimeter.
+		key = strings.Trim(tokens[0], " ") // Need to trim whitespace part of delimiter.
 		val = tokens[1]
 		if strings.Contains(tokens[1], "[") && strings.Contains(tokens[1], "]") {
 			//Trim '[',']' if exist.

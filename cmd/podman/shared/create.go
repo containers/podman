@@ -111,7 +111,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		// if the user disabled the healthcheck with "none", we skip adding it
 		healthCheckCommandInput := c.String("healthcheck-command")
 
-		// the user didnt disable the healthcheck but did pass in a healthcheck command
+		// the user didn't disable the healthcheck but did pass in a healthcheck command
 		// now we need to make a healthcheck from the commandline input
 		if healthCheckCommandInput != "none" {
 			if len(healthCheckCommandInput) > 0 {

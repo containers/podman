@@ -3,7 +3,7 @@
 set +e  # Not all of these exist on every platform
 
 # This is intended to be executed on VMs as a startup script on initial-boot.
-# Alternativly, it may be executed with the '--list' option to return the list
+# Alternatively, it may be executed with the '--list' option to return the list
 # of systemd units defined for disablement (useful for testing).
 
 EVIL_UNITS="cron crond atd apt-daily-upgrade apt-daily fstrim motd-news systemd-tmpfiles-clean"

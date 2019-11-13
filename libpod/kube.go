@@ -341,7 +341,7 @@ func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume
 	return vms, vos, nil
 }
 
-// generateKubeVolumeMount takes a user specfied mount and returns
+// generateKubeVolumeMount takes a user specified mount and returns
 // a kubernetes VolumeMount (to be added to the container) and a kubernetes Volume
 // (to be added to the pod)
 func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {

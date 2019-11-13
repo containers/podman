@@ -154,7 +154,7 @@
 
 ## 1.5.0
 ### Features
-- Podman containers can now join the user namespaces of other containers with `--userns=container:$ID`, or a user namespace at an arbitary path with `--userns=ns:$PATH`
+- Podman containers can now join the user namespaces of other containers with `--userns=container:$ID`, or a user namespace at an arbitrary path with `--userns=ns:$PATH`
 - Rootless Podman can experimentally squash all UIDs and GIDs in an image to a single UID and GID (which does not require use of the `newuidmap` and `newgidmap` executables) by passing `--storage-opt ignore_chown_errors`
 - The `podman generate kube` command now produces YAML for any bind mounts the container has created ([#2303](https://github.com/containers/libpod/issues/2303))
 - The `podman container restore` command now features a new flag, `--ignore-static-ip`, that can be used with `--import` to import a single container with a static IP multiple times on the same host
@@ -230,7 +230,7 @@
 ## 1.4.3
 ### Features
 - Podman now has greatly improved support for containers using multiple OCI runtimes. Containers now remember if they were created with a different runtime using `--runtime` and will always use that runtime
-- The `cached` and `delegated` options for volume mounts are now allowed for Docker compatability ([#3340](https://github.com/containers/libpod/issues/3340))
+- The `cached` and `delegated` options for volume mounts are now allowed for Docker compatibility ([#3340](https://github.com/containers/libpod/issues/3340))
 - The `podman diff` command now supports the `--latest` flag
 
 ### Bugfixes
@@ -243,7 +243,7 @@
 ### Misc
 - Podman now performs much better on systems with heavy I/O load
 - The `--cgroup-manager` flag to `podman` now shows the correct default setting in help if the default was overridden by `libpod.conf`
-- For backwards compatability, setting `--log-driver=json-file` in `podman run` is now supported as an alias for `--log-driver=k8s-file`. This is considered deprecated, and `json-file` will be moved to a new implementation in the future ([#3363](https://github.com/containers/libpod/issues/3363))
+- For backwards compatibility, setting `--log-driver=json-file` in `podman run` is now supported as an alias for `--log-driver=k8s-file`. This is considered deprecated, and `json-file` will be moved to a new implementation in the future ([#3363](https://github.com/containers/libpod/issues/3363))
 - Podman's default `libpod.conf` file now allows the [crun](https://github.com/giuseppe/crun) OCI runtime to be used if it is installed
 
 ## 1.4.2
@@ -297,7 +297,7 @@
 - Fixed a bug where `podman exec` would fail on older kernels ([#2968](https://github.com/containers/libpod/issues/2968))
 
 ### Misc
-- The `podman inspect` command on containers now uses the `Id` key (instead of `ID`) for the container's ID, for better compatability with the output of `docker inspect`
+- The `podman inspect` command on containers now uses the `Id` key (instead of `ID`) for the container's ID, for better compatibility with the output of `docker inspect`
 - The `podman commit` command is now usable with the Podman remote client
 - The `--signature-policy` flag (used with several image-related commands) has been deprecated
 - The `podman unshare` command now defines two environment variables in the spawned shell: `CONTAINERS_RUNROOT` and `CONTAINERS_GRAPHROOT`, pointing to temporary and permanent storage for rootless containers
@@ -379,7 +379,7 @@
 - The Podman remote client now builds on Windows
 - A major refactor of volumes created using the `podman volume` command was performed. There should be no major user-facing changes, but downgrading from Podman 1.3 to previous versions may render some volumes unable to be removed.
 - The `podman events` command now logs events to journald by default. The old behavior (log to file) can be configured in podman.conf via the `events_logger` option
-- The `podman commit` command, in versions 1.2 and earlier, included all volumes mounted into the container as image volumes in the committed image. This behavior was incorrect and has been disabled by default; it can be reenabled with the `--include-volumes` flag
+- The `podman commit` command, in versions 1.2 and earlier, included all volumes mounted into the container as image volumes in the committed image. This behavior was incorrect and has been disabled by default; it can be re-enabled with the `--include-volumes` flag
 
 
 ## 1.2.0
@@ -529,7 +529,7 @@
 - Fixed a bug where detaching from a container using the detach keys would cause Podman to hang until the container exited
 - Fixed a bug where `podman create --rm` did not work with `podman start --attach`
 - Fixed a bug where invalid named volumes specified in `podman create` and `podman run` could cause segfaults ([#2301](https://github.com/containers/libpod/issues/2301))
-- Fixed a bug where the `runtime` field in `libpod.conf` was being ignored. `runtime` is legacy and deprecated, but will continue to be respected for the forseeable future
+- Fixed a bug where the `runtime` field in `libpod.conf` was being ignored. `runtime` is legacy and deprecated, but will continue to be respected for the foreseeable future
 - Fixed a bug where `podman login` would sometimes report it logged in successfully when it did not
 - Fixed a bug where `podman pod create` would not error on receiving unused CLI argument
 - Fixed a bug where rootless `podman run` with the `--pod` argument would fail if the pod was stopped
@@ -554,7 +554,7 @@
 - `podman rm` can now delete containers in containers/storage, which can be used to resolve some situations where Podman fails to remove a container
 - The `podman search` command now searches multiple registries in parallel for improved performance
 - The `podman build` command now defaults `--pull-always` to true
-- Containers which share a network namespace (for example, when in a pod) will now share /etc/hosts and /etc/resolv.conf between all containers in the pod, causing changes in one container to propogate to all containers sharing their networks
+- Containers which share a network namespace (for example, when in a pod) will now share /etc/hosts and /etc/resolv.conf between all containers in the pod, causing changes in one container to propagate to all containers sharing their networks
 - The `podman rm` and `podman rmi` commands now return 1 (instead of 127) when all specified container or images are missing
 
 ## 1.0.0
@@ -593,7 +593,7 @@
 - The `podman info` command now prints the path of the configuration file controlling container storage
 - Added `podman list` and `podman ls` as aliases for `podman ps`, and `podman container ps` and `podman container list` as aliases for `podman container ls`
 - Changed `podman generate kube` to generate Kubernetes service YAML in the same file as pod YAML, generating a single file instead of two
-- To improve compatability with the Docker command line, `podman inspect -f '{{ json .ContainerConfig }}'` on images is no longer valid; please use `podman inspect -f '{{ json .Config }}'` instead
+- To improve compatibility with the Docker command line, `podman inspect -f '{{ json .ContainerConfig }}'` on images is no longer valid; please use `podman inspect -f '{{ json .Config }}'` instead
 
 ## 0.12.1.2
 ### Bugfixes
@@ -626,7 +626,7 @@
 ### Bugfixes
 - Fixed a breaking change in rootless Podman where a change in default paths caused Podman to be unable to function on systems upgraded from 0.10.x or earlier
 - Fixed a bug where `podman exec` without `-t` would still use a terminal if the container was created with `-t`
-- Fixed a bug where container root propogation was not being properly adjusted if volumes with root propogation set were mounted into the container
+- Fixed a bug where container root propagation was not being properly adjusted if volumes with root propagation set were mounted into the container
 - Fixed a bug where `podman exec` could hold the container lock longer than necessary waiting for an exited container
 - Fixed a bug where rootless containers using `slirp4netns` for networking were reporting using `bridge` networking in `podman inspect`
 - Fixed a bug where `podman container restore -a` was attempting to restore all containers, including created and running ones. It will now only attempt to restore stopped and exited containers
@@ -692,7 +692,7 @@
 - Changed default location of temporary libpod files in rootless Podman
 - Updated the default Podman seccomp profile
 
-### Compatability
+### Compatibility
 Several paths related to rootless Podman had their default values changed in this release.
 If paths were not hardcoded in libpod.conf, your system may lose track of running containers and believe they are newly-created.
 
@@ -730,7 +730,7 @@ If paths were not hardcoded in libpod.conf, your system may lose track of runnin
 - Fixed an issue with rootless Podman not properly detecting when user namespaces were not enabled
 - Fixed an issue where Podman user namespaces were not preserving file capabilities
 - Fixed an issue where `resolv.conf` in container would unconditionally forward nameservers into the container, even localhost
-- Fixed containers to release resources in the OCI runtime immediately after exiting, improving compatability with Kata containers
+- Fixed containers to release resources in the OCI runtime immediately after exiting, improving compatibility with Kata containers
 - Fixed OCI runtime handling to fix several issues when using gVisor as an OCI runtime
 - Fixed SELinux relabel errors when starting containers after a system restart
 - Fixed a crash when initializing hooks on containers running systemd as init
@@ -786,10 +786,10 @@ If paths were not hardcoded in libpod.conf, your system may lose track of runnin
 - Fixed rootless `podman create` with no command specified throwing an error
 
 ### Misc
-- Added `podman rm --volumes` flag for compatability with Docker. As Podman does not presently support named volumes, this does nothing for now, but provides improved compatability with the Docker command line.
+- Added `podman rm --volumes` flag for compatibility with Docker. As Podman does not presently support named volumes, this does nothing for now, but provides improved compatibility with the Docker command line.
 - Improved error messages from `podman pull`
 
-### Compatability
+### Compatibility
 - Podman is no longer being built by default with support for the Devicemapper storage driver. If you are using this storage driver, you should investigate switching to overlayfs.
 
 ## 0.9.1.1
@@ -848,6 +848,6 @@ It is recommended that you restart your system firewall after installing this re
 - Fixed issues with Apparmor in rootless containers
 - Fixed an issue with database encoding causing some containers created by Podman versions 0.8.1 and below to be unusable.
 
-### Compatability:
-We switched JSON encoding/decoding to a new library for this release to address a compatability issue introduced by v0.8.2.
+### Compatibility:
+We switched JSON encoding/decoding to a new library for this release to address a compatibility issue introduced by v0.8.2.
 However, this may cause issues with containers created in 0.8.2 and 0.8.3 with custom DNS servers.
