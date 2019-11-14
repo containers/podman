@@ -4,28 +4,26 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/gorilla/mux"
 )
 
-func registerPingHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/_ping"), serviceHandler(pingGET)).Methods("GET")
-	r.Handle(unversionedPath("/_ping"), serviceHandler(pingHEAD)).Methods("HEAD")
+func (s *APIServer) registerPingHandlers(r *mux.Router) error {
+	r.Handle("/_ping", s.serviceHandler(pingGET)).Methods("GET")
+	r.Handle("/_ping", s.serviceHandler(pingHEAD)).Methods("HEAD")
 	return nil
 }
 
-func pingGET(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func pingGET(w http.ResponseWriter, _ *http.Request) {
 	setHeaders(w)
 	fmt.Fprintln(w, "OK")
 }
 
-func pingHEAD(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func pingHEAD(w http.ResponseWriter, _ *http.Request) {
 	setHeaders(w)
-	fmt.Fprintln(w, "(emtpy)")
+	fmt.Fprintln(w, "")
 }
 
 func setHeaders(w http.ResponseWriter) {
-	// ServiceWriter.WriteJSON is not a good fit here
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("API-Version", DefaultApiVersion)
 	w.Header().Set("BuildKit-Version", "")
