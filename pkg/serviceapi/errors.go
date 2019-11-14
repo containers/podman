@@ -13,31 +13,29 @@ import (
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Errorf(err.Error())
-
-	w.(ServiceWriter).WriteJSON(code,
-		struct {
-			Message string `json:"message"`
-		}{
-			apiMessage,
-		})
+	WriteJSON(w, struct {
+		Message string `json:"message"`
+	}{
+		apiMessage,
+	})
 }
 
-func noSuchContainerError(w http.ResponseWriter, nameOrId string, err error) {
+func containerNotFound(w http.ResponseWriter, nameOrId string, err error) {
 	msg := fmt.Sprintf("No such container: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
-func noSuchImageError(w http.ResponseWriter, nameOrId string, err error) {
+func imageNotFound(w http.ResponseWriter, nameOrId string, err error) {
 	msg := fmt.Sprintf("No such image: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
-func noSuchPodError(w http.ResponseWriter, nameOrId string, err error) {
+func podNotFound(w http.ResponseWriter, nameOrId string, err error) {
 	msg := fmt.Sprintf("No such pod: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
-func containerNotRunningError(w http.ResponseWriter, containerID string, err error) {
-	msg := fmt.Sprintf("Container %s is not running: %s", containerID)
+func containerNotRunning(w http.ResponseWriter, containerID string, err error) {
+	msg := fmt.Sprintf("Container %s is not running", containerID)
 	Error(w, msg, http.StatusConflict, err)
 }

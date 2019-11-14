@@ -3,14 +3,12 @@ package serviceapi
 import (
 	"fmt"
 	"net/http"
-
-	"github.com/containers/libpod/libpod"
 )
 
-func unsupportedHandler(w http.ResponseWriter, r *http.Request, _ *libpod.Runtime) {
-	w.(ServiceWriter).WriteJSON(http.StatusInternalServerError, struct {
-		message string
+func (s *APIServer) unsupportedHandler(w http.ResponseWriter, r *http.Request) {
+	s.WriteResponse(w, http.StatusInternalServerError, struct {
+		Message string `json:"message"`
 	}{
-		message: fmt.Sprintf("Path %s is not supported", r.URL.Path),
+		Message: fmt.Sprintf("Path %s is not supported", r.URL.Path),
 	})
 }

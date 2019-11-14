@@ -6,27 +6,26 @@ import (
 	goRuntime "runtime"
 	"time"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
-func registerVersionHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/version"), serviceHandler(versionHandler))
-	r.Handle("/version", serviceHandler(versionHandler))
+func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
+	r.Handle(versionedPath("/version"), s.serviceHandler(s.versionHandler))
+	r.Handle("/version", s.serviceHandler(s.versionHandler))
 	return nil
 }
 
-func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) versionHandler(w http.ResponseWriter, r *http.Request) {
 	versionInfo, err := define.GetVersion()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
-	infoData, err := runtime.Info()
+	infoData, err := s.Runtime.Info()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
@@ -34,7 +33,7 @@ func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 	hostInfo := infoData[0].Data
 
 	components := []docker.ComponentVersion{{
-		Name:    "Engine",
+		Name:    "Podman Engine",
 		Version: versionInfo.Version,
 		Details: map[string]string{
 			"APIVersion":    DefaultApiVersion,
@@ -49,7 +48,7 @@ func versionHandler(w http.ResponseWriter, r *http.Request, runtime *libpod.Runt
 		},
 	}}
 
-	w.(ServiceWriter).WriteJSON(http.StatusOK, Version{docker.Version{
+	s.WriteResponse(w, http.StatusOK, Version{docker.Version{
 		Platform: struct {
 			Name string
 		}{
