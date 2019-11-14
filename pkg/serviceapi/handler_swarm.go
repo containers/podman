@@ -8,7 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func (s* APIServer) registerSwarmHandlers(r *mux.Router) error {
+func (s *APIServer) registerSwarmHandlers(r *mux.Router) error {
 	r.PathPrefix("/v{version:[0-9.]+}/swarm/").HandlerFunc(noSwarm)
 	r.PathPrefix("/v{version:[0-9.]+}/services/").HandlerFunc(noSwarm)
 	r.PathPrefix("/v{version:[0-9.]+}/nodes/").HandlerFunc(noSwarm)

@@ -19,6 +19,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(versionedPath("/images/{name:..*}/json"), s.serviceHandler(s.image))
 	r.Handle(versionedPath("/images/{name:..*}/tag"), s.serviceHandler(s.tagImage)).Methods("POST")
 	r.Handle(versionedPath("/images/create"), s.serviceHandler(s.createImage)).Methods("POST").Queries("fromImage", "{fromImage}")
+
+	// libpod
+	r.Handle(versionedPath("/libpod/images/{name:..*}/exists"), s.serviceHandler(s.imageExists))
+
 	return nil
 }
 
@@ -190,4 +194,14 @@ func (s *APIServer) getImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.WriteResponse(w, http.StatusOK, summaries)
+}
+func (s *APIServer) imageExists(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+
+	_, err := s.Runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		return
+	}
+	s.WriteResponse(w, http.StatusOK, "Ok")
 }
