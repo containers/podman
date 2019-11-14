@@ -2,36 +2,49 @@ package serviceapi
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
-type ServiceWriter struct {
-	http.ResponseWriter
+// serviceHandler is wrapper to enhance HandlerFunc's and remove redundant code
+func (s *APIServer) serviceHandler(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		log.Debugf("ServiceHandler -- Method: %s URL: %s", r.Method, r.URL.String())
+		if err := r.ParseForm(); err != nil {
+			log.Errorf("unable to parse form: %q", err)
+		}
+
+		h(w, r)
+
+		if err := s.Shutdown(); err != nil {
+			log.Errorf(err.Error())
+		}
+	}
 }
 
-// serviceHandler type defines a specialized http.Handler, included is the podman runtime
-type serviceHandler func(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime)
-
-// ServeHTTP will be called from the router when a request is made
-func (h serviceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "" && contentType != "application/json" {
-		logrus.Errorf("%s is not a supported Content-Type", r.Header.Get("Content-Type"))
-	}
-	if err := r.ParseForm(); err != nil {
-		logrus.Errorf("unable to parse form: %q", err)
-	}
-	// Call our specialized handler
-	h(ServiceWriter{w}, r, libpodRuntime)
+// versionedPath prepends the version parsing code
+// any handler may override this default when registering URL(s)
+func versionedPath(p string) string {
+	return "/v{version:[0-9][0-9.]*}" + p
 }
 
-func (w ServiceWriter) WriteJSON(code int, value interface{}) error {
-	w.Header().Set("Content-Type", "application/json")
+// WriteResponse encodes the given value as JSON or string and renders it for http client
+func (s *APIServer) WriteResponse(w http.ResponseWriter, code int, value interface{}) (err error) {
 	w.WriteHeader(code)
+	switch value.(type) {
+	case string:
+		w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
+		_, err = fmt.Fprintln(w, value)
+	default:
+		return WriteJSON(w, value)
+	}
+	return err
+}
 
+func WriteJSON(w http.ResponseWriter, value interface{}) error {
+	w.Header().Set("Content-Type", "application/json")
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 	return coder.Encode(value)
