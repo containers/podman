@@ -15,6 +15,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"sync"
+	
 
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
@@ -31,6 +33,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/containers/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 )
 
@@ -150,6 +153,52 @@ func (r *ConmonOCIRuntime) Path() string {
 
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
+	if ctr.state.UserNSRoot != "" {
+		var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		runtime.LockOSThread()
+
+		var fd *os.File
+		fd, err = os.Open(fmt.Sprintf("/proc/%d/task/%d/ns/mnt", os.Getpid(), unix.Gettid()))
+		if err != nil {
+			return
+		}
+		defer fd.Close()
+
+		// create a new mountns on the current thread
+		if err = unix.Unshare(unix.CLONE_NEWNS); err != nil {
+			return
+		}
+		defer unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+
+		// don't spread our mounts around
+		err = unix.Mount("/", "/", "none", unix.MS_REC|unix.MS_SLAVE, "")
+		if err != nil {
+			return
+		}
+		err = unix.Mount(ctr.state.Mountpoint, ctr.state.RealMountpoint, "none", unix.MS_BIND, "")
+		if err != nil {
+			return
+		}
+		if err := idtools.MkdirAllAs(ctr.state.DestinationRunDir, 0700, ctr.RootUID(), ctr.RootGID()); err != nil {
+			return
+		}
+
+		err = unix.Mount(ctr.state.RunDir, ctr.state.DestinationRunDir, "none", unix.MS_BIND, "")
+		if err != nil {
+			return
+		}
+		err = r.createOCIContainer(ctr, restoreOptions)
+	}()
+	wg.Wait()
+
+	return err
+	}
+	
+	
+
 	if len(ctr.config.IDMappings.UIDMap) != 0 || len(ctr.config.IDMappings.GIDMap) != 0 {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {

@@ -201,6 +201,19 @@ type ContainerState struct {
 	// restart policy. This is NOT incremented by normal container restarts
 	// (only by restart policy).
 	RestartCount uint `json:"restartCount,omitempty"`
+	
+	// UserNSRoot support
+	// RealMountpoint contains the path to the container's mounted storage
+	RealMountpoint string `json:"realMountPoint,omitempty"`
+	// Mounted indicates whether the container's storage has been mounted
+	// for use
+	DestinationRunDir string `json:"destinationRunDir,omitempty"`
+	// UserNSRoot is the directory used as root for the container when using
+	// user namespaces.
+	UserNSRoot string `json:"userNSRoot,omitempty"`
+	
+
+
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
