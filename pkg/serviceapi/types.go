@@ -2,8 +2,7 @@ package serviceapi
 
 import (
 	"context"
-	"fmt"
-	goRuntime "runtime"
+	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod"
@@ -39,7 +38,7 @@ type Info struct {
 }
 
 type Container struct {
-	docker.ContainerJSON
+	docker.Container
 	docker.ContainerCreateConfig
 }
 
@@ -173,11 +172,7 @@ func ImageDataToImageInspect(l *libpodInspect.ImageData) (*ImageInspect, error) 
 }
 
 func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {
-
-	hostInfo := infoData[0].Data
-	// storeInfo := infoData[1].Data
-
-	_, imageId := l.Image()
+	imageName, imageId := l.Image()
 
 	sizeRW, err := l.RWSize()
 	if err != nil {
@@ -189,56 +184,30 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 		return nil, err
 	}
 
-	bindMounts, err := l.BindMounts()
+	state, err := l.State()
 	if err != nil {
 		return nil, err
 	}
 
-	mountPoints := make([]docker.MountPoint, len(bindMounts))
-	i := 0
-	for k, v := range bindMounts {
-		mountPoints[i] = docker.MountPoint{
-			Type:        "",
-			Name:        "",
-			Source:      k,
-			Destination: v,
-			Driver:      "",
-			Mode:        "",
-			RW:          false,
-			Propagation: "",
-		}
-		i++
-	}
-
-	return &Container{docker.ContainerJSON{
-		ContainerJSONBase: &docker.ContainerJSONBase{
-			ID:              l.ID(),
-			Created:         l.CreatedTime().Format(time.RFC3339),
-			Path:            l.CheckpointPath(),
-			Args:            l.Command(),
-			State:           nil,
-			Image:           imageId,
-			ResolvConfPath:  "",
-			HostnamePath:    "/etc/hostname",
-			HostsPath:       "/etc/hosts",
-			LogPath:         l.LogPath(),
-			Node:            nil,
-			Name:            l.Name(),
-			RestartCount:    int(l.RestartRetries()),
-			Driver:          "",
-			Platform:        fmt.Sprintf("%s/%s/%s", goRuntime.GOOS, goRuntime.GOARCH, hostInfo["Distribution"].(map[string]interface{})["distribution"].(string)),
-			MountLabel:      l.MountLabel(),
-			ProcessLabel:    l.ProcessLabel(),
-			AppArmorProfile: "",
-			ExecIDs:         nil,
-			HostConfig:      nil,
-			GraphDriver:     docker.GraphDriverData{},
-			SizeRw:          &sizeRW,
-			SizeRootFs:      &SizeRootFs,
-		},
-		Mounts:          mountPoints,
-		Config:          nil,
+	return &Container{docker.Container{
+		ID:         l.ID(),
+		Names:      []string{l.Name()},
+		Image:      imageName,
+		ImageID:    imageId,
+		Command:    strings.Join(l.Command(), " "),
+		Created:    l.CreatedTime().Unix(),
+		Ports:      nil,
+		SizeRw:     sizeRW,
+		SizeRootFs: SizeRootFs,
+		Labels:     l.Labels(),
+		State:      string(state),
+		Status:     "",
+		HostConfig: struct {
+			NetworkMode string `json:",omitempty"`
+		}{
+			"host"},
 		NetworkSettings: nil,
+		Mounts:          nil,
 	},
 		docker.ContainerCreateConfig{},
 	}, nil

@@ -5,7 +5,6 @@ import docker
 client = docker.from_env()
 
 image = client.images.pull("busybox", tag="latest")
-image.
 print("Image:")
 print("Id", image.short_id, image.attrs["Created"], image.tags)
 

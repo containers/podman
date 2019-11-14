@@ -7,15 +7,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
+	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/coreos/go-systemd/activation"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-
-	"github.com/coreos/go-systemd/activation"
 )
 
 // See https://docs.docker.com/engine/api/v1.40/
@@ -24,19 +23,16 @@ const (
 	MinimalApiVersion = "1.24"
 )
 
-type HttpServer struct {
+type APIServer struct {
 	http.Server
-	router   *mux.Router
-	done     chan struct{}
-	listener net.Listener
+	context.Context
+	*libpod.Runtime
+	net.Listener
+	context.CancelFunc
 }
 
-var libpodRuntime *libpod.Runtime
-
 // NewServer will create and configure a new API HTTP server
-func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
-	libpodRuntime = runtime
-
+func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 	listeners, err := activation.Listeners()
 	if err != nil {
 		return nil, errors.Wrap(err, "Cannot retrieve listeners")
@@ -45,69 +41,85 @@ func NewServer(runtime *libpod.Runtime) (*HttpServer, error) {
 		return nil, errors.Wrapf(err, "unexpected number of socket activation (%d != 1)", len(listeners))
 	}
 
-	done := make(chan struct{})
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(quit, os.Interrupt)
 
-	// Build routing rules for requests, based on URL path
+	ctx, cancel := context.WithCancel(context.Background())
 	router := mux.NewRouter()
+
+	server := APIServer{
+		Server: http.Server{
+			Handler:           router,
+			ReadHeaderTimeout: 20 * time.Second,
+			ReadTimeout:       20 * time.Second,
+			WriteTimeout:      2 * time.Minute,
+		},
+		Context:    ctx,
+		Runtime:    runtime,
+		Listener:   listeners[0],
+		CancelFunc: cancel,
+	}
+
 	for _, fn := range []func(*mux.Router) error{
-		registerAuthHandlers,
-		registerContainersHandlers,
-		registerDistributionHandlers,
-		registerImagesHandlers,
-		registerInfoHandlers,
-		registerMonitorHandlers,
-		registerPingHandlers,
-		registerPluginsHandlers,
-		registerPodsHandlers,
-		registerSwarmHandlers,
-		registerSystemHandlers,
-		registerVersionHandlers,
+		server.registerAuthHandlers,
+		server.registerContainersHandlers,
+		server.registerDistributionHandlers,
+		server.registerImagesHandlers,
+		server.registerInfoHandlers,
+		server.registerMonitorHandlers,
+		server.registerPingHandlers,
+		server.registerPluginsHandlers,
+		server.registerPodsHandlers,
+		server.registerSwarmHandlers,
+		server.registerSystemHandlers,
+		server.registerVersionHandlers,
 	} {
 		fn(router)
 	}
-	registerNotFoundHandlers(router) // Should always be called last!
+	server.registerNotFoundHandlers(router) // Should always be called last!
 
-	server := HttpServer{http.Server{}, router, done, listeners[0]}
-	go func() {
-		<-quit
-		log.Debugf("HttpServer is shutting down")
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		server.SetKeepAlivesEnabled(false)
-		if err := server.Shutdown(ctx); err != nil {
-			log.Panicf("cannot gracefully shut down the http server: %s", err)
-		}
-		close(done)
-	}()
-
+	if log.IsLevelEnabled(log.DebugLevel) {
+		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error {
+			path, err := route.GetPathTemplate()
+			if err != nil {
+				path = ""
+			}
+			methods, err := route.GetMethods()
+			if err != nil {
+				methods = []string{}
+			}
+			log.Debugf("Methods: %s Path: %s", strings.Join(methods, ", "), path)
+			return nil
+		})
+	}
 	return &server, nil
 }
 
 // Serve starts responding to HTTP requests
-func (s *HttpServer) Serve() error {
-	err := http.Serve(s.listener, s.router)
-	if err != nil {
-		return errors.Wrap(err, "Failed to start HttpServer")
+func (s *APIServer) Serve() error {
+	defer s.CancelFunc()
+
+	err := s.Server.Serve(s.Listener)
+	if err != nil && err != http.ErrServerClosed {
+		return errors.Wrap(err, "Failed to start APIServer")
 	}
-	<-s.done
+
 	return nil
 }
 
 // Shutdown is a clean shutdown waiting on existing clients
-func (s *HttpServer) Shutdown(ctx context.Context) error {
-	<-s.done
-	return s.Server.Shutdown(ctx)
+func (s *APIServer) Shutdown() error {
+	go func() {
+		if err := s.Server.Shutdown(s.Context); err != nil {
+			log.Errorf(err.Error())
+		}
+	}()
+
+	<-s.Context.Done()
+	return nil
 }
 
 // Close immediately stops responding to clients and exits
-func (s *HttpServer) Close() error {
+func (s *APIServer) Close() error {
 	return s.Server.Close()
-}
-
-// unversionedPath prepends the version parsing code
-// any handler may override this default when registering URL(s)
-func unversionedPath(p string) string {
-	return "/v{version:[0-9][0-9.]*}" + p
 }

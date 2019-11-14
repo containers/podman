@@ -1,13 +1,13 @@
 package serviceapi
 
 import (
-	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/pkg/errors"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
@@ -17,23 +17,23 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func registerPodsHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/libpod/pods/"), serviceHandler(pods))
-	r.Handle(unversionedPath("/libpod/pods/create"), serviceHandler(podCreate))
-	r.Handle(unversionedPath("/libpod/pods/prune"), serviceHandler(podPrune))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}"), serviceHandler(podDelete)).Methods("DELETE")
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}"), serviceHandler(podInspect)).Methods("GET")
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/exists"), serviceHandler(podExists))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/kill"), serviceHandler(podKill))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/pause"), serviceHandler(podPause))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/unpause"), serviceHandler(podUnpause))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/restart"), serviceHandler(podRestart))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/start"), serviceHandler(podStart))
-	r.Handle(unversionedPath("/libpod/pods/{name:..*}/stop"), serviceHandler(podStop))
+func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
+	r.Handle(versionedPath("/libpod/pods/"), s.serviceHandler(s.pods))
+	r.Handle(versionedPath("/libpod/pods/create"), s.serviceHandler(s.podCreate))
+	r.Handle(versionedPath("/libpod/pods/prune"), s.serviceHandler(s.podPrune))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}"), s.serviceHandler(s.podDelete)).Methods("DELETE")
+	r.Handle(versionedPath("/libpod/pods/{name:..*}"), s.serviceHandler(s.podInspect)).Methods("GET")
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/exists"), s.serviceHandler(s.podExists))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/kill"), s.serviceHandler(s.podKill))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/pause"), s.serviceHandler(s.podPause))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/unpause"), s.serviceHandler(s.podUnpause))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/restart"), s.serviceHandler(s.podRestart))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/start"), s.serviceHandler(s.podStart))
+	r.Handle(versionedPath("/libpod/pods/{name:..*}/stop"), s.serviceHandler(s.podStop))
 	return nil
 }
 
-func podCreate(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podCreate(w http.ResponseWriter, r *http.Request) {
 	//TODO This is ALL wrong.  Brent to completely redo.  Should be using JSON structures
 	// and not forms.
 	var (
@@ -41,7 +41,6 @@ func podCreate(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 		err     error
 		labels  map[string]string
 	)
-	ctx := context.Background()
 	infra := true
 	if len(r.Form.Get("infra-command")) > 0 || len(r.Form.Get("infra-image ")) > 0 {
 		Error(w, "Something went wrong.", http.StatusInternalServerError,
@@ -111,15 +110,15 @@ func podCreate(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 	// User Opt out is not yet supported
 	options = append(options, libpod.WithPodCgroups())
 
-	_, err = runtime.NewPod(ctx, options...)
+	_, err = s.Runtime.NewPod(s.Context, options...)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusCreated, "")
+	s.WriteResponse(w, http.StatusCreated, "")
 }
 
-func pods(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) pods(w http.ResponseWriter, r *http.Request) {
 	var podInspectData []*libpod.PodInspect
 
 	filters := r.Form.Get("filter")
@@ -128,7 +127,7 @@ func pods(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		return
 	}
 
-	pods, err := runtime.GetAllPods()
+	pods, err := s.Runtime.GetAllPods()
 	if err != nil {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
@@ -141,14 +140,14 @@ func pods(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		}
 		podInspectData = append(podInspectData, data)
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, podInspectData)
+	s.WriteResponse(w, http.StatusOK, podInspectData)
 }
 
-func podInspect(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podInspect(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 
@@ -157,19 +156,18 @@ func podInspect(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime)
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, podData)
+	s.WriteResponse(w, http.StatusOK, podData)
 }
 
-func podStop(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podStop(w http.ResponseWriter, r *http.Request) {
 	var (
 		stopError error
 	)
 	allContainersStopped := true
-	ctx := context.Background()
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 
@@ -204,24 +202,23 @@ func podStop(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 			Error(w, "Something went wrong", http.StatusInternalServerError, err)
 			return
 		}
-		_, stopError = pod.StopWithTimeout(ctx, false, timeout)
+		_, stopError = pod.StopWithTimeout(s.Context, false, timeout)
 	} else {
-		_, stopError = pod.Stop(ctx, false)
+		_, stopError = pod.Stop(s.Context, false)
 	}
 	if stopError != nil {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podStart(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podStart(w http.ResponseWriter, r *http.Request) {
 	allContainersRunning := true
-	ctx := context.Background()
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 
@@ -249,19 +246,18 @@ func podStart(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Error(w, "Something went wrong", http.StatusNotModified, alreadyRunning)
 		return
 	}
-	if _, err := pod.Start(ctx); err != nil {
+	if _, err := pod.Start(s.Context); err != nil {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podDelete(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	ctx := context.Background()
+func (s *APIServer) podDelete(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 	force := false
@@ -273,31 +269,29 @@ func podDelete(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) 
 			return
 		}
 	}
-	if err := runtime.RemovePod(ctx, pod, true, force); err != nil {
+	if err := s.Runtime.RemovePod(s.Context, pod, true, force); err != nil {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podRestart(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	ctx := context.Background()
+func (s *APIServer) podRestart(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
-	_, err = pod.Restart(ctx)
+	_, err = pod.Restart(s.Context)
 	if err != nil {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podPrune(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	ctx := context.Background()
+func (s *APIServer) podPrune(w http.ResponseWriter, r *http.Request) {
 	var (
 		pods  []*libpod.Pod
 		force bool
@@ -311,7 +305,7 @@ func podPrune(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		}
 	}
 	if force {
-		pods, err = runtime.GetAllPods()
+		pods, err = s.Runtime.GetAllPods()
 	} else {
 		// TODO We need to make a libpod.PruneVolumes or this code will be a mess.  Volumes
 		// already does this right.  It will also help clean this code path up with less
@@ -324,19 +318,19 @@ func podPrune(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		return
 	}
 	for _, p := range pods {
-		if err := runtime.RemovePod(ctx, p, true, force); err != nil {
+		if err := s.Runtime.RemovePod(s.Context, p, true, force); err != nil {
 			Error(w, "Something went wrong", http.StatusInternalServerError, err)
 			return
 		}
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podPause(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podPause(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 	_, err = pod.Pause()
@@ -344,14 +338,14 @@ func podPause(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podUnpause(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podUnpause(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 	_, err = pod.Unpause()
@@ -359,14 +353,14 @@ func podUnpause(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime)
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podKill(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podKill(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	pod, err := runtime.LookupPod(name)
+	pod, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
 	podStates, err := pod.Status()
@@ -399,16 +393,16 @@ func podKill(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }
 
-func podExists(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
+func (s *APIServer) podExists(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 
-	_, err := runtime.LookupPod(name)
+	_, err := s.Runtime.LookupPod(name)
 	if err != nil {
-		noSuchPodError(w, name, err)
+		podNotFound(w, name, err)
 		return
 	}
-	w.(ServiceWriter).WriteJSON(http.StatusOK, "")
+	s.WriteResponse(w, http.StatusOK, "")
 }

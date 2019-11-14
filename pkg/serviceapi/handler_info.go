@@ -5,7 +5,6 @@ import (
 	goRuntime "runtime"
 	"time"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
 	docker "github.com/docker/docker/api/types"
@@ -14,13 +13,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-func registerInfoHandlers(r *mux.Router) error {
-	r.Handle(unversionedPath("/info"), serviceHandler(info)).Methods("GET")
+func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
+	r.Handle(versionedPath("/info"), s.serviceHandler(s.info)).Methods("GET")
 	return nil
 }
 
-func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
-	infoData, err := runtime.Info()
+func (s *APIServer) info(w http.ResponseWriter, r *http.Request) {
+	infoData, err := s.Runtime.Info()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
@@ -28,7 +27,7 @@ func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 	hostInfo := infoData[0].Data
 	storeInfo := infoData[1].Data
 
-	configInfo, err := runtime.GetConfig()
+	configInfo, err := s.Runtime.GetConfig()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
 		return
@@ -115,5 +114,5 @@ func info(w http.ResponseWriter, r *http.Request, runtime *libpod.Runtime) {
 		Uptime:         hostInfo["uptime"].(string),
 	}
 
-	w.(ServiceWriter).WriteJSON(http.StatusOK, info)
+	s.WriteResponse(w, http.StatusOK, info)
 }

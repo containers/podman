@@ -3,13 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/containers/storage/pkg/reexec"
 	"os"
-	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/serviceapi"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/spf13/cobra"
 )
 
@@ -25,9 +24,6 @@ func main() {
 	}
 
 	cobra.OnInitialize(initConfig)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(50)*time.Millisecond)
-	defer cancel()
 
 	config := cliconfig.PodmanCommand{
 		Command:     &cobra.Command{},
@@ -53,9 +49,4 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
-	defer func() {
-		if e := server.Shutdown(ctx); e != nil {
-			fmt.Println(err.Error())
-		}
-	}()
 }
