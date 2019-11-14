@@ -149,9 +149,9 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		// Volumes:            input.Volumes,
 		VolumesFrom:        input.HostConfig.VolumesFrom,
 		WorkDir:            workDir,
-		LabelOpts:          nil,         // we populate
-		NoNewPrivs:         false,       // we populate
-		ApparmorProfile:    "",          // we populate
+		LabelOpts:          nil,          // we populate
+		NoNewPrivs:         false,        // we populate
+		ApparmorProfile:    "",           // we populate
 		SeccompProfilePath: "unconfined", // we populate
 		SecurityOpts:       input.HostConfig.SecurityOpt,
 		Rootfs:             "",    // podman
