@@ -236,7 +236,7 @@ type ContainerConfig struct {
 	// UID/GID mappings used by the storage
 	IDMappings storage.IDMappingOptions `json:"idMappingsOptions,omitempty"`
 
-	// Information on the image used for the root filesystem/
+	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	// Rootfs to use for the container, this conflicts with RootfsImageID
