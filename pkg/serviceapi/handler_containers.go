@@ -26,6 +26,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(versionedPath("/containers/{name:..*}/stop"), s.serviceHandler(s.stopContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/unpause"), s.serviceHandler(s.unpauseContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/wait"), s.serviceHandler(s.waitContainer)).Methods("POST")
+
+	// libpod endpoints
+	r.HandleFunc(versionedPath("/libpod/containers/{name:..*}/exists"), s.serviceHandler(s.containerExists))
 	return nil
 }
 
@@ -316,4 +319,15 @@ func (s *APIServer) restartContainer(w http.ResponseWriter, r *http.Request) {
 
 	// Success
 	s.WriteResponse(w, http.StatusNoContent, "")
+}
+
+func (s *APIServer) containerExists(w http.ResponseWriter, r *http.Request) {
+	// /containers/libpod/{name:..*}/exists
+	name := mux.Vars(r)["name"]
+	_, err := s.Runtime.LookupContainer(name)
+	if err != nil {
+		Error(w, fmt.Sprintf("No such container: %s", name), http.StatusNotFound, err)
+		return
+	}
+	s.WriteResponse(w, http.StatusOK, "Ok")
 }
