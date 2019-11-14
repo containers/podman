@@ -132,3 +132,15 @@ func HasDNSNamePlugin(paths []string) bool {
 	}
 	return false
 }
+
+// NewMacVLANPlugin creates a macvlanconfig with a given device name
+func NewMacVLANPlugin(device string) MacVLANConfig {
+	i := IPAMDHCP{DHCP: "dhcp"}
+
+	m := MacVLANConfig{
+		PluginType: "macvlan",
+		Master:     device,
+		IPAM:       i,
+	}
+	return m
+}

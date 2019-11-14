@@ -7,8 +7,10 @@ podman\-network-create - Create a Podman CNI network
 **podman network create**  [*options*] name
 
 ## DESCRIPTION
-Create a CNI-network configuration for use with Podman. At the time of this writing, the only network
-type that can be created is a *bridge* network.
+Create a CNI-network configuration for use with Podman. By default, Podman creates a bridge connection. A
+*Macvlan* connection can be created with the *macvlan* option. In the case of *Macvlan* connections, the
+CNI *dhcp* plugin needs to be activated or the container image must have a DHCP client to interact
+with the host network's DHCP server.
 
 If no options are provided, Podman will assign a free subnet and name for your network.
 
@@ -38,6 +40,11 @@ Restrict external access of this network
 Allocate container IP from a range.  The range must be a complete subnet and in CIDR notation.  The *ip-range* option
 must be used with a *subnet* option.
 
+**--macvlan**
+
+Create a *Macvlan* based connection rather than a classic bridge.  You must pass an interface name from the host for the
+Macvlan connection.
+
 **--subnet**
 
 The subnet in CIDR notation.
@@ -66,6 +73,12 @@ Create a network that uses a *192.168.55.0/24** subnet and has an IP address ran
 ```
 # podman network create --subnet 192.168.55.0/24 --ip-range 192.168.55.128/25
 /etc/cni/net.d/cni-podman-5.conflist
+```
+
+Create a Macvlan based network using the host interface eth0
+```
+# podman network create --macvlan eth0 newnet
+/etc/cni/net.d/newnet.conflist
 ```
 
 ## SEE ALSO

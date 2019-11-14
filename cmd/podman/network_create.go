@@ -41,6 +41,7 @@ func init() {
 	flags.IPVar(&networkCreateCommand.Gateway, "gateway", nil, "IPv4 or IPv6 gateway for the subnet")
 	flags.BoolVar(&networkCreateCommand.Internal, "internal", false, "restrict external access from this network")
 	flags.IPNetVar(&networkCreateCommand.IPRange, "ip-range", net.IPNet{}, "allocate container IP from range")
+	flags.StringVar(&networkCreateCommand.MacVLAN, "macvlan", "", "create a Macvlan connection based on this device")
 	// TODO not supported yet
 	//flags.StringVar(&networkCreateCommand.IPamDriver, "ipam-driver", "",  "IP Address Management Driver")
 	// TODO enable when IPv6 is working
@@ -50,6 +51,10 @@ func init() {
 }
 
 func networkcreateCmd(c *cliconfig.NetworkCreateValues) error {
+	var (
+		fileName string
+		err      error
+	)
 	if err := network.IsSupportedDriver(c.Driver); err != nil {
 		return err
 	}
@@ -66,7 +71,11 @@ func networkcreateCmd(c *cliconfig.NetworkCreateValues) error {
 	if err != nil {
 		return err
 	}
-	fileName, err := runtime.NetworkCreate(c)
+	if len(c.MacVLAN) > 0 {
+		fileName, err = runtime.NetworkCreateMacVLAN(c)
+	} else {
+		fileName, err = runtime.NetworkCreateBridge(c)
+	}
 	if err == nil {
 		fmt.Println(fileName)
 	}

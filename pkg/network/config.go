@@ -90,6 +90,22 @@ func (p PortMapConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
 }
 
+type IPAMDHCP struct {
+	DHCP string `json:"type"`
+}
+
+// MacVLANConfig describes the macvlan config
+type MacVLANConfig struct {
+	PluginType string   `json:"type"`
+	Master     string   `json:"master"`
+	IPAM       IPAMDHCP `json:"ipam"`
+}
+
+// Bytes outputs the configuration as []byte
+func (p MacVLANConfig) Bytes() ([]byte, error) {
+	return json.MarshalIndent(p, "", "\t")
+}
+
 // FirewallConfig describes the firewall plugin
 type FirewallConfig struct {
 	PluginType string `json:"type"`

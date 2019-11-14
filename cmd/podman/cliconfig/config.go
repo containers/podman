@@ -274,6 +274,7 @@ type NetworkCreateValues struct {
 	IPRange    net.IPNet
 	IPV6       bool
 	Network    net.IPNet
+	MacVLAN    string
 }
 
 type NetworkListValues struct {

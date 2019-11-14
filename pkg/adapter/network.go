@@ -153,8 +153,8 @@ func (r *LocalRuntime) removeNetwork(ctx context.Context, name string, container
 	return nil
 }
 
-// NetworkCreate creates a CNI network
-func (r *LocalRuntime) NetworkCreate(cli *cliconfig.NetworkCreateValues) (string, error) {
+// NetworkCreateBridge creates a CNI network
+func (r *LocalRuntime) NetworkCreateBridge(cli *cliconfig.NetworkCreateValues) (string, error) {
 	isGateway := true
 	ipMasq := true
 	subnet := &cli.Network
@@ -249,6 +249,53 @@ func (r *LocalRuntime) NetworkCreate(cli *cliconfig.NetworkCreateValues) (string
 		// Note: in the future we might like to allow for dynamic domain names
 		plugins = append(plugins, network.NewDNSNamePlugin(network.DefaultPodmanDomainName))
 	}
+	ncList["plugins"] = plugins
+	b, err := json.MarshalIndent(ncList, "", "   ")
+	if err != nil {
+		return "", err
+	}
+	cniConfigPath, err := getCNIConfDir(r)
+	if err != nil {
+		return "", err
+	}
+	cniPathName := filepath.Join(cniConfigPath, fmt.Sprintf("%s.conflist", name))
+	err = ioutil.WriteFile(cniPathName, b, 0644)
+	return cniPathName, err
+}
+
+// NetworkCreateMacVLAN creates a CNI network
+func (r *LocalRuntime) NetworkCreateMacVLAN(cli *cliconfig.NetworkCreateValues) (string, error) {
+	var (
+		name    string
+		plugins []network.CNIPlugins
+	)
+	liveNetNames, err := network.GetLiveNetworkNames()
+	if err != nil {
+		return "", err
+	}
+	// Make sure the host-device exists
+	if !util.StringInSlice(cli.MacVLAN, liveNetNames) {
+		return "", errors.Errorf("failed to find network interface %q", cli.MacVLAN)
+	}
+	if len(cli.InputArgs) > 0 {
+		name = cli.InputArgs[0]
+		netNames, err := network.GetNetworkNamesFromFileSystem()
+		if err != nil {
+			return "", err
+		}
+		if util.StringInSlice(name, netNames) {
+			return "", errors.Errorf("the network name %s is already used", name)
+		}
+	}
+	if len(name) < 1 {
+		name, err = network.GetFreeDeviceName()
+		if err != nil {
+			return "", err
+		}
+	}
+	ncList := network.NewNcList(name, cniversion.Current())
+	macvlan := network.NewMacVLANPlugin(cli.MacVLAN)
+	plugins = append(plugins, macvlan)
 	ncList["plugins"] = plugins
 	b, err := json.MarshalIndent(ncList, "", "   ")
 	if err != nil {
