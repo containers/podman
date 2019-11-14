@@ -95,7 +95,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ImageSave(options: ImageSaveOptions) MoreResponse](#ImageSave)
 
-[func ImagesPrune(all: bool) []string](#ImagesPrune)
+[func ImagesPrune(all: bool, filter: []string) []string](#ImagesPrune)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) string](#ImportImage)
 
@@ -766,7 +766,7 @@ ImageSave allows you to save an image from the local image storage to a tarball
 ### <a name="ImagesPrune"></a>func ImagesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method ImagesPrune(all: [bool](https://godoc.org/builtin#bool)) [[]string](#[]string)</div>
+method ImagesPrune(all: [bool](https://godoc.org/builtin#bool), filter: [[]string](#[]string)) [[]string](#[]string)</div>
 ImagesPrune removes all unused images from the local store.  Upon successful pruning,
 the IDs of the removed images are returned.
 ### <a name="ImportImage"></a>func ImportImage

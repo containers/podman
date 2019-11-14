@@ -38,6 +38,7 @@ func init() {
 	flags := pruneImagesCommand.Flags()
 	flags.BoolVarP(&pruneImagesCommand.All, "all", "a", false, "Remove all unused images, not just dangling ones")
 	flags.BoolVarP(&pruneImagesCommand.Force, "force", "f", false, "Do not prompt for confirmation")
+	flags.StringArrayVar(&pruneImagesCommand.Filter, "filter", []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 }
 
 func pruneImagesCmd(c *cliconfig.PruneImagesValues) error {
@@ -62,7 +63,7 @@ Are you sure you want to continue? [y/N] `)
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up
-	pruneCids, err := runtime.PruneImages(getContext(), c.All)
+	pruneCids, err := runtime.PruneImages(getContext(), c.All, c.Filter)
 	if len(pruneCids) > 0 {
 		for _, cid := range pruneCids {
 			fmt.Println(cid)

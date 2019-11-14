@@ -415,8 +415,8 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 }
 
 // PruneImages is the wrapper call for a remote-client to prune images
-func (r *LocalRuntime) PruneImages(ctx context.Context, all bool) ([]string, error) {
-	return iopodman.ImagesPrune().Call(r.Conn, all)
+func (r *LocalRuntime) PruneImages(ctx context.Context, all bool, filter []string) ([]string, error) {
+	return iopodman.ImagesPrune().Call(r.Conn, all, filter)
 }
 
 // Export is a wrapper to container export to a tarfile

@@ -21,7 +21,7 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
@@ -29,7 +29,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -740,8 +740,8 @@ func (i *LibpodAPI) ContainerRunlabel(call iopodman.VarlinkCall, input iopodman.
 }
 
 // ImagesPrune ....
-func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool) error {
-	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(context.TODO(), all)
+func (i *LibpodAPI) ImagesPrune(call iopodman.VarlinkCall, all bool, filter []string) error {
+	prunedImages, err := i.Runtime.ImageRuntime().PruneImages(context.TODO(), all, []string{})
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}

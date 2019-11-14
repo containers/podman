@@ -27,7 +27,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 // LocalRuntime describes a typical libpod runtime
@@ -147,8 +147,8 @@ func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, for
 }
 
 // PruneImages is wrapper into PruneImages within the image pkg
-func (r *LocalRuntime) PruneImages(ctx context.Context, all bool) ([]string, error) {
-	return r.ImageRuntime().PruneImages(ctx, all)
+func (r *LocalRuntime) PruneImages(ctx context.Context, all bool, filter []string) ([]string, error) {
+	return r.ImageRuntime().PruneImages(ctx, all, filter)
 }
 
 // Export is a wrapper to container export to a tarfile
