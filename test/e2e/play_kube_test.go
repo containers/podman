@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -20,6 +21,13 @@ metadata:
   labels:
     app: {{ .Name }}
   name: {{ .Name }}
+{{ with .Annotations }}
+  annotations:
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+
 spec:
   hostname: {{ .Hostname }}
   containers:
@@ -72,6 +80,7 @@ var (
 	defaultCtrCmd   = []string{"top"}
 	defaultCtrImage = ALPINE
 	defaultPodName  = "testPod"
+	seccompPwdEPERM = []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
 )
 
 func generateKubeYaml(pod *Pod, fileName string) error {
@@ -95,16 +104,17 @@ func generateKubeYaml(pod *Pod, fileName string) error {
 
 // Pod describes the options a kube yaml can be configured at pod level
 type Pod struct {
-	Name     string
-	Hostname string
-	Ctrs     []*Ctr
+	Name        string
+	Hostname    string
+	Ctrs        []*Ctr
+	Annotations map[string]string
 }
 
 // getPod takes a list of podOptions and returns a pod with sane defaults
 // and the configured options
 // if no containers are added, it will add the default container
 func getPod(options ...podOption) *Pod {
-	p := Pod{defaultPodName, "", make([]*Ctr, 0)}
+	p := Pod{defaultPodName, "", make([]*Ctr, 0), make(map[string]string)}
 	for _, option := range options {
 		option(&p)
 	}
@@ -125,6 +135,12 @@ func withHostname(h string) podOption {
 func withCtr(c *Ctr) podOption {
 	return func(pod *Pod) {
 		pod.Ctrs = append(pod.Ctrs, c)
+	}
+}
+
+func withAnnotation(k, v string) podOption {
+	return func(pod *Pod) {
+		pod.Annotations[k] = v
 	}
 }
 
@@ -329,5 +345,52 @@ var _ = Describe("Podman generate kube", func() {
 		inspect := podmanTest.Podman([]string{"inspect", defaultCtrName})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.ExitCode()).To(Equal(0))
+	})
+
+	It("podman play kube seccomp container level", func() {
+		// expect play kube is expected to set a seccomp label if it's applied as an annotation
+		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
+		if err != nil {
+			fmt.Println(err)
+			Skip("Failed to prepare seccomp.json for test.")
+		}
+
+		ctrAnnotation := "container.seccomp.security.alpha.kubernetes.io/" + defaultCtrName
+		ctr := getCtr(withCmd([]string{"pwd"}))
+
+		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost:"+jsonFile)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		logs := podmanTest.Podman([]string{"logs", defaultCtrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+	})
+
+	It("podman play kube seccomp pod level", func() {
+		// expect play kube is expected to set a seccomp label if it's applied as an annotation
+		jsonFile, err := podmanTest.CreateSeccompJson(seccompPwdEPERM)
+		if err != nil {
+			fmt.Println(err)
+			Skip("Failed to prepare seccomp.json for test.")
+		}
+
+		ctr := getCtr(withCmd([]string{"pwd"}))
+
+		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost:"+jsonFile)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		logs := podmanTest.Podman([]string{"logs", defaultCtrName})
+		logs.WaitWithDefaultTimeout()
+		Expect(logs.ExitCode()).To(Equal(0))
+		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
 	})
 })
