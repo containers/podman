@@ -214,24 +214,24 @@ func configureEntrypoint(c *GenericCLIResults, data *inspect.ImageData) []string
 	return entrypoint
 }
 
-func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, error) {
+func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[string]string, podName string) (map[string]string, string, error) {
 	pod, err := runtime.LookupPod(podName)
 	if err != nil {
-		return namespaces, err
+		return namespaces, "", err
 	}
 	podInfraID, err := pod.InfraContainerID()
 	if err != nil {
-		return namespaces, err
+		return namespaces, "", err
 	}
 	hasUserns := false
 	if podInfraID != "" {
 		podCtr, err := runtime.GetContainer(podInfraID)
 		if err != nil {
-			return namespaces, err
+			return namespaces, "", err
 		}
 		mappings, err := podCtr.IDMappings()
 		if err != nil {
-			return namespaces, err
+			return namespaces, "", err
 		}
 		hasUserns = len(mappings.UIDMap) > 0
 	}
@@ -251,7 +251,7 @@ func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[
 	if (namespaces["uts"] == cc.Pod) || (!c.IsSet("uts") && pod.SharesUTS()) {
 		namespaces["uts"] = fmt.Sprintf("container:%s", podInfraID)
 	}
-	return namespaces, nil
+	return namespaces, podInfraID, nil
 }
 
 // Parses CLI options related to container creation into a config which can be
@@ -359,6 +359,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if len(podName) < 1 && c.IsSet("pod") {
 		return nil, errors.Errorf("new pod name must be at least one character")
 	}
+
+	// If we are adding a container to a pod, we would like to add an annotation for the infra ID
+	// so kata containers can share VMs inside the pod
+	var podInfraID string
 	if c.IsSet("pod") {
 		if strings.HasPrefix(originalPodName, "new:") {
 			// pod does not exist; lets make it
@@ -387,7 +391,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			// The container now cannot have port bindings; so we reset the map
 			portBindings = make(map[nat.Port][]nat.PortBinding)
 		}
-		namespaces, err = configurePod(c, runtime, namespaces, podName)
+		namespaces, podInfraID, err = configurePod(c, runtime, namespaces, podName)
 		if err != nil {
 			return nil, err
 		}
@@ -485,12 +489,26 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// ANNOTATIONS
 	annotations := make(map[string]string)
+
 	// First, add our default annotations
-	annotations[ann.ContainerType] = "sandbox"
 	annotations[ann.TTY] = "false"
 	if tty {
 		annotations[ann.TTY] = "true"
 	}
+
+	// in the event this container is in a pod, and the pod has an infra container
+	// we will want to configure it as a type "container" instead defaulting to
+	// the behavior of a "sandbox" container
+	// In Kata containers:
+	// - "sandbox" is the annotation that denotes the container should use its own
+	//   VM, which is the default behavior
+	// - "container" denotes the container should join the VM of the SandboxID
+	//   (the infra container)
+	if podInfraID != "" {
+		annotations[ann.SandboxID] = podInfraID
+		annotations[ann.ContainerType] = ann.ContainerTypeContainer
+	}
+
 	if data != nil {
 		// Next, add annotations from the image
 		for key, value := range data.Annotations {
