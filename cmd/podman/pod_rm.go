@@ -26,7 +26,7 @@ var (
 			return podRmCmd(&podRmCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23

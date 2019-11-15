@@ -18,6 +18,10 @@ Running or unusable containers will not be removed without the `-f` option.
 
 Remove all containers.  Can be used in conjunction with -f as well.
 
+**--cidfile**
+
+Read container ID from the specified file and remove the container.  Can be specified multiple times.
+
 **--force**, **-f**
 
 Force the removal of running and paused containers. Forcing a container removal also
@@ -50,9 +54,15 @@ Remove a container by its name *mywebserver*
 ```
 podman rm mywebserver
 ```
+
 Remove several containers by name and container id.
 ```
 podman rm mywebserver myflaskserver 860a4b23
+```
+
+Remove several containers reading their IDs from files.
+```
+podman rm --cidfile ./cidfile-1 --cidfile /home/user/cidfile-2
 ```
 
 Forcibly remove a container by container ID.

@@ -28,7 +28,7 @@ var (
 			return umountCmd(&umountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3

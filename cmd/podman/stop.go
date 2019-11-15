@@ -25,7 +25,7 @@ var (
 			return stopCmd(&stopCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman stop ctrID
   podman stop --latest
@@ -42,7 +42,9 @@ func init() {
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVar(&stopCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.StringArrayVarP(&stopCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	markFlagHiddenForRemoteClient("latest", flags)
+	markFlagHiddenForRemoteClient("cidfile", flags)
 }
 
 // stopCmd stops a container or containers

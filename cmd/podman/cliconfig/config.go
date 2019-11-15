@@ -480,11 +480,12 @@ type RestoreValues struct {
 
 type RmValues struct {
 	PodmanCommand
-	All     bool
-	Force   bool
-	Latest  bool
-	Storage bool
-	Volumes bool
+	All      bool
+	Force    bool
+	Latest   bool
+	Storage  bool
+	Volumes  bool
+	CIDFiles []string
 }
 
 type RmiValues struct {
@@ -557,9 +558,10 @@ type StatsValues struct {
 
 type StopValues struct {
 	PodmanCommand
-	All     bool
-	Latest  bool
-	Timeout uint
+	All      bool
+	Latest   bool
+	Timeout  uint
+	CIDFiles []string
 }
 
 type TopValues struct {

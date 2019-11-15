@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -215,4 +216,79 @@ var _ = Describe("Podman stop", func() {
 		Expect(strings.TrimSpace(finalCtrs.OutputToString())).To(Equal(""))
 	})
 
+	It("podman stop --cidfile", func() {
+		SkipIfRemote()
+
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile := tmpDir + "cid"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"create", "--cidfile", tmpFile, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToStringArray()[0]
+
+		session = podmanTest.Podman([]string{"start", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"stop", "--cidfile", tmpFile})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+	})
+
+	It("podman stop multiple --cidfile", func() {
+		SkipIfRemote()
+
+		tmpDir, err := ioutil.TempDir("", "")
+		Expect(err).To(BeNil())
+		tmpFile1 := tmpDir + "cid-1"
+		tmpFile2 := tmpDir + "cid-2"
+
+		defer os.RemoveAll(tmpDir)
+
+		session := podmanTest.Podman([]string{"run", "--cidfile", tmpFile1, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid1 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session = podmanTest.Podman([]string{"run", "--cidfile", tmpFile2, "-d", ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid2 := session.OutputToStringArray()[0]
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+
+		result := podmanTest.Podman([]string{"stop", "--cidfile", tmpFile1, "--cidfile", tmpFile2})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring(cid1))
+		Expect(output).To(ContainSubstring(cid2))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(2))
+	})
+
+	It("podman stop invalid --latest and --cidfile and --all", func() {
+		SkipIfRemote()
+
+		result := podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+
+		result = podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+
+		result = podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--all", "--latest"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+
+		result = podmanTest.Podman([]string{"stop", "--latest", "--all"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(125))
+	})
 })

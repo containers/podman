@@ -27,7 +27,7 @@ var (
 			return podStopCmd(&podStopCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
