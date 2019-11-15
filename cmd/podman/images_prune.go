@@ -34,6 +34,7 @@ func init() {
 	pruneImagesCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneImagesCommand.Flags()
 	flags.BoolVarP(&pruneImagesCommand.All, "all", "a", false, "Remove all unused images, not just dangling ones")
+	flags.BoolVarP(&pruneImagesCommand.Force, "force", "f", false, "Do not prompt for confirmation on pruning images")
 }
 
 func pruneImagesCmd(c *cliconfig.PruneImagesValues) error {
