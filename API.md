@@ -526,7 +526,7 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ExportContainer '{"name":
 method ExportImage(name: [string](https://godoc.org/builtin#string), destination: [string](https://godoc.org/builtin#string), compress: [bool](https://godoc.org/builtin#bool), tags: [[]string](#[]string)) [string](https://godoc.org/builtin#string)</div>
 ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
 a boolean option to force compression.  It also takes in a string array of tags to be able to save multiple
-tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
+tags of the same image to a tarball (each tag should be of the form &lt;image&gt;:&lt;tag&gt;).  Upon completion, the ID
 of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 error will be returned. See also [ImportImage](ImportImage).
 ### <a name="GenerateKube"></a>func GenerateKube
