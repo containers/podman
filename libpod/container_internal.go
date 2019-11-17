@@ -652,6 +652,11 @@ func (c *Container) removeConmonFiles() error {
 		return errors.Wrapf(err, "error removing container %s ctl file", c.ID())
 	}
 
+	winszFile := filepath.Join(c.bundlePath(), "winsz")
+	if err := os.Remove(winszFile); err != nil && !os.IsNotExist(err) {
+		return errors.Wrapf(err, "error removing container %s winsz file", c.ID())
+	}
+
 	oomFile := filepath.Join(c.bundlePath(), "oom")
 	if err := os.Remove(oomFile); err != nil && !os.IsNotExist(err) {
 		return errors.Wrapf(err, "error removing container %s OOM file", c.ID())
