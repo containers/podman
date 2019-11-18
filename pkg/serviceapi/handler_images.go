@@ -2,11 +2,16 @@ package serviceapi
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/libpod/libpod"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/mux"
@@ -20,10 +25,79 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(versionedPath("/images/{name:..*}/tag"), s.serviceHandler(s.tagImage)).Methods("POST")
 	r.Handle(versionedPath("/images/create"), s.serviceHandler(s.createImage)).Methods("POST").Queries("fromImage", "{fromImage}")
 
+	// commit has a different endpoint
+	r.Handle(versionedPath("/commit"), s.serviceHandler(s.commitContainer)).Methods("POST")
 	// libpod
 	r.Handle(versionedPath("/libpod/images/{name:..*}/exists"), s.serviceHandler(s.imageExists))
 
 	return nil
+}
+
+func (s *APIServer) commitContainer(w http.ResponseWriter, r *http.Request) {
+	var (
+		err       error
+		destImage string
+	)
+	rtc, err := s.Runtime.GetConfig()
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	tag := "latest"
+	options := libpod.ContainerCommitOptions{
+		Pause: true,
+	}
+	options.CommitOptions = buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		ReportWriter:          os.Stderr,
+		SystemContext:         sc,
+		PreferredManifestType: manifest.DockerV2Schema2MediaType,
+	}
+
+	input := CreateContainer{}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+
+	nameOrID := r.Form.Get("container")
+	repo := r.Form.Get("repo")
+	if len(repo) < 1 {
+
+	}
+	if len(r.Form.Get("tag")) > 0 {
+		tag = r.Form.Get("tag")
+	}
+	options.Message = r.Form.Get("comment")
+	options.Author = r.Form.Get("author")
+	if len(r.Form.Get("pause")) > 0 {
+		options.Pause, err = strconv.ParseBool(r.Form.Get("pause"))
+		if err != nil {
+			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+			return
+		}
+	}
+	if len(r.Form.Get("changes")) > 0 {
+		options.Changes = strings.Split(r.Form.Get("changes"), "/n")
+	}
+	ctr, err := s.Runtime.LookupContainer(nameOrID)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusNotFound, err)
+		return
+	}
+
+	// I know mitr hates this ... but doing for now
+	if len(repo) > 1 {
+		destImage = fmt.Sprintf("%s:%s", repo, tag)
+	}
+
+	commitImage, err := ctr.Commit(s.Context, destImage, options)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
+		return
+	}
+	s.WriteResponse(w, http.StatusOK, CommitResponse{ID: commitImage.ID()})
 }
 
 func (s *APIServer) createImage(w http.ResponseWriter, r *http.Request) {
