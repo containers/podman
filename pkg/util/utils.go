@@ -301,7 +301,6 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 			return ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
 		}
 	}
-
 	return config, nil
 }
 

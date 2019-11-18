@@ -3,7 +3,9 @@ package serviceapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -37,6 +39,9 @@ func (s *APIServer) WriteResponse(w http.ResponseWriter, code int, value interfa
 	case string:
 		w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
 		_, err = fmt.Fprintln(w, value)
+	case *os.File:
+		w.Header().Set("Content-Type", "application/octet; charset=us-ascii")
+		io.Copy(w, value.(*os.File))
 	default:
 		WriteJSON(w, value)
 	}

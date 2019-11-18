@@ -85,7 +85,7 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		LabelOpts:          nil,   //podman
 		NoNewPrivs:         false, //podman
 		ApparmorProfile:    "",    //podman
-		SeccompProfilePath: "undefined",
+		SeccompProfilePath: "",
 		SecurityOpts:       input.HostConfig.SecurityOpt,
 		Privileged:         input.HostConfig.Privileged,
 		ReadOnlyRootfs:     input.HostConfig.ReadonlyRootfs,

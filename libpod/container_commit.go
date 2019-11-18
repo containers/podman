@@ -8,6 +8,7 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/util"
 	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
@@ -32,6 +33,10 @@ type ContainerCommitOptions struct {
 // Commit commits the changes between a container and its image, creating a new
 // image
 func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
+	var (
+		imageRef                                                       types.ImageReference
+	)
+
 	if c.config.Rootfs != "" {
 		return nil, errors.Errorf("cannot commit a container that uses an exploded rootfs")
 	}
@@ -71,7 +76,6 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err != nil {
 		return nil, err
 	}
-
 	if options.Author != "" {
 		importBuilder.SetMaintainer(options.Author)
 	}
@@ -191,12 +195,11 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if err != nil {
 		return nil, errors.Wrapf(err, "error resolving name %q", destImage)
 	}
-	if len(candidates) == 0 {
-		return nil, errors.Errorf("error parsing target image name %q", destImage)
-	}
-	imageRef, err := is.Transport.ParseStoreReference(c.runtime.store, candidates[0])
-	if err != nil {
-		return nil, errors.Wrapf(err, "error parsing target image name %q", destImage)
+	if len(candidates) > 0 {
+		imageRef, err = is.Transport.ParseStoreReference(c.runtime.store, candidates[0])
+		if err != nil {
+			return nil, errors.Wrapf(err, "error parsing target image name %q", destImage)
+		}
 	}
 	id, _, _, err := importBuilder.Commit(ctx, imageRef, commitOptions)
 	if err != nil {
