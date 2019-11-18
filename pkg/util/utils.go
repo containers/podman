@@ -73,6 +73,7 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
+<<<<<<< HEAD
 // ImageConfig is a wrapper around the OCIv1 Image Configuration struct exported
 // by containers/image, but containing additional fields that are not supported
 // by OCIv1 (but are by Docker v2) - notably OnBuild.
@@ -301,7 +302,6 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 			return ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
 		}
 	}
-
 	return config, nil
 }
 
