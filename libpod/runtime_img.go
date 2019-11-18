@@ -192,7 +192,7 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 	}
 	// if it's stdin, buffer it, too
 	if source == "-" {
-		file, err := downloadFromFile(os.Stdin)
+		file, err := DownloadFromFile(os.Stdin)
 		if err != nil {
 			return "", err
 		}
@@ -232,9 +232,9 @@ func downloadFromURL(source string) (string, error) {
 	return outFile.Name(), nil
 }
 
-// donwloadFromFile reads all of the content from the reader and temporarily
+// DownloadFromFile reads all of the content from the reader and temporarily
 // saves in it /var/tmp/importxyz, which is deleted after the image is imported
-func downloadFromFile(reader *os.File) (string, error) {
+func DownloadFromFile(reader *os.File) (string, error) {
 	outFile, err := ioutil.TempFile("/var/tmp", "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")

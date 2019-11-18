@@ -2,16 +2,19 @@ package serviceapi
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"strings"
 	"time"
 
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	libpodImage "github.com/containers/libpod/libpod/image"
-	libpodInspect "github.com/containers/libpod/pkg/inspect"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerNetwork "github.com/docker/docker/api/types/network"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 )
 
@@ -112,6 +115,7 @@ type Stats struct {
 
 type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
+	ID string `json:"Id"`
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
@@ -160,29 +164,108 @@ func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	}}, nil
 }
 
-func ImageDataToImageInspect(l *libpodInspect.ImageData) (*ImageInspect, error) {
-	return &ImageInspect{docker.ImageInspect{
-		Architecture:    l.Architecture,
-		Author:          l.Author,
-		Comment:         l.Comment,
-		Config:          &dockerContainer.Config{},
-		Container:       "",
-		ContainerConfig: nil,
-		Created:         l.Created.Format(time.RFC3339Nano),
-		DockerVersion:   "",
-		GraphDriver:     docker.GraphDriverData{},
-		ID:              l.ID,
-		Metadata:        docker.ImageMetadata{},
-		Os:              l.Os,
-		OsVersion:       l.Version,
-		Parent:          l.Parent,
-		RepoDigests:     l.RepoDigests,
-		RepoTags:        l.RepoTags,
-		RootFS:          docker.RootFS{},
-		Size:            l.Size,
-		Variant:         "",
-		VirtualSize:     l.VirtualSize,
-	}}, nil
+func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {
+	type foo struct{}
+	ports := make(nat.PortSet)
+	info, err := l.Inspect(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	if len(info.Config.ExposedPorts) > 0 {
+		for k := range info.Config.ExposedPorts {
+			npTCP, err := nat.NewPort("tcp", k)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+			}
+			npUDP, err := nat.NewPort("udp", k)
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable to create udp port from %s", k)
+			}
+			ports[npTCP] = struct{}{}
+			ports[npUDP] = struct{}{}
+		}
+	}
+	// TODO the rest of these still need wiring!
+	config := dockerContainer.Config{
+		//	Hostname:        "",
+		//	Domainname:      "",
+		User: info.User,
+		//	AttachStdin:     false,
+		//	AttachStdout:    false,
+		//	AttachStderr:    false,
+		ExposedPorts: ports,
+		//	Tty:             false,
+		//	OpenStdin:       false,
+		//	StdinOnce:       false,
+		Env: info.Config.Env,
+		Cmd: info.Config.Cmd,
+		//	Healthcheck:     nil,
+		//	ArgsEscaped:     false,
+		//	Image:           "",
+		//	Volumes:         nil,
+		//	WorkingDir:      "",
+		//	Entrypoint:      nil,
+		//	NetworkDisabled: false,
+		//	MacAddress:      "",
+		//	OnBuild:         nil,
+		//	Labels:          nil,
+		//	StopSignal:      "",
+		//	StopTimeout:     nil,
+		//	Shell:           nil,
+	}
+	ic, err := l.ToImageRef(ctx)
+	if err != nil {
+		return nil, err
+	}
+	dockerImageInspect := docker.ImageInspect{
+		Architecture:  l.Architecture,
+		Author:        l.Author,
+		Comment:       info.Comment,
+		Config:        &config,
+		Created:       l.Created().Format(time.RFC3339Nano),
+		DockerVersion: "",
+		GraphDriver:   docker.GraphDriverData{},
+		ID:            fmt.Sprintf("sha256:%s", l.ID()),
+		Metadata:      docker.ImageMetadata{},
+		Os:            l.Os,
+		OsVersion:     l.Version,
+		Parent:        l.Parent,
+		RepoDigests:   info.RepoDigests,
+		RepoTags:      info.RepoTags,
+		RootFS:        docker.RootFS{},
+		Size:          info.Size,
+		Variant:       "",
+		VirtualSize:   info.VirtualSize,
+	}
+	bi := ic.ConfigInfo()
+	// For docker images, we need to get the container id and config
+	// and populate the image with it.
+	if bi.MediaType == manifest.DockerV2Schema2ConfigMediaType {
+		d := manifest.Schema2Image{}
+		b, err := ic.ConfigBlob(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(b, &d); err != nil {
+			return nil, err
+		}
+		// populate the container id into the image
+		dockerImageInspect.Container = d.Container
+		containerConfig := dockerContainer.Config{}
+		configBytes, err := json.Marshal(d.ContainerConfig)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.Unmarshal(configBytes, &containerConfig); err != nil {
+			return nil, err
+		}
+		// populate the container config in the image
+		dockerImageInspect.ContainerConfig = &containerConfig
+		// populate parent
+		dockerImageInspect.Parent = d.Parent.String()
+	}
+	return &ImageInspect{dockerImageInspect}, nil
+
 }
 
 func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {

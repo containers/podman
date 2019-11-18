@@ -116,6 +116,10 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 		return nil, errors.Wrap(err, "unable to get images to prune")
 	}
 	for _, p := range pruneImages {
+		repotags, err := p.RepoTags()
+		if err != nil {
+			return nil, err
+		}
 		if err := p.Remove(ctx, true); err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
 				logrus.Warnf("Failed to prune image %s as it is in use: %v", p.ID(), err)
@@ -124,7 +128,11 @@ func (ir *Runtime) PruneImages(ctx context.Context, all bool, filter []string) (
 			return nil, errors.Wrap(err, "failed to prune image")
 		}
 		defer p.newImageEvent(events.Prune)
-		prunedCids = append(prunedCids, p.ID())
+		nameOrID := p.ID()
+		if len(repotags) > 0 {
+			nameOrID = repotags[0]
+		}
+		prunedCids = append(prunedCids, nameOrID)
 	}
 	return prunedCids, nil
 }
