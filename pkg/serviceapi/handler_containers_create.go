@@ -73,89 +73,108 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 	if input.StopTimeout != nil {
 		stopTimeout = uint(*input.StopTimeout)
 	}
+	c := createconfig.CgroupConfig{
+		Cgroups:      "", //podman
+		Cgroupns:     "", //podman
+		CgroupParent: "", //podman
+		CgroupMode:   "", //podman
+	}
+	security := createconfig.SecurityConfig{
+		CapAdd:             input.HostConfig.CapAdd,
+		CapDrop:            input.HostConfig.CapDrop,
+		LabelOpts:          nil,   //podman
+		NoNewPrivs:         false, //podman
+		ApparmorProfile:    "",    //podman
+		SeccompProfilePath: "undefined",
+		SecurityOpts:       input.HostConfig.SecurityOpt,
+		Privileged:         input.HostConfig.Privileged,
+		ReadOnlyRootfs:     input.HostConfig.ReadonlyRootfs,
+		ReadOnlyTmpfs:      false, //podman-only
+		Sysctl:             input.HostConfig.Sysctls,
+	}
 
+	network := createconfig.NetworkConfig{
+		DNSOpt:       input.HostConfig.DNSOptions,
+		DNSSearch:    input.HostConfig.DNSSearch,
+		DNSServers:   input.HostConfig.DNS,
+		ExposedPorts: input.ExposedPorts,
+		HTTPProxy:    false, //podman
+		IP6Address:   "",
+		IPAddress:    "",
+		LinkLocalIP:  nil, // docker-only
+		MacAddress:   input.MacAddress,
+		NetMode:      "",
+		Network:      input.HostConfig.NetworkMode.NetworkName(),
+		NetworkAlias: nil, //docker-only now
+		PortBindings: input.HostConfig.PortBindings,
+		Publish:      nil, // podmanseccompPath
+		PublishAll:   input.HostConfig.PublishAllPorts,
+	}
+
+	uts := createconfig.UtsConfig{
+		UtsMode:  "",
+		NoHosts:  false, //podman
+		HostAdd:  input.HostConfig.ExtraHosts,
+		Hostname: input.Hostname,
+	}
+
+	z := createconfig.UserConfig{
+		GroupAdd:   input.HostConfig.GroupAdd,
+		IDMappings: &storage.IDMappingOptions{}, // podman //TODO <--- fix this,
+		UsernsMode: namespaces.UsernsMode(input.HostConfig.UsernsMode),
+		User:       input.User,
+	}
 	m := createconfig.CreateConfig{
 		Annotations:   nil, // podman
 		Args:          nil,
-		CapAdd:        input.HostConfig.CapAdd,
-		CapDrop:       input.HostConfig.CapDrop,
+		Cgroup:        c,
 		CidFile:       "",
 		ConmonPidFile: "", // podman
-		Cgroupns:      "", // podman
-		Cgroups:       "", // podman
-		CgroupParent:  input.HostConfig.CgroupParent,
 		Command:       input.Cmd,
 		UserCommand:   nil,   // podman
 		Detach:        false, //
 		// Devices:            input.HostConfig.Devices,
-		DNSOpt:     input.HostConfig.DNSOptions,
-		DNSSearch:  input.HostConfig.DNSSearch,
-		DNSServers: input.HostConfig.DNS,
 		Entrypoint: input.Entrypoint,
 		// Env:                input.Env,
-		ExposedPorts: input.ExposedPorts,
-		GroupAdd:     input.HostConfig.GroupAdd,
-		HealthCheck:  nil,   //
-		NoHosts:      false, // podman
-		HostAdd:      input.HostConfig.ExtraHosts,
-		Hostname:     input.Hostname,
-		HTTPProxy:    false, // podman
+		HealthCheck: nil, //
 		// Init:               input.HostConfig.Init,
 		InitPath:          "", // tbd
 		Image:             input.Image,
 		ImageID:           newImage.ID(),
-		BuiltinImgVolumes: nil,                         // podman
-		IDMappings:        &storage.IDMappingOptions{}, // podman //TODO <--- fix this
-		ImageVolumeType:   "",                          // podman
+		BuiltinImgVolumes: nil, // podman
+		ImageVolumeType:   "",  // podman
 		Interactive:       false,
 		// IpcMode:           input.HostConfig.IpcMode,
-		IP6Address:  "",
-		IPAddress:   "",
-		Labels:      input.Labels,
-		LinkLocalIP: nil,                             // docker-only
-		LogDriver:   input.HostConfig.LogConfig.Type, // is this correct
+		Labels:    input.Labels,
+		LogDriver: input.HostConfig.LogConfig.Type, // is this correct
 		// LogDriverOpt:       input.HostConfig.LogConfig.Config,
-		MacAddress: input.MacAddress,
-		Name:       input.Name,
+		Name:    input.Name,
+		Network: network,
 		// NetMode:            input.HostConfig.NetworkMode,
-		Network:      input.HostConfig.NetworkMode.NetworkName(),
-		NetworkAlias: nil, // dockeronly ?
 		// PidMode:            input.HostConfig.PidMode,
-		Pod:            "", // podman
-		PodmanPath:     "", // podman
-		CgroupMode:     "", // podman
-		PortBindings:   input.HostConfig.PortBindings,
-		Privileged:     input.HostConfig.Privileged,
-		Publish:        nil, // podmanseccompPath
-		PublishAll:     input.HostConfig.PublishAllPorts,
-		Quiet:          false, // front-end only
-		ReadOnlyRootfs: input.HostConfig.ReadonlyRootfs,
-		ReadOnlyTmpfs:  false, // podman
-		Resources:      createconfig.CreateResourceConfig{},
-		RestartPolicy:  input.HostConfig.RestartPolicy.Name,
-		Rm:             input.HostConfig.AutoRemove,
-		StopSignal:     stopSignal,
-		StopTimeout:    stopTimeout,
-		Sysctl:         input.HostConfig.Sysctls,
-		Systemd:        false, // podman
+		Pod:           "",    // podman
+		PodmanPath:    "",    // podman
+		Quiet:         false, // front-end only
+		Resources:     createconfig.CreateResourceConfig{},
+		RestartPolicy: input.HostConfig.RestartPolicy.Name,
+		Rm:            input.HostConfig.AutoRemove,
+		StopSignal:    stopSignal,
+		StopTimeout:   stopTimeout,
+		Systemd:       false, // podman
 		// Tmpfs:              input.HostConfig.Tmpfs,
-		Tty:        input.Tty,
-		UsernsMode: namespaces.UsernsMode(input.HostConfig.UsernsMode),
-		User:       input.User,
+		User: z,
+		Uts:  uts,
+		Tty:  input.Tty,
 		// UtsMode:            input.HostConfig.UTSMode,
 		Mounts: nil, // we populate
 		// MountsFlag:         input.HostConfig.Mounts,
 		NamedVolumes: nil, // we populate
 		// Volumes:            input.Volumes,
-		VolumesFrom:        input.HostConfig.VolumesFrom,
-		WorkDir:            workDir,
-		LabelOpts:          nil,          // we populate
-		NoNewPrivs:         false,        // we populate
-		ApparmorProfile:    "",           // we populate
-		SeccompProfilePath: "unconfined", // we populate
-		SecurityOpts:       input.HostConfig.SecurityOpt,
-		Rootfs:             "",    // podman
-		Syslog:             false, // podman
+		VolumesFrom: input.HostConfig.VolumesFrom,
+		WorkDir:     workDir,
+		Rootfs:      "", // podman
+		Security:    security,
+		Syslog:      false, // podman
 	}
 	return m, nil
 }
