@@ -100,6 +100,10 @@ type CreateContainer struct {
 	NetworkingConfig dockerNetwork.NetworkingConfig
 }
 
+type CommitResponse struct {
+	ID string `json:"id"`
+}
+
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {
