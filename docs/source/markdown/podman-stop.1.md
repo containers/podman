@@ -21,6 +21,10 @@ container and also via command line when creating the container.
 
 Stop all running containers.  This does not include paused containers.
 
+**--cidfile**
+
+Read container ID from the specified file and remove the container.  Can be specified multiple times.
+
 **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman
@@ -39,6 +43,10 @@ podman stop mywebserver
 podman stop 860a4b235279
 
 podman stop mywebserver 860a4b235279
+
+podman stop --cidfile /home/user/cidfile-1
+
+podman stop --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 
 podman stop --timeout 2 860a4b235279
 

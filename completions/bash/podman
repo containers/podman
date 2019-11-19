@@ -2150,6 +2150,7 @@ _podman_rm() {
     local boolean_options="
 	--all
 	-a
+	--cidfile
 	--force
 	-f
 	--help
@@ -2426,6 +2427,7 @@ _podman_stop() {
      local boolean_options="
 	  --all
 	  -a
+	  --cidfile
 	  -h
 	  --help
 	  --latest

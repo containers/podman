@@ -25,7 +25,7 @@ var (
 			return podPauseCmd(&podPauseCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod pause podID1 podID2
   podman pod pause --latest

@@ -35,7 +35,7 @@ var (
 			return mountCmd(&mountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, true)
+			return checkAllLatestAndCIDFile(cmd, args, true, false)
 		},
 	}
 )

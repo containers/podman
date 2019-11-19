@@ -27,7 +27,7 @@ var (
 			return cleanupCmd(&cleanupCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman container cleanup --latest
   podman container cleanup ctrID1 ctrID2 ctrID3

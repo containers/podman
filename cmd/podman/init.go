@@ -23,7 +23,7 @@ var (
 			return initCmd(&initCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman init --latest
   podman init 3c45ef19d893

@@ -26,7 +26,7 @@ var (
 			return portCmd(&portCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, true)
+			return checkAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Example: `podman port --all
   podman port ctrID 80/tcp

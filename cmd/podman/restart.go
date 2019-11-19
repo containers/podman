@@ -23,7 +23,7 @@ var (
 			return restartCmd(&restartCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman restart ctrID
   podman restart --latest

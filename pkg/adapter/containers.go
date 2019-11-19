@@ -79,7 +79,17 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	}
 	logrus.Debugf("Setting maximum stop workers to %d", maxWorkers)
 
-	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	names := cli.InputArgs
+	for _, cidFile := range cli.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		names = append(names, id)
+	}
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -203,7 +213,17 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 		return ok, failures, nil
 	}
 
-	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	names := cli.InputArgs
+	for _, cidFile := range cli.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		names = append(names, id)
+	}
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
 	if err != nil {
 		// Failed to get containers. If force is specified, get the containers ID
 		// and evict them

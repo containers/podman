@@ -25,7 +25,7 @@ var (
 			return rmCmd(&rmCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, true)
 		},
 		Example: `podman rm imageID
   podman rm mywebserver myflaskserver 860a4b23
@@ -44,8 +44,10 @@ func init() {
 	flags.BoolVarP(&rmCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&rmCommand.Storage, "storage", false, "Remove container from storage library")
 	flags.BoolVarP(&rmCommand.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
+	flags.StringArrayVarP(&rmCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	markFlagHiddenForRemoteClient("storage", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
+	markFlagHiddenForRemoteClient("cidfile", flags)
 }
 
 // rmCmd removes one or more containers
@@ -58,8 +60,8 @@ func rmCmd(c *cliconfig.RmValues) error {
 
 	// Storage conflicts with --all/--latest/--volumes
 	if c.Storage {
-		if c.All || c.Latest || c.Volumes {
-			return errors.Errorf("--storage conflicts with --volumes, --all, and --latest")
+		if c.All || c.Latest || c.Volumes || c.CIDFiles != nil {
+			return errors.Errorf("--storage conflicts with --volumes, --all, --latest and --cidfile")
 		}
 	}
 

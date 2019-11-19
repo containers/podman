@@ -24,7 +24,7 @@ var (
 			return killCmd(&killCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman kill mywebserver
   podman kill 860a4b23
