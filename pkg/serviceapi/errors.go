@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,6 +14,7 @@ import (
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Errorf(err.Error())
+	w.WriteHeader(code)
 	WriteJSON(w, struct {
 		Message string `json:"message"`
 	}{
@@ -38,4 +40,13 @@ func podNotFound(w http.ResponseWriter, nameOrId string, err error) {
 func containerNotRunning(w http.ResponseWriter, containerID string, err error) {
 	msg := fmt.Sprintf("Container %s is not running", containerID)
 	Error(w, msg, http.StatusConflict, err)
+}
+
+func internalServerError(w http.ResponseWriter, err error) {
+	Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError, err)
+}
+
+func badRequest(w http.ResponseWriter, key string, value string, err error) {
+	e := errors.Wrapf(err, "Failed to parse query parameter '%s': %q", key, value)
+	Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, e)
 }

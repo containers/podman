@@ -104,6 +104,10 @@ type CommitResponse struct {
 	ID string `json:"id"`
 }
 
+type Stats struct {
+	docker.StatsJSON
+}
+
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {

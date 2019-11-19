@@ -19,7 +19,7 @@ func (s *APIServer) serviceHandler(h http.HandlerFunc) http.HandlerFunc {
 		h(w, r)
 
 		if err := s.Shutdown(); err != nil {
-			log.Errorf(err.Error())
+			log.Errorf("Failed to shutdown APIServer in serviceHandler(): %s", err.Error())
 		}
 	}
 }
@@ -38,7 +38,7 @@ func (s *APIServer) WriteResponse(w http.ResponseWriter, code int, value interfa
 		w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
 		_, err = fmt.Fprintln(w, value)
 	default:
-		return WriteJSON(w, value)
+		WriteJSON(w, value)
 	}
 	return err
 }
