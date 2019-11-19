@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/pkg/serviceapi"
 	"github.com/containers/storage/pkg/reexec"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	}
 
 	cobra.OnInitialize(initConfig)
+	log.SetLevel(log.DebugLevel)
 
 	config := cliconfig.PodmanCommand{
 		Command:     &cobra.Command{},
