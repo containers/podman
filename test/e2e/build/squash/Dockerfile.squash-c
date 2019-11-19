@@ -1,0 +1,3 @@
+FROM busybox:latest
+ADD alpinetest.tgz /data
+RUN rm -rf /data
