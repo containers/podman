@@ -257,14 +257,14 @@ func (s *APIServer) getImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var summaries []*ImageSummary
-	for _, img := range images {
-		i, err := ImageToImageSummary(img)
+	var summaries = make([]*ImageSummary, len(images))
+	for j, img := range images {
+		is, err := ImageToImageSummary(img)
 		if err != nil {
 			Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert storage image '%s' to API image"))
 			return
 		}
-		summaries = append(summaries, i)
+		summaries[j] = is
 	}
 
 	s.WriteResponse(w, http.StatusOK, summaries)
