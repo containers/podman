@@ -231,13 +231,18 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		}
 	}
 
+	fileSystemType := graphdriver.FsMagicOverlay
+	if opts.mountProgram != "" {
+		fileSystemType = graphdriver.FsMagicFUSE
+	}
+
 	d := &Driver{
 		name:          "overlay",
 		home:          home,
 		runhome:       runhome,
 		uidMaps:       options.UIDMaps,
 		gidMaps:       options.GIDMaps,
-		ctr:           graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicOverlay)),
+		ctr:           graphdriver.NewRefCounter(graphdriver.NewFsChecker(fileSystemType)),
 		supportsDType: supportsDType,
 		usingMetacopy: usingMetacopy,
 		locker:        locker.New(),
@@ -1016,8 +1021,39 @@ func (d *Driver) Put(id string) error {
 	if _, err := ioutil.ReadFile(path.Join(dir, lowerFile)); err != nil && !os.IsNotExist(err) {
 		return err
 	}
-	if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
-		logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
+
+	unmounted := false
+
+	if d.options.mountProgram != "" {
+		// Attempt to unmount the FUSE mount using either fusermount or fusermount3.
+		// If they fail, fallback to unix.Unmount
+		for _, v := range []string{"fusermount3", "fusermount"} {
+			err := exec.Command(v, "-u", mountpoint).Run()
+			if err != nil && !os.IsNotExist(err) {
+				logrus.Debugf("Error unmounting %s with %s - %v", mountpoint, v, err)
+			}
+			if err == nil {
+				unmounted = true
+				break
+			}
+		}
+		// If fusermount|fusermount3 failed to unmount the FUSE file system, make sure all
+		// pending changes are propagated to the file system
+		if !unmounted {
+			fd, err := unix.Open(mountpoint, unix.O_DIRECTORY, 0)
+			if err == nil {
+				if err := unix.Syncfs(fd); err != nil {
+					logrus.Debugf("Error Syncfs(%s) - %v", mountpoint, err)
+				}
+				unix.Close(fd)
+			}
+		}
+	}
+
+	if !unmounted {
+		if err := unix.Unmount(mountpoint, unix.MNT_DETACH); err != nil && !os.IsNotExist(err) {
+			logrus.Debugf("Failed to unmount %s overlay: %s - %v", id, mountpoint, err)
+		}
 	}
 
 	if err := unix.Rmdir(mountpoint); err != nil && !os.IsNotExist(err) {

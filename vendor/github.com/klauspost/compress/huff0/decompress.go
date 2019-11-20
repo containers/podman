@@ -276,6 +276,7 @@ func (s *Scratch) Decompress4X(in []byte, dstSize int) (out []byte, err error) {
 	// Use temp table to avoid bound checks/append penalty.
 	var tmp = s.huffWeight[:256]
 	var off uint8
+	var decoded int
 
 	// Decode 2 values from each decoder/loop.
 	const bufoff = 256 / 4
@@ -306,6 +307,7 @@ bigloop:
 			copy(dstOut[dstEvery*3:], tmp[bufoff*3:bufoff*4])
 			off = 0
 			dstOut = dstOut[bufoff:]
+			decoded += 256
 			// There must at least be 3 buffers left.
 			if len(dstOut) < dstEvery*3 {
 				return nil, errors.New("corruption detected: stream overrun 2")
@@ -321,9 +323,11 @@ bigloop:
 		copy(dstOut[dstEvery:dstEvery+ioff], tmp[bufoff:bufoff*2])
 		copy(dstOut[dstEvery*2:dstEvery*2+ioff], tmp[bufoff*2:bufoff*3])
 		copy(dstOut[dstEvery*3:dstEvery*3+ioff], tmp[bufoff*3:bufoff*4])
+		decoded += int(off) * 4
 		dstOut = dstOut[off:]
 	}
 
+	// Decode remaining.
 	for i := range br {
 		offset := dstEvery * i
 		br := &br[i]
@@ -335,12 +339,15 @@ bigloop:
 			dstOut[offset] = decode(br)
 			offset++
 		}
+		decoded += offset - dstEvery*i
 		err = br.close()
 		if err != nil {
 			return nil, err
 		}
 	}
-
+	if dstSize != decoded {
+		return nil, errors.New("corruption detected: short output block")
+	}
 	return s.Out, nil
 }
 

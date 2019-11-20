@@ -821,11 +821,12 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 				// is asking for that file no matter what - which is true
 				// for some files, like .dockerignore and Dockerfile (sometimes)
 				if include != relFilePath {
-					skip, err = pm.Matches(relFilePath)
+					matches, err := pm.IsMatch(relFilePath)
 					if err != nil {
 						logrus.Errorf("Error matching %s: %v", relFilePath, err)
 						return err
 					}
+					skip = matches
 				}
 
 				if skip {

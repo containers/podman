@@ -235,7 +235,7 @@ encodeLoop:
 				if debug && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
-				if debug {
+				if debugMatches {
 					println("long match")
 				}
 				break
@@ -259,7 +259,7 @@ encodeLoop:
 					// but the likelihood of both the first 4 bytes and the hash matching should be enough.
 					t = candidateL.offset - e.cur
 					s += checkAt
-					if debug {
+					if debugMatches {
 						println("long match (after short)")
 					}
 					break
@@ -275,7 +275,7 @@ encodeLoop:
 				if debug && t < 0 {
 					panic("t<0")
 				}
-				if debug {
+				if debugMatches {
 					println("short match")
 				}
 				break

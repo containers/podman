@@ -75,6 +75,7 @@ var (
 // The Reset function can be used to initiate a new stream, which is will considerably
 // reduce the allocations normally caused by NewReader.
 func NewReader(r io.Reader, opts ...DOption) (*Decoder, error) {
+	initPredefined()
 	var d Decoder
 	d.o.setDefault()
 	for _, o := range opts {
@@ -123,7 +124,9 @@ func (d *Decoder) Read(p []byte) (int, error) {
 			if d.current.err != nil {
 				break
 			}
-			d.nextBlock()
+			if !d.nextBlock(n == 0) {
+				return n, nil
+			}
 		}
 	}
 	if len(d.current.b) > 0 {
@@ -251,7 +254,7 @@ func (d *Decoder) WriteTo(w io.Writer) (int64, error) {
 		if d.current.err != nil {
 			break
 		}
-		d.nextBlock()
+		d.nextBlock(true)
 	}
 	err := d.current.err
 	if err != nil {
@@ -328,7 +331,10 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 
 // nextBlock returns the next block.
 // If an error occurs d.err will be set.
-func (d *Decoder) nextBlock() {
+// Optionally the function can block for new output.
+// If non-blocking mode is used the returned boolean will be false
+// if no data was available without blocking.
+func (d *Decoder) nextBlock(blocking bool) (ok bool) {
 	if d.current.d != nil {
 		if debug {
 			printf("re-adding current decoder %p", d.current.d)
@@ -338,12 +344,22 @@ func (d *Decoder) nextBlock() {
 	}
 	if d.current.err != nil {
 		// Keep error state.
-		return
+		return blocking
 	}
-	d.current.decodeOutput = <-d.current.output
+
+	if blocking {
+		d.current.decodeOutput = <-d.current.output
+	} else {
+		select {
+		case d.current.decodeOutput = <-d.current.output:
+		default:
+			return false
+		}
+	}
 	if debug {
 		println("got", len(d.current.b), "bytes, error:", d.current.err)
 	}
+	return true
 }
 
 // Close will release all resources.

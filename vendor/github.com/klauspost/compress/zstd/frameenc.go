@@ -5,7 +5,6 @@
 package zstd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -49,9 +48,7 @@ func (f frameHeader) appendTo(dst []byte) ([]byte, error) {
 		windowLog := (bits.Len32(f.WindowSize-1) - winLogMin) << 3
 		dst = append(dst, uint8(windowLog))
 	}
-	if f.SingleSegment && f.ContentSize == 0 {
-		return nil, errors.New("single segment, but no size set")
-	}
+
 	switch fcs {
 	case 0:
 		if f.SingleSegment {

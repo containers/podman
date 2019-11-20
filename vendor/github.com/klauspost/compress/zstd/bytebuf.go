@@ -101,6 +101,9 @@ func (r *readerWrapper) readBig(n int, dst []byte) ([]byte, error) {
 		dst = make([]byte, n)
 	}
 	n2, err := io.ReadFull(r.r, dst[:n])
+	if err == io.EOF && n > 0 {
+		err = io.ErrUnexpectedEOF
+	}
 	return dst[:n2], err
 }
 

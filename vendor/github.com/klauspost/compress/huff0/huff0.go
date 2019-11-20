@@ -89,6 +89,12 @@ type Scratch struct {
 	// Reuse will specify the reuse policy
 	Reuse ReusePolicy
 
+	// WantLogLess allows to specify a log 2 reduction that should at least be achieved,
+	// otherwise the block will be returned as incompressible.
+	// The reduction should then at least be (input size >> WantLogLess)
+	// If WantLogLess == 0 any improvement will do.
+	WantLogLess uint8
+
 	// MaxDecodedSize will set the maximum allowed output size.
 	// This value will automatically be set to BlockSizeMax if not set.
 	// Decoders will return ErrMaxDecodedSizeExceeded is this limit is exceeded.

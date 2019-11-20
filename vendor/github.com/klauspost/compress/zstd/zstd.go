@@ -11,6 +11,7 @@ import (
 
 const debug = false
 const debugSequences = false
+const debugMatches = false
 
 // force encoder to use predefined tables.
 const forcePreDef = false

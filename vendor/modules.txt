@@ -125,7 +125,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.13.5
+# github.com/containers/storage v1.14.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -295,15 +295,13 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.8
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.8.1
+# github.com/klauspost/compress v1.9.2
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/snappy
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid v1.2.1
-github.com/klauspost/cpuid
 # github.com/klauspost/pgzip v1.2.1
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
@@ -373,13 +371,14 @@ github.com/opencontainers/go-digest
 # github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
+# github.com/opencontainers/runc v1.0.0-rc9
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
 github.com/opencontainers/runc/libcontainer/configs
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/system
 github.com/opencontainers/runc/libcontainer/user
+github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.0

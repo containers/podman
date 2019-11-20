@@ -51,7 +51,7 @@ func (b *blockEnc) init() {
 		b.coders.llEnc = &fseEncoder{}
 		b.coders.llPrev = &fseEncoder{}
 	}
-	b.litEnc = &huff0.Scratch{}
+	b.litEnc = &huff0.Scratch{WantLogLess: 4}
 	b.reset(nil)
 }
 
@@ -391,6 +391,52 @@ func (b *blockEnc) encodeLits() error {
 	return nil
 }
 
+// fuzzFseEncoder can be used to fuzz the FSE encoder.
+func fuzzFseEncoder(data []byte) int {
+	if len(data) > maxSequences || len(data) < 2 {
+		return 0
+	}
+	enc := fseEncoder{}
+	hist := enc.Histogram()[:256]
+	maxSym := uint8(0)
+	for i, v := range data {
+		v = v & 63
+		data[i] = v
+		hist[v]++
+		if v > maxSym {
+			maxSym = v
+		}
+	}
+	if maxSym == 0 {
+		// All 0
+		return 0
+	}
+	maxCount := func(a []uint32) int {
+		var max uint32
+		for _, v := range a {
+			if v > max {
+				max = v
+			}
+		}
+		return int(max)
+	}
+	cnt := maxCount(hist[:maxSym])
+	if cnt == len(data) {
+		// RLE
+		return 0
+	}
+	enc.HistogramFinished(maxSym, cnt)
+	err := enc.normalizeCount(len(data))
+	if err != nil {
+		return 0
+	}
+	_, err = enc.writeCount(nil)
+	if err != nil {
+		panic(err)
+	}
+	return 1
+}
+
 // encode will encode the block and put the output in b.output.
 func (b *blockEnc) encode() error {
 	if len(b.sequences) == 0 {
@@ -415,16 +461,10 @@ func (b *blockEnc) encode() error {
 	if len(b.literals) >= 1024 {
 		// Use 4 Streams.
 		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)
-		if len(out) > len(b.literals)-len(b.literals)>>4 {
-			err = huff0.ErrIncompressible
-		}
 	} else if len(b.literals) > 32 {
 		// Use 1 stream
 		single = true
 		out, reUsed, err = huff0.Compress1X(b.literals, b.litEnc)
-		if len(out) > len(b.literals)-len(b.literals)>>4 {
-			err = huff0.ErrIncompressible
-		}
 	} else {
 		err = huff0.ErrIncompressible
 	}
@@ -711,7 +751,7 @@ func (b *blockEnc) encode() error {
 	return nil
 }
 
-var errIncompressible = errors.New("uncompressible")
+var errIncompressible = errors.New("incompressible")
 
 func (b *blockEnc) genCodes() {
 	if len(b.sequences) == 0 {

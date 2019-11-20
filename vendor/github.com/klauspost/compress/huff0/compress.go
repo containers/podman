@@ -54,6 +54,12 @@ func compress(in []byte, s *Scratch, compressor func(src []byte) ([]byte, error)
 		canReuse = s.canUseTable(s.prevTable)
 	}
 
+	// We want the output size to be less than this:
+	wantSize := len(in)
+	if s.WantLogLess > 0 {
+		wantSize -= wantSize >> s.WantLogLess
+	}
+
 	// Reset for next run.
 	s.clearCount = true
 	s.maxCount = 0
@@ -77,7 +83,7 @@ func compress(in []byte, s *Scratch, compressor func(src []byte) ([]byte, error)
 		s.cTable = s.prevTable
 		s.Out, err = compressor(in)
 		s.cTable = keepTable
-		if err == nil && len(s.Out) < len(in) {
+		if err == nil && len(s.Out) < wantSize {
 			s.OutData = s.Out
 			return s.Out, true, nil
 		}
@@ -100,13 +106,16 @@ func compress(in []byte, s *Scratch, compressor func(src []byte) ([]byte, error)
 		hSize := len(s.Out)
 		oldSize := s.prevTable.estimateSize(s.count[:s.symbolLen])
 		newSize := s.cTable.estimateSize(s.count[:s.symbolLen])
-		if oldSize <= hSize+newSize || hSize+12 >= len(in) {
+		if oldSize <= hSize+newSize || hSize+12 >= wantSize {
 			// Retain cTable even if we re-use.
 			keepTable := s.cTable
 			s.cTable = s.prevTable
 			s.Out, err = compressor(in)
 			s.cTable = keepTable
-			if len(s.Out) >= len(in) {
+			if err != nil {
+				return nil, false, err
+			}
+			if len(s.Out) >= wantSize {
 				return nil, false, ErrIncompressible
 			}
 			s.OutData = s.Out
@@ -128,7 +137,7 @@ func compress(in []byte, s *Scratch, compressor func(src []byte) ([]byte, error)
 		s.OutTable = nil
 		return nil, false, err
 	}
-	if len(s.Out) >= len(in) {
+	if len(s.Out) >= wantSize {
 		s.OutTable = nil
 		return nil, false, ErrIncompressible
 	}

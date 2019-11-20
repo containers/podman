@@ -80,6 +80,7 @@ type SnappyConverter struct {
 // If any error is detected on the Snappy stream it is returned.
 // The number of bytes written is returned.
 func (r *SnappyConverter) Convert(in io.Reader, w io.Writer) (int64, error) {
+	initPredefined()
 	r.err = nil
 	r.r = in
 	if r.block == nil {
