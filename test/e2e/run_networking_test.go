@@ -232,4 +232,18 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
 	})
+
+	It("podman run in custom CNI network with --static-ip", func() {
+		SkipIfRootless()
+		netName := "podmantestnetwork"
+		ipAddr := "10.20.30.128"
+		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.20.30.0/24", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(BeZero())
+
+		run := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "--net", netName, "--ip", ipAddr, ALPINE, "ip", "addr"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
+	})
 })
