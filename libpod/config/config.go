@@ -469,6 +469,9 @@ func NewConfig(userConfigPath string) (*Config, error) {
 	if defaultConfig, err := defaultConfigFromMemory(); err != nil {
 		return nil, errors.Wrapf(err, "error generating default config from memory")
 	} else {
+		// Check if we need to switch to cgroupfs and logger=file on rootless.
+		defaultConfig.checkCgroupsAndLogger()
+
 		if err := config.mergeConfig(defaultConfig); err != nil {
 			return nil, errors.Wrapf(err, "error merging default config from memory")
 		}
@@ -486,9 +489,6 @@ func NewConfig(userConfigPath string) (*Config, error) {
 	if !filepath.IsAbs(config.VolumePath) {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "volume path must be an absolute path - instead got %q", config.VolumePath)
 	}
-
-	// Check if we need to switch to cgroupfs on rootless.
-	config.checkCgroupsAndAdjustConfig()
 
 	return config, nil
 }
@@ -524,11 +524,13 @@ func systemConfigs() ([]string, error) {
 	return configs, nil
 }
 
-// checkCgroupsAndAdjustConfig checks if we're running rootless with the systemd
+// checkCgroupsAndLogger checks if we're running rootless with the systemd
 // cgroup manager. In case the user session isn't available, we're switching the
-// cgroup manager to cgroupfs.  Note, this only applies to rootless.
-func (c *Config) checkCgroupsAndAdjustConfig() {
-	if !rootless.IsRootless() || c.CgroupManager != define.SystemdCgroupsManager {
+// cgroup manager to cgroupfs and the events logger backend to 'file'.
+// Note, this only applies to rootless.
+func (c *Config) checkCgroupsAndLogger() {
+	if !rootless.IsRootless() || (c.CgroupManager !=
+		define.SystemdCgroupsManager && c.EventsLogger == "file") {
 		return
 	}
 
@@ -543,7 +545,8 @@ func (c *Config) checkCgroupsAndAdjustConfig() {
 		logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
 		logrus.Warningf("For using systemd, you may need to login using an user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", rootless.GetRootlessUID())
-		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
+		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs and --events-backend=file")
 		c.CgroupManager = define.CgroupfsCgroupsManager
+		c.EventsLogger = "file"
 	}
 }
