@@ -25,6 +25,12 @@ Stop all running containers.  This does not include paused containers.
 
 Read container ID from the specified file and remove the container.  Can be specified multiple times.
 
+**--ignore**, **-i**
+
+Ignore errors when specified containers are not in the container store.  A user
+might have decided to manually remove a container which would lead to a failure
+during the ExecStop directive of a systemd service referencing that container.
+
 **--latest**, **-l**
 
 Instead of providing the container name or ID, use the last created container. If you use methods other than Podman

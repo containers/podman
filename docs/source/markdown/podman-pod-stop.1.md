@@ -15,6 +15,12 @@ Stop containers in one or more pods.  You may use pod IDs or names as input.
 
 Stops all pods
 
+**--ignore**, **-i**
+
+Ignore errors when specified pods are not in the container store.  A user might
+have decided to manually remove a pod which would lead to a failure during the
+ExecStop directive of a systemd service referencing that pod.
+
 **--latest**, **-l**
 
 Instead of providing the pod name or ID, stop the last created pod.

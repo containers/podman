@@ -15,6 +15,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	ann "github.com/containers/libpod/pkg/annotations"
@@ -94,7 +95,7 @@ func (r *LocalRuntime) RemovePods(ctx context.Context, cli *cliconfig.PodRmValue
 		podids []string
 	)
 	pods, err := shortcuts.GetPodsByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
-	if err != nil {
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		errs = append(errs, err)
 		return nil, errs
 	}
@@ -151,7 +152,7 @@ func (r *LocalRuntime) StopPods(ctx context.Context, cli *cliconfig.PodStopValue
 		podids []string
 	)
 	pods, err := shortcuts.GetPodsByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
-	if err != nil {
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchPod) {
 		errs = append(errs, err)
 		return nil, errs
 	}

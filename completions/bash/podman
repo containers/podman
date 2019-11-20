@@ -2155,6 +2155,8 @@ _podman_rm() {
 	-f
 	--help
 	-h
+	--ignore
+	-i
 	--latest
 	-l
 	--storage
@@ -2430,6 +2432,8 @@ _podman_stop() {
 	  --cidfile
 	  -h
 	  --help
+	  --ignore
+	  -i
 	  --latest
 	  -l
     "
@@ -2990,6 +2994,8 @@ _podman_pod_rm() {
       --all
       --help
       -h
+	  --ignore
+	  -i
       -f
       --force
       --latest
@@ -3040,6 +3046,8 @@ _podman_pod_stop() {
       -a
       --cleanup
       --help
+	  --ignore
+	  -i
       -h
       --latest
       -l
