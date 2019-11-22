@@ -88,6 +88,8 @@ github.com/containers/storage v1.13.4 h1:j0bBaJDKbUHtAW1MXPFnwXJtqcH+foWeuXK1YaB
 github.com/containers/storage v1.13.4/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
 github.com/containers/storage v1.13.5 h1:/SUzGeOP2HDijpF7Yur21Ch6WTZC1BNeZF917CWcp5c=
 github.com/containers/storage v1.13.5/go.mod h1:HELz8Sn+UVbPaUZMI8RvIG9doD4y4z6Gtg4k7xdd2ZY=
+github.com/containers/storage v1.14.0 h1:LbX6WZaDmkXt4DT4xWIg3YXAWd6oA4K9Fi6/KG1xt84=
+github.com/containers/storage v1.14.0/go.mod h1:qGPsti/qC1xxX+xcpHfiTMT+8ThVE2Jf83wFHHqkDAY=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-iptables v0.4.2 h1:KH0EwId05JwWIfb96gWvkiT2cbuOu8ygqUaB+yPAwIg=
@@ -265,6 +267,8 @@ github.com/klauspost/compress v1.7.2 h1:liMOoeIvFpr9kEvalrZ7VVBA4wGf7zfOgwBjzz/5
 github.com/klauspost/compress v1.7.2/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.8.1 h1:oygt2ychZFHOB6M9gUgajzgKrwRgHbGC77NwA4COVgI=
 github.com/klauspost/compress v1.8.1/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
+github.com/klauspost/compress v1.9.2 h1:LfVyl+ZlLlLDeQ/d2AqfGIIH4qEDu0Ed2S5GyhCWIWY=
+github.com/klauspost/compress v1.9.2/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
@@ -345,6 +349,8 @@ github.com/opencontainers/runc v1.0.0-rc8 h1:dDCFes8Hj1r/i5qnypONo5jdOme/8HWZC/a
 github.com/opencontainers/runc v1.0.0-rc8/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
 github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158 h1:/A6bAdnSZoTQmKml3MdHAnSEPnBAQeigNBl4sxnfaaQ=
 github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
+github.com/opencontainers/runc v1.0.0-rc9 h1:/k06BMULKF5hidyoZymkoDCzdJzltZpz/UU4LguQVtc=
+github.com/opencontainers/runc v1.0.0-rc9/go.mod h1:qT5XzbpPznkRYVz/mWwUaVBUv2rmF59PVA73FjuZG0U=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190507144316-5b71a03e2700/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7 h1:Dliu5QO+4JYWu/yMshaMU7G3JN2POGpwjJN7gjy10Go=
 github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=

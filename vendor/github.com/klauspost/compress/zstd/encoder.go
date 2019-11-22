@@ -59,6 +59,7 @@ type encoderState struct {
 // NewWriter will create a new Zstandard encoder.
 // If the encoder will be used for encoding blocks a nil writer can be used.
 func NewWriter(w io.Writer, opts ...EOption) (*Encoder, error) {
+	initPredefined()
 	var e Encoder
 	e.o.setDefault()
 	for _, o := range opts {
@@ -393,12 +394,31 @@ func (e *Encoder) Close() error {
 
 // EncodeAll will encode all input in src and append it to dst.
 // This function can be called concurrently, but each call will only run on a single goroutine.
-// If empty input is given, nothing is returned.
+// If empty input is given, nothing is returned, unless WithZeroFrames is specified.
 // Encoded blocks can be concatenated and the result will be the combined input stream.
 // Data compressed with EncodeAll can be decoded with the Decoder,
 // using either a stream or DecodeAll.
 func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 	if len(src) == 0 {
+		if e.o.fullZero {
+			// Add frame header.
+			fh := frameHeader{
+				ContentSize:   0,
+				WindowSize:    MinWindowSize,
+				SingleSegment: true,
+				// Adding a checksum would be a waste of space.
+				Checksum: false,
+				DictID:   0,
+			}
+			dst, _ = fh.appendTo(dst)
+
+			// Write raw block as last one only.
+			var blk blockHeader
+			blk.setSize(0)
+			blk.setType(blockTypeRaw)
+			blk.setLast(true)
+			dst = blk.appendTo(dst)
+		}
 		return dst
 	}
 	e.init.Do(func() {

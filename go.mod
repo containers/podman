@@ -14,7 +14,7 @@ require (
 	github.com/containers/conmon v2.0.2+incompatible // indirect
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/psgo v1.3.2
-	github.com/containers/storage v1.13.5
+	github.com/containers/storage v1.14.0
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
@@ -44,7 +44,7 @@ require (
 	github.com/onsi/gomega v1.7.1
 	github.com/opencontainers/go-digest v1.0.0-rc1
 	github.com/opencontainers/image-spec v1.0.2-0.20190823105129-775207bd45b6
-	github.com/opencontainers/runc v1.0.0-rc8.0.20190827142921-dd075602f158
+	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.3.0
