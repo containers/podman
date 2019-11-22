@@ -43,9 +43,14 @@ var _ = Describe("Podman prune", func() {
 		top.WaitWithDefaultTimeout()
 		Expect(top.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		top = podmanTest.RunTopContainer("")
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(Equal(0))
+		cid := top.OutputToString()
+
+		stop := podmanTest.Podman([]string{"stop", cid})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
 
 		prune := podmanTest.Podman([]string{"container", "prune"})
 		prune.WaitWithDefaultTimeout()
