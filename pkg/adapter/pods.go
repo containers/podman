@@ -596,12 +596,17 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 		volumes[volume.Name] = hostPath.Path
 	}
 
+	seccompPaths, err := initializeSeccompPaths(podYAML.ObjectMeta.Annotations)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, container := range podYAML.Spec.Containers {
 		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageMissing)
 		if err != nil {
 			return nil, err
 		}
-		createConfig, err := kubeContainerToCreateConfig(ctx, container, r.Runtime, newImage, namespaces, volumes, pod.ID(), podInfraID)
+		createConfig, err := kubeContainerToCreateConfig(ctx, container, r.Runtime, newImage, namespaces, volumes, pod.ID(), podInfraID, seccompPaths)
 		if err != nil {
 			return nil, err
 		}
@@ -720,7 +725,7 @@ func setupSecurityContext(securityConfig *createconfig.SecurityConfig, userConfi
 }
 
 // kubeContainerToCreateConfig takes a v1.Container and returns a createconfig describing a container
-func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, infraID string) (*createconfig.CreateConfig, error) {
+func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container, runtime *libpod.Runtime, newImage *image.Image, namespaces map[string]string, volumes map[string]string, podID, infraID string, seccompPaths *kubeSeccompPaths) (*createconfig.CreateConfig, error) {
 	var (
 		containerConfig createconfig.CreateConfig
 		pidConfig       createconfig.PidConfig
@@ -752,11 +757,7 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	setupSecurityContext(&securityConfig, &userConfig, containerYAML)
 
-	var err error
-	containerConfig.Security.SeccompProfilePath, err = libpod.DefaultSeccompPath()
-	if err != nil {
-		return nil, err
-	}
+	securityConfig.SeccompProfilePath = seccompPaths.findForContainer(containerConfig.Name)
 
 	containerConfig.Command = []string{}
 	if imageData != nil && imageData.Config != nil {
@@ -825,4 +826,81 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 		containerConfig.Volumes = append(containerConfig.Volumes, fmt.Sprintf("%s:%s", hostPath, volume.MountPath))
 	}
 	return &containerConfig, nil
+}
+
+// kubeSeccompPaths holds information about a pod YAML's seccomp configuration
+// it holds both container and pod seccomp paths
+type kubeSeccompPaths struct {
+	containerPaths map[string]string
+	podPath        string
+}
+
+// findForContainer checks whether a container has a seccomp path configured for it
+// if not, it returns the podPath, which should always have a value
+func (k *kubeSeccompPaths) findForContainer(ctrName string) string {
+	if path, ok := k.containerPaths[ctrName]; ok {
+		return path
+	}
+	return k.podPath
+}
+
+// initializeSeccompPaths takes annotations from the pod object metadata and finds annotations pertaining to seccomp
+// it parses both pod and container level
+func initializeSeccompPaths(annotations map[string]string) (*kubeSeccompPaths, error) {
+	seccompPaths := &kubeSeccompPaths{containerPaths: make(map[string]string)}
+	var err error
+	if annotations != nil {
+		for annKeyValue, seccomp := range annotations {
+			// check if it is prefaced with container.seccomp.security.alpha.kubernetes.io/
+			prefixAndCtr := strings.Split(annKeyValue, "/")
+			if prefixAndCtr[0]+"/" != v1.SeccompContainerAnnotationKeyPrefix {
+				continue
+			} else if len(prefixAndCtr) != 2 {
+				// this could be caused by a user inputting either of
+				// container.seccomp.security.alpha.kubernetes.io{,/}
+				// both of which are invalid
+				return nil, errors.Errorf("Invalid seccomp path: %s", prefixAndCtr[0])
+			}
+
+			path, err := verifySeccompPath(seccomp)
+			if err != nil {
+				return nil, err
+			}
+			seccompPaths.containerPaths[prefixAndCtr[1]] = path
+		}
+
+		podSeccomp, ok := annotations[v1.SeccompPodAnnotationKey]
+		if ok {
+			seccompPaths.podPath, err = verifySeccompPath(podSeccomp)
+		} else {
+			seccompPaths.podPath, err = libpod.DefaultSeccompPath()
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	return seccompPaths, nil
+}
+
+// verifySeccompPath takes a path and checks whether it is a default, unconfined, or a path
+// the available options are parsed as defined in https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
+func verifySeccompPath(path string) (string, error) {
+	switch path {
+	case v1.DeprecatedSeccompProfileDockerDefault:
+		fallthrough
+	case v1.SeccompProfileRuntimeDefault:
+		return libpod.DefaultSeccompPath()
+	case "unconfined":
+		return path, nil
+	default:
+		// TODO we have an inconsistency here
+		// k8s parses `localhost/<path>` which is found at `<seccomp_root>`
+		// we currently parse `localhost:<seccomp_root>/<path>
+		// to fully conform, we need to find a good location for the seccomp root
+		parts := strings.Split(path, ":")
+		if parts[0] == "localhost" {
+			return parts[1], nil
+		}
+		return "", errors.Errorf("invalid seccomp path: %s", path)
+	}
 }

@@ -559,3 +559,12 @@ func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
 	}
 	return errors.Errorf("unable to detect %s as running", cid)
 }
+
+func (p *PodmanTestIntegration) CreateSeccompJson(in []byte) (string, error) {
+	jsonFile := filepath.Join(p.TempDir, "seccomp.json")
+	err := WriteJsonFile(in, jsonFile)
+	if err != nil {
+		return "", err
+	}
+	return jsonFile, nil
+}

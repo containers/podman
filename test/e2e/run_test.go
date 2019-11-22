@@ -160,9 +160,9 @@ var _ = Describe("Podman run", func() {
 	})
 
 	It("podman run seccomp test", func() {
-		jsonFile := filepath.Join(podmanTest.TempDir, "seccomp.json")
+
 		in := []byte(`{"defaultAction":"SCMP_ACT_ALLOW","syscalls":[{"name":"getcwd","action":"SCMP_ACT_ERRNO"}]}`)
-		err := WriteJsonFile(in, jsonFile)
+		jsonFile, err := podmanTest.CreateSeccompJson(in)
 		if err != nil {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
