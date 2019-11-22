@@ -13,7 +13,7 @@ import (
 // err is logged on the system running the podman service
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
-	log.Errorf(err.Error())
+	log.Infof(err.Error())
 	w.WriteHeader(code)
 	WriteJSON(w, struct {
 		Message string `json:"message"`
