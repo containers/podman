@@ -29,12 +29,14 @@ type ImageSummary struct {
 
 type Info struct {
 	docker.Info
-	BuildahVersion string
-	CgroupVersion  string
-	Rootless       bool
-	SwapFree       int64
-	SwapTotal      int64
-	Uptime         string
+	BuildahVersion     string
+	CPURealtimePeriod  bool
+	CPURealtimeRuntime bool
+	CgroupVersion      string
+	Rootless           bool
+	SwapFree           int64
+	SwapTotal          int64
+	Uptime             string
 }
 
 type Container struct {
@@ -106,6 +108,10 @@ type CommitResponse struct {
 
 type Stats struct {
 	docker.StatsJSON
+}
+
+type ContainerTopOKBody struct {
+	dockerContainer.ContainerTopOKBody
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {

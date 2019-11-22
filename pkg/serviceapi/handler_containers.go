@@ -20,6 +20,9 @@ import (
 )
 
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
+	r.HandleFunc(versionedPath("/containers/create"), s.serviceHandler(s.createContainer)).Methods("POST")
+	r.HandleFunc(versionedPath("/containers/json"), s.serviceHandler(s.listContainers)).Methods("GET")
+	r.HandleFunc(versionedPath("/containers/{name:..*}"), s.serviceHandler(s.removeContainer)).Methods("DELETE")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/json"), s.serviceHandler(s.container)).Methods("GET")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/kill"), s.serviceHandler(s.killContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/logs"), s.serviceHandler(s.logsFromContainer)).Methods("GET")
@@ -29,11 +32,9 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(versionedPath("/containers/{name:..*}/start"), s.serviceHandler(s.startContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/stats"), s.serviceHandler(s.statsContainer)).Methods("GET")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/stop"), s.serviceHandler(s.stopContainer)).Methods("POST")
+	r.HandleFunc(versionedPath("/containers/{name:..*}/top"), s.serviceHandler(s.topContainer)).Methods("GET")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/unpause"), s.serviceHandler(s.unpauseContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/wait"), s.serviceHandler(s.waitContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}"), s.serviceHandler(s.removeContainer)).Methods("DELETE")
-	r.HandleFunc(versionedPath("/containers/create"), s.serviceHandler(s.createContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/json"), s.serviceHandler(s.listContainers)).Methods("GET")
 
 	// libpod endpoints
 	r.HandleFunc(versionedPath("/libpod/containers/{name:..*}/exists"), s.serviceHandler(s.containerExists))
@@ -350,6 +351,12 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := s.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	if !(query.Stdout || query.Stderr) {
+		msg := fmt.Sprintf("%s: you must choose at least one stream", http.StatusText(http.StatusBadRequest))
+		Error(w, msg, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
 		return
 	}
 

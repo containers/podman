@@ -38,8 +38,12 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 		internalServerError(w, err)
 		return
 	}
-	if state != define.ContainerStateRunning {
-		s.WriteResponse(w, http.StatusNoContent, "")
+	if state != define.ContainerStateRunning && !query.Stream {
+		WriteJSON(w, &Stats{docker.StatsJSON{
+			Name: ctnr.Name(),
+			ID:   ctnr.ID(),
+		}})
+		return
 	}
 
 	var preRead time.Time
@@ -72,6 +76,12 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	for ok := true; ok; ok = query.Stream {
+		state, _ := ctnr.State()
+		if state != define.ContainerStateRunning {
+			time.Sleep(10 * time.Second)
+			continue
+		}
+
 		stats, _ := ctnr.GetContainerStats(stats)
 		cgroupStat, _ := cgroup.Stat()
 		inspect, _ := ctnr.Inspect(false)

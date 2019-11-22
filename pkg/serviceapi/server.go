@@ -38,16 +38,16 @@ type APIServer struct {
 func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 	listeners, err := activation.Listeners()
 	if err != nil {
-		return nil, errors.Wrap(err, "Cannot retrieve listeners")
+		return nil, errors.Wrap(err, "Cannot retrieve file descriptors from systemd")
 	}
 	if len(listeners) != 1 {
-		return nil, errors.Wrapf(err, "unexpected number of socket activation (%d != 1)", len(listeners))
+		return nil, errors.Errorf("Wrong number of file descriptors from systemd for socket activation (%d != 1)", len(listeners))
 	}
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancelFn := context.WithCancel(context.Background())
 	router := mux.NewRouter()
 
 	server := APIServer{
@@ -61,7 +61,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		Context:    ctx,
 		Runtime:    runtime,
 		Listener:   listeners[0],
-		CancelFunc: cancel,
+		CancelFunc: cancelFn,
 		Duration:   300 * time.Second,
 	}
 	server.Timer = time.AfterFunc(server.Duration, func() {
