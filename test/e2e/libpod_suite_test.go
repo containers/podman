@@ -135,3 +135,7 @@ func removeCache() {
 func (p *PodmanTestIntegration) SeedImages() error {
 	return nil
 }
+
+// We don't support running Varlink when local
+func (p *PodmanTestIntegration) StartVarlink() {
+}

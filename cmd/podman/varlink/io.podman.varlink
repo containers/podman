@@ -536,6 +536,10 @@ method GetVersion() -> (
     remote_api_version: int
 )
 
+# Reset resets Podman back to its initial state.
+# Removes all Pods, Containers, Images and Volumes
+method Reset() -> ()
+
 # GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
 # build information of Podman, and system-wide registries.
 method GetInfo() -> (info: PodmanInfo)
