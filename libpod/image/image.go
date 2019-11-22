@@ -74,6 +74,11 @@ type InfoImage struct {
 	Layers []LayerInfo
 }
 
+// ImageFilter is a function to determine whether a image is included
+// in command output. Images to be outputted are tested using the function.
+// A true return will include the image, a false return will exclude it.
+type ImageFilter func(*Image) bool //nolint
+
 // ErrRepoTagNotFound is the error returned when the image id given doesn't match a rep tag in store
 var ErrRepoTagNotFound = stderrors.New("unable to match user input to any specific repotag")
 

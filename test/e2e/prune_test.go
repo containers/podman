@@ -64,7 +64,7 @@ var _ = Describe("Podman prune", func() {
 		hasNone, _ := none.GrepString("<none>")
 		Expect(hasNone).To(BeTrue())
 
-		prune := podmanTest.Podman([]string{"image", "prune"})
+		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
@@ -78,7 +78,7 @@ var _ = Describe("Podman prune", func() {
 
 	It("podman image prune unused images", func() {
 		podmanTest.RestoreAllArtifacts()
-		prune := podmanTest.PodmanNoCache([]string{"image", "prune", "-a"})
+		prune := podmanTest.PodmanNoCache([]string{"image", "prune", "-af"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
