@@ -46,6 +46,7 @@ func main() {
 		fmt.Println(err.Error())
 		os.Exit(1)
 	}
+
 	err = server.Serve()
 	if err != nil {
 		fmt.Println(err.Error())

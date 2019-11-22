@@ -274,6 +274,8 @@ github.com/golang/protobuf/ptypes/timestamp
 github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 github.com/google/shlex
+# github.com/google/uuid v1.1.1
+github.com/google/uuid
 # github.com/gorilla/mux v1.7.3
 github.com/gorilla/mux
 # github.com/gorilla/schema v1.1.0
