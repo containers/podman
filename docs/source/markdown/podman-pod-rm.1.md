@@ -15,6 +15,12 @@ podman\-pod\-rm - Remove one or more pods
 
 Remove all pods.  Can be used in conjunction with \-f as well.
 
+**--ignore**, **-i**
+
+Ignore errors when specified pods are not in the container store.  A user might
+have decided to manually remove a pod which would lead to a failure during the
+ExecStop directive of a systemd service referencing that pod.
+
 **--latest**, **-l**
 
 Instead of providing the pod name or ID, remove the last created pod.

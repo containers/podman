@@ -90,7 +90,7 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	}
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
-	if err != nil {
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, nil, err
 	}
 
@@ -224,7 +224,7 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 	}
 
 	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
-	if err != nil {
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		// Failed to get containers. If force is specified, get the containers ID
 		// and evict them
 		if !cli.Force {
@@ -235,6 +235,10 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 			logrus.Debugf("Evicting container %q", ctr)
 			id, err := r.EvictContainer(ctx, ctr, cli.Volumes)
 			if err != nil {
+				if cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
+					continue
+				}
 				failures[ctr] = errors.Wrapf(err, "Failed to evict container: %q", id)
 				continue
 			}
@@ -252,6 +256,10 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 			Fn: func() error {
 				err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes)
 				if err != nil {
+					if cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+						logrus.Debugf("Ignoring error (--allow-missing): %v", err)
+						return nil
+					}
 					logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
 				}
 				return err

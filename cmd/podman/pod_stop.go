@@ -41,8 +41,10 @@ func init() {
 	podStopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStopCommand.Flags()
 	flags.BoolVarP(&podStopCommand.All, "all", "a", false, "Stop all running pods")
+	flags.BoolVarP(&podStopCommand.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&podStopCommand.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
 	flags.UintVarP(&podStopCommand.Timeout, "timeout", "t", 0, "Seconds to wait for pod stop before killing the container")
+	markFlagHiddenForRemoteClient("ignore", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 

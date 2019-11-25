@@ -40,6 +40,21 @@ var _ = Describe("Podman stop", func() {
 		Expect(session.ExitCode()).To(Equal(125))
 	})
 
+	It("podman stop --ignore bogus container", func() {
+		SkipIfRemote()
+
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cid := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"stop", "--ignore", "foobar", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring(cid))
+	})
+
 	It("podman stop container by id", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()

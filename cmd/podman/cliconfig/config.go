@@ -368,6 +368,7 @@ type PodRestartValues struct {
 type PodRmValues struct {
 	PodmanCommand
 	All    bool
+	Ignore bool
 	Force  bool
 	Latest bool
 }
@@ -389,6 +390,7 @@ type PodStatsValues struct {
 type PodStopValues struct {
 	PodmanCommand
 	All     bool
+	Ignore  bool
 	Latest  bool
 	Timeout uint
 }
@@ -484,6 +486,7 @@ type RmValues struct {
 	PodmanCommand
 	All      bool
 	Force    bool
+	Ignore   bool
 	Latest   bool
 	Storage  bool
 	Volumes  bool
@@ -561,6 +564,7 @@ type StatsValues struct {
 type StopValues struct {
 	PodmanCommand
 	All      bool
+	Ignore   bool
 	Latest   bool
 	Timeout  uint
 	CIDFiles []string

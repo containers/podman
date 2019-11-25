@@ -39,12 +39,14 @@ func init() {
 	stopCommand.SetUsageTemplate(UsageTemplate())
 	flags := stopCommand.Flags()
 	flags.BoolVarP(&stopCommand.All, "all", "a", false, "Stop all running containers")
+	flags.BoolVarP(&stopCommand.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
+	flags.StringArrayVarP(&stopCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVar(&stopCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.StringArrayVarP(&stopCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	markFlagHiddenForRemoteClient("latest", flags)
 	markFlagHiddenForRemoteClient("cidfile", flags)
+	markFlagHiddenForRemoteClient("ignore", flags)
 }
 
 // stopCmd stops a container or containers

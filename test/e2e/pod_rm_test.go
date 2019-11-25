@@ -186,4 +186,47 @@ var _ = Describe("Podman pod rm", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.OutputToString()).To(BeEmpty())
 	})
+
+	It("podman rm bogus pod", func() {
+		session := podmanTest.Podman([]string{"pod", "rm", "bogus"})
+		session.WaitWithDefaultTimeout()
+		// TODO: `podman rm` returns 1 for a bogus container. Should the RC be consistent?
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman rm bogus pod and a running pod", func() {
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman rm --ignore bogus pod and a running pod", func() {
+		SkipIfRemote()
+
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "--force", "--ignore", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "--ignore", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })
