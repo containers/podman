@@ -16,7 +16,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/common/pkg/config"
+
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -68,10 +69,10 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.name = name
 	runtime.conmonPath = conmonPath
 
-	runtime.conmonEnv = runtimeCfg.ConmonEnvVars
+	runtime.conmonEnv = runtimeCfg.Env
 	runtime.cgroupManager = runtimeCfg.CgroupManager
 	runtime.tmpDir = runtimeCfg.TmpDir
-	runtime.logSizeMax = runtimeCfg.MaxLogSize
+	runtime.logSizeMax = runtimeCfg.LogSizeMax
 	runtime.noPivot = runtimeCfg.NoPivotRoot
 	runtime.reservePorts = runtimeCfg.EnablePortReservation
 	runtime.sdNotify = runtimeCfg.SDNotify

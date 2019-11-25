@@ -7,7 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/common/pkg/config"
+
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -76,7 +77,9 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 		},
 		runtime: &Runtime{
 			config: &config.Config{
-				VolumePath: "/does/not/exist/tmp/volumes",
+				LibpodConfig: config.LibpodConfig{
+					VolumePath: "/does/not/exist/tmp/volumes",
+				},
 			},
 		},
 		valid: true,

@@ -5,6 +5,7 @@ go 1.12
 require (
 	github.com/blang/semver v3.5.0+incompatible // indirect
 	github.com/containernetworking/cni v0.7.1
+	github.com/containers/common v0.0.1
 	github.com/containers/image/v5 v5.0.0
 	github.com/containers/storage v1.14.0
 	github.com/cyphar/filepath-securejoin v0.2.2

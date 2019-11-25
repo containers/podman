@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"syscall"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
@@ -135,13 +136,13 @@ func WithSignaturePolicy(path string) RuntimeOption {
 // Please note that information is not portable between backing states.
 // As such, if this differs between two libpods running on the same system,
 // they will not share containers, and unspecified behavior may occur.
-func WithStateType(storeType define.RuntimeStateStore) RuntimeOption {
+func WithStateType(storeType config.RuntimeStateStore) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
 		}
 
-		if storeType == define.InvalidStateStore {
+		if storeType == config.InvalidStateStore {
 			return errors.Wrapf(define.ErrInvalidArg, "must provide a valid state store type")
 		}
 
@@ -194,8 +195,8 @@ func WithConmonEnv(environment []string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.ConmonEnvVars = make([]string, len(environment))
-		copy(rt.config.ConmonEnvVars, environment)
+		rt.config.Env = make([]string, len(environment))
+		copy(rt.config.Env, environment)
 
 		return nil
 	}
@@ -318,7 +319,7 @@ func WithMaxLogSize(limit int64) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.MaxLogSize = limit
+		rt.config.LogSizeMax = limit
 
 		return nil
 	}
@@ -345,7 +346,7 @@ func WithCNIConfigDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.CNIConfigDir = dir
+		rt.config.NetworkDir = dir
 
 		return nil
 	}
@@ -358,7 +359,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.CNIPluginDir = []string{dir}
+		rt.config.PluginDirs = []string{dir}
 
 		return nil
 	}

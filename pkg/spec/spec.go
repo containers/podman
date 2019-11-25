@@ -3,8 +3,9 @@ package createconfig
 import (
 	"strings"
 
+	libpodconfig "github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	libpodconfig "github.com/containers/libpod/libpod/config"
+
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"

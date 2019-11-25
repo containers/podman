@@ -58,7 +58,6 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
-	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.20.0+incompatible
 	github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
@@ -78,3 +77,7 @@ require (
 	k8s.io/klog v0.3.3 // indirect
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
+
+replace github.com/containers/common => github.com/QiWang19/common v0.0.0-20191126190113-44f6c05daf29
+
+replace github.com/containers/buildah => github.com/QiWang19/buildah v0.0.0-20191125191133-4f462eedcd54

@@ -11,11 +11,13 @@ import (
 
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/libpod/libpod/config"
+
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/pkg/cgroups"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -138,6 +140,15 @@ func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ..
 	if err != nil {
 		return nil, err
 	}
+
+	if conf.OCIRuntime == "" {
+		conf.OCIRuntime = "runc"
+		// If we're running on cgroups v2, default to using crun.
+		if onCgroupsv2, _ := cgroups.IsCgroup2UnifiedMode(); onCgroupsv2 {
+			conf.OCIRuntime = "crun"
+		}
+	}
+
 	runtime.config = conf
 
 	// Overwrite config with user-given configuration options
@@ -235,15 +246,15 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// would further allow to move the types and consts into a coherent
 	// package.
 	switch runtime.config.StateType {
-	case define.InMemoryStateStore:
+	case config.InMemoryStateStore:
 		state, err := NewInMemoryState()
 		if err != nil {
 			return err
 		}
 		runtime.state = state
-	case define.SQLiteStateStore:
+	case config.SQLiteStateStore:
 		return errors.Wrapf(define.ErrInvalidArg, "SQLite state is currently disabled")
-	case define.BoltDBStateStore:
+	case config.BoltDBStateStore:
 		dbPath := filepath.Join(runtime.config.StaticDir, "bolt_state.db")
 
 		state, err := NewBoltState(dbPath, runtime)
@@ -440,7 +451,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Set up the CNI net plugin
 	if !rootless.IsRootless() {
-		netPlugin, err := ocicni.InitCNI(runtime.config.CNIDefaultNetwork, runtime.config.CNIConfigDir, runtime.config.CNIPluginDir...)
+		netPlugin, err := ocicni.InitCNI(runtime.config.DefaultNetwork, runtime.config.NetworkDir, runtime.config.PluginDirs...)
 		if err != nil {
 			return errors.Wrapf(err, "error configuring CNI network plugin")
 		}

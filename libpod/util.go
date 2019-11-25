@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/common/pkg/config"
+
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"

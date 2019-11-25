@@ -75,8 +75,10 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
-github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/util
+# github.com/containers/common v0.0.2 => github.com/QiWang19/common v0.0.0-20191126190113-44f6c05daf29
+github.com/containers/common/pkg/config
+github.com/containers/common/pkg/unshare
 # github.com/containers/image/v5 v5.0.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory

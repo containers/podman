@@ -25,7 +25,7 @@ import (
 	"github.com/containers/buildah/chroot"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/secrets"
-	"github.com/containers/buildah/pkg/unshare"
+	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/buildah/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
