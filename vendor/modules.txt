@@ -125,7 +125,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.14.0
+# github.com/containers/storage v1.14.0 => github.com/rhatdan/storage v1.12.14-0.20191122174957-b6f5c760ad76
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
