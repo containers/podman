@@ -33,24 +33,29 @@ func versionedPath(p string) string {
 }
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client
-func (s *APIServer) WriteResponse(w http.ResponseWriter, code int, value interface{}) (err error) {
+func (s *APIServer) WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 	w.WriteHeader(code)
 	switch value.(type) {
 	case string:
 		w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
-		_, err = fmt.Fprintln(w, value)
+		if _, err := fmt.Fprintln(w, value); err != nil {
+			log.Errorf("unable to send string response: %q", err)
+		}
 	case *os.File:
 		w.Header().Set("Content-Type", "application/octet; charset=us-ascii")
-		io.Copy(w, value.(*os.File))
+		if _, err := io.Copy(w, value.(*os.File)); err != nil {
+			log.Errorf("unable to copy to response: %q", err)
+		}
 	default:
 		WriteJSON(w, value)
 	}
-	return err
 }
 
-func WriteJSON(w http.ResponseWriter, value interface{}) error {
+func WriteJSON(w http.ResponseWriter, value interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
-	return coder.Encode(value)
+	if err := coder.Encode(value); err != nil {
+		log.Errorf("unable to write json: %q", err)
+	}
 }
