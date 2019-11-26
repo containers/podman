@@ -2,6 +2,7 @@ package serviceapi
 
 import (
 	"encoding/json"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -86,7 +87,7 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 		cgroupStat, _ := cgroup.Stat()
 		inspect, _ := ctnr.Inspect(false)
 
-		var net map[string]docker.NetworkStats
+		net := make(map[string]docker.NetworkStats)
 		net[inspect.NetworkSettings.EndpointID] = docker.NetworkStats{
 			RxBytes:    stats.NetInput,
 			RxPackets:  0,
@@ -163,8 +164,13 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		preRead = s.Read
-		bits, _ := json.Marshal(s.CPUStats)
-		json.Unmarshal(bits, &preCPUStats)
+		bits, err := json.Marshal(s.CPUStats)
+		if err != nil {
+			logrus.Errorf("unable to marshal cpu stats: %q", err)
+		}
+		if err := json.Unmarshal(bits, &preCPUStats); err != nil {
+			logrus.Errorf("unable to unmarshal previous stats: %q", err)
+		}
 		time.Sleep(DefaultStatsPeriod)
 	}
 }
@@ -172,8 +178,13 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 func toBlkioStatEntry(entries []cgroups.BlkIOEntry) []docker.BlkioStatEntry {
 	results := make([]docker.BlkioStatEntry, 0, len(entries))
 	for i, e := range entries {
-		bits, _ := json.Marshal(e)
-		json.Unmarshal(bits, &results[i])
+		bits, err := json.Marshal(e)
+		if err != nil {
+			logrus.Errorf("unable to marshal blkio stats: %q", err)
+		}
+		if err := json.Unmarshal(bits, &results[i]); err != nil {
+			logrus.Errorf("unable to unmarshal blkio stats: %q", err)
+		}
 	}
 	return results
 }

@@ -41,7 +41,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	return nil
 }
 
-func saveFromBody(f *os.File, r *http.Request) error {
+func saveFromBody(f *os.File, r *http.Request) error { //nolint
 	if _, err := io.Copy(f, r.Body); err != nil {
 		return err
 	}
@@ -214,9 +214,6 @@ func (s *APIServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 
 	nameOrID := r.Form.Get("container")
 	repo := r.Form.Get("repo")
-	if len(repo) < 1 {
-
-	}
 	if len(r.Form.Get("tag")) > 0 {
 		tag = r.Form.Get("tag")
 	}
@@ -244,13 +241,11 @@ func (s *APIServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	commitImage, err := ctr.Commit(s.Context, destImage, options)
-	if err != nil {
-		if err != nil && !strings.Contains(err.Error(), "is not running") {
-			Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
-			return
-		}
-		s.WriteResponse(w, http.StatusOK, CommitResponse{ID: commitImage.ID()})
+	if err != nil && !strings.Contains(err.Error(), "is not running") {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
+		return
 	}
+	s.WriteResponse(w, http.StatusOK, CommitResponse{ID: commitImage.ID()}) //nolint
 }
 
 func (s *APIServer) createImageFromSrc(w http.ResponseWriter, r *http.Request) {
@@ -275,6 +270,10 @@ func (s *APIServer) createImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		changes = r.Form["changes"]
 	}
 	iid, err := s.Runtime.Import(s.Context, source, "", changes, "", false)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
+		return
+	}
 	tmpfile, err := ioutil.TempFile("", "fromsrc.tar")
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
@@ -452,7 +451,7 @@ func (s *APIServer) getImages(w http.ResponseWriter, r *http.Request) {
 	for j, img := range images {
 		is, err := ImageToImageSummary(img)
 		if err != nil {
-			Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert storage image '%s' to API image"))
+			Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to convert storage image '%s' to API image", j))
 			return
 		}
 		summaries[j] = is
