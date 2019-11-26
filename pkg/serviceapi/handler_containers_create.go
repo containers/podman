@@ -51,7 +51,6 @@ func (s *APIServer) createContainer(w http.ResponseWriter, r *http.Request) {
 		Warnings: []string{}}
 
 	s.WriteResponse(w, http.StatusCreated, response)
-	return
 }
 
 func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconfig.CreateConfig, error) {
