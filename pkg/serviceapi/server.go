@@ -65,7 +65,9 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		Duration:   300 * time.Second,
 	}
 	server.Timer = time.AfterFunc(server.Duration, func() {
-		server.Shutdown()
+		if err := server.Shutdown(); err != nil {
+			log.Errorf("unable to shutdown server: %q", err)
+		}
 	})
 	server.Decoder.IgnoreUnknownKeys(true)
 
