@@ -29,19 +29,40 @@ import (
 
 // Get an OCICNI network config
 func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, ports []ocicni.PortMapping, staticIP net.IP, staticMAC net.HardwareAddr) ocicni.PodNetwork {
-	defaultNetwork := r.netPlugin.GetDefaultNetworkName()
+	var networkKey string
+	if len(networks) > 0 {
+		// This is inconsistent for >1 network, but it's probably the
+		// best we can do.
+		networkKey = networks[0]
+	} else {
+		networkKey = r.netPlugin.GetDefaultNetworkName()
+	}
 	network := ocicni.PodNetwork{
 		Name:      name,
 		Namespace: name, // TODO is there something else we should put here? We don't know about Kube namespaces
 		ID:        id,
 		NetNS:     nsPath,
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
-			defaultNetwork: {PortMappings: ports},
+			networkKey: {PortMappings: ports},
 		},
 	}
 
+	// If we have extra networks, add them
+	if len(networks) > 0 {
+		network.Networks = make([]ocicni.NetAttachment, len(networks))
+		for i, netName := range networks {
+			network.Networks[i].Name = netName
+		}
+	}
+
 	if staticIP != nil || staticMAC != nil {
-		network.Networks = []ocicni.NetAttachment{{Name: defaultNetwork}}
+		// For static IP or MAC, we need to populate networks even if
+		// it's just the default.
+		if len(networks) == 0 {
+			// If len(networks) == 0 this is guaranteed to be the
+			// default network.
+			network.Networks = []ocicni.NetAttachment{{Name: networkKey}}
+		}
 		var rt ocicni.RuntimeConfig = ocicni.RuntimeConfig{PortMappings: ports}
 		if staticIP != nil {
 			rt.IP = staticIP.String()
@@ -50,12 +71,7 @@ func (r *Runtime) getPodNetwork(id, name, nsPath string, networks []string, port
 			rt.MAC = staticMAC.String()
 		}
 		network.RuntimeConfig = map[string]ocicni.RuntimeConfig{
-			defaultNetwork: rt,
-		}
-	} else {
-		network.Networks = make([]ocicni.NetAttachment, len(networks))
-		for i, netName := range networks {
-			network.Networks[i].Name = netName
+			networkKey: rt,
 		}
 	}
 

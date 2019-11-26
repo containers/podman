@@ -1041,8 +1041,8 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if the container is not creating a network namespace")
 		}
 
-		if len(ctr.config.Networks) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining additional CNI networks")
+		if len(ctr.config.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
 		}
 
 		ctr.config.StaticIP = ip
@@ -1066,8 +1066,8 @@ func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if the container is not creating a network namespace")
 		}
 
-		if len(ctr.config.Networks) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining additional CNI networks")
+		if len(ctr.config.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
 		}
 
 		ctr.config.StaticMAC = mac
