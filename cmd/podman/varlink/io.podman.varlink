@@ -70,7 +70,8 @@ type Image (
   labels: [string]string,
   isParent: bool,
   topLayer: string,
-  readOnly: bool
+  readOnly: bool,
+  history: []string
 )
 
 # ImageHistory describes the returned structure from ImageHistory.

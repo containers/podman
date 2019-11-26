@@ -1563,6 +1563,7 @@ _podman_images() {
 	--filter
 	-h
 	--help
+	--history
 	--no-trunc
 	--notruncate
 	-n

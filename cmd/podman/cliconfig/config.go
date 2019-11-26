@@ -64,6 +64,7 @@ type ImagesValues struct {
 	NoTrunc   bool
 	Quiet     bool
 	Sort      string
+	History   bool
 }
 
 type EventValues struct {

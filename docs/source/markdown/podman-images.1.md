@@ -52,6 +52,10 @@ Filter output based on conditions provided
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
 
+**--history**
+
+Display the history of image names.  If an image gets re-tagged or untagged, then the image name history gets prepended (latest image first).  This is especially useful when undoing a tag operation or an image does not contain any name because it has been untagged.
+
 **--noheading**, **-n**
 
 Omit the table headings from the listing of images.

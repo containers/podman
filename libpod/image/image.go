@@ -335,6 +335,21 @@ func (i *Image) Names() []string {
 	return i.image.Names
 }
 
+// NamesHistory returns a string array of names previously associated with the
+// image, which may be a mixture of tags and digests
+func (i *Image) NamesHistory() []string {
+	if len(i.image.Names) > 0 && len(i.image.NamesHistory) > 0 &&
+		// We compare the latest (time-referenced) tags for equality and skip
+		// it in the history if they match to not display them twice.  We have
+		// to compare like this, because `i.image.Names` (latest last) gets
+		// appended on retag, whereas `i.image.NamesHistory` gets prepended
+		// (latest first)
+		i.image.Names[len(i.image.Names)-1] == i.image.NamesHistory[0] {
+		return i.image.NamesHistory[1:]
+	}
+	return i.image.NamesHistory
+}
+
 // RepoTags returns a string array of repotags associated with the image
 func (i *Image) RepoTags() ([]string, error) {
 	var repoTags []string
