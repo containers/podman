@@ -8,21 +8,33 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
+	volapi "github.com/docker/go-plugins-helpers/volume"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 // mount mounts the volume if necessary.
-// A mount is necessary if a volume has any options set.
-// If a mount is necessary, v.state.MountCount will be incremented.
+// A mount is necessary if a volume has any options set, or has a volume driver.
+// If a volume driver is in use, we will use its mount implementation, and not
+// our own mount counter.
+// the ID argument is the ID of the mounting container, and is only used with
+// volume plugins.
+// Otherwise, If a mount is necessary, v.state.MountCount will be incremented.
 // If it was 0 when the increment occurred, the volume will be mounted on the
 // host. Otherwise, we assume it is already mounted.
 // Must be done while the volume is locked.
 // Is a no-op on volumes that do not require a mount (as defined by
 // volumeNeedsMount())
-func (v *Volume) mount() error {
+func (v *Volume) mount(id string) error {
 	if !v.needsMount() {
+		return nil
+	}
+
+	if !v.isLocalDriver() {
+		if _, err := v.driver.MountVolume(&volapi.MountRequest{v.Name(), id}); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -87,6 +99,10 @@ func (v *Volume) mount() error {
 }
 
 // unmount unmounts the volume if necessary.
+// If the volume uses a volume plugin, the plugin's unmount implementation will
+// be used. Plugins do not respect the `force` argument to unmount.
+// The ID argument is the ID of the unmounting container, and is used only by
+// volume plugins.
 // Unmounting a volume that is not mounted is a no-op.
 // Unmounting a volume that does not require a mount is a no-op.
 // The volume must be locked for this to occur.
@@ -94,9 +110,13 @@ func (v *Volume) mount() error {
 // the volume will really be unmounted, as no further containers are using the
 // volume.
 // If force is set, the volume will be unmounted regardless of mount counter.
-func (v *Volume) unmount(force bool) error {
+func (v *Volume) unmount(force bool, id string) error {
 	if !v.needsMount() {
 		return nil
+	}
+
+	if !v.isLocalDriver() {
+		return v.driver.UnmountVolume(&volapi.UnmountRequest{v.Name(), id})
 	}
 
 	// Update the volume from the DB to get an accurate mount counter.

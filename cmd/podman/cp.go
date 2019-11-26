@@ -449,7 +449,11 @@ func pathWithVolumeMount(ctr *libpod.Container, runtime *libpod.Runtime, volDest
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(string(os.PathSeparator), path)
 	}
-	path, err = securejoin.SecureJoin(destVolume.MountPoint(), strings.TrimPrefix(path, volDestName))
+	mountpoint, err := destVolume.MountPoint()
+	if err != nil {
+		return "", err
+	}
+	path, err = securejoin.SecureJoin(mountpoint, strings.TrimPrefix(path, volDestName))
 	return path, err
 }
 

@@ -1,7 +1,9 @@
 package plugin
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -82,7 +84,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 		return errors.Wrapf(err, "error making request to volume plugin %s activation endpoint", newPlugin.Name)
 	}
 
-	req.Header.Set("Host", p.getURI())
+	req.Header.Set("Host", newPlugin.getURI())
 	req.Header.Set("Content-Type", sdk.DefaultContentTypeV1_1)
 
 	client := new(http.Client)
@@ -140,14 +142,14 @@ func GetVolumePlugin(name string) (*VolumePlugin, error) {
 
 	newPlugin := new(VolumePlugin)
 	newPlugin.Name = name
-	newPlugin.Path = filepath.Join(defaultPath, fmt.Sprintf("%s.sock", name))
+	newPlugin.SocketPath = filepath.Join(defaultPath, fmt.Sprintf("%s.sock", name))
 
-	stat, err := os.Stat(newPlugin.Path)
+	stat, err := os.Stat(newPlugin.SocketPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot access plugin %s socket %q", name, newPlugin.Path)
+		return nil, errors.Wrapf(err, "cannot access plugin %s socket %q", name, newPlugin.SocketPath)
 	}
 	if stat.Mode()&os.ModeSocket == 0 {
-		return nil, errors.Wrapf(ErrNotPlugin, "volume %s path %q is not a unix socket", name, newPlugin.Path)
+		return nil, errors.Wrapf(ErrNotPlugin, "volume %s path %q is not a unix socket", name, newPlugin.SocketPath)
 	}
 
 	if err := validatePlugin(newPlugin); err != nil {
@@ -172,16 +174,16 @@ func GetPluginsFromDirectory(dir string) ([]string, error) {
 			return []string{}, nil
 		}
 
-		return errors.Wrapf(err, "error running stat on plugin directory %s", dir)
+		return nil, errors.Wrapf(err, "error running stat on plugin directory %s", dir)
 	}
 	if !stat.IsDir() {
-		return errors.Wrapf(define.ErrInvalidArg, "plugin directory %s is not a directory", dir)
+		return nil, errors.Wrapf(define.ErrInvalidArg, "plugin directory %s is not a directory", dir)
 	}
 
 	// Find everything in the folder that's a unix socket
 	contents, err := ioutil.ReadDir(dir)
 	if err != nil {
-		return errors.Wrapf(err, "error reading directory %s contents", dir)
+		return nil, errors.Wrapf(err, "error reading directory %s contents", dir)
 	}
 
 	goodPlugins := []string{}
@@ -192,7 +194,7 @@ func GetPluginsFromDirectory(dir string) ([]string, error) {
 			newPlugin := new(VolumePlugin)
 			newPlugin.Name = strings.TrimSuffix(filepath.Base(file.Name()), ".sock")
 
-			sockPath, err = filepath.Abs(filepath.Join(dir, filepath.Base(file.Name())))
+			sockPath, err := filepath.Abs(filepath.Join(dir, filepath.Base(file.Name())))
 			if err != nil {
 				logrus.Errorf("Error getting absolute path of potential plugin %s socket", file.Name())
 				continue
@@ -203,7 +205,7 @@ func GetPluginsFromDirectory(dir string) ([]string, error) {
 				logrus.Warnf("Error validating plugin %s: %v", newPlugin.Name, err)
 			}
 
-			goodPlugins = append(goodPlugins. newPlugin.Name)
+			goodPlugins = append(goodPlugins, newPlugin.Name)
 		}
 	}
 
@@ -246,7 +248,7 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint st
 		}
 	}
 
-	req, err := http.NewRequest("POST", endpoint, reqJSON)
+	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(reqJSON))
 	if err != nil {
 		return nil, errors.Wrapf(err, "error making request to volume plugin %s endpoint %s", p.Name, endpoint)
 	}
@@ -265,15 +267,19 @@ func (p *VolumePlugin) sendRequest(toJSON interface{}, hasBody bool, endpoint st
 }
 
 // Turn an error response from a volume plugin into a well-formatted Go error.
-func (p *VolumePlugin) makeErrorResponse(err string) error {
-	if err == nil {
+func (p *VolumePlugin) makeErrorResponse(err, endpoint, volName string) error {
+	if err == "" {
 		err = "empty error from plugin"
 	}
-	return errors.Wrapf(errors.New(err), "error creating volume %s in volume plugin %s", req.Name, p.Name)
+	if volName != "" {
+		return errors.Wrapf(errors.New(err), "error on %s on volume %s in volume plugin %s", endpoint, volName, p.Name)
+	} else {
+		return errors.Wrapf(errors.New(err), "error on %s in volume plugin %s", endpoint, p.Name)
+	}
 }
 
 // Handle error responses from plugin
-func (p *VolumePlugin) handleErrorResponse(resp *http.Response) error {
+func (p *VolumePlugin) handleErrorResponse(resp *http.Response, endpoint, volName string) error {
 	// The official plugin reference implementation uses HTTP 500 for
 	// errors, but I don't think we can guarantee all plugins do that.
 	// Let's interpret anything other than 200 as an error.
@@ -289,7 +295,7 @@ func (p *VolumePlugin) handleErrorResponse(resp *http.Response) error {
 			return errors.Wrapf(err, "error unmarshalling JSON response from volume plugin %s", p.Name)
 		}
 
-		return p.makeErrorResponse(errStruct.Err)
+		return p.makeErrorResponse(errStruct.Err, endpoint, volName)
 	}
 
 	return nil
@@ -313,7 +319,7 @@ func (p *VolumePlugin) CreateVolume(req *volume.CreateRequest) error {
 	}
 	defer resp.Body.Close()
 
-	return p.handleErrorResponse(resp)
+	return p.handleErrorResponse(resp, createPath, req.Name)
 }
 
 // ListVolumes lists volumes available in the plugin.
@@ -330,7 +336,7 @@ func (p *VolumePlugin) ListVolumes() ([]*volume.Volume, error) {
 	}
 	defer resp.Body.Close()
 
-	if err := p.handleErrorResponse(resp); err != nil {
+	if err := p.handleErrorResponse(resp, listPath, ""); err != nil {
 		return nil, err
 	}
 
@@ -366,7 +372,7 @@ func (p *VolumePlugin) GetVolume(req *volume.GetRequest) (*volume.Volume, error)
 	}
 	defer resp.Body.Close()
 
-	if err := p.handleErrorResponse(resp); err != nil {
+	if err := p.handleErrorResponse(resp, getPath, req.Name); err != nil {
 		return nil, err
 	}
 
@@ -401,7 +407,7 @@ func (p *VolumePlugin) RemoveVolume(req *volume.RemoveRequest) error {
 	}
 	defer resp.Body.Close()
 
-	return p.handleErrorResponse(resp)
+	return p.handleErrorResponse(resp, removePath, req.Name)
 }
 
 // GetVolumePath gets the path the given volume is mounted at.
@@ -422,7 +428,7 @@ func (p *VolumePlugin) GetVolumePath(req *volume.PathRequest) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if err := p.handleErrorResponse(resp); err != nil {
+	if err := p.handleErrorResponse(resp, hostVirtualPath, req.Name); err != nil {
 		return "", err
 	}
 
@@ -459,7 +465,7 @@ func (p *VolumePlugin) MountVolume(req *volume.MountRequest) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	if err := p.handleErrorResponse(resp); err != nil {
+	if err := p.handleErrorResponse(resp, mountPath, req.Name); err != nil {
 		return "", err
 	}
 
@@ -495,5 +501,5 @@ func (p *VolumePlugin) UnmountVolume(req *volume.UnmountRequest) error {
 	}
 	defer resp.Body.Close()
 
-	return p.handleErrorResponse(resp)
+	return p.handleErrorResponse(resp, unmountPath, req.Name)
 }

@@ -1331,7 +1331,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 				return
 			}
 			vol.lock.Lock()
-			if err := vol.unmount(false); err != nil {
+			if err := vol.unmount(false, c.ID()); err != nil {
 				logrus.Errorf("Error unmounting volume %s after error mounting container %s: %v", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
@@ -1355,7 +1355,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 	if vol.needsMount() {
-		if err := vol.mount(); err != nil {
+		if err := vol.mount(c.ID()); err != nil {
 			return nil, errors.Wrapf(err, "error mounting volume %s for container %s", vol.Name(), c.ID())
 		}
 	}
@@ -1369,7 +1369,11 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+		mountPoint, err := vol.MountPoint()
+		if err != nil {
+			return nil, err
+		}
+		if err := c.copyWithTarFromImage(srcDir, mountPoint); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
 		}
 
@@ -1435,7 +1439,7 @@ func (c *Container) cleanupStorage() error {
 
 		if vol.needsMount() {
 			vol.lock.Lock()
-			if err := vol.unmount(false); err != nil {
+			if err := vol.unmount(false, c.ID()); err != nil {
 				if cleanupErr != nil {
 					logrus.Errorf("Error unmounting container %s: %v", c.ID(), cleanupErr)
 				}

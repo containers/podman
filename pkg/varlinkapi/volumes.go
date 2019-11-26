@@ -74,10 +74,14 @@ func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all boo
 	}
 	// Build the iopodman.volume struct for the return
 	for _, v := range reply {
+		mountpoint, err := v.MountPoint()
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
 		newVol := iopodman.Volume{
 			Driver:     v.Driver(),
 			Labels:     v.Labels(),
-			MountPoint: v.MountPoint(),
+			MountPoint: mountpoint,
 			Name:       v.Name(),
 			Options:    v.Options(),
 		}

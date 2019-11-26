@@ -202,14 +202,18 @@ func getVolTemplateOutput(lsParams []volumeLsJSONParams, opts volumeLsOptions) (
 }
 
 // getVolJSONParams returns the volumes in JSON format
-func getVolJSONParams(volumes []*adapter.Volume) []volumeLsJSONParams {
+func getVolJSONParams(volumes []*adapter.Volume) ([]volumeLsJSONParams, error) {
 	var lsOutput []volumeLsJSONParams
 
 	for _, volume := range volumes {
+		mountPoint, err := volume.MountPoint()
+		if err != nil {
+			return nil, err
+		}
 		params := volumeLsJSONParams{
 			Name:       volume.Name(),
 			Labels:     volume.Labels(),
-			MountPoint: volume.MountPoint(),
+			MountPoint: mountPoint,
 			Driver:     volume.Driver(),
 			Options:    volume.Options(),
 			Scope:      volume.Scope(),
@@ -217,7 +221,7 @@ func getVolJSONParams(volumes []*adapter.Volume) []volumeLsJSONParams {
 
 		lsOutput = append(lsOutput, params)
 	}
-	return lsOutput
+	return lsOutput, nil
 }
 
 // generateVolLsOutput generates the output based on the format, JSON or Go Template, and prints it out
@@ -225,7 +229,10 @@ func generateVolLsOutput(volumes []*adapter.Volume, opts volumeLsOptions) error 
 	if len(volumes) == 0 && opts.Format != formats.JSONString {
 		return nil
 	}
-	lsOutput := getVolJSONParams(volumes)
+	lsOutput, err := getVolJSONParams(volumes)
+	if err != nil {
+		return err
+	}
 	var out formats.Writer
 
 	switch opts.Format {

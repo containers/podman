@@ -282,7 +282,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving volume %s to add to container %s", namedVol.Name, c.ID())
 		}
-		mountPoint := volume.MountPoint()
+		mountPoint, err := volume.MountPoint()
+		if err != nil {
+			return nil, err
+		}
 		volMount := spec.Mount{
 			Type:        "bind",
 			Source:      mountPoint,

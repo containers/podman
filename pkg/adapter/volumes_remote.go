@@ -23,8 +23,8 @@ func (v *Volume) Options() map[string]string {
 }
 
 // MountPath returns the path the volume is mounted to
-func (v *Volume) MountPoint() string {
-	return v.config.MountPoint
+func (v *Volume) MountPoint() (string, error) {
+	return v.config.MountPoint, nil
 }
 
 // Scope returns the scope for an adapter.volume

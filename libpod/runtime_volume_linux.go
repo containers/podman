@@ -164,15 +164,18 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		}
 	}
 
-	// If the volume is still mounted - force unmount it
-	if err := v.unmount(true); err != nil {
-		if force {
-			// If force is set, evict the volume, even if errors
-			// occur. Otherwise we'll never be able to get rid of
-			// them.
-			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
-		} else {
-			return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+	// If the volume is still mounted - force unmount it.
+	// Do this only if we are not using a volume plugin.
+	if v.isLocalDriver() {
+		if err := v.unmount(true, ""); err != nil {
+			if force {
+				// If force is set, evict the volume, even if errors
+				// occur. Otherwise we'll never be able to get rid of
+				// them.
+				logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+			} else {
+				return errors.Wrapf(err, "error unmounting volume %s", v.Name())
+			}
 		}
 	}
 

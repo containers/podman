@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/libpod/plugins"
+	volapi "github.com/docker/go-plugins-helpers/volume"
 )
 
 // Volume is a libpod named volume.
@@ -13,6 +15,9 @@ import (
 type Volume struct {
 	config *VolumeConfig
 	state  *VolumeState
+
+	// Used exclusively when config.Driver is not "" or "local".
+	driver *plugin.VolumePlugin
 
 	valid   bool
 	runtime *Runtime
@@ -28,7 +33,7 @@ type VolumeConfig struct {
 	// Labels for the volume.
 	Labels map[string]string `json:"labels"`
 	// The volume driver. Empty string or local does not activate a volume
-	// driver, all other volumes will.
+	// driver, all other values will.
 	Driver string `json:"volumeDriver"`
 	// The location the volume is mounted at.
 	MountPoint string `json:"mountPoint"`
@@ -93,8 +98,12 @@ func (v *Volume) Labels() map[string]string {
 }
 
 // MountPoint returns the volume's mountpoint on the host
-func (v *Volume) MountPoint() string {
-	return v.config.MountPoint
+func (v *Volume) MountPoint() (string, error) {
+	if !v.isLocalDriver() {
+		return v.driver.GetVolumePath(&volapi.PathRequest{v.config.Name})
+	}
+
+	return v.config.MountPoint, nil
 }
 
 // Options return the volume's options

@@ -423,7 +423,11 @@ func volumeUsedByContainer(containers []*libpod.Container) map[string][]*libpod.
 
 func volumeSize(volume *libpod.Volume) (int64, error) {
 	var size int64
-	err := filepath.Walk(volume.MountPoint(), func(path string, info os.FileInfo, err error) error {
+	mountPoint, err := volume.MountPoint()
+	if err != nil {
+		return 0, err
+	}
+	err = filepath.Walk(mountPoint, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() {
 			size += info.Size()
 		}
