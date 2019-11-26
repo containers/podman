@@ -17,7 +17,7 @@ var (
 	_prunePodsCommand = &cobra.Command{
 		Use:   "prune",
 		Args:  noSubArgs,
-		Short: "Remove all stopped pods",
+		Short: "Remove all stopped pods and their containers",
 		Long:  podPruneDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			podPruneCommand.InputArgs = args
@@ -32,7 +32,7 @@ func init() {
 	podPruneCommand.SetHelpTemplate(HelpTemplate())
 	podPruneCommand.SetUsageTemplate(UsageTemplate())
 	flags := podPruneCommand.Flags()
-	flags.BoolVarP(&podPruneCommand.Force, "force", "f", false, "Force removal of a running pods.  The default is false")
+	flags.BoolVarP(&podPruneCommand.Force, "force", "f", false, "Force removal of all running pods.  The default is false")
 }
 
 func podPruneCmd(c *cliconfig.PodPruneValues) error {

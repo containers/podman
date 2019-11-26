@@ -82,7 +82,6 @@ Are you sure you want to continue? [y/N] `, volumeString)
 	fmt.Println("Deleted Pods")
 	pruneValues := cliconfig.PodPruneValues{
 		PodmanCommand: c.PodmanCommand,
-		Force:         c.Force,
 	}
 	ctx := getContext()
 	ok, failures, lasterr := runtime.PrunePods(ctx, &pruneValues)

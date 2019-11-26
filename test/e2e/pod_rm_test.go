@@ -77,7 +77,7 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(result.OutputToString()).To(Not(ContainSubstring(podid2)))
 	})
 
-	It("podman pod rm doesn't remove a pod with a container", func() {
+	It("podman pod rm removes a pod with a container", func() {
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -86,11 +86,11 @@ var _ = Describe("Podman pod rm", func() {
 
 		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result.ExitCode()).To(Equal(0))
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
 	It("podman pod rm -f does remove a running container", func() {
@@ -136,7 +136,7 @@ var _ = Describe("Podman pod rm", func() {
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
-		foundExpectedError, _ := result.ErrorGrepString("contains containers and cannot be removed")
+		foundExpectedError, _ := result.ErrorGrepString("cannot be removed")
 		Expect(foundExpectedError).To(Equal(true))
 
 		num_pods = podmanTest.NumberOfPods()

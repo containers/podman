@@ -1,13 +1,13 @@
 % podman-pod-rm(1)
 
 ## NAME
-podman\-pod\-rm - Remove one or more pods
+podman\-pod\-rm - Remove one or more stopped pods and containers
 
 ## SYNOPSIS
 **podman pod rm** [*options*] *pod*
 
 ## DESCRIPTION
-**podman pod rm** will remove one or more pods from the host.  The pod name or ID can be used. The \-f option stops all containers and then removes them before removing the pod. Without the \-f option, a pod cannot be removed if it has associated containers.
+**podman pod rm** will remove one or more stopped pods and their containers from the host.  The pod name or ID can be used. The \-f option stops all containers and then removes them before removing the pod.
 
 ## OPTIONS
 

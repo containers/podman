@@ -77,7 +77,7 @@ func (r *LocalRuntime) PrunePods(ctx context.Context, cli *cliconfig.PodPruneVal
 		pool.Add(shared.Job{
 			ID: p.ID(),
 			Fn: func() error {
-				err := r.Runtime.RemovePod(ctx, p, cli.Force, cli.Force)
+				err := r.Runtime.RemovePod(ctx, p, true, cli.Force)
 				if err != nil {
 					logrus.Debugf("Failed to remove pod %s: %s", p.ID(), err.Error())
 				}
@@ -101,7 +101,7 @@ func (r *LocalRuntime) RemovePods(ctx context.Context, cli *cliconfig.PodRmValue
 	}
 
 	for _, p := range pods {
-		if err := r.Runtime.RemovePod(ctx, p, cli.Force, cli.Force); err != nil {
+		if err := r.Runtime.RemovePod(ctx, p, true, cli.Force); err != nil {
 			errs = append(errs, err)
 		} else {
 			podids = append(podids, p.ID())

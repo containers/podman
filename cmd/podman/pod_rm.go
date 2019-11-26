@@ -12,7 +12,7 @@ import (
 
 var (
 	podRmCommand     cliconfig.PodRmValues
-	podRmDescription = fmt.Sprintf(`podman rm will remove one or more pods from the host.
+	podRmDescription = fmt.Sprintf(`podman rm will remove one or more stopped pods and their containers from the host.
 
   The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
 	_podRmCommand = &cobra.Command{

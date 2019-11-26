@@ -247,7 +247,7 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	if err = i.Runtime.RemovePod(ctx, pod, force, force); err != nil {
+	if err = i.Runtime.RemovePod(ctx, pod, true, force); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
