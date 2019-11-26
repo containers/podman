@@ -44,9 +44,7 @@ func renumberCmd(c *cliconfig.SystemRenumberValues) error {
 	if err != nil {
 		return errors.Wrapf(err, "error renumbering locks")
 	}
-	if err := r.Shutdown(false); err != nil {
-		return err
-	}
+	_ = r.Shutdown(false)
 
 	return nil
 }
