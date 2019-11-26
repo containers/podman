@@ -1,11 +1,12 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/user"
 	"path/filepath"
-	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +19,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/docker/docker/pkg/signal"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -71,118 +73,221 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
-// ParseChanges returns key, value(s) pair for given option.
-func ParseChanges(option string) (key string, vals []string, err error) {
-	// Supported format as below
-	// 1. key=value
-	// 2. key value
-	// 3. key ["value","value1"]
-	if strings.Contains(option, " ") {
-		// This handles 2 & 3 conditions.
-		var val string
-		tokens := strings.SplitAfterN(option, " ", 2)
-		if len(tokens) < 2 {
-			return "", []string{}, fmt.Errorf("invalid key value %s", option)
-		}
-		key = strings.Trim(tokens[0], " ") // Need to trim whitespace part of delimiter.
-		val = tokens[1]
-		if strings.Contains(tokens[1], "[") && strings.Contains(tokens[1], "]") {
-			//Trim '[',']' if exist.
-			val = strings.TrimLeft(strings.TrimRight(tokens[1], "]"), "[")
-		}
-		vals = strings.Split(val, ",")
-	} else if strings.Contains(option, "=") {
-		// handles condition 1.
-		tokens := strings.Split(option, "=")
-		key = tokens[0]
-		vals = tokens[1:]
-	} else {
-		// either ` ` or `=` must be provided after command
-		return "", []string{}, fmt.Errorf("invalid format %s", option)
-	}
-
-	if len(vals) == 0 {
-		return "", []string{}, errors.Errorf("no value given for instruction %q", key)
-	}
-
-	for _, v := range vals {
-		//each option must not have ' '., `[`` or `]` & empty strings
-		whitespaces := regexp.MustCompile(`[\[\s\]]`)
-		if whitespaces.MatchString(v) || len(v) == 0 {
-			return "", []string{}, fmt.Errorf("invalid value %s", v)
-		}
-	}
-	return key, vals, nil
-}
-
-// GetImageConfig converts the --change flag values in the format "CMD=/bin/bash USER=example"
-// to a type v1.ImageConfig
+// GetImageConfig produces a v1.ImageConfig from the --change flag that is
+// accepted by several Podman commands. It accepts a (limited subset) of
+// Dockerfile instructions.
 func GetImageConfig(changes []string) (v1.ImageConfig, error) {
-	// USER=value | EXPOSE=value | ENV=value | ENTRYPOINT=value |
-	// CMD=value | VOLUME=value | WORKDIR=value | LABEL=key=value | STOPSIGNAL=value
+	// Valid changes:
+	// USER
+	// EXPOSE
+	// ENV
+	// ENTRYPOINT
+	// CMD
+	// VOLUME
+	// WORKDIR
+	// LABEL
+	// STOPSIGNAL
 
-	var (
-		user       string
-		env        []string
-		entrypoint []string
-		cmd        []string
-		workingDir string
-		stopSignal string
-	)
+	config := v1.ImageConfig{}
 
-	exposedPorts := make(map[string]struct{})
-	volumes := make(map[string]struct{})
-	labels := make(map[string]string)
-	for _, ch := range changes {
-		key, vals, err := ParseChanges(ch)
-		if err != nil {
-			return v1.ImageConfig{}, err
+	for _, change := range changes {
+		// First, let's assume proper Dockerfile format - space
+		// separator between instruction and value
+		split := strings.SplitN(change, " ", 2)
+
+		if len(split) != 2 {
+			split = strings.SplitN(change, "=", 2)
+			if len(split) != 2 {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must be formatted as KEY VALUE", change)
+			}
 		}
 
-		switch key {
+		outerKey := strings.ToUpper(strings.TrimSpace(split[0]))
+		value := strings.TrimSpace(split[1])
+		switch outerKey {
 		case "USER":
-			user = vals[0]
+			// Assume literal contents are the user.
+			if value == "" {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide a value to USER", change)
+			}
+			config.User = value
 		case "EXPOSE":
-			var st struct{}
-			exposedPorts[vals[0]] = st
+			// EXPOSE is either [portnum] or
+			// [portnum]/[proto]
+			// Protocol must be "tcp" or "udp"
+			splitPort := strings.Split(value, "/")
+			if len(splitPort) > 2 {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be formatted as PORT[/PROTO]", change)
+			}
+			portNum, err := strconv.Atoi(splitPort[0])
+			if err != nil {
+				return v1.ImageConfig{}, errors.Wrapf(err, "invalid change %q - EXPOSE port must be an integer", change)
+			}
+			if portNum > 65535 || portNum <= 0 {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be a valid port number", change)
+			}
+			proto := "tcp"
+			if len(splitPort) > 1 {
+				testProto := strings.ToLower(splitPort[1])
+				switch testProto {
+				case "tcp", "udp":
+					proto = testProto
+				default:
+					return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE protocol must be TCP or UDP", change)
+				}
+			}
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = make(map[string]struct{})
+			}
+			config.ExposedPorts[fmt.Sprintf("%d/%s", portNum, proto)] = struct{}{}
 		case "ENV":
-			if len(vals) < 2 {
-				return v1.ImageConfig{}, errors.Errorf("no value given for environment variable %q", vals[0])
+			// Format is either:
+			// ENV key=value
+			// ENV key=value key=value ...
+			// ENV key value
+			// Both keys and values can be surrounded by quotes to group them.
+			// For now: we only support key=value
+			// We will attempt to strip quotation marks if present.
+
+			var (
+				key, val string
+			)
+
+			splitEnv := strings.SplitN(value, "=", 2)
+			key = splitEnv[0]
+			// We do need a key
+			if key == "" {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - ENV must have at least one argument", change)
 			}
-			env = append(env, strings.Join(vals[0:], "="))
+			// Perfectly valid to not have a value
+			if len(splitEnv) == 2 {
+				val = splitEnv[1]
+			}
+
+			if strings.HasPrefix(key, `"`) && strings.HasSuffix(key, `"`) {
+				key = strings.TrimPrefix(strings.TrimSuffix(key, `"`), `"`)
+			}
+			if strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`) {
+				val = strings.TrimPrefix(strings.TrimSuffix(val, `"`), `"`)
+			}
+			config.Env = append(config.Env, fmt.Sprintf("%s=%s", key, val))
 		case "ENTRYPOINT":
-			// ENTRYPOINT and CMD can have array of strings
-			entrypoint = append(entrypoint, vals...)
-		case "CMD":
-			// ENTRYPOINT and CMD can have array of strings
-			cmd = append(cmd, vals...)
-		case "VOLUME":
-			var st struct{}
-			volumes[vals[0]] = st
-		case "WORKDIR":
-			workingDir = vals[0]
-		case "LABEL":
-			if len(vals) == 2 {
-				labels[vals[0]] = vals[1]
+			// Two valid forms.
+			// First, JSON array.
+			// Second, not a JSON array - we interpret this as an
+			// argument to `sh -c`, unless empty, in which case we
+			// just use a blank entrypoint.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// It ain't valid JSON, so assume it's an
+				// argument to sh -c if not empty.
+				if value != "" {
+					config.Entrypoint = []string{"/bin/sh", "-c", value}
+				} else {
+					config.Entrypoint = []string{}
+				}
 			} else {
-				labels[vals[0]] = ""
+				// Valid JSON
+				config.Entrypoint = testUnmarshal
 			}
+		case "CMD":
+			// Same valid forms as entrypoint.
+			// However, where ENTRYPOINT assumes that 'ENTRYPOINT '
+			// means no entrypoint, CMD assumes it is 'sh -c' with
+			// no third argument.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// It ain't valid JSON, so assume it's an
+				// argument to sh -c.
+				// Only include volume if it's not ""
+				config.Cmd = []string{"/bin/sh", "-c"}
+				if value != "" {
+					config.Cmd = append(config.Cmd, value)
+				}
+			} else {
+				// Valid JSON
+				config.Cmd = testUnmarshal
+			}
+		case "VOLUME":
+			// Either a JSON array or a set of space-separated
+			// paths.
+			// Acts rather similar to ENTRYPOINT and CMD, but always
+			// appends rather than replacing, and no sh -c prepend.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// Not valid JSON, so split on spaces
+				testUnmarshal = strings.Split(value, " ")
+			}
+			if len(testUnmarshal) == 0 {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide at least one argument to VOLUME", change)
+			}
+			for _, vol := range testUnmarshal {
+				if vol == "" {
+					return v1.ImageConfig{}, errors.Errorf("invalid change %q - VOLUME paths must not be empty", change)
+				}
+				if config.Volumes == nil {
+					config.Volumes = make(map[string]struct{})
+				}
+				config.Volumes[vol] = struct{}{}
+			}
+		case "WORKDIR":
+			// This can be passed multiple times.
+			// Each successive invocation is treated as relative to
+			// the previous one - so WORKDIR /A, WORKDIR b,
+			// WORKDIR c results in /A/b/c
+			// Just need to check it's not empty...
+			if value == "" {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide a non-empty WORKDIR", change)
+			}
+			config.WorkingDir = filepath.Join(config.WorkingDir, value)
+		case "LABEL":
+			// Same general idea as ENV, but we no longer allow " "
+			// as a separator.
+			// We didn't do that for ENV either, so nice and easy.
+			// Potentially problematic: LABEL might theoretically
+			// allow an = in the key? If people really do this, we
+			// may need to investigate more advanced parsing.
+			var (
+				key, val string
+			)
+
+			splitLabel := strings.SplitN(value, "=", 2)
+			// Unlike ENV, LABEL must have a value
+			if len(splitLabel) != 2 {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - LABEL must be formatted key=value", change)
+			}
+			key = splitLabel[0]
+			val = splitLabel[1]
+
+			if strings.HasPrefix(key, `"`) && strings.HasSuffix(key, `"`) {
+				key = strings.TrimPrefix(strings.TrimSuffix(key, `"`), `"`)
+			}
+			if strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`) {
+				val = strings.TrimPrefix(strings.TrimSuffix(val, `"`), `"`)
+			}
+			// Check key after we strip quotations
+			if key == "" {
+				return v1.ImageConfig{}, errors.Errorf("invalid change %q - LABEL must have a non-empty key", change)
+			}
+			if config.Labels == nil {
+				config.Labels = make(map[string]string)
+			}
+			config.Labels[key] = val
 		case "STOPSIGNAL":
-			stopSignal = vals[0]
+			// Check the provided signal for validity.
+			// TODO: Worth checking range? ParseSignal allows
+			// negative numbers.
+			killSignal, err := signal.ParseSignal(value)
+			if err != nil {
+				return v1.ImageConfig{}, errors.Wrapf(err, "invalid change %q - KILLSIGNAL must be given a valid signal", change)
+			}
+			config.StopSignal = fmt.Sprintf("%d", killSignal)
+		default:
+			return v1.ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
 		}
 	}
 
-	return v1.ImageConfig{
-		User:         user,
-		ExposedPorts: exposedPorts,
-		Env:          env,
-		Entrypoint:   entrypoint,
-		Cmd:          cmd,
-		Volumes:      volumes,
-		WorkingDir:   workingDir,
-		Labels:       labels,
-		StopSignal:   stopSignal,
-	}, nil
+	return config, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -19,70 +20,231 @@ func TestStringInSlice(t *testing.T) {
 	assert.False(t, StringInSlice("one", []string{}))
 }
 
-func TestParseChanges(t *testing.T) {
-	// CMD=/bin/sh
-	_, vals, err := ParseChanges("CMD=/bin/sh")
-	assert.EqualValues(t, []string{"/bin/sh"}, vals)
-	assert.NoError(t, err)
+func TestGetImageConfigUser(t *testing.T) {
+	validUser, err := GetImageConfig([]string{"USER valid"})
+	require.Nil(t, err)
+	assert.Equal(t, validUser.User, "valid")
 
-	// CMD [/bin/sh]
-	_, vals, err = ParseChanges("CMD [/bin/sh]")
-	assert.EqualValues(t, []string{"/bin/sh"}, vals)
-	assert.NoError(t, err)
+	validUser2, err := GetImageConfig([]string{"USER test_user_2"})
+	require.Nil(t, err)
+	assert.Equal(t, validUser2.User, "test_user_2")
 
-	// CMD ["/bin/sh"]
-	_, vals, err = ParseChanges(`CMD ["/bin/sh"]`)
-	assert.EqualValues(t, []string{`"/bin/sh"`}, vals)
-	assert.NoError(t, err)
+	_, err = GetImageConfig([]string{"USER "})
+	assert.NotNil(t, err)
+}
 
-	// CMD ["/bin/sh","-c","ls"]
-	_, vals, err = ParseChanges(`CMD ["/bin/sh","c","ls"]`)
-	assert.EqualValues(t, []string{`"/bin/sh"`, `"c"`, `"ls"`}, vals)
-	assert.NoError(t, err)
+func TestGetImageConfigExpose(t *testing.T) {
+	validPortNoProto, err := GetImageConfig([]string{"EXPOSE 80"})
+	require.Nil(t, err)
+	_, exists := validPortNoProto.ExposedPorts["80/tcp"]
+	assert.True(t, exists)
 
-	// CMD ["/bin/sh","arg-with,comma"]
-	_, vals, err = ParseChanges(`CMD ["/bin/sh","arg-with,comma"]`)
-	assert.EqualValues(t, []string{`"/bin/sh"`, `"arg-with`, `comma"`}, vals)
-	assert.NoError(t, err)
+	validPortTCP, err := GetImageConfig([]string{"EXPOSE 80/tcp"})
+	require.Nil(t, err)
+	_, exists = validPortTCP.ExposedPorts["80/tcp"]
+	assert.True(t, exists)
 
-	// CMD "/bin/sh"]
-	_, _, err = ParseChanges(`CMD "/bin/sh"]`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value "/bin/sh"]`, err.Error())
+	validPortUDP, err := GetImageConfig([]string{"EXPOSE 80/udp"})
+	require.Nil(t, err)
+	_, exists = validPortUDP.ExposedPorts["80/udp"]
+	assert.True(t, exists)
 
-	// CMD [bin/sh
-	_, _, err = ParseChanges(`CMD "/bin/sh"]`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value "/bin/sh"]`, err.Error())
+	_, err = GetImageConfig([]string{"EXPOSE 99999"})
+	assert.NotNil(t, err)
 
-	// CMD ["/bin /sh"]
-	_, _, err = ParseChanges(`CMD ["/bin /sh"]`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value "/bin /sh"`, err.Error())
+	_, err = GetImageConfig([]string{"EXPOSE 80/notaproto"})
+	assert.NotNil(t, err)
 
-	// CMD ["/bin/sh", "-c","ls"] whitespace between values
-	_, vals, err = ParseChanges(`CMD ["/bin/sh", "c","ls"]`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value  "c"`, err.Error())
+	_, err = GetImageConfig([]string{"EXPOSE "})
+	assert.NotNil(t, err)
 
-	// CMD?
-	_, _, err = ParseChanges(`CMD?`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid format CMD?`, err.Error())
+	_, err = GetImageConfig([]string{"EXPOSE thisisnotanumber"})
+	assert.NotNil(t, err)
+}
 
-	// empty values for CMD
-	_, _, err = ParseChanges(`CMD `)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value `, err.Error())
+func TestGetImageConfigEnv(t *testing.T) {
+	validEnvNoValue, err := GetImageConfig([]string{"ENV key"})
+	require.Nil(t, err)
+	assert.True(t, StringInSlice("key=", validEnvNoValue.Env))
 
-	// LABEL=blue=image
-	_, vals, err = ParseChanges(`LABEL=blue=image`)
-	assert.EqualValues(t, []string{"blue", "image"}, vals)
-	assert.NoError(t, err)
+	validEnvBareEquals, err := GetImageConfig([]string{"ENV key="})
+	require.Nil(t, err)
+	assert.True(t, StringInSlice("key=", validEnvBareEquals.Env))
 
-	// LABEL = blue=image
-	_, vals, err = ParseChanges(`LABEL = blue=image`)
-	assert.Error(t, err)
-	assert.Equal(t, `invalid value = blue=image`, err.Error())
+	validEnvKeyValue, err := GetImageConfig([]string{"ENV key=value"})
+	require.Nil(t, err)
+	assert.True(t, StringInSlice("key=value", validEnvKeyValue.Env))
 
+	validEnvKeyMultiEntryValue, err := GetImageConfig([]string{`ENV key="value1 value2"`})
+	require.Nil(t, err)
+	assert.True(t, StringInSlice("key=value1 value2", validEnvKeyMultiEntryValue.Env))
+
+	_, err = GetImageConfig([]string{"ENV "})
+	assert.NotNil(t, err)
+}
+
+func TestGetImageConfigEntrypoint(t *testing.T) {
+	binShEntrypoint, err := GetImageConfig([]string{"ENTRYPOINT /bin/bash"})
+	require.Nil(t, err)
+	require.Equal(t, 3, len(binShEntrypoint.Entrypoint))
+	assert.Equal(t, binShEntrypoint.Entrypoint[0], "/bin/sh")
+	assert.Equal(t, binShEntrypoint.Entrypoint[1], "-c")
+	assert.Equal(t, binShEntrypoint.Entrypoint[2], "/bin/bash")
+
+	entrypointWithSpaces, err := GetImageConfig([]string{"ENTRYPOINT ls -al"})
+	require.Nil(t, err)
+	require.Equal(t, 3, len(entrypointWithSpaces.Entrypoint))
+	assert.Equal(t, entrypointWithSpaces.Entrypoint[0], "/bin/sh")
+	assert.Equal(t, entrypointWithSpaces.Entrypoint[1], "-c")
+	assert.Equal(t, entrypointWithSpaces.Entrypoint[2], "ls -al")
+
+	jsonArrayEntrypoint, err := GetImageConfig([]string{`ENTRYPOINT ["ls", "-al"]`})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(jsonArrayEntrypoint.Entrypoint))
+	assert.Equal(t, jsonArrayEntrypoint.Entrypoint[0], "ls")
+	assert.Equal(t, jsonArrayEntrypoint.Entrypoint[1], "-al")
+
+	emptyEntrypoint, err := GetImageConfig([]string{"ENTRYPOINT "})
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(emptyEntrypoint.Entrypoint))
+
+	emptyEntrypointArray, err := GetImageConfig([]string{"ENTRYPOINT []"})
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(emptyEntrypointArray.Entrypoint))
+}
+
+func TestGetImageConfigCmd(t *testing.T) {
+	binShCmd, err := GetImageConfig([]string{"CMD /bin/bash"})
+	require.Nil(t, err)
+	require.Equal(t, 3, len(binShCmd.Cmd))
+	assert.Equal(t, binShCmd.Cmd[0], "/bin/sh")
+	assert.Equal(t, binShCmd.Cmd[1], "-c")
+	assert.Equal(t, binShCmd.Cmd[2], "/bin/bash")
+
+	cmdWithSpaces, err := GetImageConfig([]string{"CMD ls -al"})
+	require.Nil(t, err)
+	require.Equal(t, 3, len(cmdWithSpaces.Cmd))
+	assert.Equal(t, cmdWithSpaces.Cmd[0], "/bin/sh")
+	assert.Equal(t, cmdWithSpaces.Cmd[1], "-c")
+	assert.Equal(t, cmdWithSpaces.Cmd[2], "ls -al")
+
+	jsonArrayCmd, err := GetImageConfig([]string{`CMD ["ls", "-al"]`})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(jsonArrayCmd.Cmd))
+	assert.Equal(t, jsonArrayCmd.Cmd[0], "ls")
+	assert.Equal(t, jsonArrayCmd.Cmd[1], "-al")
+
+	emptyCmd, err := GetImageConfig([]string{"CMD "})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(emptyCmd.Cmd))
+	assert.Equal(t, emptyCmd.Cmd[0], "/bin/sh")
+	assert.Equal(t, emptyCmd.Cmd[1], "-c")
+
+	blankCmd, err := GetImageConfig([]string{"CMD []"})
+	require.Nil(t, err)
+	assert.Equal(t, 0, len(blankCmd.Cmd))
+}
+
+func TestGetImageConfigVolume(t *testing.T) {
+	oneLenJSONArrayVol, err := GetImageConfig([]string{`VOLUME ["/test1"]`})
+	require.Nil(t, err)
+	_, exists := oneLenJSONArrayVol.Volumes["/test1"]
+	assert.True(t, exists)
+	assert.Equal(t, 1, len(oneLenJSONArrayVol.Volumes))
+
+	twoLenJSONArrayVol, err := GetImageConfig([]string{`VOLUME ["/test1", "/test2"]`})
+	require.Nil(t, err)
+	assert.Equal(t, 2, len(twoLenJSONArrayVol.Volumes))
+	_, exists = twoLenJSONArrayVol.Volumes["/test1"]
+	assert.True(t, exists)
+	_, exists = twoLenJSONArrayVol.Volumes["/test2"]
+	assert.True(t, exists)
+
+	oneLenVol, err := GetImageConfig([]string{"VOLUME /test1"})
+	require.Nil(t, err)
+	_, exists = oneLenVol.Volumes["/test1"]
+	assert.True(t, exists)
+	assert.Equal(t, 1, len(oneLenVol.Volumes))
+
+	twoLenVol, err := GetImageConfig([]string{"VOLUME /test1 /test2"})
+	require.Nil(t, err)
+	assert.Equal(t, 2, len(twoLenVol.Volumes))
+	_, exists = twoLenVol.Volumes["/test1"]
+	assert.True(t, exists)
+	_, exists = twoLenVol.Volumes["/test2"]
+	assert.True(t, exists)
+
+	_, err = GetImageConfig([]string{"VOLUME []"})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"VOLUME "})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{`VOLUME [""]`})
+	assert.NotNil(t, err)
+}
+
+func TestGetImageConfigWorkdir(t *testing.T) {
+	singleWorkdir, err := GetImageConfig([]string{"WORKDIR /testdir"})
+	require.Nil(t, err)
+	assert.Equal(t, singleWorkdir.WorkingDir, "/testdir")
+
+	twoWorkdirs, err := GetImageConfig([]string{"WORKDIR /testdir", "WORKDIR a"})
+	require.Nil(t, err)
+	assert.Equal(t, twoWorkdirs.WorkingDir, "/testdir/a")
+
+	_, err = GetImageConfig([]string{"WORKDIR "})
+	assert.NotNil(t, err)
+}
+
+func TestGetImageConfigLabel(t *testing.T) {
+	labelNoQuotes, err := GetImageConfig([]string{"LABEL key1=value1"})
+	require.Nil(t, err)
+	assert.Equal(t, labelNoQuotes.Labels["key1"], "value1")
+
+	labelWithQuotes, err := GetImageConfig([]string{`LABEL "key 1"="value 2"`})
+	require.Nil(t, err)
+	assert.Equal(t, labelWithQuotes.Labels["key 1"], "value 2")
+
+	labelNoValue, err := GetImageConfig([]string{"LABEL key="})
+	require.Nil(t, err)
+	contents, exists := labelNoValue.Labels["key"]
+	assert.True(t, exists)
+	assert.Equal(t, contents, "")
+
+	_, err = GetImageConfig([]string{"LABEL key"})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"LABEL "})
+	assert.NotNil(t, err)
+}
+
+func TestGetImageConfigStopSignal(t *testing.T) {
+	stopSignalValidInt, err := GetImageConfig([]string{"STOPSIGNAL 9"})
+	require.Nil(t, err)
+	assert.Equal(t, stopSignalValidInt.StopSignal, "9")
+
+	stopSignalValidString, err := GetImageConfig([]string{"STOPSIGNAL SIGKILL"})
+	require.Nil(t, err)
+	assert.Equal(t, stopSignalValidString.StopSignal, "9")
+
+	_, err = GetImageConfig([]string{"STOPSIGNAL 0"})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"STOPSIGNAL garbage"})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"STOPSIGNAL "})
+	assert.NotNil(t, err)
+}
+
+func TestGetImageConfigMisc(t *testing.T) {
+	_, err := GetImageConfig([]string{""})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"USER"})
+	assert.NotNil(t, err)
+
+	_, err = GetImageConfig([]string{"BADINST testvalue"})
+	assert.NotNil(t, err)
 }
