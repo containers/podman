@@ -817,6 +817,10 @@ container. The `OPTIONS` are a comma delimited list and can be:
 * [rw|ro]
 * [z|Z]
 * [`[r]shared`|`[r]slave`|`[r]private`]
+* [`[r]bind`]
+* [`noexec`|`exec`]
+* [`nodev`|`dev`]
+* [`nosuid`|`suid`]
 
 The `CONTAINER-DIR` must be an absolute path such as `/src/docs`. The volume
 will be mounted into the container at this directory.
@@ -869,6 +873,25 @@ named volumes. For mount propagation to work source mount point (mount point
 where source dir is mounted on) has to have right propagation properties. For
 shared volumes, source mount point has to be shared. And for slave volumes,
 source mount has to be either shared or slave.
+
+If you want to recursively mount a volume and all of it's submounts into a
+container, then you can use the `rbind` option.  By default the bind option is
+used, and submounts of the source directory will not be mounted into the
+container.
+
+Mounting the volume with the `nosuid` options means that SUID applications on
+the volume will not be able to change their privilege. By default volumes
+are mounted with `nosuid`.
+
+Mounting the volume with the noexec option means that no executables on the
+volume will be able to executed within the container.
+
+Mounting the volume with the nodev option means that no devices on the volume
+will be able to be used by processes within the container. By default volumes
+are mounted with `nodev`.
+
+If the <source-dir> is a mount point, then "dev", "suid", and "exec" options are
+ignored by the kernel.
 
 Use `df <source-dir>` to figure out the source mount and then use
 `findmnt -o TARGET,PROPAGATION <source-mount-dir>` to figure out propagation
