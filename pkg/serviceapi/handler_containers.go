@@ -455,8 +455,12 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 			// Build header and output entry
 			binary.BigEndian.PutUint32(header[4:], uint32(len(header)+builder.Len()))
-			w.Write(header[:])
-			fmt.Fprint(w, builder.String())
+			if _, err := w.Write(header[:]); err != nil {
+				log.Errorf("unable to write log output header: %q", err)
+			}
+			if _, err := fmt.Fprint(w, builder.String()); err != nil {
+				log.Errorf("unable to write builder string: %q", err)
+			}
 
 			if flusher, ok := w.(http.Flusher); ok {
 				flusher.Flush()
