@@ -90,11 +90,13 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		server.registerSystemHandlers,
 		server.registerVersionHandlers,
 	} {
-		fn(router)
+		if err := fn(router); err != nil {
+			return nil, err
+		}
 	}
 
 	if log.IsLevelEnabled(log.DebugLevel) {
-		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error {
+		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error { // nolint
 			path, err := route.GetPathTemplate()
 			if err != nil {
 				path = ""
