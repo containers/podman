@@ -165,7 +165,6 @@ func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 }
 
 func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {
-	type foo struct{}
 	ports := make(nat.PortSet)
 	info, err := l.Inspect(context.Background())
 	if err != nil {
