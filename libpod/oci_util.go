@@ -83,11 +83,22 @@ func bindPorts(ports []ocicni.PortMapping) ([]*os.File, error) {
 
 func getOCIRuntimeError(runtimeMsg string) error {
 	r := strings.ToLower(runtimeMsg)
-	if match, _ := regexp.MatchString(".*permission denied.*|.*operation not permitted.*", r); match {
-		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s", strings.Trim(runtimeMsg, "\n"))
+
+	includeFullOutput := logrus.GetLevel() == logrus.DebugLevel
+
+	if match := regexp.MustCompile(".*permission denied.*|.*operation not permitted.*").FindString(r); match != "" {
+		errStr := match
+		if includeFullOutput {
+			errStr = runtimeMsg
+		}
+		return errors.Wrapf(define.ErrOCIRuntimePermissionDenied, "%s", strings.Trim(errStr, "\n"))
 	}
-	if match, _ := regexp.MatchString(".*executable file not found in.*|.*no such file or directory.*", r); match {
-		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(runtimeMsg, "\n"))
+	if match := regexp.MustCompile(".*executable file not found in.*|.*no such file or directory.*").FindString(r); match != "" {
+		errStr := match
+		if includeFullOutput {
+			errStr = runtimeMsg
+		}
+		return errors.Wrapf(define.ErrOCIRuntimeNotFound, "%s", strings.Trim(errStr, "\n"))
 	}
 	return errors.Wrapf(define.ErrOCIRuntime, "%s", strings.Trim(runtimeMsg, "\n"))
 }
