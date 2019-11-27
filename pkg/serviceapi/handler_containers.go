@@ -101,14 +101,7 @@ func (s *APIServer) container(w http.ResponseWriter, r *http.Request) {
 		containerNotFound(w, name, err)
 		return
 	}
-
-	infoData, err := s.Runtime.Info()
-	if err != nil {
-		internalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
-		return
-	}
-
-	api, err := LibpodToContainer(ctnr, infoData)
+	api, err := libpodToContainerJSON(ctnr)
 	if err != nil {
 		internalServerError(w, err)
 		return
@@ -151,6 +144,16 @@ func (s *APIServer) killContainer(w http.ResponseWriter, r *http.Request) {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill container %s", name))
 		return
 	}
+
+	// the kill behavior for docker differs from podman in that they appear to wait
+	// for the container to croak so the exit code is accurate immediately after the
+	// kill is sent.  libpod does not.  but we can add a wait here only for the docker
+	// side of things and mimic that behavior
+	if _, err = con.Wait(); err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for container %s", name))
+		return
+	}
+
 	// Success
 	s.WriteResponse(w, http.StatusNoContent, "")
 }
