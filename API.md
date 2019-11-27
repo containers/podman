@@ -1698,6 +1698,8 @@ isParent [bool](https://godoc.org/builtin#bool)
 topLayer [string](https://godoc.org/builtin#string)
 
 readOnly [bool](https://godoc.org/builtin#bool)
+
+history [[]string](#[]string)
 ### <a name="ImageHistory"></a>type ImageHistory
 
 ImageHistory describes the returned structure from ImageHistory.

@@ -32,6 +32,7 @@ type imagesTemplateParams struct {
 	CreatedTime time.Time
 	Size        string
 	ReadOnly    bool
+	History     string
 }
 
 type imagesJSONParams struct {
@@ -42,6 +43,7 @@ type imagesJSONParams struct {
 	Created  time.Time       `json:"created"`
 	Size     *uint64         `json:"size"`
 	ReadOnly bool            `json:"readonly"`
+	History  []string        `json:"history"`
 }
 
 type imagesOptions struct {
@@ -53,6 +55,7 @@ type imagesOptions struct {
 	outputformat string
 	sort         string
 	all          bool
+	history      bool
 }
 
 // Type declaration and functions for sorting the images output
@@ -124,6 +127,7 @@ func imagesInit(command *cliconfig.ImagesValues) {
 	flags.BoolVar(&command.NoTrunc, "no-trunc", false, "Do not truncate output")
 	flags.BoolVarP(&command.Quiet, "quiet", "q", false, "Display only image IDs")
 	flags.StringVar(&command.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
+	flags.BoolVarP(&command.History, "history", "", false, "Display the image name history")
 
 }
 
@@ -171,6 +175,7 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		format:    c.Format,
 		sort:      c.Sort,
 		all:       c.All,
+		history:   c.History,
 	}
 
 	opts.outputformat = opts.setOutputFormat()
@@ -214,6 +219,9 @@ func (i imagesOptions) setOutputFormat() string {
 		format += "{{.Digest}}\t"
 	}
 	format += "{{.ID}}\t{{.Created}}\t{{.Size}}\t"
+	if i.history {
+		format += "{{if .History}}{{.History}}{{else}}<none>{{end}}\t"
+	}
 	return format
 }
 
@@ -306,6 +314,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
 					Size:        sizeStr,
 					ReadOnly:    img.IsReadOnly(),
+					History:     strings.Join(img.NamesHistory(), ", "),
 				}
 				imagesOutput = append(imagesOutput, params)
 				if opts.quiet { // Show only one image ID when quiet
@@ -336,6 +345,7 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 			Created:  img.Created(),
 			Size:     size,
 			ReadOnly: img.IsReadOnly(),
+			History:  img.NamesHistory(),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}

@@ -16,6 +16,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -97,7 +98,7 @@ func legacyCopy(srcFile io.Reader, dstFile io.Writer) error {
 
 func copyXattr(srcPath, dstPath, attr string) error {
 	data, err := system.Lgetxattr(srcPath, attr)
-	if err != nil {
+	if err != nil && err != unix.EOPNOTSUPP {
 		return err
 	}
 	if data != nil {
@@ -269,6 +270,19 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 func doCopyXattrs(srcPath, dstPath string) error {
 	if err := copyXattr(srcPath, dstPath, "security.capability"); err != nil {
 		return err
+	}
+
+	xattrs, err := system.Llistxattr(srcPath)
+	if err != nil && err != unix.EOPNOTSUPP {
+		return err
+	}
+
+	for _, key := range xattrs {
+		if strings.HasPrefix(key, "user.") {
+			if err := copyXattr(srcPath, dstPath, key); err != nil {
+				return err
+			}
+		}
 	}
 
 	// We need to copy this attribute if it appears in an overlay upper layer, as

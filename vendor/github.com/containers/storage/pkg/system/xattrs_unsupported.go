@@ -2,6 +2,13 @@
 
 package system
 
+import "syscall"
+
+const (
+	// Operation not supported
+	EOPNOTSUPP syscall.Errno = syscall.Errno(0)
+)
+
 // Lgetxattr is not supported on platforms other than linux.
 func Lgetxattr(path string, attr string) ([]byte, error) {
 	return nil, ErrNotSupportedPlatform
@@ -10,4 +17,9 @@ func Lgetxattr(path string, attr string) ([]byte, error) {
 // Lsetxattr is not supported on platforms other than linux.
 func Lsetxattr(path string, attr string, data []byte, flags int) error {
 	return ErrNotSupportedPlatform
+}
+
+// Llistxattr is not supported on platforms other than linux.
+func Llistxattr(path string) ([]string, error) {
+	return nil, ErrNotSupportedPlatform
 }
