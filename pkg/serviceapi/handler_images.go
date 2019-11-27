@@ -245,7 +245,7 @@ func (s *APIServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	s.WriteResponse(w, http.StatusOK, CommitResponse{ID: commitImage.ID()}) //nolint
+	s.WriteResponse(w, http.StatusOK, IDResponse{ID: commitImage.ID()}) //nolint
 }
 
 func (s *APIServer) createImageFromSrc(w http.ResponseWriter, r *http.Request) {
