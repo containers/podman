@@ -4,17 +4,16 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/namespaces"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
-
-	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
-	createconfig "github.com/containers/libpod/pkg/spec"
 )
 
 func (s *APIServer) createContainer(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +101,7 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		IPAddress:    "",
 		LinkLocalIP:  nil, // docker-only
 		MacAddress:   input.MacAddress,
-		NetMode:      "",
+		//NetMode:      nil,
 		Network:      input.HostConfig.NetworkMode.NetworkName(),
 		NetworkAlias: nil, //docker-only now
 		PortBindings: input.HostConfig.PortBindings,
@@ -123,6 +122,8 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		UsernsMode: namespaces.UsernsMode(input.HostConfig.UsernsMode),
 		User:       input.User,
 	}
+	pidConfig := createconfig.PidConfig{PidMode: namespaces.PidMode(input.HostConfig.PidMode)}
+
 	m := createconfig.CreateConfig{
 		Annotations:   nil, // podman
 		Args:          nil,
@@ -130,8 +131,8 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		CidFile:       "",
 		ConmonPidFile: "", // podman
 		Command:       input.Cmd,
-		UserCommand:   nil,   // podman
-		Detach:        false, //
+		UserCommand:   input.Cmd, // podman
+		Detach:        false,     //
 		// Devices:            input.HostConfig.Devices,
 		Entrypoint: input.Entrypoint,
 		// Env:                input.Env,
@@ -150,7 +151,7 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		Name:    input.Name,
 		Network: network,
 		// NetMode:            input.HostConfig.NetworkMode,
-		// PidMode:            input.HostConfig.PidMode,
+		//PidMode:            input.HostConfig.PidMode,
 		Pod:           "",    // podman
 		PodmanPath:    "",    // podman
 		Quiet:         false, // front-end only
@@ -174,6 +175,8 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		Rootfs:      "", // podman
 		Security:    security,
 		Syslog:      false, // podman
+
+		Pid: pidConfig,
 	}
 	return m, nil
 }
