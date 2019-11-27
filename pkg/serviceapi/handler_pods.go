@@ -3,7 +3,6 @@ package serviceapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
