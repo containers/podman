@@ -177,24 +177,13 @@ func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 }
 
 func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {
-	ports := make(nat.PortSet)
 	info, err := l.Inspect(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	if len(info.Config.ExposedPorts) > 0 {
-		for k := range info.Config.ExposedPorts {
-			npTCP, err := nat.NewPort("tcp", k)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
-			}
-			npUDP, err := nat.NewPort("udp", k)
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to create udp port from %s", k)
-			}
-			ports[npTCP] = struct{}{}
-			ports[npUDP] = struct{}{}
-		}
+	ports, err := portsToPortSet(info.Config.ExposedPorts)
+	if err != nil {
+		return nil, err
 	}
 	// TODO the rest of these still need wiring!
 	config := dockerContainer.Config{
@@ -280,8 +269,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 }
 
 func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {
-	imageName, imageId := l.Image()
-
+	imageId, imageName := l.Image()
 	sizeRW, err := l.RWSize()
 	if err != nil {
 		return nil, err
@@ -319,4 +307,142 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	},
 		docker.ContainerCreateConfig{},
 	}, nil
+}
+
+func libpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
+	_, imageName := l.Image()
+	inspect, err := l.Inspect(true)
+	if err != nil {
+		return nil, err
+	}
+	i, err := json.Marshal(inspect.State)
+	if err != nil {
+		return nil, err
+	}
+	state := docker.ContainerState{}
+	if err := json.Unmarshal(i, &state); err != nil {
+		return nil, err
+	}
+
+	// docker considers paused to be running
+	if state.Paused {
+		state.Running = true
+	}
+
+	h, err := json.Marshal(inspect.HostConfig)
+	if err != nil {
+		return nil, err
+	}
+	hc := dockerContainer.HostConfig{}
+	if err := json.Unmarshal(h, &hc); err != nil {
+		return nil, err
+	}
+	g, err := json.Marshal(inspect.GraphDriver)
+	if err != nil {
+		return nil, err
+	}
+	graphDriver := docker.GraphDriverData{}
+	if err := json.Unmarshal(g, &graphDriver); err != nil {
+		return nil, err
+	}
+
+	cb := docker.ContainerJSONBase{
+		ID:              l.ID(),
+		Created:         l.CreatedTime().String(),
+		Path:            "",
+		Args:            nil,
+		State:           &state,
+		Image:           imageName,
+		ResolvConfPath:  inspect.ResolvConfPath,
+		HostnamePath:    inspect.HostnamePath,
+		HostsPath:       inspect.HostsPath,
+		LogPath:         l.LogPath(),
+		Node:            nil,
+		Name:            l.Name(),
+		RestartCount:    0,
+		Driver:          inspect.Driver,
+		Platform:        "linux",
+		MountLabel:      inspect.MountLabel,
+		ProcessLabel:    inspect.ProcessLabel,
+		AppArmorProfile: inspect.AppArmorProfile,
+		ExecIDs:         inspect.ExecIDs,
+		HostConfig:      &hc,
+		GraphDriver:     graphDriver,
+		SizeRw:          &inspect.SizeRw,
+		SizeRootFs:      &inspect.SizeRootFs,
+	}
+
+	stopTimeout := int(l.StopTimeout())
+
+	ports := make(nat.PortSet)
+	for p := range inspect.HostConfig.PortBindings {
+		splitp := strings.Split(p, "/")
+		port, err := nat.NewPort(splitp[0], splitp[1])
+		if err != nil {
+			return nil, err
+		}
+		ports[port] = struct{}{}
+	}
+
+	config := dockerContainer.Config{
+		Hostname:        l.Hostname(),
+		Domainname:      inspect.Config.DomainName,
+		User:            l.User(),
+		AttachStdin:     inspect.Config.AttachStdin,
+		AttachStdout:    inspect.Config.AttachStdout,
+		AttachStderr:    inspect.Config.AttachStderr,
+		ExposedPorts:    ports,
+		Tty:             inspect.Config.Tty,
+		OpenStdin:       inspect.Config.OpenStdin,
+		StdinOnce:       inspect.Config.StdinOnce,
+		Env:             inspect.Config.Env,
+		Cmd:             inspect.Config.Cmd,
+		Healthcheck:     nil,
+		ArgsEscaped:     false,
+		Image:           imageName,
+		Volumes:         nil,
+		WorkingDir:      l.WorkingDir(),
+		Entrypoint:      l.Entrypoint(),
+		NetworkDisabled: false,
+		MacAddress:      "",
+		OnBuild:         nil,
+		Labels:          l.Labels(),
+		StopSignal:      string(l.StopSignal()),
+		StopTimeout:     &stopTimeout,
+		Shell:           nil,
+	}
+
+	m, err := json.Marshal(inspect.Mounts)
+	if err != nil {
+		return nil, err
+	}
+	mounts := []docker.MountPoint{}
+	if err := json.Unmarshal(m, &mounts); err != nil {
+		return nil, err
+	}
+	c := docker.ContainerJSON{
+		ContainerJSONBase: &cb,
+		Mounts:            mounts,
+		Config:            &config,
+		NetworkSettings:   nil, // TODO i dont have the guts for this right now
+	}
+	return &c, nil
+}
+
+// portsToPortSet converts libpods exposed ports to dockers structs
+func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
+	ports := make(nat.PortSet)
+	for k := range input {
+		npTCP, err := nat.NewPort("tcp", k)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create tcp port from %s", k)
+		}
+		npUDP, err := nat.NewPort("udp", k)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create udp port from %s", k)
+		}
+		ports[npTCP] = struct{}{}
+		ports[npUDP] = struct{}{}
+	}
+	return ports, nil
 }
