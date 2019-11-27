@@ -105,7 +105,7 @@ type CreateContainer struct {
 	NetworkingConfig dockerNetwork.NetworkingConfig
 }
 
-type CommitResponse struct {
+type IDResponse struct {
 	ID string `json:"id"`
 }
 
@@ -116,6 +116,18 @@ type Stats struct {
 type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
 	ID string `json:"Id"`
+}
+
+type PodCreate struct {
+	Name         string   `json:"name"`
+	CGroupParent string   `json:"cgroup-parent"`
+	Hostname     string   `json:"hostname"`
+	Infra        bool     `json:"infra"`
+	InfraCommand string   `json:"infra-command"`
+	InfraImage   string   `json:"infra-image"`
+	Labels       []string `json:"labels"`
+	Publish      []string `json:"publish"`
+	Share        string   `json:"share"`
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
