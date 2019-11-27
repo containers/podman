@@ -147,7 +147,7 @@ func (s *APIServer) pruneImages(w http.ResponseWriter, r *http.Request) {
 	// This code needs to be migrated to libpod to work correctly.  I could not
 	// work my around the information docker needs with the existing prune in libpod.
 	//
-	pruneImages, err := s.Runtime.ImageRuntime().GetPruneImages(!dangling)
+	pruneImages, err := s.Runtime.ImageRuntime().GetPruneImages(!dangling, []image2.ImageFilter{})
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to get images to prune"))
 		return
@@ -245,7 +245,7 @@ func (s *APIServer) commitContainer(w http.ResponseWriter, r *http.Request) {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
 		return
 	}
-	s.WriteResponse(w, http.StatusOK, CommitResponse{ID: commitImage.ID()}) //nolint
+	s.WriteResponse(w, http.StatusOK, IDResponse{ID: commitImage.ID()}) //nolint
 }
 
 func (s *APIServer) createImageFromSrc(w http.ResponseWriter, r *http.Request) {

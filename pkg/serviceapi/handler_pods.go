@@ -1,13 +1,12 @@
 package serviceapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 	"syscall"
-
-	"github.com/pkg/errors"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/docker/docker/pkg/signal"
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
@@ -34,28 +34,29 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 }
 
 func (s *APIServer) podCreate(w http.ResponseWriter, r *http.Request) {
-	//TODO This is ALL wrong.  Brent to completely redo.  Should be using JSON structures
-	// and not forms.
 	var (
 		options []libpod.PodCreateOption
 		err     error
-		labels  map[string]string
 	)
-	infra := true
-	if len(r.Form.Get("infra-command")) > 0 || len(r.Form.Get("infra-image ")) > 0 {
+	labels := make(map[string]string)
+	input := PodCreate{}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	if len(input.InfraCommand) > 0 || len(input.InfraImage) > 0 {
 		Error(w, "Something went wrong.", http.StatusInternalServerError,
 			errors.New("infra-command and infra-image are not implemented yet"))
 		return
 	}
 	//TODO long term we should break the following out of adapter and into libpod proper
 	// so that the cli and api can share the creation of a pod with the same options
-	if len(r.Form.Get("cgroup-parent")) > 0 {
-		options = append(options, libpod.WithPodCgroupParent(r.Form.Get("cgroup-parent")))
+	if len(input.CGroupParent) > 0 {
+		options = append(options, libpod.WithPodCgroupParent(input.CGroupParent))
 	}
 
-	if len(r.Form.Get("labels")) > 0 {
-		labelList := strings.Split(r.Form.Get("labels"), "s")
-		if err := parse.ReadKVStrings(labels, []string{}, labelList); err != nil {
+	if len(input.Labels) > 0 {
+		if err := parse.ReadKVStrings(labels, []string{}, input.Labels); err != nil {
 			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 			return
 		}
@@ -65,28 +66,21 @@ func (s *APIServer) podCreate(w http.ResponseWriter, r *http.Request) {
 		options = append(options, libpod.WithPodLabels(labels))
 	}
 
-	if len(r.Form.Get("name")) > 0 {
-		options = append(options, libpod.WithPodName(r.Form.Get("name")))
+	if len(input.Name) > 0 {
+		options = append(options, libpod.WithPodName(input.Name))
 	}
 
-	if len(r.Form.Get("hostname")) > 0 {
-		options = append(options, libpod.WithPodHostname(r.Form.Get("hostname")))
+	if len(input.Hostname) > 0 {
+		options = append(options, libpod.WithPodHostname(input.Hostname))
 	}
 
-	if len(r.Form.Get("infra")) > 0 {
-		infra, err = strconv.ParseBool(r.Form.Get("infra"))
-		if err != nil {
-			Error(w, "Something went wrong.", http.StatusBadRequest, err)
-			return
-		}
-	}
-	if infra {
+	if input.Infra {
 		//TODO infra-image and infra-command are not supported in the libpod API yet.  Will fix
 		// when implemented in libpod
 		options = append(options, libpod.WithInfraContainer())
 		sharedNamespaces := shared.DefaultKernelNamespaces
-		if len(r.Form.Get("shared")) > 0 {
-			sharedNamespaces = r.Form.Get("shared")
+		if len(input.Share) > 0 {
+			sharedNamespaces = input.Share
 		}
 		nsOptions, err := shared.GetNamespaceOptions(strings.Split(sharedNamespaces, ","))
 		if err != nil {
@@ -96,9 +90,8 @@ func (s *APIServer) podCreate(w http.ResponseWriter, r *http.Request) {
 		options = append(options, nsOptions...)
 	}
 
-	if len(r.Form.Get("publish")) > 0 {
-		ports := strings.Split(r.Form.Get("publish"), "s")
-		portBindings, err := shared.CreatePortBindings(ports)
+	if len(input.Publish) > 0 {
+		portBindings, err := shared.CreatePortBindings(input.Publish)
 		if err != nil {
 			Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 			return
@@ -110,12 +103,12 @@ func (s *APIServer) podCreate(w http.ResponseWriter, r *http.Request) {
 	// User Opt out is not yet supported
 	options = append(options, libpod.WithPodCgroups())
 
-	_, err = s.Runtime.NewPod(s.Context, options...)
+	pod, err := s.Runtime.NewPod(s.Context, options...)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	s.WriteResponse(w, http.StatusCreated, "")
+	s.WriteResponse(w, http.StatusCreated, IDResponse{ID: pod.CgroupParent()})
 }
 
 func (s *APIServer) pods(w http.ResponseWriter, r *http.Request) {
