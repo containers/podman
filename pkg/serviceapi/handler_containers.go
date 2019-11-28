@@ -1,6 +1,7 @@
 package serviceapi
 
 import (
+	"context"
 	"encoding/binary"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/util"
+	"github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -22,6 +24,8 @@ import (
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(versionedPath("/containers/create"), s.serviceHandler(s.createContainer)).Methods("POST")
 	r.HandleFunc(versionedPath("/containers/json"), s.serviceHandler(s.listContainers)).Methods("GET")
+	r.HandleFunc(versionedPath("/containers/prune"), s.serviceHandler(s.pruneContainers)).Methods("POST")
+
 	r.HandleFunc(versionedPath("/containers/{name:..*}"), s.serviceHandler(s.removeContainer)).Methods("DELETE")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/json"), s.serviceHandler(s.container)).Methods("GET")
 	r.HandleFunc(versionedPath("/containers/{name:..*}/kill"), s.serviceHandler(s.killContainer)).Methods("POST")
@@ -247,6 +251,49 @@ func (s *APIServer) pauseContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	// Success
 	s.WriteResponse(w, http.StatusNoContent, "")
+}
+
+func (s *APIServer) pruneContainers(w http.ResponseWriter, r *http.Request) {
+	containers, err := s.Runtime.GetAllContainers()
+	if err != nil {
+		internalServerError(w, err)
+		return
+	}
+
+	deletedContainers := []string{}
+	var spaceReclaimed uint64
+	for _, ctnr := range containers {
+		// Only remove stopped or exitted containers.
+		state, err := ctnr.State()
+		if err != nil {
+			internalServerError(w, err)
+			return
+		}
+		switch state {
+		case define.ContainerStateStopped, define.ContainerStateExited:
+		default:
+			continue
+		}
+
+		deletedContainers = append(deletedContainers, ctnr.ID())
+		cSize, err := ctnr.RootFsSize()
+		if err != nil {
+			internalServerError(w, err)
+			return
+		}
+		spaceReclaimed += uint64(cSize)
+
+		err = s.Runtime.RemoveContainer(context.Background(), ctnr, false, false)
+		if err != nil && !(errors.Cause(err) == define.ErrCtrRemoved) {
+			internalServerError(w, err)
+			return
+		}
+	}
+	report := types.ContainersPruneReport{
+		ContainersDeleted: deletedContainers,
+		SpaceReclaimed:    spaceReclaimed,
+	}
+	s.WriteResponse(w, http.StatusOK, report)
 }
 
 func (s *APIServer) unpauseContainer(w http.ResponseWriter, r *http.Request) {
