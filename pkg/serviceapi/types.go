@@ -30,6 +30,10 @@ type ImageSummary struct {
 	docker.ImageSummary
 }
 
+type ContainersPruneReport struct {
+	docker.ContainersPruneReport
+}
+
 type Info struct {
 	docker.Info
 	BuildahVersion     string
