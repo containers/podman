@@ -588,4 +588,47 @@ var _ = Describe("Podman checkpoint", func() {
 		// Remove exported checkpoint
 		os.Remove(fileName)
 	})
+
+	It("podman checkpoint a container started with --rm", func() {
+		// Start the container
+		localRunString := getRunString([]string{"--rm", ALPINE, "top"})
+		session := podmanTest.Podman(localRunString)
+		session.WaitWithDefaultTimeout()
+		cid := session.OutputToString()
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+
+		// Checkpoint the container - this should fail as it was started with --rm
+		result := podmanTest.Podman([]string{"container", "checkpoint", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).To(ExitWithError())
+		Expect(result.ErrorToString()).To(ContainSubstring("Cannot checkpoint containers that have been started with '--rm'"))
+
+		// Checkpointing with --export should still work
+		fileName := "/tmp/checkpoint-" + cid + ".tar.gz"
+
+		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
+		result.WaitWithDefaultTimeout()
+
+		// As the container has been started with '--rm' it will be completely
+		// cleaned up after checkpointing.
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"container", "restore", "-i", fileName})
+		result.WaitWithDefaultTimeout()
+
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		result = podmanTest.Podman([]string{"rm", "-fa"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+
+		// Remove exported checkpoint
+		os.Remove(fileName)
+	})
 })
