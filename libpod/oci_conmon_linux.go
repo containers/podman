@@ -1000,6 +1000,15 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		}
 		// Leak one end in conmon, the other one will be leaked into slirp4netns
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessSlirpSyncW)
+
+		if ctr.rootlessPortSyncR != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+		}
+		if ctr.rootlessPortSyncW != nil {
+			defer errorhandling.CloseQuiet(ctr.rootlessPortSyncW)
+			// Leak one end in conmon, the other one will be leaked into rootlessport
+			cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncW)
+		}
 	}
 
 	err = startCommandGivenSelinux(cmd)

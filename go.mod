@@ -11,7 +11,6 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.12.0
-	github.com/containers/conmon v2.0.2+incompatible // indirect
 	github.com/containers/image/v5 v5.1.0
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.4
@@ -37,7 +36,6 @@ require (
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
 	github.com/json-iterator/go v1.1.8
-	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/onsi/ginkgo v1.10.3
 	github.com/onsi/gomega v1.7.1
@@ -51,13 +49,13 @@ require (
 	github.com/pkg/errors v0.8.1
 	github.com/pkg/profile v1.4.0
 	github.com/pmezard/go-difflib v1.0.0
+	github.com/rootless-containers/rootlesskit v0.7.1
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
-	github.com/uber-go/atomic v1.4.0 // indirect
 	github.com/uber/jaeger-client-go v2.20.1+incompatible
 	github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
