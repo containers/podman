@@ -1,6 +1,11 @@
 package main
 
 import (
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
@@ -39,6 +44,19 @@ func init() {
 }
 
 func pruneContainersCmd(c *cliconfig.PruneContainersValues) error {
+	if !c.Force {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf(`WARNING! This will remove all stopped containers.
+Are you sure you want to continue? [y/N] `)
+		ans, err := reader.ReadString('\n')
+		if err != nil {
+			return errors.Wrapf(err, "error reading input")
+		}
+		if strings.ToLower(ans)[0] != 'y' {
+			return nil
+		}
+	}
+
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
