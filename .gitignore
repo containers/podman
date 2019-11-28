@@ -1,7 +1,7 @@
 /.artifacts/
 /_output/
 /brew
-/conmon/conmon.o
+/conmon/
 /docs/*.[158]
 /docs/*.[158].gz
 /docs/remote
@@ -27,3 +27,5 @@ podman-remote*.zip
 podman*.tar.gz
 .idea*
 .vscode*
+contrib/spec/podman.spec
+*.rpm

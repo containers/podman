@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -euxo pipefail
 
 pkg_manager=`command -v dnf`
 if [ -z "$pkg_manager" ]; then
