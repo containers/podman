@@ -18,7 +18,7 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	WriteJSON(w, struct {
 		Message string `json:"message"`
 	}{
-		apiMessage,
+		fmt.Sprintf("%s: %s", apiMessage, err.Error()),
 	})
 }
 
