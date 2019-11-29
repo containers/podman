@@ -22,7 +22,6 @@ declare -a PKGS=(device-mapper-devel \
                 glib2-devel \
                 glibc-static \
                 golang \
-                golang-github-cpuguy83-go-md2man \
                 gpgme-devel \
                 libassuan-devel \
                 libseccomp-devel \
@@ -41,14 +40,19 @@ if [ $pkg_manager == "/usr/bin/dnf" ]; then
         PKGS+=(btrfs-progs-devel)
     fi
 
+fi
 
+# golang-github-cpuguy83-go-md2man is needed for building man pages
+# It is not available by default in CentOS 8 making it optional
+if [ -z "$extra_arg" ]; then
+    PKGS+=(golang-github-cpuguy83-go-md2man)
 fi
 
 echo ${PKGS[*]}
 $pkg_manager install -y ${PKGS[*]}
 
 make -f .copr/Makefile
-rpmbuild --rebuild podman-*.src.rpm
+rpmbuild --rebuild ${extra_arg:-""} podman-*.src.rpm
 
 # Test to make sure the install of the binary works
 $pkg_manager -y install ~/rpmbuild/RPMS/x86_64/podman-*.x86_64.rpm
