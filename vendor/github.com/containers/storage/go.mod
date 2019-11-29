@@ -7,7 +7,7 @@ require (
 	github.com/Microsoft/hcsshim v0.8.6
 	github.com/docker/docker v0.0.0-20171019062838-86f080cff091 // indirect
 	github.com/docker/go-units v0.4.0
-	github.com/klauspost/compress v1.9.2
+	github.com/klauspost/compress v1.9.3
 	github.com/klauspost/cpuid v1.2.1 // indirect
 	github.com/klauspost/pgzip v1.2.1
 	github.com/mattn/go-shellwords v1.0.6
@@ -23,7 +23,7 @@ require (
 	github.com/tchap/go-patricia v2.3.0+incompatible
 	github.com/vbatts/tar-split v0.11.1
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	gotest.tools v0.0.0-20190624233834-05ebafbffc79
 )
 

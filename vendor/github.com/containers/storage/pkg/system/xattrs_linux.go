@@ -2,12 +2,16 @@ package system
 
 import (
 	"bytes"
+	"math"
 	"syscall"
 
 	"golang.org/x/sys/unix"
 )
 
 const (
+	// Value is larger than the maximum size allowed
+	E2BIG syscall.Errno = unix.E2BIG
+
 	// Operation not supported
 	EOPNOTSUPP syscall.Errno = unix.EOPNOTSUPP
 )
@@ -22,6 +26,9 @@ func Lgetxattr(path string, attr string) ([]byte, error) {
 		return nil, nil
 	}
 	if errno == unix.ERANGE {
+		if sz > math.MaxUint16 {
+			return nil, unix.E2BIG
+		}
 		dest = make([]byte, sz)
 		sz, errno = unix.Lgetxattr(path, attr, dest)
 	}
