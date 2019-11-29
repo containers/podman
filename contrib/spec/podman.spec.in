@@ -53,7 +53,10 @@ ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
 # The COPR process will uncomment this
 #BuildRequires: golang-bin
 #
+# btrfs-progs-devel package is not available in CentOS/RHEL-8
+%if 0%{?rhel} != 8 && 0%{?centos} != 8
 BuildRequires: btrfs-progs-devel
+%endif
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
