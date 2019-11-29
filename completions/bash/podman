@@ -1142,6 +1142,21 @@ _podman_container() {
      esac
 }
 
+_podman_system_reset() {
+	local options_with_args="
+	"
+	local boolean_options="
+	     -h
+	     --help
+	     --force
+	"
+    case "$cur" in
+	-*)
+	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
+	    ;;
+    esac
+}
+
 _podman_system_df() {
 	local options_with_args="
 	--format
@@ -1193,6 +1208,7 @@ _podman_system() {
 	df
 	info
 	prune
+	reset
      "
      __podman_subcommands "$subcommands" && return
 
