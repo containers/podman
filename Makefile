@@ -32,7 +32,9 @@ BUILDTAGS ?= \
 	exclude_graphdriver_devicemapper \
 	seccomp \
 	varlink
-PYTHON ?= $(shell command -v python python3)
+PYTHON ?= $(shell command -v python python3|head -n1)
+PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
+
 
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
@@ -543,12 +545,19 @@ vendor-in-container:
 	install.libseccomp.sudo \
 	lint \
 	pause \
+	package \
+	package-install \
 	shell \
 	uninstall \
 	validate \
 	validate.completions \
 	vendor
 
-rpm:
-	@echo "Building rpms ..."
+package:  ## Build rpm packages
+	## TODO(ssbarnea): make version number predictable, it should not change
+	## on each execution, producing duplicates.
+	rm -f  ~/rpmbuild/RPMS/x86_64/* ~/rpmbuild/RPMS/noarch/*
 	./contrib/build_rpm.sh
+
+package-install: package  ## Install rpm packages
+	sudo ${PKG_MANAGER} -y install --allowerasing ${HOME}/rpmbuild/RPMS/*/*.rpm
