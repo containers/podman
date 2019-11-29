@@ -922,7 +922,7 @@ func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
 }
 
 // Prune removes stopped containers
-func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([]string, map[string]error, error) {
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool, filter []string) ([]string, map[string]error, error) {
 
 	var (
 		ok       = []string{}

@@ -52,7 +52,7 @@ var _ = Describe("Podman prune", func() {
 		stop.WaitWithDefaultTimeout()
 		Expect(stop.ExitCode()).To(Equal(0))
 
-		prune := podmanTest.Podman([]string{"container", "prune"})
+		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 

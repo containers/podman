@@ -183,7 +183,8 @@ type PruneImagesValues struct {
 
 type PruneContainersValues struct {
 	PodmanCommand
-	Force bool
+	Force  bool
+	Filter []string
 }
 
 type PodPruneValues struct {

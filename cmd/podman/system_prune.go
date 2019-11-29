@@ -92,7 +92,7 @@ Are you sure you want to continue? [y/N] `, volumeString)
 
 	rmWorkers := shared.Parallelize("rm")
 	fmt.Println("Deleted Containers")
-	ok, failures, err = runtime.Prune(ctx, rmWorkers, false)
+	ok, failures, err = runtime.Prune(ctx, rmWorkers, false, []string{})
 	if err != nil {
 		if lasterr != nil {
 			logrus.Errorf("%q", err)
