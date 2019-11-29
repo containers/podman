@@ -676,6 +676,10 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
+	if c.AutoRemove() && options.TargetFile == "" {
+		return errors.Errorf("Cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+	}
+
 	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
 		return err
 	}
