@@ -32,6 +32,7 @@ BUILDTAGS ?= \
 	exclude_graphdriver_devicemapper \
 	seccomp \
 	varlink
+PYTHON ?= $(shell command -v python python3)
 
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
@@ -133,7 +134,7 @@ endef
 export PRINT_HELP_PYSCRIPT
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
