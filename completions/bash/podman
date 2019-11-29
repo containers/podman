@@ -2816,9 +2816,12 @@ _podman_images_prune() {
 
 _podman_container_prune() {
     local options_with_args="
+	 --filter
     "
 
     local boolean_options="
+	 -f
+	 --force
      -h
 	 --help
   "
