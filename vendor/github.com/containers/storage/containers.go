@@ -603,3 +603,7 @@ func (r *containerStore) TouchedSince(when time.Time) bool {
 func (r *containerStore) Locked() bool {
 	return r.lockfile.Locked()
 }
+
+func (r *containerStore) SetReadOnly(ro bool) {
+	r.lockfile.SetReadOnly(ro)
+}

@@ -41,6 +41,10 @@ type Locker interface {
 
 	// Locked() checks if lock is locked for writing by a thread in this process
 	Locked() bool
+
+	// SetReadOnly can be used to set the locker either to `read-only` or
+	// `read-write`
+	SetReadOnly(bool)
 }
 
 var (
@@ -52,14 +56,21 @@ var (
 // Locker object may already be locked if the path has already been requested
 // by the current process.
 func GetLockfile(path string) (Locker, error) {
-	return getLockfile(path, false)
+	return getLockfile(path, false, false)
 }
 
 // GetROLockfile opens a read-only lock file, creating it if necessary.  The
 // Locker object may already be locked if the path has already been requested
 // by the current process.
 func GetROLockfile(path string) (Locker, error) {
-	return getLockfile(path, true)
+	return getLockfile(path, true, false)
+}
+
+// GetLockfileRWRO opens a read-only or read-write lock file, depending on its
+// use. The Locker object may already be locked if the path has already been
+// requested by the current process.
+func GetLockfileRWRO(path string, readOnly bool) (Locker, error) {
+	return getLockfile(path, readOnly, true)
 }
 
 // getLockfile returns a Locker object, possibly (depending on the platform)
@@ -69,11 +80,15 @@ func GetROLockfile(path string) (Locker, error) {
 // “lock for reading” (shared) operation; otherwise, the lock is either an exclusive lock,
 // or a read-write lock and Locker should correspond to the “lock for writing” (exclusive) operation.
 //
+// `overWriteReadOnly` indicates if the locker should be used as universal
+// `read-write` and `read-only` lock.  If `overWriteReadOnly` is false, then
+// the function will fail if the locker does not match its desired state.
+//
 // WARNING:
 // - The lock may or MAY NOT be inter-process.
 // - There may or MAY NOT be an actual object on the filesystem created for the specified path.
 // - Even if ro, the lock MAY be exclusive.
-func getLockfile(path string, ro bool) (Locker, error) {
+func getLockfile(path string, ro, overWriteReadOnly bool) (Locker, error) {
 	lockfilesLock.Lock()
 	defer lockfilesLock.Unlock()
 	if lockfiles == nil {
@@ -84,6 +99,9 @@ func getLockfile(path string, ro bool) (Locker, error) {
 		return nil, errors.Wrapf(err, "error ensuring that path %q is an absolute path", path)
 	}
 	if locker, ok := lockfiles[cleanPath]; ok {
+		if overWriteReadOnly {
+			locker.SetReadOnly(ro)
+		}
 		if ro && locker.IsReadWrite() {
 			return nil, errors.Errorf("lock %q is not a read-only lock", cleanPath)
 		}

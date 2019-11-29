@@ -496,11 +496,11 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 	if err := os.MkdirAll(layerdir, 0700); err != nil {
 		return nil, err
 	}
-	lockfile, err := GetLockfile(filepath.Join(layerdir, "layers.lock"))
+	lockfile, err := GetLockfileRWRO(filepath.Join(layerdir, "layers.lock"), false)
 	if err != nil {
 		return nil, err
 	}
-	mountsLockfile, err := GetLockfile(filepath.Join(rundir, "mountpoints.lock"))
+	mountsLockfile, err := GetLockfileRWRO(filepath.Join(rundir, "mountpoints.lock"), false)
 	if err != nil {
 		return nil, err
 	}
@@ -523,13 +523,17 @@ func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Dri
 }
 
 func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (ROLayerStore, error) {
-	lockfile, err := GetROLockfile(filepath.Join(layerdir, "layers.lock"))
+	lockfile, err := GetLockfileRWRO(filepath.Join(layerdir, "layers.lock"), true)
+	if err != nil {
+		return nil, err
+	}
+	mountsLockfile, err := GetLockfileRWRO(filepath.Join(rundir, "mountpoints.lock"), true)
 	if err != nil {
 		return nil, err
 	}
 	rlstore := layerStore{
 		lockfile:       lockfile,
-		mountsLockfile: nil,
+		mountsLockfile: mountsLockfile,
 		driver:         driver,
 		rundir:         rundir,
 		layerdir:       layerdir,
@@ -1438,4 +1442,8 @@ func (r *layerStore) TouchedSince(when time.Time) bool {
 
 func (r *layerStore) Locked() bool {
 	return r.lockfile.Locked()
+}
+
+func (r *layerStore) SetReadOnly(ro bool) {
+	r.lockfile.SetReadOnly(ro)
 }

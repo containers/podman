@@ -786,3 +786,7 @@ func (r *imageStore) TouchedSince(when time.Time) bool {
 func (r *imageStore) Locked() bool {
 	return r.lockfile.Locked()
 }
+
+func (r *imageStore) SetReadOnly(ro bool) {
+	r.lockfile.SetReadOnly(ro)
+}

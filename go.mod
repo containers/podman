@@ -82,3 +82,5 @@ require (
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
+
+replace github.com/containers/storage => github.com/saschagrunert/storage v1.12.3-0.20200225133936-b4f34141d69e

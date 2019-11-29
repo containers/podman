@@ -35,7 +35,7 @@ type lockfile struct {
 // necessary.
 func openLock(path string, ro bool) (int, error) {
 	if ro {
-		return unix.Open(path, os.O_RDONLY, 0)
+		return unix.Open(path, os.O_RDONLY|os.O_CREATE, 0)
 	}
 	return unix.Open(path, os.O_RDWR|os.O_CREATE, unix.S_IRUSR|unix.S_IWUSR)
 }
@@ -252,4 +252,14 @@ func (l *lockfile) TouchedSince(when time.Time) bool {
 	mtim := st.Mtim()
 	touched := time.Unix(mtim.Unix())
 	return when.Before(touched)
+}
+
+// SetReadOnly can be used to set the locker either to `read-only` or `read-write`
+func (l *lockfile) SetReadOnly(ro bool) {
+	locktype := unix.F_WRLCK
+	if ro {
+		locktype = unix.F_RDLCK
+	}
+	l.locktype = int16(locktype)
+	l.ro = ro
 }

@@ -282,12 +282,12 @@ func (r *storageService) GetMountpoint(id string) (string, error) {
 		}
 		return "", err
 	}
-	layer, err := r.store.Layer(container.LayerID)
+	mountPoint, err := r.store.LayerMountpoint(container.LayerID)
 	if err != nil {
 		return "", err
 	}
 
-	return layer.MountPoint, nil
+	return mountPoint, nil
 }
 
 func (r *storageService) GetWorkDir(id string) (string, error) {

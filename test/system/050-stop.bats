@@ -14,7 +14,7 @@ load helpers
 
     # Confirm that container is stopped
     run_podman inspect --format '{{.State.Status}} {{.State.ExitCode}}' $cid
-    is "$output" "exited \+137" "Status and exit code of stopped container"
+    is "$output" ".* 137" "Status and exit code of stopped container"
 
     # The initial SIGTERM is ignored, so this operation should take
     # exactly 10 seconds. Give it some leeway.
@@ -57,8 +57,8 @@ load helpers
 
         # The 'stop' command should return almost instantaneously
         delta_t=$(( $t1 - $t0 ))
-        [ $delta_t -le 2 ] ||\
-            die "podman stop: took too long ($delta_t seconds; expected <= 2)"
+        [ $delta_t -le 3 ] ||\
+            die "podman stop: took too long ($delta_t seconds; expected <= 3)"
 
         run_podman rm $cid
     done
