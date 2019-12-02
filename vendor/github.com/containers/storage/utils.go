@@ -70,6 +70,18 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
 func GetRootlessRuntimeDir(rootlessUid int) (string, error) {
+	path, err := getRootlessRuntimeDir(rootlessUid)
+	if err != nil {
+		return "", err
+	}
+	path = filepath.Join(path, "containers")
+	if err := os.MkdirAll(path, 0700); err != nil {
+		return "", errors.Wrapf(err, "unable to make rootless runtime dir %s", path)
+	}
+	return path, nil
+}
+
+func getRootlessRuntimeDir(rootlessUid int) (string, error) {
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 
 	if runtimeDir != "" {

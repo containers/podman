@@ -44,4 +44,19 @@ size       | [0-9]\\\+
 
 }
 
+@test "podman images - history output" {
+    run_podman images --format json
+    actual=$(echo $output | jq -r '.[0].history | length')
+    is "$actual" "0"
+
+    run_podman tag $PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG test-image
+    run_podman images --format json
+    actual=$(echo $output | jq -r '.[1].history | length')
+    is "$actual" "0"
+    actual=$(echo $output | jq -r '.[0].history | length')
+    is "$actual" "1"
+    actual=$(echo $output | jq -r '.[0].history[0]')
+    is "$actual" "$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
+}
+
 # vim: filetype=sh

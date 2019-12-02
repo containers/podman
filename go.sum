@@ -90,6 +90,8 @@ github.com/containers/storage v1.13.5 h1:/SUzGeOP2HDijpF7Yur21Ch6WTZC1BNeZF917CW
 github.com/containers/storage v1.13.5/go.mod h1:HELz8Sn+UVbPaUZMI8RvIG9doD4y4z6Gtg4k7xdd2ZY=
 github.com/containers/storage v1.14.0 h1:LbX6WZaDmkXt4DT4xWIg3YXAWd6oA4K9Fi6/KG1xt84=
 github.com/containers/storage v1.14.0/go.mod h1:qGPsti/qC1xxX+xcpHfiTMT+8ThVE2Jf83wFHHqkDAY=
+github.com/containers/storage v1.15.0 h1:QNW7jJ94ccGcAbFIOSMHUAsUxvHceb71ecLye9EDrkk=
+github.com/containers/storage v1.15.0/go.mod h1:qGPsti/qC1xxX+xcpHfiTMT+8ThVE2Jf83wFHHqkDAY=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-iptables v0.4.2 h1:KH0EwId05JwWIfb96gWvkiT2cbuOu8ygqUaB+yPAwIg=

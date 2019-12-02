@@ -64,6 +64,7 @@ type ImagesValues struct {
 	NoTrunc   bool
 	Quiet     bool
 	Sort      string
+	History   bool
 }
 
 type EventValues struct {
@@ -655,6 +656,11 @@ type SystemPruneValues struct {
 	All    bool
 	Force  bool
 	Volume bool
+}
+
+type SystemResetValues struct {
+	PodmanCommand
+	Force bool
 }
 
 type SystemRenumberValues struct {

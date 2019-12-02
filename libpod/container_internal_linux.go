@@ -21,6 +21,7 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/secrets"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/annotations"
 	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -676,6 +677,10 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		return errors.Wrapf(define.ErrCtrStateInvalid, "%q is not running, cannot checkpoint", c.state.State)
 	}
 
+	if c.AutoRemove() && options.TargetFile == "" {
+		return errors.Errorf("Cannot checkpoint containers that have been started with '--rm' unless '--export' is used")
+	}
+
 	if err := c.checkpointRestoreLabelLog("dump.log"); err != nil {
 		return err
 	}
@@ -694,6 +699,8 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 	if err := ioutil.WriteFile(filepath.Join(c.bundlePath(), "network.status"), formatJSON, 0644); err != nil {
 		return err
 	}
+
+	defer c.newContainerEvent(events.Checkpoint)
 
 	if options.TargetFile != "" {
 		if err = c.exportCheckpoint(options.TargetFile, options.IgnoreRootfs); err != nil {
@@ -766,7 +773,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		return err
 	}
 
-	if (c.state.State != define.ContainerStateConfigured) && (c.state.State != define.ContainerStateExited) {
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s is running or paused, cannot restore", c.ID())
 	}
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -euxo pipefail
 
 pkg_manager=`command -v dnf`
 if [ -z "$pkg_manager" ]; then
@@ -28,9 +28,7 @@ declare -a PKGS=(device-mapper-devel \
                 libseccomp-devel \
                 libselinux-devel \
                 make \
-                golang-github-cpuguy83-go-md2man \
                 rpm-build \
-                btrfs-progs-devel \
                 go-compilers-golang-compiler \
                 )
 
@@ -38,6 +36,12 @@ if [ $pkg_manager == "/usr/bin/dnf" ]; then
     PKGS+=(python3-devel \
         python3-varlink \
         )
+# btrfs-progs-devel is not available in CentOS/RHEL-8
+    if ! grep -i -q 'Red Hat\|CentOS' /etc/redhat-release; then
+        PKGS+=(btrfs-progs-devel)
+    fi
+
+
 fi
 
 echo ${PKGS[*]}

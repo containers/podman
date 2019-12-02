@@ -70,6 +70,7 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			Labels:      labels,
 			IsParent:    isParent,
 			ReadOnly:    image.IsReadOnly(),
+			History:     image.NamesHistory(),
 		}
 		imageList = append(imageList, i)
 	}
@@ -111,6 +112,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 		Labels:      labels,
 		TopLayer:    newImage.TopLayer(),
 		ReadOnly:    newImage.IsReadOnly(),
+		History:     newImage.NamesHistory(),
 	}
 	return call.ReplyGetImage(il)
 }

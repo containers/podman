@@ -9,3 +9,7 @@ import (
 func (r *Runtime) migrate(ctx context.Context) error {
 	return nil
 }
+
+func stopPauseProcess() error {
+	return nil
+}

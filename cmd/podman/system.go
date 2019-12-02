@@ -19,6 +19,7 @@ var (
 )
 
 var systemCommands = []*cobra.Command{
+	_systemResetCommand,
 	_infoCommand,
 	_pruneSystemCommand,
 }

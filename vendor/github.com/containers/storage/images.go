@@ -47,6 +47,11 @@ type Image struct {
 	// or canonical references.
 	Names []string `json:"names,omitempty"`
 
+	// NamesHistory is an optional set of Names the image had in the past. The
+	// contained names are free from any duplicates, whereas the newest entry
+	// is the first one.
+	NamesHistory []string `json:"names-history,omitempty"`
+
 	// TopLayer is the ID of the topmost layer of the image itself, if the
 	// image contains one or more layers.  Multiple images can refer to the
 	// same top layer.
@@ -155,6 +160,7 @@ func copyImage(i *Image) *Image {
 		Digest:          i.Digest,
 		Digests:         copyDigestSlice(i.Digests),
 		Names:           copyStringSlice(i.Names),
+		NamesHistory:    copyStringSlice(i.NamesHistory),
 		TopLayer:        i.TopLayer,
 		MappedTopLayers: copyStringSlice(i.MappedTopLayers),
 		Metadata:        i.Metadata,
@@ -481,6 +487,10 @@ func (r *imageStore) removeName(image *Image, name string) {
 	image.Names = stringSliceWithoutValue(image.Names, name)
 }
 
+func (i *Image) addNameToHistory(name string) {
+	i.NamesHistory = dedupeNames(append([]string{name}, i.NamesHistory...))
+}
+
 func (r *imageStore) SetNames(id string, names []string) error {
 	if !r.IsReadWrite() {
 		return errors.Wrapf(ErrStoreIsReadOnly, "not allowed to change image name assignments at %q", r.imagespath())
@@ -495,6 +505,7 @@ func (r *imageStore) SetNames(id string, names []string) error {
 				r.removeName(otherImage, name)
 			}
 			r.byname[name] = image
+			image.addNameToHistory(name)
 		}
 		image.Names = names
 		return r.Save()

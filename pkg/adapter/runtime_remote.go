@@ -136,21 +136,22 @@ type ContainerImage struct {
 }
 
 type remoteImage struct {
-	ID          string
-	Labels      map[string]string
-	RepoTags    []string
-	RepoDigests []string
-	Parent      string
-	Size        int64
-	Created     time.Time
-	InputName   string
-	Names       []string
-	Digest      digest.Digest
-	Digests     []digest.Digest
-	isParent    bool
-	Runtime     *LocalRuntime
-	TopLayer    string
-	ReadOnly    bool
+	ID           string
+	Labels       map[string]string
+	RepoTags     []string
+	RepoDigests  []string
+	Parent       string
+	Size         int64
+	Created      time.Time
+	InputName    string
+	Names        []string
+	Digest       digest.Digest
+	Digests      []digest.Digest
+	isParent     bool
+	Runtime      *LocalRuntime
+	TopLayer     string
+	ReadOnly     bool
+	NamesHistory []string
 }
 
 // Container ...
@@ -232,21 +233,22 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 		digests = append(digests, digest.Digest(d))
 	}
 	ri := remoteImage{
-		InputName:   name,
-		ID:          i.Id,
-		Digest:      digest.Digest(i.Digest),
-		Digests:     digests,
-		Labels:      i.Labels,
-		RepoTags:    i.RepoTags,
-		RepoDigests: i.RepoTags,
-		Parent:      i.ParentId,
-		Size:        i.Size,
-		Created:     created,
-		Names:       i.RepoTags,
-		isParent:    i.IsParent,
-		Runtime:     runtime,
-		TopLayer:    i.TopLayer,
-		ReadOnly:    i.ReadOnly,
+		InputName:    name,
+		ID:           i.Id,
+		Digest:       digest.Digest(i.Digest),
+		Digests:      digests,
+		Labels:       i.Labels,
+		RepoTags:     i.RepoTags,
+		RepoDigests:  i.RepoTags,
+		Parent:       i.ParentId,
+		Size:         i.Size,
+		Created:      created,
+		Names:        i.RepoTags,
+		isParent:     i.IsParent,
+		Runtime:      runtime,
+		TopLayer:     i.TopLayer,
+		ReadOnly:     i.ReadOnly,
+		NamesHistory: i.History,
 	}
 	return &ContainerImage{ri}, nil
 }
@@ -335,6 +337,11 @@ func (ci *ContainerImage) ID() string {
 // Names returns a string array of names associated with the image
 func (ci *ContainerImage) Names() []string {
 	return ci.remoteImage.Names
+}
+
+// NamesHistory returns a string array of names previously associated with the image
+func (ci *ContainerImage) NamesHistory() []string {
+	return ci.remoteImage.NamesHistory
 }
 
 // Created returns the time the image was created
