@@ -34,6 +34,10 @@ BUILDTAGS ?= \
 	varlink
 PYTHON ?= $(shell command -v python python3|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
+
+DOCKERPY_IMAGE ?= quay.io/vrothberg/docker-py:latest
+DOCKERPY_TEST ?=
+
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
@@ -168,10 +172,6 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
-.PHONY: service
-service: .gopathok
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
-
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
 	$(eval DOCFILE := docs/build/remote/windows)
@@ -190,6 +190,19 @@ bin/podman.cross.%: .gopathok
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
+
+.PHONY: service
+service: .gopathok
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
+
+.PHONY:
+run-service:
+	systemd-socket-activate -l 8080 ./bin/service
+
+.PHONY: run-docker-py-tests
+run-docker-py-tests:
+	$(eval testLogs=$(shell mktemp))
+	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
 clean: ## Clean artifacts
 	rm -rf \
