@@ -56,7 +56,7 @@ func treeCmd(c *cliconfig.TreeValues) error {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 	defer runtime.DeferredShutdown(false)
-	imageInfo, layerInfoMap, img, err := runtime.Tree(c)
+	imageInfo, layerInfoMap, img, err := runtime.Tree(c.InputArgs[0])
 	if err != nil {
 		return err
 	}
