@@ -9,6 +9,7 @@ import (
 func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, handlers.CreateImageFromImage)).Methods("POST").Queries("fromImage", "{fromImage}")
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, handlers.CreateImageFromSrc)).Methods("POST").Queries("fromSrc", "{fromSrc}")
+	r.Handle(VersionedPath("/images/history"), APIHandler(s.Context, handlers.HistoryImage)).Methods("GET")
 	r.Handle(VersionedPath("/images/json"), APIHandler(s.Context, handlers.GetImages)).Methods("GET")
 	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, handlers.LoadImage)).Methods("POST")
 	r.Handle(VersionedPath("/images/prune"), APIHandler(s.Context, handlers.PruneImages)).Methods("POST")
@@ -21,6 +22,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/commit"), APIHandler(s.Context, handlers.CommitContainer)).Methods("POST")
 	// libpod
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/exists"), APIHandler(s.Context, handlers.ImageExists))
+	r.Handle(VersionedPath("/libpod/images/{name:..*}/tree"), APIHandler(s.Context, handlers.ImageTree))
 
 	return nil
 }
