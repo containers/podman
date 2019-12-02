@@ -33,6 +33,9 @@ BUILDTAGS ?= \
 	seccomp \
 	varlink
 
+DOCKERPY_IMAGE ?= quay.io/vrothberg/docker-py:latest
+DOCKERPY_TEST ?=
+
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
@@ -184,6 +187,19 @@ bin/podman.cross.%: .gopathok
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
+
+.PHONY: service
+service: .gopathok
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
+
+.PHONY:
+run-service:
+	systemd-socket-activate -l 8080 ./bin/service
+
+.PHONY: run-docker-py-tests
+run-docker-py-tests:
+	$(eval testLogs=$(shell mktemp))
+	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
 clean: ## Clean artifacts
 	rm -rf \
