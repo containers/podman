@@ -768,16 +768,8 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.IPCNsCtr = nsCtr.ID()
@@ -796,16 +788,8 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.MountNsCtr = nsCtr.ID()
@@ -824,20 +808,12 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		if ctr.config.CreateNetNS {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot join another container's net ns as we are making a new net ns")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
 		}
 
 		ctr.config.NetNsCtr = nsCtr.ID()
@@ -856,16 +832,8 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		if ctr.config.NoCgroups {
@@ -888,16 +856,8 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.UserNsCtr = nsCtr.ID()
@@ -917,16 +877,8 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.UTSNsCtr = nsCtr.ID()
@@ -945,16 +897,8 @@ func WithCgroupNSFrom(nsCtr *Container) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !nsCtr.valid {
-			return define.ErrCtrRemoved
-		}
-
-		if nsCtr.ID() == ctr.ID() {
-			return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-		}
-
-		if ctr.config.Pod != "" && nsCtr.config.Pod != ctr.config.Pod {
-			return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, nsCtr.ID())
+		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
+			return err
 		}
 
 		ctr.config.CgroupNsCtr = nsCtr.ID()
