@@ -34,8 +34,8 @@ OS/Arch:       linux/amd64
 
 Filtering out only the version:
 ```
-$ podman version --format '{{.Version}}'
-0.11.2
+$ podman version --format '{{.Client.Version}}'
+1.6.3
 ```
 
 ## SEE ALSO

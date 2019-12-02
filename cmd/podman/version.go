@@ -37,12 +37,39 @@ func init() {
 	flags := versionCommand.Flags()
 	flags.StringVarP(&versionCommand.Format, "format", "f", "", "Change the output format to JSON or a Go template")
 }
+func getRemoteVersion(c *cliconfig.VersionValues) (version define.Version, err error) {
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	if err != nil {
+		return version, errors.Wrapf(err, "could not get runtime")
+	}
+	defer runtime.DeferredShutdown(false)
+
+	return runtime.GetVersion()
+}
+
+type versionStruct struct {
+	Client define.Version
+	Server define.Version
+}
 
 // versionCmd gets and prints version info for version command
 func versionCmd(c *cliconfig.VersionValues) error {
-	clientVersion, err := define.GetVersion()
+
+	var (
+		v   versionStruct
+		err error
+	)
+	v.Client, err = define.GetVersion()
 	if err != nil {
 		return errors.Wrapf(err, "unable to determine version")
+	}
+	if remote {
+		v.Server, err = getRemoteVersion(c)
+		if err != nil {
+			return err
+		}
+	} else {
+		v.Server = v.Client
 	}
 
 	versionOutputFormat := c.Format
@@ -53,11 +80,20 @@ func versionCmd(c *cliconfig.VersionValues) error {
 		var out formats.Writer
 		switch versionOutputFormat {
 		case formats.JSONString:
-			out = formats.JSONStruct{Output: clientVersion}
+			out = formats.JSONStruct{Output: v}
+			return out.Out()
 		default:
-			out = formats.StdoutTemplate{Output: clientVersion, Template: versionOutputFormat}
+			out = formats.StdoutTemplate{Output: v, Template: versionOutputFormat}
+			err := out.Out()
+			if err != nil {
+				// On Failure, assume user is using older version of podman version --format and check client
+				out = formats.StdoutTemplate{Output: v.Client, Template: versionOutputFormat}
+				if err1 := out.Out(); err1 != nil {
+					return err
+				}
+			}
 		}
-		return out.Out()
+		return nil
 	}
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
 	defer w.Flush()
@@ -66,25 +102,13 @@ func versionCmd(c *cliconfig.VersionValues) error {
 		if _, err := fmt.Fprintf(w, "Client:\n"); err != nil {
 			return err
 		}
-	}
-	formatVersion(w, clientVersion)
-
-	if remote {
-		if _, err := fmt.Fprintf(w, "\nService:\n"); err != nil {
+		formatVersion(w, v.Client)
+		if _, err := fmt.Fprintf(w, "\nServer:\n"); err != nil {
 			return err
 		}
-
-		runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
-		if err != nil {
-			return errors.Wrapf(err, "could not get runtime")
-		}
-		defer runtime.DeferredShutdown(false)
-
-		serviceVersion, err := runtime.GetVersion()
-		if err != nil {
-			return err
-		}
-		formatVersion(w, serviceVersion)
+		formatVersion(w, v.Server)
+	} else {
+		formatVersion(w, v.Client)
 	}
 	return nil
 }
