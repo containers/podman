@@ -466,3 +466,47 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 	}
 	WriteResponse(w, http.StatusOK, "Ok")
 }
+
+func HistoryImage(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := mux.Vars(r)["name"]
+	var allHistory []HistoryResponse
+
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		return
+
+	}
+	history, err := newImage.History(r.Context())
+	if err != nil {
+		InternalServerError(w, err)
+		return
+	}
+	for _, h := range history {
+		l := HistoryResponse{
+			ID:        h.ID,
+			Created:   h.Created.UnixNano(),
+			CreatedBy: h.CreatedBy,
+			Tags:      h.Tags,
+			Size:      h.Size,
+			Comment:   h.Comment,
+		}
+		allHistory = append(allHistory, l)
+	}
+	WriteResponse(w, http.StatusOK, allHistory)
+}
+
+func ImageTree(w http.ResponseWriter, r *http.Request) {
+	// tree is a bit of a mess ... logic is in adapter and therefore not callable from here. needs rework
+
+	//name := mux.Vars(r)["name"]
+	//_, layerInfoMap, _, err := s.Runtime.Tree(name)
+	//if err != nil {
+	//	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to find image information for %q", name))
+	//	return
+	//}
+	//	it is not clear to me how to deal with this given all the processing of the image
+	// is in main.  we need to discuss how that really should be and return something useful.
+	UnsupportedHandler(w, r)
+}

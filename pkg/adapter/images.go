@@ -3,14 +3,13 @@
 package adapter
 
 import (
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 )
 
 // Tree ...
-func (r *LocalRuntime) Tree(c *cliconfig.TreeValues) (*image.InfoImage, map[string]*image.LayerInfo, *ContainerImage, error) {
-	img, err := r.NewImageFromLocal(c.InputArgs[0])
+func (r *LocalRuntime) Tree(imageOrID string) (*image.InfoImage, map[string]*image.LayerInfo, *ContainerImage, error) {
+	img, err := r.NewImageFromLocal(imageOrID)
 	if err != nil {
 		return nil, nil, nil, err
 	}

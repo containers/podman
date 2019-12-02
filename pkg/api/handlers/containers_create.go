@@ -2,7 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/gorilla/schema"
+	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -18,8 +22,18 @@ import (
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	input := CreateContainerConfig{}
+	query := struct {
+		Name string `schema:"name"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
@@ -36,9 +50,21 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cc.Name = query.Name
 	var pod *libpod.Pod
 	ctr, err := shared.CreateContainerFromCreateConfig(runtime, &cc, r.Context(), pod)
 	if err != nil {
+		if strings.Contains(err.Error(), "invalid log driver") {
+			// this does not quite work yet and needs a little more massaging
+			w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
+			w.WriteHeader(http.StatusInternalServerError)
+			msg := fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type)
+			if _, err := fmt.Fprintln(w, msg); err != nil {
+				log.Errorf("%s: %q", msg, err)
+			}
+			//s.WriteResponse(w, http.StatusInternalServerError, fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type))
+			return
+		}
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return
 	}
@@ -55,7 +81,13 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
-	var err error
+	var (
+		err     error
+		init    bool
+		tmpfs   []string
+		volumes []string
+	)
+	env := make(map[string]string)
 	stopSignal := unix.SIGTERM
 	if len(input.StopSignal) > 0 {
 		stopSignal, err = signal.ParseSignal(input.StopSignal)
@@ -112,8 +144,8 @@ func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (crea
 	}
 
 	uts := createconfig.UtsConfig{
-		UtsMode:  "",
-		NoHosts:  false, // podman
+		UtsMode:  namespaces.UTSMode(input.HostConfig.UTSMode),
+		NoHosts:  false, //podman
 		HostAdd:  input.HostConfig.ExtraHosts,
 		Hostname: input.Hostname,
 	}
@@ -125,6 +157,34 @@ func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (crea
 		User:       input.User,
 	}
 	pidConfig := createconfig.PidConfig{PidMode: namespaces.PidMode(input.HostConfig.PidMode)}
+	for k := range input.Volumes {
+		volumes = append(volumes, k)
+	}
+
+	// Docker is more flexible about its input where podman throws
+	// away incorrectly formatted variables so we cannot reuse the
+	// parsing of the env input
+	// [Foo Other=one Blank=]
+	for _, e := range input.Env {
+		splitEnv := strings.Split(e, "=")
+		switch len(splitEnv) {
+		case 0:
+			continue
+		case 1:
+			env[splitEnv[0]] = ""
+		default:
+			env[splitEnv[0]] = strings.Join(splitEnv[1:], "=")
+		}
+	}
+
+	// format the tmpfs mounts into a []string from map
+	for k, v := range input.HostConfig.Tmpfs {
+		tmpfs = append(tmpfs, fmt.Sprintf("%s:%s", k, v))
+	}
+
+	if input.HostConfig.Init != nil && *input.HostConfig.Init {
+		init = true
+	}
 
 	m := createconfig.CreateConfig{
 		Annotations:   nil, // podman
@@ -136,10 +196,10 @@ func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (crea
 		UserCommand:   input.Cmd, // podman
 		Detach:        false,     //
 		// Devices:            input.HostConfig.Devices,
-		Entrypoint: input.Entrypoint,
-		// Env:                input.Env,
-		HealthCheck: nil, //
-		// Init:               input.HostConfig.Init,
+		Entrypoint:        input.Entrypoint,
+		Env:               env,
+		HealthCheck:       nil, //
+		Init:              init,
 		InitPath:          "", // tbd
 		Image:             input.Image,
 		ImageID:           newImage.ID(),
@@ -150,10 +210,8 @@ func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (crea
 		Labels:    input.Labels,
 		LogDriver: input.HostConfig.LogConfig.Type, // is this correct
 		// LogDriverOpt:       input.HostConfig.LogConfig.Config,
-		Name:    input.Name,
-		Network: network,
-		// NetMode:            input.HostConfig.NetworkMode,
-		// PidMode:            input.HostConfig.PidMode,
+		Name:          input.Name,
+		Network:       network,
 		Pod:           "",    // podman
 		PodmanPath:    "",    // podman
 		Quiet:         false, // front-end only
@@ -163,20 +221,19 @@ func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (crea
 		StopSignal:    stopSignal,
 		StopTimeout:   stopTimeout,
 		Systemd:       false, // podman
-		// Tmpfs:              input.HostConfig.Tmpfs,
-		User: z,
-		Uts:  uts,
-		Tty:  input.Tty,
-		// UtsMode:            input.HostConfig.UTSMode,
-		Mounts: nil, // we populate
+		Tmpfs:         tmpfs,
+		User:          z,
+		Uts:           uts,
+		Tty:           input.Tty,
+		Mounts:        nil, // we populate
 		// MountsFlag:         input.HostConfig.Mounts,
 		NamedVolumes: nil, // we populate
-		// Volumes:            input.Volumes,
-		VolumesFrom: input.HostConfig.VolumesFrom,
-		WorkDir:     workDir,
-		Rootfs:      "", // podman
-		Security:    security,
-		Syslog:      false, // podman
+		Volumes:      volumes,
+		VolumesFrom:  input.HostConfig.VolumesFrom,
+		WorkDir:      workDir,
+		Rootfs:       "", // podman
+		Security:     security,
+		Syslog:       false, // podman
 
 		Pid: pidConfig,
 	}
