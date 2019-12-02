@@ -3,6 +3,7 @@
 %global with_debug 1
 %global with_check 0
 %global with_unit_test 0
+%global with_doc 1
 
 %if 0%{?fedora} >= 28
 %bcond_without varlink
@@ -52,12 +53,17 @@ ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
 # The COPR process will uncomment this
 #BuildRequires: golang-bin
 #
+# btrfs-progs-devel package is not available in CentOS/RHEL-8
+%if 0%{?rhel} != 8 && 0%{?centos} != 8
 BuildRequires: btrfs-progs-devel
+%endif
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git
+%if 0%{?with_doc}
 BuildRequires: go-md2man
+%endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
@@ -357,7 +363,9 @@ tar zxf %{SOURCE1}
 
 sed -i 's/install.remote: podman-remote/install.remote:/' Makefile
 sed -i 's/install.bin: podman/install.bin:/' Makefile
+%if 0%{?with_doc}
 sed -i 's/install.man: docs/install.man:/' Makefile
+%endif
 
 %build
 mkdir _build
@@ -370,8 +378,12 @@ export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
 export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
-BUILDTAGS=$BUILDTAGS make binaries docs
 
+%if 0%{?with_doc}
+BUILDTAGS=$BUILDTAGS make binaries docs
+%else
+BUILDTAGS=$BUILDTAGS make binaries
+%endif
 # build conmon
 pushd conmon
 
@@ -477,8 +489,10 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
+%if 0%{?with_doc}
 %{_mandir}/man1/*.1*
 %{_mandir}/man5/*.5*
+%endif
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon

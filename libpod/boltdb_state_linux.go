@@ -3,6 +3,8 @@
 package libpod
 
 import (
+	"github.com/containers/libpod/libpod/define"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,8 +27,12 @@ func replaceNetNS(netNSPath string, ctr *Container, newState *ContainerState) er
 			if err == nil {
 				newState.NetNS = ns
 			} else {
+				if ctr.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) {
+					return errors.Wrapf(err, "error joning network namespace of container %s", ctr.ID())
+				}
+
 				logrus.Errorf("error joining network namespace for container %s: %v", ctr.ID(), err)
-				ctr.valid = false
+				ctr.state.NetNS = nil
 			}
 		}
 	} else {

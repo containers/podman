@@ -149,6 +149,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RemovePod(name: string, force: bool) string](#RemovePod)
 
+[func Reset() ](#Reset)
+
 [func RestartContainer(name: string, timeout: int) string](#RestartContainer)
 
 [func RestartPod(name: string) string](#RestartPod)
@@ -1059,6 +1061,12 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RemovePod '{"name": "62f4
   "pod": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
 }
 ~~~
+### <a name="Reset"></a>func Reset
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method Reset() </div>
+Reset resets Podman back to its initial state.
+Removes all Pods, Containers, Images and Volumes
 ### <a name="RestartContainer"></a>func RestartContainer
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -1698,6 +1706,8 @@ isParent [bool](https://godoc.org/builtin#bool)
 topLayer [string](https://godoc.org/builtin#string)
 
 readOnly [bool](https://godoc.org/builtin#bool)
+
+history [[]string](#[]string)
 ### <a name="ImageHistory"></a>type ImageHistory
 
 ImageHistory describes the returned structure from ImageHistory.

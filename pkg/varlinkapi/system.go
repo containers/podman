@@ -3,12 +3,15 @@
 package varlinkapi
 
 import (
+	"context"
 	"fmt"
-	"github.com/containers/libpod/libpod/define"
+	"os"
 	goruntime "runtime"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/sirupsen/logrus"
 )
 
 // GetVersion ...
@@ -104,4 +107,21 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	podmanInfo.Registries = registries
 	podmanInfo.Insecure_registries = insecureRegistries
 	return call.ReplyGetInfo(podmanInfo)
+}
+
+// GetVersion ...
+func (i *LibpodAPI) Reset(call iopodman.VarlinkCall) error {
+	if err := i.Runtime.Reset(context.TODO()); err != nil {
+		logrus.Errorf("Reset Failed: %v", err)
+		if err := call.ReplyErrorOccurred(err.Error()); err != nil {
+			logrus.Errorf("Failed to send ReplyErrorOccurred: %v", err)
+		}
+		os.Exit(define.ExecErrorCodeGeneric)
+	}
+	if err := call.ReplyReset(); err != nil {
+		logrus.Errorf("Failed to send ReplyReset: %v", err)
+		os.Exit(define.ExecErrorCodeGeneric)
+	}
+	os.Exit(0)
+	return nil
 }

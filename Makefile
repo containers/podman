@@ -32,6 +32,7 @@ BUILDTAGS ?= \
 	exclude_graphdriver_devicemapper \
 	seccomp \
 	varlink
+PYTHON ?= $(shell command -v python python3)
 
 DOCKERPY_IMAGE ?= quay.io/vrothberg/docker-py:latest
 DOCKERPY_TEST ?=
@@ -136,7 +137,7 @@ endef
 export PRINT_HELP_PYSCRIPT
 
 help:
-	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 .gopathok:
 ifeq ("$(wildcard $(GOPKGDIR))","")
