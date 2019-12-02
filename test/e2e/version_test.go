@@ -33,7 +33,6 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman version", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -43,7 +42,6 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman -v", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"-v"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -52,7 +50,6 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman --version", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"--version"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -61,7 +58,6 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman version --format json", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"version", "--format", "json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -69,7 +65,6 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman version --format json", func() {
-		SkipIfRemote()
 		session := podmanTest.Podman([]string{"version", "--format", "{{ json .}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -77,8 +72,15 @@ var _ = Describe("Podman version", func() {
 	})
 
 	It("podman version --format GO template", func() {
-		SkipIfRemote()
-		session := podmanTest.Podman([]string{"version", "--format", "{{ .Version }}"})
+		session := podmanTest.Podman([]string{"version", "--format", "{{ .Client.Version }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"version", "--format", "{{ .Server.Version }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"version", "--format", "{{ .Version }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
