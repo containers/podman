@@ -138,6 +138,24 @@ type ErrorModel struct {
 	Message string `json:"message"`
 }
 
+type HistoryResponse struct {
+	ID        string   `json:"Id"`
+	Created   int64    `json:"Created"`
+	CreatedBy string   `json:"CreatedBy"`
+	Tags      []string `json:"Tags"`
+	Size      int64    `json:"Size"`
+	Comment   string   `json:"Comment"`
+}
+
+type ImageLayer struct{}
+
+type ImageTreeResponse struct {
+	ID     string       `json:"id"`
+	Tags   []string     `json:"tags"`
+	Size   string       `json:"size"`
+	Layers []ImageLayer `json:"layers"`
+}
+
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {
@@ -292,7 +310,6 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	if err != nil {
 		return nil, err
 	}
-
 	return &Container{docker.Container{
 		ID:         l.ID(),
 		Names:      []string{l.Name()},
@@ -391,7 +408,6 @@ func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 		}
 		ports[port] = struct{}{}
 	}
-
 	config := dockerContainer.Config{
 		Hostname:        l.Hostname(),
 		Domainname:      inspect.Config.DomainName,
@@ -428,11 +444,29 @@ func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 	if err := json.Unmarshal(m, &mounts); err != nil {
 		return nil, err
 	}
+
+	networkSettingsDefault := docker.DefaultNetworkSettings{
+		EndpointID:          "",
+		Gateway:             "",
+		GlobalIPv6Address:   "",
+		GlobalIPv6PrefixLen: 0,
+		IPAddress:           "",
+		IPPrefixLen:         0,
+		IPv6Gateway:         "",
+		MacAddress:          l.Config().StaticMAC.String(),
+	}
+
+	networkSettings := docker.NetworkSettings{
+		NetworkSettingsBase:    docker.NetworkSettingsBase{},
+		DefaultNetworkSettings: networkSettingsDefault,
+		Networks:               nil,
+	}
+
 	c := docker.ContainerJSON{
 		ContainerJSONBase: &cb,
 		Mounts:            mounts,
 		Config:            &config,
-		NetworkSettings:   nil, // TODO i dont have the guts for this right now
+		NetworkSettings:   &networkSettings,
 	}
 	return &c, nil
 }
