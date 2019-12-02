@@ -166,6 +166,10 @@ podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
 
+.PHONY: service
+service: .gopathok
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
+
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
 	$(eval DOCFILE := docs/build/remote/windows)
