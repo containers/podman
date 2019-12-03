@@ -318,7 +318,7 @@ $(MANPAGES): %: %.md .gopathok
 docdir:
 	mkdir -p docs/build/man
 
-docs: docdir $(MANPAGES) ## Generate documentation
+docs: .install.md2man docdir $(MANPAGES) ## Generate documentation
 
 install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 	rm -rf docs/build/remote
@@ -532,19 +532,23 @@ vendor-in-container:
 .PHONY: \
 	.gopathok \
 	binaries \
+	changelog \
 	clean \
-	validate.completions \
 	default \
 	docs \
 	gofmt \
+	golangci-lint \
 	help \
 	install \
-	golangci-lint \
+	install.libseccomp.sudo \
 	lint \
 	pause \
-	uninstall \
 	shell \
-	changelog \
+	uninstall \
 	validate \
-	install.libseccomp.sudo \
+	validate.completions \
 	vendor
+
+rpm:
+	@echo "Building rpms ..."
+	./contrib/build_rpm.sh
