@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/timetype"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
@@ -274,7 +275,8 @@ func worker(wg *sync.WaitGroup, jobs <-chan workerInput, results chan<- PsContai
 	}
 }
 
-func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime) (func(container *libpod.Container) bool, error) {
+// GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
+func GenerateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime) (func(container *libpod.Container) bool, error) {
 	switch filter {
 	case "id":
 		return func(c *libpod.Container) bool {
@@ -396,6 +398,22 @@ func generateContainerFilterFuncs(filter, filterValue string, r *libpod.Runtime)
 			}
 			return hcStatus == filterValue
 		}, nil
+	case "until":
+		ts, err := timetype.GetTimestamp(filterValue, time.Now())
+		if err != nil {
+			return nil, err
+		}
+		seconds, nanoseconds, err := timetype.ParseTimestamps(ts, 0)
+		if err != nil {
+			return nil, err
+		}
+		until := time.Unix(seconds, nanoseconds)
+		return func(c *libpod.Container) bool {
+			if !until.IsZero() && c.CreatedTime().After((until)) {
+				return true
+			}
+			return false
+		}, nil
 	}
 	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
@@ -413,7 +431,7 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 			if len(filterSplit) < 2 {
 				return nil, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 			}
-			generatedFunc, err := generateContainerFilterFuncs(filterSplit[0], filterSplit[1], r)
+			generatedFunc, err := GenerateContainerFilterFuncs(filterSplit[0], filterSplit[1], r)
 			if err != nil {
 				return nil, errors.Wrapf(err, "invalid filter")
 			}

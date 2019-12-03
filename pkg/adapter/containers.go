@@ -1009,16 +1009,30 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 }
 
 // Prune removes stopped containers
-func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([]string, map[string]error, error) {
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool, filters []string) ([]string, map[string]error, error) {
 	var (
-		ok       = []string{}
-		failures = map[string]error{}
-		err      error
+		ok         = []string{}
+		failures   = map[string]error{}
+		err        error
+		filterFunc []libpod.ContainerFilter
 	)
 
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
-	filter := func(c *libpod.Container) bool {
+	for _, filter := range filters {
+		filterSplit := strings.SplitN(filter, "=", 2)
+		if len(filterSplit) < 2 {
+			return ok, failures, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", filter)
+		}
+
+		f, err := shared.GenerateContainerFilterFuncs(filterSplit[0], filterSplit[1], r.Runtime)
+		if err != nil {
+			return ok, failures, err
+		}
+		filterFunc = append(filterFunc, f)
+	}
+
+	containerStateFilter := func(c *libpod.Container) bool {
 		state, err := c.State()
 		if err != nil {
 			logrus.Error(err)
@@ -1032,7 +1046,9 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool) ([
 		}
 		return false
 	}
-	delContainers, err := r.Runtime.GetContainers(filter)
+	filterFunc = append(filterFunc, containerStateFilter)
+
+	delContainers, err := r.Runtime.GetContainers(filterFunc...)
 	if err != nil {
 		return ok, failures, err
 	}
