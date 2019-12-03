@@ -7,7 +7,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/pkg/serviceapi"
+	api "github.com/containers/libpod/pkg/api/server"
 	"github.com/containers/storage/pkg/reexec"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -41,7 +41,7 @@ func main() {
 	}
 	defer runtime.DeferredShutdown(false)
 
-	server, err := serviceapi.NewServer(runtime)
+	server, err := api.NewServer(runtime)
 	if err != nil {
 		fmt.Println(err.Error())
 		os.Exit(1)
