@@ -1,10 +1,11 @@
-package serviceapi
+package handlers
 
 import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"reflect"
 	goRuntime "runtime"
 	"strings"
 	"time"
@@ -17,18 +18,15 @@ import (
 	docker "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/google/uuid"
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/info"), s.serviceHandler(s.info)).Methods("GET")
-	return nil
-}
+func GetInfo(w http.ResponseWriter, r *http.Request) {
+	log.Debugf("runtime TypeOf: %s", reflect.TypeOf(r.Context().Value("runtime")))
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-func (s *APIServer) info(w http.ResponseWriter, r *http.Request) {
-	infoData, err := s.Runtime.Info()
+	infoData, err := runtime.Info()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
@@ -36,7 +34,7 @@ func (s *APIServer) info(w http.ResponseWriter, r *http.Request) {
 	hostInfo := infoData[0].Data
 	storeInfo := infoData[1].Data
 
-	configInfo, err := s.Runtime.GetConfig()
+	configInfo, err := runtime.GetConfig()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
 		return
@@ -46,7 +44,7 @@ func (s *APIServer) info(w http.ResponseWriter, r *http.Request) {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
 		return
 	}
-	stateInfo := getContainersState(s.Runtime)
+	stateInfo := getContainersState(runtime)
 	sysInfo := sysinfo.New(true)
 
 	// FIXME: Need to expose if runtime supports Checkpoint'ing
@@ -127,7 +125,7 @@ func (s *APIServer) info(w http.ResponseWriter, r *http.Request) {
 		SwapTotal:          hostInfo["SwapTotal"].(int64),
 		Uptime:             hostInfo["uptime"].(string),
 	}
-	s.WriteResponse(w, http.StatusOK, info)
+	WriteResponse(w, http.StatusOK, info)
 }
 
 func getGraphStatus(storeInfo map[string]interface{}) [][2]string {
@@ -169,7 +167,7 @@ func getFdCount() (count int) {
 	return
 }
 
-// Just ignoring container errors here...
+// Just ignoring Container errors here...
 func getContainersState(r *libpod.Runtime) map[define.ContainerStatus]int {
 	var states = map[define.ContainerStatus]int{}
 	ctnrs, err := r.GetAllContainers()

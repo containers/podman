@@ -1,46 +1,51 @@
-package serviceapi
+package handlers
 
 import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
-func (s *APIServer) topContainer(w http.ResponseWriter, r *http.Request) {
+func TopContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
 	query := struct {
 		PsArgs string `schema:"ps_args"`
 	}{
 		PsArgs: "-ef",
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	ctnr, err := s.Runtime.LookupContainer(name)
+	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := ctnr.State()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning {
-		containerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
+		ContainerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
 		return
 	}
 
 	output, err := ctnr.Top([]string{})
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
@@ -51,5 +56,5 @@ func (s *APIServer) topContainer(w http.ResponseWriter, r *http.Request) {
 			body.Processes = append(body.Processes, strings.Split(line, "\t"))
 		}
 	}
-	WriteJSON(w, body)
+	WriteJSON(w, http.StatusOK, body)
 }

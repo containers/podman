@@ -1,4 +1,4 @@
-package serviceapi
+package handlers
 
 import (
 	"encoding/json"
@@ -16,14 +16,16 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (s *APIServer) createContainer(w http.ResponseWriter, r *http.Request) {
-	input := CreateContainer{}
+func CreateContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	input := CreateContainerConfig{}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
-	newImage, err := s.Runtime.ImageRuntime().NewFromLocal(input.Image)
+	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
@@ -35,7 +37,7 @@ func (s *APIServer) createContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var pod *libpod.Pod
-	ctr, err := shared.CreateContainerFromCreateConfig(s.Runtime, &cc, s.Context, pod)
+	ctr, err := shared.CreateContainerFromCreateConfig(runtime, &cc, r.Context(), pod)
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return
@@ -49,10 +51,10 @@ func (s *APIServer) createContainer(w http.ResponseWriter, r *http.Request) {
 		Id:       ctr.ID(),
 		Warnings: []string{}}
 
-	s.WriteResponse(w, http.StatusCreated, response)
+	WriteResponse(w, http.StatusCreated, response)
 }
 
-func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var err error
 	stopSignal := unix.SIGTERM
 	if len(input.StopSignal) > 0 {
@@ -72,22 +74,22 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		stopTimeout = uint(*input.StopTimeout)
 	}
 	c := createconfig.CgroupConfig{
-		Cgroups:      "", //podman
-		Cgroupns:     "", //podman
-		CgroupParent: "", //podman
-		CgroupMode:   "", //podman
+		Cgroups:      "", // podman
+		Cgroupns:     "", // podman
+		CgroupParent: "", // podman
+		CgroupMode:   "", // podman
 	}
 	security := createconfig.SecurityConfig{
 		CapAdd:             input.HostConfig.CapAdd,
 		CapDrop:            input.HostConfig.CapDrop,
-		LabelOpts:          nil,   //podman
-		NoNewPrivs:         false, //podman
-		ApparmorProfile:    "",    //podman
+		LabelOpts:          nil,   // podman
+		NoNewPrivs:         false, // podman
+		ApparmorProfile:    "",    // podman
 		SeccompProfilePath: "",
 		SecurityOpts:       input.HostConfig.SecurityOpt,
 		Privileged:         input.HostConfig.Privileged,
 		ReadOnlyRootfs:     input.HostConfig.ReadonlyRootfs,
-		ReadOnlyTmpfs:      false, //podman-only
+		ReadOnlyTmpfs:      false, // podman-only
 		Sysctl:             input.HostConfig.Sysctls,
 	}
 
@@ -96,14 +98,14 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		DNSSearch:    input.HostConfig.DNSSearch,
 		DNSServers:   input.HostConfig.DNS,
 		ExposedPorts: input.ExposedPorts,
-		HTTPProxy:    false, //podman
+		HTTPProxy:    false, // podman
 		IP6Address:   "",
 		IPAddress:    "",
 		LinkLocalIP:  nil, // docker-only
 		MacAddress:   input.MacAddress,
-		//NetMode:      nil,
+		// NetMode:      nil,
 		Network:      input.HostConfig.NetworkMode.NetworkName(),
-		NetworkAlias: nil, //docker-only now
+		NetworkAlias: nil, // docker-only now
 		PortBindings: input.HostConfig.PortBindings,
 		Publish:      nil, // podmanseccompPath
 		PublishAll:   input.HostConfig.PublishAllPorts,
@@ -111,7 +113,7 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 
 	uts := createconfig.UtsConfig{
 		UtsMode:  "",
-		NoHosts:  false, //podman
+		NoHosts:  false, // podman
 		HostAdd:  input.HostConfig.ExtraHosts,
 		Hostname: input.Hostname,
 	}
@@ -151,7 +153,7 @@ func makeCreateConfig(input CreateContainer, newImage *image2.Image) (createconf
 		Name:    input.Name,
 		Network: network,
 		// NetMode:            input.HostConfig.NetworkMode,
-		//PidMode:            input.HostConfig.PidMode,
+		// PidMode:            input.HostConfig.PidMode,
 		Pod:           "",    // podman
 		PodmanPath:    "",    // podman
 		Quiet:         false, // front-end only
