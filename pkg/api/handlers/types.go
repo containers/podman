@@ -1,4 +1,4 @@
-package serviceapi
+package handlers
 
 import (
 	"context"
@@ -102,7 +102,7 @@ type ContainerWaitOKBody struct {
 	}
 }
 
-type CreateContainer struct {
+type CreateContainerConfig struct {
 	Name string
 	dockerContainer.Config
 	HostConfig       dockerContainer.HostConfig
@@ -122,7 +122,7 @@ type ContainerTopOKBody struct {
 	ID string `json:"Id"`
 }
 
-type PodCreate struct {
+type PodCreateConfig struct {
 	Name         string   `json:"name"`
 	CGroupParent string   `json:"cgroup-parent"`
 	Hostname     string   `json:"hostname"`
@@ -132,6 +132,10 @@ type PodCreate struct {
 	Labels       []string `json:"labels"`
 	Publish      []string `json:"publish"`
 	Share        string   `json:"share"`
+}
+
+type ErrorModel struct {
+	Message string `json:"message"`
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
@@ -242,7 +246,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		VirtualSize:   info.VirtualSize,
 	}
 	bi := ic.ConfigInfo()
-	// For docker images, we need to get the container id and config
+	// For docker images, we need to get the Container id and config
 	// and populate the image with it.
 	if bi.MediaType == manifest.DockerV2Schema2ConfigMediaType {
 		d := manifest.Schema2Image{}
@@ -253,7 +257,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		if err := json.Unmarshal(b, &d); err != nil {
 			return nil, err
 		}
-		// populate the container id into the image
+		// populate the Container id into the image
 		dockerImageInspect.Container = d.Container
 		containerConfig := dockerContainer.Config{}
 		configBytes, err := json.Marshal(d.ContainerConfig)
@@ -263,7 +267,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 		if err := json.Unmarshal(configBytes, &containerConfig); err != nil {
 			return nil, err
 		}
-		// populate the container config in the image
+		// populate the Container config in the image
 		dockerImageInspect.ContainerConfig = &containerConfig
 		// populate parent
 		dockerImageInspect.Parent = d.Parent.String()
@@ -313,7 +317,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	}, nil
 }
 
-func libpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
+func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 	_, imageName := l.Image()
 	inspect, err := l.Inspect(true)
 	if err != nil {

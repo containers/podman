@@ -1,8 +1,7 @@
-package serviceapi
+package handlers
 
 import (
 	"encoding/json"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"time"
 
@@ -11,36 +10,41 @@ import (
 	"github.com/containers/libpod/pkg/cgroups"
 	docker "github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const DefaultStatsPeriod = 5 * time.Second
 
-func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
+func StatsContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
 	query := struct {
 		Stream bool `schema:"stream"`
 	}{
 		Stream: true,
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	ctnr, err := s.Runtime.LookupContainer(name)
+	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := ctnr.State()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning && !query.Stream {
-		WriteJSON(w, &Stats{docker.StatsJSON{
+		WriteJSON(w, http.StatusOK, &Stats{docker.StatsJSON{
 			Name: ctnr.Name(),
 			ID:   ctnr.ID(),
 		}})
@@ -52,7 +56,7 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
-		internalServerError(w, errors.Wrapf(err, "Failed to obtain container %s stats", name))
+		InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
 		return
 	}
 
@@ -75,7 +79,6 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 	cgroupPath, _ := ctnr.CGroupPath()
 	cgroup, _ := cgroups.Load(cgroupPath)
 
-	w.WriteHeader(http.StatusOK)
 	for ok := true; ok; ok = query.Stream {
 		state, _ := ctnr.State()
 		if state != define.ContainerStateRunning {
@@ -158,7 +161,7 @@ func (s *APIServer) statsContainer(w http.ResponseWriter, r *http.Request) {
 			Networks: net,
 		}}
 
-		WriteJSON(w, s)
+		WriteJSON(w, http.StatusOK, s)
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
