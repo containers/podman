@@ -1016,9 +1016,24 @@ func (c *Container) makeBindMounts() error {
 			// We want /etc/resolv.conf and /etc/hosts from the
 			// other container. Unless we're not creating both of
 			// them.
-			depCtr, err := c.runtime.state.Container(c.config.NetNsCtr)
-			if err != nil {
-				return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
+			var (
+				depCtr  *Container
+				nextCtr string
+			)
+
+			// I don't like infinite loops, but I don't think there's
+			// a serious risk of looping dependencies - too many
+			// protections against that elsewhere.
+			nextCtr = c.config.NetNsCtr
+			for {
+				depCtr, err = c.runtime.state.Container(nextCtr)
+				if err != nil {
+					return errors.Wrapf(err, "error fetching dependency %s of container %s", c.config.NetNsCtr, c.ID())
+				}
+				nextCtr = depCtr.config.NetNsCtr
+				if nextCtr == "" {
+					break
+				}
 			}
 
 			// We need that container's bind mounts
