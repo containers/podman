@@ -461,7 +461,8 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 
 	if c.IsSet("rm") {
 		if err := r.Runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
-			if errors.Cause(err) == define.ErrNoSuchCtr {
+			if errors.Cause(err) == define.ErrNoSuchCtr ||
+				errors.Cause(err) == define.ErrCtrRemoved {
 				logrus.Warnf("Container %s does not exist: %v", ctr.ID(), err)
 			} else {
 				logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
