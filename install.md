@@ -68,7 +68,7 @@ The latest builds are available in a PPA. Take note of the [Build and Run Depend
 
 ```bash
 sudo apt-get update -qq
-sudo apt-get install -qq -y software-properties-common uidmap
+sudo apt-get install -qq -y software-properties-common uidmap slirp4netns
 sudo add-apt-repository -y ppa:projectatomic/ppa
 sudo apt-get update -qq
 sudo apt-get -qq -y install podman
