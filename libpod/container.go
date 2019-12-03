@@ -1146,7 +1146,7 @@ func (c *Container) NetworkDisabled() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		return networkDisabled(container)
+		return container.NetworkDisabled()
 	}
 	return networkDisabled(c)
 
