@@ -1,9 +1,9 @@
 %global with_devel 0
 %global with_bundled 1
-%global with_debug 1
 %global with_check 0
 %global with_unit_test 0
-%global with_doc 1
+%bcond_without doc
+%bcond_without debug
 
 %if 0%{?fedora} >= 28
 %bcond_without varlink
@@ -11,7 +11,7 @@
 %bcond_with varlink
 %endif
 
-%if 0%{?with_debug}
+%if %{with debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
 %else
@@ -61,7 +61,7 @@ BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git
-%if 0%{?with_doc}
+%if %{with doc}
 BuildRequires: go-md2man
 %endif
 BuildRequires: gpgme-devel
@@ -355,6 +355,15 @@ This package contains unit tests for project
 providing packages with %{import_path} prefix.
 %endif
 
+%if %{with doc}
+%package manpages
+Summary: Man pages for the %{name} commands
+BuildArch: noarch
+
+%description manpages
+Man pages for the %{name} commands
+%endif
+
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
 
@@ -363,7 +372,7 @@ tar zxf %{SOURCE1}
 
 sed -i 's/install.remote: podman-remote/install.remote:/' Makefile
 sed -i 's/install.bin: podman/install.bin:/' Makefile
-%if 0%{?with_doc}
+%if %{with doc}
 sed -i 's/install.man: docs/install.man:/' Makefile
 %endif
 
@@ -379,7 +388,7 @@ export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 
-%if 0%{?with_doc}
+%if %{with doc}
 BUILDTAGS=$BUILDTAGS make binaries docs
 %else
 BUILDTAGS=$BUILDTAGS make binaries
@@ -400,6 +409,7 @@ popd
 %install
 install -dp %{buildroot}%{_unitdir}
 install -dp %{buildroot}%{_usr}/lib/systemd/user
+%if %{with doc}
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
         install.remote \
@@ -407,6 +417,14 @@ PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{build
         install.cni \
         install.systemd \
         install.completions
+%else
+PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+        install.bin \
+        install.remote \
+        install.cni \
+        install.systemd \
+        install.completions
+%endif
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
@@ -489,10 +507,6 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}
-%if 0%{?with_doc}
-%{_mandir}/man1/*.1*
-%{_mandir}/man5/*.5*
-%endif
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
@@ -521,6 +535,12 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %license LICENSE
 %doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
 %{_bindir}/%{name}-remote
+
+%if %{with doc}
+%files manpages
+%{_mandir}/man1/*.1*
+%{_mandir}/man5/*.5*
+%endif
 
 %changelog
 * Sat Aug 4 2018 Dan Walsh <dwalsh@redhat.com> - 0.8.1-1.git6b4ab2a
