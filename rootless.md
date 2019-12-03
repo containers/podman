@@ -43,4 +43,4 @@ can easily fail
 * Issues with higher UIDs can cause builds to fail
   * If a build is attempting to use a UID that is not mapped into the user namespace mapping for a container, then builds will not be able to put the UID in an image.
 * Making device nodes within a container fails, even when running --privileged.
-  * Kernel does not allow non root user processes (processes without CAP_MKNOD) to create device nodes.  If container needs to create device nodes, it must be run as root.
+  * The kernel does not allow non root user processes (processes without CAP_MKNOD) to create device nodes.  If a container needs to create device nodes, it must be run as root.
