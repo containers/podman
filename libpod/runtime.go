@@ -625,7 +625,8 @@ func (r *Runtime) refresh(alivePath string) error {
 	}
 
 	// Next refresh the state of all containers to recreate dirs and
-	// namespaces, and all the pods to recreate cgroups
+	// namespaces, and all the pods to recreate cgroups.
+	// Containers, pods, and volumes must also reacquire their locks.
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all containers from state")
@@ -634,10 +635,14 @@ func (r *Runtime) refresh(alivePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error retrieving all pods from state")
 	}
-	// No locks are taken during pod and container refresh.
-	// Furthermore, the pod and container refresh() functions are not
+	vols, err := r.state.AllVolumes()
+	if err != nil {
+		return errors.Wrapf(err, "error retrieving all volumes from state")
+	}
+	// No locks are taken during pod, volume, and container refresh.
+	// Furthermore, the pod/volume/container refresh() functions are not
 	// allowed to take locks themselves.
-	// We cannot assume that any pod or container has a valid lock until
+	// We cannot assume that any pod/volume/container has a valid lock until
 	// after this function has returned.
 	// The runtime alive lock should suffice to provide mutual exclusion
 	// until this has run.
@@ -649,6 +654,11 @@ func (r *Runtime) refresh(alivePath string) error {
 	for _, pod := range pods {
 		if err := pod.refresh(); err != nil {
 			logrus.Errorf("Error refreshing pod %s: %v", pod.ID(), err)
+		}
+	}
+	for _, vol := range vols {
+		if err := vol.refresh(); err != nil {
+			logrus.Errorf("Error refreshing volume %s: %v", vol.Name(), err)
 		}
 	}
 
