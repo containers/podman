@@ -1,4 +1,4 @@
-package serviceapi
+package handlers
 
 import (
 	"context"
@@ -17,35 +17,15 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
-func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
-	r.HandleFunc(versionedPath("/containers/create"), s.serviceHandler(s.createContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/json"), s.serviceHandler(s.listContainers)).Methods("GET")
-	r.HandleFunc(versionedPath("/containers/prune"), s.serviceHandler(s.pruneContainers)).Methods("POST")
+func RemoveContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
-	r.HandleFunc(versionedPath("/containers/{name:..*}"), s.serviceHandler(s.removeContainer)).Methods("DELETE")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/json"), s.serviceHandler(s.container)).Methods("GET")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/kill"), s.serviceHandler(s.killContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/logs"), s.serviceHandler(s.logsFromContainer)).Methods("GET")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/pause"), s.serviceHandler(s.pauseContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/rename"), s.serviceHandler(s.unsupportedHandler)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/restart"), s.serviceHandler(s.restartContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/start"), s.serviceHandler(s.startContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/stats"), s.serviceHandler(s.statsContainer)).Methods("GET")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/stop"), s.serviceHandler(s.stopContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/top"), s.serviceHandler(s.topContainer)).Methods("GET")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/unpause"), s.serviceHandler(s.unpauseContainer)).Methods("POST")
-	r.HandleFunc(versionedPath("/containers/{name:..*}/wait"), s.serviceHandler(s.waitContainer)).Methods("POST")
-
-	// libpod endpoints
-	r.HandleFunc(versionedPath("/libpod/containers/{name:..*}/exists"), s.serviceHandler(s.containerExists))
-	return nil
-}
-
-func (s *APIServer) removeContainer(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Force bool `schema:"force"`
 		Vols  bool `schema:"v"`
@@ -53,36 +33,39 @@ func (s *APIServer) removeContainer(w http.ResponseWriter, r *http.Request) {
 	}{
 		// override any golang type defaults
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
-	if err := s.Runtime.RemoveContainer(s.Context, con, query.Force, query.Vols); err != nil {
-		internalServerError(w, err)
+	if err := runtime.RemoveContainer(r.Context(), con, query.Force, query.Vols); err != nil {
+		InternalServerError(w, err)
 		return
 	}
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) listContainers(w http.ResponseWriter, r *http.Request) {
-	containers, err := s.Runtime.GetAllContainers()
+func ListContainers(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	containers, err := runtime.GetAllContainers()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
-	infoData, err := s.Runtime.Info()
+	infoData, err := runtime.Info()
 	if err != nil {
-		internalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
+		InternalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
 		return
 	}
 
@@ -90,84 +73,91 @@ func (s *APIServer) listContainers(w http.ResponseWriter, r *http.Request) {
 	for i, ctnr := range containers {
 		api, err := LibpodToContainer(ctnr, infoData)
 		if err != nil {
-			internalServerError(w, err)
+			InternalServerError(w, err)
 			return
 		}
 		list[i] = api
 	}
-	s.WriteResponse(w, http.StatusOK, list)
+	WriteResponse(w, http.StatusOK, list)
 }
 
-func (s *APIServer) container(w http.ResponseWriter, r *http.Request) {
+func GetContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	name := mux.Vars(r)["name"]
-	ctnr, err := s.Runtime.LookupContainer(name)
+	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
-	api, err := libpodToContainerJSON(ctnr)
+	api, err := LibpodToContainerJSON(ctnr)
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
-	s.WriteResponse(w, http.StatusOK, api)
+	WriteResponse(w, http.StatusOK, api)
 }
 
-func (s *APIServer) killContainer(w http.ResponseWriter, r *http.Request) {
+func KillContainer(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decorder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	// /{version}/containers/(name)/kill
 	query := struct {
 		Signal syscall.Signal `schema:"signal"`
 	}{
 		Signal: syscall.SIGKILL,
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
-	// If the container is stopped already, send a 409
+	// If the Container is stopped already, send a 409
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		Error(w, fmt.Sprintf("Container %s is not running", name), http.StatusConflict, errors.New(fmt.Sprintf("Cannot kill container %s, it is not running", name)))
+		Error(w, fmt.Sprintf("Container %s is not running", name), http.StatusConflict, errors.New(fmt.Sprintf("Cannot kill Container %s, it is not running", name)))
 		return
 	}
 
 	if err := con.Kill(uint(query.Signal)); err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill container %s", name))
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
 		return
 	}
 
 	// the kill behavior for docker differs from podman in that they appear to wait
-	// for the container to croak so the exit code is accurate immediately after the
+	// for the Container to croak so the exit code is accurate immediately after the
 	// kill is sent.  libpod does not.  but we can add a wait here only for the docker
 	// side of things and mimic that behavior
 	if _, err = con.Wait(); err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for container %s", name))
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", name))
 		return
 	}
 
 	// Success
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) waitContainer(w http.ResponseWriter, r *http.Request) {
+func WaitContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	// /{version}/containers/(name)/wait
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
@@ -177,7 +167,7 @@ func (s *APIServer) waitContainer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg = err.Error()
 	}
-	s.WriteResponse(w, http.StatusOK, ContainerWaitOKBody{
+	WriteResponse(w, http.StatusOK, ContainerWaitOKBody{
 		StatusCode: int(exitCode),
 		Error: struct {
 			Message string
@@ -187,36 +177,39 @@ func (s *APIServer) waitContainer(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (s *APIServer) stopContainer(w http.ResponseWriter, r *http.Request) {
+func StopContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+
 	// /{version}/containers/(name)/stop
 	query := struct {
 		Timeout int `schema:"t"`
 	}{
 		// override any golang type defaults
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		internalServerError(w, errors.Wrapf(err, "unable to get state for container %s", name))
+		InternalServerError(w, errors.Wrapf(err, "unable to get state for Container %s", name))
 		return
 	}
 
-	// If the container is stopped already, send a 302
+	// If the Container is stopped already, send a 302
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
 		Error(w, http.StatusText(http.StatusNotModified), http.StatusNotModified,
-			errors.Wrapf(err, fmt.Sprintf("container %s is already stopped ", name)))
+			errors.Wrapf(err, fmt.Sprintf("Container %s is already stopped ", name)))
 		return
 	}
 
@@ -227,46 +220,50 @@ func (s *APIServer) stopContainer(w http.ResponseWriter, r *http.Request) {
 		stopError = con.Stop()
 	}
 	if stopError != nil {
-		internalServerError(w, errors.Wrapf(err, "failed to stop %s", name))
+		InternalServerError(w, errors.Wrapf(err, "failed to stop %s", name))
 		return
 	}
 
 	// Success
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) pauseContainer(w http.ResponseWriter, r *http.Request) {
+func PauseContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	// /{version}/containers/(name)/pause
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
-	// the api does not error if the container is already paused, so just into it
+	// the api does not error if the Container is already paused, so just into it
 	if err := con.Pause(); err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 	// Success
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) pruneContainers(w http.ResponseWriter, r *http.Request) {
-	containers, err := s.Runtime.GetAllContainers()
+func PruneContainers(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	containers, err := runtime.GetAllContainers()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
 	deletedContainers := []string{}
 	var spaceReclaimed uint64
 	for _, ctnr := range containers {
-		// Only remove stopped or exitted containers.
+		// Only remove stopped or exit'ed containers.
 		state, err := ctnr.State()
 		if err != nil {
-			internalServerError(w, err)
+			InternalServerError(w, err)
 			return
 		}
 		switch state {
@@ -278,14 +275,14 @@ func (s *APIServer) pruneContainers(w http.ResponseWriter, r *http.Request) {
 		deletedContainers = append(deletedContainers, ctnr.ID())
 		cSize, err := ctnr.RootFsSize()
 		if err != nil {
-			internalServerError(w, err)
+			InternalServerError(w, err)
 			return
 		}
 		spaceReclaimed += uint64(cSize)
 
-		err = s.Runtime.RemoveContainer(context.Background(), ctnr, false, false)
+		err = runtime.RemoveContainer(context.Background(), ctnr, false, false)
 		if err != nil && !(errors.Cause(err) == define.ErrCtrRemoved) {
-			internalServerError(w, err)
+			InternalServerError(w, err)
 			return
 		}
 	}
@@ -293,39 +290,43 @@ func (s *APIServer) pruneContainers(w http.ResponseWriter, r *http.Request) {
 		ContainersDeleted: deletedContainers,
 		SpaceReclaimed:    spaceReclaimed,
 	}
-	s.WriteResponse(w, http.StatusOK, report)
+	WriteResponse(w, http.StatusOK, report)
 }
 
-func (s *APIServer) unpauseContainer(w http.ResponseWriter, r *http.Request) {
+func UnpauseContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	// /{version}/containers/(name)/unpause
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
-	// the api does not error if the container is already paused, so just into it
+	// the api does not error if the Container is already paused, so just into it
 	if err := con.Unpause(); err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
 	// Success
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) startContainer(w http.ResponseWriter, r *http.Request) {
+func StartContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 	if state == define.ContainerStateRunning {
@@ -333,40 +334,42 @@ func (s *APIServer) startContainer(w http.ResponseWriter, r *http.Request) {
 		Error(w, msg, http.StatusNotModified, errors.New(msg))
 		return
 	}
-	if err := con.Start(s.Context, false); err != nil {
-		internalServerError(w, err)
+	if err := con.Start(r.Context(), false); err != nil {
+		InternalServerError(w, err)
 		return
 	}
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) restartContainer(w http.ResponseWriter, r *http.Request) {
+func RestartContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	// /{version}/containers/(name)/restart
 	query := struct {
 		Timeout int `schema:"t"`
 	}{
 		// Override golang default values for types
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
-	con, err := s.Runtime.LookupContainer(name)
+	con, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := con.State()
 	if err != nil {
-		internalServerError(w, err)
+		InternalServerError(w, err)
 		return
 	}
 
 	// FIXME: This is not in the swagger.yml...
-	// If the container is stopped already, send a 409
+	// If the Container is stopped already, send a 409
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
 		msg := fmt.Sprintf("Container %s is not running", name)
 		Error(w, msg, http.StatusConflict, errors.New(msg))
@@ -378,16 +381,19 @@ func (s *APIServer) restartContainer(w http.ResponseWriter, r *http.Request) {
 		timeout = uint(query.Timeout)
 	}
 
-	if err := con.RestartWithTimeout(s.Context, timeout); err != nil {
-		internalServerError(w, err)
+	if err := con.RestartWithTimeout(r.Context(), timeout); err != nil {
+		InternalServerError(w, err)
 		return
 	}
 
 	// Success
-	s.WriteResponse(w, http.StatusNoContent, "")
+	WriteResponse(w, http.StatusNoContent, "")
 }
 
-func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
+func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	query := struct {
 		Follow     bool   `schema:"follow"`
 		Stdout     bool   `schema:"stdout"`
@@ -399,7 +405,7 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}{
 		Tail: "all",
 	}
-	if err := s.Decode(&query, r.URL.Query()); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -411,9 +417,9 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := mux.Vars(r)["name"]
-	ctnr, err := s.Runtime.LookupContainer(name)
+	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
 
@@ -421,7 +427,7 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if query.Tail != "all" {
 		tail, err = strconv.ParseInt(query.Tail, 0, 64)
 		if err != nil {
-			badRequest(w, "tail", query.Tail, err)
+			BadRequest(w, "tail", query.Tail, err)
 			return
 		}
 	}
@@ -430,7 +436,7 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if _, found := mux.Vars(r)["since"]; found {
 		since, err = util.ParseInputTime(query.Since)
 		if err != nil {
-			badRequest(w, "since", query.Since, err)
+			BadRequest(w, "since", query.Since, err)
 			return
 		}
 	}
@@ -439,7 +445,7 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if _, found := mux.Vars(r)["until"]; found {
 		since, err = util.ParseInputTime(query.Until)
 		if err != nil {
-			badRequest(w, "until", query.Until, err)
+			BadRequest(w, "until", query.Until, err)
 			return
 		}
 	}
@@ -456,8 +462,8 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	options.WaitGroup = &wg
 
 	logChannel := make(chan *logs.LogLine, tail+1)
-	if err := s.Runtime.Log([]*libpod.Container{ctnr}, options, logChannel); err != nil {
-		internalServerError(w, errors.Wrapf(err, "Failed to obtain logs for container '%s'", name))
+	if err := runtime.Log([]*libpod.Container{ctnr}, options, logChannel); err != nil {
+		InternalServerError(w, errors.Wrapf(err, "Failed to obtain logs for Container '%s'", name))
 		return
 	}
 	go func() {
@@ -493,7 +499,7 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 			default:
 				// Logging and moving on is the best we can do here. We may have already sent
 				// a Status and Content-Type to client therefore we can no longer report an error.
-				log.Infof("Unknown Device type '%s' in log file from container %s", line.Device, ctnr.ID())
+				log.Infof("Unknown Device type '%s' in log file from Container %s", line.Device, ctnr.ID())
 				continue
 			}
 
@@ -519,13 +525,14 @@ func (s *APIServer) logsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *APIServer) containerExists(w http.ResponseWriter, r *http.Request) {
+func ContainerExists(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	// /containers/libpod/{name:..*}/exists
 	name := mux.Vars(r)["name"]
-	_, err := s.Runtime.LookupContainer(name)
+	_, err := runtime.LookupContainer(name)
 	if err != nil {
-		containerNotFound(w, name, err)
+		ContainerNotFound(w, name, err)
 		return
 	}
-	s.WriteResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
+	WriteResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
 }

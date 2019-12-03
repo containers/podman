@@ -1,5 +1,28 @@
-// Package serviceapi provides a container compatible interface
-package serviceapi
+// Package serviceapi provides a Container compatible interface.
+//
+// this provides a docker-compatible API for libpod
+//
+// Terms Of Service:
+//
+// Best Effort
+//
+//     Schemes: http, https
+//     Host: podman.io
+//     BasePath: /
+//     Version: 0.0.1
+//     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
+//     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
+//
+//     Consumes:
+//     - application/json
+//
+//     Produces:
+//     - application/json
+//     - text/plain
+//     - text/html
+//
+// swagger:meta
+package server
 
 import (
 	"context"
@@ -16,11 +39,6 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-)
-
-const (
-	DefaultApiVersion = "1.40" // See https://docs.docker.com/engine/api/v1.40/
-	MinimalApiVersion = "1.24"
 )
 
 type APIServer struct {
@@ -47,7 +65,6 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit)
 
-	ctx, cancelFn := context.WithCancel(context.Background())
 	router := mux.NewRouter()
 
 	server := APIServer{
@@ -58,10 +75,10 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 			WriteTimeout:      2 * time.Minute,
 		},
 		Decoder:    schema.NewDecoder(),
-		Context:    ctx,
+		Context:    nil,
 		Runtime:    runtime,
 		Listener:   listeners[0],
-		CancelFunc: cancelFn,
+		CancelFunc: nil,
 		Duration:   300 * time.Second,
 	}
 	server.Timer = time.AfterFunc(server.Duration, func() {
@@ -69,26 +86,37 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 			log.Errorf("unable to shutdown server: %q", err)
 		}
 	})
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+
+	// TODO: Use ConnContext when ported to go 1.13
+	ctx = context.WithValue(ctx, "decoder", server.Decoder)
+	ctx = context.WithValue(ctx, "runtime", runtime)
+	ctx = context.WithValue(ctx, "shutdownFunc", server.Shutdown)
+	server.Context = ctx
+
+	server.CancelFunc = cancelFn
 	server.Decoder.IgnoreUnknownKeys(true)
 
 	router.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			log.Errorf("%d %s for %s:'%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.Method, r.URL.String())
+			// We can track user errors...
+			log.Infof("Failed Request: (%d:%s) for %s:'%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.Method, r.URL.String())
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		},
 	)
 
 	for _, fn := range []func(*mux.Router) error{
-		server.registerAuthHandlers,
-		server.registerContainersHandlers,
-		server.registerDistributionHandlers,
+		server.RegisterAuthHandlers,
+		server.RegisterContainersHandlers,
+		server.RegisterDistributionHandlers,
 		server.registerImagesHandlers,
 		server.registerInfoHandlers,
-		server.registerMonitorHandlers,
+		server.RegisterMonitorHandlers,
 		server.registerPingHandlers,
-		server.registerPluginsHandlers,
+		server.RegisterPluginsHandlers,
 		server.registerPodsHandlers,
-		server.registerSwarmHandlers,
+		server.RegisterSwarmHandlers,
 		server.registerSystemHandlers,
 		server.registerVersionHandlers,
 	} {

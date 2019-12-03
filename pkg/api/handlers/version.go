@@ -1,4 +1,4 @@
-package serviceapi
+package handlers
 
 import (
 	"fmt"
@@ -6,26 +6,27 @@ import (
 	goRuntime "runtime"
 	"time"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	docker "github.com/docker/docker/api/types"
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
-func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
-	r.Handle(versionedPath("/version"), s.serviceHandler(s.versionHandler))
-	r.Handle("/version", s.serviceHandler(s.versionHandler))
-	return nil
-}
+const (
+	DefaultApiVersion = "1.40" // See https://docs.docker.com/engine/api/v1.40/
+	MinimalApiVersion = "1.24"
+)
 
-func (s *APIServer) versionHandler(w http.ResponseWriter, r *http.Request) {
+func VersionHandler(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
 	versionInfo, err := define.GetVersion()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
-	infoData, err := s.Runtime.Info()
+	infoData, err := runtime.Info()
 	if err != nil {
 		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
@@ -48,7 +49,7 @@ func (s *APIServer) versionHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}}
 
-	s.WriteResponse(w, http.StatusOK, Version{docker.Version{
+	WriteResponse(w, http.StatusOK, Version{docker.Version{
 		Platform: struct {
 			Name string
 		}{
