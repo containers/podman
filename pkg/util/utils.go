@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"os/user"
@@ -80,20 +79,18 @@ func ParseChanges(option string) (key string, vals []string, err error) {
 	// 3. key ["value","value1"]
 	if strings.Contains(option, " ") {
 		// This handles 2 & 3 conditions.
-		tokens := strings.SplitN(option, " ", 2)
+		var val string
+		tokens := strings.SplitAfterN(option, " ", 2)
 		if len(tokens) < 2 {
 			return "", []string{}, fmt.Errorf("invalid key value %s", option)
 		}
 		key = strings.Trim(tokens[0], " ") // Need to trim whitespace part of delimiter.
-
-		if strings.Contains(tokens[1], "[") || strings.Contains(tokens[1], "]") {
-			// Try a JSON unmarshal to catch case 3
-			if err := json.Unmarshal([]byte(tokens[1]), &vals); err != nil {
-				return "", []string{}, errors.Wrapf(err, "cannot unmarshal %s as JSON array", tokens[1])
-			}
-		} else {
-			vals = []string{tokens[1]}
+		val = tokens[1]
+		if strings.Contains(tokens[1], "[") && strings.Contains(tokens[1], "]") {
+			//Trim '[',']' if exist.
+			val = strings.TrimLeft(strings.TrimRight(tokens[1], "]"), "[")
 		}
+		vals = strings.Split(val, ",")
 	} else if strings.Contains(option, "=") {
 		// handles condition 1.
 		tokens := strings.Split(option, "=")
