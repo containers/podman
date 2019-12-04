@@ -50,7 +50,7 @@ RUN set -x \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$RUNC_COMMIT" \
+	&& git checkout --detach -q "$RUNC_COMMIT" \
 	&& make static BUILDTAGS="seccomp selinux" \
 	&& cp runc /usr/bin/runc \
 	&& rm -rf "$GOPATH"
@@ -62,7 +62,7 @@ RUN set -x \
 	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
 	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CONMON_COMMIT" \
+	&& git checkout --detach -q "$CONMON_COMMIT" \
 	&& make \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
@@ -73,7 +73,7 @@ RUN set -x \
        && export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
        && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
        && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
+       && git checkout --detach -q "$CNI_COMMIT" \
        && ./build_linux.sh \
        && mkdir -p /usr/libexec/cni \
        && cp bin/* /usr/libexec/cni \
