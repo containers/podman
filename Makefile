@@ -487,7 +487,7 @@ endef
 	fi
 
 .install.md2man: .gopathok
-	if [ ! -x "$(GOBIN)/go-md2man" ]; then \
+	if [ ! -x "$(GOMD2MAN)" ]; then \
 		   $(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
