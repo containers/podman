@@ -487,8 +487,8 @@ endef
 	fi
 
 .install.md2man: .gopathok
-	if [ ! -x "$(GOBIN)/go-md2man" ]; then \
-		   $(call go-get,github.com/cpuguy83/go-md2man); \
+	if [ ! -x "$(GOMD2MAN)" ]; then \
+		$(call go-get,github.com/cpuguy83/go-md2man); \
 	fi
 
 varlink_generate: .gopathok cmd/podman/varlink/iopodman.go ## Generate varlink
