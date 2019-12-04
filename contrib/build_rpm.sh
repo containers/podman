@@ -1,15 +1,12 @@
 #!/bin/bash
 set -euxo pipefail
 
-pkg_manager=`command -v dnf`
-if [ -z "$pkg_manager" ]; then
-    pkg_manager=`command -v yum`
-fi
-
+# returned path can vary: /usr/bin/dnf /bin/dnf ...
+pkg_manager=`command -v dnf yum | head -n1`
 echo "Package manager binary: $pkg_manager"
 
 
-if [ $pkg_manager == "/usr/bin/yum" ]; then
+if [ $pkg_manager == "*yum" ]; then
     echo "[virt7-container-common-candidate]
 name=virt7-container-common-candidate
 baseurl=https://cbs.centos.org/repos/virt7-container-common-candidate/x86_64/os/
@@ -31,11 +28,11 @@ declare -a PKGS=(device-mapper-devel \
                 go-compilers-golang-compiler \
                 )
 
-if [ $pkg_manager == "/usr/bin/dnf" ]; then
+if [ $pkg_manager == "*dnf" ]; then
     PKGS+=(python3-devel \
         python3-varlink \
         )
-# btrfs-progs-devel is not available in CentOS/RHEL-8
+    # btrfs-progs-devel is not available in CentOS/RHEL-8
     if ! grep -i -q 'Red Hat\|CentOS' /etc/redhat-release; then
         PKGS+=(btrfs-progs-devel)
     fi
@@ -49,16 +46,16 @@ if [ -z "$extra_arg" ]; then
 fi
 
 echo ${PKGS[*]}
-$pkg_manager install -y ${PKGS[*]}
+sudo $pkg_manager install -y ${PKGS[*]}
 
 make -f .copr/Makefile
 rpmbuild --rebuild ${extra_arg:-""} podman-*.src.rpm
 
 # Test to make sure the install of the binary works
-$pkg_manager -y install ~/rpmbuild/RPMS/x86_64/podman-*.x86_64.rpm
+sudo $pkg_manager -y install ~/rpmbuild/RPMS/x86_64/podman-*.x86_64.rpm
 
 
 # If we built python/varlink packages, we should test their installs too
-if [ $pkg_manager == "/usr/bin/dnf" ]; then
-    $pkg_manager -y install ~/rpmbuild/RPMS/noarch/python*
+if [ $pkg_manager == "*dnf" ]; then
+    sudo $pkg_manager -y install ~/rpmbuild/RPMS/noarch/python*
 fi
