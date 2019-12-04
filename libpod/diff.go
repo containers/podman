@@ -1,7 +1,6 @@
 package libpod
 
 import (
-	"archive/tar"
 	"io"
 
 	"github.com/containers/libpod/libpod/layers"
@@ -45,49 +44,6 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 		}
 	}
 	return rchanges, err
-}
-
-// skipFileInTarAchive is an archive.TarModifierFunc function
-// which tells archive.ReplaceFileTarWrapper to skip files
-// from the tarstream
-func skipFileInTarAchive(path string, header *tar.Header, content io.Reader) (*tar.Header, []byte, error) {
-	return nil, nil, nil
-}
-
-// GetDiffTarStream returns the differences between the two images, layers, or containers.
-// It is the same functionality as GetDiff() except that it returns a tarstream
-func (r *Runtime) GetDiffTarStream(from, to string) (io.ReadCloser, error) {
-	toLayer, err := r.getLayerID(to)
-	if err != nil {
-		return nil, err
-	}
-	fromLayer := ""
-	if from != "" {
-		fromLayer, err = r.getLayerID(from)
-		if err != nil {
-			return nil, err
-		}
-	}
-	rc, err := r.store.Diff(fromLayer, toLayer, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Skip files in the tar archive which are listed
-	// in containerMounts map. Just as in the GetDiff()
-	// function from above
-	filterMap := make(map[string]archive.TarModifierFunc)
-	for key := range containerMounts {
-		filterMap[key[1:]] = skipFileInTarAchive
-		// In the tarstream directories always include a trailing '/'.
-		// For simplicity this duplicates every entry from
-		// containerMounts with a trailing '/', as containerMounts
-		// does not use trailing '/' for directories.
-		filterMap[key[1:]+"/"] = skipFileInTarAchive
-	}
-
-	filteredTarStream := archive.ReplaceFileTarWrapper(rc, filterMap)
-	return filteredTarStream, nil
 }
 
 // ApplyDiffTarStream applies the changes stored in 'diff' to the layer 'to'

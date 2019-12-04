@@ -60,6 +60,7 @@ func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input stri
 			"ctr.log",
 			"rootfs-diff.tar",
 			"network.status",
+			"deleted.files",
 		},
 	}
 	dir, err := ioutil.TempDir("", "checkpoint")

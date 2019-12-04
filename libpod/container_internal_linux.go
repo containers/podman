@@ -593,22 +593,68 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) (err error)
 
 	// Get root file-system changes included in the checkpoint archive
 	rootfsDiffPath := filepath.Join(c.bundlePath(), "rootfs-diff.tar")
+	deleteFilesList := filepath.Join(c.bundlePath(), "deleted.files")
 	if !ignoreRootfs {
-		rootfsDiffFile, err := os.Create(rootfsDiffPath)
-		if err != nil {
-			return errors.Wrapf(err, "error creating root file-system diff file %q", rootfsDiffPath)
-		}
-		tarStream, err := c.runtime.GetDiffTarStream("", c.ID())
+		// To correctly track deleted files, let's go through the output of 'podman diff'
+		tarFiles, err := c.runtime.GetDiff("", c.ID())
 		if err != nil {
 			return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
 		}
-		_, err = io.Copy(rootfsDiffFile, tarStream)
-		if err != nil {
-			return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
+		var rootfsIncludeFiles []string
+		var deletedFiles []string
+
+		for _, file := range tarFiles {
+			if file.Kind == archive.ChangeAdd {
+				rootfsIncludeFiles = append(rootfsIncludeFiles, file.Path)
+				continue
+			}
+			if file.Kind == archive.ChangeDelete {
+				deletedFiles = append(deletedFiles, file.Path)
+				continue
+			}
+			fileName, err := os.Stat(file.Path)
+			if err != nil {
+				continue
+			}
+			if !fileName.IsDir() && file.Kind == archive.ChangeModify {
+				rootfsIncludeFiles = append(rootfsIncludeFiles, file.Path)
+				continue
+			}
 		}
-		tarStream.Close()
-		rootfsDiffFile.Close()
-		includeFiles = append(includeFiles, "rootfs-diff.tar")
+
+		if len(rootfsIncludeFiles) > 0 {
+			rootfsTar, err := archive.TarWithOptions(c.state.Mountpoint, &archive.TarOptions{
+				Compression:      archive.Uncompressed,
+				IncludeSourceDir: true,
+				IncludeFiles:     rootfsIncludeFiles,
+			})
+			if err != nil {
+				return errors.Wrapf(err, "error exporting root file-system diff to %q", rootfsDiffPath)
+			}
+			rootfsDiffFile, err := os.Create(rootfsDiffPath)
+			if err != nil {
+				return errors.Wrapf(err, "error creating root file-system diff file %q", rootfsDiffPath)
+			}
+			defer rootfsDiffFile.Close()
+			_, err = io.Copy(rootfsDiffFile, rootfsTar)
+			if err != nil {
+				return err
+			}
+
+			includeFiles = append(includeFiles, "rootfs-diff.tar")
+		}
+
+		if len(deletedFiles) > 0 {
+			formatJSON, err := json.MarshalIndent(deletedFiles, "", "     ")
+			if err != nil {
+				return errors.Wrapf(err, "error creating delete files list file %q", deleteFilesList)
+			}
+			if err := ioutil.WriteFile(deleteFilesList, formatJSON, 0600); err != nil {
+				return errors.Wrapf(err, "error creating delete files list file %q", deleteFilesList)
+			}
+
+			includeFiles = append(includeFiles, "deleted.files")
+		}
 	}
 
 	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
@@ -637,6 +683,7 @@ func (c *Container) exportCheckpoint(dest string, ignoreRootfs bool) (err error)
 	}
 
 	os.Remove(rootfsDiffPath)
+	os.Remove(deleteFilesList)
 
 	return nil
 }
@@ -941,10 +988,35 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 			if err != nil {
 				return errors.Wrapf(err, "Failed to open root file-system diff file %s", rootfsDiffPath)
 			}
+			defer rootfsDiffFile.Close()
 			if err := c.runtime.ApplyDiffTarStream(c.ID(), rootfsDiffFile); err != nil {
 				return errors.Wrapf(err, "Failed to apply root file-system diff file %s", rootfsDiffPath)
 			}
-			rootfsDiffFile.Close()
+		}
+		deletedFilesPath := filepath.Join(c.bundlePath(), "deleted.files")
+		if _, err := os.Stat(deletedFilesPath); err == nil {
+			deletedFilesFile, err := os.Open(deletedFilesPath)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to open deleted files file %s", deletedFilesPath)
+			}
+			defer deletedFilesFile.Close()
+
+			var deletedFiles []string
+			deletedFilesJSON, err := ioutil.ReadAll(deletedFilesFile)
+			if err != nil {
+				return errors.Wrapf(err, "Failed to read deleted files file %s", deletedFilesPath)
+			}
+			if err := json.Unmarshal(deletedFilesJSON, &deletedFiles); err != nil {
+				return errors.Wrapf(err, "Failed to read deleted files file %s", deletedFilesPath)
+			}
+			for _, deleteFile := range deletedFiles {
+				// Using RemoveAll as deletedFiles, which is generated from 'podman diff'
+				// lists completely deleted directories as a single entry: 'D /root'.
+				err = os.RemoveAll(filepath.Join(c.state.Mountpoint, deleteFile))
+				if err != nil {
+					return errors.Wrapf(err, "Failed to delete file %s from container %s during restore", deletedFilesPath, c.ID())
+				}
+			}
 		}
 	}
 
@@ -965,7 +1037,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		if err != nil {
 			logrus.Debugf("Non-fatal: removal of checkpoint directory (%s) failed: %v", c.CheckpointPath(), err)
 		}
-		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status", "rootfs-diff.tar"}
+		cleanup := [...]string{"restore.log", "dump.log", "stats-dump", "stats-restore", "network.status", "rootfs-diff.tar", "deleted.files"}
 		for _, del := range cleanup {
 			file := filepath.Join(c.bundlePath(), del)
 			err = os.Remove(file)
