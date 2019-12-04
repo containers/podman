@@ -19,24 +19,31 @@
 #include <sys/select.h>
 #include <stdio.h>
 
-#ifndef RENAME_NOREPLACE
-# define RENAME_NOREPLACE	(1 << 0)
-
-int renameat2 (int olddirfd, const char *oldpath, int newdirfd, const char *newpath, unsigned int flags)
+int rename_noreplace (int olddirfd, const char *oldpath, int newdirfd, const char *newpath)
 {
+  int ret;
+
 # ifdef SYS_renameat2
-  return (int) syscall (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
-# else
+#  ifndef RENAME_NOREPLACE
+#   define RENAME_NOREPLACE	(1 << 0)
+#  endif
+
+  ret = (int) syscall (SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, RENAME_NOREPLACE);
+  if (ret == 0 || errno != EINVAL)
+    return ret;
+
+  /* Fallback in case of errno==EINVAL.  */
+# endif
+
   /* This might be an issue if another process is trying to read the file while it is empty.  */
-  int fd = open (newpath, O_EXCL|O_CREAT, 0700);
-  if (fd < 0)
-    return fd;
-  close (fd);
+  ret = open (newpath, O_EXCL|O_CREAT, 0700);
+  if (ret < 0)
+    return ret;
+  close (ret);
+
   /* We are sure we created the file, let's overwrite it.  */
   return rename (oldpath, newpath);
-# endif
 }
-#endif
 
 #ifndef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(expression) \
@@ -453,7 +460,7 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 
           /* There can be another process at this point trying to configure the user namespace and the pause
            process, do not override the pid file if it already exists. */
-          if (renameat2 (AT_FDCWD, tmp_file_path, AT_FDCWD, pause_pid_file_path, RENAME_NOREPLACE) < 0)
+          if (rename_noreplace (AT_FDCWD, tmp_file_path, AT_FDCWD, pause_pid_file_path) < 0)
             {
               unlink (tmp_file_path);
               kill (pid, SIGKILL);
