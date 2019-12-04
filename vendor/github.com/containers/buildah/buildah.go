@@ -27,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.11.5"
+	Version = "1.11.6"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -325,7 +325,7 @@ type CommonBuildOptions struct {
 	ShmSize string
 	// Ulimit specifies resource limit options, in the form type:softlimit[:hardlimit].
 	// These types are recognized:
-	// "core": maximimum core dump size (ulimit -c)
+	// "core": maximum core dump size (ulimit -c)
 	// "cpu": maximum CPU time (ulimit -t)
 	// "data": maximum size of a process's data segment (ulimit -d)
 	// "fsize": maximum size of new files (ulimit -f)

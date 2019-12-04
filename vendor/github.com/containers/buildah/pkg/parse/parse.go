@@ -270,7 +270,7 @@ func getMounts(mounts []string) (map[string]specs.Mount, error) {
 
 	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
 	//                  to allow a more robust parsing of the mount format and to give
-	//                  precise errors regarding supported format versus suppored options.
+	//                  precise errors regarding supported format versus supported options.
 	for _, mount := range mounts {
 		arr := strings.SplitN(mount, ",", 2)
 		if len(arr) < 2 {
