@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/types"
@@ -1072,7 +1073,14 @@ func (c *Container) CGroupPath() (string, error) {
 	case define.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
-			return filepath.Join(c.config.CgroupParent, fmt.Sprintf("user-%d.slice/user@%d.service/user.slice", uid, uid), createUnitName("libpod", c.ID())), nil
+			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
+
+			dir := ""
+			if len(parts) > 1 {
+				dir = parts[1]
+			}
+
+			return filepath.Join(parts[0], fmt.Sprintf("user-%d.slice/user@%d.service/user.slice/%s", uid, uid, dir), createUnitName("libpod", c.ID())), nil
 		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
