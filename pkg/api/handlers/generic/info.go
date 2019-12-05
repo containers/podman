@@ -1,7 +1,8 @@
-package handlers
+package generic
 
 import (
 	"fmt"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -28,7 +29,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
 	hostInfo := infoData[0].Data
@@ -36,12 +37,12 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	configInfo, err := runtime.GetConfig()
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
 		return
 	}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
 		return
 	}
 	stateInfo := getContainersState(runtime)
@@ -50,7 +51,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 	// FIXME: Need to expose if runtime supports Checkpoint'ing
 	// liveRestoreEnabled := criu.CheckForCriu() && configInfo.RuntimeSupportsCheckpoint()
 
-	info := &Info{Info: docker.Info{
+	info := &handlers.Info{Info: docker.Info{
 		Architecture:       goRuntime.GOARCH,
 		BridgeNfIP6tables:  !sysInfo.BridgeNFCallIP6TablesDisabled,
 		BridgeNfIptables:   !sysInfo.BridgeNFCallIPTablesDisabled,
@@ -125,7 +126,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		SwapTotal:          hostInfo["SwapTotal"].(int64),
 		Uptime:             hostInfo["uptime"].(string),
 	}
-	WriteResponse(w, http.StatusOK, info)
+	handlers.WriteResponse(w, http.StatusOK, info)
 }
 
 func getGraphStatus(storeInfo map[string]interface{}) [][2]string {
