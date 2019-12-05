@@ -346,7 +346,7 @@ func WithCNIConfigDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.NetworkDir = dir
+		rt.config.NetworkConfigDir = dir
 
 		return nil
 	}
@@ -359,7 +359,7 @@ func WithCNIPluginDir(dir string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		rt.config.PluginDirs = []string{dir}
+		rt.config.CNIPluginDirs = []string{dir}
 
 		return nil
 	}

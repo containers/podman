@@ -8,7 +8,7 @@ func (c *Config) mergeConfig(other *Config) error {
 	// strings
 	c.ApparmorProfile = mergeStrings(c.ApparmorProfile, other.ApparmorProfile)
 	c.CgroupManager = mergeStrings(c.CgroupManager, other.CgroupManager)
-	c.NetworkDir = mergeStrings(c.NetworkDir, other.NetworkDir)
+	c.NetworkConfigDir = mergeStrings(c.NetworkConfigDir, other.NetworkConfigDir)
 	c.DefaultNetwork = mergeStrings(c.DefaultNetwork, other.DefaultNetwork)
 	c.DefaultMountsFile = mergeStrings(c.DefaultMountsFile, other.DefaultMountsFile)
 	c.DetachKeys = mergeStrings(c.DetachKeys, other.DetachKeys)
@@ -34,14 +34,15 @@ func (c *Config) mergeConfig(other *Config) error {
 
 	// string slices
 	c.AdditionalDevices = mergeStringSlices(c.AdditionalDevices, other.AdditionalDevices)
+	c.ConmonEnvVars = mergeStringSlices(c.ConmonEnvVars, other.ConmonEnvVars)
+	c.ConmonPath = mergeStringSlices(c.ConmonPath, other.ConmonPath)
 	c.DefaultCapabilities = mergeStringSlices(c.DefaultCapabilities, other.DefaultCapabilities)
 	c.DefaultSysctls = mergeStringSlices(c.DefaultSysctls, other.DefaultSysctls)
 	c.DefaultUlimits = mergeStringSlices(c.DefaultUlimits, other.DefaultUlimits)
-	c.PluginDirs = mergeStringSlices(c.PluginDirs, other.PluginDirs)
 	c.Env = mergeStringSlices(c.Env, other.Env)
-	c.ConmonPath = mergeStringSlices(c.ConmonPath, other.ConmonPath)
 	c.HooksDir = mergeStringSlices(c.HooksDir, other.HooksDir)
 	c.HTTPProxy = mergeStringSlices(c.HTTPProxy, other.HTTPProxy)
+	c.CNIPluginDirs = mergeStringSlices(c.CNIPluginDirs, other.CNIPluginDirs)
 	c.RuntimePath = mergeStringSlices(c.RuntimePath, other.RuntimePath)
 	c.RuntimeSupportsJSON = mergeStringSlices(c.RuntimeSupportsJSON, other.RuntimeSupportsJSON)
 	c.RuntimeSupportsNoCgroups = mergeStringSlices(c.RuntimeSupportsNoCgroups, other.RuntimeSupportsNoCgroups)
@@ -90,35 +91,35 @@ func (c *Config) mergeConfig(other *Config) error {
 }
 
 func mergeStrings(a, b string) string {
-	if a == "" {
+	if b != "" {
 		return b
 	}
 	return a
 }
 
 func mergeStringSlices(a, b []string) []string {
-	if len(a) == 0 && b != nil {
+	if len(b) != 0 {
 		return b
 	}
 	return a
 }
 
 func mergeStringMaps(a, b map[string][]string) map[string][]string {
-	if len(a) == 0 && b != nil {
+	if len(b) != 0 {
 		return b
 	}
 	return a
 }
 
 func mergeInt64s(a, b int64) int64 {
-	if a == 0 {
+	if b != 0 {
 		return b
 	}
 	return a
 }
 
 func mergeUint32s(a, b uint32) uint32 {
-	if a == 0 {
+	if b != 0 {
 		return b
 	}
 	return a

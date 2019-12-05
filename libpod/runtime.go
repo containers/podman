@@ -118,7 +118,11 @@ func SetXdgDirs() error {
 // NewRuntime creates a new container runtime
 // Options can be passed to override the default configuration for the runtime
 func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime, err error) {
-	return newRuntimeFromConfig(ctx, "", options...)
+	conf, err := config.NewConfig("")
+	if err != nil {
+		return nil, err
+	}
+	return newRuntimeFromConfig(ctx, conf, options...)
 }
 
 // NewRuntimeFromConfig creates a new container runtime using the given
@@ -126,20 +130,13 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (runtime *Runtime
 // functions can be used to mutate this configuration further.
 // An error will be returned if the configuration file at the given path does
 // not exist or cannot be loaded
-func NewRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
-	if userConfigPath == "" {
-		return nil, errors.New("invalid configuration file specified")
-	}
-	return newRuntimeFromConfig(ctx, userConfigPath, options...)
+func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (runtime *Runtime, err error) {
+
+	return newRuntimeFromConfig(ctx, userConfig, options...)
 }
 
-func newRuntimeFromConfig(ctx context.Context, userConfigPath string, options ...RuntimeOption) (runtime *Runtime, err error) {
+func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...RuntimeOption) (runtime *Runtime, err error) {
 	runtime = new(Runtime)
-
-	conf, err := config.NewConfig(userConfigPath)
-	if err != nil {
-		return nil, err
-	}
 
 	if conf.OCIRuntime == "" {
 		conf.OCIRuntime = "runc"
@@ -451,7 +448,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 
 	// Set up the CNI net plugin
 	if !rootless.IsRootless() {
-		netPlugin, err := ocicni.InitCNI(runtime.config.DefaultNetwork, runtime.config.NetworkDir, runtime.config.PluginDirs...)
+		netPlugin, err := ocicni.InitCNI(runtime.config.DefaultNetwork, runtime.config.NetworkConfigDir, runtime.config.CNIPluginDirs...)
 		if err != nil {
 			return errors.Wrapf(err, "error configuring CNI network plugin")
 		}

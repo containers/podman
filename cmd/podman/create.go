@@ -38,8 +38,9 @@ func init() {
 	createCommand.PodmanCommand.Command = _createCommand
 	createCommand.SetHelpTemplate(HelpTemplate())
 	createCommand.SetUsageTemplate(UsageTemplate())
+	conf := getDefaultConfig(os.Getenv("CONTAINERS_CONF"))
 
-	getCreateFlags(&createCommand.PodmanCommand)
+	getCreateFlags(&createCommand.PodmanCommand, conf)
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)
 	flags.SetNormalizeFunc(aliasFlags)

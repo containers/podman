@@ -78,6 +78,6 @@ require (
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
 
-replace github.com/containers/common => github.com/QiWang19/common v0.0.0-20191126190113-44f6c05daf29
+replace github.com/containers/common => github.com/QiWang19/common v0.0.0-20191205212721-e28d1ace6188
 
 replace github.com/containers/buildah => github.com/QiWang19/buildah v0.0.0-20191125191133-4f462eedcd54

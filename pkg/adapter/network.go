@@ -23,9 +23,9 @@ func getCNIConfDir(r *LocalRuntime) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	configPath := config.NetworkDir
+	configPath := config.NetworkConfigDir
 
-	if len(config.NetworkDir) < 1 {
+	if len(config.NetworkConfigDir) < 1 {
 		configPath = network.CNIConfigDir
 	}
 	return configPath, nil
@@ -245,7 +245,7 @@ func (r *LocalRuntime) NetworkCreate(cli *cliconfig.NetworkCreateValues) (string
 	plugins = append(plugins, network.NewPortMapPlugin())
 	plugins = append(plugins, network.NewFirewallPlugin())
 	// if we find the dnsname plugin, we add configuration for it
-	if network.HasDNSNamePlugin(runtimeConfig.PluginDirs) && !cli.DisableDNS {
+	if network.HasDNSNamePlugin(runtimeConfig.CNIPluginDirs) && !cli.DisableDNS {
 		// Note: in the future we might like to allow for dynamic domain names
 		plugins = append(plugins, network.NewDNSNamePlugin(network.DefaultPodmanDomainName))
 	}

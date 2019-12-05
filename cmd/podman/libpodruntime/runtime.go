@@ -2,7 +2,9 @@ package libpodruntime
 
 import (
 	"context"
+	"os"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -177,8 +179,12 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 	if !withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}
-	if c.Flags().Changed("config") {
-		return libpod.NewRuntimeFromConfig(ctx, c.GlobalFlags.Config, options...)
+	if os.Getenv("CONTAINERS_CONF") != "" {
+		conf, err := config.NewConfig(os.Getenv("CONTAINERS_CONF"))
+		if err != nil {
+			return nil, err
+		}
+		return libpod.NewRuntimeFromConfig(ctx, conf, options...)
 	}
 	return libpod.NewRuntime(ctx, options...)
 }

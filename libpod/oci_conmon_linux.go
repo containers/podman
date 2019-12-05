@@ -69,7 +69,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.name = name
 	runtime.conmonPath = conmonPath
 
-	runtime.conmonEnv = runtimeCfg.Env
+	runtime.conmonEnv = runtimeCfg.ConmonEnvVars
 	runtime.cgroupManager = runtimeCfg.CgroupManager
 	runtime.tmpDir = runtimeCfg.TmpDir
 	runtime.logSizeMax = runtimeCfg.LogSizeMax

@@ -38,7 +38,9 @@ func init() {
 	flags.SetInterspersed(false)
 	flags.SetNormalizeFunc(aliasFlags)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
-	getCreateFlags(&runCommand.PodmanCommand)
+	conf := getDefaultConfig(os.Getenv("CONTAINERS_CONF"))
+
+	getCreateFlags(&runCommand.PodmanCommand, conf)
 	markFlagHiddenForRemoteClient("authfile", flags)
 }
 

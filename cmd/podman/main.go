@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
@@ -16,6 +17,7 @@ import (
 	"github.com/opentracing/opentracing-go"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/containers/common/pkg/config"
 )
 
 // This is populated by the Makefile from the VERSION file
@@ -99,6 +101,16 @@ func init() {
 
 func initConfig() {
 	//	we can do more stuff in here.
+}
+
+func getDefaultConfig(path string) *config.Config {
+	var err error
+	defaultConfig, err := config.NewConfig(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
+	return defaultConfig
 }
 
 func before(cmd *cobra.Command, args []string) error {

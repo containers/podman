@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -132,9 +133,9 @@ func DefaultConfig() (*Config, error) {
 			SignaturePolicyPath: signaturePolicyPath,
 		},
 		NetworkConfig: NetworkConfig{
-			DefaultNetwork: "podman",
-			NetworkDir:     cniConfigDir,
-			PluginDirs:     cniBinDir,
+			DefaultNetwork:   "podman",
+			NetworkConfigDir: cniConfigDir,
+			CNIPluginDirs:    cniBinDir,
 		},
 		LibpodConfig: *defaultLibpodConfig,
 	}, nil
@@ -167,6 +168,12 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 	c.ImageDefaultTransport = _defaultTransport
 	c.StateType = BoltDBStateStore
 
+	c.OCIRuntime = "runc"
+	// If we're running on cgroups v2, default to using crun.
+	if onCgroupsv2, _ := cgroups.IsCgroup2UnifiedMode(); onCgroupsv2 {
+		c.OCIRuntime = "crun"
+	}
+
 	c.OCIRuntimes = map[string][]string{
 		"runc": {
 			"/usr/bin/runc",
@@ -187,6 +194,9 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
 		},
+	}
+	c.ConmonEnvVars = []string{
+		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 	}
 	c.ConmonPath = []string{
 		"/usr/libexec/podman/conmon",

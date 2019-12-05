@@ -134,6 +134,10 @@ type ContainersConfig struct {
 type LibpodConfig struct {
 	// NOTE: when changing this struct, make sure to update (*Config).Merge().
 
+	// ConmonEnvVars are environment variables to pass to the Conmon binary
+	// when it is launched.
+	ConmonEnvVars []string `toml:"conmon_env_vars"`
+
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
 	ConmonPath []string `toml:"conmon_path"`
@@ -293,15 +297,15 @@ type SetOptions struct {
 
 // NetworkConfig represents the "network" TOML config table
 type NetworkConfig struct {
+	// CNIPluginDirs is where CNI plugin binaries are stored.
+	CNIPluginDirs []string `toml:"cni_plugin_dirs"`
+
 	// DefaultNetwork is the network name of the default CNI network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
 
-	// NetworkDir is where CNI network configuration files are stored.
-	NetworkDir string `toml:"network_dir"`
-
-	// PluginDirs is where CNI plugin binaries are stored.
-	PluginDirs []string `toml:"plugin_dirs"`
+	// NetworkConfigDir is where CNI network configuration files are stored.
+	NetworkConfigDir string `toml:"network_config_dir"`
 }
 
 // DefaultCapabilities for the default_capabilities option in the containers.conf file
@@ -333,25 +337,30 @@ var DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
 
-	config := &Config{} // start with an empty config
+	defaultConfig, err := DefaultConfig()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error generating default config from memory")
+	}
 
+	// start from a default config from memory
+	config := defaultConfig
+
+	var configs []string
 	// First, try to read the user-specified config
 	if userConfigPath != "" {
-		var err error
-		config, err = ReadConfigFromFile(userConfigPath)
+		configs = []string{userConfigPath}
+	} else {
+		// Now, check if the user can access system configs and merge them if needed.
+		configs, err = systemConfigs()
 		if err != nil {
-			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
+			return nil, errors.Wrapf(err, "error finding config on system")
 		}
+
 	}
 
-	// Now, check if the user can access system configs and merge them if needed.
-	configs, err := systemConfigs()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error finding config on system")
-	}
 	for _, path := range configs {
 		systemConfig, err := ReadConfigFromFile(path)
-		if err != nil {
+		if err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error reading system config %q", path)
 		}
 		// Merge the it into the config. Any unset field in config will be
@@ -360,17 +369,6 @@ func NewConfig(userConfigPath string) (*Config, error) {
 			return nil, errors.Wrapf(err, "error merging system config")
 		}
 		logrus.Debugf("Merged system config %q: %v", path, config)
-	}
-
-	// Finally, create a default config from memory and forcefully merge it into
-	// the config. This way we try to make sure that all fields are properly set
-	// and that user AND system config can partially set.
-	defaultConfig, err := DefaultConfig()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error generating default config from memory")
-	}
-	if err := config.mergeConfig(defaultConfig); err != nil {
-		return nil, errors.Wrapf(err, "error merging default config from memory")
 	}
 
 	config.checkCgroupsAndAdjustConfig()
@@ -432,23 +430,21 @@ func ReadConfigFromFile(path string) (*Config, error) {
 }
 
 func systemConfigs() ([]string, error) {
+	configs := []string{}
+	if _, err := os.Stat(DefaultContainersConfig); err == nil {
+		configs = append(configs, DefaultContainersConfig)
+	}
+	if _, err := os.Stat(OverrideContainersConfig); err == nil {
+		configs = append(configs, OverrideContainersConfig)
+	}
 	if unshare.IsRootless() {
 		path, err := rootlessConfigPath()
 		if err != nil {
 			return nil, err
 		}
 		if _, err := os.Stat(path); err == nil {
-			return []string{path}, nil
+			configs = append(configs, path)
 		}
-		return nil, err
-	}
-
-	configs := []string{}
-	if _, err := os.Stat(OverrideContainersConfig); err == nil {
-		configs = append(configs, OverrideContainersConfig)
-	}
-	if _, err := os.Stat(DefaultContainersConfig); err == nil {
-		configs = append(configs, DefaultContainersConfig)
 	}
 	return configs, nil
 }
@@ -569,20 +565,20 @@ func (c *ContainersConfig) Validate() error {
 // `nil`.
 func (c *NetworkConfig) Validate(onExecution bool) error {
 	if onExecution {
-		err := IsDirectory(c.NetworkDir)
+		err := IsDirectory(c.NetworkConfigDir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				if err = os.MkdirAll(c.NetworkDir, 0755); err != nil {
-					return errors.Wrapf(err, "Cannot create network_dir: %s", c.NetworkDir)
+				if err = os.MkdirAll(c.NetworkConfigDir, 0755); err != nil {
+					return errors.Wrapf(err, "Cannot create network_config_dir: %s", c.NetworkConfigDir)
 				}
 			} else {
-				return errors.Wrapf(err, "invalid network_dir: %s", c.NetworkDir)
+				return errors.Wrapf(err, "invalid network_config_dir: %s", c.NetworkConfigDir)
 			}
 		}
 
-		for _, pluginDir := range c.PluginDirs {
+		for _, pluginDir := range c.CNIPluginDirs {
 			if err := os.MkdirAll(pluginDir, 0755); err != nil {
-				return errors.Wrapf(err, "invalid plugin_dirs entry")
+				return errors.Wrapf(err, "invalid cni_plugin_dirs entry")
 			}
 		}
 	}

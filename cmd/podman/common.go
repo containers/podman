@@ -8,12 +8,15 @@ import (
 
 	"github.com/containers/buildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/apparmor"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/fatih/camelcase"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -116,7 +119,18 @@ func getDefaultNetwork() string {
 	return "bridge"
 }
 
-func getCreateFlags(c *cliconfig.PodmanCommand) {
+func getCreateFlags(c *cliconfig.PodmanCommand, userConfig *config.Config) {
+
+	securityOpts := []string{}
+	if userConfig.ContainersConfig.SeccompProfile != "" && userConfig.ContainersConfig.SeccompProfile != parse.SeccompDefaultPath {
+		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", userConfig.ContainersConfig.SeccompProfile))
+	}
+	if apparmor.IsEnabled() && userConfig.ContainersConfig.ApparmorProfile != "" {
+		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", userConfig.ContainersConfig.ApparmorProfile))
+	}
+	if selinux.GetEnabled() && !userConfig.ContainersConfig.EnableLabeling {
+		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
+	}
 
 	createFlags := c.Flags()
 
@@ -213,8 +227,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
 	createFlags.StringSlice(
-		"device", []string{},
-		"Add a host device to the container (default [])",
+		"device", userConfig.AdditionalDevices,
+		fmt.Sprintf("Add a host device to the container (default %v)", userConfig.AdditionalDevices),
 	)
 	createFlags.StringSlice(
 		"device-read-bps", []string{},
@@ -249,7 +263,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Overwrite the default ENTRYPOINT of the image",
 	)
 	createFlags.StringArrayP(
-		"env", "e", []string{},
+		"env", "e", userConfig.Env,
 		"Set environment variables in container",
 	)
 	createFlags.Bool(
@@ -307,13 +321,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore'",
 	)
 	createFlags.Bool(
-		"init", false,
+		"init", userConfig.Init,
 		"Run an init binary inside the container that forwards signals and reaps processes",
 	)
 	createFlags.String(
 		"init-path", "",
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary (default: %q)", define.DefaultInitPath),
+		fmt.Sprintf("Path to the container-init binary (default: %q)", userConfig.InitPath),
 	)
 	createFlags.BoolP(
 		"interactive", "i", false,
@@ -406,7 +420,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"PID namespace to use",
 	)
 	createFlags.Int64(
-		"pids-limit", sysinfo.GetDefaultPidsLimit(),
+		"pids-limit", userConfig.PidsLimit,
 		"Tune container pids limit (set 0 for unlimited)",
 	)
 	createFlags.String(
@@ -454,8 +468,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"The first argument is not an image but the rootfs to the exploded container",
 	)
 	createFlags.StringArray(
-		"security-opt", []string{},
-		"Security Options (default [])",
+		"security-opt", securityOpts,
+		fmt.Sprintf("Security Options (default %v)", securityOpts),
 	)
 	createFlags.String(
 		"shm-size", cliconfig.DefaultShmSize,
@@ -483,8 +497,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 
 	createFlags.StringSlice(
-		"sysctl", []string{},
-		"Sysctl options (default [])",
+		"sysctl", userConfig.DefaultSysctls,
+		fmt.Sprintf("Sysctl options (default %v)", userConfig.DefaultSysctls),
 	)
 	createFlags.String(
 		"systemd", "true",
@@ -503,8 +517,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"UID map to use for the user namespace",
 	)
 	createFlags.StringSlice(
-		"ulimit", []string{},
-		"Ulimit options (default [])",
+		"ulimit", userConfig.DefaultUlimits,
+		fmt.Sprintf("Ulimit options (default %v)", userConfig.DefaultUlimits),
 	)
 	createFlags.StringP(
 		"user", "u", "",

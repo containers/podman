@@ -35,6 +35,8 @@ github.com/QiWang19/common v0.0.0-20191126180544-cf307b5c1523 h1:8IzxWUmBdTqdnl6
 github.com/QiWang19/common v0.0.0-20191126180544-cf307b5c1523/go.mod h1:f3KsSzFwDzo4ayXPgcVmzvMTo0yzpwOqe/o2223FsQE=
 github.com/QiWang19/common v0.0.0-20191126190113-44f6c05daf29 h1:k3DaOIAUyJeMgtWC2B7gkn5BLW6WegnUJmbijvOKrzA=
 github.com/QiWang19/common v0.0.0-20191126190113-44f6c05daf29/go.mod h1:f3KsSzFwDzo4ayXPgcVmzvMTo0yzpwOqe/o2223FsQE=
+github.com/QiWang19/common v0.0.0-20191205212721-e28d1ace6188 h1:TA4DblfR+Kp9djp+zfwMEZu0LHiJ2rdyaYmRJ5zQSw0=
+github.com/QiWang19/common v0.0.0-20191205212721-e28d1ace6188/go.mod h1:lhWV3MLhO1+KGE2x6v9+K38MxpjXGso+edmpkFnCOqI=
 github.com/VividCortex/ewma v1.1.1 h1:MnEK4VOv6n0RSY4vtRe3h11qjxL3+t0B8yOL8iMXdcM=
 github.com/VividCortex/ewma v1.1.1/go.mod h1:2Tkkvm3sRDVXaiyucHiACn4cqf7DpdyLvmxzcbUokwA=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
