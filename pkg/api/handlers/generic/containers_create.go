@@ -1,10 +1,8 @@
-package handlers
+package generic
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/schema"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 
@@ -12,41 +10,44 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"
 	"github.com/docker/docker/pkg/signal"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	input := CreateContainerConfig{}
+	input := handlers.CreateContainerConfig{}
 	query := struct {
 		Name string `schema:"name"`
 	}{
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
 	cc, err := makeCreateConfig(input, newImage)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
 	}
 
@@ -65,7 +66,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			//s.WriteResponse(w, http.StatusInternalServerError, fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type))
 			return
 		}
-		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
+		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return
 	}
 
@@ -77,10 +78,10 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		Id:       ctr.ID(),
 		Warnings: []string{}}
 
-	WriteResponse(w, http.StatusCreated, response)
+	handlers.WriteResponse(w, http.StatusCreated, response)
 }
 
-func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err     error
 		init    bool
