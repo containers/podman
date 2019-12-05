@@ -1,7 +1,8 @@
-package handlers
+package generic
 
 import (
 	"encoding/json"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"net/http"
 	"time"
 
@@ -27,24 +28,24 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		handlers.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		ContainerNotFound(w, name, err)
+		handlers.ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := ctnr.State()
 	if err != nil {
-		InternalServerError(w, err)
+		handlers.InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning && !query.Stream {
-		WriteJSON(w, http.StatusOK, &Stats{docker.StatsJSON{
+		handlers.WriteJSON(w, http.StatusOK, &handlers.Stats{StatsJSON: docker.StatsJSON{
 			Name: ctnr.Name(),
 			ID:   ctnr.ID(),
 		}})
@@ -56,7 +57,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
-		InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
+		handlers.InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
 		return
 	}
 
@@ -104,7 +105,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			InstanceID: "",
 		}
 
-		s := Stats{docker.StatsJSON{
+		s := handlers.Stats{StatsJSON: docker.StatsJSON{
 			Stats: docker.Stats{
 				Read:    time.Now(),
 				PreRead: preRead,
@@ -161,7 +162,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			Networks: net,
 		}}
 
-		WriteJSON(w, http.StatusOK, s)
+		handlers.WriteJSON(w, http.StatusOK, s)
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}
