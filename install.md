@@ -95,7 +95,9 @@ system](https://bodhi.fedoraproject.org/updates/?packages=podman).
 
 **Required**
 
-Fedora, CentOS, RHEL, and related distributions:
+Fedora, CentOS, RHEL, and related distributions you should try to run
+`make package-install` which will install dependencies, build the source,
+produce rpms for the current platform and install them in the end.
 
 ```bash
 sudo yum install -y \
