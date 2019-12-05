@@ -160,10 +160,11 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 
 	ic := v1.ImageConfig{}
 	if len(changes) > 0 {
-		ic, err = util.GetImageConfig(changes)
+		config, err := util.GetImageConfig(changes)
 		if err != nil {
 			return "", errors.Wrapf(err, "error adding config changes to image %q", source)
 		}
+		ic = config.ImageConfig
 	}
 
 	hist := []v1.History{

@@ -183,6 +183,9 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 	if newImageConfig.StopSignal != "" {
 		importBuilder.SetStopSignal(newImageConfig.StopSignal)
 	}
+	for _, onbuild := range newImageConfig.OnBuild {
+		importBuilder.SetOnBuild(onbuild)
+	}
 
 	candidates, _, _, err := util.ResolveName(destImage, "", sc, c.runtime.store)
 	if err != nil {

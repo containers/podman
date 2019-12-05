@@ -73,10 +73,18 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
+// ImageConfig is a wrapper around the OCIv1 Image Configuration struct exported
+// by containers/image, but containing additional fields that are not supported
+// by OCIv1 (but are by Docker v2) - notably OnBuild.
+type ImageConfig struct {
+	v1.ImageConfig
+	OnBuild []string
+}
+
 // GetImageConfig produces a v1.ImageConfig from the --change flag that is
 // accepted by several Podman commands. It accepts a (limited subset) of
 // Dockerfile instructions.
-func GetImageConfig(changes []string) (v1.ImageConfig, error) {
+func GetImageConfig(changes []string) (ImageConfig, error) {
 	// Valid changes:
 	// USER
 	// EXPOSE
@@ -87,8 +95,9 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 	// WORKDIR
 	// LABEL
 	// STOPSIGNAL
+	// ONBUILD
 
-	config := v1.ImageConfig{}
+	config := ImageConfig{}
 
 	for _, change := range changes {
 		// First, let's assume proper Dockerfile format - space
@@ -98,7 +107,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 		if len(split) != 2 {
 			split = strings.SplitN(change, "=", 2)
 			if len(split) != 2 {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must be formatted as KEY VALUE", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - must be formatted as KEY VALUE", change)
 			}
 		}
 
@@ -108,7 +117,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 		case "USER":
 			// Assume literal contents are the user.
 			if value == "" {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide a value to USER", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide a value to USER", change)
 			}
 			config.User = value
 		case "EXPOSE":
@@ -117,14 +126,14 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			// Protocol must be "tcp" or "udp"
 			splitPort := strings.Split(value, "/")
 			if len(splitPort) > 2 {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be formatted as PORT[/PROTO]", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be formatted as PORT[/PROTO]", change)
 			}
 			portNum, err := strconv.Atoi(splitPort[0])
 			if err != nil {
-				return v1.ImageConfig{}, errors.Wrapf(err, "invalid change %q - EXPOSE port must be an integer", change)
+				return ImageConfig{}, errors.Wrapf(err, "invalid change %q - EXPOSE port must be an integer", change)
 			}
 			if portNum > 65535 || portNum <= 0 {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be a valid port number", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be a valid port number", change)
 			}
 			proto := "tcp"
 			if len(splitPort) > 1 {
@@ -133,7 +142,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 				case "tcp", "udp":
 					proto = testProto
 				default:
-					return v1.ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE protocol must be TCP or UDP", change)
+					return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE protocol must be TCP or UDP", change)
 				}
 			}
 			if config.ExposedPorts == nil {
@@ -157,7 +166,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			key = splitEnv[0]
 			// We do need a key
 			if key == "" {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - ENV must have at least one argument", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - ENV must have at least one argument", change)
 			}
 			// Perfectly valid to not have a value
 			if len(splitEnv) == 2 {
@@ -219,11 +228,11 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 				testUnmarshal = strings.Split(value, " ")
 			}
 			if len(testUnmarshal) == 0 {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide at least one argument to VOLUME", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide at least one argument to VOLUME", change)
 			}
 			for _, vol := range testUnmarshal {
 				if vol == "" {
-					return v1.ImageConfig{}, errors.Errorf("invalid change %q - VOLUME paths must not be empty", change)
+					return ImageConfig{}, errors.Errorf("invalid change %q - VOLUME paths must not be empty", change)
 				}
 				if config.Volumes == nil {
 					config.Volumes = make(map[string]struct{})
@@ -237,7 +246,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			// WORKDIR c results in /A/b/c
 			// Just need to check it's not empty...
 			if value == "" {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - must provide a non-empty WORKDIR", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide a non-empty WORKDIR", change)
 			}
 			config.WorkingDir = filepath.Join(config.WorkingDir, value)
 		case "LABEL":
@@ -254,7 +263,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			splitLabel := strings.SplitN(value, "=", 2)
 			// Unlike ENV, LABEL must have a value
 			if len(splitLabel) != 2 {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - LABEL must be formatted key=value", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - LABEL must be formatted key=value", change)
 			}
 			key = splitLabel[0]
 			val = splitLabel[1]
@@ -267,7 +276,7 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			}
 			// Check key after we strip quotations
 			if key == "" {
-				return v1.ImageConfig{}, errors.Errorf("invalid change %q - LABEL must have a non-empty key", change)
+				return ImageConfig{}, errors.Errorf("invalid change %q - LABEL must have a non-empty key", change)
 			}
 			if config.Labels == nil {
 				config.Labels = make(map[string]string)
@@ -279,11 +288,17 @@ func GetImageConfig(changes []string) (v1.ImageConfig, error) {
 			// negative numbers.
 			killSignal, err := signal.ParseSignal(value)
 			if err != nil {
-				return v1.ImageConfig{}, errors.Wrapf(err, "invalid change %q - KILLSIGNAL must be given a valid signal", change)
+				return ImageConfig{}, errors.Wrapf(err, "invalid change %q - KILLSIGNAL must be given a valid signal", change)
 			}
 			config.StopSignal = fmt.Sprintf("%d", killSignal)
+		case "ONBUILD":
+			// Onbuild always appends.
+			if value == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - ONBUILD must be given an argument", change)
+			}
+			config.OnBuild = append(config.OnBuild, value)
 		default:
-			return v1.ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
+			return ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
 		}
 	}
 

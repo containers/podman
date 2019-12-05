@@ -602,7 +602,7 @@ func (i *LibpodAPI) ImportImage(call iopodman.VarlinkCall, source, reference, me
 		{Comment: message},
 	}
 	config := v1.Image{
-		Config:  configChanges,
+		Config:  configChanges.ImageConfig,
 		History: history,
 	}
 	newImage, err := i.Runtime.ImageRuntime().Import(getContext(), source, reference, nil, image.SigningOptions{}, config)

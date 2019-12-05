@@ -238,6 +238,22 @@ func TestGetImageConfigStopSignal(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
+func TestGetImageConfigOnBuild(t *testing.T) {
+	onBuildOne, err := GetImageConfig([]string{"ONBUILD ADD /testdir1"})
+	require.Nil(t, err)
+	require.Equal(t, 1, len(onBuildOne.OnBuild))
+	assert.Equal(t, onBuildOne.OnBuild[0], "ADD /testdir1")
+
+	onBuildTwo, err := GetImageConfig([]string{"ONBUILD ADD /testdir1", "ONBUILD ADD /testdir2"})
+	require.Nil(t, err)
+	require.Equal(t, 2, len(onBuildTwo.OnBuild))
+	assert.Equal(t, onBuildTwo.OnBuild[0], "ADD /testdir1")
+	assert.Equal(t, onBuildTwo.OnBuild[1], "ADD /testdir2")
+
+	_, err = GetImageConfig([]string{"ONBUILD "})
+	assert.NotNil(t, err)
+}
+
 func TestGetImageConfigMisc(t *testing.T) {
 	_, err := GetImageConfig([]string{""})
 	assert.NotNil(t, err)
