@@ -367,6 +367,23 @@ func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateV
 	return ctr.ID(), nil
 }
 
+// Select the detach keys to use from user input flag, config file, or default value
+func (r *LocalRuntime) selectDetachKeys(flagValue string) (string, error) {
+	if flagValue != "" {
+		return flagValue, nil
+	}
+
+	config, err := r.GetConfig()
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to retrive runtime config")
+	}
+	if config.DetachKeys != "" {
+		return config.DetachKeys, nil
+	}
+
+	return define.DefaultDetachKeys, nil
+}
+
 // Run a libpod container
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, false)
@@ -428,8 +445,13 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		}
 	}
 
+	keys, err := r.selectDetachKeys(c.String("detach-keys"))
+	if err != nil {
+		return exitCode, err
+	}
+
 	// if the container was created as part of a pod, also start its dependencies, if any.
-	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
+	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, keys, c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
@@ -512,8 +534,14 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if c.NoStdin {
 		inputStream = nil
 	}
+
+	keys, err := r.selectDetachKeys(c.DetachKeys)
+	if err != nil {
+		return err
+	}
+
 	// If the container is in a pod, also set to recursively start dependencies
-	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
+	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, keys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 	return nil
@@ -646,9 +674,14 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 				}
 			}
 
+			keys, err := r.selectDetachKeys(c.DetachKeys)
+			if err != nil {
+				return exitCode, err
+			}
+
 			// attach to the container and also start it not already running
 			// If the container is in a pod, also set to recursively start dependencies
-			err = StartAttachCtr(ctx, ctr.Container, os.Stdout, os.Stderr, inputStream, c.DetachKeys, sigProxy, !ctrRunning, ctr.PodID() != "")
+			err = StartAttachCtr(ctx, ctr.Container, os.Stdout, os.Stderr, inputStream, keys, sigProxy, !ctrRunning, ctr.PodID() != "")
 			if errors.Cause(err) == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -1005,7 +1038,12 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, env, cmd, cli.User, cli.Workdir, streams, uint(cli.PreserveFDs), cli.DetachKeys)
+	keys, err := r.selectDetachKeys(cli.DetachKeys)
+	if err != nil {
+		return ec, err
+	}
+
+	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, env, cmd, cli.User, cli.Workdir, streams, uint(cli.PreserveFDs), keys)
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
