@@ -8,6 +8,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var (
+	ErrLinkNotSupport = errors.New("Link is not supported")
+)
+
 // Error formats an API response to an error
 //
 // apiMessage and code must match the container API, and are sent to client
