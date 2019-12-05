@@ -29,6 +29,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	// BuilderIdentityAnnotation is the name of the annotation key containing
+	// the name and version of the producer of the image stored as an
+	// annotation on commit.
+	BuilderIdentityAnnotation = "io.buildah.version"
+)
+
 // CommitOptions can be used to alter how an image is committed.
 type CommitOptions struct {
 	// PreferredManifestType is the preferred type of image manifest.  The
