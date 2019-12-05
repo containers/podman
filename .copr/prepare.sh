@@ -34,6 +34,6 @@ if [ ! -d conmon ]; then
     git clone -n --quiet https://github.com/containers/conmon
 fi
 pushd conmon
-git checkout 6f3572558b97bc60dd8f8c7f0807748e6ce2c440
+git checkout --detach 6f3572558b97bc60dd8f8c7f0807748e6ce2c440
 git archive --prefix "conmon/" --format "tar.gz" HEAD -o "../build/conmon.tar.gz"
 popd

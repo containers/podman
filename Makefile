@@ -476,7 +476,7 @@ endef
 	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
 		$(call go-get,github.com/alecthomas/gometalinter); \
 		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
+		git checkout --detach e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
 		$(GO) install github.com/alecthomas/gometalinter; \
 		$(GOBIN)/gometalinter --install; \
 	fi
@@ -498,7 +498,7 @@ varlink_api_generate: .gopathok API.md
 install.libseccomp.sudo:
 	rm -rf ../../seccomp/libseccomp
 	git clone https://github.com/seccomp/libseccomp ../../seccomp/libseccomp
-	cd ../../seccomp/libseccomp && git checkout $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
+	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
 
 cmd/podman/varlink/iopodman.go: cmd/podman/varlink/io.podman.varlink

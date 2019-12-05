@@ -52,7 +52,7 @@ RUN set -x \
 	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
 	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CONMON_COMMIT" \
+	&& git checkout --detach -q "$CONMON_COMMIT" \
 	&& make \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
