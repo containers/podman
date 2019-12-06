@@ -105,7 +105,9 @@ var _ = Describe("Podman import", func() {
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(Equal(0))
 		imageData := results.InspectImageJSON()
-		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/bash"))
+		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/sh"))
+		Expect(imageData[0].Config.Cmd[1]).To(Equal("-c"))
+		Expect(imageData[0].Config.Cmd[2]).To(Equal("/bin/bash"))
 	})
 
 	It("podman import with change flag CMD <path>", func() {
@@ -126,6 +128,8 @@ var _ = Describe("Podman import", func() {
 		Expect(results.ExitCode()).To(Equal(0))
 		imageData := results.InspectImageJSON()
 		Expect(imageData[0].Config.Cmd[0]).To(Equal("/bin/sh"))
+		Expect(imageData[0].Config.Cmd[1]).To(Equal("-c"))
+		Expect(imageData[0].Config.Cmd[2]).To(Equal("/bin/sh"))
 	})
 
 	It("podman import with change flag CMD [\"path\",\"path'\"", func() {
@@ -137,7 +141,7 @@ var _ = Describe("Podman import", func() {
 		export.WaitWithDefaultTimeout()
 		Expect(export.ExitCode()).To(Equal(0))
 
-		importImage := podmanTest.Podman([]string{"import", "--change", "CMD [/bin/bash]", outfile, "imported-image"})
+		importImage := podmanTest.Podman([]string{"import", "--change", "CMD [\"/bin/bash\"]", outfile, "imported-image"})
 		importImage.WaitWithDefaultTimeout()
 		Expect(importImage.ExitCode()).To(Equal(0))
 
