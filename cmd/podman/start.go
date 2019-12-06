@@ -35,6 +35,9 @@ func init() {
 	startCommand.SetUsageTemplate(UsageTemplate())
 	flags := startCommand.Flags()
 	flags.BoolVarP(&startCommand.Attach, "attach", "a", false, "Attach container's STDOUT and STDERR")
+	// Clear the default, the value specified in the config file should have the
+	// priority
+	startCommand.DetachKeys = ""
 	flags.StringVar(&startCommand.DetachKeys, "detach-keys", define.DefaultDetachKeys, "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
 	flags.BoolVarP(&startCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&startCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")

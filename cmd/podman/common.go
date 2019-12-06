@@ -208,10 +208,14 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"detach", "d", false,
 		"Run container in background and print container ID",
 	)
-	createFlags.String(
+	detachKeys := createFlags.String(
 		"detach-keys", define.DefaultDetachKeys,
 		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
+	// Clear the default, the value specified in the config file should have the
+	// priority
+	*detachKeys = ""
+
 	createFlags.StringSlice(
 		"device", []string{},
 		"Add a host device to the container (default [])",

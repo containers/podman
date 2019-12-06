@@ -33,6 +33,9 @@ func init() {
 	attachCommand.SetUsageTemplate(UsageTemplate())
 	flags := attachCommand.Flags()
 	flags.StringVar(&attachCommand.DetachKeys, "detach-keys", define.DefaultDetachKeys, "Select the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`")
+	// Clear the default, the value specified in the config file should have the
+	// priority
+	attachCommand.DetachKeys = ""
 	flags.BoolVar(&attachCommand.NoStdin, "no-stdin", false, "Do not attach STDIN. The default is false")
 	flags.BoolVar(&attachCommand.SigProxy, "sig-proxy", true, "Proxy received signals to the process")
 	flags.BoolVarP(&attachCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
