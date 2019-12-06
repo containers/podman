@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -95,6 +96,10 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 	for _, key := range xattrs {
 		if strings.HasPrefix(key, "user.") {
 			value, err := system.Lgetxattr(cpath, key)
+			if err == system.E2BIG {
+				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", cpath, key)
+				continue
+			}
 			if err != nil {
 				return err
 			}

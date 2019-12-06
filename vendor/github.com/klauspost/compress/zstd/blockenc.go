@@ -300,13 +300,13 @@ func (b *blockEnc) encodeRaw(a []byte) {
 }
 
 // encodeLits can be used if the block is only litLen.
-func (b *blockEnc) encodeLits() error {
+func (b *blockEnc) encodeLits(raw bool) error {
 	var bh blockHeader
 	bh.setLast(b.last)
 	bh.setSize(uint32(len(b.literals)))
 
 	// Don't compress extremely small blocks
-	if len(b.literals) < 32 {
+	if len(b.literals) < 32 || raw {
 		if debug {
 			println("Adding RAW block, length", len(b.literals))
 		}
@@ -438,9 +438,9 @@ func fuzzFseEncoder(data []byte) int {
 }
 
 // encode will encode the block and put the output in b.output.
-func (b *blockEnc) encode() error {
+func (b *blockEnc) encode(raw bool) error {
 	if len(b.sequences) == 0 {
-		return b.encodeLits()
+		return b.encodeLits(raw)
 	}
 	// We want some difference
 	if len(b.literals) > (b.size - (b.size >> 5)) {
@@ -458,10 +458,10 @@ func (b *blockEnc) encode() error {
 		reUsed, single bool
 		err            error
 	)
-	if len(b.literals) >= 1024 {
+	if len(b.literals) >= 1024 && !raw {
 		// Use 4 Streams.
 		out, reUsed, err = huff0.Compress4X(b.literals, b.litEnc)
-	} else if len(b.literals) > 32 {
+	} else if len(b.literals) > 32 && !raw {
 		// Use 1 stream
 		single = true
 		out, reUsed, err = huff0.Compress1X(b.literals, b.litEnc)

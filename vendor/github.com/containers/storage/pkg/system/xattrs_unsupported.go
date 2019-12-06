@@ -5,6 +5,9 @@ package system
 import "syscall"
 
 const (
+	// Value is larger than the maximum size allowed
+	E2BIG syscall.Errno = syscall.Errno(0)
+
 	// Operation not supported
 	EOPNOTSUPP syscall.Errno = syscall.Errno(0)
 )

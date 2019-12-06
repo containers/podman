@@ -3,6 +3,7 @@ package flate
 import (
 	"io"
 	"math"
+	"sync"
 )
 
 const (
@@ -49,11 +50,24 @@ func NewStatelessWriter(dst io.Writer) io.WriteCloser {
 	return &statelessWriter{dst: dst}
 }
 
+// bitWriterPool contains bit writers that can be reused.
+var bitWriterPool = sync.Pool{
+	New: func() interface{} {
+		return newHuffmanBitWriter(nil)
+	},
+}
+
 // StatelessDeflate allows to compress directly to a Writer without retaining state.
 // When returning everything will be flushed.
 func StatelessDeflate(out io.Writer, in []byte, eof bool) error {
 	var dst tokens
-	bw := newHuffmanBitWriter(out)
+	bw := bitWriterPool.Get().(*huffmanBitWriter)
+	bw.reset(out)
+	defer func() {
+		// don't keep a reference to our output
+		bw.reset(nil)
+		bitWriterPool.Put(bw)
+	}()
 	if eof && len(in) == 0 {
 		// Just write an EOF block.
 		// Could be faster...

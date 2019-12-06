@@ -89,6 +89,7 @@ type blockDec struct {
 	sequenceBuf []seq
 	tmp         [4]byte
 	err         error
+	decWG       sync.WaitGroup
 }
 
 func (b *blockDec) String() string {
@@ -105,6 +106,7 @@ func newBlockDec(lowMem bool) *blockDec {
 		input:   make(chan struct{}, 1),
 		history: make(chan *history, 1),
 	}
+	b.decWG.Add(1)
 	go b.startDecoder()
 	return &b
 }
@@ -183,11 +185,13 @@ func (b *blockDec) Close() {
 	close(b.input)
 	close(b.history)
 	close(b.result)
+	b.decWG.Wait()
 }
 
 // decodeAsync will prepare decoding the block when it receives input.
 // This will separate output and history.
 func (b *blockDec) startDecoder() {
+	defer b.decWG.Done()
 	for range b.input {
 		//println("blockDec: Got block input")
 		switch b.Type {
