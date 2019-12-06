@@ -20,6 +20,7 @@ type encoderOptions struct {
 	windowSize int
 	level      EncoderLevel
 	fullZero   bool
+	noEntropy  bool
 }
 
 func (o *encoderOptions) setDefault() {
@@ -198,6 +199,16 @@ func WithEncoderLevel(l EncoderLevel) EOption {
 func WithZeroFrames(b bool) EOption {
 	return func(o *encoderOptions) error {
 		o.fullZero = b
+		return nil
+	}
+}
+
+// WithNoEntropyCompression will always skip entropy compression of literals.
+// This can be useful if content has matches, but unlikely to benefit from entropy
+// compression. Usually the slight speed improvement is not worth enabling this.
+func WithNoEntropyCompression(b bool) EOption {
+	return func(o *encoderOptions) error {
+		o.noEntropy = b
 		return nil
 	}
 }
