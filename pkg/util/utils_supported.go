@@ -20,6 +20,10 @@ import (
 func GetRuntimeDir() (string, error) {
 	var rootlessRuntimeDirError error
 
+	if !rootless.IsRootless() {
+		return "", nil
+	}
+
 	rootlessRuntimeDirOnce.Do(func() {
 		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
