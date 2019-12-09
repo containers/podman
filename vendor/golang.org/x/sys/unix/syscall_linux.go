@@ -1222,6 +1222,34 @@ func KeyctlDHCompute(params *KeyctlDHParams, buffer []byte) (size int, err error
 	return keyctlDH(KEYCTL_DH_COMPUTE, params, buffer)
 }
 
+// KeyctlRestrictKeyring implements the KEYCTL_RESTRICT_KEYRING command. This
+// command limits the set of keys that can be linked to the keyring, regardless
+// of keyring permissions. The command requires the "setattr" permission.
+//
+// When called with an empty keyType the command locks the keyring, preventing
+// any further keys from being linked to the keyring.
+//
+// The "asymmetric" keyType defines restrictions requiring key payloads to be
+// DER encoded X.509 certificates signed by keys in another keyring. Restrictions
+// for "asymmetric" include "builtin_trusted", "builtin_and_secondary_trusted",
+// "key_or_keyring:<key>", and "key_or_keyring:<key>:chain".
+//
+// As of Linux 4.12, only the "asymmetric" keyType defines type-specific
+// restrictions.
+//
+// See the full documentation at:
+// http://man7.org/linux/man-pages/man3/keyctl_restrict_keyring.3.html
+// http://man7.org/linux/man-pages/man2/keyctl.2.html
+func KeyctlRestrictKeyring(ringid int, keyType string, restriction string) error {
+	if keyType == "" {
+		return keyctlRestrictKeyring(KEYCTL_RESTRICT_KEYRING, ringid)
+	}
+	return keyctlRestrictKeyringByType(KEYCTL_RESTRICT_KEYRING, ringid, keyType, restriction)
+}
+
+//sys keyctlRestrictKeyringByType(cmd int, arg2 int, keyType string, restriction string) (err error) = SYS_KEYCTL
+//sys keyctlRestrictKeyring(cmd int, arg2 int) (err error) = SYS_KEYCTL
+
 func Recvmsg(fd int, p, oob []byte, flags int) (n, oobn int, recvflags int, from Sockaddr, err error) {
 	var msg Msghdr
 	var rsa RawSockaddrAny
