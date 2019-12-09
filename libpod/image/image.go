@@ -216,6 +216,19 @@ func (ir *Runtime) Shutdown(force bool) error {
 	return err
 }
 
+// GetImagesWithFilters gets images with a series of filters applied
+func (ir *Runtime) GetImagesWithFilters(filters []string) ([]*Image, error) {
+	filterFuncs, err := ir.createFilterFuncs(filters, nil)
+	if err != nil {
+		return nil, err
+	}
+	images, err := ir.GetImages()
+	if err != nil {
+		return nil, err
+	}
+	return FilterImages(images, filterFuncs), nil
+}
+
 func (i *Image) reloadImage() error {
 	newImage, err := i.imageruntime.getImage(i.ID())
 	if err != nil {
