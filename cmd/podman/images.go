@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/imagefilters"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
@@ -138,10 +136,10 @@ func init() {
 
 func imagesCmd(c *cliconfig.ImagesValues) error {
 	var (
-		filterFuncs []imagefilters.ResultFilter
-		image       string
+		image string
 	)
 
+	ctx := getContext()
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
@@ -156,15 +154,9 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 	if len(c.Filter) > 0 && image != "" {
 		return errors.New("can not specify an image and a filter")
 	}
-	ctx := getContext()
-
-	if len(c.Filter) > 0 {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c.Filter, nil)
-	} else {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, []string{fmt.Sprintf("reference=%s", image)}, nil)
-	}
-	if err != nil {
-		return err
+	filters := c.Filter
+	if len(filters) < 1 {
+		filters = append(filters, fmt.Sprintf("reference=%s", image))
 	}
 
 	opts := imagesOptions{
@@ -179,26 +171,17 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 	}
 
 	opts.outputformat = opts.setOutputFormat()
-	images, err := runtime.GetImages()
+	filteredImages, err := runtime.GetFilteredImages(filters, false)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
 	}
 
-	for _, image := range images {
+	for _, image := range filteredImages {
 		if image.IsReadOnly() {
 			opts.outputformat += "{{.ReadOnly}}\t"
 			break
 		}
 	}
-
-	var filteredImages []*adapter.ContainerImage
-	//filter the images
-	if len(c.Filter) > 0 || len(c.InputArgs) == 1 {
-		filteredImages = imagefilters.FilterImages(images, filterFuncs)
-	} else {
-		filteredImages = images
-	}
-
 	return generateImagesOutput(ctx, filteredImages, opts)
 }
 
@@ -391,54 +374,4 @@ func GenImageOutputMap() map[string]string {
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
-}
-
-// CreateFilterFuncs returns an array of filter functions based on the user inputs
-// and is later used to filter images for output
-func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []string, img *adapter.ContainerImage) ([]imagefilters.ResultFilter, error) {
-	var filterFuncs []imagefilters.ResultFilter
-	for _, filter := range filters {
-		splitFilter := strings.Split(filter, "=")
-		if len(splitFilter) < 2 {
-			return nil, errors.Errorf("invalid filter syntax %s", filter)
-		}
-		switch splitFilter[0] {
-		case "before":
-			before, err := r.NewImageFromLocal(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.CreatedBeforeFilter(before.Created()))
-		case "after":
-			after, err := r.NewImageFromLocal(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.CreatedAfterFilter(after.Created()))
-		case "readonly":
-			readonly, err := strconv.ParseBool(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid filter readonly=%s", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.ReadOnlyFilter(readonly))
-		case "dangling":
-			danglingImages, err := strconv.ParseBool(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid filter dangling=%s", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.DanglingFilter(danglingImages))
-		case "label":
-			labelFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, imagefilters.LabelFilter(ctx, labelFilter))
-		case "reference":
-			referenceFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, imagefilters.ReferenceFilter(ctx, referenceFilter))
-		default:
-			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
-		}
-	}
-	if img != nil {
-		filterFuncs = append(filterFuncs, imagefilters.OutputImageFilter(img))
-	}
-	return filterFuncs, nil
 }

@@ -200,6 +200,28 @@ func (r *LocalRuntime) GetRWImages() ([]*ContainerImage, error) {
 	return r.getImages(true)
 }
 
+func (r *LocalRuntime) GetFilteredImages(filters []string, rwOnly bool) ([]*ContainerImage, error) {
+	var newImages []*ContainerImage
+	images, err := iopodman.ListImagesWithFilters().Call(r.Conn, filters)
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range images {
+		if rwOnly && i.ReadOnly {
+			continue
+		}
+		name := i.Id
+		if len(i.RepoTags) > 1 {
+			name = i.RepoTags[0]
+		}
+		newImage, err := imageInListToContainerImage(i, name, r)
+		if err != nil {
+			return nil, err
+		}
+		newImages = append(newImages, newImage)
+	}
+	return newImages, nil
+}
 func (r *LocalRuntime) getImages(rwOnly bool) ([]*ContainerImage, error) {
 	var newImages []*ContainerImage
 	images, err := iopodman.ListImages().Call(r.Conn)
