@@ -22,6 +22,10 @@ import (
 var (
 	NameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
 	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
+	LogRateLimitRegex = regexp.MustCompile(`^[[:digit:]]+[KMGT]?$`)
+	LogRateLimitRegexError = errors.Wrapf(define.ErrInvalidArg,
+		`log rate limit must be a number followed by an optional suffix K, M, G or T.`,
+	)
 )
 
 // Runtime Creation Options
@@ -1054,6 +1058,44 @@ func WithLogPath(path string) CtrCreateOption {
 		ctr.config.LogPath = path
 
 		return nil
+	}
+}
+
+// WithLogPolicy sets the logging policy.
+func WithLogPolicy(policy string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		switch policy {
+		case "":
+			return errors.Wrapf(define.ErrInvalidArg, "log policy must be set")
+		case "backpressure", "drop", "ignore", "passthrough":
+			break
+		default:
+			return errors.Wrapf(define.ErrInvalidArg, "invalid log policy")
+		}
+		ctr.config.LogPolicy = policy
+		return nil
+	}
+}
+
+// WithLogRateLimit sets the logging rate limit.
+func WithLogRateLimit(rateLimit string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if rateLimit == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "log rate limit must be set")
+		} else {
+			if LogRateLimitRegex.MatchString(rateLimit) {
+				ctr.config.LogRateLimit = rateLimit
+				return nil
+			} else {
+				return LogRateLimitRegexError
+			}
+		}
 	}
 }
 

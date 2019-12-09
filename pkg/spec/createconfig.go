@@ -282,9 +282,19 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 
-	logPath := getLoggingPath(c.LogDriverOpt)
+	logPath := getLoggingOption(c.LogDriverOpt, "path")
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
+	}
+
+	logPolicy := getLoggingOption(c.LogDriverOpt, "policy")
+	if logPolicy != "" {
+		options = append(options, libpod.WithLogPolicy(logPolicy))
+	}
+
+	logRateLimit := getLoggingOption(c.LogDriverOpt, "rate-limit")
+	if logRateLimit != "" {
+		options = append(options, libpod.WithLogRateLimit(logRateLimit))
 	}
 
 	if c.LogDriver != "" {

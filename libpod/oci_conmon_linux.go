@@ -1147,6 +1147,12 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	}
 
 	args = append(args, "-l", logDriver)
+	if logPolicy := ctr.LogPolicy(); logPolicy != "" {
+		args = append(args, "--log-policy", logPolicy)
+	}
+	if logRateLimit := ctr.LogRateLimit(); logRateLimit != "" {
+		args = append(args, "--log-rate-limit", logRateLimit)
+	}
 	args = append(args, "--exit-dir", exitDir)
 	args = append(args, "--socket-dir-path", r.socketsDir)
 	if r.logSizeMax >= 0 {

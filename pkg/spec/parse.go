@@ -132,11 +132,11 @@ func validateIOpsDevice(val string) (*throttleDevice, error) { //nolint
 	}, nil
 }
 
-func getLoggingPath(opts []string) string {
+func getLoggingOption(opts []string, option string) string {
 	for _, opt := range opts {
 		arr := strings.SplitN(opt, "=", 2)
 		if len(arr) == 2 {
-			if strings.TrimSpace(arr[0]) == "path" {
+			if strings.TrimSpace(arr[0]) == option {
 				return strings.TrimSpace(arr[1])
 			}
 		}

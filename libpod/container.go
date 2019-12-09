@@ -372,6 +372,10 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogPolicy logging policy
+	LogPolicy string `json:"logPolicy"`
+	// LogRateLimit
+	LogRateLimit string `json:"logRateLimit"`
 	// LogDriver driver for logs
 	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
@@ -717,6 +721,16 @@ func (c *Container) CgroupParent() string {
 // in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
+}
+
+// LogPolicy returns the container's log policy
+func (c *Container) LogPolicy() string {
+	return c.config.LogPolicy
+}
+
+// LogRateLimit returns the container's log rate limit
+func (c *Container) LogRateLimit() string {
+	return c.config.LogRateLimit
 }
 
 // RestartPolicy returns the container's restart policy.
