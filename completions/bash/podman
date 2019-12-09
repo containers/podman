@@ -980,6 +980,7 @@ _podman_network_create() {
     --driver
     --gateway
     --ip-range
+	--macvlan
     --subnet
      "
     local boolean_options="
