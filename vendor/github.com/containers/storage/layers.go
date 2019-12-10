@@ -475,7 +475,7 @@ func (r *layerStore) saveMounts() error {
 	return r.loadMounts()
 }
 
-func newLayerStore(rundir string, layerdir string, driver drivers.Driver, uidMap, gidMap []idtools.IDMap) (LayerStore, error) {
+func (s *store) newLayerStore(rundir string, layerdir string, driver drivers.Driver) (LayerStore, error) {
 	if err := os.MkdirAll(rundir, 0700); err != nil {
 		return nil, err
 	}
@@ -501,8 +501,8 @@ func newLayerStore(rundir string, layerdir string, driver drivers.Driver, uidMap
 		byid:           make(map[string]*Layer),
 		bymount:        make(map[string]*Layer),
 		byname:         make(map[string]*Layer),
-		uidMap:         copyIDMap(uidMap),
-		gidMap:         copyIDMap(gidMap),
+		uidMap:         copyIDMap(s.uidMap),
+		gidMap:         copyIDMap(s.gidMap),
 	}
 	if err := rlstore.Load(); err != nil {
 		return nil, err

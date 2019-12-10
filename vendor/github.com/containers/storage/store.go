@@ -667,15 +667,6 @@ func (s *store) load() error {
 	s.graphDriverName = driver.String()
 	driverPrefix := s.graphDriverName + "-"
 
-	rls, err := s.LayerStore()
-	if err != nil {
-		return err
-	}
-	s.layerStore = rls
-	if _, err := s.ROLayerStores(); err != nil {
-		return err
-	}
-
 	gipath := filepath.Join(s.graphRoot, driverPrefix+"images")
 	if err := os.MkdirAll(gipath, 0700); err != nil {
 		return err
@@ -774,7 +765,7 @@ func (s *store) LayerStore() (LayerStore, error) {
 	if err := os.MkdirAll(glpath, 0700); err != nil {
 		return nil, err
 	}
-	rls, err := newLayerStore(rlpath, glpath, driver, s.uidMap, s.gidMap)
+	rls, err := s.newLayerStore(rlpath, glpath, driver)
 	if err != nil {
 		return nil, err
 	}
