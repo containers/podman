@@ -288,11 +288,19 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 
 	logPolicy := getLoggingOption(c.LogDriverOpt, "policy")
+	logRateLimit := getLoggingOption(c.LogDriverOpt, "rate-limit")
+	if (logPolicy == "" || logPolicy == "passthrough" || logPolicy == "ignore") && logRateLimit != "" {
+		if logPolicy == "" {
+			logPolicy = "passthrough"
+		}
+		return nil, errors.Wrapf(define.ErrInvalidArg, "Log rate limit is not supported for log policy %s", logPolicy)
+	}
+	if (logPolicy == "backpressure" || logPolicy == "drop") && logRateLimit == "" {
+		return nil, errors.Wrapf(define.ErrInvalidArg, "Log rate limit is not provided for log policy %s", logPolicy)
+	}
 	if logPolicy != "" {
 		options = append(options, libpod.WithLogPolicy(logPolicy))
 	}
-
-	logRateLimit := getLoggingOption(c.LogDriverOpt, "rate-limit")
 	if logRateLimit != "" {
 		options = append(options, libpod.WithLogRateLimit(logRateLimit))
 	}
