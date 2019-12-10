@@ -26,7 +26,7 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := mux.Vars(r)["name"]
+	name := getName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -65,7 +65,7 @@ func UnpauseContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	// /{version}/containers/(name)/unpause
-	name := mux.Vars(r)["name"]
+	name := getName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -86,7 +86,7 @@ func PauseContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	// /{version}/containers/(name)/pause
-	name := mux.Vars(r)["name"]
+	name := getName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -119,7 +119,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := getName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -157,7 +157,7 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := mux.Vars(r)["name"]
+	name := getName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)

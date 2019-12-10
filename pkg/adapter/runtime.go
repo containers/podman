@@ -284,20 +284,20 @@ func libpodVolumeToVolume(volumes []*libpod.Volume) []*Volume {
 }
 
 // Build is the wrapper to build images
-func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) error {
+func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) (string, reference.Canonical, error) {
 	namespaceOptions, networkPolicy, err := parse.NamespaceOptions(c.PodmanCommand.Command)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing namespace-related options")
+		return "", nil, errors.Wrapf(err, "error parsing namespace-related options")
 	}
 	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command, options.Isolation)
 	if err != nil {
-		return errors.Wrapf(err, "error parsing ID mapping options")
+		return "", nil, errors.Wrapf(err, "error parsing ID mapping options")
 	}
 	namespaceOptions.AddOrReplace(usernsOption...)
 
 	systemContext, err := parse.SystemContextFromOptions(c.PodmanCommand.Command)
 	if err != nil {
-		return errors.Wrapf(err, "error building system context")
+		return "", nil, errors.Wrapf(err, "error building system context")
 	}
 
 	authfile := c.Authfile
@@ -308,7 +308,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	systemContext.AuthFilePath = authfile
 	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command)
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	options.NamespaceOptions = namespaceOptions

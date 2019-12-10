@@ -375,7 +375,8 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		},
 		Target: c.Target,
 	}
-	return runtime.Build(getContext(), c, options, containerfiles)
+	_, _, err = runtime.Build(getContext(), c, options, containerfiles)
+	return err
 }
 
 // useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"
