@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
@@ -146,9 +147,9 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 }
 
 // Build adds the runtime to the imagebuildah call
-func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
-	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
-	return err
+func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	return id, ref, err
 }
 
 // Import is called as an intermediary to the image library Import

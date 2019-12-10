@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"reflect"
 	goRuntime "runtime"
 	"strings"
 	"time"
@@ -24,7 +23,6 @@ import (
 )
 
 func GetInfo(w http.ResponseWriter, r *http.Request) {
-	log.Debugf("runtime TypeOf: %s", reflect.TypeOf(r.Context().Value("runtime")))
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	infoData, err := runtime.Info()
