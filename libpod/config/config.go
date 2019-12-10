@@ -12,6 +12,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -137,11 +138,11 @@ type Config struct {
 	// VolumePath is the default location that named volumes will be created
 	// under. This convention is followed by the default volume driver, but
 	// may not be by other drivers.
-	VolumePath string `toml:"volume_path"`
+	VolumePath string `toml:"volume_path,omitempty"`
 
 	// ImageDefaultTransport is the default transport method used to fetch
 	// images.
-	ImageDefaultTransport string `toml:"image_default_transport"`
+	ImageDefaultTransport string `toml:"image_default_transport,omitempty"`
 
 	// SignaturePolicyPath is the path to a signature policy to use for
 	// validating images. If left empty, the containers/image default signature
@@ -149,61 +150,61 @@ type Config struct {
 	SignaturePolicyPath string `toml:"signature_policy_path,omitempty"`
 
 	// OCIRuntime is the OCI runtime to use.
-	OCIRuntime string `toml:"runtime"`
+	OCIRuntime string `toml:"runtime,omitempty"`
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
-	OCIRuntimes map[string][]string `toml:"runtimes"`
+	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
-	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
+	RuntimeSupportsJSON []string `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
 	// running containers without CGroups.
-	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups"`
+	RuntimeSupportsNoCgroups []string `toml:"runtime_supports_nocgroups,omitempty"`
 
 	// RuntimePath is the path to OCI runtime binary for launching containers.
 	// The first path pointing to a valid file will be used This is used only
 	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
 	// backward compatible with older versions of Podman.
-	RuntimePath []string `toml:"runtime_path"`
+	RuntimePath []string `toml:"runtime_path,omitempty"`
 
 	// ConmonPath is the path to the Conmon binary used for managing containers.
 	// The first path pointing to a valid file will be used.
-	ConmonPath []string `toml:"conmon_path"`
+	ConmonPath []string `toml:"conmon_path,omitempty"`
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
-	ConmonEnvVars []string `toml:"conmon_env_vars"`
+	ConmonEnvVars []string `toml:"conmon_env_vars,omitempty"`
 
 	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
 	// and "systemd".
-	CgroupManager string `toml:"cgroup_manager"`
+	CgroupManager string `toml:"cgroup_manager,omitempty"`
 
 	// InitPath is the path to the container-init binary.
-	InitPath string `toml:"init_path"`
+	InitPath string `toml:"init_path,omitempty"`
 
 	// StaticDir is the path to a persistent directory to store container
 	// files.
-	StaticDir string `toml:"static_dir"`
+	StaticDir string `toml:"static_dir,omitempty"`
 
 	// TmpDir is the path to a temporary directory to store per-boot container
 	// files. Must be stored in a tmpfs.
-	TmpDir string `toml:"tmp_dir"`
+	TmpDir string `toml:"tmp_dir,omitempty"`
 
 	// MaxLogSize is the maximum size of container logfiles.
 	MaxLogSize int64 `toml:"max_log_size,omitempty"`
 
 	// NoPivotRoot sets whether to set no-pivot-root in the OCI runtime.
-	NoPivotRoot bool `toml:"no_pivot_root"`
+	NoPivotRoot bool `toml:"no_pivot_root,omitempty"`
 
 	// CNIConfigDir sets the directory where CNI configuration files are
 	// stored.
-	CNIConfigDir string `toml:"cni_config_dir"`
+	CNIConfigDir string `toml:"cni_config_dir,omitempty"`
 
 	// CNIPluginDir sets a number of directories where the CNI network
 	// plugins can be located.
-	CNIPluginDir []string `toml:"cni_plugin_dir"`
+	CNIPluginDir []string `toml:"cni_plugin_dir,omitempty"`
 
 	// CNIDefaultNetwork is the network name of the default CNI network
 	// to attach pods to.
@@ -213,7 +214,7 @@ type Config struct {
 	// configuration files. When the same filename is present in in
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
-	HooksDir []string `toml:"hooks_dir"`
+	HooksDir []string `toml:"hooks_dir,omitempty"`
 
 	// DefaultMountsFile is the path to the default mounts file for testing
 	// purposes only.
@@ -229,10 +230,10 @@ type Config struct {
 
 	// InfraImage is the image a pod infra container will use to manage
 	// namespaces.
-	InfraImage string `toml:"infra_image"`
+	InfraImage string `toml:"infra_image,omitempty"`
 
 	// InfraCommand is the command run to start up a pod infra container.
-	InfraCommand string `toml:"infra_command"`
+	InfraCommand string `toml:"infra_command,omitempty"`
 
 	// EnablePortReservation determines whether libpod will reserve ports on the
 	// host when they are forwarded to containers. When enabled, when ports are
@@ -241,13 +242,13 @@ type Config struct {
 	// programs on the host. However, this can cause significant memory usage if
 	// a container has many ports forwarded to it. Disabling this can save
 	// memory.
-	EnablePortReservation bool `toml:"enable_port_reservation"`
+	EnablePortReservation bool `toml:"enable_port_reservation,omitempty"`
 
 	// EnableLabeling indicates whether libpod will support container labeling.
-	EnableLabeling bool `toml:"label"`
+	EnableLabeling bool `toml:"label,omitempty"`
 
 	// NetworkCmdPath is the path to the slirp4netns binary.
-	NetworkCmdPath string `toml:"network_cmd_path"`
+	NetworkCmdPath string `toml:"network_cmd_path,omitempty"`
 
 	// NumLocks is the number of locks to make available for containers and
 	// pods.
@@ -257,17 +258,21 @@ type Config struct {
 	LockType string `toml:"lock_type,omitempty"`
 
 	// EventsLogger determines where events should be logged.
-	EventsLogger string `toml:"events_logger"`
+	EventsLogger string `toml:"events_logger,omitempty"`
 
 	// EventsLogFilePath is where the events log is stored.
-	EventsLogFilePath string `toml:"events_logfile_path"`
+	EventsLogFilePath string `toml:"events_logfile_path,omitempty"`
 
 	//DetachKeys is the sequence of keys used to detach a container.
-	DetachKeys string `toml:"detach_keys"`
+	DetachKeys string `toml:"detach_keys,omitempty"`
 
 	// SDNotify tells Libpod to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
-	SDNotify bool
+	SDNotify bool `toml:",omitempty"`
+
+	// CgroupCheck indicates the configuration has been rewritten after an
+	// upgrade to Fedora 31 to change the default OCI runtime for cgroupsv2.
+	CgroupCheck bool `toml:"cgroup_check,omitempty"`
 }
 
 // DBConfig is a set of Libpod runtime configuration settings that are saved in
@@ -443,6 +448,9 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
 		}
+		if err := cgroupV2Check(userConfigPath, config); err != nil {
+			return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
+		}
 	}
 
 	// Now, check if the user can access system configs and merge them if needed.
@@ -549,4 +557,30 @@ func (c *Config) checkCgroupsAndLogger() {
 		c.CgroupManager = define.CgroupfsCgroupsManager
 		c.EventsLogger = "file"
 	}
+}
+
+// Since runc does not currently support cgroupV2
+// Change to default crun on first running of libpod.conf
+// TODO Once runc has support for cgroups, this function should be removed.
+func cgroupV2Check(configPath string, tmpConfig *Config) error {
+	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if cgroupsV2 {
+			path, err := exec.LookPath("crun")
+			if err != nil {
+				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
+				// Can't find crun path so do nothing
+				return nil
+			}
+			tmpConfig.CgroupCheck = true
+			tmpConfig.OCIRuntime = path
+			if err := tmpConfig.Write(configPath); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
