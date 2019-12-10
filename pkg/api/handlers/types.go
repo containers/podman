@@ -4,19 +4,26 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	libpodImage "github.com/containers/libpod/libpod/image"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
+	dockerEvents "github.com/docker/docker/api/types/events"
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 )
+
+type AuthConfig struct {
+	docker.AuthConfig
+}
 
 type ImageInspect struct {
 	docker.ImageInspect
@@ -138,6 +145,10 @@ type ErrorModel struct {
 	Message string `json:"message"`
 }
 
+type Event struct {
+	dockerEvents.Message
+}
+
 type HistoryResponse struct {
 	ID        string   `json:"Id"`
 	Created   int64    `json:"Created"`
@@ -154,6 +165,24 @@ type ImageTreeResponse struct {
 	Tags   []string     `json:"tags"`
 	Size   string       `json:"size"`
 	Layers []ImageLayer `json:"layers"`
+}
+
+func EventToApiEvent(e *events.Event) *Event {
+	return &Event{dockerEvents.Message{
+		Type:   e.Type.String(),
+		Action: e.Status.String(),
+		Actor: dockerEvents.Actor{
+			ID: e.ID,
+			Attributes: map[string]string{
+				"image":             e.Image,
+				"name":              e.Name,
+				"containerExitCode": strconv.Itoa(e.ContainerExitCode),
+			},
+		},
+		Scope:    "local",
+		Time:     e.Time.Unix(),
+		TimeNano: e.Time.UnixNano(),
+	}}
 }
 
 func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
@@ -310,6 +339,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	if err != nil {
 		return nil, err
 	}
+
 	return &Container{docker.Container{
 		ID:         l.ID(),
 		Names:      []string{l.Name()},
@@ -408,6 +438,7 @@ func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 		}
 		ports[port] = struct{}{}
 	}
+
 	config := dockerContainer.Config{
 		Hostname:        l.Hostname(),
 		Domainname:      inspect.Config.DomainName,

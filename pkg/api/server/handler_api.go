@@ -9,7 +9,7 @@ import (
 
 // APIHandler is a wrapper to enhance HandlerFunc's and remove redundant code
 func APIHandler(ctx context.Context, h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("APIHandler -- Method: %s URL: %s", r.Method, r.URL.String())
 		if err := r.ParseForm(); err != nil {
 			log.Infof("Failed Request: unable to parse form: %q", err)
@@ -27,7 +27,7 @@ func APIHandler(ctx context.Context, h http.HandlerFunc) http.HandlerFunc {
 		if err := shutdownFunc(); err != nil {
 			log.Errorf("Failed to shutdown Server in APIHandler(): %s", err.Error())
 		}
-	}
+	})
 }
 
 // VersionedPath prepends the version parsing code

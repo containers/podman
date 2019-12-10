@@ -1,10 +1,6 @@
-// Package serviceapi provides a Container compatible interface.
+// Package serviceapi Provides a Container compatible interface.
 //
-// this provides a docker-compatible API for libpod
-//
-// Terms Of Service:
-//
-// Best Effort
+// This documentation describes the HTTP LibPod interface
 //
 //     Schemes: http, https
 //     Host: podman.io
@@ -15,11 +11,20 @@
 //
 //     Consumes:
 //     - application/json
+//     - application/x-tar
 //
 //     Produces:
 //     - application/json
 //     - text/plain
 //     - text/html
+//
+//     tags:
+//     - name: "Containers"
+//       description: manage containers
+//     - name: "Images"
+//       description: manage images
+//     - name: "System"
+//       description: manage system resources
 //
 // swagger:meta
 package server

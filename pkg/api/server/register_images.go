@@ -35,5 +35,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/json"), APIHandler(s.Context, libpod.GetImage))
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/tag"), APIHandler(s.Context, handlers.TagImage)).Methods("POST")
 
+	r.Handle(VersionedPath("/build"), APIHandler(s.Context, handlers.BuildImage)).Methods("POST")
 	return nil
 }
