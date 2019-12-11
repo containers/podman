@@ -1,3 +1,196 @@
+- Changelog for v1.7.0-rc1 (2019-12-11)
+  * Update release notes for 1.7.0
+  * docs: update podman-{pod-,}top man pages
+  * build(deps): bump github.com/containers/psgo from 1.3.2 to 1.4.0
+  * Update containers/storage to v1.15.3
+  * move image filters under libpod/images
+  * Re-add Fedora 31 migration code.
+  * macvlan networks
+  * Return empty runtime directory if we're not rootless
+  * build(deps): bump github.com/containers/storage from 1.15.0 to 1.15.2
+  * Use terminal detach keys sequence specified in the config file
+  * Add ONBUILD support to --change
+  * Move Commit() to new parsing for --change
+  * test for #3920 (improper caching of tarballs in build)
+  * Enable multi-platform rpm building
+  * Completely rework --change parsing
+  * Avoid git warnings by using detach on checkout
+  * Improve hack/get_release_info.sh
+  * Bump Buildah to v1.11.6
+  * rootless: enable stats test on cgroup v2
+  * Improve dnf tests inside build_rpm.sh
+  * libpod: fix stats for rootless pods
+  * rootless: add fallback for renameat2 at runtime
+  * Attempt to install go-md2man only if missing
+  * Quick grammar touchup in rootless.md
+  * Allow chained network namespace containers
+  * Ensure volumes reacquire locks on state refresh
+  * Ignore ErrCtrRemoved when removing a container
+  * Add comment on rootless containers creating device nodes
+  * Updates on making doc building and debug optional
+  * troubleshooting: warn about secure boot
+  * libpod: fix case for executable file not found errors
+  * build: improved main makefile
+  * build: improved prepare.sh
+  * Fix podman-remote version to print client and server
+  * man page updated with examples of filter option
+  * install.md: added slirp4netns dependency to ubuntu
+  * Add podman system reset command
+  * fix commands.go to get links from correct directory
+  * Do not initialize store on rootless podman
+  * filter added to container prune command
+  * Disable checkpointing of containers started with --rm
+  * Make doc building in spec optional
+  * Donot install btrfs in RHEL/CentOS-8
+  * oci: print only matching part for the errors
+  * command output fixed as per docker equivalent
+  * Detect Python executable in Makefile
+  * Improved build_rpm.sh
+  * Add support for image name history
+  * Remove containers when pruning a stopped pod.
+  * Allow --ip and --mac to be set when joining a CNI net
+  * Document other bind options on --volumes flag
+  * podman {pod,} rm/stop: add --ignore flag
+  * Discard errors from Shutdown in `system renumber`
+  * e2e/prune: run two top containers
+  * build(deps): bump github.com/containers/storage from 1.13.5 to 1.14.0
+  * build(deps): bump gopkg.in/yaml.v2 from 2.2.5 to 2.2.7
+  * build(deps): bump github.com/pkg/profile from 1.3.0 to 1.4.0
+  * document updated for filter and until options
+  * filter added to image pruge command.
+  * config: use EventsLogger=file without systemd
+  * Error on netns not exist only when ctr is running
+  * Add ContainerStateRemoving
+  * play kube: handle seccomp labels
+  * podman rm/stop --cidfile
+  * container-restore: Fix restore with user namespace
+  * Add new test suite for build
+  * Also delete winsz fifo
+  * use pause image for check all
+  * timestamp related functions added
+  * Bump to Buildah v1.11.5
+  * container create: os/arch check
+  * history: rewrite mappings
+  * codespell: spelling corrections
+  * Cirrus: Use branch-specific container tags
+  * warning added before image prune command
+  * create a separate install target for seccomp
+  * Add annotations in play kube
+  * Add pod annotations to container
+  * Add missing information to podman.1 man page
+  * Add support for make vendor-in-container
+  * Split up create config handling of namespaces and security
+  * test: add tests for --mac-address
+  * mount: add new options nocopyup|copyup for tmpfs
+  * Bump github.com/uber/jaeger-client-go
+  * libpod/config: default: use `crun` on Cgroups v2
+  * podman images --digest: always list a digest
+  * events: make sure the write channel is always closed
+  * Add support for RunAsUser and RunAsGroup
+  * cni: enable tuning plugin
+  * podman: add support for specifying MAC
+  * vendor: updated ocicni for MAC address
+  * Makefile: add vendor-in-container
+  * rootless: provide workaround for missing renameat2
+  * rootless: use SYS_renameat2 instead of __NR_renameat2
+  * Add Kata Containers runtimes to libpod.conf
+  * help message: don't parse the config for cgroup-manager default
+  * fix bug check nonexist authfile
+  * Allow users to disable detach keys
+  * namespaces: by default create cgroupns on cgroups v2
+  * Update installation - Ubuntu. [skip ci]
+  * pulling unqualified reference: make sure it's a docker reference
+  * Bump gopkg.in/yaml.v2 from 2.2.4 to 2.2.5
+  * Set SELinux labels based on the security context in the kube.yaml
+  * Add links to readthedocs on docs/readme
+  * Bump development version to 1.6.4-dev
+  * Bump version in README to v1.6.3
+  * Add release notes for v1.6.3
+  * slirp4netns: fix timeout
+  * docs: Update "podman container rm -v" description
+  * logo: correct light source reflection
+  * stats: fix calculation for the CPU time
+  * [docs] Ensure we include section 5 documentation
+  * [Makefile] Fix docker documentation install and generation
+  * Fixed the JSON go template format for the 'info' action
+  * runtime: Fix typo
+  * Update link to Commands documentation
+  * cgroups: read correctly the CPU stats
+  * [CI:DOCS] make docs only prs
+  * Update rootless shortcomings with cgroup V2 information
+  * Bump github.com/onsi/gomega from 1.7.0 to 1.7.1
+  * Validate contextdir on build
+  * Vendor in latest containers/buildah
+  * Bump github.com/onsi/ginkgo from 1.10.1 to 1.10.3
+  * Refactor test to prevent panic
+  * logs: support --tail 0
+  * Update document formatting and packaging code
+  * Restructure documentation dir
+  * add libpod/config
+  * Switch to bufio Reader for exec streams
+  * container start: fix regression when using name
+  * Fix selinux test for exec
+  * Cirrus: Disable F29 testing
+  * Wait for `mount` command to finish when mounting volume
+  * Cirrus: Fix upload_release_archive on branch or tag
+  * Fix cp from pipe
+  * libpod, rootless: create cgroup for conmon
+  * Bump github.com/json-iterator/go from 1.1.7 to 1.1.8
+  * seccomp: use github.com/seccomp/containers-golang
+  * build: drop support for ostree
+  * stale action: add exempt-issue-label
+  * Processes execed into container should match container label
+  * Set default seccomp.json file for podman play kube
+  * images: distinguish between tags and digests
+  * API: report multiple digests for images
+  * pull/create: add --override-arch/--override-os flags
+  * image: don't get confused by lists
+  * Add e2e tests for manifest list support
+  * bump containers/image to v5.0.0, buildah to v1.11.4
+  * goland autocorrections
+  * Makefile: fix embedding gitCommit
+  * Cirrus: Fix minor python deprecation warning
+  * Cirrus: Only upload tagged releases
+  * Fix spelling mistakes
+  * libpod: if slirp4netns fails, return its output
+  * update conmon to v2.0.2 in in_podman image
+  * bump cirrus images
+  * require conmon v2.0.1
+  * require conmon v2.0.0
+  * GitHub stale action
+  * enable dnsplugin for network create
+  * Add ensureState helper for checking container state
+  * Cleanup man pages
+  * Log warn instead of error for removing nonexistant container
+  * systemd: mask /sys/fs/cgroup/systemd/release_agent
+  * Add multiple networks explanation to docs
+  * rootless: raise an error with --network=
+  * Initial dump of man pages and first menus
+  * Return a better error for volume name conflicts
+  * Add documentation on options to volume create manpage
+  * Image volumes should not be mounted noexec
+  * stats: list all running containers unless specified otherwise
+  * rootless: detect no system session with --cgroup-manager=systemd
+  * add pip requirements file for rtd
+  * Initial checking for readthedocs
+  * Fix sig-proxy=false test and use image cache
+  * Add parsing for UID, GID in volume "o" option
+  * exec: remove unused var
+  * Rewrite backend for remote 'volume inspect'
+  * rootless: write storage overrides to the conf file
+  * Markdown Formatting Fixes
+  * Show volume options in 'volume inspect'
+  * System tests: make sure exec pid hash w/o leaking
+  * Bump gitvalidation epoch
+  * Bump to v1.6.3-dev
+  * check existing bridge names when creating networks
+  * Add support for anonymous volumes to `podman run -v`
+  * troubleshooting.md: document lingering mode
+  * rootless: do not enable lingering mode
+  * Add ability to redirect bash for run -i
+  * play kube: Container->Ctr
+  * play kube: refactor test suite
+
 - Changelog for v1.6.2 (2019-10-17)
   * Finalize release notes for v1.6.2
   * rootless: drop dependency on docker
