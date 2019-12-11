@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -15,13 +16,13 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		Filters string `json:"filters"`
 	}{}
 	if err := decodeQuery(r, &query); err != nil {
-		Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 	}
 
 	var filters = map[string][]string{}
 	if found := hasVar(r, "filters"); found {
 		if err := json.Unmarshal([]byte(query.Filters), &filters); err != nil {
-			BadRequest(w, "filters", query.Filters, err)
+			utils.BadRequest(w, "filters", query.Filters, err)
 			return
 		}
 	}
@@ -33,7 +34,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	libpodEvents, err := getRuntime(r).GetEvents(libpodFilters)
 	if err != nil {
-		BadRequest(w, "filters", query.Filters, err)
+		utils.BadRequest(w, "filters", query.Filters, err)
 		return
 	}
 
@@ -41,5 +42,5 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	for _, v := range libpodEvents {
 		apiEvents = append(apiEvents, EventToApiEvent(v))
 	}
-	WriteJSON(w, http.StatusOK, apiEvents)
+	utils.WriteJSON(w, http.StatusOK, apiEvents)
 }

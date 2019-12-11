@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/archive"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,14 +30,14 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		registryHeader := getHeader(r, "X-Registry-Config")
 		authConfigsJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(registryHeader))
 		if json.NewDecoder(authConfigsJSON).Decode(&authConfigs) != nil {
-			BadRequest(w, "X-Registry-Config", registryHeader, json.NewDecoder(authConfigsJSON).Decode(&authConfigs))
+			utils.BadRequest(w, "X-Registry-Config", registryHeader, json.NewDecoder(authConfigsJSON).Decode(&authConfigs))
 			return
 		}
 	}
 
 	anchorDir, err := extractTarFile(r, w)
 	if err != nil {
-		InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	// defer os.RemoveAll(anchorDir)
@@ -94,7 +95,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decodeQuery(r, &query); err != nil {
-		Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
 
@@ -110,7 +111,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	var buildArgs = map[string]string{}
 	if found := hasVar(r, "buildargs"); found {
 		if err := json.Unmarshal([]byte(query.BuildArgs), &buildArgs); err != nil {
-			BadRequest(w, "buildargs", query.BuildArgs, err)
+			utils.BadRequest(w, "buildargs", query.BuildArgs, err)
 			return
 		}
 	}
@@ -120,7 +121,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if hasVar(r, "labels") {
 		var m = map[string]string{}
 		if err := json.Unmarshal([]byte(query.Labels), &m); err != nil {
-			BadRequest(w, "labels", query.Labels, err)
+			utils.BadRequest(w, "labels", query.Labels, err)
 			return
 		}
 
@@ -176,11 +177,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	id, _, err := getRuntime(r).Build(r.Context(), buildOptions, query.Dockerfile)
 	if err != nil {
-		InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 	}
 
 	// Find image ID that was built...
-	WriteResponse(w, http.StatusOK,
+	utils.WriteResponse(w, http.StatusOK,
 		struct {
 			Stream string `json:"stream"`
 		}{
@@ -221,7 +222,7 @@ func extractTarFile(r *http.Request, w http.ResponseWriter) (string, error) {
 	r.Body.Close()
 
 	if copyErr != nil {
-		InternalServerError(w,
+		utils.InternalServerError(w,
 			fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI))
 	}
 	log.Debugf("Content-Length: %s", getVar(r, "Content-Length"))

@@ -34,13 +34,13 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if query.Link {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			handlers.ErrLinkNotSupport)
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			utils.ErrLinkNotSupport)
 		return
 	}
 	utils.RemoveContainer(w, r, query.Force, query.Vols)
@@ -51,13 +51,13 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	containers, err := runtime.GetAllContainers()
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		handlers.InternalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
+		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
 		return
 	}
 
@@ -65,12 +65,12 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	for i, ctnr := range containers {
 		api, err := handlers.LibpodToContainer(ctnr, infoData)
 		if err != nil {
-			handlers.InternalServerError(w, err)
+			utils.InternalServerError(w, err)
 			return
 		}
 		list[i] = api
 	}
-	handlers.WriteResponse(w, http.StatusOK, list)
+	utils.WriteResponse(w, http.StatusOK, list)
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
@@ -79,15 +79,15 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		handlers.ContainerNotFound(w, name, err)
+		utils.ContainerNotFound(w, name, err)
 		return
 	}
 	api, err := handlers.LibpodToContainerJSON(ctnr)
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
-	handlers.WriteResponse(w, http.StatusOK, api)
+	utils.WriteResponse(w, http.StatusOK, api)
 }
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {
@@ -101,11 +101,11 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	// kill is sent.  libpod does not.  but we can add a wait here only for the docker
 	// side of things and mimic that behavior
 	if _, err = con.Wait(); err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", con.ID()))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", con.ID()))
 		return
 	}
 	// Success
-	handlers.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
@@ -115,7 +115,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		msg = err.Error()
 	}
-	handlers.WriteResponse(w, http.StatusOK, handlers.ContainerWaitOKBody{
+	utils.WriteResponse(w, http.StatusOK, handlers.ContainerWaitOKBody{
 		StatusCode: int(exitCode),
 		Error: struct {
 			Message string
@@ -130,7 +130,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 
 	containers, err := runtime.GetAllContainers()
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 
@@ -140,7 +140,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		// Only remove stopped or exit'ed containers.
 		state, err := ctnr.State()
 		if err != nil {
-			handlers.InternalServerError(w, err)
+			utils.InternalServerError(w, err)
 			return
 		}
 		switch state {
@@ -152,14 +152,14 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		deletedContainers = append(deletedContainers, ctnr.ID())
 		cSize, err := ctnr.RootFsSize()
 		if err != nil {
-			handlers.InternalServerError(w, err)
+			utils.InternalServerError(w, err)
 			return
 		}
 		spaceReclaimed += uint64(cSize)
 
 		err = runtime.RemoveContainer(context.Background(), ctnr, false, false)
 		if err != nil && !(errors.Cause(err) == define.ErrCtrRemoved) {
-			handlers.InternalServerError(w, err)
+			utils.InternalServerError(w, err)
 			return
 		}
 	}
@@ -167,7 +167,7 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 		ContainersDeleted: deletedContainers,
 		SpaceReclaimed:    spaceReclaimed,
 	}
-	handlers.WriteResponse(w, http.StatusOK, report)
+	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
@@ -186,20 +186,20 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		Tail: "all",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	if !(query.Stdout || query.Stderr) {
 		msg := fmt.Sprintf("%s: you must choose at least one stream", http.StatusText(http.StatusBadRequest))
-		handlers.Error(w, msg, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
+		utils.Error(w, msg, http.StatusBadRequest, errors.Errorf("%s for %s", msg, r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		handlers.ContainerNotFound(w, name, err)
+		utils.ContainerNotFound(w, name, err)
 		return
 	}
 
@@ -207,7 +207,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if query.Tail != "all" {
 		tail, err = strconv.ParseInt(query.Tail, 0, 64)
 		if err != nil {
-			handlers.BadRequest(w, "tail", query.Tail, err)
+			utils.BadRequest(w, "tail", query.Tail, err)
 			return
 		}
 	}
@@ -216,7 +216,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if _, found := mux.Vars(r)["since"]; found {
 		since, err = util.ParseInputTime(query.Since)
 		if err != nil {
-			handlers.BadRequest(w, "since", query.Since, err)
+			utils.BadRequest(w, "since", query.Since, err)
 			return
 		}
 	}
@@ -225,7 +225,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	if _, found := mux.Vars(r)["until"]; found {
 		since, err = util.ParseInputTime(query.Until)
 		if err != nil {
-			handlers.BadRequest(w, "until", query.Until, err)
+			utils.BadRequest(w, "until", query.Until, err)
 			return
 		}
 	}
@@ -243,7 +243,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	logChannel := make(chan *logs.LogLine, tail+1)
 	if err := runtime.Log([]*libpod.Container{ctnr}, options, logChannel); err != nil {
-		handlers.InternalServerError(w, errors.Wrapf(err, "Failed to obtain logs for Container '%s'", name))
+		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain logs for Container '%s'", name))
 		return
 	}
 	go func() {

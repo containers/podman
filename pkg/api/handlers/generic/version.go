@@ -3,6 +3,7 @@ package generic
 import (
 	"fmt"
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	goRuntime "runtime"
 	"time"
@@ -23,13 +24,13 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
 	hostInfo := infoData[0].Data
@@ -50,7 +51,7 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	}}
 
-	handlers.WriteResponse(w, http.StatusOK, handlers.Version{Version: docker.Version{
+	utils.WriteResponse(w, http.StatusOK, handlers.Version{Version: docker.Version{
 		Platform: struct {
 			Name string
 		}{
