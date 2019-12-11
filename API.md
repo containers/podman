@@ -123,6 +123,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ListImages() Image](#ListImages)
 
+[func ListImagesWithFilters(filters: []string) Image](#ListImagesWithFilters)
+
 [func ListPods() ListPodData](#ListPods)
 
 [func LoadImage(name: string, inputFile: string, quiet: bool, deleteFile: bool) MoreResponse](#LoadImage)
@@ -891,6 +893,13 @@ See also [GetContainer](#GetContainer).
 
 method ListImages() [Image](#Image)</div>
 ListImages returns information about the images that are currently in storage.
+See also [InspectImage](#InspectImage).
+### <a name="ListImagesWithFilters"></a>func ListImagesWithFilters
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ListImagesWithFilters(filters: [[]string](#[]string)) [Image](#Image)</div>
+ListImagesWithFilters returns information about the images that are currently in storage
+after one or more filters has been applied.
 See also [InspectImage](#InspectImage).
 ### <a name="ListPods"></a>func ListPods
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">

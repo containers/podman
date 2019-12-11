@@ -35,26 +35,34 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// ListImages lists all the images in the store
-// It requires no inputs.
-func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
-	images, err := i.Runtime.ImageRuntime().GetImages()
+// ListImagesWithFilters returns a list of images that have been filtered
+func (i *LibpodAPI) ListImagesWithFilters(call iopodman.VarlinkCall, filters []string) error {
+	images, err := i.Runtime.ImageRuntime().GetImagesWithFilters(filters)
 	if err != nil {
 		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get list of images %q", err))
 	}
+	imageList, err := imagesToImageList(images)
+	if err != nil {
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to parse response", err))
+	}
+	return call.ReplyListImagesWithFilters(imageList)
+}
+
+// imagesToImageList converts a slice of Images to an imagelist for varlink responses
+func imagesToImageList(images []*image.Image) ([]iopodman.Image, error) {
 	var imageList []iopodman.Image
 	for _, image := range images {
 		labels, _ := image.Labels(getContext())
 		containers, _ := image.Containers()
 		repoDigests, err := image.RepoDigests()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		size, _ := image.Size(getContext())
 		isParent, err := image.IsParent(context.TODO())
 		if err != nil {
-			return call.ReplyErrorOccurred(err.Error())
+			return nil, err
 		}
 
 		i := iopodman.Image{
@@ -73,6 +81,20 @@ func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
 			History:     image.NamesHistory(),
 		}
 		imageList = append(imageList, i)
+	}
+	return imageList, nil
+}
+
+// ListImages lists all the images in the store
+// It requires no inputs.
+func (i *LibpodAPI) ListImages(call iopodman.VarlinkCall) error {
+	images, err := i.Runtime.ImageRuntime().GetImages()
+	if err != nil {
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to get list of images %q", err))
+	}
+	imageList, err := imagesToImageList(images)
+	if err != nil {
+		return call.ReplyErrorOccurred(fmt.Sprintf("unable to parse response", err))
 	}
 	return call.ReplyListImages(imageList)
 }
