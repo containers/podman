@@ -23,53 +23,11 @@ The latest option is not supported on the remote client.
 
 ## FORMAT DESCRIPTORS
 
-The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
-
-**args**, **capbnd**, **capeff**, **capinh**, **capprm**, **comm**, **etime**, **group**, **hgroup**, **hpid**, **huser**, **label**, **nice**, **pcpu**, **pgid**, **pid**, **ppid**, **rgroup**, **ruser**, **seccomp**, **state**, **time**, **tty**, **user**, **vsz**
-
-**capbnd**
-
-  Set of bounding capabilities. See capabilities (7) for more information.
-
-**capeff**
-
-  Set of effective capabilities. See capabilities (7) for more information.
-
-**capinh**
-
-  Set of inheritable capabilities. See capabilities (7) for more information.
-
-**capprm**
-
-  Set of permitted capabilities. See capabilities (7) for more information.
-
-**hgroup**
-
-  The corresponding effective group of a container process on the host.
-
-**hpid**
-
-  The corresponding host PID of a container process.
-
-**huser**
-
-  The corresponding effective user of a container process on the host.
-
-**label**
-
-  Current security attributes of the process.
-
-**seccomp**
-
-  Seccomp mode of the process (i.e., disabled, strict or filter). See seccomp (2) for more information.
-
-**state**
-
-  Process state codes (e.g, **R** for *running*, **S** for *sleeping*). See proc(5) for more information.
+Please refer to podman-top(1) for a full list of available descriptors.
 
 ## EXAMPLES
 
-By default, `podman-top` prints data similar to `ps -ef`:
+By default, `podman-pod-top` prints data similar to `ps -ef`:
 
 ```
 $ podman pod top b031293491cc
@@ -88,7 +46,7 @@ PID   SECCOMP   COMMAND   %CPU
 ```
 
 ## SEE ALSO
-podman-pod(1), ps(1), seccomp(2), proc(5), capabilities(7)
+podman-pod(1), podman-top(1), ps(1), seccomp(2), proc(5), capabilities(7)
 
 ## HISTORY
 August 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>

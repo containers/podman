@@ -70,6 +70,10 @@ The following descriptors are supported in addition to the AIX format descriptor
 
   Process state codes (e.g, **R** for *running*, **S** for *sleeping*). See proc(5) for more information.
 
+**stime**
+
+  Process start time (e.g, "2019-12-09 10:50:36 +0100 CET).
+
 ## EXAMPLES
 
 By default, `podman-top` prints data similar to `ps -ef`:

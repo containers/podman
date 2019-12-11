@@ -310,6 +310,11 @@ var (
 			header: "STATE",
 			procFn: processState,
 		},
+		{
+			normal: "stime",
+			header: "STIME",
+			procFn: processStartTime,
+		},
 	}
 )
 
@@ -713,6 +718,15 @@ func processTIME(p *process.Process, ctx *psContext) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%v", cpu), nil
+}
+
+// processStartTime returns the start time of process p.
+func processStartTime(p *process.Process, ctx *psContext) (string, error) {
+	sTime, err := p.StartTime()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%v", sTime), nil
 }
 
 // processTTY returns the controlling tty (terminal) of process p.
