@@ -11,7 +11,6 @@ import (
 type tarLogger struct {
 	writer     *io.PipeWriter
 	closeMutex *sync.Mutex
-	stateMutex *sync.Mutex
 	closed     bool
 }
 
@@ -22,7 +21,6 @@ func NewLogger(logger func(*tar.Header)) (io.WriteCloser, error) {
 	t := &tarLogger{
 		writer:     writer,
 		closeMutex: new(sync.Mutex),
-		stateMutex: new(sync.Mutex),
 		closed:     false,
 	}
 	tr := tar.NewReader(reader)
@@ -35,12 +33,9 @@ func NewLogger(logger func(*tar.Header)) (io.WriteCloser, error) {
 
 		}
 		// Make sure to avoid writes after the reader has been closed.
-		t.stateMutex.Lock()
-		t.closed = true
 		if err := reader.Close(); err != nil {
 			logrus.Errorf("error closing tarlogger reader: %v", err)
 		}
-		t.stateMutex.Unlock()
 		// Unblock the Close().
 		t.closeMutex.Unlock()
 	}()
@@ -48,16 +43,19 @@ func NewLogger(logger func(*tar.Header)) (io.WriteCloser, error) {
 }
 
 func (t *tarLogger) Write(b []byte) (int, error) {
-	t.stateMutex.Lock()
 	if t.closed {
 		// We cannot use os.Pipe() as this alters the tar's digest. Using
 		// io.Pipe() requires this workaround as it does not allow for writes
 		// after close.
-		t.stateMutex.Unlock()
 		return len(b), nil
 	}
-	t.stateMutex.Unlock()
-	return t.writer.Write(b)
+	n, err := t.writer.Write(b)
+	if err == io.ErrClosedPipe {
+		// The pipe got closed.  Track it and avoid to call Write in future.
+		t.closed = true
+		return len(b), nil
+	}
+	return n, err
 }
 
 func (t *tarLogger) Close() error {

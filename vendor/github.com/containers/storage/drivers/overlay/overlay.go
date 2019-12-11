@@ -676,9 +676,6 @@ func (d *Driver) getLower(parent string) (string, error) {
 		parentLowers := strings.Split(string(parentLower), ":")
 		lowers = append(lowers, parentLowers...)
 	}
-	if len(lowers) > maxDepth {
-		return "", errors.New("max depth exceeded")
-	}
 	return strings.Join(lowers, ":"), nil
 }
 
@@ -828,6 +825,10 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
 	}
+	splitLowers := strings.Split(string(lowers), ":")
+	if len(splitLowers) > maxDepth {
+		return "", errors.New("max depth exceeded")
+	}
 
 	// absLowers is the list of lowers as absolute paths, which works well with additional stores.
 	absLowers := []string{}
@@ -851,7 +852,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	// For each lower, resolve its path, and append it and any additional diffN
 	// directories to the lowers list.
-	for _, l := range strings.Split(string(lowers), ":") {
+	for _, l := range splitLowers {
 		if l == "" {
 			continue
 		}
