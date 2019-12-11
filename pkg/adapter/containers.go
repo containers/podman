@@ -1024,7 +1024,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 
 	// Validate given environment variables
 	env := map[string]string{}
-	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
+	if err := parse.ReadKVStrings(env, cli.EnvFile, cli.Env); err != nil {
 		return ec, errors.Wrapf(err, "unable to process environment variables")
 	}
 

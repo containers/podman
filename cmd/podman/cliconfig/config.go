@@ -128,6 +128,7 @@ type ExecValues struct {
 	PodmanCommand
 	DetachKeys  string
 	Env         []string
+	EnvFile     []string
 	Privileged  bool
 	Interactive bool
 	Tty         bool
