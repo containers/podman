@@ -22,6 +22,10 @@ Specify the key sequence for detaching a container. Format is a single character
 You may specify arbitrary environment variables that are available for the
 command to be executed.
 
+**--env-file**=*file*
+
+Read in a line delimited file of environment variables.
+
 **--interactive**, **-i**=*true|false*
 
 When set to true, keep stdin open even if not attached. The default is *false*.

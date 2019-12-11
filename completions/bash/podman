@@ -1359,6 +1359,7 @@ _podman_exec() {
     --detach-keys
     -e
     --env
+    --env-file
     --user
     -u
     --workdir

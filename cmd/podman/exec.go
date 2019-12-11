@@ -40,6 +40,7 @@ func init() {
 	// priority
 	execCommand.DetachKeys = ""
 	flags.StringArrayVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
+	flags.StringSliceVar(&execCommand.EnvFile, "env-file", []string{}, "Read in a file of environment variables")
 	flags.BoolVarP(&execCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&execCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&execCommand.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
@@ -48,6 +49,7 @@ func init() {
 
 	flags.IntVar(&execCommand.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
 	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
+	markFlagHiddenForRemoteClient("env-file", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
 	markFlagHiddenForRemoteClient("preserve-fds", flags)
 }
