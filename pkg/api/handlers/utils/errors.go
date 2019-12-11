@@ -1,4 +1,4 @@
-package handlers
+package utils
 
 import (
 	"fmt"
@@ -50,4 +50,8 @@ func InternalServerError(w http.ResponseWriter, err error) {
 func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 	e := errors.Wrapf(err, "Failed to parse query parameter '%s': %q", key, value)
 	Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, e)
+}
+
+type ErrorModel struct {
+	Message string `json:"message"`
 }

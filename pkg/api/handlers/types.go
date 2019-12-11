@@ -35,6 +35,8 @@ type ContainerConfig struct {
 
 type ImageSummary struct {
 	docker.ImageSummary
+	CreatedTime time.Time `json:"CreatedTime,omitempty"`
+	ReadOnly    bool      `json:"ReadOnly,omitempty"`
 }
 
 type ContainersPruneReport struct {
@@ -217,18 +219,22 @@ func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to obtain Size for image %s", l.ID())
 	}
-	return &ImageSummary{docker.ImageSummary{
+	dockerSummary := docker.ImageSummary{
 		Containers:  int64(containerCount),
 		Created:     l.Created().Unix(),
 		ID:          l.ID(),
 		Labels:      labels,
-		ParentID:    "parent.ID()",
+		ParentID:    l.Parent,
 		RepoDigests: digests,
 		RepoTags:    tags,
 		SharedSize:  0,
 		Size:        int64(*size),
 		VirtualSize: int64(*size),
-	}}, nil
+	}
+	is := ImageSummary{
+		ImageSummary: dockerSummary,
+	}
+	return &is, nil
 }
 
 func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageInspect, error) {

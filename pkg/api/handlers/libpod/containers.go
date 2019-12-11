@@ -22,10 +22,10 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	_, err := runtime.LookupContainer(name)
 	if err != nil {
-		handlers.ContainerNotFound(w, name, err)
+		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	handlers.WriteResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
+	utils.WriteResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
 }
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
@@ -38,7 +38,7 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -58,7 +58,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -74,9 +74,9 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	pss, err := shared.GetPsContainerOutput(runtime, opts, query.Filter, 2)
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 	}
-	handlers.WriteResponse(w, http.StatusOK, pss)
+	utils.WriteResponse(w, http.StatusOK, pss)
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
@@ -91,16 +91,16 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Success
-	handlers.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	_, err := utils.WaitContainer(w, r)
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
-	handlers.WriteResponse(w, http.StatusOK, "")
+	utils.WriteResponse(w, http.StatusOK, "")
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {

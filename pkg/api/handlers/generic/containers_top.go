@@ -2,6 +2,7 @@ package generic
 
 import (
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"strings"
 
@@ -22,7 +23,7 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		PsArgs: "-ef",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
@@ -30,23 +31,23 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		handlers.ContainerNotFound(w, name, err)
+		utils.ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := ctnr.State()
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning {
-		handlers.ContainerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
+		utils.ContainerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
 		return
 	}
 
 	output, err := ctnr.Top([]string{})
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 
@@ -57,5 +58,5 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 			body.Processes = append(body.Processes, strings.Split(line, "\t"))
 		}
 	}
-	handlers.WriteJSON(w, http.StatusOK, body)
+	utils.WriteJSON(w, http.StatusOK, body)
 }

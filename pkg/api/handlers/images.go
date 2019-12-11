@@ -3,9 +3,14 @@ package handlers
 import (
 	"fmt"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
+	"io"
+	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
@@ -18,13 +23,13 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 
 	}
 	history, err := newImage.History(r.Context())
 	if err != nil {
-		InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	for _, h := range history {
@@ -38,7 +43,7 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 		}
 		allHistory = append(allHistory, l)
 	}
-	WriteResponse(w, http.StatusOK, allHistory)
+	utils.WriteResponse(w, http.StatusOK, allHistory)
 }
 
 func TagImage(w http.ResponseWriter, r *http.Request) {
@@ -48,7 +53,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 	tag := "latest"
@@ -56,16 +61,16 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 		tag = r.Form.Get("tag")
 	}
 	if len(r.Form.Get("repo")) < 1 {
-		Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.New("repo parameter is required to tag an image"))
 		return
 	}
 	repo := r.Form.Get("repo")
 	tagName := fmt.Sprintf("%s:%s", repo, tag)
 	if err := newImage.TagImage(tagName); err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	WriteResponse(w, http.StatusCreated, "")
+	utils.WriteResponse(w, http.StatusCreated, "")
 }
 
 func RemoveImage(w http.ResponseWriter, r *http.Request) {
@@ -74,7 +79,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 
@@ -82,13 +87,13 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	if len(r.Form.Get("force")) > 0 {
 		force, err = strconv.ParseBool(r.Form.Get("force"))
 		if err != nil {
-			Error(w, "Something went wrong.", http.StatusBadRequest, err)
+			utils.Error(w, "Something went wrong.", http.StatusBadRequest, err)
 			return
 		}
 	}
 	_, err = runtime.RemoveImage(r.Context(), newImage, force)
 	if err != nil {
-		Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
 	// TODO
@@ -97,10 +102,57 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	m["Deleted"] = newImage.ID()
 	foo := []map[string]string{}
 	foo = append(foo, m)
-	WriteResponse(w, http.StatusOK, foo)
+	utils.WriteResponse(w, http.StatusOK, foo)
 
 }
 func GetImage(r *http.Request, name string) (*image.Image, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	return runtime.ImageRuntime().NewFromLocal(name)
+}
+
+func LoadImage(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	query := struct {
+		//quiet bool # quiet is currently unused
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	var (
+		err    error
+		writer io.Writer
+	)
+	f, err := ioutil.TempFile("", "api_load.tar")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
+		return
+	}
+	if err := SaveFromBody(f, r); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
+		return
+	}
+	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, struct {
+		Stream string `json:"stream"`
+	}{
+		Stream: fmt.Sprintf("Loaded image: %s\n", id),
+	})
+}
+
+func SaveFromBody(f *os.File, r *http.Request) error { // nolint
+	if _, err := io.Copy(f, r.Body); err != nil {
+		return err
+	}
+	return f.Close()
 }

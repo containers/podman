@@ -3,6 +3,7 @@ package generic
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"strings"
 
@@ -31,23 +32,23 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		// override any golang type defaults
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(input.Image)
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
 	cc, err := makeCreateConfig(input, newImage)
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
 	}
 
@@ -66,7 +67,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			//s.WriteResponse(w, http.StatusInternalServerError, fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type))
 			return
 		}
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
 		return
 	}
 
@@ -78,7 +79,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		Id:       ctr.ID(),
 		Warnings: []string{}}
 
-	handlers.WriteResponse(w, http.StatusCreated, response)
+	utils.WriteResponse(w, http.StatusCreated, response)
 }
 
 func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
