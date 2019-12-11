@@ -32,7 +32,7 @@ env:
     ###
     _BUILT_IMAGE_SUFFIX: "libpod-5642998972416000"
     FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
+    # PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-29-${_BUILT_IMAGE_SUFFIX}"
     SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
@@ -273,7 +273,7 @@ meta_task:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
-            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            # ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${SPECIAL_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
@@ -332,7 +332,7 @@ testing_task:
         matrix:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            # image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
             # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
