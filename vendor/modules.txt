@@ -120,7 +120,7 @@ github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
 github.com/containers/psgo/internal/cgroups
 github.com/containers/psgo/internal/host
-# github.com/containers/storage v1.13.5
+# github.com/containers/storage v1.13.6
 github.com/containers/storage
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
