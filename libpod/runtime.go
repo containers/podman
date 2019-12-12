@@ -691,24 +691,15 @@ func (r *Runtime) Info() ([]define.InfoData, error) {
 	}
 	info = append(info, define.InfoData{Type: "store", Data: storeInfo})
 
-	reg, err := sysreg.GetRegistries()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
-	}
 	registries := make(map[string]interface{})
-	registries["search"] = reg
-
-	ireg, err := sysreg.GetInsecureRegistries()
+	regData, err := sysreg.GetRegistriesData()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
-	registries["insecure"] = ireg
-
-	breg, err := sysreg.GetBlockedRegistries()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
+	for _, reg := range regData {
+		registries[reg.Prefix] = reg
 	}
-	registries["blocked"] = breg
+
 	info = append(info, define.InfoData{Type: "registries", Data: registries})
 	return info, nil
 }
