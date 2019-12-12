@@ -70,11 +70,12 @@ endif
 LIBPOD := ${PROJECT}/libpod
 GCFLAGS ?= all=-trimpath=${PWD}
 ASMFLAGS ?= all=-trimpath=${PWD}
-LDFLAGS_PODMAN ?= $(LDFLAGS) \
+LDFLAGS_PODMAN ?= \
 	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
 	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
-	  -X $(LIBPOD)/config._etcDir=$(ETCDIR)
+	  -X $(LIBPOD)/config._etcDir=$(ETCDIR) \
+	  -extldflags "$(LDFLAGS)"
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 # Rarely if ever should integration tests take more than 50min,
@@ -155,10 +156,10 @@ gofmt: ## Verify the source code gofmt
 	git diff --exit-code
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
 
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
-	$(GO_BUILD) -ldflags '$(LDFLAGS)' -o $@ $(PROJECT)/test/goecho
+	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -o $@ $(PROJECT)/test/goecho
 
 podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
