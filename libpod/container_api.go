@@ -594,7 +594,12 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// If we didn't restart, we perform a normal cleanup
 
-	// Check if we have active exec sessions
+	// Reap exec sessions first.
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
+	// Check if we have active exec sessions after reaping.
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "container %s has active exec sessions, refusing to clean up", c.ID())
 	}

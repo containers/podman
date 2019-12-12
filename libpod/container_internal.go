@@ -1749,6 +1749,11 @@ func (c *Container) checkReadyForRemoval() error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it is %s - running or paused containers cannot be removed without force", c.ID(), c.state.State.String())
 	}
 
+	// Reap exec sessions
+	if err := c.reapExecSessions(); err != nil {
+		return err
+	}
+
 	if len(c.state.ExecSessions) != 0 {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot remove container %s as it has active exec sessions", c.ID())
 	}
@@ -1854,4 +1859,39 @@ func (c *Container) checkExitFile() error {
 
 	// Read the exit file to get our stopped time and exit code.
 	return c.handleExitFile(exitFile, info)
+}
+
+// Reap dead exec sessions
+func (c *Container) reapExecSessions() error {
+	// Instead of saving once per iteration, use a defer to do it once at
+	// the end.
+	var lastErr error
+	needSave := false
+	for id := range c.state.ExecSessions {
+		alive, err := c.ociRuntime.ExecUpdateStatus(c, id)
+		if err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+			continue
+		}
+		if !alive {
+			// Clean up lingering files and remove the exec session
+			if err := c.ociRuntime.ExecContainerCleanup(c, id); err != nil {
+				return errors.Wrapf(err, "error cleaning up container %s exec session %s files", c.ID(), id)
+			}
+			delete(c.state.ExecSessions, id)
+			needSave = true
+		}
+	}
+	if needSave {
+		if err := c.save(); err != nil {
+			if lastErr != nil {
+				logrus.Errorf("Error reaping exec sessions for container %s: %v", c.ID(), lastErr)
+			}
+			lastErr = err
+		}
+	}
+	return lastErr
 }
