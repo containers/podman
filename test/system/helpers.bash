@@ -36,7 +36,7 @@ function basic_setup() {
         if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
             found_needed_image=1
         else
-            echo "# setup(): removing stray images" >&3
+            echo "# setup(): removing stray images $1 $2" >&3
             run_podman rmi --force "$1" >/dev/null 2>&1 || true
             run_podman rmi --force "$2" >/dev/null 2>&1 || true
         fi
