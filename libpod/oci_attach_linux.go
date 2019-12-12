@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/kubeutils"
 	"github.com/containers/libpod/utils"
@@ -30,12 +31,17 @@ const (
 // Attach to the given container
 // Does not check if state is appropriate
 // started is only required if startContainer is true
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
+// attachChan is closed in case of error
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, attachChan chan error) (err error) {
+	defer func() {
+		c.newContainerEvent(events.Mount)
+		if err != nil {
+			close(attachChan)
+		}
+	}()
+
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
-	}
-	if startContainer && started == nil {
-		return errors.Wrapf(define.ErrInternal, "started chan not passed when startContainer set")
 	}
 
 	detachKeys, err := processDetachKeys(keys)
@@ -57,23 +63,24 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 	if err != nil {
 		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
 	}
-	defer func() {
+
+	if startContainer {
+		if err := c.start(); err != nil {
+			if err := conn.Close(); err != nil {
+				logrus.Errorf("unable to close socket: %q", err)
+			}
+			return err
+		}
+	}
+
+	go func() {
+		receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
+		attachChan <- readStdio(streams, receiveStdoutError, stdinDone)
 		if err := conn.Close(); err != nil {
 			logrus.Errorf("unable to close socket: %q", err)
 		}
 	}()
-
-	// If starting was requested, start the container and notify when that's
-	// done.
-	if startContainer {
-		if err := c.start(); err != nil {
-			return err
-		}
-		started <- true
-	}
-
-	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)
-	return readStdio(streams, receiveStdoutError, stdinDone)
+	return nil
 }
 
 // Attach to the given container's exec session

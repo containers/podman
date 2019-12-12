@@ -1107,8 +1107,21 @@ func (c *Container) start() error {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
 
+	// If needed, unlock the container before starting it via the OCI
+	// runtime. We do not have any control how long the starting process
+	// may take, and there are some cases [1] where the runtime may even
+	// deadlock. Unlocking it here, will prevent a deadlock with other
+	// Podman processes attempting to acquire the container's lock.
+	//
+	// [1] https://bugzilla.redhat.com/show_bug.cgi?id=1781506
+	if !c.batched {
+		c.lock.Unlock()
+	}
 	if err := c.ociRuntime.StartContainer(c); err != nil {
 		return err
+	}
+	if !c.batched {
+		c.lock.Lock()
 	}
 	logrus.Debugf("Started container %s", c.ID())
 

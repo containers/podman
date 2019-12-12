@@ -110,25 +110,10 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *AttachStreams, 
 	if err := c.prepareToStart(ctx, recursive); err != nil {
 		return nil, err
 	}
+
 	attachChan := make(chan error)
-
-	// We need to ensure that we don't return until start() fired in attach.
-	// Use a channel to sync
-	startedChan := make(chan bool)
-
-	// Attach to the container before starting it
-	go func() {
-		if err := c.attach(streams, keys, resize, true, startedChan); err != nil {
-			attachChan <- err
-		}
-		close(attachChan)
-	}()
-
-	select {
-	case err := <-attachChan:
+	if err := c.attach(streams, keys, resize, true, attachChan); err != nil {
 		return nil, err
-	case <-startedChan:
-		c.newContainerEvent(events.Attach)
 	}
 
 	return attachChan, nil
@@ -389,8 +374,13 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	defer c.newContainerEvent(events.Attach)
-	return c.attach(streams, keys, resize, false, nil)
+	attachChan := make(chan error)
+	if err := c.attach(streams, keys, resize, false, attachChan); err != nil {
+		return err
+	}
+
+	defer close(attachChan)
+	return <-attachChan
 }
 
 // Mount mounts a container's filesystem on the host
@@ -409,7 +399,6 @@ func (c *Container) Mount() (string, error) {
 		return "", errors.Wrapf(define.ErrCtrStateInvalid, "cannot mount container %s as it is being removed", c.ID())
 	}
 
-	defer c.newContainerEvent(events.Mount)
 	return c.mount()
 }
 

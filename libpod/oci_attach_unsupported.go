@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 )
 
-func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, started chan bool) error {
+func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, startContainer bool, attachChan chan error) error {
 	return define.ErrNotImplemented
 }
 
