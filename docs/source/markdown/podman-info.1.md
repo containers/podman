@@ -53,13 +53,26 @@ host:
   os: linux
   uptime: 218h 49m 33.66s (Approximately 9.08 days)
 registries:
-  blocked: null
-  insecure: null
-  search:
-  - quay.io
-  - registry.fedoraproject.org
-  - docker.io
-  - registry.redhat.io
+  docker.io:
+    Blocked: true
+    Insecure: true
+    Location: docker.io
+    MirrorByDigestOnly: false
+    Mirrors:
+    - Insecure: true
+      Location: example2.io/example/ubi8-minimal
+    Prefix: docker.io
+  redhat.com:
+    Blocked: false
+    Insecure: false
+    Location: registry.access.redhat.com/ubi8
+    MirrorByDigestOnly: true
+    Mirrors:
+    - Insecure: false
+      Location: example.io/example/ubi8-minimal
+    - Insecure: true
+      Location: example3.io/example/ubi8-minimal
+    Prefix: redhat.com
 store:
   ConfigFile: /etc/containers/storage.conf
   ContainerStore:
