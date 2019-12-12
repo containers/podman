@@ -120,6 +120,11 @@ func (r *MissingRuntime) ExecStopContainer(ctr *Container, sessionID string, tim
 	return r.printError()
 }
 
+// ExecUpdateStatus is not available as the runtime is missing.
+func (r *MissingRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
+	return false, r.printError()
+}
+
 // ExecContainerCleanup is not available as the runtime is missing
 func (r *MissingRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
 	return r.printError()
