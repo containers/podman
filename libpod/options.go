@@ -1413,6 +1413,18 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 	}
 }
 
+// WithCreateCommand adds the full command plus arguments of the current
+// process to the container config.
+func WithCreateCommand() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.CreateCommand = os.Args
+		return nil
+	}
+}
+
 // Volume Creation Options
 
 // WithVolumeName sets the name of the volume.
