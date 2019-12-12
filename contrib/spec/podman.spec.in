@@ -22,6 +22,9 @@
 %define gobuild(o:) go build -tags="$BUILDTAGS" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
 #% endif
 
+# libpod hack directory
+%define hackdir %{_builddir}/%{repo}-%{shortcommit0}
+
 %global provider github
 %global provider_tld com
 %global project containers
@@ -384,7 +387,7 @@ ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
+export BUILDTAGS="varlink selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
 
@@ -402,7 +405,7 @@ mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 
-export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
+export BUILDTAGS="selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh)"
 BUILDTAGS=$BUILDTAGS make
 popd
 
