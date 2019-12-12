@@ -227,7 +227,7 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 
 	c := make(chan error)
 	go func() {
-		err := i.Runtime.Build(getContext(), options, newPathDockerFiles...)
+		_, _, err := i.Runtime.Build(getContext(), options, newPathDockerFiles...)
 		c <- err
 		close(c)
 	}()

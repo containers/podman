@@ -472,7 +472,7 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
 }
 
-func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) error {
+func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) (string, reference.Canonical, error) {
 	buildOptions := iopodman.BuildOptions{
 		AddHosts:     options.CommonBuildOpts.AddHost,
 		CgroupParent: options.CommonBuildOpts.CgroupParent,
@@ -517,31 +517,31 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	// tar the file
 	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 	defer outputFile.Close()
 	defer os.Remove(outputFile.Name())
 
 	// Create the tarball of the context dir to a tempfile
 	if err := utils.TarToFilesystem(options.ContextDirectory, outputFile); err != nil {
-		return err
+		return "", nil, err
 	}
 	// Send the context dir tarball over varlink.
 	tempFile, err := r.SendFileOverVarlink(outputFile.Name())
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 	buildinfo.ContextDir = tempFile
 
 	reply, err := iopodman.BuildImage().Send(r.Conn, varlink.More, buildinfo)
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	for {
 		responses, flags, err := reply()
 		if err != nil {
-			return err
+			return "", nil, err
 		}
 		for _, line := range responses.Logs {
 			fmt.Print(line)
@@ -550,7 +550,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 			break
 		}
 	}
-	return err
+	return "", nil, err
 }
 
 // SendFileOverVarlink sends a file over varlink in an upgraded connection
