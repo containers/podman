@@ -692,32 +692,19 @@ func (r *Runtime) Info() ([]define.InfoData, error) {
 	info = append(info, define.InfoData{Type: "store", Data: storeInfo})
 
 	registries := make(map[string]interface{})
+	data, err := sysreg.GetRegistriesData()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error getting registries")
+	}
+	for _, reg := range data {
+		registries[reg.Prefix] = reg
+	}
 	regs, err := sysreg.GetRegistries()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting registries")
 	}
 	if len(regs) > 0 {
-		// v1 config file. We should use the search table format
 		registries["search"] = regs
-		ireg, err := sysreg.GetInsecureRegistries()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting registries")
-		}
-		registries["insecure"] = ireg
-		breg, err := sysreg.GetBlockedRegistries()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting registries")
-		}
-		registries["blocked"] = breg
-	} else {
-		// v2 config file. We can show the whole registry data
-		data, err := sysreg.GetRegistriesData()
-		if err != nil {
-			return nil, errors.Wrapf(err, "error getting registries")
-		}
-		for _, reg := range data {
-			registries[reg.Prefix] = reg
-		}
 	}
 
 	info = append(info, define.InfoData{Type: "registries", Data: registries})
