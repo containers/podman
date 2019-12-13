@@ -78,6 +78,7 @@ type EventValues struct {
 
 type TagValues struct {
 	PodmanCommand
+	Restore bool
 }
 
 type TreeValues struct {

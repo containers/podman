@@ -157,6 +157,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RestartPod(name: string) string](#RestartPod)
 
+[func RestorePreviousName(name: string) string](#RestorePreviousName)
+
 [func SearchImages(query: string, limit: ?int, filter: ImageSearchFilter) ImageSearchResult](#SearchImages)
 
 [func SendFile(type: string, length: int) string](#SendFile)
@@ -1101,6 +1103,13 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.RestartPod '{"name": "135
   "pod": "135d71b9495f7c3967f536edad57750bfdb569336cd107d8aabab45565ffcfb6"
 }
 ~~~
+### <a name="RestorePreviousName"></a>func RestorePreviousName
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method RestorePreviousName(name: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+RestorePreviousName takes the name or ID of an image in local storage and undos the latest tag operation.  If the image
+cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned;
+otherwise, the ID of the image is returned on success.
 ### <a name="SearchImages"></a>func SearchImages
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

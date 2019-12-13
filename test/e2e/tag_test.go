@@ -84,4 +84,27 @@ var _ = Describe("Podman tag", func() {
 		verify.WaitWithDefaultTimeout()
 		Expect(verify.ExitCode()).To(Equal(0))
 	})
+
+	It("podman tag undo succeed", func() {
+		const TAGGED_IMAGE = "foobar:latest"
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, TAGGED_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		restore := podmanTest.PodmanNoCache([]string{"tag", TAGGED_IMAGE, "--restore"})
+		restore.WaitWithDefaultTimeout()
+		Expect(restore.ExitCode()).To(Equal(0))
+
+		result := podmanTest.PodmanNoCache([]string{"images"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.LineInOutputContains(ALPINE)).To(BeTrue())
+		Expect(result.LineInOutputContains(TAGGED_IMAGE)).To(BeFalse())
+	})
+
+	It("podman tag undo failed no history", func() {
+		restore := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "--restore"})
+		restore.WaitWithDefaultTimeout()
+		Expect(restore.ExitCode()).NotTo(Equal(0))
+	})
 })

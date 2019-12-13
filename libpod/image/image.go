@@ -577,6 +577,33 @@ func (i *Image) TagImage(tag string) error {
 	return nil
 }
 
+// RestorePreviousName tries to find the previously used image name and restores
+// it. This also means that the current image name will be removed.
+func (i *Image) RestorePreviousName() error {
+	if err := i.reloadImage(); err != nil {
+		return err
+	}
+
+	history := i.NamesHistory()
+	if len(i.Names()) < 1 {
+		return errors.New("provided image has no tag")
+	}
+
+	currentName := i.Names()[len(i.Names())-1]
+	if len(history) < 1 {
+		return errors.Errorf("provided image %q has no tag history to undo", currentName)
+	}
+	previousName := history[0]
+
+	logrus.Debugf("tagging image from %q to %q", currentName, previousName)
+	if err := i.TagImage(previousName); err != nil {
+		return err
+	}
+
+	logrus.Debugf("untagging image %q ", currentName)
+	return i.UntagImage(currentName)
+}
+
 // UntagImage removes a tag from the given image
 func (i *Image) UntagImage(tag string) error {
 	if err := i.reloadImage(); err != nil {

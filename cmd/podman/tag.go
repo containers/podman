@@ -29,15 +29,20 @@ var (
 
 func init() {
 	tagCommand.Command = _tagCommand
+
+	flags := tagCommand.Flags()
+	flags.BoolVarP(
+		&tagCommand.Restore, "restore", "r", false,
+		"Undo the latest tag operation and restore the previous tag",
+	)
+
 	tagCommand.SetHelpTemplate(HelpTemplate())
 	tagCommand.SetUsageTemplate(UsageTemplate())
 }
 
 func tagCmd(c *cliconfig.TagValues) error {
 	args := c.InputArgs
-	if len(args) < 2 {
-		return errors.Errorf("image name and at least one new name must be specified")
-	}
+
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
@@ -47,6 +52,14 @@ func tagCmd(c *cliconfig.TagValues) error {
 	newImage, err := runtime.NewImageFromLocal(args[0])
 	if err != nil {
 		return err
+	}
+
+	if c.Restore {
+		return newImage.RestorePreviousName()
+	}
+
+	if len(args) < 2 {
+		return errors.Errorf("image name and at least one new name must be specified")
 	}
 
 	for _, tagName := range args[1:] {

@@ -407,6 +407,12 @@ func (ci *ContainerImage) TopLayer() string {
 	return ci.remoteImage.TopLayer
 }
 
+// RestorePreviousName undos a tag operation and restores the previous image tag
+func (ci *ContainerImage) RestorePreviousName() error {
+	_, err := iopodman.RestorePreviousName().Call(ci.Runtime.Conn, ci.ID())
+	return err
+}
+
 // TagImage ...
 func (ci *ContainerImage) TagImage(tag string) error {
 	_, err := iopodman.TagImage().Call(ci.Runtime.Conn, ci.ID(), tag)

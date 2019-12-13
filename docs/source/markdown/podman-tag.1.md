@@ -19,14 +19,19 @@ the *image* and the *target-name*.
 
 Print usage statement
 
+**--restore**, **-r**
+
+Undo the latest tag operation and restore the previous tag
+
 ## EXAMPLES
 
 ```
 $ podman tag 0e3bbc2 fedora:latest
 
 $ podman tag httpd myregistryhost:5000/fedora/httpd:v2
-```
 
+$ podman tag 0e3bbc2 --restore
+```
 
 ## SEE ALSO
 podman(1)
