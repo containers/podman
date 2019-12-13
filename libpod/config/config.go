@@ -448,19 +448,26 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
 		}
-		if err := cgroupV2Check(userConfigPath, config); err != nil {
-			return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
-		}
 	}
 
 	// Now, check if the user can access system configs and merge them if needed.
 	if configs, err := systemConfigs(); err != nil {
 		return nil, errors.Wrapf(err, "error finding config on system")
 	} else {
+		migrated := false
 		for _, path := range configs {
 			systemConfig, err := readConfigFromFile(path)
 			if err != nil {
 				return nil, errors.Wrapf(err, "error reading system config %q", path)
+			}
+			// Handle CGroups v2 configuration migration.
+			// Migrate only the first config, and do it before
+			// merging.
+			if !migrated {
+				if err := cgroupV2Check(path, systemConfig); err != nil {
+					return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
+				}
+				migrated = true
 			}
 			// Merge the it into the config. Any unset field in config will be
 			// over-written by the systemConfig.
@@ -564,6 +571,7 @@ func (c *Config) checkCgroupsAndLogger() {
 // TODO Once runc has support for cgroups, this function should be removed.
 func cgroupV2Check(configPath string, tmpConfig *Config) error {
 	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
+		logrus.Debugf("Rewriting %s for CGroup v2 upgrade", configPath)
 		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
 		if err != nil {
 			return err
