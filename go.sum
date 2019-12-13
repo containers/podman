@@ -80,6 +80,10 @@ github.com/containers/buildah v1.11.5 h1:bVpkaVlvA7G+1mBDAcX6yf7jNZJ/ZrrAHDt4WCx
 github.com/containers/buildah v1.11.5/go.mod h1:bfNPqLO8GnI0qMPmI6MHSpQNK+a3TH9syYsRg+iqhRw=
 github.com/containers/buildah v1.11.6 h1:PhlF++LAezRtOKHfKhBlo8DLvpMQIvU/K2VfAhknadE=
 github.com/containers/buildah v1.11.6/go.mod h1:02+o3ZTICaPyP0QcQFoQd07obLMdAecSnFN2kDhcqNo=
+github.com/containers/buildah v1.12.0 h1:bi/8ACl8qobazwfYgNze5y+aRuBIG+R7lMStFbnDOxE=
+github.com/containers/buildah v1.12.0/go.mod h1:yzPuQ/mJTPsfSLCyBPbeaoXgBLanjnf36M2cDzyckMg=
+github.com/containers/common v0.0.3 h1:C2Zshb0w720FqPa42MCRuiGfbW0kwbURRwvK1EWIC5I=
+github.com/containers/common v0.0.3/go.mod h1:CaOgMRiwi2JJHISMZ6VPPZhQYFUDRv3YYVss2RqUCMg=
 github.com/containers/conmon v2.0.2+incompatible h1:h2HCdd/EBpwFn7RT82Y2GyXnVUHWxk1Jm4cESSZG4P8=
 github.com/containers/conmon v2.0.2+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.0.0 h1:arnXgbt1ucsC/ndtSpiQY87rA0UjhF+/xQnPzqdBDn4=
@@ -90,6 +94,7 @@ github.com/containers/psgo v1.3.2 h1:jYfppPih3S/j2Yi5O14AXjd8GfCx1ph9L3YsoK3adko
 github.com/containers/psgo v1.3.2/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
 github.com/containers/psgo v1.4.0 h1:D8B4fZCCZhYgc8hDyMPCiShOinmOB1TP1qe46sSC19k=
 github.com/containers/psgo v1.4.0/go.mod h1:ENXXLQ5E1At4K0EUsGogXBJi/C28gwqkONWeLPI9fJ8=
+github.com/containers/storage v1.13.2/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
 github.com/containers/storage v1.13.4 h1:j0bBaJDKbUHtAW1MXPFnwXJtqcH+foWeuXK1YaBV5GA=
 github.com/containers/storage v1.13.4/go.mod h1:6D8nK2sU9V7nEmAraINRs88ZEscM5C5DK+8Npp27GeA=
 github.com/containers/storage v1.13.5 h1:/SUzGeOP2HDijpF7Yur21Ch6WTZC1BNeZF917CWcp5c=
@@ -568,6 +573,8 @@ golang.org/x/sys v0.0.0-20190902133755-9109b7679e13 h1:tdsQdquKbTNMsSZLqnLELJGzC
 golang.org/x/sys v0.0.0-20190902133755-9109b7679e13/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3 h1:7TYNF4UdlohbFwpNH04CoPMp1cHUZgO1Ebq5r2hIjfo=
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2 h1:/J2nHFg1MTqaRLFO7M+J78ASNsJoz3r0cvHBPQ77fsE=
+golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.0.0-20160726164857-2910a502d2bf/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0 h1:g61tztE5qeGQ89tm6NTjjM9VPIm088od1l6aSorWRWg=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

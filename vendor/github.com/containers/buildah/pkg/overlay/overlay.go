@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/buildah/pkg/unshare"
+	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/opencontainers/runtime-spec/specs-go"
