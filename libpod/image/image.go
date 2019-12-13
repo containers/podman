@@ -1007,6 +1007,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		ManifestType: manifestType,
 		User:         ociv1Img.Config.User,
 		History:      ociv1Img.History,
+		NamesHistory: i.NamesHistory(),
 	}
 	return data, nil
 }

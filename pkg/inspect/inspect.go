@@ -31,6 +31,7 @@ type ImageData struct {
 	ManifestType string            `json:"ManifestType"`
 	User         string            `json:"User"`
 	History      []v1.History      `json:"History"`
+	NamesHistory []string          `json:"NamesHistory"`
 }
 
 // RootFS holds the root fs information of an image

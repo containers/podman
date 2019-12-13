@@ -43,49 +43,83 @@ Display the total file size if the type is a container
 
 ```
 # podman inspect fedora
-{
-    "Id": "422dc563ca3260ad9ef5c47a1c246f5065d7f177ce51f4dd208efd82967ff182",
-    "Digest": "sha256:1b9bfb4e634dc1e5c19d0fa1eb2e5a28a5c2b498e3d3e4ac742bd7f5dae08611",
-    "RepoTags": [
-        "docker.io/library/fedora:latest"
-    ],
-    "RepoDigests": [
-        "docker.io/library/fedora@sha256:1b9bfb4e634dc1e5c19d0fa1eb2e5a28a5c2b498e3d3e4ac742bd7f5dae08611"
-    ],
-    "Parent": "",
-    "Comment": "",
-    "Created": "2017-11-14T21:07:08.475840838Z",
-    "Config": {
-        "Env": [
-            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-            "DISTTAG=f27container",
-            "FGC=f27",
-            "FBR=f27"
-        ]
-    },
-    "Version": "17.06.2-ce",
-    "Author": "[Adam Miller \u003cmaxamillion@fedoraproject.org\u003e] [Patrick Uiterwijk \u003cpatrick@puiterwijk.org\u003e]",
-    "Architecture": "amd64",
-    "Os": "linux",
-    "Size": 251722732,
-    "VirtualSize": 514895140,
-    "GraphDriver": {
-        "Name": "overlay",
-        "Data": {
-            "MergedDir": "/var/lib/containers/storage/overlay/d32459d9ce237564fb93573b85cbc707600d43fbe5e46e8eeef22cad914bb516/merged",
-            "UpperDir": "/var/lib/containers/storage/overlay/d32459d9ce237564fb93573b85cbc707600d43fbe5e46e8eeef22cad914bb516/diff",
-            "WorkDir": "/var/lib/containers/storage/overlay/d32459d9ce237564fb93573b85cbc707600d43fbe5e46e8eeef22cad914bb516/work"
-        }
-    },
-    "RootFS": {
-        "Type": "layers",
-        "Layers": [
-            "sha256:d32459d9ce237564fb93573b85cbc707600d43fbe5e46e8eeef22cad914bb516"
-        ]
-    },
-    "Labels": null,
-    "Annotations": {}
-}
+[
+    {
+        "Id": "f0858ad3febdf45bb2e5501cb459affffacef081f79eaa436085c3b6d9bd46ca",
+        "Digest": "sha256:d4f7df6b691d61af6cee7328f82f1d8afdef63bc38f58516858ae3045083924a",
+        "RepoTags": [
+            "docker.io/library/fedora:latest"
+        ],
+        "RepoDigests": [
+            "docker.io/library/fedora@sha256:8fa60b88e2a7eac8460b9c0104b877f1aa0cea7fbc03c701b7e545dacccfb433",
+            "docker.io/library/fedora@sha256:d4f7df6b691d61af6cee7328f82f1d8afdef63bc38f58516858ae3045083924a"
+        ],
+        "Parent": "",
+        "Comment": "",
+        "Created": "2019-10-29T03:23:37.695123423Z",
+        "Config": {
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "DISTTAG=f31-updates-candidatecontainer",
+                "FGC=f31-updates-candidate",
+                "FBR=f31-updates-candidate"
+            ],
+            "Cmd": [
+                "/bin/bash"
+            ],
+            "Labels": {
+                "maintainer": "Clement Verna \u003ccverna@fedoraproject.org\u003e"
+            }
+        },
+        "Version": "18.06.1-ce",
+        "Author": "",
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 201096840,
+        "VirtualSize": 201096840,
+        "GraphDriver": {
+            "Name": "overlay",
+            "Data": {
+                "UpperDir": "/home/user/.local/share/containers/storage/overlay/2ae3cee18c8ef9e0d448649747dab81c4f1ca2714a8c4550eff49574cab262c9/diff",
+                "WorkDir": "/home/user/.local/share/containers/storage/overlay/2ae3cee18c8ef9e0d448649747dab81c4f1ca2714a8c4550eff49574cab262c9/work"
+            }
+        },
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:2ae3cee18c8ef9e0d448649747dab81c4f1ca2714a8c4550eff49574cab262c9"
+            ]
+        },
+        "Labels": {
+            "maintainer": "Clement Verna \u003ccverna@fedoraproject.org\u003e"
+        },
+        "Annotations": {},
+        "ManifestType": "application/vnd.docker.distribution.manifest.v2+json",
+        "User": "",
+        "History": [
+            {
+                "created": "2019-01-16T21:21:55.569693599Z",
+                "created_by": "/bin/sh -c #(nop)  LABEL maintainer=Clement Verna \u003ccverna@fedoraproject.org\u003e",
+                "empty_layer": true
+            },
+            {
+                "created": "2019-09-27T21:21:07.784469821Z",
+                "created_by": "/bin/sh -c #(nop)  ENV DISTTAG=f31-updates-candidatecontainer FGC=f31-updates-candidate FBR=f31-updates-candidate",
+                "empty_layer": true
+            },
+            {
+                "created": "2019-10-29T03:23:37.355187998Z",
+                "created_by": "/bin/sh -c #(nop) ADD file:298f828afc880ccde9205fc4418435d5e696ad165e283f0530d0b1a74326d6dc in / "
+            },
+            {
+                "created": "2019-10-29T03:23:37.695123423Z",
+                "created_by": "/bin/sh -c #(nop)  CMD [\"/bin/bash\"]",
+                "empty_layer": true
+            }
+        ],
+        "NamesHistory": []
+    }
+]
 ```
 
 ```
