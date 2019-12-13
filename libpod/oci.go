@@ -23,9 +23,6 @@ type OCIRuntime interface {
 	// CreateContainer creates the container in the OCI runtime.
 	CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) error
 	// UpdateContainerStatus updates the status of the given container.
-	// It includes a switch for whether to perform a hard query of the
-	// runtime. If unset, the exit file (if supported by the implementation)
-	// will be used.
 	UpdateContainerStatus(ctr *Container) error
 	// StartContainer starts the given container.
 	StartContainer(ctr *Container) error
@@ -59,6 +56,9 @@ type OCIRuntime interface {
 	// If timeout is 0, SIGKILL will be sent immediately, and SIGTERM will
 	// be omitted.
 	ExecStopContainer(ctr *Container, sessionID string, timeout uint) error
+	// ExecUpdateStatus checks the status of a given exec session.
+	// Returns true if the session is still running, or false if it exited.
+	ExecUpdateStatus(ctr *Container, sessionID string) (bool, error)
 	// ExecContainerCleanup cleans up after an exec session exits.
 	// It removes any files left by the exec session that are no longer
 	// needed, including the attach socket.
