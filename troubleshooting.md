@@ -442,3 +442,30 @@ Attempts to run podman result in
 #### Solution
 
 One workaround is to disable Secure Boot in your BIOS.
+
+### 19) error creating libpod runtime: there might not be enough IDs available in the namespace
+
+Unable to pull images
+
+#### Symptom
+
+```console
+$ podman unshare cat /proc/self/uid_map
+         0       1000          1
+```
+
+#### Solution
+
+```console
+$ podman system migrate
+```
+
+Original command now returns
+
+```
+$ podman unshare cat /proc/self/uid_map
+         0       1000          1
+         1     100000      65536
+```
+
+Reference [subuid](http://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](http://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
