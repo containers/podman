@@ -45,7 +45,7 @@ endif
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
 $(warning \
 	Podman is being compiled without the systemd build tag.\
-	Install libsystemd for journald support)
+	Install libsystemd on Ubuntu or systemd-devel on rpm based distro for journald support)
 endif
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
