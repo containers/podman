@@ -15,11 +15,12 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/containers/buildah/bind"
-	"github.com/containers/buildah/pkg/unshare"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/unshare"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
@@ -1002,12 +1003,19 @@ func isDevNull(dev os.FileInfo) bool {
 // callback that will clean up its work.
 func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func() error, err error) {
 	var fs unix.Statfs_t
-	removes := []string{}
 	undoBinds = func() error {
-		if err2 := bind.UnmountMountpoints(spec.Root.Path, removes); err2 != nil {
-			logrus.Warnf("pkg/chroot: error unmounting %q: %v", spec.Root.Path, err2)
-			if err == nil {
-				err = err2
+		if err2 := unix.Unmount(spec.Root.Path, unix.MNT_DETACH); err2 != nil {
+			retries := 0
+			for (err2 == unix.EBUSY || err2 == unix.EAGAIN) && retries < 50 {
+				time.Sleep(50 * time.Millisecond)
+				err2 = unix.Unmount(spec.Root.Path, unix.MNT_DETACH)
+				retries++
+			}
+			if err2 != nil {
+				logrus.Warnf("pkg/chroot: error unmounting %q (retried %d times): %v", spec.Root.Path, retries, err2)
+				if err == nil {
+					err = err2
+				}
 			}
 		}
 		return err
@@ -1096,6 +1104,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	// Add /sys/fs/selinux to the set of masked paths, to ensure that we don't have processes
 	// attempting to interact with labeling, when they aren't allowed to do so.
 	spec.Linux.MaskedPaths = append(spec.Linux.MaskedPaths, "/sys/fs/selinux")
+
 	// Bind mount in everything we've been asked to mount.
 	for _, m := range spec.Mounts {
 		// Skip anything that we just mounted.
@@ -1141,13 +1150,11 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			if !os.IsNotExist(err) {
 				return undoBinds, errors.Wrapf(err, "error examining %q for mounting in mount namespace", target)
 			}
-			// The target isn't there yet, so create it, and make a
-			// note to remove it later.
+			// The target isn't there yet, so create it.
 			if srcinfo.IsDir() {
 				if err = os.MkdirAll(target, 0111); err != nil {
 					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
 				}
-				removes = append(removes, target)
 			} else {
 				if err = os.MkdirAll(filepath.Dir(target), 0111); err != nil {
 					return undoBinds, errors.Wrapf(err, "error ensuring parent of mountpoint %q (%q) is present in mount namespace", target, filepath.Dir(target))
@@ -1157,7 +1164,6 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 					return undoBinds, errors.Wrapf(err, "error creating mountpoint %q in mount namespace", target)
 				}
 				file.Close()
-				removes = append(removes, target)
 			}
 		}
 		requestFlags := bindFlags
@@ -1266,7 +1272,6 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err := os.Mkdir(roEmptyDir, 0700); err != nil {
 			return undoBinds, errors.Wrapf(err, "error creating empty directory %q", roEmptyDir)
 		}
-		removes = append(removes, roEmptyDir)
 	}
 
 	// Set up any masked paths that we need to.  If we're running inside of

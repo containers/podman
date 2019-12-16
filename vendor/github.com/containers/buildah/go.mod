@@ -5,8 +5,9 @@ go 1.12
 require (
 	github.com/blang/semver v3.5.0+incompatible // indirect
 	github.com/containernetworking/cni v0.7.1
+	github.com/containers/common v0.0.3
 	github.com/containers/image/v5 v5.0.0
-	github.com/containers/storage v1.14.0
+	github.com/containers/storage v1.15.3
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/docker-credential-helpers v0.6.1 // indirect
@@ -43,7 +44,7 @@ require (
 	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
 	github.com/xeipuuv/gojsonschema v1.1.0 // indirect
 	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
-	golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
+	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0 // indirect
 	google.golang.org/grpc v1.24.0 // indirect
 	k8s.io/api v0.0.0-20190813020757-36bff7324fb7 // indirect

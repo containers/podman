@@ -128,7 +128,7 @@ as yum, dnf or apt-get on a number of Linux distributions.
 
 Prior to installing Buildah, install the following packages on your Linux distro:
 * make
-* golang (Requires version 1.10 or higher.)
+* golang (Requires version 1.12 or higher.)
 * bats
 * btrfs-progs-devel
 * bzip2
@@ -239,7 +239,7 @@ In Ubuntu zesty and xenial, you can use these commands:
   apt-add-repository -y ppa:projectatomic/ppa
   apt-get -y -qq update
   apt-get -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
-  apt-get -y install golang-1.10
+  apt-get -y install golang-1.12
 ```
 Then to install Buildah on Ubuntu follow the steps in this example:
 
