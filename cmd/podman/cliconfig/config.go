@@ -681,3 +681,7 @@ type SystemDfValues struct {
 	Verbose bool
 	Format  string
 }
+
+type UntagValues struct {
+	PodmanCommand
+}

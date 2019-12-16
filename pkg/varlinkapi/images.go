@@ -450,6 +450,18 @@ func (i *LibpodAPI) TagImage(call iopodman.VarlinkCall, name, tag string) error 
 	return call.ReplyTagImage(newImage.ID())
 }
 
+// UntagImage accepts an image name and tag as strings and removes the tag from the local store.
+func (i *LibpodAPI) UntagImage(call iopodman.VarlinkCall, name, tag string) error {
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		return call.ReplyImageNotFound(name, err.Error())
+	}
+	if err := newImage.UntagImage(tag); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyUntagImage(newImage.ID())
+}
+
 // RemoveImage accepts a image name or ID as a string and force bool to determine if it should
 // remove the image even if being used by stopped containers
 func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bool) error {
