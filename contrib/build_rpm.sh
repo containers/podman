@@ -26,6 +26,7 @@ declare -a PKGS=(device-mapper-devel \
                 make \
                 rpm-build \
                 go-compilers-golang-compiler \
+                systemd-devel \
                 )
 
 if [[ $pkg_manager == *dnf ]]; then

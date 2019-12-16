@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
-if pkg-config --exists libsystemd; then
-    echo systemd
+cc -E - > /dev/null 2> /dev/null << EOF
+#include <systemd/sd-daemon.h>
+EOF
+if test $? -eq 0 ; then
+	echo systemd
 fi
