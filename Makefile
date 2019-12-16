@@ -241,6 +241,7 @@ testunit: libpodimage ## Run unittest on the built image
 localunit: test/goecho/goecho varlink_generate
 	ginkgo \
 		-r \
+		$(TESTFLAGS) \
 		--skipPackage test/e2e,pkg/apparmor,test/endpoint \
 		--cover \
 		--covermode atomic \
@@ -248,13 +249,13 @@ localunit: test/goecho/goecho varlink_generate
 		--succinct
 
 ginkgo:
-	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/.
+	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -nodes 3 -debug test/e2e/.
 
 ginkgo-remote:
-	ginkgo -v -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
+	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS) remoteclient" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor test/e2e/.
 
 endpoint:
-	ginkgo -v -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -debug test/endpoint/.
+	ginkgo -v $(TESTFLAGS) -tags "$(BUILDTAGS)" $(GINKGOTIMEOUT) -cover -flakeAttempts 3 -progress -trace -noColor -debug test/endpoint/.
 
 localintegration: varlink_generate test-binaries ginkgo
 
