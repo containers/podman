@@ -6,3 +6,9 @@ package cgroups
 func IsCgroup2UnifiedMode() (bool, error) {
 	return false, nil
 }
+
+// UserOwnsCurrentSystemdCgroup checks whether the current EUID owns the
+// current cgroup.
+func UserOwnsCurrentSystemdCgroup() (bool, error) {
+	return false, nil
+}
