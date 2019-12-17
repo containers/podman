@@ -1751,3 +1751,14 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodNetworks tells the pod to add user networks to the pause container
+func WithPodNetworks(nets []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+		pod.config.InfraContainer.UserNetworks = nets
+		return nil
+	}
+}

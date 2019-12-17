@@ -94,7 +94,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 	options = append(options, withIsInfra())
 
 	// Since user namespace sharing is not implemented, we only need to check if it's rootless
-	networks := make([]string, 0)
+	networks := p.config.InfraContainer.UserNetworks
 	netmode := "bridge"
 	if isRootless {
 		netmode = "slirp4netns"

@@ -1934,6 +1934,8 @@ infraCommand [string](https://godoc.org/builtin#string)
 
 infraImage [string](https://godoc.org/builtin#string)
 
+networks [[]string](#[]string)
+
 publish [[]string](#[]string)
 ### <a name="PodmanInfo"></a>type PodmanInfo
 

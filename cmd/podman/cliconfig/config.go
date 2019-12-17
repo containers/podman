@@ -325,6 +325,7 @@ type PodCreateValues struct {
 	LabelFile    []string
 	Labels       []string
 	Name         string
+	Networks     []string
 	Hostname     string
 	PodIDFile    string
 	Publish      []string

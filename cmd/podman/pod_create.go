@@ -52,6 +52,7 @@ func init() {
 	flags.StringSliceVar(&podCreateCommand.LabelFile, "label-file", []string{}, "Read in a line delimited file of labels")
 	flags.StringSliceVarP(&podCreateCommand.Labels, "label", "l", []string{}, "Set metadata on pod (default [])")
 	flags.StringVarP(&podCreateCommand.Name, "name", "n", "", "Assign a name to the pod")
+	flags.StringSliceVar(&podCreateCommand.Networks, "network", []string{}, "Connect a network to the infra container")
 	flags.StringVarP(&podCreateCommand.Hostname, "hostname", "", "", "Set a hostname to the pod")
 	flags.StringVar(&podCreateCommand.PodIDFile, "pod-id-file", "", "Write the pod ID to the file")
 	flags.StringSliceVarP(&podCreateCommand.Publish, "publish", "p", []string{}, "Publish a container's port, or a range of ports, to the host (default [])")

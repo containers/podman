@@ -451,6 +451,7 @@ type PodCreate (
     infra: bool,
     infraCommand: string,
     infraImage: string,
+    networks: []string,
     publish: []string
 )
 

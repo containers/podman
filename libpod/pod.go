@@ -99,6 +99,7 @@ type PodContainerInfo struct {
 type InfraContainerConfig struct {
 	HasInfraContainer bool                 `json:"makeInfraContainer"`
 	PortBindings      []ocicni.PortMapping `json:"infraPortBindings"`
+	UserNetworks      []string             `json:"infraNetworks"`
 }
 
 // ID retrieves the pod's ID

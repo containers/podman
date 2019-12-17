@@ -47,6 +47,14 @@ Read in a line delimited file of labels
 
 Assign a name to the pod
 
+**--network**="*network-name*"
+
+Specify a user-defined network to attach to the pod
+
+By default, the first user network is attached to the pod via the infra container. Specify this option if you have multiple user networks configured and would like to select a particular one. Specifying this flag multiple times will attach multiple network interfaces, one per user network.
+
+NOTE: This cannot be modified once the pod is created.
+
 **--podidfile**=*podid*
 
 Write the pod ID to the file

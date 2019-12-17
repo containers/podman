@@ -269,6 +269,10 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 			return "", err
 		}
 		options = append(options, nsOptions...)
+
+		if cli.Flag("network").Changed {
+			options = append(options, libpod.WithPodNetworks(cli.Networks))
+		}
 	}
 
 	if len(cli.Publish) > 0 {

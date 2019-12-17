@@ -117,4 +117,27 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
 	})
+
+	It("podman create pod in custom CNI network", func() {
+		SkipIfRootless()
+		netName := "podmantestnetwork"
+		ipAddrPrefix := "10.20.30."
+		createNet := podmanTest.Podman([]string{"network", "create", "--subnet", ipAddrPrefix + "0/24", netName})
+		createNet.WaitWithDefaultTimeout()
+		Expect(createNet.ExitCode()).To(BeZero())
+
+		name := "test"
+		create := podmanTest.Podman([]string{"pod", "create", "--name", name, "--network", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		run := podmanTest.Podman([]string{"run", "--rm", "--pod", name, ALPINE, "ip", "addr"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(run.OutputToString()).To(ContainSubstring(ipAddrPrefix))
+
+		rmNet := podmanTest.Podman([]string{"network", "rm", "-f", netName})
+		rmNet.WaitWithDefaultTimeout()
+		Expect(rmNet.ExitCode()).To(BeZero())
+	})
 })
