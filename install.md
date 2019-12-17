@@ -149,6 +149,12 @@ sudo apt-get install \
   uidmap
 ```
 
+On openSUSE Leap 15.x and Tumbleweed:
+
+```bash
+sudo zypper -n in libseccomp-devel libgpgme-devel
+```
+
 On Manjaro (and maybe other Linux distributions):
 
 Make sure that the Linux kernel supports user namespaces:
