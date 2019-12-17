@@ -176,6 +176,10 @@ value can be entered.  The password is entered without echo.
 
 Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
 
+Note: if the user only has access rights via a group then accessing the device
+from inside a rootless container will fail. The `crun` runtime offers a
+workaround for this by adding the option `--annotation io.crun.keep_original_groups=1`.
+
 **--disable-compression, -D**
 
 Don't compress filesystem layers when building the image unless it is required
