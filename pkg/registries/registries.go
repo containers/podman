@@ -34,7 +34,8 @@ func SystemRegistriesConfPath() string {
 	return ""
 }
 
-func getRegistries() ([]sysregistriesv2.Registry, error) {
+// GetRegistriesData obtains the list of registries
+func GetRegistriesData() ([]sysregistriesv2.Registry, error) {
 	registries, err := sysregistriesv2.GetRegistries(&types.SystemContext{SystemRegistriesConfPath: SystemRegistriesConfPath()})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to parse the registries.conf file")
@@ -50,7 +51,7 @@ func GetRegistries() ([]string, error) {
 // GetBlockedRegistries obtains the list of blocked registries defined in the global registries file.
 func GetBlockedRegistries() ([]string, error) {
 	var blockedRegistries []string
-	registries, err := getRegistries()
+	registries, err := GetRegistriesData()
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func GetBlockedRegistries() ([]string, error) {
 // GetInsecureRegistries obtains the list of insecure registries from the global registration file.
 func GetInsecureRegistries() ([]string, error) {
 	var insecureRegistries []string
-	registries, err := getRegistries()
+	registries, err := GetRegistriesData()
 	if err != nil {
 		return nil, err
 	}
