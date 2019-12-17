@@ -439,6 +439,18 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 
+		result = podmanTest.Podman([]string{"exec", "-l", "/bin/sh", "-c", "rm /etc/motd"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result = podmanTest.Podman([]string{"diff", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring("C /etc"))
+		Expect(result.OutputToString()).To(ContainSubstring("A /test.output"))
+		Expect(result.OutputToString()).To(ContainSubstring("D /etc/motd"))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
+
 		// Checkpoint the container
 		result = podmanTest.Podman([]string{"container", "checkpoint", "-l", "-e", fileName})
 		result.WaitWithDefaultTimeout()
@@ -461,6 +473,14 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(result.OutputToString()).To(ContainSubstring("test" + cid + "test"))
+
+		result = podmanTest.Podman([]string{"diff", "-l"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+		Expect(result.OutputToString()).To(ContainSubstring("C /etc"))
+		Expect(result.OutputToString()).To(ContainSubstring("A /test.output"))
+		Expect(result.OutputToString()).To(ContainSubstring("D /etc/motd"))
+		Expect(len(result.OutputToStringArray())).To(Equal(3))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
