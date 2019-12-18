@@ -573,7 +573,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 			if !volume.IsCtrSpecific() {
 				continue
 			}
-			if err := runtime.removeVolume(ctx, volume, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {
+			if err := runtime.removeVolume(ctx, volume, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
 				logrus.Errorf("cleanup volume (%s): %v", v, err)
 			}
 		}

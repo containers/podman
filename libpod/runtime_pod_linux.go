@@ -225,11 +225,20 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		}
 	}
 
+	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
+
 	// Second loop - all containers are good, so we should be clear to
 	// remove.
 	for _, ctr := range ctrs {
-		// Remove the container
-		if err := r.removeContainer(ctx, ctr, force, true, true); err != nil {
+		// Remove the container.
+		// Do NOT remove named volumes. Instead, we're going to build a
+		// list of them to be removed at the end, once the containers
+		// have been removed by RemovePodContainers.
+		for _, vol := range ctr.config.NamedVolumes {
+			ctrNamedVolumes[vol.Name] = vol
+		}
+
+		if err := r.removeContainer(ctx, ctr, force, false, true); err != nil {
 			if removalErr != nil {
 				removalErr = err
 			} else {
@@ -244,6 +253,23 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		// The containers in the pod are unusable, but they still exist,
 		// so pod removal will fail.
 		return err
+	}
+
+	for volName := range ctrNamedVolumes {
+		volume, err := r.state.Volume(volName)
+		if err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
+			logrus.Errorf("Error retrieving volume %s: %v", volName, err)
+			continue
+		}
+		if !volume.IsCtrSpecific() {
+			continue
+		}
+		if err := r.removeVolume(ctx, volume, false); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchVolume || errors.Cause(err) == define.ErrVolumeRemoved {
+				continue
+			}
+			logrus.Errorf("Error removing volume %s: %v", volName, err)
+		}
 	}
 
 	// Remove pod cgroup, if present
