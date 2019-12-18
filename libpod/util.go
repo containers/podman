@@ -49,6 +49,19 @@ func RemoveScientificNotationFromFloat(x float64) (float64, error) {
 	return result, nil
 }
 
+// HasNamespace returns whether the spec has the specified namespace
+func HasNamespace(spec *spec.Spec, namespace spec.LinuxNamespaceType) bool {
+	if spec == nil || spec.Linux == nil {
+		return false
+	}
+	for _, n := range spec.Linux.Namespaces {
+		if n.Type == namespace {
+			return true
+		}
+	}
+	return false
+}
+
 // MountExists returns true if dest exists in the list of mounts
 func MountExists(specMounts []spec.Mount, dest string) bool {
 	for _, m := range specMounts {
