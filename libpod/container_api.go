@@ -183,7 +183,7 @@ func (c *Container) StopWithTimeout(timeout uint) error {
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only stop created or running containers. %s is in state %s", c.ID(), c.state.State.String())
 	}
 
-	return c.stop(timeout, false)
+	return c.stop(timeout)
 }
 
 // Kill sends a signal to a container
@@ -715,7 +715,7 @@ func (c *Container) Refresh(ctx context.Context) error {
 
 	// Next, if the container is running, stop it
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.config.StopTimeout, false); err != nil {
+		if err := c.stop(c.config.StopTimeout); err != nil {
 			return err
 		}
 	}

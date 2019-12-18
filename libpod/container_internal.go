@@ -1129,9 +1129,14 @@ func (c *Container) start() error {
 }
 
 // Internal, non-locking function to stop container
-func (c *Container) stop(timeout uint, all bool) error {
+func (c *Container) stop(timeout uint) error {
 	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
 
+	// If the container is running in a PID Namespace, then killing the
+	// primary pid is enough to kill the container.  If it is not running in
+	// a pid namespace then the OCI Runtime needs to kill ALL processes in
+	// the containers cgroup in order to make sure the container is stopped.
+	all := !c.hasNamespace(spec.PIDNamespace)
 	// We can't use --all if CGroups aren't present.
 	// Rootless containers with CGroups v1 and NoCgroups are both cases
 	// where this can happen.
@@ -1225,7 +1230,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 
 	if c.state.State == define.ContainerStateRunning {
 		conmonPID := c.state.ConmonPID
-		if err := c.stop(timeout, false); err != nil {
+		if err := c.stop(timeout); err != nil {
 			return err
 		}
 		// Old versions of conmon have a bug where they create the exit file before
@@ -1894,4 +1899,16 @@ func (c *Container) reapExecSessions() error {
 		}
 	}
 	return lastErr
+}
+
+func (c *Container) hasNamespace(namespace spec.LinuxNamespaceType) bool {
+	if c.config.Spec == nil || c.config.Spec.Linux == nil {
+		return false
+	}
+	for _, n := range c.config.Spec.Linux.Namespaces {
+		if n.Type == namespace {
+			return true
+		}
+	}
+	return false
 }

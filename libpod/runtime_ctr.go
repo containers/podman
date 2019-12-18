@@ -463,7 +463,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	// Check that the container's in a good state to be removed
 	if c.state.State == define.ContainerStateRunning {
-		if err := c.stop(c.StopTimeout(), true); err != nil {
+		if err := c.stop(c.StopTimeout()); err != nil {
 			return errors.Wrapf(err, "cannot remove container %s as it could not be stopped", c.ID())
 		}
 	}
