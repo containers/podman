@@ -12,11 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// It's not kernel limit, we want this 4M limit to supply a reasonable functional container
-	linuxMinMemory = 4194304
-)
-
 // GetAllLabels ...
 func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 	labels := make(map[string]string)
@@ -86,9 +81,6 @@ func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, e
 	sysInfo := sysinfo.New(true)
 
 	// memory subsystem checks and adjustments
-	if config.Resources.Memory != 0 && config.Resources.Memory < linuxMinMemory {
-		return warnings, fmt.Errorf("minimum memory limit allowed is 4MB")
-	}
 	if config.Resources.Memory > 0 && !sysInfo.MemoryLimit {
 		warnings = addWarning(warnings, "Your kernel does not support memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
 		config.Resources.Memory = 0
@@ -120,18 +112,12 @@ func verifyContainerResources(config *cc.CreateConfig, update bool) ([]string, e
 		warnings = addWarning(warnings, "Your kernel does not support memory soft limit capabilities or the cgroup is not mounted. Limitation discarded.")
 		config.Resources.MemoryReservation = 0
 	}
-	if config.Resources.MemoryReservation > 0 && config.Resources.MemoryReservation < linuxMinMemory {
-		return warnings, fmt.Errorf("minimum memory reservation allowed is 4MB")
-	}
 	if config.Resources.Memory > 0 && config.Resources.MemoryReservation > 0 && config.Resources.Memory < config.Resources.MemoryReservation {
 		return warnings, fmt.Errorf("minimum memory limit cannot be less than memory reservation limit, see usage")
 	}
 	if config.Resources.KernelMemory > 0 && !sysInfo.KernelMemory {
 		warnings = addWarning(warnings, "Your kernel does not support kernel memory limit capabilities or the cgroup is not mounted. Limitation discarded.")
 		config.Resources.KernelMemory = 0
-	}
-	if config.Resources.KernelMemory > 0 && config.Resources.KernelMemory < linuxMinMemory {
-		return warnings, fmt.Errorf("minimum kernel memory limit allowed is 4MB")
 	}
 	if config.Resources.DisableOomKiller && !sysInfo.OomKillDisable {
 		// only produce warnings if the setting wasn't to *disable* the OOM Kill; no point
