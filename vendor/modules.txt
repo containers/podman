@@ -60,14 +60,13 @@ github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.11.6
+# github.com/containers/buildah v1.12.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
 github.com/containers/buildah/docker
 github.com/containers/buildah/imagebuildah
 github.com/containers/buildah/pkg/blobcache
-github.com/containers/buildah/pkg/cgroups
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
 github.com/containers/buildah/pkg/formats
@@ -75,8 +74,10 @@ github.com/containers/buildah/pkg/overlay
 github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
-github.com/containers/buildah/pkg/unshare
 github.com/containers/buildah/util
+# github.com/containers/common v0.0.3
+github.com/containers/common/pkg/cgroups
+github.com/containers/common/pkg/unshare
 # github.com/containers/image/v5 v5.0.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -192,7 +193,7 @@ github.com/docker/distribution/registry/client/auth/challenge
 github.com/docker/distribution/registry/client/transport
 github.com/docker/distribution/registry/storage/cache
 github.com/docker/distribution/registry/storage/cache/memory
-# github.com/docker/docker v1.4.2-0.20191101170500-ac7306503d23
+# github.com/docker/docker v1.4.2-0.20191219165747-a9416c67da9f
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/blkiodev
@@ -535,7 +536,7 @@ golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3
+# golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 # golang.org/x/text v0.3.2

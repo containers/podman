@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/buildah/pkg/cgroups"
+	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
