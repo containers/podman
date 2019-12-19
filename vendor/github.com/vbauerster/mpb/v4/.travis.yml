@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - 1.12.x
+  - 1.13.x
+
+env:
+  - GO111MODULE=on
+
+script:
+  - go test -race ./...
+  - for i in _examples/*/; do go build $i/*.go || exit 1; done

@@ -36,7 +36,7 @@ func newImageDestination(sys *types.SystemContext, ref archiveReference) (types.
 		return nil, errors.New("docker-archive doesn't support modifying existing images")
 	}
 
-	tarDest := tarfile.NewDestination(fh, ref.destinationRef)
+	tarDest := tarfile.NewDestinationWithContext(sys, fh, ref.destinationRef)
 	if sys != nil && sys.DockerArchiveAdditionalTags != nil {
 		tarDest.AddRepoTags(sys.DockerArchiveAdditionalTags)
 	}

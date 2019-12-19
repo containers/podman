@@ -54,7 +54,7 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 	return &daemonImageDestination{
 		ref:                ref,
 		mustMatchRuntimeOS: mustMatchRuntimeOS,
-		Destination:        tarfile.NewDestination(writer, namedTaggedRef),
+		Destination:        tarfile.NewDestinationWithContext(sys, writer, namedTaggedRef),
 		goroutineCancel:    goroutineCancel,
 		statusChannel:      statusChannel,
 		writer:             writer,
@@ -73,7 +73,9 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 		if err == nil {
 			reader.Close()
 		} else {
-			reader.CloseWithError(err)
+			if err := reader.CloseWithError(err); err != nil {
+				logrus.Debugf("imageLoadGoroutine: Error during reader.CloseWithError: %v", err)
+			}
 		}
 	}()
 
@@ -90,7 +92,7 @@ func (d *daemonImageDestination) DesiredLayerCompression() types.LayerCompressio
 	return types.PreserveOriginal
 }
 
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
 func (d *daemonImageDestination) MustMatchRuntimeOS() bool {
 	return d.mustMatchRuntimeOS
 }
@@ -109,7 +111,9 @@ func (d *daemonImageDestination) Close() error {
 		// immediately, and hopefully, through terminating the sending which uses "Transfer-Encoding: chunked"" without sending
 		// the terminating zero-length chunk, prevent the docker daemon from processing the tar stream at all.
 		// Whether that works or not, closing the PipeWriter seems desirable in any case.
-		d.writer.CloseWithError(errors.New("Aborting upload, daemonImageDestination closed without a previous .Commit()"))
+		if err := d.writer.CloseWithError(errors.New("Aborting upload, daemonImageDestination closed without a previous .Commit()")); err != nil {
+			return err
+		}
 	}
 	d.goroutineCancel()
 

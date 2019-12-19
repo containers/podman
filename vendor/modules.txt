@@ -78,7 +78,7 @@ github.com/containers/buildah/util
 # github.com/containers/common v0.0.3
 github.com/containers/common/pkg/cgroups
 github.com/containers/common/pkg/unshare
-# github.com/containers/image/v5 v5.0.0
+# github.com/containers/image/v5 v5.1.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -118,6 +118,16 @@ github.com/containers/image/v5/types
 github.com/containers/image/v5/version
 # github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b
 github.com/containers/libtrust
+# github.com/containers/ocicrypt v0.0.0-20190930154801-b87a4a69c741
+github.com/containers/ocicrypt
+github.com/containers/ocicrypt/blockcipher
+github.com/containers/ocicrypt/config
+github.com/containers/ocicrypt/keywrap
+github.com/containers/ocicrypt/keywrap/jwe
+github.com/containers/ocicrypt/keywrap/pgp
+github.com/containers/ocicrypt/keywrap/pkcs7
+github.com/containers/ocicrypt/spec
+github.com/containers/ocicrypt/utils
 # github.com/containers/psgo v1.4.0
 github.com/containers/psgo
 github.com/containers/psgo/internal/capabilities
@@ -255,6 +265,8 @@ github.com/fatih/camelcase
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.0
 github.com/fsouza/go-dockerclient
+# github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
+github.com/fullsailor/pkcs7
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
 # github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
@@ -288,7 +300,7 @@ github.com/hpcloud/tail/ratelimiter
 github.com/hpcloud/tail/util
 github.com/hpcloud/tail/watch
 github.com/hpcloud/tail/winfile
-# github.com/imdario/mergo v0.3.7
+# github.com/imdario/mergo v0.3.8
 github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
@@ -307,8 +319,6 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/mattn/go-isatty v0.0.8
-github.com/mattn/go-isatty
 # github.com/mattn/go-shellwords v1.0.6
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -485,11 +495,11 @@ github.com/varlink/go/varlink/idl
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb v3.4.0+incompatible
-github.com/vbauerster/mpb
-github.com/vbauerster/mpb/cwriter
-github.com/vbauerster/mpb/decor
-github.com/vbauerster/mpb/internal
+# github.com/vbauerster/mpb/v4 v4.11.1
+github.com/vbauerster/mpb/v4
+github.com/vbauerster/mpb/v4/cwriter
+github.com/vbauerster/mpb/v4/decor
+github.com/vbauerster/mpb/v4/internal
 # github.com/vishvananda/netlink v1.0.0
 github.com/vishvananda/netlink
 github.com/vishvananda/netlink/nl
@@ -509,14 +519,17 @@ go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.4.0
 go.uber.org/atomic
-# golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
+# golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 golang.org/x/crypto/cast5
+golang.org/x/crypto/ed25519
+golang.org/x/crypto/ed25519/internal/edwards25519
 golang.org/x/crypto/openpgp
 golang.org/x/crypto/openpgp/armor
 golang.org/x/crypto/openpgp/elgamal
 golang.org/x/crypto/openpgp/errors
 golang.org/x/crypto/openpgp/packet
 golang.org/x/crypto/openpgp/s2k
+golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 golang.org/x/net/context
@@ -582,6 +595,10 @@ google.golang.org/grpc/status
 gopkg.in/fsnotify.v1
 # gopkg.in/inf.v0 v0.9.1
 gopkg.in/inf.v0
+# gopkg.in/square/go-jose.v2 v2.3.1
+gopkg.in/square/go-jose.v2
+gopkg.in/square/go-jose.v2/cipher
+gopkg.in/square/go-jose.v2/json
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 gopkg.in/tomb.v1
 # gopkg.in/yaml.v2 v2.2.7

@@ -111,8 +111,8 @@ var _ json.Unmarshaler = (*untrustedSignature)(nil)
 func (s *untrustedSignature) UnmarshalJSON(data []byte) error {
 	err := s.strictUnmarshalJSON(data)
 	if err != nil {
-		if _, ok := err.(jsonFormatError); ok {
-			err = InvalidSignatureError{msg: err.Error()}
+		if formatErr, ok := err.(jsonFormatError); ok {
+			err = InvalidSignatureError{msg: formatErr.Error()}
 		}
 	}
 	return err

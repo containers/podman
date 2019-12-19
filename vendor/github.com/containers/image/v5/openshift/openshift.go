@@ -378,7 +378,7 @@ func (d *openshiftImageDestination) AcceptsForeignLayerURLs() bool {
 	return true
 }
 
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
 func (d *openshiftImageDestination) MustMatchRuntimeOS() bool {
 	return false
 }
@@ -491,6 +491,9 @@ sigExists:
 			Content:    newSig,
 		}
 		body, err := json.Marshal(sig)
+		if err != nil {
+			return err
+		}
 		_, err = d.client.doRequest(ctx, "POST", "/oapi/v1/imagesignatures", body)
 		if err != nil {
 			return err
