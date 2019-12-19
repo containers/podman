@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/user"
@@ -72,8 +73,6 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 // ImageConfig is a wrapper around the OCIv1 Image Configuration struct exported
 // by containers/image, but containing additional fields that are not supported
 // by OCIv1 (but are by Docker v2) - notably OnBuild.

@@ -34,8 +34,7 @@ type ContainerCommitOptions struct {
 // image
 func (c *Container) Commit(ctx context.Context, destImage string, options ContainerCommitOptions) (*image.Image, error) {
 	var (
-		isEnvCleared, isLabelCleared, isExposeCleared, isVolumeCleared bool
-		imageRef                                                       types.ImageReference
+		imageRef types.ImageReference
 	)
 
 	if c.config.Rootfs != "" {

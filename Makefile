@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= eea4fb3fee296ca549528871762aa14e76440193
+EPOCH_TEST_COMMIT ?= 16746aa4ba9f6a5f44afa5542995730c8fffe307
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -79,19 +79,13 @@ ASMFLAGS ?= all=-trimpath=${PWD}
 LDFLAGS_PODMAN ?= \
 	  -X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT) \
 	  -X $(LIBPOD)/define.buildInfo=$(BUILD_INFO) \
-<<<<<<< HEAD
-<<<<<<< HEAD
 	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	  -X $(LIBPOD)/config._etcDir=$(ETCDIR) \
-	  -extldflags "$(LDFLAGS)"
-=======
+	  -extldflags "$(LDFLAGS)" \
 	  -X $(LIBPOD).installPrefix=$(PREFIX) \
-	  -X $(LIBPOD).etcDir=$(ETCDIR)
->>>>>>> Create service command
-=======
+	  -X $(LIBPOD).etcDir=$(ETCDIR) \
 	  -X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	  -X $(LIBPOD)/config._etcDir=$(ETCDIR)
->>>>>>> Correct Makefile
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
 LIBSECCOMP_COMMIT := release-2.3
 # Rarely if ever should integration tests take more than 50min,
@@ -172,15 +166,9 @@ gofmt: ## Verify the source code gofmt
 	git diff --exit-code
 
 test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
-<<<<<<< HEAD
-<<<<<<< HEAD
 	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
-=======
 	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS) containers_image_ostree_stub" -o $@ $(PROJECT)/test/checkseccomp
->>>>>>> Create service command
-=======
 	$(GO_BUILD) -ldflags '$(LDFLAGS)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
->>>>>>> Correct Makefile
 
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -o $@ $(PROJECT)/test/goecho
@@ -356,26 +344,17 @@ $(MANPAGES): %: %.md .gopathok
 docdir:
 	mkdir -p docs/build/man
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 docs: .install.md2man docdir $(MANPAGES) ## Generate documentation
-=======
-docs: docdir $(MANPAGES) ## Generate documentation
->>>>>>> Correct Makefile
 
 install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 	rm -rf docs/build/remote
 	mkdir -p docs/build/remote
 	ln -sf $(shell pwd)/docs/source/markdown/links docs/build/man/
 	docs/remote-docs.sh $* docs/build/remote/$* $(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
-<<<<<<< HEAD
-=======
+
 install-podman-remote-docs: podman-remote docs
 	rm -rf docs/remote
 	docs/podman-remote.sh darwin docs/remote docs
->>>>>>> Create service command
-=======
->>>>>>> Correct Makefile
 
 man-page-check:
 	hack/man-page-checker
