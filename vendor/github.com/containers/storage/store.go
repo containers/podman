@@ -2488,6 +2488,10 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2495,6 +2499,18 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			return "", err
 		}
 	}
+
+	/* We need to make sure the home mount is present when the Mount is done.  */
+	if s.graphLock.TouchedSince(s.lastLoaded) {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return "", err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	if rlstore.Exists(id) {
 		options := drivers.MountOpts{
 			MountLabel: mountLabel,
