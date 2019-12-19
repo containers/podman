@@ -232,6 +232,10 @@ type ContainerConfig struct {
 	// ID of this container's lock
 	LockID uint32 `json:"lockID"`
 
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
+
 	// TODO consider breaking these subsections up into smaller structs
 
 	// UID/GID mappings used by the storage
