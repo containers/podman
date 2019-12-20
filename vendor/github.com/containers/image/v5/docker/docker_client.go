@@ -440,7 +440,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method, url
 		// If the delta between the date and now is positive, use it.
 		// Otherwise, fall back to using the default exponential back off.
 		if t, err := http.ParseTime(after); err == nil {
-			delta := int64(t.Sub(time.Now()).Seconds())
+			delta := int64(time.Until(t).Seconds())
 			if delta > 0 {
 				return min(delta, maxDelay)
 			}

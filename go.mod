@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/plugins v0.8.2
 	github.com/containers/buildah v1.12.0
 	github.com/containers/conmon v2.0.2+incompatible // indirect
-	github.com/containers/image/v5 v5.0.0
+	github.com/containers/image/v5 v5.1.0
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.3
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
@@ -36,7 +36,6 @@ require (
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/json-iterator/go v1.1.8
 	github.com/mattn/go-isatty v0.0.8 // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
@@ -64,7 +63,7 @@ require (
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.0.0
 	go.uber.org/atomic v1.4.0 // indirect
-	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
+	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2

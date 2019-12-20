@@ -112,7 +112,7 @@ func (d *dirImageDestination) AcceptsForeignLayerURLs() bool {
 	return false
 }
 
-// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime OS. False otherwise.
+// MustMatchRuntimeOS returns true iff the destination can store only images targeted for the current runtime architecture and OS. False otherwise.
 func (d *dirImageDestination) MustMatchRuntimeOS() bool {
 	return false
 }

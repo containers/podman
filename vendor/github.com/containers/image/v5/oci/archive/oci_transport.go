@@ -96,7 +96,7 @@ func (ref ociArchiveReference) PolicyConfigurationIdentity() string {
 	// NOTE: ref.image is not a part of the image identity, because "$dir:$someimage" and "$dir:" may mean the
 	// same image and the two can’t be statically disambiguated.  Using at least the repository directory is
 	// less granular but hopefully still useful.
-	return fmt.Sprintf("%s", ref.resolvedFile)
+	return ref.resolvedFile
 }
 
 // PolicyConfigurationNamespaces returns a list of other policy configuration namespaces to search
@@ -159,8 +159,9 @@ func (t *tempDirOCIRef) deleteTempDir() error {
 }
 
 // createOCIRef creates the oci reference of the image
-func createOCIRef(image string) (tempDirOCIRef, error) {
-	dir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(), "oci")
+// If SystemContext.BigFilesTemporaryDir not "", overrides the temporary directory to use for storing big files
+func createOCIRef(sys *types.SystemContext, image string) (tempDirOCIRef, error) {
+	dir, err := ioutil.TempDir(tmpdir.TemporaryDirectoryForBigFiles(sys), "oci")
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrapf(err, "error creating temp directory")
 	}
@@ -174,8 +175,8 @@ func createOCIRef(image string) (tempDirOCIRef, error) {
 }
 
 // creates the temporary directory and copies the tarred content to it
-func createUntarTempDir(ref ociArchiveReference) (tempDirOCIRef, error) {
-	tempDirRef, err := createOCIRef(ref.image)
+func createUntarTempDir(sys *types.SystemContext, ref ociArchiveReference) (tempDirOCIRef, error) {
+	tempDirRef, err := createOCIRef(sys, ref.image)
 	if err != nil {
 		return tempDirOCIRef{}, errors.Wrap(err, "error creating oci reference")
 	}

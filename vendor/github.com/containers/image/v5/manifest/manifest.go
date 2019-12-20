@@ -206,6 +206,11 @@ func MIMETypeIsMultiImage(mimeType string) bool {
 	return mimeType == DockerV2ListMediaType || mimeType == imgspecv1.MediaTypeImageIndex
 }
 
+// MIMETypeSupportsEncryption returns true if the mimeType supports encryption
+func MIMETypeSupportsEncryption(mimeType string) bool {
+	return mimeType == imgspecv1.MediaTypeImageManifest
+}
+
 // NormalizedMIMEType returns the effective MIME type of a manifest MIME type returned by a server,
 // centralizing various workarounds.
 func NormalizedMIMEType(input string) string {

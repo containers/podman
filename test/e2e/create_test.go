@@ -285,7 +285,7 @@ var _ = Describe("Podman create", func() {
 	})
 
 	It("podman create using cross-arch image list instance by digest", func() {
-		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=ppc64le", "--name=foo", ALPINEARM64DIGEST})
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINEARM64DIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To((Equal(0)))
 		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.Image}}", "foo"})

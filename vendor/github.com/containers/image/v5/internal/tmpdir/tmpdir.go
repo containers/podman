@@ -3,6 +3,8 @@ package tmpdir
 import (
 	"os"
 	"runtime"
+
+	"github.com/containers/image/v5/types"
 )
 
 // unixTempDirForBigFiles is the directory path to store big files on non Windows systems.
@@ -18,7 +20,10 @@ const builtinUnixTempDirForBigFiles = "/var/tmp"
 // TemporaryDirectoryForBigFiles returns a directory for temporary (big) files.
 // On non Windows systems it avoids the use of os.TempDir(), because the default temporary directory usually falls under /tmp
 // which on systemd based systems could be the unsuitable tmpfs filesystem.
-func TemporaryDirectoryForBigFiles() string {
+func TemporaryDirectoryForBigFiles(sys *types.SystemContext) string {
+	if sys != nil && sys.BigFilesTemporaryDir != "" {
+		return sys.BigFilesTemporaryDir
+	}
 	var temporaryDirectoryForBigFiles string
 	if runtime.GOOS == "windows" {
 		temporaryDirectoryForBigFiles = os.TempDir()
