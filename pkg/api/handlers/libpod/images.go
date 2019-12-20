@@ -5,33 +5,11 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
-
-// GetImages list images
-// digests bool
-// filters []string json encoded map of string to stringslice
-// all
-
-// LoadImage
-// quiet bool
-
-// Image Prune
-//  filter
-// deleted images and space reclaimed
-
-// Rmi
-// force
-//noprune future -> false
-// { untagged and deleted}
-
-// Inspect
-// no input
-
-// Tag
-// repo, tag string
-// returns codes 201
 
 // Commit
 // author string
@@ -50,10 +28,10 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 
 	_, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
-	handlers.WriteResponse(w, http.StatusOK, "Ok")
+	utils.WriteResponse(w, http.StatusOK, "Ok")
 }
 
 func ImageTree(w http.ResponseWriter, r *http.Request) {
@@ -74,19 +52,90 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
 	inspect, err := newImage.Inspect(r.Context())
 	if err != nil {
-		handlers.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed in inspect image %s", inspect.ID))
+		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed in inspect image %s", inspect.ID))
 		return
 	}
-	handlers.WriteResponse(w, http.StatusOK, inspect)
+	utils.WriteResponse(w, http.StatusOK, inspect)
 
 }
-func GetImages(w http.ResponseWriter, r *http.Request) {}
+func GetImages(w http.ResponseWriter, r *http.Request) {
+	images, err := utils.GetImages(w, r)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
+		return
+	}
+	var summaries = make([]*handlers.ImageSummary, len(images))
+	for j, img := range images {
+		is, err := handlers.ImageToImageSummary(img)
+		if err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed transform image summaries"))
+			return
+		}
+		// libpod has additional fields that we need to populate.
+		is.CreatedTime = img.Created()
+		is.ReadOnly = img.IsReadOnly()
+		summaries[j] = is
+	}
+	utils.WriteResponse(w, http.StatusOK, summaries)
+}
 
-func LoadImage(w http.ResponseWriter, r *http.Request)   {}
-func PruneImages(w http.ResponseWriter, r *http.Request) {}
-func ExportImage(w http.ResponseWriter, r *http.Request) {}
+func PruneImages(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		All     bool     `schema:"all"`
+		Filters []string `schema:"filters"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, query.Filters)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, cids)
+}
+
+func ExportImage(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Compress bool   `schema:"compress"`
+		Format   string `schema:"format"`
+		Output   string `schema:"output"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	name := mux.Vars(r)["name"]
+	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		return
+	}
+	output := query.Output
+	if len(output) < 1 {
+		output = "/dev/stdout"
+	}
+	if err := newImage.Save(r.Context(), name, query.Format, output, []string{}, false, query.Compress); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, "")
+}

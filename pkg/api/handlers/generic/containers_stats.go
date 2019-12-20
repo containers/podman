@@ -3,6 +3,7 @@ package generic
 import (
 	"encoding/json"
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"time"
 
@@ -28,24 +29,24 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		Stream: true,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
 
 	name := mux.Vars(r)["name"]
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
-		handlers.ContainerNotFound(w, name, err)
+		utils.ContainerNotFound(w, name, err)
 		return
 	}
 
 	state, err := ctnr.State()
 	if err != nil {
-		handlers.InternalServerError(w, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning && !query.Stream {
-		handlers.WriteJSON(w, http.StatusOK, &handlers.Stats{StatsJSON: docker.StatsJSON{
+		utils.WriteJSON(w, http.StatusOK, &handlers.Stats{StatsJSON: docker.StatsJSON{
 			Name: ctnr.Name(),
 			ID:   ctnr.ID(),
 		}})
@@ -57,7 +58,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 
 	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
-		handlers.InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
+		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
 		return
 	}
 
@@ -162,7 +163,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			Networks: net,
 		}}
 
-		handlers.WriteJSON(w, http.StatusOK, s)
+		utils.WriteJSON(w, http.StatusOK, s)
 		if flusher, ok := w.(http.Flusher); ok {
 			flusher.Flush()
 		}

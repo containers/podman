@@ -784,6 +784,11 @@ method DeleteStoppedContainers() -> (containers: []string)
 # See also [InspectImage](#InspectImage).
 method ListImages() -> (images: []Image)
 
+# ListImagesWithFilters returns information about the images that are currently in storage
+# after one or more filters has been applied.
+# See also [InspectImage](#InspectImage).
+method ListImagesWithFilters(filters: []string) -> (images: []Image)
+
 # GetImage returns information about a single image in storage.
 # If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will be returned.
 method GetImage(id: string) -> (image: Image)

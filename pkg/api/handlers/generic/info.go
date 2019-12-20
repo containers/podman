@@ -3,6 +3,7 @@ package generic
 import (
 	"fmt"
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -27,7 +28,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	infoData, err := runtime.Info()
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain system memory info"))
 		return
 	}
 	hostInfo := infoData[0].Data
@@ -35,12 +36,12 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 
 	configInfo, err := runtime.GetConfig()
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain runtime config"))
 		return
 	}
 	versionInfo, err := define.GetVersion()
 	if err != nil {
-		handlers.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to obtain podman versions"))
 		return
 	}
 	stateInfo := getContainersState(runtime)
@@ -124,7 +125,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		SwapTotal:          hostInfo["SwapTotal"].(int64),
 		Uptime:             hostInfo["uptime"].(string),
 	}
-	handlers.WriteResponse(w, http.StatusOK, info)
+	utils.WriteResponse(w, http.StatusOK, info)
 }
 
 func getGraphStatus(storeInfo map[string]interface{}) [][2]string {
