@@ -123,7 +123,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		if timeout > -1 {
 			stopTimeout = uint(timeout)
 		}
-		if err := ctr.stop(stopTimeout, false); err != nil {
+		if err := ctr.stop(stopTimeout); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
