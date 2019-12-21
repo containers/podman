@@ -3,19 +3,17 @@ package libpod
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
-	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/docker/docker/pkg/signal"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
 
@@ -103,13 +101,21 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 		runtime        = r.Context().Value("runtime").(*libpod.Runtime)
 		podInspectData []*libpod.PodInspect
 	)
-
-	filters := r.Form.Get("filter")
-	if len(filters) > 0 {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		filters []string `schema:"filters"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	if len(query.filters) > 0 {
 		utils.Error(w, "filters are not implemented yet", http.StatusInternalServerError, define.ErrNotImplemented)
 		return
 	}
-
 	pods, err := runtime.GetAllPods()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
@@ -128,14 +134,12 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 
 func PodInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-
 	podData, err := pod.Inspect()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
@@ -145,11 +149,22 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStop(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	var (
 		stopError error
+		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder   = r.Context().Value("decoder").(*schema.Decoder)
 	)
+	query := struct {
+		timeout int `schema:"t"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 	allContainersStopped := true
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -183,13 +198,8 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(r.Form.Get("t")) > 0 {
-		timeout, err := strconv.Atoi(r.Form.Get("t"))
-		if err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-			return
-		}
-		_, stopError = pod.StopWithTimeout(r.Context(), false, timeout)
+	if query.timeout > 0 {
+		_, stopError = pod.StopWithTimeout(r.Context(), false, query.timeout)
 	} else {
 		_, stopError = pod.Stop(r.Context(), false)
 	}
@@ -202,7 +212,6 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	allContainersRunning := true
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -243,24 +252,28 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodDelete(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	var (
+		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder = r.Context().Value("decoder").(*schema.Decoder)
+	)
+	query := struct {
+		force bool `schema:"force"`
+	}{
+		// override any golang type defaults
+	}
 
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	force := false
-	if len(r.Form.Get("force")) > 0 {
-		force, err = strconv.ParseBool(r.Form.Get("force"))
-		if err != nil {
-			// If the parameter is bad, we pass back a 400
-			utils.Error(w, "Something went wrong", http.StatusBadRequest, err)
-			return
-		}
-	}
-	if err := runtime.RemovePod(r.Context(), pod, true, force); err != nil {
+	if err := runtime.RemovePod(r.Context(), pod, true, query.force); err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
@@ -269,7 +282,6 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -285,22 +297,30 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	var (
-		pods  []*libpod.Pod
-		force bool
-		err   error
+		err     error
+		pods    []*libpod.Pod
+		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	if len(r.Form.Get("force")) > 0 {
-		force, err = strconv.ParseBool(r.Form.Get("force"))
+	query := struct {
+		force bool `schema:"force"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	if query.force {
+		pods, err = runtime.GetAllPods()
 		if err != nil {
 			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 			return
 		}
-	}
-	if force {
-		pods, err = runtime.GetAllPods()
 	} else {
 		// TODO We need to make a libpod.PruneVolumes or this code will be a mess.  Volumes
 		// already does this right.  It will also help clean this code path up with less
@@ -308,12 +328,8 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "not implemented", http.StatusInternalServerError, errors.New("not implemented"))
 		return
 	}
-	if err != nil {
-		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-		return
-	}
 	for _, p := range pods {
-		if err := runtime.RemovePod(r.Context(), p, true, force); err != nil {
+		if err := runtime.RemovePod(r.Context(), p, true, query.force); err != nil {
 			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 			return
 		}
@@ -323,7 +339,6 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -340,7 +355,6 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -356,8 +370,21 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodKill(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	var (
+		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		decoder = r.Context().Value("decoder").(*schema.Decoder)
+	)
+	query := struct {
+		signal int `schema:"signal"`
+	}{
+		// override any golang type defaults
+	}
 
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -381,15 +408,8 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, msg, http.StatusConflict, errors.Errorf("cannot kill a pod with no running containers: %s", pod.ID()))
 		return
 	}
-	sig := syscall.SIGKILL
-	if len(r.Form.Get("signal")) > 0 {
-		sig, err = signal.ParseSignal(r.Form.Get("signal"))
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "unable to parse signal %s", r.Form.Get("signal")))
-			return
-		}
-	}
-	_, err = pod.Kill(uint(sig))
+	// TODO How do we differentiate if a signal was sent vs accepting the pod/container default?
+	_, err = pod.Kill(uint(query.signal))
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
@@ -399,9 +419,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 
 func PodExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
 	name := mux.Vars(r)["name"]
-
 	_, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
