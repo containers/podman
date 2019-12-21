@@ -13,9 +13,8 @@ base: core18
 
 parts:
   podman:
-    plugin: go
+    plugin: make
     source: ../..
-    go-importpath: github.com/containers/libpod
     build-packages:
      # https://github.com/containers/libpod/blob/master/install.md#build-and-run-dependencies
      - btrfs-tools
