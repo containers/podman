@@ -80,8 +80,31 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
-	//	size
-	// libpod master inspect struct
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Size bool `schema:"size"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := mux.Vars(r)["name"]
+	container, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	data, err := container.Inspect(query.Size)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, data)
 }
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {
