@@ -47,6 +47,7 @@ _read_podman_flags() {
     # The result will be, e.g. '-f,--foo=string  Description of Option'
     _call_program podman podman "$@" --help |\
         sed -n -e '0,/^Flags:/d' -e '/^$/q;p' |\
+        grep '^ \+-' |\
         sed -e 's/^ *//' -e 's/^\(-.,\) --/\1--/' |\
         sed -e 's/^\(-[^ ]\+\) \([^ ]\+\)  /\1=\2  /' |\
         while read flags desc;do
