@@ -68,7 +68,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 	images := args[:]
 
 	removeImage := func(img *adapter.ContainerImage) {
-		msg, err := runtime.RemoveImage(ctx, img, c.Force)
+		response, err := runtime.RemoveImage(ctx, img, c.Force)
 		if err != nil {
 			if errors.Cause(err) == storage.ErrImageUsedByContainer {
 				fmt.Printf("A container associated with containers/storage, i.e. via Buildah, CRI-O, etc., may be associated with this image: %-12.12s\n", img.ID())
@@ -83,7 +83,14 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 			lastError = err
 			return
 		}
-		fmt.Println(msg)
+		// Iterate if any images tags were deleted
+		for _, i := range response.Untagged {
+			fmt.Printf("Untagged: %s\n", i)
+		}
+		// Make sure an image was deleted (and not just untagged); else print it
+		if len(response.Deleted) > 0 {
+			fmt.Printf("Deleted: %s\n", response.Deleted)
+		}
 	}
 
 	if removeAll {

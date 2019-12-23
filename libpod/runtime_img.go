@@ -27,19 +27,19 @@ import (
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (string, error) {
-	var returnMessage string
+func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (*image.ImageDeleteResponse, error) {
+	response := image.ImageDeleteResponse{}
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return "", define.ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	imageCtrs := []*Container{}
 	for _, ctr := range ctrs {
@@ -51,17 +51,17 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		if force {
 			for _, ctr := range imageCtrs {
 				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
-					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
+					return nil, errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
 				}
 			}
 		} else {
-			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
+			return nil, fmt.Errorf("could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
 		}
 	}
 
 	hasChildren, err := img.IsParent(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if (len(img.Names()) > 1 && !img.InputIsID()) || hasChildren {
@@ -70,19 +70,20 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// to and untag it.
 		repoName, err := img.MatchRepoTag(img.InputName)
 		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
-			return "", errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
+			return nil, errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
 		}
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if err := img.UntagImage(repoName); err != nil {
-			return "", err
+			return nil, err
 		}
-		return fmt.Sprintf("Untagged: %s", repoName), nil
+		response.Untagged = append(response.Untagged, repoName)
+		return &response, nil
 	} else if len(img.Names()) > 1 && img.InputIsID() && !force {
 		// If the user requests to delete an image by ID and the image has multiple
 		// reponames and no force is applied, we error out.
-		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
+		return nil, fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
 	}
 	err = img.Remove(ctx, force)
 	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
@@ -94,11 +95,9 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 			err = errStorage
 		}
 	}
-	for _, name := range img.Names() {
-		returnMessage = returnMessage + fmt.Sprintf("Untagged: %s\n", name)
-	}
-	returnMessage = returnMessage + fmt.Sprintf("Deleted: %s", img.ID())
-	return returnMessage, err
+	response.Untagged = append(response.Untagged, img.Names()...)
+	response.Deleted = img.ID()
+	return &response, err
 }
 
 // Remove containers that are in storage rather than Podman.
