@@ -34,9 +34,11 @@ BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
 
 GO_BUILD=$(GO) build
+GO_TEST=$(GO) test
 # Go module support: set `-mod=vendor` to use the vendored sources
 ifeq ($(shell $(GO) help mod >/dev/null 2>&1 && echo true), true)
 	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+	GO_TEST=GO111MODULE=on $(GO) test -mod=vendor
 endif
 
 RUNINVM := vagrant/runinvm.sh
@@ -95,7 +97,7 @@ test: local-binary ## build the binaries and run the tests using VMs
 	$(RUNINVM) make local-binary local-cross local-test-unit local-test-integration
 
 local-test-unit: local-binary ## run the unit tests on the host (requires\nsuperuser privileges)
-	@$(GO) test $(BUILDFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
+	@$(GO_TEST) $(BUILDFLAGS) $(shell $(GO) list ./... | grep -v ^$(PACKAGE)/vendor)
 
 test-unit: local-binary ## run the unit tests using VMs
 	$(RUNINVM) make local-$@
