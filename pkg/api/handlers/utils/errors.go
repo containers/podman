@@ -23,6 +23,10 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	WriteJSON(w, code, ErrorModel{apiMessage})
 }
 
+func VolumeNotFound(w http.ResponseWriter, nameOrId string, err error) {
+	msg := fmt.Sprintf("No such volume: %s", nameOrId)
+	Error(w, msg, http.StatusNotFound, err)
+}
 func ContainerNotFound(w http.ResponseWriter, nameOrId string, err error) {
 	msg := fmt.Sprintf("No such container: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)

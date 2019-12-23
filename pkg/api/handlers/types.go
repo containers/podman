@@ -118,6 +118,13 @@ type CreateContainerConfig struct {
 	NetworkingConfig dockerNetwork.NetworkingConfig
 }
 
+type VolumeCreateConfig struct {
+	Name   string            `json:"name"`
+	Driver string            `schema:"driver"`
+	Label  map[string]string `schema:"label"`
+	Opts   map[string]string `schema:"opts"`
+}
+
 type IDResponse struct {
 	ID string `json:"id"`
 }

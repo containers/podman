@@ -124,6 +124,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		server.RegisterSwarmHandlers,
 		server.registerSystemHandlers,
 		server.registerVersionHandlers,
+		server.registerVolumeHandlers,
 	} {
 		if err := fn(router); err != nil {
 			return nil, err
