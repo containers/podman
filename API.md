@@ -149,6 +149,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func RemoveImage(name: string, force: bool) string](#RemoveImage)
 
+[func RemoveImageWithResponse(name: string, force: bool) RemoveImageResponse](#RemoveImageWithResponse)
+
 [func RemovePod(name: string, force: bool) string](#RemovePod)
 
 [func Reset() ](#Reset)
@@ -256,6 +258,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [type PsContainer](#PsContainer)
 
 [type PsOpts](#PsOpts)
+
+[type RemoveImageResponse](#RemoveImageResponse)
 
 [type Runlabel](#Runlabel)
 
@@ -1052,6 +1056,13 @@ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveImage '{"name": "regi
   "image": "426866d6fa419873f97e5cbd320eeb22778244c1dfffa01c944db3114f55772e"
 }
 ~~~
+### <a name="RemoveImageWithResponse"></a>func RemoveImageWithResponse
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method RemoveImageWithResponse(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [RemoveImageResponse](#RemoveImageResponse)</div>
+RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
+should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
+in the form of a RemoveImageResponse .
 ### <a name="RemovePod"></a>func RemovePod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
@@ -2026,6 +2037,13 @@ size [?bool](#?bool)
 sort [?string](#?string)
 
 sync [?bool](#?bool)
+### <a name="RemoveImageResponse"></a>type RemoveImageResponse
+
+
+
+untagged [[]string](#[]string)
+
+deleted [string](https://godoc.org/builtin#string)
 ### <a name="Runlabel"></a>type Runlabel
 
 Runlabel describes the required input for container runlabel

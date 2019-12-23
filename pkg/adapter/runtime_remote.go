@@ -414,8 +414,15 @@ func (ci *ContainerImage) TagImage(tag string) error {
 }
 
 // RemoveImage calls varlink to remove an image
-func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
-	return iopodman.RemoveImage().Call(r.Conn, img.InputName, force)
+func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (*image.ImageDeleteResponse, error) {
+	ir := image.ImageDeleteResponse{}
+	response, err := iopodman.RemoveImageWithResponse().Call(r.Conn, img.InputName, force)
+	if err != nil {
+		return nil, err
+	}
+	ir.Deleted = response.Deleted
+	ir.Untagged = append(ir.Untagged, response.Untagged...)
+	return &ir, nil
 }
 
 // History returns the history of an image and its layers

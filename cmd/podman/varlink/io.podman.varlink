@@ -18,6 +18,11 @@ type StringResponse (
     message: string
 )
 
+type RemoveImageResponse (
+    untagged: []string,
+    deleted: string
+)
+
 type LogLine (
     device: string,
     parseLogType : string,
@@ -866,6 +871,11 @@ method TagImage(name: string, tagged: string) -> (image: string)
 # }
 # ~~~
 method RemoveImage(name: string, force: bool) -> (image: string)
+
+# RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
+# in the form of a RemoveImageResponse .
+method RemoveImageWithResponse(name: string, force: bool) -> (response: RemoveImageResponse)
 
 # SearchImages searches available registries for images that contain the
 # contents of "query" in their name. If "limit" is given, limits the amount of

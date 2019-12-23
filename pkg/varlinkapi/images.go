@@ -465,6 +465,24 @@ func (i *LibpodAPI) RemoveImage(call iopodman.VarlinkCall, name string, force bo
 	return call.ReplyRemoveImage(newImage.ID())
 }
 
+// RemoveImageWithResponse accepts an image name and force bool.  It returns details about what
+// was done in removeimageresponse struct.
+func (i *LibpodAPI) RemoveImageWithResponse(call iopodman.VarlinkCall, name string, force bool) error {
+	ir := iopodman.RemoveImageResponse{}
+	ctx := getContext()
+	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		return call.ReplyImageNotFound(name, err.Error())
+	}
+	response, err := i.Runtime.RemoveImage(ctx, newImage, force)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	ir.Untagged = append(ir.Untagged, response.Untagged...)
+	ir.Deleted = response.Deleted
+	return call.ReplyRemoveImageWithResponse(ir)
+}
+
 // SearchImages searches all registries configured in /etc/containers/registries.conf for an image
 // Requires an image name and a search limit as int
 func (i *LibpodAPI) SearchImages(call iopodman.VarlinkCall, query string, limit *int64, filter iopodman.ImageSearchFilter) error {
