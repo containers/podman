@@ -49,4 +49,20 @@ load helpers
     run_podman rm -f $cid
 }
 
+# Issue #4785 - piping to exec statement - fixed in #4818
+@test "podman exec - cat from stdin" {
+    skip_if_remote
+
+    run_podman run -d $IMAGE sh -c 'while [ ! -e /stop ]; do sleep 0.1;done'
+    cid="$output"
+
+    echo_string=$(random_string 20)
+    run_podman exec -i $cid cat < <(echo $echo_string)
+    is "$output" "$echo_string" "output read back from 'exec cat'"
+
+    run_podman exec $cid touch /stop
+    run_podman wait $cid
+    run_podman rm $cid
+}
+
 # vim: filetype=sh
