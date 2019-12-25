@@ -306,7 +306,29 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 
 		Expect(session.OutputToString()).To(ContainSubstring(podid))
+	})
 
+	It("podman --pod with a non-empty pod name", func() {
+		SkipIfRemote()
+
+		podName := "testPodName"
+		_, ec, podid := podmanTest.CreatePod(podName)
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("", podName)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// "--no-trunc" must be given. If not it will trunc the pod ID
+		// in the output and you will have to trunc it in the test too.
+		session = podmanTest.Podman([]string{"ps", "--pod", "--no-trunc"})
+
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring(podid))
+		Expect(output).To(ContainSubstring(podName))
 	})
 
 	It("podman ps test with port range", func() {

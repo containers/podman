@@ -768,7 +768,7 @@ func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error
 		return nil, define.ErrRuntimeStopped
 	}
 
-	ctrs, err := r.state.AllContainers()
+	ctrs, err := r.GetAllContainers()
 	if err != nil {
 		return nil, err
 	}
