@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -284,9 +285,7 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 			config.Labels[key] = val
 		case "STOPSIGNAL":
 			// Check the provided signal for validity.
-			// TODO: Worth checking range? ParseSignal allows
-			// negative numbers.
-			killSignal, err := signal.ParseSignal(value)
+			killSignal, err := ParseSignal(value)
 			if err != nil {
 				return ImageConfig{}, errors.Wrapf(err, "invalid change %q - KILLSIGNAL must be given a valid signal", change)
 			}
@@ -303,6 +302,22 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 	}
 
 	return config, nil
+}
+
+// Parse and validate a signal name or number
+func ParseSignal(rawSignal string) (syscall.Signal, error) {
+	// Strip off leading dash, to allow -1 or -HUP
+	basename := strings.TrimPrefix(rawSignal, "-")
+
+	signal, err := signal.ParseSignal(basename)
+	if err != nil {
+		return -1, err
+	}
+	// 64 is SIGRTMAX; wish we could get this from a standard Go library
+	if signal < 1 || signal > 64 {
+		return -1, errors.Errorf("valid signals are 1 through 64")
+	}
+	return signal, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping

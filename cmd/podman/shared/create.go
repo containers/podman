@@ -24,7 +24,6 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/docker/docker/pkg/signal"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	"github.com/opentracing/opentracing-go"
@@ -464,7 +463,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		signalString = c.String("stop-signal")
 	}
 	if signalString != "" {
-		stopSignal, err = signal.ParseSignal(signalString)
+		stopSignal, err = util.ParseSignal(signalString)
 		if err != nil {
 			return nil, err
 		}
@@ -624,7 +623,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 	if systemd {
 		if signalString == "" {
-			stopSignal, err = signal.ParseSignal("RTMIN+3")
+			stopSignal, err = util.ParseSignal("RTMIN+3")
 			if err != nil {
 				return nil, errors.Wrapf(err, "error parsing systemd signal")
 			}
