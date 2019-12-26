@@ -361,4 +361,19 @@ var _ = Describe("Podman ps", func() {
 		Expect(len(output)).To(Equal(1))
 		Expect(output[0]).To(Equal(fullCid))
 	})
+
+	It("podman ps quiet template", func() {
+		ctrName := "testCtr"
+		session := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		result := podmanTest.Podman([]string{"ps", "-q", "-a", "--format", "{{ .Names }}"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		output := result.OutputToStringArray()
+		Expect(len(output)).To(Equal(1))
+		Expect(output[0]).To(Equal(ctrName))
+	})
 })

@@ -204,11 +204,15 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 	if c.Last >= 0 && c.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// Quiet conflicts with size, namespace, and format with a Go template
+	// Quiet conflicts with size and namespace and is overridden by a Go
+	// template.
 	if c.Quiet {
-		if c.Size || c.Namespace || (c.Flag("format").Changed &&
-			c.Format != formats.JSONString) {
-			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
+		if c.Size || c.Namespace {
+			return errors.Errorf("quiet conflicts with size and namespace")
+		}
+		if c.Flag("format").Changed && c.Format != formats.JSONString {
+			// Quiet is overridden by Go template output.
+			c.Quiet = false
 		}
 	}
 	// Size and namespace conflict with each other
