@@ -8,7 +8,7 @@ load helpers
 @test "podman kill - test signal handling in containers" {
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    run_podman run -d $IMAGE sh -c "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done; echo READY; while ! test -e /stop; do sleep 0.05; done;echo DONE"
+    run_podman run -d $IMAGE sh -c "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done; echo READY; while ! test -e /stop; do sleep 0.05; done"
     cid="$output"
 
     # Run 'logs -f' on that container, but run it in the background with
@@ -16,7 +16,7 @@ load helpers
     # and confirm that signals are received. We can't use run_podman here.
     local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)
     mkfifo $fifo
-    $PODMAN logs -f $cid >$fifo &
+    $PODMAN logs -f $cid >$fifo </dev/null &
     podman_log_pid=$!
     # First container emits READY when ready; wait for it.
     read -t 10 ready <$fifo
@@ -44,14 +44,11 @@ load helpers
     kill_and_check -SIGUSR1 10
     kill_and_check  SIGUSR2 12
 
-    # Done. Tell the container to stop, and wait for final DONE
+    # Done. Tell the container to stop, and clean up
     run_podman exec $cid touch /stop
-    read -t 5 done <$fifo
-    is "$done" "DONE" "final log message from container"
-
-    # Clean up
     run_podman wait $cid
     run_podman rm $cid
+
     wait $podman_log_pid
 }
 
