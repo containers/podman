@@ -6,7 +6,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/docker/docker/pkg/signal"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -60,7 +60,7 @@ func podKillCmd(c *cliconfig.PodKillValues) error {
 	if c.Signal != "" {
 		// Check if the signalString provided by the user is valid
 		// Invalid signals will return err
-		sysSignal, err := signal.ParseSignal(c.Signal)
+		sysSignal, err := util.ParseSignal(c.Signal)
 		if err != nil {
 			return err
 		}

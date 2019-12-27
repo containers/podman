@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/docker/docker/pkg/signal"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -54,7 +54,7 @@ func killCmd(c *cliconfig.KillValues) error {
 
 	// Check if the signalString provided by the user is valid
 	// Invalid signals will return err
-	killSignal, err := signal.ParseSignal(c.Signal)
+	killSignal, err := util.ParseSignal(c.Signal)
 	if err != nil {
 		return err
 	}
