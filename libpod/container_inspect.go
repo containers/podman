@@ -118,7 +118,7 @@ type InspectContainerData struct {
 	BoundingCaps    []string                    `json:"BoundingCaps"`
 	ExecIDs         []string                    `json:"ExecIDs"`
 	GraphDriver     *driver.Data                `json:"GraphDriver"`
-	SizeRw          int64                       `json:"SizeRw,omitempty"`
+	SizeRw          *int64                      `json:"SizeRw,omitempty"`
 	SizeRootFs      int64                       `json:"SizeRootFs,omitempty"`
 	Mounts          []InspectMount              `json:"Mounts"`
 	Dependencies    []string                    `json:"Dependencies"`
@@ -809,12 +809,13 @@ func (c *Container) getContainerInspectData(size bool, driverData *driver.Data) 
 		if err != nil {
 			logrus.Errorf("error getting rootfs size %q: %v", config.ID, err)
 		}
+		data.SizeRootFs = rootFsSize
+
 		rwSize, err := c.rwSize()
 		if err != nil {
 			logrus.Errorf("error getting rw size %q: %v", config.ID, err)
 		}
-		data.SizeRootFs = rootFsSize
-		data.SizeRw = rwSize
+		data.SizeRw = &rwSize
 	}
 	return data, nil
 }
