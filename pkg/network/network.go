@@ -1,11 +1,13 @@
 package network
 
 import (
-	"github.com/containers/libpod/pkg/util"
+	"encoding/json"
 	"net"
+	"os"
 
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -147,4 +149,44 @@ func ValidateUserNetworkIsAvailable(userNet *net.IPNet) error {
 		return errors.Errorf("network %s is being used by a network interface", userNet.String())
 	}
 	return nil
+}
+
+// RemoveNetwork removes a given network by name.  If the network has container associated with it, that
+// must be handled outside the context of this.
+func RemoveNetwork(name string) error {
+	cniPath, err := GetCNIConfigPathByName(name)
+	if err != nil {
+		return err
+	}
+	// Before we delete the configuration file, we need to make sure we can read and parse
+	// it to get the network interface name so we can remove that too
+	interfaceName, err := GetInterfaceNameFromConfig(cniPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to find network interface name in %q", cniPath)
+	}
+	liveNetworkNames, err := GetLiveNetworkNames()
+	if err != nil {
+		return errors.Wrapf(err, "failed to get live network names")
+	}
+	if util.StringInSlice(interfaceName, liveNetworkNames) {
+		if err := RemoveInterface(interfaceName); err != nil {
+			return errors.Wrapf(err, "failed to delete the network interface %q", interfaceName)
+		}
+	}
+	// Remove the configuration file
+	if err := os.Remove(cniPath); err != nil {
+		return errors.Wrapf(err, "failed to remove network configuration file %q", cniPath)
+	}
+	return nil
+}
+
+// InspectNetwork reads a CNI config and returns its configuration
+func InspectNetwork(name string) (map[string]interface{}, error) {
+	b, err := ReadRawCNIConfByName(name)
+	if err != nil {
+		return nil, err
+	}
+	rawList := make(map[string]interface{})
+	err = json.Unmarshal(b, &rawList)
+	return rawList, err
 }
