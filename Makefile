@@ -447,12 +447,22 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
+	# Remove manpages
 	for i in $(filter %.1,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
 	done; \
 	for i in $(filter %.5,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man5/$$(basename $${i}); \
 	done
+	# Remove podman and remote bin
+	rm -f $(DESTDIR)$(BINDIR)/podman
+	rm -f $(DESTDIR)$(BINDIR)/podman-remote
+	# Remove related config files
+	rm -f ${DESTDIR}${ETCDIR}/cni/net.d/87-podman-bridge.conflist
+	rm -f ${DESTDIR}${TMPFILESDIR}/podman.conf
+	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.socket
+	rm -f ${DESTDIR}${USERSYSTEMDDIR}/io.podman.socket
+	rm -f ${DESTDIR}${SYSTEMDDIR}/io.podman.service
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
