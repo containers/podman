@@ -84,7 +84,7 @@ func (c *Container) rootFsSize() (int64, error) {
 	return size + layerSize, err
 }
 
-// rwSize Gets the size of the mutable top layer of the container.
+// rwSize gets the size of the mutable top layer of the container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		var size int64
@@ -103,14 +103,16 @@ func (c *Container) rwSize() (int64, error) {
 		return 0, err
 	}
 
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.  The top layer of a container is
-	// the only RW layer, all others are immutable
-	layer, err := c.runtime.store.Layer(container.LayerID)
+	// The top layer of a container is
+	// the only readable/writeable layer, all others are immutable.
+	rwLayer, err := c.runtime.store.Layer(container.LayerID)
 	if err != nil {
 		return 0, err
 	}
-	return c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	// Get the size of the top layer by calculating the size of the diff
+	// between the layer and its parent.
+	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be

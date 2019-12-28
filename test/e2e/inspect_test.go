@@ -86,6 +86,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 		conData := result.InspectContainerToJSON()
 		Expect(conData[0].SizeRootFs).To(BeNumerically(">", 0))
+		Expect(*conData[0].SizeRw).To(BeNumerically(">=", 0))
 	})
 
 	It("podman inspect container and image", func() {
