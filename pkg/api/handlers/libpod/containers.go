@@ -146,3 +146,38 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 func TopContainer(w http.ResponseWriter, r *http.Request) {
 	//psargs
 }
+
+func MountContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := mux.Vars(r)["name"]
+	conn, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	m, err := conn.Mount()
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	utils.WriteResponse(w, http.StatusOK, m)
+}
+
+func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
+	response := make(map[string]string)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	conns, err := runtime.GetAllContainers()
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	for _, conn := range conns {
+		mounted, mountPoint, err := conn.Mounted()
+		if err != nil {
+			utils.InternalServerError(w, err)
+		}
+		if !mounted {
+			continue
+		}
+		response[conn.ID()] = mountPoint
+	}
+	utils.WriteResponse(w, http.StatusOK, response)
+}
