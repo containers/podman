@@ -76,6 +76,7 @@ type PsContainerOutput struct {
 	Pid       int
 	Size      *ContainerSize
 	Pod       string
+	PodName   string
 	CreatedAt time.Time
 	ExitedAt  time.Time
 	StartedAt time.Time
@@ -112,7 +113,7 @@ type ContainerSize struct {
 
 // NewBatchContainer runs a batch process under one lock to get container information and only
 // be called in PBatch.
-func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput, error) {
+func NewBatchContainer(r *libpod.Runtime, ctr *libpod.Container, opts PsOptions) (PsContainerOutput, error) {
 	var (
 		conState  define.ContainerStatus
 		command   string
@@ -204,11 +205,11 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 
 	_, imageName := ctr.Image()
 	cid := ctr.ID()
-	pod := ctr.PodID()
+	podID := ctr.PodID()
 	if !opts.NoTrunc {
 		cid = cid[0:cidTruncLength]
-		if len(pod) > podTruncLength {
-			pod = pod[0:podTruncLength]
+		if len(podID) > podTruncLength {
+			podID = podID[0:podTruncLength]
 		}
 		if len(command) > cmdTruncLength {
 			command = command[0:cmdTruncLength] + "..."
@@ -231,12 +232,28 @@ func NewBatchContainer(ctr *libpod.Container, opts PsOptions) (PsContainerOutput
 	pso.State = conState
 	pso.Pid = pid
 	pso.Size = size
-	pso.Pod = pod
 	pso.ExitedAt = exitedAt
 	pso.CreatedAt = ctr.CreatedTime()
 	pso.StartedAt = startedAt
 	pso.Labels = ctr.Labels()
 	pso.Mounts = strings.Join(ctr.UserVolumes(), " ")
+
+	// Add pod name and pod ID if requested by user.
+	// No need to look up the pod if its ID is empty.
+	if opts.Pod && len(podID) > 0 {
+		// The pod name is not in the container definition
+		// so we need to retrieve it using the pod ID.
+		var podName string
+		pod, err := r.LookupPod(podID)
+		if err != nil {
+			logrus.Errorf("unable to lookup pod for container %s", ctr.ID())
+		} else {
+			podName = pod.Name()
+		}
+
+		pso.Pod = podID
+		pso.PodName = podName
+	}
 
 	if opts.Namespace {
 		pso.Cgroup = ns.Cgroup
@@ -462,13 +479,13 @@ func GetPsContainerOutput(r *libpod.Runtime, opts PsOptions, filters []string, m
 		outputContainers = []*libpod.Container{latestCtr}
 	}
 
-	pss := PBatch(outputContainers, maxWorkers, opts)
+	pss := PBatch(r, outputContainers, maxWorkers, opts)
 	return pss, nil
 }
 
 // PBatch performs batch operations on a container in parallel. It spawns the
 // number of workers relative to the number of parallel operations desired.
-func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsContainerOutput {
+func PBatch(r *libpod.Runtime, containers []*libpod.Container, workers int, opts PsOptions) []PsContainerOutput {
 	var wg sync.WaitGroup
 	psResults := []PsContainerOutput{}
 
@@ -492,7 +509,7 @@ func PBatch(containers []*libpod.Container, workers int, opts PsOptions) []PsCon
 		j := j
 		wg.Add(1)
 		f := func() (PsContainerOutput, error) {
-			return NewBatchContainer(j, opts)
+			return NewBatchContainer(r, j, opts)
 		}
 		jobs <- workerInput{
 			parallelFunc: f,

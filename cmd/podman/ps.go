@@ -31,6 +31,7 @@ const (
 	hsize    = "SIZE"
 	hinfra   = "IS INFRA" //nolint
 	hpod     = "POD"
+	hpodname = "POD NAME"
 	nspid    = "PID"
 	nscgroup = "CGROUPNS"
 	nsipc    = "IPC"
@@ -355,7 +356,7 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
 		// User wants pod info
 		if opts.Pod {
-			fmt.Fprintf(w, "\t%s", hpod)
+			fmt.Fprintf(w, "\t%s\t%s", hpod, hpodname)
 		}
 		//User wants size info
 		if opts.Size {
@@ -374,7 +375,7 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
 			// User wants pod info
 			if opts.Pod {
-				fmt.Fprintf(w, "\t%s", container.Pod)
+				fmt.Fprintf(w, "\t%s\t%s", container.Pod, container.PodName)
 			}
 			//User wants size info
 			if opts.Size {
