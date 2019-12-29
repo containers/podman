@@ -115,6 +115,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		server.RegisterAuthHandlers,
 		server.RegisterContainersHandlers,
 		server.RegisterDistributionHandlers,
+		server.registerHealthCheckHandlers,
 		server.registerImagesHandlers,
 		server.registerInfoHandlers,
 		server.RegisterMonitorHandlers,
