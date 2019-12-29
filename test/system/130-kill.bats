@@ -16,10 +16,19 @@ load helpers
     # and confirm that signals are received. We can't use run_podman here.
     local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)
     mkfifo $fifo
-    $PODMAN logs -f $cid >$fifo &
+    $PODMAN logs -f $cid >$fifo </dev/null &
     podman_log_pid=$!
+
+    # Open the FIFO for reading, and keep it open. This prevents a race
+    # condition in which the container can exit (e.g. if for some reason
+    # it doesn't handle the signal) and we (this test) try to read from
+    # the FIFO. Since there wouldn't be an active writer, the open()
+    # would hang forever. With this exec we keep the FD open, allowing
+    # 'read -t' to time out and report a useful error.
+    exec 5<$fifo
+
     # First container emits READY when ready; wait for it.
-    read -t 10 ready <$fifo
+    read -t 10 -u 5 ready
     is "$ready" "READY" "first log message from container"
 
     # Helper function: send the given signal, verify that it's received.
@@ -28,7 +37,7 @@ load helpers
         local signum=${2:-$1}       # e.g. if signal=HUP, we expect to see '1'
 
         run_podman kill -s $signal $cid
-        read -t 10 actual <$fifo
+        read -t 10 -u 5 actual || die "Timed out: no ACK for kill -s $signal"
         is "$actual" "got: $signum" "Signal $signal handled by container"
     }
 
@@ -46,7 +55,7 @@ load helpers
 
     # Done. Tell the container to stop, and wait for final DONE
     run_podman exec $cid touch /stop
-    read -t 5 done <$fifo
+    read -t 5 -u 5 done || die "Timed out waiting for DONE from container"
     is "$done" "DONE" "final log message from container"
 
     # Clean up
