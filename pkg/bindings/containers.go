@@ -40,6 +40,9 @@ func (c Connection) ListContainers(filter []string, last int, size, sync bool) (
 }
 
 func (c Connection) PruneContainers() {}
+
+// TODO Remove can be done once a rebase is completed to pick up the new
+// struct responses from remove.
 func (c Connection) RemoveContainer() {}
 func (c Connection) InspectContainer(nameOrID string, size bool) (*libpod.InspectContainerData, error) {
 	client := &http.Client{}
@@ -78,7 +81,18 @@ func (c Connection) PauseContainer(nameOrID string) error {
 	return err
 }
 
-func (c Connection) RestartContainer() {}
+func (c Connection) RestartContainer(nameOrID string, timeout int) error {
+	// TODO how do we distinguish between an actual zero value and not wanting to change the timeout value
+	client := &http.Client{}
+	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/stop", nameOrID)), nil)
+	if err != nil {
+		return err
+	}
+	req.URL.Query().Add("t", strconv.Itoa(timeout))
+	_, err = client.Do(req)
+	return err
+}
+
 func (c Connection) StartContainer(nameOrID, detachKeys string) error {
 	client := &http.Client{}
 	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/start", nameOrID)), nil)

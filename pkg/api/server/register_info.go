@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/containers/libpod/pkg/api/handlers/generic"
 	"github.com/gorilla/mux"
 )
@@ -21,6 +23,6 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	//     description: unexpected error
 	//     schema:
 	//      "$ref": "#/types/ErrorModel"
-	r.Handle(VersionedPath("/info"), APIHandler(s.Context, generic.GetInfo)).Methods("GET")
+	r.Handle(VersionedPath("/info"), APIHandler(s.Context, generic.GetInfo)).Methods(http.MethodGet)
 	return nil
 }

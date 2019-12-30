@@ -1,7 +1,6 @@
-package generic
+package handlers
 
 import (
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"strings"
@@ -51,7 +50,7 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body = handlers.ContainerTopOKBody{}
+	var body = ContainerTopOKBody{}
 	if len(output) > 0 {
 		body.Titles = strings.Split(output[0], "\t")
 		for _, line := range output[1:] {
