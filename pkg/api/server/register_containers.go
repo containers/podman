@@ -26,6 +26,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name:..*}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
 
 	// libpod endpoints
 	r.HandleFunc(VersionedPath("/libpod/containers/create"), APIHandler(s.Context, libpod.CreateContainer)).Methods(http.MethodPost)

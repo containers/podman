@@ -436,7 +436,7 @@ func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 		ExecIDs:         inspect.ExecIDs,
 		HostConfig:      &hc,
 		GraphDriver:     graphDriver,
-		SizeRw:          &inspect.SizeRw,
+		SizeRw:          inspect.SizeRw,
 		SizeRootFs:      &inspect.SizeRootFs,
 	}
 
