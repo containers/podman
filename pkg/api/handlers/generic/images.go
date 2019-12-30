@@ -3,7 +3,6 @@ package generic
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/schema"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -20,6 +19,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -51,6 +51,8 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
 		return
 	}
+	defer rdr.Close()
+	defer os.Remove(tmpfile.Name())
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 

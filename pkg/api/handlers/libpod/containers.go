@@ -127,6 +127,8 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
+	// TODO Needs rebase to get  filers; Also would be handy to define
+	// an actual libpod container prune method.
 	// force
 	// filters
 }
@@ -142,9 +144,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 }
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
-}
-func TopContainer(w http.ResponseWriter, r *http.Request) {
-	//psargs
 }
 
 func MountContainer(w http.ResponseWriter, r *http.Request) {

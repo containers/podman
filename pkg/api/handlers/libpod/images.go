@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
@@ -113,7 +115,6 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Compress bool   `schema:"compress"`
 		Format   string `schema:"format"`
-		Output   string `schema:"output"`
 	}{
 		// override any golang type defaults
 	}
@@ -123,19 +124,37 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	if len(query.Format) < 1 {
+		utils.InternalServerError(w, errors.New("format parameter cannot be empty."))
+		return
+	}
+
+	tmpfile, err := ioutil.TempFile("", "api.tar")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+	if err := tmpfile.Close(); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
+		return
+	}
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-	output := query.Output
-	if len(output) < 1 {
-		output = "/dev/stdout"
-	}
-	if err := newImage.Save(r.Context(), name, query.Format, output, []string{}, false, query.Compress); err != nil {
+	if err := newImage.Save(r.Context(), name, query.Format, tmpfile.Name(), []string{}, false, query.Compress); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, "")
+	rdr, err := os.Open(tmpfile.Name())
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to read the exported tarfile"))
+		return
+	}
+	defer rdr.Close()
+	defer os.Remove(tmpfile.Name())
+	utils.WriteResponse(w, http.StatusOK, rdr)
 }
