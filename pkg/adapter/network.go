@@ -67,13 +67,9 @@ func (r *LocalRuntime) NetworkInspect(cli *cliconfig.NetworkInspectValues) error
 		rawCNINetworks []map[string]interface{}
 	)
 	for _, name := range cli.InputArgs {
-		b, err := network.ReadRawCNIConfByName(name)
+		rawList, err := network.InspectNetwork(name)
 		if err != nil {
 			return err
-		}
-		rawList := make(map[string]interface{})
-		if err := json.Unmarshal(b, &rawList); err != nil {
-			return fmt.Errorf("error parsing configuration list: %s", err)
 		}
 		rawCNINetworks = append(rawCNINetworks, rawList)
 	}
@@ -98,7 +94,20 @@ func (r *LocalRuntime) NetworkRemove(ctx context.Context, cli *cliconfig.Network
 		if err != nil {
 			return networkRmSuccesses, networkRmErrors, err
 		}
-		if err := r.removeNetwork(ctx, name, containers, cli.Force); err != nil {
+		// We need to iterate containers looking to see if they belong to the given network
+		for _, c := range containers {
+			if util.StringInSlice(name, c.Config().Networks) {
+				// if user passes force, we nuke containers
+				if !cli.Force {
+					// Without the force option, we return an error
+					return nil, nil, errors.Errorf("%q has associated containers with it. Use -f to forcibly delete containers", name)
+				}
+				if err := r.RemoveContainer(ctx, c.Container, true, true); err != nil {
+					return nil, nil, err
+				}
+			}
+		}
+		if err := network.RemoveNetwork(name); err != nil {
 			if lastError != nil {
 				networkRmErrors[name] = lastError
 			}
@@ -108,49 +117,6 @@ func (r *LocalRuntime) NetworkRemove(ctx context.Context, cli *cliconfig.Network
 		}
 	}
 	return networkRmSuccesses, networkRmErrors, lastError
-}
-
-// removeNetwork removes a single network and its containers given a force bool
-func (r *LocalRuntime) removeNetwork(ctx context.Context, name string, containers []*Container, force bool) error {
-	cniPath, err := network.GetCNIConfigPathByName(name)
-	if err != nil {
-		return err
-	}
-	// We need to iterate containers looking to see if they belong to the given network
-	for _, c := range containers {
-		if util.StringInSlice(name, c.Config().Networks) {
-			// if user passes force, we nuke containers
-			if force {
-				if err := r.RemoveContainer(ctx, c.Container, true, true); err != nil {
-					return err
-				}
-			} else {
-				// Without the the force option, we return an error
-				return errors.Errorf("%q has associated containers with it. use -f to forcibly delete containers", name)
-			}
-
-		}
-	}
-	// Before we delete the configuration file, we need to make sure we can read and parse
-	// it to get the network interface name so we can remove that too
-	interfaceName, err := network.GetInterfaceNameFromConfig(cniPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find network interface name in %q", cniPath)
-	}
-	liveNetworkNames, err := network.GetLiveNetworkNames()
-	if err != nil {
-		return errors.Wrapf(err, "failed to get live network names")
-	}
-	if util.StringInSlice(interfaceName, liveNetworkNames) {
-		if err := network.RemoveInterface(interfaceName); err != nil {
-			return errors.Wrapf(err, "failed to delete the network interface %q", interfaceName)
-		}
-	}
-	// Remove the configuration file
-	if err := os.Remove(cniPath); err != nil {
-		return errors.Wrapf(err, "failed to remove network configuration file %q", cniPath)
-	}
-	return nil
 }
 
 // NetworkCreateBridge creates a CNI network
