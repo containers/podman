@@ -2,11 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/schema"
-	"github.com/pkg/errors"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +9,11 @@ import (
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/schema"
+	"github.com/pkg/errors"
 )
 
 func HistoryImage(w http.ResponseWriter, r *http.Request) {
@@ -155,4 +155,31 @@ func SaveFromBody(f *os.File, r *http.Request) error { // nolint
 		return err
 	}
 	return f.Close()
+}
+
+func SearchImages(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Term    string              `json:"term"`
+		Limit   int                 `json:"limit"`
+		Filters map[string][]string `json:"filters"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	// TODO filters are a bit undefined here in terms of what exactly the input looks
+	// like. We need to understand that a bit more.
+	options := image.SearchOptions{
+		Filter: image.SearchFilter{},
+		Limit:  query.Limit,
+	}
+	results, err := image.SearchImages(query.Term, options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	utils.WriteResponse(w, http.StatusOK, results)
 }
