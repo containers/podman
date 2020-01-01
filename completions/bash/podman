@@ -1967,6 +1967,7 @@ _podman_container_run() {
 		boolean_options="$boolean_options
 			--detach -d
 			--rm
+			--rmi
 			--sig-proxy=false
 		"
 		__podman_complete_detach_keys && return

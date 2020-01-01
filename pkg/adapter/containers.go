@@ -1101,6 +1101,15 @@ func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.Cle
 		} else {
 			failures[ctr.ID()] = err
 		}
+
+		if cli.RemoveImage {
+			_, imageName := ctr.Image()
+			if err := removeContainerImage(ctx, ctr, r); err != nil {
+				failures[imageName] = err
+			} else {
+				ok = append(ok, imageName)
+			}
+		}
 	}
 	return ok, failures, nil
 }
@@ -1118,6 +1127,16 @@ func cleanupContainer(ctx context.Context, ctr *libpod.Container, runtime *Local
 		return errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
 	}
 	return nil
+}
+
+func removeContainerImage(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	_, imageName := ctr.Image()
+	ctrImage, err := runtime.NewImageFromLocal(imageName)
+	if err != nil {
+		return err
+	}
+	_, err = runtime.RemoveImage(ctx, ctrImage, false)
+	return err
 }
 
 // Port displays port information about existing containers

@@ -136,4 +136,21 @@ echo $rand        |   0 | $rand
     run_podman rmi busybox
 }
 
+# 'run --rmi' deletes the image in the end unless it's used by another container.
+@test "podman run --rmi - remove image" {
+    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
+    run_podman 0 run --rmi --rm redis /bin/true
+    run_podman 1 image exists redis
+}
+
+
+@test "podman run --rmi - not remove image" {
+    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
+    run_podman run redis /bin/true
+    run_podman images | grep redis
+    run_podman run --rmi --rm redis /bin/true
+    run_podman images | grep redis
+    run_podman 0 rm -a
+}
+
 # vim: filetype=sh

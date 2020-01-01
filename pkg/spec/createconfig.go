@@ -156,6 +156,7 @@ type CreateConfig struct {
 	Resources         CreateResourceConfig
 	RestartPolicy     string
 	Rm                bool           //rm
+	Rmi               bool           //rmi
 	StopSignal        syscall.Signal // stop-signal
 	StopTimeout       uint           // stop-timeout
 	Systemd           bool
@@ -231,6 +232,10 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 
 	if c.Rm {
 		command = append(command, "--rm")
+	}
+
+	if c.Rmi {
+		command = append(command, "--rmi")
 	}
 
 	return command, nil
