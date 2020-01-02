@@ -1,3 +1,43 @@
+- Changelog for v1.7.0-rc2 (2020-01-02)
+  * Update release notes with further changes from 1.7.0
+  * refactor network commands
+  * Fix race condition in kill test leading to hang
+  * Ensure 'make uninstall' remove bin and conf files.
+  * Add the pod name when we use `podman ps -p`
+  * Ensure SizeRw is shown when a user does 'inspect --size -t container'.
+  * signal parsing - better input validation
+  * The --quiet flag does not conflict with templates in ps
+  * add struct response for removal of images
+  * Update containers/storage to v1.15.4
+  * Update containers/storage to v1.15.4
+  * zsh completion: ignore multi-line output in Flags
+  * build(deps): bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+  * if container is not in a pid namespace, stop all processes
+  * update c/buildah to v1.12.0
+  * Remove volumes after containers in pod remove
+  * libpod: drop arbitrary memory limit of 4M
+  * docs: add workaround for --device with rootless containers
+  * install.md: openSUSE dependencies
+  * Use systemd/sd-daemon.h headers for systemd presence
+  * Allow the injection of TESTFLAGS
+  * Remove coverprofile from the repository
+  * troubleshooting.md: rebased master and bumped 18 to 19
+  * Fix F30-F31 migration for Podman 1.7.0
+  * runtime.go: show registries data and search table
+  * container config: add CreateCommand
+  * Fixed the path of hack scripts in spec file
+  * runtime.go: show search table in podman info
+  * podman info man: example update
+  * podman: mirror information
+  * Reap exec sessions on cleanup and removal
+  * [Makefile] `LDFLAGS` is reserved for the GCC linker
+  * podman images history test - clean up
+  * Bump gitvalidation epoch
+  * Bump to v1.7.0-dev
+  * allow exec to read files of environment variables
+  * Correctly export the root file-system changes
+  * build(deps): bump github.com/uber/jaeger-client-go
+
 - Changelog for v1.7.0-rc1 (2019-12-11)
   * Update release notes for 1.7.0
   * docs: update podman-{pod-,}top man pages
