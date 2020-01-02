@@ -112,6 +112,33 @@ var _ = Describe("Podman cp", func() {
 		session = podmanTest.Podman([]string{"cp", testDirPath, name + ":/foodir"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		testctr := "testctr"
+		setup := podmanTest.RunTopContainer(testctr)
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"exec", testctr, "mkdir", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", testDirPath + "/.", testctr + ":/foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", testctr, "ls", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToString())).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"cp", testctr + ":/foo/.", testDirPath})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		cmd := exec.Command("ls", testDirPath)
+		res, err := cmd.Output()
+		Expect(err).To(BeNil())
+		Expect(len(res)).To(Equal(0))
+
+		os.RemoveAll(testDirPath)
 	})
 
 	It("podman cp stdin/stdout", func() {

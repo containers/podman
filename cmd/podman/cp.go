@@ -222,7 +222,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		srcPath = os.Stdin.Name()
 		extract = true
 	}
-	return copy(srcPath, destPath, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
+	return copy(srcPath, destPath, src, dest, idMappingOpts, &destOwner, extract, isFromHostToCtr)
 }
 
 func getUser(mountPoint string, userspec string) (specs.User, error) {
@@ -276,8 +276,8 @@ func getPathInfo(path string) (string, os.FileInfo, error) {
 	return path, srcfi, nil
 }
 
-func copy(src, destPath, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
-	srcPath, err := evalSymlinks(src)
+func copy(srcPath, destPath, src, dest string, idMappingOpts storage.IDMappingOptions, chownOpts *idtools.IDPair, extract, isFromHostToCtr bool) error {
+	srcPath, err := evalSymlinks(srcPath)
 	if err != nil {
 		return errors.Wrapf(err, "error evaluating symlinks %q", srcPath)
 	}
