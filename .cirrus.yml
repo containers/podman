@@ -29,9 +29,8 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-4844850202017792"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-4844850202017792"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-4844850202017792"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-6310930547998720"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-6310930547998720"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -216,7 +215,7 @@ build_each_commit_task:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
-# Update metadata on VM images referenced by this repository state
+# CRITICAL: Update metadata on VM images referenced by this repository state
 meta_task:
 
     depends_on:
@@ -234,7 +233,6 @@ meta_task:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
-            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
@@ -265,7 +263,6 @@ testing_task:
         matrix:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m

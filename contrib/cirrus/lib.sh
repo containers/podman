@@ -55,14 +55,12 @@ PACKER_VER="1.3.5"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29,fedora-28}"
+PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,fedora-29}"
 # Google-maintained base-image names
-UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20181203a"
+UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20200108"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
-# FEDORA_BASE_IMAGE: "fedora-cloud-base-30-1-2-1556821664"
-PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-28-1-1-1544474897"
-# PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
+FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1565360543"
+PRIOR_FEDORA_BASE_IMAGE="NOT USED"
 BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separetly)
