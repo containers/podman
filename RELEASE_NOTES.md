@@ -17,6 +17,9 @@
 - Added `tmpcopyup` and `notmpcopyup` options to the `--tmpfs` and `--mount type=tmpfs` flags to `podman create` and `podman run` to control whether the content of directories are copied into tmpfs filesystems mounted over them
 - Added support for disabling detaching from containers by setting empty detach keys via `--detach-keys=""`
 - The `podman build` command now supports the `--pull` and `--pull-never` flags to control when images are pulled during a build
+- The `podman ps -p` command now shows the name of the pod as well as its ID ([#4703](https://github.com/containers/libpod/issues/4703))
+- The `podman inspect` command on containers will now display the command used to create the container
+- The `podman info` command now displays information on registry mirrors ([#4553](https://github.com/containers/libpod/issues/4553))
 
 ### Bugfixes
 - Fixed a bug where Podman would use an incorrect runtime directory as root, causing state to be deleted after root logged out and making Podman in systemd services not function properly
@@ -49,12 +52,21 @@
 - Fixed a bug where `podman logs --tail 0` would print all lines of a container's logs, instead of no lines ([#4396](https://github.com/containers/libpod/issues/4396))
 - Fixed a bug where the timeout for `slirp4netns` was incorrectly set, resulting in an extremely long timeout ([#4344](https://github.com/containers/libpod/issues/4344))
 - Fixed a bug where the `podman stats` command would print CPU utilizations figures incorrectly ([#4409](https://github.com/containers/libpod/issues/4409))
+- Fixed a bug where the `podman inspect --size` command would not print the size of the container's read/write layer if the size was 0 ([#4744](https://github.com/containers/libpod/issues/4744))
+- Fixed a bug where the `podman kill` command was not properly validating signals before use ([#4746](https://github.com/containers/libpod/issues/4746))
+- Fixed a bug where the `--quiet` and `--format` flags to `podman ps` could not be used at the same time
+- Fixed a bug where the `podman stop` command was not stopping exec sessions when a container was created without a PID namespace (`--pid=host`)
+- Fixed a bug where the `podman pod rm --force` command was not removing anonymous volumes for containers that were removed
+- Fixed a bug where the `podman checkpoint` command would not export all changes to the root filesystem of the container if performed more than once on the same container ([#4606](https://github.com/containers/libpod/issues/4606))
+- Fixed a bug where containers started with `--rm` would not be automatically removed on being stopped if an exec session was running inside the container ([#4666](https://github.com/containers/libpod/issues/4666))
 
 ### Misc
 - The fixes to runtime directory path as root can cause strange behavior if an upgrade is performed while containers are running
-- Updated vendored Buildah to v1.11.6
-- Updated vendored containers/storage library to v1.15.3
+- Updated vendored Buildah to v1.12.0
+- Updated vendored containers/storage library to v1.15.4
+- Updated vendored containers/image library to v5.1.0
 - Kata Containers runtimes (`kata-runtime`, `kata-qemu`, and `kata-fc`) are now present in the default libpod.conf, but will not be available unless Kata containers is installed on the system
+- Podman previously did not allow the creation of containers with a memory limit lower than 4MB. This restriction has been removed, as the `crun` runtime can create containers with significantly less memory
 
 ## 1.6.3
 ### Features
