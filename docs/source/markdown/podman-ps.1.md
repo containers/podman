@@ -105,7 +105,7 @@ Valid filters are listed below:
 | name            | [Name] Container's name                                                          |
 | label           | [Key] or [Key=Value] Label assigned to a container                               |
 | exited          | [Int] Container's exit code                                                      |
-| status          | [Status] Container's status: *created*, *exited*, *paused*, *running*, *unknown* |
+| status          | [Status] Container's status: 'created', 'exited', 'paused', 'running', 'unknown' |
 | ancestor        | [ImageName] Image or descendant used to create container                         |
 | before          | [ID] or [Name] Containers created before this container                          |
 | since           | [ID] or [Name] Containers created since this container                           |
