@@ -40,6 +40,10 @@ value can be entered.  The password is entered without echo.
 
 Suppress output information when pulling images
 
+**--seccomp-profile-root**=*path*
+
+Directory path for seccomp profiles (default: "/var/lib/kubelet/seccomp"). (Not available for remote commands)
+
 **--tls-verify**=*true|false*
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,

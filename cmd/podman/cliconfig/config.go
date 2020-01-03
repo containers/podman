@@ -308,12 +308,13 @@ type HealthCheckValues struct {
 
 type KubePlayValues struct {
 	PodmanCommand
-	Authfile        string
-	CertDir         string
-	Creds           string
-	Quiet           bool
-	SignaturePolicy string
-	TlsVerify       bool
+	Authfile           string
+	CertDir            string
+	Creds              string
+	Quiet              bool
+	SignaturePolicy    string
+	TlsVerify          bool
+	SeccompProfileRoot string
 }
 
 type PodCreateValues struct {

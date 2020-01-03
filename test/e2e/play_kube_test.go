@@ -358,10 +358,11 @@ var _ = Describe("Podman generate kube", func() {
 		ctrAnnotation := "container.seccomp.security.alpha.kubernetes.io/" + defaultCtrName
 		ctr := getCtr(withCmd([]string{"pwd"}))
 
-		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost:"+jsonFile)), kubeYaml)
+		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation(ctrAnnotation, "localhost/"+filepath.Base(jsonFile))), kubeYaml)
 		Expect(err).To(BeNil())
 
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
+		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
@@ -378,13 +379,15 @@ var _ = Describe("Podman generate kube", func() {
 			fmt.Println(err)
 			Skip("Failed to prepare seccomp.json for test.")
 		}
+		defer os.Remove(jsonFile)
 
 		ctr := getCtr(withCmd([]string{"pwd"}))
 
-		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost:"+jsonFile)), kubeYaml)
+		err = generateKubeYaml(getPod(withCtr(ctr), withAnnotation("seccomp.security.alpha.kubernetes.io/pod", "localhost/"+filepath.Base(jsonFile))), kubeYaml)
 		Expect(err).To(BeNil())
 
-		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		// CreateSeccompJson will put the profile into podmanTest.TempDir. Use --seccomp-profile-root to tell play kube where to look
+		kube := podmanTest.Podman([]string{"play", "kube", "--seccomp-profile-root", podmanTest.TempDir, kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube.ExitCode()).To(Equal(0))
 
