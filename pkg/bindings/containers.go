@@ -1,9 +1,7 @@
 package bindings
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -11,48 +9,28 @@ import (
 	"github.com/containers/libpod/libpod"
 )
 
-/*
-	All methods still need error handling defined based on the http response codes.
-*/
-
 func (c Connection) ListContainers(filter []string, last int, size, sync bool) ([]shared.PsContainerOutput, error) { // nolint:typecheck
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, c.makeEndpoint("/containers/json"), nil)
-	if err != nil {
-		return nil, err
-	}
-	// I dont remember how to do deal with []strings here
-	//req.URL.Query().Add("filter", filter)
-	req.URL.Query().Add("last", strconv.Itoa(last))
-	req.URL.Query().Add("size", strconv.FormatBool(size))
-	req.URL.Query().Add("sync", strconv.FormatBool(sync))
-	response, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
 	images := []shared.PsContainerOutput{}
-	data, err := ioutil.ReadAll(response.Body)
+	params := make(map[string]string)
+	params["last"] = strconv.Itoa(last)
+	params["size"] = strconv.FormatBool(size)
+	params["sync"] = strconv.FormatBool(sync)
+	response, err := c.newRequest(http.MethodGet, "/containers/json", nil, params)
 	if err != nil {
-		return nil, err
+		return images, err
 	}
-	err = json.Unmarshal(data, &images)
-	return images, err
+	return images, response.Process(nil)
 }
 
 func (c Connection) PruneContainers() ([]string, error) {
 	var (
 		pruned []string
 	)
-	response, err := http.Post("/containers/prune", "application/json", nil)
+	response, err := c.newRequest(http.MethodPost, "/containers/prune", nil, nil)
 	if err != nil {
-		return nil, err
+		return pruned, err
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &pruned)
-	return pruned, err
+	return pruned, response.Process(nil)
 }
 
 func (c Connection) RemoveContainer(nameOrID string, force, volumes bool) error {
@@ -78,54 +56,56 @@ func (c Connection) InspectContainer(nameOrID string, size bool) (*libpod.Inspec
 }
 
 func (c Connection) KillContainer(nameOrID string, signal int) error {
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/kill", nameOrID)), nil)
+	params := make(map[string]string)
+	params["signal"] = strconv.Itoa(signal)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/kill", nameOrID), nil, params)
 	if err != nil {
 		return err
 	}
-	req.URL.Query().Add("signal", strconv.Itoa(signal))
-	_, err = client.Do(req)
-	return err
+	return response.Process(nil)
 
 }
 func (c Connection) ContainerLogs() {}
 func (c Connection) PauseContainer(nameOrID string) error {
-	_, err := http.Post(c.makeEndpoint(fmt.Sprintf("/containers/%s/pause", nameOrID)), "application/json", nil)
-	return err
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/pause", nameOrID), nil, nil)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
 }
 
 func (c Connection) RestartContainer(nameOrID string, timeout int) error {
 	// TODO how do we distinguish between an actual zero value and not wanting to change the timeout value
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/stop", nameOrID)), nil)
+	params := make(map[string]string)
+	params["timeout"] = strconv.Itoa(timeout)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/restart", nameOrID), nil, params)
 	if err != nil {
 		return err
 	}
-	req.URL.Query().Add("t", strconv.Itoa(timeout))
-	_, err = client.Do(req)
-	return err
+	return response.Process(nil)
 }
 
 func (c Connection) StartContainer(nameOrID, detachKeys string) error {
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/start", nameOrID)), nil)
+	params := make(map[string]string)
+	if len(detachKeys) > 0 {
+		params["detachKeys"] = detachKeys
+	}
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/start", nameOrID), nil, params)
 	if err != nil {
 		return err
 	}
-	if len(detachKeys) > 0 {
-		req.URL.Query().Add("detachKeys", detachKeys)
-	}
-
-	_, err = client.Do(req)
-	return err
+	return response.Process(nil)
 }
 
 func (c Connection) ContainerStats() {}
 func (c Connection) ContainerTop()   {}
 
 func (c Connection) UnpauseContainer(nameOrID string) error {
-	_, err := http.Post(c.makeEndpoint(fmt.Sprintf("/containers/%s/unpause", nameOrID)), "application/json", nil)
-	return err
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/unpause", nameOrID), nil, nil)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
 }
 
 func (c Connection) WaitContainer(nameOrID string) error {
@@ -147,13 +127,11 @@ func (c Connection) ContainerExists(nameOrID string) (bool, error) {
 func (c Connection) StopContainer(nameOrID string, timeout int) error {
 	// TODO we might need to distinguish whether a timeout is desired; a zero, the int
 	// zero value is valid; what do folks want to do?
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodPost, c.makeEndpoint(fmt.Sprintf("/containers/%s/stop", nameOrID)), nil)
+	params := make(map[string]string)
+	params["t"] = strconv.Itoa(timeout)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/stop", nameOrID), nil, params)
 	if err != nil {
 		return err
 	}
-	req.URL.Query().Add("t", strconv.Itoa(timeout))
-
-	_, err = client.Do(req)
-	return err
+	return response.Process(nil)
 }
