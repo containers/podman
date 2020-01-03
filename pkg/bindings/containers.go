@@ -39,19 +39,11 @@ func (c Connection) ListContainers(filter []string, last int, size, sync bool) (
 	return images, err
 }
 
-func (c Connection) PruneContainers() {}
-
-// TODO Remove can be done once a rebase is completed to pick up the new
-// struct responses from remove.
-func (c Connection) RemoveContainer() {}
-func (c Connection) InspectContainer(nameOrID string, size bool) (*libpod.InspectContainerData, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodGet, c.makeEndpoint(fmt.Sprintf("/containers/%s/json", nameOrID)), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.URL.Query().Add("size", strconv.FormatBool(size))
-	response, err := client.Do(req)
+func (c Connection) PruneContainers() ([]string, error) {
+	var (
+		pruned []string
+	)
+	response, err := http.Post("/containers/prune", "application/json", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -59,9 +51,30 @@ func (c Connection) InspectContainer(nameOrID string, size bool) (*libpod.Inspec
 	if err != nil {
 		return nil, err
 	}
+	err = json.Unmarshal(data, &pruned)
+	return pruned, err
+}
+
+func (c Connection) RemoveContainer(nameOrID string, force, volumes bool) error {
+	params := make(map[string]string)
+	params["force"] = strconv.FormatBool(force)
+	params["vols"] = strconv.FormatBool(volumes)
+	response, err := c.newRequest(http.MethodDelete, fmt.Sprintf("/containers/%s", nameOrID), nil, params)
+	if err != nil {
+		return err
+	}
+	return response.Process(nil)
+}
+
+func (c Connection) InspectContainer(nameOrID string, size bool) (*libpod.InspectContainerData, error) {
+	params := make(map[string]string)
+	params["size"] = strconv.FormatBool(size)
+	response, err := c.newRequest(http.MethodGet, fmt.Sprintf("/containers/%s/json", nameOrID), nil, params)
+	if err != nil {
+		return nil, err
+	}
 	inspect := libpod.InspectContainerData{}
-	err = json.Unmarshal(data, &inspect)
-	return &inspect, err
+	return &inspect, response.Process(&inspect)
 }
 
 func (c Connection) KillContainer(nameOrID string, signal int) error {

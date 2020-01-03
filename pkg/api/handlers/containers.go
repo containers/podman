@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 func StopContainer(w http.ResponseWriter, r *http.Request) {
@@ -39,11 +40,10 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, errors.Wrapf(err, "unable to get state for Container %s", name))
 		return
 	}
-
 	// If the Container is stopped already, send a 302
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
 		utils.Error(w, http.StatusText(http.StatusNotModified), http.StatusNotModified,
-			errors.Wrapf(err, fmt.Sprintf("Container %s is already stopped ", name)))
+			errors.Errorf("Container %s is already stopped ", name))
 		return
 	}
 
@@ -54,7 +54,7 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		stopError = con.Stop()
 	}
 	if stopError != nil {
-		utils.InternalServerError(w, errors.Wrapf(err, "failed to stop %s", name))
+		utils.InternalServerError(w, errors.Wrapf(stopError, "failed to stop %s", name))
 		return
 	}
 

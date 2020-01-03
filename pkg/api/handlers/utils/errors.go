@@ -19,8 +19,11 @@ var (
 func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
-
-	WriteJSON(w, code, ErrorModel{apiMessage})
+	em := ErrorModel{
+		Because: (errors.Cause(err)).Error(),
+		Message: err.Error(),
+	}
+	WriteJSON(w, code, em)
 }
 
 func VolumeNotFound(w http.ResponseWriter, nameOrId string, err error) {
@@ -57,5 +60,14 @@ func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 }
 
 type ErrorModel struct {
+	Because string `json:"cause"`
 	Message string `json:"message"`
+}
+
+func (e ErrorModel) Error() string {
+	return e.Message
+}
+
+func (e ErrorModel) Cause() error {
+	return errors.New(e.Because)
 }
