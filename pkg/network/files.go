@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"strings"
@@ -46,7 +47,7 @@ func GetCNIConfigPathByName(name string) (string, error) {
 			return confFile, nil
 		}
 	}
-	return "", errors.Errorf("unable to find network configuration for %s", name)
+	return "", errors.Wrap(ErrNetworkNotFound, fmt.Sprintf("unable to find network configuration for %s", name))
 }
 
 // ReadRawCNIConfByName reads the raw CNI configuration for a CNI
