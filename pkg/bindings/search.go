@@ -1,8 +1,6 @@
 package bindings
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -21,34 +19,21 @@ func (i *ImageSearchFilters) ToMapJSON() string {
 	return ""
 }
 
-/*
-	All methods still need error handling defined based on the http response codes.
-*/
-
 func (c Connection) SearchImages(term string, limit int, filters *ImageSearchFilters) ([]image.SearchResult, error) {
 	var (
 		searchResults []image.SearchResult
 	)
-	client := &http.Client{}
-	request, err := http.NewRequest(http.MethodGet, c.makeEndpoint("/images/search"), nil)
-	if err != nil {
-		return nil, err
-	}
-	request.URL.Query().Add("term", term)
+	params := make(map[string]string)
+	params["term"] = term
 	if limit > 0 {
-		request.URL.Query().Add("limit", strconv.Itoa(limit))
+		params["limit"] = strconv.Itoa(limit)
 	}
 	if filters != nil {
-		request.URL.Query().Add("filters", filters.ToMapJSON())
+		params["filters"] = filters.ToMapJSON()
 	}
-	response, err := client.Do(request)
+	response, err := c.newRequest(http.MethodGet, "/images/search", nil, params)
 	if err != nil {
-		return nil, err
+		return searchResults, nil
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &searchResults)
-	return searchResults, err
+	return searchResults, response.Process(&searchResults)
 }

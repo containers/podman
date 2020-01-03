@@ -1,10 +1,7 @@
 package bindings
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 
@@ -12,50 +9,32 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 )
 
-/*
-	All methods still need error handling defined based on the http response codes.
-*/
-
 func (c Connection) CreateVolume(config handlers.VolumeCreateConfig) (string, error) {
 	var (
 		volumeID string
 	)
-	b, err := json.Marshal(config)
+	response, err := c.newRequest(http.MethodPost, "/volumes/create", nil, nil)
 	if err != nil {
-		return "", nil
+		return volumeID, err
 	}
-	response, err := http.Post(c.makeEndpoint("/volumes/create"), "application/json", bytes.NewBuffer(b))
-	if err != nil {
-		return "", err
-	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return "", err
-	}
-	err = json.Unmarshal(data, &volumeID)
-	return volumeID, err
+	return volumeID, response.Process(&volumeID)
 }
 
 func (c Connection) InspectVolume(nameOrID string) (*libpod.InspectVolumeData, error) {
 	var (
 		inspect libpod.InspectVolumeData
 	)
-	response, err := http.Post(c.makeEndpoint(fmt.Sprintf("/volumes/%s/json", nameOrID)), "application/json", nil)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/volumes/%s/json", nameOrID), nil, nil)
 	if err != nil {
-		return nil, err
+		return &inspect, err
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &inspect)
-	return &inspect, err
+	return &inspect, response.Process(&inspect)
 }
 
 func (c Connection) ListVolumes() error {
 	// TODO
 	// The API side of things for this one does a lot in main and therefore
-	// is not implemented there yet.
+	// is not implemented yet.
 	return ErrNotImplemented // nolint:typecheck
 }
 
@@ -63,25 +42,19 @@ func (c Connection) PruneVolumes() ([]string, error) {
 	var (
 		pruned []string
 	)
-	response, err := http.Post(c.makeEndpoint("/volumes/prune"), "application/json", nil)
+	response, err := c.newRequest(http.MethodPost, "/volumes/prune", nil, nil)
 	if err != nil {
-		return nil, err
+		return pruned, err
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &pruned)
-	return pruned, err
+	return pruned, response.Process(&pruned)
 }
 
 func (c Connection) RemoveVolume(nameOrID string, force bool) error {
-	client := &http.Client{}
-	req, err := http.NewRequest(http.MethodDelete, c.makeEndpoint(fmt.Sprintf("volumes/%s", nameOrID)), nil)
+	params := make(map[string]string)
+	params["force"] = strconv.FormatBool(force)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/volumes/prune", nameOrID), nil, params)
 	if err != nil {
 		return err
 	}
-	req.URL.Query().Add("force", strconv.FormatBool(force))
-	_, err = client.Do(req)
-	return err
+	return response.Process(nil)
 }

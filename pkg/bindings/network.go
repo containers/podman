@@ -1,57 +1,37 @@
 package bindings
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/containernetworking/cni/libcni"
 )
 
-/*
-	All methods still need error handling defined based on the http response codes.
-*/
-
 func (c Connection) CreateNetwork() {}
 func (c Connection) InspectNetwork(nameOrID string) (map[string]interface{}, error) {
 	n := make(map[string]interface{})
-	response, err := http.Get(c.makeEndpoint(fmt.Sprintf("/networks/%s/json", nameOrID)))
+	response, err := c.newRequest(http.MethodGet, fmt.Sprintf("/networks/%s/json", nameOrID), nil, nil)
 	if err != nil {
-		return nil, err
+		return n, err
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &n)
-	return n, err
-
+	return n, response.Process(&n)
 }
 
 func (c Connection) RemoveNetwork(nameOrID string) error {
-	client := &http.Client{}
-	request, err := http.NewRequest(http.MethodDelete, c.makeEndpoint(fmt.Sprintf("/networks/%s", nameOrID)), nil)
+	response, err := c.newRequest(http.MethodDelete, fmt.Sprintf("/networks/%s", nameOrID), nil, nil)
 	if err != nil {
 		return err
 	}
-	// TODO once we have error code handling, we need to take the http response and process it for success
-	_, err = client.Do(request)
-	return err
+	return response.Process(nil)
 }
 
 func (c Connection) ListNetworks() ([]*libcni.NetworkConfigList, error) {
 	var (
 		netList []*libcni.NetworkConfigList
 	)
-	response, err := http.Get(c.makeEndpoint("/networks/json"))
+	response, err := c.newRequest(http.MethodGet, "/networks/json", nil, nil)
 	if err != nil {
-		return nil, err
+		return netList, err
 	}
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(data, &netList)
-	return netList, err
+	return netList, response.Process(&netList)
 }
