@@ -572,10 +572,13 @@ vendor-in-container:
 package:  ## Build rpm packages
 	## TODO(ssbarnea): make version number predictable, it should not change
 	## on each execution, producing duplicates.
-	rm -f  ~/rpmbuild/RPMS/x86_64/* ~/rpmbuild/RPMS/noarch/*
+	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*
 	./contrib/build_rpm.sh
 
+# Remember that rpms install exec to /usr/bin/podman while a `make install`
+# installs them to /usr/local/bin/podman which is likely before. Always use
+# a full path to test installed podman or you risk to call another executable.
 package-install: package  ## Install rpm packages
-	sudo ${PKG_MANAGER} -y remove podman podman-remote
-	sudo ${PKG_MANAGER} -y clean all
 	sudo ${PKG_MANAGER} -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
+	/usr/bin/podman version
+	/usr/bin/podman info  # will catch a broken conmon
