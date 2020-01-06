@@ -271,7 +271,7 @@ The Network File System (NFS) and other distributed file systems (for example: L
 For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/libpod/blob/master/troubleshooting.md).
 
 ## SEE ALSO
-`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `libpod.conf(5)`, `oci-hooks(5)`, `policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
+`containers-mounts.conf(5)`, `containers-registries.conf(5)`, `containers-storage.conf(5)`, `buildah(1)`, `libpod.conf(5)`, `oci-hooks(5)`, `containers-policy.json(5)`, `subuid(5)`, `subgid(5)`, `slirp4netns(1)`
 
 ## HISTORY
 Dec 2016, Originally compiled by Dan Walsh <dwalsh@redhat.com>
