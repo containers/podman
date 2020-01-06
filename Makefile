@@ -568,8 +568,17 @@ vendor-in-container:
 package:  ## Build rpm packages
 	## TODO(ssbarnea): make version number predictable, it should not change
 	## on each execution, producing duplicates.
-	rm -f  ~/rpmbuild/RPMS/x86_64/* ~/rpmbuild/RPMS/noarch/*
+	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*/*
 	./contrib/build_rpm.sh
 
-package-install: package  ## Install rpm packages
-	sudo ${PKG_MANAGER} -y install --allowerasing ${HOME}/rpmbuild/RPMS/*/*.rpm
+package-install: package  ## Install rpm packages via a local podman.repo
+	# We use the repository approach with max priority and without disabling
+	# system packages in order to detect if our packages are
+	# creating any conflicts.
+	ls -la ${PWD}/build/buildset
+	sudo cp -f ${PWD}/build/podman.repo /etc/yum.repos.d/podman.repo
+	# --best needed to avoid accident where old rpms ones are picked instead
+	sudo ${PKG_MANAGER} -y install --best --allowerasing --nogpgcheck podman podman-remote
+	podman version
+	# info may require sudo and will also verify conman compatibility
+	sudo podman info --log-level debug
