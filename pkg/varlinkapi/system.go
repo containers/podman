@@ -89,9 +89,8 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Graph_driver_options: fmt.Sprintf("%v", store["GraphOptions"]),
 		Graph_status:         graphStatus,
 	}
-
 	if len(info) > 2 {
-		registriesInterface := info[2].Data["registries"]
+		registriesInterface := info[2].Data["search"]
 		if registriesInterface != nil {
 			registries = registriesInterface.([]string)
 		}
