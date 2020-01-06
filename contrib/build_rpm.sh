@@ -30,21 +30,25 @@ declare -a PKGS=(device-mapper-devel \
                 )
 
 if [[ $pkg_manager == *dnf ]]; then
+    # We need to enable PowerTools if we want to get
+    # install all the pkgs we define in PKGS
+    sudo dnf config-manager --set-enabled PowerTools
+
     PKGS+=(python3-devel \
         python3-varlink \
         )
-    # btrfs-progs-devel is not available in CentOS/RHEL-8
-    if ! grep -i -q 'Red Hat\|CentOS' /etc/redhat-release; then
-        PKGS+=(btrfs-progs-devel)
-    fi
-    # disable doc until go-md2man rpm becomes available
-    # disable debug to avoid error: Empty %files file ~/rpmbuild/BUILD/libpod-.../debugsourcefiles.list
-    export extra_arg="--without doc --without debug"
-else
-    if ! grep -i -q 'Red Hat\|CentOS' /etc/redhat-release; then
-        PKGS+=(golang-github-cpuguy83-go-md2man)
-    fi
 fi
+
+# btrfs-progs-devel is not available in CentOS/RHEL-8
+if ! (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 8" ); then
+    PKGS+=(golang-github-cpuguy83-go-md2man \
+        btrfs-progs-devel \
+        )
+fi
+
+# disable doc until go-md2man rpm becomes available
+# disable debug to avoid error: Empty %files file ~/rpmbuild/BUILD/libpod-.../debugsourcefiles.list
+export extra_arg="--without doc --without debug"
 
 echo ${PKGS[*]}
 sudo $pkg_manager install -y ${PKGS[*]}
@@ -56,3 +60,6 @@ if [ -d ~/rpmbuild/BUILD ]; then
 fi
 
 rpmbuild --rebuild ${extra_arg:-} podman-*.src.rpm
+
+# clean up src.rpm as it's been built
+sudo rm -f podman-*.src.rpm

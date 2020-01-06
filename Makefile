@@ -35,6 +35,7 @@ BUILDTAGS ?= \
 PYTHON ?= $(shell command -v python python3|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 
+SOURCES = $(shell find . -name "*.go")
 
 GO_BUILD=$(GO) build
 # Go module support: set `-mod=vendor` to use the vendored sources
@@ -164,11 +165,15 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -o $@ $(PROJECT)/test/goecho
 
-podman: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/podman
+bin/podman: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
-podman-remote: .gopathok $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o bin/$@ $(PROJECT)/cmd/podman
+podman: bin/podman
+
+bin/podman-remote: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman on remote environment
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS) remoteclient" -o $@ $(PROJECT)/cmd/podman
+
+podman-remote: bin/podman-remote
 
 .PHONY: podman.msi
 podman.msi: podman-remote podman-remote-windows install-podman-remote-windows-docs ## Will always rebuild exe as there is no podman-remote-windows.exe target to verify timestamp
@@ -544,7 +549,6 @@ vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.13 make vendor
 
 .PHONY: \
-	.gopathok \
 	binaries \
 	changelog \
 	clean \
@@ -572,4 +576,6 @@ package:  ## Build rpm packages
 	./contrib/build_rpm.sh
 
 package-install: package  ## Install rpm packages
-	sudo ${PKG_MANAGER} -y install --allowerasing ${HOME}/rpmbuild/RPMS/*/*.rpm
+	sudo ${PKG_MANAGER} -y remove podman podman-remote
+	sudo ${PKG_MANAGER} -y clean all
+	sudo ${PKG_MANAGER} -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
