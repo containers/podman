@@ -23,6 +23,11 @@ import (
 )
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
+	// 201 container created
+	// 400 bad param
+	// 404 no such
+	// 409 conflict
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	input := handlers.CreateContainerConfig{}

@@ -24,6 +24,8 @@ import (
 )
 
 func GetInfo(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	infoData, err := runtime.Info()

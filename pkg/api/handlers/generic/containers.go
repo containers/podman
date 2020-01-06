@@ -24,6 +24,11 @@ import (
 )
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
+	// 204 no error
+	// 400 bad param
+	// 404 no such
+	// 409 conflict
+	// 500 internal
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Force bool `schema:"force"`
@@ -47,6 +52,9 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 400 bad param
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	containers, err := runtime.GetAllContainers()
@@ -74,6 +82,9 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	name := mux.Vars(r)["name"]
@@ -91,6 +102,10 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {
+	// 204 no error
+	// 404 no such
+	// 409 container is not running
+	// 500 internal
 	// /{version}/containers/(name)/kill
 	con, err := utils.KillContainer(w, r)
 	if err != nil {
@@ -109,6 +124,9 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
+	// 200 container has exit
+	// 404 no such
+	// 500 internal
 	var msg string
 	// /{version}/containers/(name)/wait
 	exitCode, err := utils.WaitContainer(w, r)
@@ -126,6 +144,8 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	containers, err := runtime.GetAllContainers()
@@ -171,6 +191,9 @@ func PruneContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
+	// 200 logs as stream in response body
+	// 404 no such container
+	// 500 internal
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 

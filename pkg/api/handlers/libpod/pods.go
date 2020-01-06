@@ -18,6 +18,8 @@ import (
 )
 
 func PodCreate(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		options []libpod.PodCreateOption
@@ -97,6 +99,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func Pods(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	var (
 		runtime        = r.Context().Value("runtime").(*libpod.Runtime)
 		podInspectData []*libpod.PodInspect
@@ -133,6 +137,9 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodInspect(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -149,6 +156,10 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStop(w http.ResponseWriter, r *http.Request) {
+	// 200
+	// 304 not modified
+	// 404 no such
+	// 500 internal
 	var (
 		stopError error
 		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
@@ -211,6 +222,10 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 304 no modified
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	allContainersRunning := true
 	name := mux.Vars(r)["name"]
@@ -252,6 +267,9 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodDelete(w http.ResponseWriter, r *http.Request) {
+	// 200
+	// 404 no such
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -281,6 +299,9 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -297,6 +318,8 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	var (
 		err     error
 		pods    []*libpod.Pod
@@ -338,6 +361,9 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -354,6 +380,9 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -370,6 +399,10 @@ func PodUnpause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodKill(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 409 has conflict
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -418,6 +451,9 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodExists(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal (needs work)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	_, err := runtime.LookupPod(name)
