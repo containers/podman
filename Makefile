@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= 1faa5bb6cdddc2d4b36b1c25261952c9ccf90f61
+EPOCH_TEST_COMMIT ?= 2d8f1c8fda4d0a8b7c41addbc89f0b2f83908ec2
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
