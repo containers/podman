@@ -245,6 +245,13 @@ type InfoGraphStatus (
     supports_d_type: string
 )
 
+# InfoRegistry describes the host's registry information
+type InfoRegistry (
+    search: []string,
+    insecure: []string,
+    blocked: []string
+)
+
 # InfoStore describes the host's storage informatoin
 type InfoStore (
     containers: int,
@@ -267,8 +274,7 @@ type InfoPodmanBinary (
 # PodmanInfo describes the Podman host and build
 type PodmanInfo (
     host: InfoHost,
-    registries: []string,
-    insecure_registries: []string,
+    registries: InfoRegistry,
     store: InfoStore,
     podman: InfoPodmanBinary
 )

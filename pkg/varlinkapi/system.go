@@ -9,6 +9,7 @@ import (
 	goruntime "runtime"
 	"time"
 
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/sirupsen/logrus"
@@ -37,9 +38,6 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return err
 	}
-	var (
-		registries, insecureRegistries []string
-	)
 	podmanInfo := iopodman.PodmanInfo{}
 	info, err := i.Runtime.Info()
 	if err != nil {
@@ -90,22 +88,25 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Graph_status:         graphStatus,
 	}
 
+	// Registry information if any is stored as the second list item
 	if len(info) > 2 {
-		registriesInterface := info[2].Data["registries"]
-		if registriesInterface != nil {
-			registries = registriesInterface.([]string)
+		for key, val := range info[2].Data {
+			if key == "search" {
+				podmanInfo.Registries.Search = val.([]string)
+				continue
+			}
+			regData := val.(sysregistriesv2.Registry)
+			if regData.Insecure {
+				podmanInfo.Registries.Insecure = append(podmanInfo.Registries.Insecure, key)
+			}
+			if regData.Blocked {
+				podmanInfo.Registries.Blocked = append(podmanInfo.Registries.Blocked, key)
+			}
 		}
-	}
-	if len(info) > 3 {
-		insecureRegistriesInterface := info[3].Data["registries"]
-		if insecureRegistriesInterface != nil {
-			insecureRegistries = insecureRegistriesInterface.([]string)
-		}
+
 	}
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo
-	podmanInfo.Registries = registries
-	podmanInfo.Insecure_registries = insecureRegistries
 	return call.ReplyGetInfo(podmanInfo)
 }
 

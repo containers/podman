@@ -14,12 +14,11 @@ func (r RemoteRuntime) Info() ([]define.InfoData, error) {
 	// TODO the varlink implementation for info should be updated to match the output for regular info
 	var (
 		reply    []define.InfoData
+		regInfo  map[string]interface{}
 		hostInfo map[string]interface{}
 		store    map[string]interface{}
 	)
 
-	registries := make(map[string]interface{})
-	insecureRegistries := make(map[string]interface{})
 	info, err := iopodman.GetInfo().Call(r.Conn)
 	if err != nil {
 		return nil, err
@@ -39,13 +38,16 @@ func (r RemoteRuntime) Info() ([]define.InfoData, error) {
 	}
 	json.Unmarshal(s, &store)
 
-	registries["registries"] = info.Registries
-	insecureRegistries["registries"] = info.Insecure_registries
+	// info.Registries -> map[string]interface{}
+	reg, err := json.Marshal(info.Registries)
+	if err != nil {
+		return nil, err
+	}
+	json.Unmarshal(reg, &regInfo)
 
 	// Add everything to the reply
 	reply = append(reply, define.InfoData{Type: "host", Data: hostInfo})
-	reply = append(reply, define.InfoData{Type: "registries", Data: registries})
-	reply = append(reply, define.InfoData{Type: "insecure registries", Data: insecureRegistries})
+	reply = append(reply, define.InfoData{Type: "registries", Data: regInfo})
 	reply = append(reply, define.InfoData{Type: "store", Data: store})
 	return reply, nil
 }
