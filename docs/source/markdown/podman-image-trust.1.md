@@ -86,7 +86,7 @@ Display trust as JSON
 
 ## SEE ALSO
 
-policy-json(5)
+containers-policy.json(5)
 
 ## HISTORY
 January 2019, updated by Tom Sweeney (tsweeney at redhat dot com)
