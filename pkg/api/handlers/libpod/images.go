@@ -36,7 +36,7 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, "Ok")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func ImageTree(w http.ResponseWriter, r *http.Request) {
@@ -54,9 +54,6 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	name := mux.Vars(r)["name"]
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
@@ -72,8 +69,6 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 
 }
 func GetImages(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	images, err := utils.GetImages(w, r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
@@ -120,9 +115,6 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
-	// 404 should it be done ?
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
@@ -155,7 +147,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
+		utils.ImageNotFound(w, name, err)
 		return
 	}
 	if err := newImage.Save(r.Context(), name, query.Format, tmpfile.Name(), []string{}, false, query.Compress); err != nil {

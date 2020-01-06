@@ -78,6 +78,9 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
+	// FIXME This is likely wrong due to it not being a map[string][]string
+
 	// until ts is not supported on podman prune
 	if len(query.filters["until"]) > 0 {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "until is not supported yet"))
@@ -139,9 +142,6 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {
-	// 201 no error
-	// 404 no such
-	// 500 internal
 	var (
 		destImage string
 	)
