@@ -1,3 +1,10 @@
+- Changelog for v1.7.0 (2020-01-06)
+  * (minor) fix broken links to container-policy.json.5
+  * Generate binaries only if they are changes in src code.
+  * Fix presentation of man page tables
+  * Bump gitvalidation epoch
+  * Bump to v1.7.0-dev
+
 - Changelog for v1.7.0-rc2 (2020-01-02)
   * Update release notes with further changes from 1.7.0
   * refactor network commands
