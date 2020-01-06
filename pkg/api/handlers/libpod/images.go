@@ -25,6 +25,9 @@ import (
 // create
 
 func ImageExists(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 
@@ -51,6 +54,9 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	name := mux.Vars(r)["name"]
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
@@ -66,6 +72,8 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 
 }
 func GetImages(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	images, err := utils.GetImages(w, r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
@@ -87,6 +95,8 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
@@ -110,6 +120,9 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
+	// 404 should it be done ?
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {

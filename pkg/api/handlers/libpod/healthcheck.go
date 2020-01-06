@@ -9,6 +9,9 @@ import (
 )
 
 func RunHealthCheck(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	status, err := runtime.HealthCheck(name)

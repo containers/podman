@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"github.com/containers/libpod/libpod/define"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -27,20 +28,32 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 }
 
 func VolumeNotFound(w http.ResponseWriter, nameOrId string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchVolume {
+		InternalServerError(w, err)
+	}
 	msg := fmt.Sprintf("No such volume: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 func ContainerNotFound(w http.ResponseWriter, nameOrId string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchCtr {
+		InternalServerError(w, err)
+	}
 	msg := fmt.Sprintf("No such container: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
 func ImageNotFound(w http.ResponseWriter, nameOrId string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchImage {
+		InternalServerError(w, err)
+	}
 	msg := fmt.Sprintf("No such image: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
 func PodNotFound(w http.ResponseWriter, nameOrId string, err error) {
+	if errors.Cause(err) != define.ErrNoSuchPod {
+		InternalServerError(w, err)
+	}
 	msg := fmt.Sprintf("No such pod: %s", nameOrId)
 	Error(w, msg, http.StatusNotFound, err)
 }

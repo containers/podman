@@ -15,6 +15,8 @@ import (
 )
 
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	var (
 		volumeOptions []libpod.VolumeCreateOption
 		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
@@ -61,6 +63,9 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -110,6 +115,8 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -136,7 +143,10 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, pruned)
 }
 
-func RemoveVolumes(w http.ResponseWriter, r *http.Request) {
+func RemoveVolume(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 404 no such
+	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)

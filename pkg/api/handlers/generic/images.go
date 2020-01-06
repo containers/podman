@@ -25,6 +25,8 @@ import (
 )
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 server
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	name := mux.Vars(r)["name"]
@@ -57,6 +59,8 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 500 internal
 	var (
 		dangling bool = true
 		err      error
@@ -135,6 +139,9 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func CommitContainer(w http.ResponseWriter, r *http.Request) {
+	// 201 no error
+	// 404 no such
+	// 500 internal
 	var (
 		destImage string
 	)
@@ -208,6 +215,9 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 404 repo does not exist or no read access
+	// 500 internal
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
@@ -264,6 +274,9 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 404 repo does not exist or no read access
+	// 500 internal
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
@@ -312,6 +325,9 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
+	// 200 no error
+	// 404 no such
+	// 500 internal
 	name := mux.Vars(r)["name"]
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
@@ -327,6 +343,8 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
+	// 200 ok
+	// 500 internal
 	images, err := utils.GetImages(w, r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
