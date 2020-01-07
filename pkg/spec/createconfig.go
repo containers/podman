@@ -282,9 +282,12 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	options = append(options, libpod.WithStopSignal(c.StopSignal))
 	options = append(options, libpod.WithStopTimeout(c.StopTimeout))
 
-	logPath := getLoggingPath(c.LogDriverOpt)
+	logPath, logTag := getLoggingOpts(c.LogDriverOpt)
 	if logPath != "" {
 		options = append(options, libpod.WithLogPath(logPath))
+	}
+	if logTag != "" {
+		options = append(options, libpod.WithLogTag(logTag))
 	}
 
 	if c.LogDriver != "" {

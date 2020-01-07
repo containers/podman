@@ -132,16 +132,23 @@ func validateIOpsDevice(val string) (*throttleDevice, error) { //nolint
 	}, nil
 }
 
-func getLoggingPath(opts []string) string {
+// getLoggingOpts splits the path= and tag= options provided to --log-opt.
+func getLoggingOpts(opts []string) (string, string) {
+	var path, tag string
 	for _, opt := range opts {
 		arr := strings.SplitN(opt, "=", 2)
 		if len(arr) == 2 {
 			if strings.TrimSpace(arr[0]) == "path" {
-				return strings.TrimSpace(arr[1])
+				path = strings.TrimSpace(arr[1])
+			} else if strings.TrimSpace(arr[0]) == "tag" {
+				tag = strings.TrimSpace(arr[1])
 			}
 		}
+		if path != "" && tag != "" {
+			break
+		}
 	}
-	return ""
+	return path, tag
 }
 
 // ParseDevice parses device mapping string to a src, dest & permissions string

@@ -426,9 +426,20 @@ Logging driver for the container.  Currently available options are *k8s-file* an
 
 **--log-opt**=*path*
 
-Logging driver specific options.  Used to set the path to the container log file.  For example:
+Set custom logging configuration.  Presently supports the `tag` option
+which specified a custom log tag for the container.  For example:
 
 `--log-opt path=/var/log/container/mycontainer.json`
+
+**--log-opt**=*tag*
+
+Specify a custom log tag for the container.  For example:
+
+`--log-opt tag="{{.ImageName}}"`
+
+It supports the same keys as `podman inspect --format`.
+
+It is currently supported only by the journald log driver.
 
 **--mac-address**=*address*
 

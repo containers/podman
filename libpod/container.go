@@ -379,6 +379,8 @@ type ContainerConfig struct {
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogTag is the tag used for logging
+	LogTag string `json:"logTag"`
 	// LogDriver driver for logs
 	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
@@ -724,6 +726,11 @@ func (c *Container) CgroupParent() string {
 // in the runtime
 func (c *Container) LogPath() string {
 	return c.config.LogPath
+}
+
+// LogTag returns the tag to the container's log file
+func (c *Container) LogTag() string {
+	return c.config.LogTag
 }
 
 // RestartPolicy returns the container's restart policy.

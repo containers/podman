@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"text/template"
 	"time"
 
 	"github.com/containers/libpod/libpod/config"
@@ -532,7 +533,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
 		ociLog = c.execOCILog(sessionID)
 	}
-	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog)
+	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, "")
 
 	if options.PreserveFDs > 0 {
 		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
@@ -887,6 +888,27 @@ func waitPidStop(pid int, timeout time.Duration) error {
 	}
 }
 
+func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
+	logTag := ctr.LogTag()
+	if logTag == "" {
+		return "", nil
+	}
+	data, err := ctr.inspectLocked(false)
+	if err != nil {
+		return "", nil
+	}
+	tmpl, err := template.New("container").Parse(logTag)
+	if err != nil {
+		return "", errors.Wrapf(err, "template parsing error %s", logTag)
+	}
+	var b bytes.Buffer
+	err = tmpl.Execute(&b, data)
+	if err != nil {
+		return "", err
+	}
+	return b.String(), nil
+}
+
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
 func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
 	var stderrBuf bytes.Buffer
@@ -913,7 +935,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if logrus.GetLevel() != logrus.DebugLevel && r.supportsJSON {
 		ociLog = filepath.Join(ctr.state.RunDir, "oci-log")
 	}
-	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog)
+
+	logTag, err := r.getLogTag(ctr)
+	if err != nil {
+		return err
+	}
+
+	args := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), filepath.Join(ctr.state.RunDir, "pidfile"), ctr.LogPath(), r.exitsDir, ociLog, logTag)
 
 	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
@@ -1147,7 +1175,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath string) []string {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logTag string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
 	if r.cgroupManager == define.SystemdCgroupsManager && !ctr.config.NoCgroups {
@@ -1193,6 +1221,9 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	}
 	if ociLogPath != "" {
 		args = append(args, "--runtime-arg", "--log-format=json", "--runtime-arg", "--log", fmt.Sprintf("--runtime-arg=%s", ociLogPath))
+	}
+	if logTag != "" {
+		args = append(args, "--log-tag", logTag)
 	}
 	if ctr.config.NoCgroups {
 		logrus.Debugf("Running with no CGroups")

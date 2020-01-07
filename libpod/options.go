@@ -1059,6 +1059,23 @@ func WithLogPath(path string) CtrCreateOption {
 	}
 }
 
+// WithLogTag sets the tag to the log file.
+func WithLogTag(tag string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		if tag == "" {
+			return errors.Wrapf(define.ErrInvalidArg, "log tag must be set")
+		}
+
+		ctr.config.LogTag = tag
+
+		return nil
+	}
+
+}
+
 // WithNoCgroups disables the creation of CGroups for the new container.
 func WithNoCgroups() CtrCreateOption {
 	return func(ctr *Container) error {
