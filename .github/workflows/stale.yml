@@ -16,11 +16,9 @@ jobs:
     - uses: actions/stale@v1
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: 'This issue had no activity for 30 days. In the absence of activity or the "do-not-close" label, the issue will be automatically closed within 7 days.'
-        stale-pr-message: 'This pull request had no activity for 30 days. In the absence of activity or the "do-not-close" label, the pull request will be automatically closed within 7 days.'
+        stale-issue-message: 'A friendly reminder that this issue had no activity for 30 days.'
+        stale-pr-message: 'A friendly reminder that this PR had no activity for 30 days.'
         stale-issue-label: 'stale-issue'
         stale-pr-label: 'stale-pr'
         days-before-stale: 30
-        days-before-close: 7
-        exempt-issue-label: 'do-not-close'
-        exempt-pr-label: 'do-not-close'
+        days-before-close: 365
