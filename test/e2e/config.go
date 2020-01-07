@@ -14,4 +14,13 @@ var (
 	BB                = "docker.io/library/busybox:latest"
 	healthcheck       = "docker.io/libpod/alpine_healthcheck:latest"
 	ImageCacheDir     = "/tmp/podman/imagecachedir"
+
+	// This image has seccomp profiles that blocks all syscalls.
+	// The intention behind blocking all syscalls is to prevent
+	// regressions in the future.  The required syscalls can vary
+	// depending on which runtime we're using.
+	alpineSeccomp = "docker.io/libpod/alpine-with-seccomp:latest"
+	// This image has a bogus/invalid seccomp profile which should
+	// yield a json error when being read.
+	alpineBogusSeccomp = "docker.io/libpod/alpine-with-bogus-seccomp:latest"
 )

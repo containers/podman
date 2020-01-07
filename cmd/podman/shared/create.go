@@ -31,6 +31,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// seccompAnnotationKey is the key of the image annotation embedding a seccomp
+// profile.
+const seccompAnnotationKey = "io.containers.seccomp.profile"
+
 func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
 		healthCheck *manifest.Schema2HealthConfig
@@ -709,6 +713,18 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 	if err := secConfig.SetSecurityOpts(runtime, c.StringArray("security-opt")); err != nil {
 		return nil, err
+	}
+
+	// SECCOMP
+	if data != nil {
+		if value, exists := data.Annotations[seccompAnnotationKey]; exists {
+			secConfig.SeccompProfileFromImage = value
+		}
+	}
+	if policy, err := cc.LookupSeccompPolicy(c.String("seccomp-policy")); err != nil {
+		return nil, err
+	} else {
+		secConfig.SeccompPolicy = policy
 	}
 
 	config := &cc.CreateConfig{
