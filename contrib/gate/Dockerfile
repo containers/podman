@@ -48,6 +48,7 @@ WORKDIR $GOSRC
 RUN set -x && \
     make install.tools && \
     install -D -m 755 $GOSRC/contrib/gate/entrypoint.sh /usr/local/bin/ && \
+    python3 -m pip install pre-commit && \
     rm -rf "$GOSRC"
 
 # Install cni config

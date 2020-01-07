@@ -32,8 +32,10 @@ BUILDTAGS ?= \
 	exclude_graphdriver_devicemapper \
 	seccomp \
 	varlink
-PYTHON ?= $(shell command -v python python3|head -n1)
+PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
+# ~/.local/bin is not in PATH on all systems
+PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
 
 SOURCES = $(shell find . -name "*.go")
 
@@ -149,6 +151,11 @@ endif
 	touch $@
 
 lint: golangci-lint
+ifeq ($(PRE_COMMIT),)
+	@echo "FATAL: pre-commit was not found, check https://pre-commit.com/ about installing it." >&2
+	@exit 2
+endif
+	$(PRE_COMMIT) run -a
 
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
 	$(GOBIN)/golangci-lint run --tests=false --skip-files swagger.go
