@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -597,7 +598,7 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 		volumes[volume.Name] = hostPath.Path
 	}
 
-	seccompPaths, err := initializeSeccompPaths(podYAML.ObjectMeta.Annotations)
+	seccompPaths, err := initializeSeccompPaths(podYAML.ObjectMeta.Annotations, c.SeccompProfileRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -847,7 +848,8 @@ func (k *kubeSeccompPaths) findForContainer(ctrName string) string {
 
 // initializeSeccompPaths takes annotations from the pod object metadata and finds annotations pertaining to seccomp
 // it parses both pod and container level
-func initializeSeccompPaths(annotations map[string]string) (*kubeSeccompPaths, error) {
+// if the annotation is of the form "localhost/%s", the seccomp profile will be set to profileRoot/%s
+func initializeSeccompPaths(annotations map[string]string, profileRoot string) (*kubeSeccompPaths, error) {
 	seccompPaths := &kubeSeccompPaths{containerPaths: make(map[string]string)}
 	var err error
 	if annotations != nil {
@@ -863,7 +865,7 @@ func initializeSeccompPaths(annotations map[string]string) (*kubeSeccompPaths, e
 				return nil, errors.Errorf("Invalid seccomp path: %s", prefixAndCtr[0])
 			}
 
-			path, err := verifySeccompPath(seccomp)
+			path, err := verifySeccompPath(seccomp, profileRoot)
 			if err != nil {
 				return nil, err
 			}
@@ -872,7 +874,7 @@ func initializeSeccompPaths(annotations map[string]string) (*kubeSeccompPaths, e
 
 		podSeccomp, ok := annotations[v1.SeccompPodAnnotationKey]
 		if ok {
-			seccompPaths.podPath, err = verifySeccompPath(podSeccomp)
+			seccompPaths.podPath, err = verifySeccompPath(podSeccomp, profileRoot)
 		} else {
 			seccompPaths.podPath, err = libpod.DefaultSeccompPath()
 		}
@@ -885,7 +887,7 @@ func initializeSeccompPaths(annotations map[string]string) (*kubeSeccompPaths, e
 
 // verifySeccompPath takes a path and checks whether it is a default, unconfined, or a path
 // the available options are parsed as defined in https://kubernetes.io/docs/concepts/policy/pod-security-policy/#seccomp
-func verifySeccompPath(path string) (string, error) {
+func verifySeccompPath(path string, profileRoot string) (string, error) {
 	switch path {
 	case v1.DeprecatedSeccompProfileDockerDefault:
 		fallthrough
@@ -894,13 +896,9 @@ func verifySeccompPath(path string) (string, error) {
 	case "unconfined":
 		return path, nil
 	default:
-		// TODO we have an inconsistency here
-		// k8s parses `localhost/<path>` which is found at `<seccomp_root>`
-		// we currently parse `localhost:<seccomp_root>/<path>
-		// to fully conform, we need to find a good location for the seccomp root
-		parts := strings.Split(path, ":")
+		parts := strings.Split(path, "/")
 		if parts[0] == "localhost" {
-			return parts[1], nil
+			return filepath.Join(profileRoot, parts[1]), nil
 		}
 		return "", errors.Errorf("invalid seccomp path: %s", path)
 	}

@@ -28,6 +28,8 @@ var (
 		},
 		Example: `podman play kube demo.yml`,
 	}
+	// https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet/
+	defaultSeccompRoot = "/var/lib/kubelet/seccomp"
 )
 
 func init() {
@@ -46,6 +48,7 @@ func init() {
 		flags.StringVar(&playKubeCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.StringVar(&playKubeCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&playKubeCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+		flags.StringVar(&playKubeCommand.SeccompProfileRoot, "seccomp-profile-root", defaultSeccompRoot, "Directory path for seccomp profiles")
 		markFlagHidden(flags, "signature-policy")
 	}
 }

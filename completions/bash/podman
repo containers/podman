@@ -2672,6 +2672,7 @@ _podman_play_kube() {
     --quiet
     -q
     --tls-verify
+    --seccomp-profile-root
     "
 
     case "$cur" in
