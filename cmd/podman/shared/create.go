@@ -67,7 +67,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	imageName := ""
-	var data *inspect.ImageData = nil
+	var imageData *inspect.ImageData = nil
 
 	// Set the storage if there is no rootfs specified
 	if rootfs == "" {
@@ -99,17 +99,17 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, nil, err
 		}
-		data, err = newImage.Inspect(ctx)
+		imageData, err = newImage.Inspect(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		if overrideOS == "" && data.Os != goruntime.GOOS {
-			return nil, nil, errors.Errorf("incompatible image OS %q on %q host", data.Os, goruntime.GOOS)
+		if overrideOS == "" && imageData.Os != goruntime.GOOS {
+			return nil, nil, errors.Errorf("incompatible image OS %q on %q host", imageData.Os, goruntime.GOOS)
 		}
 
-		if overrideArch == "" && data.Architecture != goruntime.GOARCH {
-			return nil, nil, errors.Errorf("incompatible image architecture %q on %q host", data.Architecture, goruntime.GOARCH)
+		if overrideArch == "" && imageData.Architecture != goruntime.GOARCH {
+			return nil, nil, errors.Errorf("incompatible image architecture %q on %q host", imageData.Architecture, goruntime.GOARCH)
 		}
 
 		names := newImage.Names()
@@ -171,7 +171,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
-	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, data)
+	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, imageData)
 	if err != nil {
 		return nil, nil, err
 	}
