@@ -13,10 +13,6 @@ import (
 )
 
 func StopContainer(w http.ResponseWriter, r *http.Request) {
-	// 304 already stopped
-	// 404 no such container
-	// 500 internal error
-	// 204 no error
 	handlers.StopContainer(w, r)
 }
 
@@ -30,7 +26,7 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, http.StatusText(http.StatusOK))
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
@@ -55,9 +51,6 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	utils.RemoveContainer(w, r, query.Force, query.Vols)
 }
 func ListContainers(w http.ResponseWriter, r *http.Request) {
-	// 200 no error
-	// 400 bad param
-	// 500 internal error
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Filter []string `schema:"filter"`
@@ -91,9 +84,6 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
-	// 200 no error
-	// 404 no such container
-	// 500 internal error
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Size bool `schema:"size"`
@@ -122,10 +112,6 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {
-	// 204 no error
-	// 404 no such container
-	// 409 container is not running
-	// 500 internal error
 	// /{version}/containers/(name)/kill
 	_, err := utils.KillContainer(w, r)
 	if err != nil {
@@ -136,15 +122,12 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	_, err := utils.WaitContainer(w, r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, "")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
@@ -168,9 +151,6 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func MountContainer(w http.ResponseWriter, r *http.Request) {
-	// 404 no such
-	// 200 ok
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	conn, err := runtime.LookupContainer(name)
@@ -186,8 +166,6 @@ func MountContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ShowMountedContainers(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	response := make(map[string]string)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	conns, err := runtime.GetAllContainers()

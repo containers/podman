@@ -9,7 +9,7 @@ func (c Connection) MountContainer(nameOrID string) (string, error) {
 	var (
 		path string
 	)
-	response, err := c.newRequest(http.MethodGet, fmt.Sprintf("/containers/%s/mount", nameOrID), nil, nil)
+	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/mount", nameOrID), nil, nil)
 	if err != nil {
 		return path, err
 	}
