@@ -709,7 +709,7 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 	return true, nil
 }
 
-// ExecCleanupContainer cleans up files created when a command is run via
+// ExecContainerCleanup cleans up files created when a command is run via
 // ExecContainer. This includes the attach socket for the exec session.
 func (r *ConmonOCIRuntime) ExecContainerCleanup(ctr *Container, sessionID string) error {
 	// Clean up the sockets dir. Issue #3962
