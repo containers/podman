@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= 2d8f1c8fda4d0a8b7c41addbc89f0b2f83908ec2
+EPOCH_TEST_COMMIT ?= $(shell git merge-base HEAD $${DEST_BRANCH:-master})
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -471,7 +471,7 @@ uninstall:
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -v -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
 install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
