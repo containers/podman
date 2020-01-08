@@ -575,10 +575,5 @@ package:  ## Build rpm packages
 	rm -rf build/* *.src.rpm ~/rpmbuild/RPMS/*
 	./contrib/build_rpm.sh
 
-# Remember that rpms install exec to /usr/bin/podman while a `make install`
-# installs them to /usr/local/bin/podman which is likely before. Always use
-# a full path to test installed podman or you risk to call another executable.
-package-install: package  ## Install rpm packages
-	sudo ${PKG_MANAGER} -y install ${HOME}/rpmbuild/RPMS/*/*.rpm
-	/usr/bin/podman version
-	/usr/bin/podman info  # will catch a broken conmon
+package-install: ## Install rpm packages
+	./contrib/build_rpm.sh install

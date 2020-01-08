@@ -36,10 +36,9 @@ declare -a PKGS=(\
 if [[ $pkg_manager == *dnf ]]; then
     # We need to enable PowerTools if we want to get
     # install all the pkgs we define in PKGS
-    # PowerTools exists on centos-8 but not on fedora-30 and rhel-8
-    if (dnf -v -C repolist all|grep "Repo-id      : PowerTools" >/dev/null); then
-        sudo dnf config-manager --set-enabled PowerTools
-    fi
+    # PowerTools exists on centos-8(-stream) but not on fedora-30 and rhel-8
+    dnf -C repolist all | sed -rn 's/(.*PowerTools).*/\1/p' | \
+        xargs sudo dnf config-manager --set-enabled
 
     PKGS+=(python3-devel \
         python3-varlink \
@@ -70,3 +69,16 @@ if [ -d ~/rpmbuild/BUILD ]; then
 fi
 
 rpmbuild --rebuild ${extra_arg:-} podman-*.src.rpm
+createrepo -v ~/rpmbuild/RPMS/x86_64
+
+if [ "${1:-}" == "install" ]; then
+  	sudo ${pkg_manager} -y --repofrom podman,file://${HOME}/rpmbuild/RPMS/x86_64/ install podman podman-remote
+    # Remember that rpms install exec to /usr/bin/podman while a `make install`
+    # installs them to /usr/local/bin/podman which is likely before. Always use
+    # a full path to test installed podman or you risk to call another executable.
+	/usr/bin/podman version
+	# TODO(ssbarnea): implement a test that verifies the version to match what
+	# we build. The problem is that Version seems to be generic, maybe use
+	# of Git Commit
+	sudo /usr/bin/podman info  # will catch a broken conmon
+fi
