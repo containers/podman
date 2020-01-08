@@ -304,7 +304,7 @@ func GetImageConfig(changes []string) (ImageConfig, error) {
 	return config, nil
 }
 
-// Parse and validate a signal name or number
+// ParseSignal parses and validates a signal name or number.
 func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	// Strip off leading dash, to allow -1 or -HUP
 	basename := strings.TrimPrefix(rawSignal, "-")
