@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ToCreateOptions converts the input to a slice of container create options.
 func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserConfig) ([]libpod.CtrCreateOption, error) {
 	var portBindings []ocicni.PortMapping
 	var err error
@@ -97,6 +98,8 @@ func (c *NetworkConfig) ToCreateOptions(runtime *libpod.Runtime, userns *UserCon
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator based according to the current
+// state of the NetworkConfig.
 func (c *NetworkConfig) ConfigureGenerator(g *generate.Generator) error {
 	netMode := c.NetMode
 	if netMode.IsHost() {
@@ -183,6 +186,7 @@ func NatToOCIPortBindings(ports nat.PortMap) ([]ocicni.PortMapping, error) {
 	return portBindings, nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *CgroupConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.CgroupMode.IsNS() {
@@ -213,6 +217,7 @@ func (c *CgroupConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCre
 	return options, nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *UserConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.UsernsMode.IsNS() {
@@ -241,6 +246,8 @@ func (c *UserConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreat
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the UserConfig.
 func (c *UserConfig) ConfigureGenerator(g *generate.Generator) error {
 	if IsNS(string(c.UsernsMode)) {
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), NS(string(c.UsernsMode))); err != nil {
@@ -271,11 +278,14 @@ func (c *UserConfig) getPostConfigureNetNS() bool {
 	return postConfigureNetNS
 }
 
+// InNS returns true if the UserConfig indicates to be in a dedicated user
+// namespace.
 func (c *UserConfig) InNS(isRootless bool) bool {
 	hasUserns := c.UsernsMode.IsContainer() || c.UsernsMode.IsNS() || len(c.IDMappings.UIDMap) > 0 || len(c.IDMappings.GIDMap) > 0
 	return isRootless || (hasUserns && !c.UsernsMode.IsHost())
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *IpcConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.IpcMode.IsHost() {
@@ -293,6 +303,8 @@ func (c *IpcConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreate
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the IpcConfig.
 func (c *IpcConfig) ConfigureGenerator(g *generate.Generator) error {
 	ipcMode := c.IpcMode
 	if IsNS(string(ipcMode)) {
@@ -308,6 +320,8 @@ func (c *IpcConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the CgroupConfig.
 func (c *CgroupConfig) ConfigureGenerator(g *generate.Generator) error {
 	cgroupMode := c.CgroupMode
 	if cgroupMode.IsDefaultValue() {
@@ -337,6 +351,7 @@ func (c *CgroupConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *PidConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if c.PidMode.IsContainer() {
@@ -351,6 +366,8 @@ func (c *PidConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCreate
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the PidConfig.
 func (c *PidConfig) ConfigureGenerator(g *generate.Generator) error {
 	pidMode := c.PidMode
 	if IsNS(string(pidMode)) {
@@ -368,6 +385,7 @@ func (c *PidConfig) ConfigureGenerator(g *generate.Generator) error {
 	return nil
 }
 
+// ToCreateOptions converts the input to container create options.
 func (c *UtsConfig) ToCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	if IsPod(string(c.UtsMode)) {
@@ -391,6 +409,8 @@ func (c *UtsConfig) ToCreateOptions(runtime *libpod.Runtime, pod *libpod.Pod) ([
 	return options, nil
 }
 
+// ConfigureGenerator configures the generator according to the current state
+// of the UtsConfig.
 func (c *UtsConfig) ConfigureGenerator(g *generate.Generator, net *NetworkConfig, runtime *libpod.Runtime) error {
 	hostname := c.Hostname
 	var err error
