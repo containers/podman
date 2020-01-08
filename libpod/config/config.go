@@ -72,7 +72,7 @@ const (
 // SetOptions contains a subset of options in a Config. It's used to indicate if
 // a given option has either been set by the user or by a parsed libpod
 // configuration file.  If not, the corresponding option might be overwritten by
-// values from the database.  This behavior guarantess backwards compat with
+// values from the database.  This behavior guarantees backwards compat with
 // older version of libpod and Podman.
 type SetOptions struct {
 	// StorageConfigRunRootSet indicates if the RunRoot has been explicitly set
@@ -119,7 +119,7 @@ type Config struct {
 	// SetOptions contains a subset of config options. It's used to indicate if
 	// a given option has either been set by the user or by a parsed libpod
 	// configuration file.  If not, the corresponding option might be
-	// overwritten by values from the database.  This behavior guarantess
+	// overwritten by values from the database.  This behavior guarantees
 	// backwards compat with older version of libpod and Podman.
 	SetOptions
 
@@ -451,45 +451,47 @@ func NewConfig(userConfigPath string) (*Config, error) {
 	}
 
 	// Now, check if the user can access system configs and merge them if needed.
-	if configs, err := systemConfigs(); err != nil {
+	configs, err := systemConfigs()
+	if err != nil {
 		return nil, errors.Wrapf(err, "error finding config on system")
-	} else {
-		migrated := false
-		for _, path := range configs {
-			systemConfig, err := readConfigFromFile(path)
-			if err != nil {
-				return nil, errors.Wrapf(err, "error reading system config %q", path)
-			}
-			// Handle CGroups v2 configuration migration.
-			// Migrate only the first config, and do it before
-			// merging.
-			if !migrated {
-				if err := cgroupV2Check(path, systemConfig); err != nil {
-					return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
-				}
-				migrated = true
-			}
-			// Merge the it into the config. Any unset field in config will be
-			// over-written by the systemConfig.
-			if err := config.mergeConfig(systemConfig); err != nil {
-				return nil, errors.Wrapf(err, "error merging system config")
-			}
-			logrus.Debugf("Merged system config %q: %v", path, config)
+	}
+
+	migrated := false
+	for _, path := range configs {
+		systemConfig, err := readConfigFromFile(path)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading system config %q", path)
 		}
+		// Handle CGroups v2 configuration migration.
+		// Migrate only the first config, and do it before
+		// merging.
+		if !migrated {
+			if err := cgroupV2Check(path, systemConfig); err != nil {
+				return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
+			}
+			migrated = true
+		}
+		// Merge the it into the config. Any unset field in config will be
+		// over-written by the systemConfig.
+		if err := config.mergeConfig(systemConfig); err != nil {
+			return nil, errors.Wrapf(err, "error merging system config")
+		}
+		logrus.Debugf("Merged system config %q: %v", path, config)
 	}
 
 	// Finally, create a default config from memory and forcefully merge it into
 	// the config. This way we try to make sure that all fields are properly set
 	// and that user AND system config can partially set.
-	if defaultConfig, err := defaultConfigFromMemory(); err != nil {
+	defaultConfig, err := defaultConfigFromMemory()
+	if err != nil {
 		return nil, errors.Wrapf(err, "error generating default config from memory")
-	} else {
-		// Check if we need to switch to cgroupfs and logger=file on rootless.
-		defaultConfig.checkCgroupsAndLogger()
+	}
 
-		if err := config.mergeConfig(defaultConfig); err != nil {
-			return nil, errors.Wrapf(err, "error merging default config from memory")
-		}
+	// Check if we need to switch to cgroupfs and logger=file on rootless.
+	defaultConfig.checkCgroupsAndLogger()
+
+	if err := config.mergeConfig(defaultConfig); err != nil {
+		return nil, errors.Wrapf(err, "error merging default config from memory")
 	}
 
 	// Relative paths can cause nasty bugs, because core paths we use could

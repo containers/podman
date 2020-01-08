@@ -7,6 +7,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// TryJoinPauseProcess attempts to join the namespaces of the pause PID via
+// TryJoinFromFilePaths.  If joining fails, it attempts to delete the specified
+// file.
 func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	if _, err := os.Stat(pausePidPath); err != nil {
 		return false, -1, nil

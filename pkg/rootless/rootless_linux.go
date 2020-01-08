@@ -514,6 +514,8 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 
 	return joinUserAndMountNS(uint(pausePid), pausePidPath)
 }
+
+// ReadMappingsProc parses and returns the ID mappings at the specified path.
 func ReadMappingsProc(path string) ([]idtools.IDMap, error) {
 	file, err := os.Open(path)
 	if err != nil {

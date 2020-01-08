@@ -84,7 +84,7 @@ func getRuntime(runtime *libpod.Runtime) (*LocalRuntime, error) {
 	}, nil
 }
 
-// GetFilterImages returns a slice of images in containerimages that are "filtered"
+// GetFilteredImages returns a slice of images in containerimages that are "filtered"
 func (r *LocalRuntime) GetFilteredImages(filters []string, rwOnly bool) ([]*ContainerImage, error) {
 	images, err := r.ImageRuntime().GetImagesWithFilters(filters)
 	if err != nil {
@@ -111,6 +111,8 @@ func (r *LocalRuntime) getImages(rwOnly bool) ([]*ContainerImage, error) {
 	return r.ImagestoContainerImages(images, rwOnly)
 }
 
+// ImagestoContainerImages converts the slice of *image.Image to a slice of
+// *ContainerImage.  ReadOnly images are skipped when rwOnly is set.
 func (r *LocalRuntime) ImagestoContainerImages(images []*image.Image, rwOnly bool) ([]*ContainerImage, error) {
 	var containerImages []*ContainerImage
 	for _, i := range images {

@@ -11,6 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// ToCreateOptions convert the SecurityConfig to a slice of container create
+// options.
 func (c *SecurityConfig) ToCreateOptions() ([]libpod.CtrCreateOption, error) {
 	options := make([]libpod.CtrCreateOption, 0)
 	options = append(options, libpod.WithSecLabels(c.LabelOpts))
@@ -18,6 +20,8 @@ func (c *SecurityConfig) ToCreateOptions() ([]libpod.CtrCreateOption, error) {
 	return options, nil
 }
 
+// SetLabelOpts sets the label options of the SecurityConfig according to the
+// input.
 func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidConfig, ipcConfig *IpcConfig) error {
 	if c.Privileged {
 		c.LabelOpts = label.DisableSecOpt()
@@ -57,6 +61,7 @@ func (c *SecurityConfig) SetLabelOpts(runtime *libpod.Runtime, pidConfig *PidCon
 	return nil
 }
 
+// SetSecurityOpts the the security options (labels, apparmor, seccomp, etc.).
 func (c *SecurityConfig) SetSecurityOpts(runtime *libpod.Runtime, securityOpts []string) error {
 	for _, opt := range securityOpts {
 		if opt == "no-new-privileges" {
@@ -91,6 +96,7 @@ func (c *SecurityConfig) SetSecurityOpts(runtime *libpod.Runtime, securityOpts [
 	return nil
 }
 
+// ConfigureGenerator configures the generator according to the input.
 func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserConfig) error {
 	// HANDLE CAPABILITIES
 	// NOTE: Must happen before SECCOMP
