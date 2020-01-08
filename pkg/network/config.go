@@ -90,6 +90,7 @@ func (p PortMapConfig) Bytes() ([]byte, error) {
 	return json.MarshalIndent(p, "", "\t")
 }
 
+// IPAMDHCP describes the ipamdhcp config
 type IPAMDHCP struct {
 	DHCP string `json:"type"`
 }
