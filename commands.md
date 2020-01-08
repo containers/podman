@@ -37,7 +37,7 @@
 | [podman-import(1)](/docs/source/markdown/podman-import.1.md)                             | Import a tarball and save it as a filesystem image                         |
 | [podman-info(1)](/docs/source/markdown/podman-info.1.md)                                 | Display system information                                                 |
 | [podman-init(1)](/docs/source/markdown/podman-init.1.md)                                 | Initialize a container                                                     |
-| [podman-inspect(1)](/docs/source/markdown/podman-inspect.1.md)                           | Display the configuration of a container or image                          | [![...](/docs/source/markdown/play.png)](https://asciinema.org/a/133418)                    |
+| [podman-inspect(1)](/docs/source/markdown/podman-inspect.1.md)                           | Display the configuration of a container or image                          | [![...](/docs/source/markdown/play.png)](https://podman.io/asciinema/podman/inspect/)         | [Here](https://github.com/containers/Demos/blob/master/podman_cli/podman_inspect.sh) |
 | [podman-kill(1)](/docs/source/markdown/podman-kill.1.md)                                 | Kill the main process in one or more running containers                    |
 | [podman-load(1)](/docs/source/markdown/podman-load.1.md)                                 | Load an image from a container image archive                               |
 | [podman-login(1)](/docs/source/markdown/podman-login.1.md)                               | Login to a container registry                                              |
