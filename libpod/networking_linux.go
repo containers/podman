@@ -3,8 +3,10 @@
 package libpod
 
 import (
+	"bytes"
 	"crypto/rand"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"os"
@@ -20,6 +22,7 @@ import (
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/rootlessport"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -151,19 +154,6 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	return ctrNS, networkStatus, err
 }
 
-type slirp4netnsCmdArg struct {
-	Proto     string `json:"proto,omitempty"`
-	HostAddr  string `json:"host_addr"`
-	HostPort  int32  `json:"host_port"`
-	GuestAddr string `json:"guest_addr"`
-	GuestPort int32  `json:"guest_port"`
-}
-
-type slirp4netnsCmd struct {
-	Execute string            `json:"execute"`
-	Args    slirp4netnsCmdArg `json:"arguments"`
-}
-
 func checkSlirpFlags(path string) (bool, bool, bool, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
@@ -194,13 +184,9 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	apiSocket := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("%s.net", ctr.config.ID))
 	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
-	if havePortMapping {
-		cmdArgs = append(cmdArgs, "--api-socket", apiSocket)
-	}
 	dhp, mtu, sandbox, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
@@ -221,15 +207,19 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	// -e, --exit-fd=FD specify the FD for terminating slirp4netns
 	// -r, --ready-fd=FD specify the FD to write to when the initialization steps are finished
 	cmdArgs = append(cmdArgs, "-c", "-e", "3", "-r", "4")
+	netnsPath := ""
 	if !ctr.config.PostConfigureNetNS {
 		ctr.rootlessSlirpSyncR, ctr.rootlessSlirpSyncW, err = os.Pipe()
 		if err != nil {
 			return errors.Wrapf(err, "failed to create rootless network sync pipe")
 		}
-		cmdArgs = append(cmdArgs, "--netns-type=path", ctr.state.NetNS.Path(), "tap0")
+		netnsPath = ctr.state.NetNS.Path()
+		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
 	} else {
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncW)
+		netnsPath = fmt.Sprintf("/proc/%d/ns/net", ctr.state.PID)
+		// we don't use --netns-path here (unavailable for slirp4netns < v0.4)
 		cmdArgs = append(cmdArgs, fmt.Sprintf("%d", ctr.state.PID), "tap0")
 	}
 
@@ -269,11 +259,27 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 		}
 	}()
 
+	if err := waitForSync(syncR, cmd, logFile, 1*time.Second); err != nil {
+		return err
+	}
+
+	if havePortMapping {
+		return r.setupRootlessPortMapping(ctr, netnsPath)
+	}
+	return nil
+}
+
+func waitForSync(syncR *os.File, cmd *exec.Cmd, logFile io.ReadSeeker, timeout time.Duration) error {
+	prog := filepath.Base(cmd.Path)
+	if len(cmd.Args) > 0 {
+		prog = cmd.Args[0]
+	}
 	b := make([]byte, 16)
 	for {
-		if err := syncR.SetDeadline(time.Now().Add(1 * time.Second)); err != nil {
-			return errors.Wrapf(err, "error setting slirp4netns pipe timeout")
+		if err := syncR.SetDeadline(time.Now().Add(timeout)); err != nil {
+			return errors.Wrapf(err, "error setting %s pipe timeout", prog)
 		}
+		// FIXME: return err as soon as proc exits, without waiting for timeout
 		if _, err := syncR.Read(b); err == nil {
 			break
 		} else {
@@ -282,7 +288,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 				var status syscall.WaitStatus
 				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
 				if err != nil {
-					return errors.Wrapf(err, "failed to read slirp4netns process status")
+					return errors.Wrapf(err, "failed to read %s process status", prog)
 				}
 				if pid != cmd.Process.Pid {
 					continue
@@ -294,100 +300,86 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 					}
 					logContent, err := ioutil.ReadAll(logFile)
 					if err != nil {
-						return errors.Wrapf(err, "slirp4netns failed")
+						return errors.Wrapf(err, "%s failed", prog)
 					}
-					return errors.Errorf("slirp4netns failed: %q", logContent)
+					return errors.Errorf("%s failed: %q", prog, logContent)
 				}
 				if status.Signaled() {
-					return errors.New("slirp4netns killed by signal")
+					return errors.Errorf("%s killed by signal", prog)
 				}
 				continue
 			}
-			return errors.Wrapf(err, "failed to read from slirp4netns sync pipe")
+			return errors.Wrapf(err, "failed to read from %s sync pipe", prog)
 		}
 	}
+	return nil
+}
 
-	if havePortMapping {
-		const pidWaitTimeout = 60 * time.Second
-		chWait := make(chan error)
-		go func() {
-			interval := 25 * time.Millisecond
-			for i := time.Duration(0); i < pidWaitTimeout; i += interval {
-				// Check if the process is still running.
-				var status syscall.WaitStatus
-				pid, err := syscall.Wait4(cmd.Process.Pid, &status, syscall.WNOHANG, nil)
-				if err != nil {
-					break
-				}
-				if pid != cmd.Process.Pid {
-					continue
-				}
-				if status.Exited() || status.Signaled() {
-					chWait <- fmt.Errorf("slirp4netns exited with status %d", status.ExitStatus())
-				}
-				time.Sleep(interval)
-			}
-		}()
-		defer close(chWait)
-
-		// wait that API socket file appears before trying to use it.
-		if _, err := WaitForFile(apiSocket, chWait, pidWaitTimeout); err != nil {
-			return errors.Wrapf(err, "waiting for slirp4nets to create the api socket file %s", apiSocket)
-		}
-
-		// for each port we want to add we need to open a connection to the slirp4netns control socket
-		// and send the add_hostfwd command.
-		for _, i := range ctr.config.PortMappings {
-			conn, err := net.Dial("unix", apiSocket)
-			if err != nil {
-				return errors.Wrapf(err, "cannot open connection to %s", apiSocket)
-			}
-			defer func() {
-				if err := conn.Close(); err != nil {
-					logrus.Errorf("unable to close connection: %q", err)
-				}
-			}()
-			hostIP := i.HostIP
-			if hostIP == "" {
-				hostIP = "0.0.0.0"
-			}
-			cmd := slirp4netnsCmd{
-				Execute: "add_hostfwd",
-				Args: slirp4netnsCmdArg{
-					Proto:     i.Protocol,
-					HostAddr:  hostIP,
-					HostPort:  i.HostPort,
-					GuestPort: i.ContainerPort,
-				},
-			}
-			// create the JSON payload and send it.  Mark the end of request shutting down writes
-			// to the socket, as requested by slirp4netns.
-			data, err := json.Marshal(&cmd)
-			if err != nil {
-				return errors.Wrapf(err, "cannot marshal JSON for slirp4netns")
-			}
-			if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
-				return errors.Wrapf(err, "cannot write to control socket %s", apiSocket)
-			}
-			if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
-				return errors.Wrapf(err, "cannot shutdown the socket %s", apiSocket)
-			}
-			buf := make([]byte, 2048)
-			readLength, err := conn.Read(buf)
-			if err != nil {
-				return errors.Wrapf(err, "cannot read from control socket %s", apiSocket)
-			}
-			// if there is no 'error' key in the received JSON data, then the operation was
-			// successful.
-			var y map[string]interface{}
-			if err := json.Unmarshal(buf[0:readLength], &y); err != nil {
-				return errors.Wrapf(err, "error parsing error status from slirp4netns")
-			}
-			if e, found := y["error"]; found {
-				return errors.Errorf("error from slirp4netns while setting up port redirection: %v", e)
-			}
-		}
+func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (err error) {
+	syncR, syncW, err := os.Pipe()
+	if err != nil {
+		return errors.Wrapf(err, "failed to open pipe")
 	}
+	defer errorhandling.CloseQuiet(syncR)
+	defer errorhandling.CloseQuiet(syncW)
+
+	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
+	logFile, err := os.Create(logPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open rootlessport log file %s", logPath)
+	}
+	defer logFile.Close()
+	// Unlink immediately the file so we won't need to worry about cleaning it up later.
+	// It is still accessible through the open fd logFile.
+	if err := os.Remove(logPath); err != nil {
+		return errors.Wrapf(err, "delete file %s", logPath)
+	}
+
+	ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
+	if err != nil {
+		return errors.Wrapf(err, "failed to create rootless port sync pipe")
+	}
+	cfg := rootlessport.Config{
+		Mappings:  ctr.config.PortMappings,
+		NetNSPath: netnsPath,
+		ExitFD:    3,
+		ReadyFD:   4,
+	}
+	cfgJSON, err := json.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+	cfgR := bytes.NewReader(cfgJSON)
+	var stdout bytes.Buffer
+	cmd := exec.Command(fmt.Sprintf("/proc/%d/exe", os.Getpid()))
+	cmd.Args = []string{rootlessport.ReexecKey}
+	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
+	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncR, syncW)
+	cmd.Stdin = cfgR
+	// stdout is for human-readable error, stderr is for debug log
+	cmd.Stdout = &stdout
+	cmd.Stderr = io.MultiWriter(logFile, &logrusDebugWriter{"rootlessport: "})
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setpgid: true,
+	}
+	if err := cmd.Start(); err != nil {
+		return errors.Wrapf(err, "failed to start rootlessport process")
+	}
+	defer func() {
+		if err := cmd.Process.Release(); err != nil {
+			logrus.Errorf("unable to release rootlessport process: %q", err)
+		}
+	}()
+	if err := waitForSync(syncR, cmd, logFile, 3*time.Second); err != nil {
+		stdoutStr := stdout.String()
+		if stdoutStr != "" {
+			// err contains full debug log and too verbose, so return stdoutStr
+			logrus.Debug(err)
+			return errors.Errorf("failed to expose ports via rootlessport: %q", stdoutStr)
+		}
+		return err
+	}
+	logrus.Debug("rootlessport is ready")
 	return nil
 }
 
@@ -586,4 +578,13 @@ func (c *Container) getContainerNetworkInfo(data *InspectContainerData) *Inspect
 		}
 	}
 	return data
+}
+
+type logrusDebugWriter struct {
+	prefix string
+}
+
+func (w *logrusDebugWriter) Write(p []byte) (int, error) {
+	logrus.Debugf("%s%s", w.prefix, string(p))
+	return len(p), nil
 }
