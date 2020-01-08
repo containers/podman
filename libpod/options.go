@@ -20,7 +20,9 @@ import (
 )
 
 var (
+	// NameRegex is a regular expression to validate container/pod names.
 	NameRegex  = regexp.MustCompile("^[a-zA-Z0-9][a-zA-Z0-9_.-]*$")
+	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = errors.Wrapf(define.ErrInvalidArg, "names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*")
 )
 
