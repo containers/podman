@@ -27,13 +27,13 @@ const (
 	TerminalResize SocketDest = iota
 	// Quit and detach
 	Quit SocketDest = iota
-	// Quit from the client
+	// HangUpFromClient hangs up from the client
 	HangUpFromClient SocketDest = iota
 )
 
-// ClientHangup signifies that the client wants to drop its
-// connection from the server
-var ClientHangup = errors.New("client hangup")
+// ErrClientHangup signifies that the client wants to drop its connection from
+// the server.
+var ErrClientHangup = errors.New("client hangup")
 
 // IntToSocketDest returns a socketdest based on integer input
 func IntToSocketDest(i int) SocketDest {
@@ -177,7 +177,7 @@ func Reader(r *bufio.Reader, output, errput, input io.Writer, resize chan remote
 			//
 			// reproducer: echo hello | (podman-remote run -i alpine cat)
 			time.Sleep(1 * time.Second)
-			return ClientHangup
+			return ErrClientHangup
 		default:
 			// Something really went wrong
 			return errors.New("unknown multiplex destination")
