@@ -26,11 +26,12 @@ const (
 // config is different for root and rootless. It also parses the storage.conf.
 func defaultConfigFromMemory() (*Config, error) {
 	c := new(Config)
-	if tmp, err := defaultTmpDir(); err != nil {
+	tmp, err := defaultTmpDir()
+	if err != nil {
 		return nil, err
-	} else {
-		c.TmpDir = tmp
 	}
+	c.TmpDir = tmp
+
 	c.EventsLogFilePath = filepath.Join(c.TmpDir, "events", "events.log")
 
 	storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())

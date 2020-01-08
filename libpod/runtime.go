@@ -213,11 +213,11 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 	// Find a working conmon binary
-	if cPath, err := runtime.config.FindConmon(); err != nil {
+	cPath, err := runtime.config.FindConmon()
+	if err != nil {
 		return err
-	} else {
-		runtime.conmonPath = cPath
 	}
+	runtime.conmonPath = cPath
 
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.StaticDir, 0700); err != nil {
