@@ -366,7 +366,7 @@ __podman_to_extglob() {
 # continue processing its completion.
 #
 # TODO if the preceding command has options that accept arguments and an
-# argument is equal ot one of the subcommands, this is falsely detected as
+# argument is equal to one of the subcommands, this is falsely detected as
 # a match.
 __podman_subcommands() {
 	local subcommands="$1"

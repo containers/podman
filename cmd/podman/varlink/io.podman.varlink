@@ -885,7 +885,7 @@ method UntagImage(name: string, tag: string) -> (image: string)
 method RemoveImage(name: string, force: bool) -> (image: string)
 
 # RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
-# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
 # in the form of a RemoveImageResponse .
 method RemoveImageWithResponse(name: string, force: bool) -> (response: RemoveImageResponse)
 

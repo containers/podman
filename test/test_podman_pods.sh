@@ -39,13 +39,13 @@ fi
 
 
 ########
-# Create a named and unamed pod
+# Create a named and unnamed pod
 ########
 podman pod create --name foobar
 podid=$(podman pod create)
 
 ########
-# Delete a named and unamed pod
+# Delete a named and unnamed pod
 ########
 podman pod rm foobar
 podman pod rm $podid

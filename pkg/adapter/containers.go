@@ -375,7 +375,7 @@ func (r *LocalRuntime) selectDetachKeys(flagValue string) (string, error) {
 
 	config, err := r.GetConfig()
 	if err != nil {
-		return "", errors.Wrapf(err, "unable to retrive runtime config")
+		return "", errors.Wrapf(err, "unable to retrieve runtime config")
 	}
 	if config.DetachKeys != "" {
 		return config.DetachKeys, nil

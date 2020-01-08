@@ -205,7 +205,7 @@ var _ = Describe("Podman mount", func() {
 		Expect(lmount.OutputToString()).To(Equal(""))
 	})
 
-	It("podman list mulitple mounted containers", func() {
+	It("podman list multiple mounted containers", func() {
 		SkipIfRootless()
 
 		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})

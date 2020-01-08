@@ -310,13 +310,13 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 	var envVars []v1.EnvVar
 	for _, e := range envs {
-		splitE := strings.SplitN(e, "=", 2)
-		if len(splitE) != 2 {
+		split := strings.SplitN(e, "=", 2)
+		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		ev := v1.EnvVar{
-			Name:  splitE[0],
-			Value: splitE[1],
+			Name:  split[0],
+			Value: split[1],
 		}
 		envVars = append(envVars, ev)
 	}

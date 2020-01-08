@@ -255,7 +255,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 	defer func() {
 		if err := cmd.Process.Release(); err != nil {
-			logrus.Errorf("unable to release comman process: %q", err)
+			logrus.Errorf("unable to release command process: %q", err)
 		}
 	}()
 

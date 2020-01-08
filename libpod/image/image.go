@@ -1527,7 +1527,7 @@ func GetLayersMapWithImageInfo(imageruntime *Runtime) (map[string]*LayerInfo, er
 		}
 	}
 
-	// scan all layers & add all childs for each layers to layerInfo
+	// scan all layers & add all childid's for each layers to layerInfo
 	for _, layer := range layers {
 		_, ok := layerInfoMap[layer.ID]
 		if ok {

@@ -40,7 +40,7 @@ var _ = Describe("Podman commit", func() {
 		// run the container to be committed
 		_ = endpointTest.startTopContainer("top")
 		result := endpointTest.Varlink("Commit", string(b), false)
-		// This indicates an error occured
+		// This indicates an error occurred
 		Expect(len(result.StdErrToString())).To(BeNumerically(">", 0))
 	})
 

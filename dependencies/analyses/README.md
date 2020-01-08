@@ -1,7 +1,7 @@
 # A set of scripts and instructions that help to analyze and debloat go-lang dependencies
 
 Note that all scripts mentioned below follow the [KISS principle](https://en.wikipedia.org/wiki/KISS_principle) on purpose.
-The scripts are meant to be used in combination to aid in understanding the packages' dependencies and how they contribute to the size of the compiled binary.
+The scripts are meant to be used in combination to aid in understanding the package's dependencies and how they contribute to the size of the compiled binary.
 
 ## Size of packages
 

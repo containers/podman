@@ -797,7 +797,7 @@ You can pass `host` to copy the current configuration from the host.
 
 Sets the username or UID used and optionally the groupname or GID for the specified command.
 
-The followings examples are all valid:
+The following examples are all valid:
 --user [user | user:group | uid | uid:gid | user:gid | uid:group ]
 
 Without this argument the command will be run as root in the container.

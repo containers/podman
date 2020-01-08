@@ -51,7 +51,7 @@ var _ = Describe("Podman save", func() {
 	})
 
 	It("podman save with stdout", func() {
-		Skip("Pipe redirection in ginkgo probably wont work")
+		Skip("Pipe redirection in ginkgo probably won't work")
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
 
 		save := podmanTest.PodmanNoCache([]string{"save", ALPINE, ">", outfile})

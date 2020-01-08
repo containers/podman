@@ -52,11 +52,11 @@ WARNING! This will remove:
         - all images
         - all build cache
 Are you sure you want to continue? [y/N] `)
-		ans, err := reader.ReadString('\n')
+		answer, err := reader.ReadString('\n')
 		if err != nil {
 			return errors.Wrapf(err, "error reading input")
 		}
-		if strings.ToLower(ans)[0] != 'y' {
+		if strings.ToLower(answer)[0] != 'y' {
 			return nil
 		}
 	}

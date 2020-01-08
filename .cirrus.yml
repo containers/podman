@@ -111,7 +111,7 @@ gating_task:
     build_script:
         - '/usr/local/bin/entrypoint.sh podman |& ${TIMESTAMP}'
         - 'cd $GOSRC && ./hack/podman-commands.sh |& ${TIMESTAMP}'
-        # N/B: need 'clean' so some commited files are re-generated.
+        # N/B: need 'clean' so some committed files are re-generated.
         - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
