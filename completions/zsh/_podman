@@ -111,20 +111,13 @@ _podman_find_helper() {
     elif expr "$desc" : ".*[Pp]ath" >/dev/null; then
         optval="path"
         helper=_files
-    elif [ "$flags" = "--cgroup-manager" ]; then
-        optval="cgroup manager"
-        helper="(cgroupfs systemd)"
-    elif [ "$flags" = "--log-level" ]; then
-        optval="log level"
-        # 'Log messages above specified level: debug, ... (default "...")'
-        # Strip off the description and all 'default' strings
-        desc=${desc/Log*:/}           # debug, info, ... (default "...")
-        desc=${(S)desc//\(*\)/}       # debug, info, ... or panic
-        desc=${desc//,/}              # debug info ... or panic
-        desc=${desc// or / }          # debug info ... panic
-        desc=${desc//  / }            # collapse multiple spaces
+    # For messages like 'restart policy ("always"|"no"|"on-failure")
+    elif optlist=$(expr "$desc" : '.*(\(\"[^\\)]\+|[^\\)]\+\"\))' 2>/dev/null); then
+        optval=${${flags##--}//-/ }       # "--log-level" => "log level"
+        optlist=${optlist//\"/}           # "a"|"b"|"c"   => a|b|c
+        optlist=${optlist//\|/ }          # a|b|c         => a b c
         # FIXME: how to present values _in order_, not sorted alphabetically?
-        helper="($desc)"
+        helper="($optlist)"
     fi
     echo "$optval:$helper"
 }

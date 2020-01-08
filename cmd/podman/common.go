@@ -308,7 +308,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"image-volume", cliconfig.DefaultImageVolume,
-		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore'",
+		`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 	)
 	createFlags.Bool(
 		"init", false,
@@ -431,7 +431,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"pull", "missing",
-		`Pull image before creating ("always"|"missing"|"never") (default "missing")`,
+		`Pull image before creating ("always"|"missing"|"never")`,
 	)
 	createFlags.BoolP(
 		"quiet", "q", false,
@@ -447,7 +447,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"restart", "",
-		"Restart policy to apply when a container exits",
+		`Restart policy to apply when a container exits ("always"|"no"|"on-failure")`,
 	)
 	createFlags.Bool(
 		"rm", false,
@@ -492,7 +492,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"systemd", "true",
-		`Run container in systemd mode ("true"|"false"|"always" (default "true")`,
+		`Run container in systemd mode ("true"|"false"|"always")`,
 	)
 	createFlags.StringArray(
 		"tmpfs", []string{},

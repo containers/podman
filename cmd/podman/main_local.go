@@ -33,7 +33,7 @@ const remote = false
 
 func init() {
 	cgroupManager := define.SystemdCgroupsManager
-	cgroupHelp := "Cgroup manager to use (cgroupfs or systemd)"
+	cgroupHelp := `Cgroup manager to use ("cgroupfs"|"systemd")`
 	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
 	if rootless.IsRootless() && !cgroupv2 {
 		cgroupManager = ""
@@ -50,12 +50,12 @@ func init() {
 	if err := rootCmd.PersistentFlags().MarkHidden("default-mounts-file"); err != nil {
 		logrus.Error("unable to mark default-mounts-file flag as hidden")
 	}
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", "", "Events backend to use")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", "", `Events backend to use ("file"|"journald"|"none")`)
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")
 	rootCmd.PersistentFlags().StringSliceVar(&MainGlobalOpts.HooksDir, "hooks-dir", []string{}, "Set the OCI hooks directory path (may be set multiple times)")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", "Log messages above specified level: debug, info, warn, error, fatal or panic")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", `Log messages above specified level ("debug"|"info"|"warn"|"error"|"fatal"|"panic")`)
 	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
 	if err := rootCmd.PersistentFlags().MarkHidden("max-workers"); err != nil {
 		logrus.Error("unable to mark max-workers flag as hidden")
