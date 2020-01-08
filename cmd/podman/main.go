@@ -68,6 +68,7 @@ var mainCommands = []*cobra.Command{
 	imageCommand.Command,
 	_startCommand,
 	systemCommand.Command,
+	_untagCommand,
 }
 
 var rootCmd = &cobra.Command{

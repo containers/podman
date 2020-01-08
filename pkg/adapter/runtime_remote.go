@@ -413,6 +413,12 @@ func (ci *ContainerImage) TagImage(tag string) error {
 	return err
 }
 
+// UntagImage removes a single tag from an image
+func (ci *ContainerImage) UntagImage(tag string) error {
+	_, err := iopodman.UntagImage().Call(ci.Runtime.Conn, ci.ID(), tag)
+	return err
+}
+
 // RemoveImage calls varlink to remove an image
 func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (*image.ImageDeleteResponse, error) {
 	ir := image.ImageDeleteResponse{}

@@ -860,6 +860,12 @@ method PushImage(name: string, tag: string, compress: bool, format: string, remo
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
 method TagImage(name: string, tagged: string) -> (image: string)
 
+# UntagImage takes the name or ID of an image in local storage as well as the
+# tag name to be removed.  If the image cannot be found, an
+# [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
+# the image is returned on success.
+method UntagImage(name: string, tag: string) -> (image: string)
+
 # RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 # should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
 # ID of the removed image is returned when complete.  See also [DeleteUnusedImages](DeleteUnusedImages).

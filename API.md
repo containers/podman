@@ -185,6 +185,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func UnpausePod(name: string) string](#UnpausePod)
 
+[func UntagImage(name: string, tag: string) string](#UntagImage)
+
 [func VolumeCreate(options: VolumeCreateOpts) string](#VolumeCreate)
 
 [func VolumeRemove(options: VolumeRemoveOpts) []string, map[string]](#VolumeRemove)
@@ -1234,6 +1236,14 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.UnpausePod '{"name": "foo
   "pod": "1840835294cf076a822e4e12ba4152411f131bd869e7f6a4e8b16df9b0ea5c7f"
 }
 ~~~
+### <a name="UntagImage"></a>func UntagImage
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method UntagImage(name: [string](https://godoc.org/builtin#string), tag: [string](https://godoc.org/builtin#string)) [string](https://godoc.org/builtin#string)</div>
+UntagImage takes the name or ID of an image in local storage as well as the
+tag name to be removed.  If the image cannot be found, an
+[ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
+the image is returned on success.
 ### <a name="VolumeCreate"></a>func VolumeCreate
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
