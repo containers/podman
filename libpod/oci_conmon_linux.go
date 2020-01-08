@@ -546,6 +546,10 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 		args = append(args, "-t")
 	}
 
+	if options.Streams.AttachInput {
+		args = append(args, "-i")
+	}
+
 	// Append container ID and command
 	args = append(args, "-e")
 	// TODO make this optional when we can detach
@@ -558,9 +562,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	execCmd := exec.Command(r.conmonPath, args...)
 
 	if options.Streams != nil {
-		if options.Streams.AttachInput {
-			execCmd.Stdin = options.Streams.InputStream
-		}
+		// Don't add the InputStream to the execCmd. Instead, the data should be passed
+		// through CopyDetachable
 		if options.Streams.AttachOutput {
 			execCmd.Stdout = options.Streams.OutputStream
 		}
