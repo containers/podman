@@ -9,9 +9,9 @@
 FROM fedora:latest
 
 # Don't include container-selinux and remove
-# directories used by dnf that are just taking
+# directories used by yum that are just taking
 # up space.
-RUN yum -y install podman fuse-overlayfs --exclude container-selinux; rm -rf /var/cache /var/log/dnf* /var/log/yum.*
+RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install podman fuse-overlayfs --exclude container-selinux; rm -rf /var/cache /var/log/dnf* /var/log/yum.*
 
 # Adjust storage.conf to enable Fuse storage.
 RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /etc/containers/storage.conf

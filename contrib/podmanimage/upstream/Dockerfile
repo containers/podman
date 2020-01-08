@@ -17,7 +17,7 @@ ENV GOPATH=/root/podman
 # to the container.
 # Finally remove the podman directory and a few other packages
 # that are needed for building but not running Podman
-RUN dnf -y install --exclude container-selinux \
+RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
      --enablerepo=updates-testing \
      atomic-registries \
      btrfs-progs-devel \
@@ -63,8 +63,8 @@ RUN dnf -y install --exclude container-selinux \
      # Adjust libpod.conf to write logging to a file
      sed -i 's/# events_logger = "journald"/events_logger = "file"/g' /usr/share/containers/libpod.conf; \
      rm -rf /root/podman/*; \
-     dnf -y remove git golang go-md2man make; \
-     dnf clean all;
+     yum -y remove git golang go-md2man make; \
+     yum clean all;
 
 # Adjust storage.conf to enable Fuse storage.
 RUN sed -i -e 's|^#mount_program|mount_program|g' -e '/additionalimage.*/a "/var/lib/shared",' /etc/containers/storage.conf
