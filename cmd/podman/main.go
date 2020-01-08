@@ -31,6 +31,7 @@ var (
 // implemented.
 var mainCommands = []*cobra.Command{
 	_attachCommand,
+	_bashCompletionCommand,
 	_buildCommand,
 	_commitCommand,
 	_diffCommand,

@@ -103,6 +103,13 @@ Well, you can now create your own branch, apply changes on it, and then submitti
 
 For further reading about branching [you can read this document](https://herve.beraud.io/containers/linux/podman/isolate/environment/2019/02/06/how-to-hack-on-podman.html).
 
+### Adding/Updating a new command
+
+When you add/update a new command, dont't forget to run 'make completion' to update
+the bash completion script.
+
+There is no need to update zsh completion script as it autogenerates completion.
+
 ## Submitting Pull Requests
 
 No Pull Request (PR) is too small! Typos, additional comments in the code,

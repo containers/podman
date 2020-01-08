@@ -196,7 +196,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	}
 
 	if len(cliArgs) > 0 {
-		// The context directory could be a URL.  Try to handle that.
+		// The context directory could be a URL. Try to handle that.
 		tempDir, subDir, err := imagebuildah.TempDirForURL("", "buildah", cliArgs[0])
 		if err != nil {
 			return errors.Wrapf(err, "error prepping temporary context directory")

@@ -120,6 +120,9 @@ CROSS_BUILD_TARGETS := \
 
 all: binaries docs
 
+completion: binaries
+	bin/podman completion bash > completions/bash/podman
+
 default: help
 
 define PRINT_HELP_PYSCRIPT
