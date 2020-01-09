@@ -63,23 +63,9 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	query := struct {
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
 	name := mux.Vars(r)["name"]
 	vol, err := runtime.GetVolume(name)
 	if err != nil {
@@ -115,22 +101,9 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	query := struct {
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
 	pruned, errs := runtime.PruneVolumes(r.Context())
 	if errs != nil {
 		if len(errs) > 1 {
@@ -144,9 +117,6 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
@@ -170,5 +140,5 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	if err := runtime.RemoveVolume(r.Context(), vol, query.Force); err != nil {
 		utils.InternalServerError(w, err)
 	}
-	utils.WriteResponse(w, http.StatusOK, "")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
