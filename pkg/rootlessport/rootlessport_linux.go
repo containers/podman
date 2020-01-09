@@ -105,6 +105,7 @@ func parent() error {
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(stateDir)
 	driver, err := rkbuiltin.NewParentDriver(&logrusWriter{prefix: "parent: "}, stateDir)
 	if err != nil {
 		return err
