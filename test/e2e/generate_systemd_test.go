@@ -177,4 +177,32 @@ var _ = Describe("Podman generate systemd", func() {
 		found, _ = session.GrepString("/container-foo-1.service")
 		Expect(found).To(BeTrue())
 	})
+
+	It("podman generate systemd --new", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("# container-foo.service")
+		Expect(found).To(BeTrue())
+
+		found, _ = session.GrepString("stop --cidfile /%t/%n-cid -t 42")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd --new pod", func() {
+		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
 })
