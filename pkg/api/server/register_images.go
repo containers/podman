@@ -30,15 +30,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "TBD"
+	//       $ref: "TBD"
 	//   '404':
 	//     description: repo or image does not exist
 	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: "#/responses/generalError"
 	//   '500':
 	//     description: unexpected error
 	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/GenericError'
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, generic.CreateImageFromImage)).Methods(http.MethodPost).Queries("fromImage", "{fromImage}")
 	// swagger:operation POST /images/create images createImage
 	//
@@ -60,15 +60,15 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "TBD"
+	//       $ref: "TBD"
 	//   '404':
 	//     description: repo or image does not exist
 	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: "#/responses/generalError"
 	//   '500':
 	//     description: unexpected error
 	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/GenericError'
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, generic.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
 	// swagger:operation GET /images/json images listImages
 	//
@@ -79,13 +79,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/ImageSummary"
+	//      schema:
+	//        type: array
+	//        items:
+	//          schema:
+	//           $ref: "#/responses/DockerImageSummary"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/json"), APIHandler(s.Context, generic.GetImages)).Methods(http.MethodGet)
 	// swagger:operation POST /images/load images loadImage
 	//
@@ -101,13 +101,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/ImageSummary"
+	//     description: TBD
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, handlers.LoadImage)).Methods(http.MethodPost)
 	// swagger:operation POST /images/prune images pruneImages
 	//
@@ -125,11 +121,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/ImageDeleteResponse"
+	//       $ref: "#/responses/DocsImageDeleteResponse"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/prune"), APIHandler(s.Context, generic.PruneImages)).Methods(http.MethodPost)
 	// swagger:operation GET /images/search images searchImages
 	//
@@ -153,14 +147,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/images.SearchResult"
-	//     description: no error
+	//       $ref: "#/responses/DocsSearchResponse"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/search"), APIHandler(s.Context, handlers.SearchImages)).Methods(http.MethodGet)
 	// swagger:operation DELETE /images/{nameOrID} images removeImage
 	//
@@ -177,25 +166,16 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: bool
 	//    description: not supported
 	// produces:
-	// - application/json
+	//  - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "TBD"
-	//     description: no error
+	//       $ref: "#/responses/DocsImageDeleteResponse"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/BadParamError'
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/ConflictError'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:..*}"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /images/{nameOrID}/get images exportImage
 	//
@@ -208,17 +188,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
-	// - application/json
+	//  - application/json
 	// responses:
 	//   '200':
 	//     schema:
-	//     items:
-	//       "$ref": "TBD"
-	//     description: no error
+	//       $ref: "TBD"
+	//     description: TBD
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:..*}/get"), APIHandler(s.Context, generic.ExportImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{nameOrID}/history images imageHistory
 	//
@@ -234,17 +211,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/HistoryResponse"
+	//     $ref: "#/responses/DocsHistory"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//     $ref: "#/responses/NoSuchImage"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/{name:..*}/history"), APIHandler(s.Context, handlers.HistoryImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{nameOrID}/json images inspectImage
 	//
@@ -260,17 +231,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/imageInspect"
+	//       $ref: "#/responses/DocsImageInspect"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: "#/responses/NoSuchImage"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/{name:..*}/json"), APIHandler(s.Context, generic.GetImage))
 	// swagger:operation POST /images/{nameOrID}/tag images tagImage
 	//
@@ -293,24 +258,16 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '201':
+	//   201:
 	//     description: no error
-	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
-	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
-	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
-	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//   400:
+	//     $ref: '#/responses/BadParamError'
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   409:
+	//     $ref: '#/responses/ConflictError'
+	//   500:
+	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:..*}/tag"), APIHandler(s.Context, handlers.TagImage)).Methods(http.MethodPost)
 	// swagger:operation POST /commit/ commit commitContainer
 	//
@@ -352,13 +309,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '201':
 	//     description: no error
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/NoSuchImage'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/commit"), APIHandler(s.Context, generic.CommitContainer)).Methods(http.MethodPost)
 
 	/*
@@ -390,13 +343,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '204':
 	//     description: image exists
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/exists"), APIHandler(s.Context, libpod.ImageExists))
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/tree"), APIHandler(s.Context, libpod.ImageTree))
 	// swagger:operation GET /libpod/images/{nameOrID}/history images imageHistory
@@ -415,15 +364,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/types/HistoryResponse"
+	//       $ref: "#/responses/HistoryResponse"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/history"), APIHandler(s.Context, handlers.HistoryImage)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/json images listImages
 	//
@@ -436,11 +381,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/types/ImageSummary"
+	//       $ref: "#/responses/DockerImageSummary"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/json"), APIHandler(s.Context, libpod.GetImages)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/images/load images loadImage
 	//
@@ -456,13 +399,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/ImageSummary"
+	//     description: TBD
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, handlers.LoadImage)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/prune images pruneImages
 	//
@@ -484,11 +423,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/ImageDeleteResponse"
+	//       $ref: "#/responses/DocsImageDeleteResponse"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/prune"), APIHandler(s.Context, libpod.PruneImages)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/images/search images searchImages
 	//
@@ -514,12 +451,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/images.SearchResult"
-	//     description: no error
+	//       $ref: "#/responses/DocsSearchResponse"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/search"), APIHandler(s.Context, handlers.SearchImages)).Methods(http.MethodGet)
 	// swagger:operation DELETE /libpod/images/{nameOrID} images removeImage
 	//
@@ -541,20 +475,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "TBD"
-	//     description: no error
+	//       $ref: "#/responses/DocsIageDeleteResponse"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/ConflictError'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/images/{nameOrID}/get images exportImage
 	//
@@ -578,18 +505,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "TBD"
-	//     description: no error
+	//     description: TBD
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/get"), APIHandler(s.Context, libpod.ExportImage)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/images/{nameOrID}/json images inspectImage
 	//
@@ -607,15 +527,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '200':
 	//     schema:
 	//     items:
-	//       "$ref": "#/inspect/ImageData"
+	//       $ref: "#/responses/DocsLibpodInspectImageResponse"
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/json"), APIHandler(s.Context, libpod.GetImage))
 	// swagger:operation POST /libpod/images/{nameOrID}/tag images tagImage
 	//
@@ -641,21 +557,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '201':
 	//     description: no error
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/BadParamError'
 	//   '404':
-	//     description: no such image
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/NoSuchImage'
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       $ref: '#/responses/ConflictError'
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/tag"), APIHandler(s.Context, handlers.TagImage)).Methods(http.MethodPost)
 
 	r.Handle(VersionedPath("/build"), APIHandler(s.Context, handlers.BuildImage)).Methods(http.MethodPost)

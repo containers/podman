@@ -2,9 +2,9 @@ package utils
 
 import (
 	"fmt"
-	"github.com/containers/libpod/libpod/define"
 	"net/http"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -73,7 +73,9 @@ func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 }
 
 type ErrorModel struct {
+	// root cause
 	Because string `json:"cause"`
+	// error message
 	Message string `json:"message"`
 }
 
