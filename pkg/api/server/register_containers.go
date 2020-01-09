@@ -24,25 +24,15 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//    description: container name
 	// responses:
 	//   '201':
-	//     schema:
-	//     items:
-	//       "$ref": "#/ctrCreateResponse"
+	//    description: tbd
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/BadParamError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/types/ConflictError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/types/InternalError"
 	r.HandleFunc(VersionedPath("/containers/create"), APIHandler(s.Context, generic.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/json containers listContainers
 	//
@@ -56,15 +46,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     schema:
 	//     type: array
 	//     items:
-	//       "$ref": "#/types/Container"
+	//       "$ref": "#/responses/Container"
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/BadParamError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/json"), APIHandler(s.Context, generic.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST  /containers/prune containers pruneContainers
 	//
@@ -80,12 +66,9 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//       "$ref": "#/types/ContainerPruneReport"
+	//       "$ref": "#/responses/DocsContainerPruneReport"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/prune"), APIHandler(s.Context, generic.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation DELETE /containers/{nameOrID} containers removeContainer
 	//
@@ -112,27 +95,16 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     schema:
-	//     type: array
-	//     items:
-	//       "$ref": "#/types/Container"
+	//   '204':
+	//     description: no error
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/BadParamError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ConflictError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}"), APIHandler(s.Context, generic.RemoveContainer)).Methods(http.MethodDelete)
 	// swagger:operation GET /containers/{nameOrID}/json containers getContainer
 	//
@@ -148,17 +120,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#/types/ContainerJSON"
+	//      "$ref": "#/responses/DocsContainerInspectResponse"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//     "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//     "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/json"), APIHandler(s.Context, generic.GetContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{nameOrID}/kill containers killContainer
 	//
@@ -179,19 +145,12 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ConflictError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/kill"), APIHandler(s.Context, generic.KillContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{nameOrID}/logs containers LogsFromContainer
 	//
@@ -235,16 +194,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     description: no error
-	//     schema:
+	//     description: tbd
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{nameOrID}/pause containers pauseContainer
 	//
@@ -261,15 +215,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/rename"), APIHandler(s.Context, handlers.UnsupportedHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{nameOrID}/restart containers restartContainer
@@ -291,15 +240,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{nameOrID}/start containers startContainer
 	//
@@ -321,21 +265,15 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '204':
 	//     description: no error
 	//   '304':
-	//     description: container already started
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ContainerAlreadyStartedError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{nameOrID}/stats containers statsContainer
 	//
-	//  Get stats for a contrainer
+	//  Get stats for a container
 	//
 	// ---
 	// parameters:
@@ -350,22 +288,14 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     description: no error
-	//     schema:
-	//       "ref": "#/handler/stats"
+	//   '204':
+	//     description: tbd
 	//   '304':
-	//     description: container already started
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ContainerAlreadyStartedError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{nameOrID}/stop containers stopContainer
 	//
@@ -387,17 +317,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '204':
 	//     description: no error
 	//   '304':
-	//     description: container already stopped
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ContainerAlreadyStoppedError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{nameOrID}/top containers topContainer
 	//
@@ -417,17 +341,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     description: no error
-	//     schema:
-	//       "ref": "#/types/ContainerTopBody"
+	//       "ref": "#/responses/DockerTopResponse"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{nameOrID}/unpause containers unpauseContainer
 	//
@@ -446,13 +364,9 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     description: no error
 	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{nameOrID}/wait containers waitContainer
 	//
@@ -473,15 +387,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
 
 	/*
@@ -501,15 +410,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     schema:
 	//     type: array
 	//     items:
-	//       "$ref": "#/shared/GetPsContainerOutput"
+	//       "$ref": "#/responses/LibpodListContainersResponse"
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/BadParamError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/json"), APIHandler(s.Context, libpod.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/prune containers pruneContainers
 	//
@@ -529,12 +434,9 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//       "$ref": "#/types/ContainerPruneReport"
+	//     description: TBD
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/prune"), APIHandler(s.Context, libpod.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/showmounted containers showMounterContainers
 	//
@@ -545,12 +447,13 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
+	//     description: mounted containers
 	//     schema:
-	//       "$ref": "TBD"
+	//      type: object
+	//      additionalProperties:
+	//       type: string
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/showmounted"), APIHandler(s.Context, libpod.ShowMountedContainers)).Methods(http.MethodGet)
 	// swagger:operation DELETE /libpod/containers/json containers removeContainer
 	//
@@ -573,27 +476,16 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     schema:
-	//     type: array
-	//     items:
-	//       "$ref": "#/types/Container"
+	//   '204':
+	//     description: no error
 	//   '400':
-	//     description: bad parameter
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/BadParamError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ConflictError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}"), APIHandler(s.Context, libpod.RemoveContainer)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/containers/{nameOrID}/json containers getContainer
 	//
@@ -613,17 +505,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       "$ref": "#InspectContainerData"
+	//       "$ref": "#/responses/LibpodInspectContainerResponse"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/json"), APIHandler(s.Context, libpod.GetContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{nameOrID}/kill containers killContainer
 	//
@@ -645,19 +531,12 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '409':
-	//     description: conflict
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ConflictError"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/kill"), APIHandler(s.Context, libpod.KillContainer)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/containers/{nameOrID}/mount containers mountContainer
 	//
@@ -673,18 +552,16 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
+	//     description: mounted container
 	//     schema:
-	//     items:
-	//       "$ref": "string"
+	//      description: id
+	//      type: string
+	//      example: 3c784de79b791b4ebd3ac55e511f97fedc042328499554937a3f8bfd9c1a2cb8
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/mount"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodPost)
+	//      "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/mount"), APIHandler(s.Context, libpod.MountContainer)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/logs"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{nameOrID}/pause containers pauseContainer
 	//
@@ -701,15 +578,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{nameOrID}/restart containers restartContainer
 	//
@@ -730,15 +602,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{nameOrID}/start containers startContainer
 	//
@@ -760,17 +627,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '204':
 	//     description: no error
 	//   '304':
-	//     description: container already started
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ContainerAlreadyStartedError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stats"), APIHandler(s.Context, libpod.StatsContainer)).Methods(http.MethodGet)
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
@@ -789,15 +650,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{nameOrID}/wait containers waitContainer
 	//
@@ -818,15 +674,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// responses:
 	//   '204':
 	//     description: no error
-	//     schema:
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/wait"), APIHandler(s.Context, libpod.WaitContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{nameOrID}/exists containers containerExists
 	//
@@ -842,16 +693,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '204':
-	//     description: no error
-	//     schema:
+	//     description: container exists
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/exists"), APIHandler(s.Context, libpod.ContainerExists)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{nameOrID}/stop containers stopContainer
 	//
@@ -873,17 +719,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '204':
 	//     description: no error
 	//   '304':
-	//     description: container already stopped
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/ContainerAlreadyStoppedError"
 	//   '404':
-	//     description: no such container
-	//     schema:
-	//       "$ref": "#/types/ErrorModel"
+	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
 	return nil
 }
