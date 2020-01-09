@@ -46,6 +46,7 @@ type Config struct {
 	NetNSPath string
 	ExitFD    int
 	ReadyFD   int
+	TmpDir    string
 }
 
 func init() {
@@ -101,10 +102,11 @@ func parent() error {
 	}
 
 	// create the parent driver
-	stateDir, err := ioutil.TempDir("", "rootlessport")
+	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
 	if err != nil {
 		return err
 	}
+	defer os.RemoveAll(stateDir)
 	driver, err := rkbuiltin.NewParentDriver(&logrusWriter{prefix: "parent: "}, stateDir)
 	if err != nil {
 		return err

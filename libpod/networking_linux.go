@@ -344,6 +344,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 		NetNSPath: netnsPath,
 		ExitFD:    3,
 		ReadyFD:   4,
+		TmpDir:    ctr.runtime.config.TmpDir,
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
