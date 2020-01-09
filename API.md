@@ -237,6 +237,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [type InfoPodmanBinary](#InfoPodmanBinary)
 
+[type InfoRegistry](#InfoRegistry)
+
 [type InfoStore](#InfoStore)
 
 [type KubePodService](#KubePodService)
@@ -1850,6 +1852,15 @@ go_version [string](https://godoc.org/builtin#string)
 podman_version [string](https://godoc.org/builtin#string)
 
 git_commit [string](https://godoc.org/builtin#string)
+### <a name="InfoRegistry"></a>type InfoRegistry
+
+InfoRegistry describes the host's registry information
+
+search [[]string](#[]string)
+
+insecure [[]string](#[]string)
+
+blocked [[]string](#[]string)
 ### <a name="InfoStore"></a>type InfoStore
 
 InfoStore describes the host's storage informatoin
@@ -1962,9 +1973,7 @@ PodmanInfo describes the Podman host and build
 
 host [InfoHost](#InfoHost)
 
-registries [[]string](#[]string)
-
-insecure_registries [[]string](#[]string)
+registries [InfoRegistry](#InfoRegistry)
 
 store [InfoStore](#InfoStore)
 
