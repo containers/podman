@@ -1,7 +1,6 @@
 package generic
 
 // Create container
-// swagger:response ContainerCreateResponse
 type swagCtrCreateResponse struct {
 	// in:body
 	Body struct {

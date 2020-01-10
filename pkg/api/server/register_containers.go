@@ -128,7 +128,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Return low-level information about a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: nameorid
 	//    required: true
 	//    description: the name or id of the container
 	//  - in: query
@@ -146,10 +146,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//     "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/json"), APIHandler(s.Context, generic.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation post /containers/{nameOrID}/kill containers killcontainer
+	// swagger:operation post /containers/{nameorid}/kill containers killcontainer
 	// ---
 	// summary: Kill container
-	// description: Signal to send to the container as an integer or string (e.g. SIGINT)
+	// description: send a posix signal to a container, defaulting to killing to the container.
 	// parameters:
 	//  - in: path
 	//    name: nameOrID
@@ -187,7 +187,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: stdout
 	//    type: bool
-	//    description: not supported
+	//    description: not supported?
 	//  - in: query
 	//    name: stderr
 	//    type: bool
