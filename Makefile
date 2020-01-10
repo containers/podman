@@ -81,7 +81,7 @@ LDFLAGS_PODMAN ?= \
 	  -X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	  -extldflags "$(LDFLAGS)"
 #Update to LIBSECCOMP_COMMIT should reflect in Dockerfile too.
-LIBSECCOMP_COMMIT := release-2.3
+LIBSECCOMP_COMMIT := v2.3.3
 # Rarely if ever should integration tests take more than 50min,
 # caller may override in special circumstances if needed.
 GINKGOTIMEOUT ?= -timeout=90m
