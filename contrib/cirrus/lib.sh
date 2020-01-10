@@ -64,8 +64,8 @@ export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-30,xfedora-30,
 export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1565360543"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1565360543"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
@@ -428,6 +428,18 @@ remove_packaged_podman_files() {
 
     # Be super extra sure and careful vs performant and completely safe
     sync && echo 3 > /proc/sys/vm/drop_caches
+}
+
+canonicalize_image_names() {
+    req_env_var IMGNAMES
+    echo "Adding all current base images to \$IMGNAMES for timestamp update"
+    export IMGNAMES="\
+$IMGNAMES
+$UBUNTU_BASE_IMAGE
+$PRIOR_UBUNTU_BASE_IMAGE
+$FEDORA_BASE_IMAGE
+$PRIOR_FEDORA_BASE_IMAGE
+"
 }
 
 systemd_banish() {
