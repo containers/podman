@@ -101,18 +101,7 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		}
 	}()
 
-	// We can't pause rootless containers.
-	if pause && rootless.IsRootless() {
-		state, err := ctr.State()
-		if err != nil {
-			return err
-		}
-		if state == define.ContainerStateRunning {
-			return errors.Errorf("cannot copy into running rootless container with pause set - pass --pause=false to force copying")
-		}
-	}
-
-	if pause && !rootless.IsRootless() {
+	if pause {
 		if err := ctr.Pause(); err != nil {
 			// An invalid state error is fine.
 			// The container isn't running or is already paused.
