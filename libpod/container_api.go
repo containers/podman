@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"time"
 
@@ -374,7 +375,9 @@ type AttachStreams struct {
 	AttachInput bool
 }
 
-// Attach attaches to a container
+// Attach attaches to a container.
+// This function returns when the attach finishes. It does not hold the lock for
+// the duration of its runtime, only using it at the beginning to verify state.
 func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize) error {
 	if !c.batched {
 		c.lock.Lock()
@@ -382,6 +385,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 			c.lock.Unlock()
 			return err
 		}
+		// We are NOT holding the lock for the duration of the function.
 		c.lock.Unlock()
 	}
 
@@ -389,8 +393,69 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 		return errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
 	}
 
-	defer c.newContainerEvent(events.Attach)
+	c.newContainerEvent(events.Attach)
 	return c.attach(streams, keys, resize, false, nil)
+}
+
+// HTTPAttach forwards an attach session over a hijacked HTTP session.
+// HTTPAttach will consume and close the included httpCon, which is expected to
+// be sourced from a hijacked HTTP connection.
+// The cancel channel is optional, and can be used to asyncronously cancel the
+// attach session.
+// The streams variable is only supported if the container was not a terminal,
+// and allows specifying which of the container's standard streams will be
+// forwarded to the client.
+// This function returns when the attach finishes. It does not hold the lock for
+// the duration of its runtime, only using it at the beginning to verify state.
+func (c *Container) HTTPAttach(httpCon net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error {
+	if !c.batched {
+		c.lock.Lock()
+		if err := c.syncContainer(); err != nil {
+			c.lock.Unlock()
+
+			// Write any errors to the HTTP buffer before we close.
+			hijackWriteErrorAndClose(err, c.ID(), httpCon, httpBuf)
+
+			return err
+		}
+		// We are NOT holding the lock for the duration of the function.
+		c.lock.Unlock()
+	}
+
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		toReturn := errors.Wrapf(define.ErrCtrStateInvalid, "can only attach to created or running containers")
+
+		// Write any errors to the HTTP buffer before we close.
+		hijackWriteErrorAndClose(toReturn, c.ID(), httpCon, httpBuf)
+
+		return toReturn
+	}
+
+	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
+
+	c.newContainerEvent(events.Attach)
+	return c.ociRuntime.HTTPAttach(c, httpCon, httpBuf, streams, detachKeys, cancel)
+}
+
+// AttachResize resizes the container's terminal, which is displayed by Attach
+// and HTTPAttach.
+func (c *Container) AttachResize(newSize remotecommand.TerminalSize) error {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only resize created or running containers")
+	}
+
+	logrus.Infof("Resizing TTY of container %s", c.ID())
+
+	return c.ociRuntime.AttachResize(c, newSize)
 }
 
 // Mount mounts a container's filesystem on the host

@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +18,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Runtime API constants
@@ -230,4 +233,21 @@ func checkDependencyContainer(depCtr, ctr *Container) error {
 	}
 
 	return nil
+}
+
+// hijackWriteErrorAndClose writes an error to a hijacked HTTP session and
+// closes it. Intended to HTTPAttach function.
+// If error is nil, it will not be written; we'll only close the connection.
+func hijackWriteErrorAndClose(toWrite error, cid string, httpCon io.Closer, httpBuf *bufio.ReadWriter) {
+	if toWrite != nil {
+		if _, err := httpBuf.Write([]byte(toWrite.Error())); err != nil {
+			logrus.Errorf("Error writing error %q to container %s HTTP attach connection: %v", toWrite, cid, err)
+		} else if err := httpBuf.Flush(); err != nil {
+			logrus.Errorf("Error flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
+		}
+	}
+
+	if err := httpCon.Close(); err != nil {
+		logrus.Errorf("Error closing container %s HTTP attach connection: %v", cid, err)
+	}
 }

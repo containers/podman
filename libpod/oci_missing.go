@@ -1,13 +1,16 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"path/filepath"
 	"sync"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 var (
@@ -104,6 +107,16 @@ func (r *MissingRuntime) PauseContainer(ctr *Container) error {
 
 // UnpauseContainer is not available as the runtime is missing
 func (r *MissingRuntime) UnpauseContainer(ctr *Container) error {
+	return r.printError()
+}
+
+// HTTPAttach is not available as the runtime is missing
+func (r *MissingRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error {
+	return r.printError()
+}
+
+// AttachResize is not available as the runtime is missing
+func (r *MissingRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
 	return r.printError()
 }
 

@@ -5,8 +5,11 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"encoding/binary"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -17,6 +20,7 @@ import (
 	"text/template"
 	"time"
 
+	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
@@ -33,6 +37,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
+)
+
+const (
+	// This is Conmon's STDIO_BUF_SIZE. I don't believe we have access to it
+	// directly from the Go cose, so const it here
+	bufferSize = conmonConfig.BufSize
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
@@ -463,6 +474,123 @@ func (r *ConmonOCIRuntime) UnpauseContainer(ctr *Container) error {
 	}
 	env := []string{fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir)}
 	return utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, "resume", ctr.ID())
+}
+
+// HTTPAttach performs an attach for the HTTP API.
+// This will consume, and automatically close, the hijacked HTTP session.
+// It is not necessary to close it independently.
+// The cancel channel is not closed; it is up to the caller to do so after
+// this function returns.
+// If this is a container with a terminal, we will stream raw. If it is not, we
+// will stream with an 8-byte header to multiplex STDOUT and STDERR.
+func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) (deferredErr error) {
+	isTerminal := false
+	if ctr.config.Spec.Process != nil {
+		isTerminal = ctr.config.Spec.Process.Terminal
+	}
+
+	// Ensure that our contract of closing the HTTP connection is honored.
+	defer hijackWriteErrorAndClose(deferredErr, ctr.ID(), httpConn, httpBuf)
+
+	if streams != nil {
+		if isTerminal {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot specify which streams to attach as container %s has a terminal", ctr.ID())
+		}
+		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
+			return errors.Wrapf(define.ErrInvalidArg, "must specify at least one stream to attach to")
+		}
+	}
+
+	attachSock, err := r.AttachSocketPath(ctr)
+	if err != nil {
+		return err
+	}
+	socketPath := buildSocketPath(attachSock)
+
+	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: socketPath, Net: "unixpacket"})
+	if err != nil {
+		return errors.Wrapf(err, "failed to connect to container's attach socket: %v", socketPath)
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			logrus.Errorf("unable to close container %s attach socket: %q", ctr.ID(), err)
+		}
+	}()
+
+	logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
+
+	detachString := define.DefaultDetachKeys
+	if detachKeys != nil {
+		detachString = *detachKeys
+	}
+	detach, err := processDetachKeys(detachString)
+	if err != nil {
+		return err
+	}
+
+	// Make a channel to pass errors back
+	errChan := make(chan error)
+
+	attachStdout := true
+	attachStderr := true
+	attachStdin := true
+	if streams != nil {
+		attachStdout = streams.Stdout
+		attachStderr = streams.Stderr
+		attachStdin = streams.Stdin
+	}
+
+	// Handle STDOUT/STDERR
+	go func() {
+		var err error
+		if isTerminal {
+			logrus.Debugf("Performing terminal HTTP attach for container %s", ctr.ID())
+			err = httpAttachTerminalCopy(conn, httpBuf, ctr.ID())
+		} else {
+			logrus.Debugf("Performing non-terminal HTTP attach for container %s", ctr.ID())
+			err = httpAttachNonTerminalCopy(conn, httpBuf, ctr.ID(), attachStdin, attachStdout, attachStderr)
+		}
+		errChan <- err
+		logrus.Debugf("STDOUT/ERR copy completed")
+	}()
+	// Next, STDIN. Avoid entirely if attachStdin unset.
+	if attachStdin {
+		go func() {
+			_, err := utils.CopyDetachable(conn, httpBuf, detach)
+			logrus.Debugf("STDIN copy completed")
+			errChan <- err
+		}()
+	}
+
+	if cancel != nil {
+		select {
+		case err := <-errChan:
+			return err
+		case <-cancel:
+			return nil
+		}
+	} else {
+		var connErr error = <-errChan
+		return connErr
+	}
+}
+
+// AttachResize resizes the terminal used by the given container.
+func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error {
+	// TODO: probably want a dedicated function to get ctl file path?
+	controlPath := filepath.Join(ctr.bundlePath(), "ctl")
+	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	if err != nil {
+		return errors.Wrapf(err, "could not open ctl file for terminal resize")
+	}
+	defer controlFile.Close()
+
+	logrus.Debugf("Received a resize event for container %s: %+v", ctr.ID(), newSize)
+	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, newSize.Height, newSize.Width); err != nil {
+		return errors.Wrapf(err, "failed to write to ctl file to resize terminal")
+	}
+
+	return nil
 }
 
 // ExecContainer executes a command in a running container
@@ -1464,4 +1592,140 @@ func (r *ConmonOCIRuntime) getOCIRuntimeVersion() (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// Copy data from container to HTTP connection, for terminal attach.
+// Container is the container's attach socket connection, http is a buffer for
+// the HTTP connection. cid is the ID of the container the attach session is
+// running for (used solely for error messages).
+func httpAttachTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string) error {
+	buf := make([]byte, bufferSize)
+	for {
+		numR, err := container.Read(buf)
+		if numR > 0 {
+			switch buf[0] {
+			case AttachPipeStdout:
+				// Do nothing
+			default:
+				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
+				continue
+			}
+
+			numW, err2 := http.Write(buf[1:numR])
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			} else if numW+1 != numR {
+				return io.ErrShortWrite
+			}
+			// We need to force the buffer to write immediately, so
+			// there isn't a delay on the terminal side.
+			if err2 := http.Flush(); err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return err
+		}
+	}
+}
+
+// Copy data from a container to an HTTP connection, for non-terminal attach.
+// Appends a header to multiplex input.
+func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, cid string, stdin, stdout, stderr bool) error {
+	buf := make([]byte, bufferSize)
+	for {
+		numR, err := container.Read(buf)
+		if numR > 0 {
+			headerBuf := []byte{0, 0, 0, 0}
+
+			// Practically speaking, we could make this buf[0] - 1,
+			// but we need to validate it anyways...
+			switch buf[0] {
+			case AttachPipeStdin:
+				headerBuf[0] = 0
+				if !stdin {
+					continue
+				}
+			case AttachPipeStdout:
+				if !stdout {
+					continue
+				}
+				headerBuf[0] = 1
+			case AttachPipeStderr:
+				if !stderr {
+					continue
+				}
+				headerBuf[0] = 2
+			default:
+				logrus.Errorf("Received unexpected attach type %+d, discarding %d bytes", buf[0], numR)
+				continue
+			}
+
+			// Get big-endian length and append.
+			// Subtract 1 because we strip the first byte (used for
+			// multiplexing by Conmon).
+			lenBuf := []byte{0, 0, 0, 0}
+			binary.BigEndian.PutUint32(lenBuf, uint32(numR-1))
+			headerBuf = append(headerBuf, lenBuf...)
+
+			numH, err2 := http.Write(headerBuf)
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return err2
+			}
+			// Hardcoding header length is pretty gross, but
+			// fast. Should be safe, as this is a fixed part
+			// of the protocol.
+			if numH != 8 {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return io.ErrShortWrite
+			}
+
+			numW, err2 := http.Write(buf[1:numR])
+			if err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return err2
+			} else if numW+1 != numR {
+				if err != nil {
+					logrus.Errorf("Error reading container %s standard streams: %v", cid, err)
+				}
+
+				return io.ErrShortWrite
+			}
+			// We need to force the buffer to write immediately, so
+			// there isn't a delay on the terminal side.
+			if err2 := http.Flush(); err2 != nil {
+				if err != nil {
+					logrus.Errorf("Error reading container %s STDOUT: %v", cid, err)
+				}
+				return err2
+			}
+		}
+		if err != nil {
+			if err == io.EOF {
+				return nil
+			}
+
+			return err
+		}
+	}
+
 }
