@@ -19,12 +19,6 @@ import (
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
-	// contentType := r.Header.Get("Content-Type")
-	// if contentType != "application/x-tar" {
-	// 	Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, errors.New("/build expects Content-Type of 'application/x-tar'"))
-	// 	return
-	// }
-
 	authConfigs := map[string]AuthConfig{}
 	if hasHeader(r, "X-Registry-Config") {
 		registryHeader := getHeader(r, "X-Registry-Config")

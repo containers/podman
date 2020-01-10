@@ -841,15 +841,17 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 				delete(topLayerMap, layer.ID)
 			}
 		}
-
-		allHistory = append(allHistory, &History{
+		h := History{
 			ID:        id,
 			Created:   oci.History[x].Created,
 			CreatedBy: oci.History[x].CreatedBy,
 			Size:      size,
 			Comment:   oci.History[x].Comment,
-			Tags:      layer.Names,
-		})
+		}
+		if layer != nil {
+			h.Tags = layer.Names
+		}
+		allHistory = append(allHistory, &h)
 
 		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
 			layer, err = i.imageruntime.store.Layer(layer.Parent)
