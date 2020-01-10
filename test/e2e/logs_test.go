@@ -1,7 +1,9 @@
 package integration
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	. "github.com/containers/libpod/test/utils"
@@ -151,6 +153,23 @@ var _ = Describe("Podman logs", func() {
 		results := podmanTest.Podman([]string{"logs", "log"})
 		results.WaitWithDefaultTimeout()
 		Expect(results.ExitCode()).To(BeZero())
+	})
+
+	It("podman journald logs for container with container tag", func() {
+		Skip("need to verify images have correct packages for journald")
+		logc := podmanTest.Podman([]string{"run", "--log-driver", "journald", "--log-opt=tag={{.ImageName}}", "-d", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc.ExitCode()).To(Equal(0))
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", "-l"})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait.ExitCode()).To(BeZero())
+
+		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", "-u", fmt.Sprintf("libpod-conmon-%s.scope", cid))
+		out, err := cmd.CombinedOutput()
+		Expect(err).To(BeNil())
+		Expect(string(out)).To(ContainSubstring("alpine"))
 	})
 
 	It("podman journald logs for container", func() {
