@@ -1,6 +1,7 @@
 package generic
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,9 +11,11 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
-	image2 "github.com/containers/libpod/libpod/image"
+	libpodImage "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
@@ -104,7 +107,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	// This code needs to be migrated to libpod to work correctly.  I could not
 	// work my around the information docker needs with the existing prune in libpod.
 	//
-	pruneImages, err := runtime.ImageRuntime().GetPruneImages(!dangling, []image2.ImageFilter{})
+	pruneImages, err := runtime.ImageRuntime().GetPruneImages(!dangling, []libpodImage.ImageFilter{})
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to get images to prune"))
 		return
@@ -170,7 +173,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := libpodImage.GetSystemContext(rtc.SignaturePolicyPath, "", false)
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
@@ -273,39 +276,93 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// https://docs.docker.com/engine/api/v1.40/#operation/ImageCreate
+type imagesCreateQuery struct {
+	// Name of the image to pull. The name may include a tag or digest.
+	// This parameter may only be used when pulling an image.  The pull is
+	// cancelled if the HTTP connection is closed.
+	fromImage string
+	// Source to import. The value may be a URL from which the image can be
+	// retrieved or - to read the image from the request body. This
+	// parameter may only be used when importing an image.
+	fromSrc string
+	// Repository name given to an image when it is imported. The repo may
+	// include a tag. This parameter may only be used when importing an
+	// image.
+	repo string
+	// Tag or digest. If empty when pulling an image, this causes all tags
+	// for the given image to be pulled.
+	tag string
+	// Platform in the format os[/arch[/variant]]
+	platform string
+	// Set commit message for imported image.
+	message string
+}
+
 func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 repo does not exist or no read access
 	// 500 internal
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	query := struct {
-		fromImage string
-		tag       string
-	}{
-		// This is where you can override the golang default value for one of fields
+	query := imagesCreateQuery{
+		fromImage: r.Form.Get("fromImage"),
+		fromSrc:   r.Form.Get("fromSrc"),
+		repo:      r.Form.Get("repo"),
+		tag:       r.Form.Get("tag"),
+		platform:  r.Form.Get("platform"),
+		message:   r.Form.Get("message"),
 	}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+	// We do not support importing images yet.
+	if query.fromImage == "" {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Errorf("importing images is not yet supported"))
 		return
 	}
 
-	/*
-	   fromImage – Name of the image to pull. The name may include a tag or digest. This parameter may only be used when pulling an image. The pull is cancelled if the HTTP connection is closed.
-	   repo – Repository name given to an image when it is imported. The repo may include a tag. This parameter may only be used when importing an image.
-	   tag – Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
-	*/
-	fromImage := query.fromImage
-	if len(query.tag) < 1 {
-		fromImage = fmt.Sprintf("%s:%s", fromImage, query.tag)
+	if query.message != "" {
+		logrus.Info("Ignoring /images/create `message` argument")
+	}
+
+	// Assemble the image reference.
+	ref, err := reference.Parse(query.fromImage)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "error parsing `fromImage`: %q", query.fromImage))
+		return
+	}
+	// query.fromImage might be tagged already, so we need to check if need to
+	// append `query.tag`.
+	image := ref.String()
+	_, isTagged := ref.(reference.Tagged)
+	if !isTagged && query.tag != "" {
+		image += ":" + query.tag
+	}
+
+	// Assemble the registry options.
+	authEncoded := r.Header.Get("X-Registry-Auth")
+	authConfig := &imageTypes.DockerAuthConfig{}
+	if authEncoded != "" {
+		authJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(authEncoded))
+		if err := json.NewDecoder(authJSON).Decode(authConfig); err != nil {
+			// for a pull it is not an error if no auth was given
+			// to increase compatibility with the existing api it is defaulting to be empty
+			authConfig = nil
+		}
+	}
+	registryOptions := &libpodImage.DockerRegistryOptions{
+		// TODO(docker-py) - the docker-py tests are checking for "unknown
+		// operating system" and "invalid platform" strings in the error
+		// message, which containers/image does NOT provide.  Shall we change
+		// the error wording in containers/image or accept it as a sad fact of
+		// life?
+		OSChoice:            query.platform,
+		DockerRegistryCreds: authConfig,
 	}
 
 	// TODO
 	// We are eating the output right now because we haven't talked about how to deal with multiple responses yet
-	img, err := runtime.ImageRuntime().New(r.Context(), fromImage, "", "", nil, &image2.DockerRegistryOptions{}, image2.SigningOptions{}, nil, util.PullImageMissing)
+	img, err := runtime.ImageRuntime().New(r.Context(), image, "", "", nil, registryOptions, libpodImage.SigningOptions{}, nil, util.PullImageMissing)
 	if err != nil {
+		// TODO - we need to map `err` to the corresponding http status code.
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
@@ -316,11 +373,11 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 		Error          string            `json:"error"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"`
+		ID             string            `json:"id"`
 	}{
 		Status:         fmt.Sprintf("pulling image (%s) from %s", img.Tag, strings.Join(img.Names(), ", ")),
 		ProgressDetail: map[string]string{},
-		Id:             img.ID(),
+		ID:             img.ID(),
 	})
 }
 
