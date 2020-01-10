@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"

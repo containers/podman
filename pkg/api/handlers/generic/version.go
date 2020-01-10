@@ -2,14 +2,14 @@ package generic
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	goRuntime "runtime"
 	"time"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
 )

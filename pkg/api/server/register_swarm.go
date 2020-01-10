@@ -2,9 +2,9 @@ package server
 
 import (
 	"errors"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
 )

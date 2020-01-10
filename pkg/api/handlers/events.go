@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/pkg/errors"
 )
 

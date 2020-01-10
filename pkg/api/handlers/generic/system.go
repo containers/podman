@@ -1,10 +1,10 @@
 package generic
 
 import (
-	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 
+	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	docker "github.com/docker/docker/api/types"
 )
 

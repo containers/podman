@@ -2,8 +2,6 @@ package generic
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/api/handlers"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -14,6 +12,8 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
 	docker "github.com/docker/docker/api/types"

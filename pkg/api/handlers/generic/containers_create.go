@@ -3,7 +3,6 @@ package generic
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/storage"

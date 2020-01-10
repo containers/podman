@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"net/http"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 // Convenience routines to reduce boiler plate in handlers
