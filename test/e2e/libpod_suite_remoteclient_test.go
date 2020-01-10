@@ -24,7 +24,7 @@ func SkipIfRemote() {
 
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for remote podman")
+		ginkgo.Skip("This function is not enabled for rootless podman")
 	}
 }
 
