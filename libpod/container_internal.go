@@ -1195,6 +1195,7 @@ func (c *Container) pause() error {
 	}
 
 	if err := c.ociRuntime.PauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 
@@ -1212,6 +1213,7 @@ func (c *Container) unpause() error {
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
+		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
 	}
 

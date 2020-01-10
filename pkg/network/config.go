@@ -2,6 +2,7 @@ package network
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 )
 
@@ -17,6 +18,10 @@ const (
 	// DefaultPodmanDomainName is used for the dnsname plugin to define
 	// a localized domain name for a created network
 	DefaultPodmanDomainName = "dns.podman"
+)
+
+var (
+	ErrNetworkNotFound = errors.New("network not found")
 )
 
 // GetDefaultPodmanNetwork outputs the default network for podman

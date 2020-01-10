@@ -153,7 +153,7 @@ lint: .gopathok varlink_generate ## Execute the source code linter
 	@./.tool/lint
 
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
-	$(GOBIN)/golangci-lint run --tests=false
+	$(GOBIN)/golangci-lint run --tests=false --skip-files swagger.go
 
 gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+
@@ -193,6 +193,19 @@ bin/podman.cross.%: .gopathok
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
+
+.PHONY: service
+service: .gopathok
+	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
+
+.PHONY:
+run-service:
+	systemd-socket-activate -l 8080 ./bin/service
+
+.PHONY: run-docker-py-tests
+run-docker-py-tests:
+	$(eval testLogs=$(shell mktemp))
+	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
 clean: ## Clean artifacts
 	rm -rf \
@@ -452,7 +465,6 @@ install.systemd:
 	install ${SELINUXOPT} -m 644 contrib/varlink/podman.conf ${DESTDIR}${TMPFILESDIR}/podman.conf
 
 uninstall:
-	# Remove manpages
 	for i in $(filter %.1,$(MANPAGES_DEST)); do \
 		rm -f $(DESTDIR)$(MANDIR)/man1/$$(basename $${i}); \
 	done; \

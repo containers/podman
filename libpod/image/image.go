@@ -781,6 +781,7 @@ type History struct {
 	CreatedBy string     `json:"createdBy"`
 	Size      int64      `json:"size"`
 	Comment   string     `json:"comment"`
+	Tags      []string   `json:"tags"`
 }
 
 // History gets the history of an image and the IDs of images that are part of
@@ -840,14 +841,17 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 				delete(topLayerMap, layer.ID)
 			}
 		}
-
-		allHistory = append(allHistory, &History{
+		h := History{
 			ID:        id,
 			Created:   oci.History[x].Created,
 			CreatedBy: oci.History[x].CreatedBy,
 			Size:      size,
 			Comment:   oci.History[x].Comment,
-		})
+		}
+		if layer != nil {
+			h.Tags = layer.Names
+		}
+		allHistory = append(allHistory, &h)
 
 		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
 			layer, err = i.imageruntime.store.Layer(layer.Parent)

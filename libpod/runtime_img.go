@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
@@ -145,9 +146,9 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 }
 
 // Build adds the runtime to the imagebuildah call
-func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
-	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
-	return err
+func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	return id, ref, err
 }
 
 // Import is called as an intermediary to the image library Import
@@ -192,7 +193,7 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 	}
 	// if it's stdin, buffer it, too
 	if source == "-" {
-		file, err := downloadFromFile(os.Stdin)
+		file, err := DownloadFromFile(os.Stdin)
 		if err != nil {
 			return "", err
 		}
@@ -232,9 +233,9 @@ func downloadFromURL(source string) (string, error) {
 	return outFile.Name(), nil
 }
 
-// donwloadFromFile reads all of the content from the reader and temporarily
+// DownloadFromFile reads all of the content from the reader and temporarily
 // saves in it /var/tmp/importxyz, which is deleted after the image is imported
-func downloadFromFile(reader *os.File) (string, error) {
+func DownloadFromFile(reader *os.File) (string, error) {
 	outFile, err := ioutil.TempFile("/var/tmp", "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
