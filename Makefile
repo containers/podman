@@ -35,7 +35,7 @@ BUILDTAGS ?= \
 PYTHON ?= $(shell command -v python python3|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 
-DOCKERPY_IMAGE ?= quay.io/vrothberg/docker-py:latest
+DOCKERPY_IMAGE ?= quay.io/libpod/docker-py:latest
 DOCKERPY_TEST ?=
 
 GO_BUILD=$(GO) build
