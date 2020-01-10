@@ -26,7 +26,7 @@ func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
 	//     description: OK
 	//   "500":
 	//     description: Failed
-	//     "$ref": "#/types/errorModel"
+	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/events"), APIHandler(s.Context, handlers.GetEvents))
 	return nil
 }

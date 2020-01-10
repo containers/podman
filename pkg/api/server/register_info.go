@@ -8,21 +8,17 @@ import (
 )
 
 func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
-	// swagger:operation GET /info libpod getInfo
-	//
-	// Returns information on the system and libpod configuration
-	//
+	// swagger:operation GET /info libpod libpodGetInfo
 	// ---
+	// summary: Get info
+	// description: Returns information on the system and libpod configuration
 	// produces:
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//       "$ref": "#/types/Info"
+	//     description: to be determined
 	//   '500':
-	//     description: unexpected error
-	//     schema:
-	//      "$ref": "#/types/ErrorModel"
+	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/info"), APIHandler(s.Context, generic.GetInfo)).Methods(http.MethodGet)
 	return nil
 }
