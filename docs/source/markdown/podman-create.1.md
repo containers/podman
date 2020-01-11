@@ -586,7 +586,7 @@ To make a pod with more granular options, use the `podman pod create` command be
 Give extended privileges to this container. The default is *false*.
 
 By default, Podman containers are
-“unprivileged” (=false) and cannot, for example, modify parts of the kernel.
+“unprivileged” (=false) and cannot, for example, modify parts of the operating system.
 This is because by default a container is not allowed to access any devices.
 A “privileged” container is given access to all devices.
 
@@ -594,6 +594,8 @@ When the operator executes a privileged container, Podman enables access
 to all devices on the host, turns off graphdriver mount options, as well as
 turning off most of the security measures protecting the host from the
 container.
+
+Rootless containers cannot have more privileges than the account that launched them.
 
 **--publish**, **-p**=*port*
 
