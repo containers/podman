@@ -532,7 +532,7 @@ install.libseccomp.sudo:
 	cd ../../seccomp/libseccomp && git checkout --detach $(LIBSECCOMP_COMMIT) && ./autogen.sh && ./configure --prefix=/usr && make all && make install
 
 
-cmd/podman/varlink/iopodman.go: cmd/podman/varlink/io.podman.varlink
+cmd/podman/varlink/iopodman.go: .gopathok cmd/podman/varlink/io.podman.varlink
 	GO111MODULE=off $(GO) generate ./cmd/podman/varlink/...
 
 API.md: cmd/podman/varlink/io.podman.varlink
