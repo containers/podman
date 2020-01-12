@@ -163,6 +163,7 @@ type GenerateKubeValues struct {
 type GenerateSystemdValues struct {
 	PodmanCommand
 	Name          bool
+	New           bool
 	Files         bool
 	RestartPolicy string
 	StopTimeout   int

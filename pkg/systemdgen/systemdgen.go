@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"text/template"
 	"time"
 
@@ -48,6 +49,14 @@ type ContainerInfo struct {
 	Executable string
 	// TimeStamp at the time of creating the unit file. Will be set internally.
 	TimeStamp string
+	// New controls if a new container is created or if an existing one is started.
+	New bool
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string
+	// RunCommand is a post-processed variant of CreateCommand and used for
+	// the ExecStart field in generic unit files.
+	RunCommand string
 }
 
 var restartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}
@@ -84,17 +93,35 @@ Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ 
 
 [Service]
 Restart={{.RestartPolicy}}
+{{- if .New}}
+ExecStartPre=/usr/bin/rm -f /%t/%n-pid /%t/%n-cid
+ExecStart={{.RunCommand}}
+ExecStop={{.Executable}} stop --cidfile /%t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
+ExecStopPost={{.Executable}} rm -f --cidfile /%t/%n-cid
+PIDFile=/%t/%n-pid
+{{- else}}
 ExecStart={{.Executable}} start {{.ContainerName}}
 ExecStop={{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerName}}
+PIDFile={{.PIDFile}}
+{{- end}}
 KillMode=none
 Type=forking
-PIDFile={{.PIDFile}}
 
 [Install]
 WantedBy=multi-user.target`
 
+// Options include different options to control the unit file generation.
+type Options struct {
+	// When set, generate service files in the current working directory and
+	// return the paths to these files instead of returning all contents in one
+	// big string.
+	Files bool
+	// New controls if a new container is created or if an existing one is started.
+	New bool
+}
+
 // CreateContainerSystemdUnit creates a systemd unit file for a container.
-func CreateContainerSystemdUnit(info *ContainerInfo, generateFiles bool) (string, error) {
+func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, error) {
 	if err := validateRestartPolicy(info.RestartPolicy); err != nil {
 		return "", err
 	}
@@ -107,6 +134,36 @@ func CreateContainerSystemdUnit(info *ContainerInfo, generateFiles bool) (string
 			logrus.Warnf("Could not obtain podman executable location, using default %s", executable)
 		}
 		info.Executable = executable
+	}
+
+	// Assemble the ExecStart command when creating a new container.
+	//
+	// Note that we cannot catch all corner cases here such that users
+	// *must* manually check the generated files.  A container might have
+	// been created via a Python script, which would certainly yield an
+	// invalid `info.CreateCommand`.  Hence, we're doing a best effort unit
+	// generation and don't try aiming at completeness.
+	if opts.New {
+		// The create command must at least have three arguments:
+		// 	/usr/bin/podman run $IMAGE
+		index := 2
+		if info.CreateCommand[1] == "container" {
+			index = 3
+		}
+		if len(info.CreateCommand) < index+1 {
+			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
+		}
+		// We're hard-coding the first four arguments and append the
+		// CreatCommand with a stripped command and subcomand.
+		command := []string{
+			info.Executable,
+			"run",
+			"--conmon-pidfile", "/%t/%n-pid",
+			"--cidfile", "/%t/%n-cid",
+		}
+		command = append(command, info.CreateCommand[index:]...)
+		info.RunCommand = strings.Join(command, " ")
+		info.New = true
 	}
 
 	if info.PodmanVersion == "" {
@@ -131,7 +188,7 @@ func CreateContainerSystemdUnit(info *ContainerInfo, generateFiles bool) (string
 		return "", err
 	}
 
-	if !generateFiles {
+	if !opts.Files {
 		return buf.String(), nil
 	}
 

@@ -45,6 +45,7 @@ func init() {
 	}
 	flags.IntVarP(&containerSystemdCommand.StopTimeout, "timeout", "t", -1, "stop timeout override")
 	flags.StringVar(&containerSystemdCommand.RestartPolicy, "restart-policy", "on-failure", "applicable systemd restart-policy")
+	flags.BoolVarP(&containerSystemdCommand.New, "new", "", false, "create a new container instead of starting an existing one")
 }
 
 func generateSystemdCmd(c *cliconfig.GenerateSystemdValues) error {

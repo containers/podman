@@ -1230,6 +1230,7 @@ func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSyst
 		PIDFile:           conmonPidFile,
 		StopTimeout:       timeout,
 		GenerateTimestamp: true,
+		CreateCommand:     config.CreateCommand,
 	}
 
 	return info, true, nil
@@ -1237,11 +1238,21 @@ func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSyst
 
 // GenerateSystemd creates a unit file for a container or pod.
 func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
+	opts := systemdgen.Options{
+		Files: c.Files,
+		New:   c.New,
+	}
+
 	// First assume it's a container.
 	if info, found, err := r.generateSystemdgenContainerInfo(c, c.InputArgs[0], nil); found && err != nil {
 		return "", err
 	} else if found && err == nil {
-		return systemdgen.CreateContainerSystemdUnit(info, c.Files)
+		return systemdgen.CreateContainerSystemdUnit(info, opts)
+	}
+
+	// --new does not support pods.
+	if c.New {
+		return "", errors.Errorf("error generating systemd unit files: cannot generate generic files for a pod")
 	}
 
 	// We're either having a pod or garbage.
@@ -1312,7 +1323,7 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 		if i > 0 {
 			builder.WriteByte('\n')
 		}
-		out, err := systemdgen.CreateContainerSystemdUnit(info, c.Files)
+		out, err := systemdgen.CreateContainerSystemdUnit(info, opts)
 		if err != nil {
 			return "", err
 		}
