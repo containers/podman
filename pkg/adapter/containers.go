@@ -1048,7 +1048,7 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 }
 
 // Prune removes stopped containers
-func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool, filters []string) ([]string, map[string]error, error) {
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, filters []string) ([]string, map[string]error, error) {
 	var (
 		ok         = []string{}
 		failures   = map[string]error{}
@@ -1100,7 +1100,7 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, force bool, fi
 		pool.Add(shared.Job{
 			ID: ctr.ID(),
 			Fn: func() error {
-				err := r.Runtime.RemoveContainer(ctx, ctr, force, false)
+				err := r.Runtime.RemoveContainer(ctx, ctr, false, false)
 				if err != nil {
 					logrus.Debugf("Failed to prune container %s: %s", ctr.ID(), err.Error())
 				}
