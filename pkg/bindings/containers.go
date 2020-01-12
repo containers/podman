@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/api/handlers"
 )
 
 func (c Connection) ListContainers(filter []string, last int, size, sync bool) ([]shared.PsContainerOutput, error) { // nolint:typecheck
@@ -30,7 +31,8 @@ func (c Connection) PruneContainers() ([]string, error) {
 	if err != nil {
 		return pruned, err
 	}
-	return pruned, response.Process(nil)
+	prune := handlers.ContainerPruneResponse{}
+	return pruned, response.Process(&prune)
 }
 
 func (c Connection) RemoveContainer(nameOrID string, force, volumes bool) error {

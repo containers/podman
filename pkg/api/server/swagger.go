@@ -41,6 +41,15 @@ type swagErrNoSuchPod struct {
 	}
 }
 
+// No such network
+// swagger:response NoSuchNetwork
+type swagErrNoSuchNetwork struct {
+	// in:body
+	Body struct {
+		utils.ErrorModel
+	}
+}
+
 // Internal error
 // swagger:response InternalError
 type swagInternalError struct {
@@ -129,6 +138,15 @@ type swagListContainers struct {
 	Body struct {
 		// This causes go-swagger to crash
 		//handlers.Container
+	}
+}
+
+// Prune response
+// swagger:response ContainerPruneResponse
+type swagContainerPruneResponse struct {
+	// in:body
+	Body struct {
+		handlers.ContainerPruneResponse
 	}
 }
 

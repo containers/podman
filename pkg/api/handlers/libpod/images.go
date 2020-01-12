@@ -1,11 +1,15 @@
 package libpod
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/libpod/libpod"
+	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
@@ -13,21 +17,88 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Commit
-// author string
-// "container"
-// repo string
-// tag string
-// message
-// pause bool
-// changes []string
+// Create
 
-// create
+func Commit(w http.ResponseWriter, r *http.Request) {
+	var (
+		destImage string
+	)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	query := struct {
+		author    string
+		changes   string
+		comment   string
+		container string
+		format    string
+		//fromSrc   string  # fromSrc is currently unused
+		pause bool
+		repo  string
+		tag   string
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	imageFormat := buildah.OCIv1ImageManifest
+	if len(query.format) > 0 {
+		imageFormat = query.format
+	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	tag := "latest"
+	options := libpod.ContainerCommitOptions{
+		Pause: true,
+	}
+	options.CommitOptions = buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		ReportWriter:          os.Stderr,
+		SystemContext:         sc,
+		PreferredManifestType: imageFormat,
+	}
+
+	input := handlers.CreateContainerConfig{}
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+		return
+	}
+
+	if len(query.tag) > 0 {
+		tag = query.tag
+	}
+	options.Message = query.comment
+	options.Author = query.author
+	options.Pause = query.pause
+	options.Changes = strings.Fields(query.changes)
+	ctr, err := runtime.LookupContainer(query.container)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
+		return
+	}
+
+	// I know mitr hates this ... but doing for now
+	if len(query.repo) > 1 {
+		destImage = fmt.Sprintf("%s:%s", query.repo, tag)
+	}
+
+	commitImage, err := ctr.Commit(r.Context(), destImage, options)
+	if err != nil && !strings.Contains(err.Error(), "is not running") {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: commitImage.ID()}) // nolint
+}
 
 func ImageExists(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 
@@ -90,8 +161,6 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {

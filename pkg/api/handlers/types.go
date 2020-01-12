@@ -158,6 +158,11 @@ type Event struct {
 	dockerEvents.Message
 }
 
+type ContainerPruneResponse struct {
+	Containers map[string]int64
+	Errors     map[string]error
+}
+
 type HistoryResponse struct {
 	ID        string   `json:"Id"`
 	Created   int64    `json:"Created"`

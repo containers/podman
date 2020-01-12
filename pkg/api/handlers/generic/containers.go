@@ -1,9 +1,10 @@
 package generic
 
 import (
-	"context"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
@@ -126,42 +126,46 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	containers, err := runtime.GetAllContainers()
-	if err != nil {
-		utils.InternalServerError(w, err)
+	var (
+		decoder           = r.Context().Value("decoder").(*schema.Decoder)
+		runtime           = r.Context().Value("runtime").(*libpod.Runtime)
+		deletedContainers []string
+		spaceReclaimed    uint64
+		filterFuncs       []libpod.ContainerFilter
+	)
+	query := struct {
+		Filters string `json:"filters"`
+	}{}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-
-	deletedContainers := []string{}
-	var spaceReclaimed uint64
-	for _, ctnr := range containers {
-		// Only remove stopped or exit'ed containers.
-		state, err := ctnr.State()
-		if err != nil {
-			utils.InternalServerError(w, err)
+	inputFilters := make(map[string][]string)
+	if len(query.Filters) > 0 {
+		if err := json.Unmarshal([]byte(query.Filters), &inputFilters); err != nil {
+			utils.Error(w, "Failed to parse filters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse filters"))
 			return
 		}
-		switch state {
-		case define.ContainerStateStopped, define.ContainerStateExited:
-		default:
-			continue
+	}
+	for key, values := range inputFilters {
+		for _, val := range values {
+			generatedFunc, err := shared.GenerateContainerFilterFuncs(key, val, runtime)
+			if err != nil {
+				utils.InternalServerError(w, errors.Wrapf(err, "failed to generate filter function"))
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
 		}
-
-		deletedContainers = append(deletedContainers, ctnr.ID())
-		cSize, err := ctnr.RootFsSize()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		spaceReclaimed += uint64(cSize)
-
-		err = runtime.RemoveContainer(context.Background(), ctnr, false, false)
-		if err != nil && !(errors.Cause(err) == define.ErrCtrRemoved) {
-			utils.InternalServerError(w, err)
-			return
-		}
+	}
+	dcons, errs, err := runtime.PruneContainers(r.Context(), false, filterFuncs)
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	for conID, sizeClaimed := range dcons {
+		deletedContainers = append(deletedContainers, conID)
+		spaceReclaimed += uint64(sizeClaimed)
+	}
+	for conID, err := range errs {
+		log.Error(errors.Wrapf(err, "unable to prune %s", conID))
 	}
 	report := types.ContainersPruneReport{
 		ContainersDeleted: deletedContainers,

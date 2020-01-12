@@ -836,3 +836,41 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	}
 	return ctrs[lastCreatedIndex], nil
 }
+
+// PruneContainers removes unused containers.
+func (r *Runtime) PruneContainers(ctx context.Context, force bool, filters []ContainerFilter) (map[string]int64, map[string]error, error) {
+	d := make(map[string]int64)
+	e := make(map[string]error)
+	containerStateFilter := func(c *Container) bool {
+		state, err := c.State()
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		if c.PodID() != "" {
+			return false
+		}
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+			return true
+		}
+		return false
+	}
+	filters = append(filters, containerStateFilter)
+	delContainers, err := r.GetContainers(filters...)
+	if err != nil {
+		return d, e, nil
+	}
+	for _, ctr := range delContainers {
+		if err := r.RemoveContainer(ctx, ctr, force, false); err != nil {
+			e[ctr.ID()] = err
+			logrus.Error(errors.Wrapf(err, "unable to prune container"))
+			continue
+		}
+		s, err := ctr.RootFsSize()
+		if err != nil {
+			logrus.Error(errors.Wrapf(err, "unable to calculate pruned container size"))
+		}
+		d[ctr.ID()] = s
+	}
+	return d, e, nil
+}

@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -17,8 +18,6 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
-	// 404 no such container
-	// 200 ok
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	_, err := runtime.LookupContainer(name)
@@ -30,11 +29,6 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
-	// 204 no error
-	// 400 bad param
-	// 404 no such container
-	// 409 conflict
-	// 500 internal error
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Force bool `schema:"force"`
@@ -131,10 +125,43 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneContainers(w http.ResponseWriter, r *http.Request) {
-	// TODO Needs rebase to get  filers; Also would be handy to define
-	// an actual libpod container prune method.
-	// force
-	// filters
+	var (
+		decoder     = r.Context().Value("decoder").(*schema.Decoder)
+		runtime     = r.Context().Value("runtime").(*libpod.Runtime)
+		filterFuncs []libpod.ContainerFilter
+	)
+	query := struct {
+		Filters string `json:"filters"`
+	}{}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	inputFilters := make(map[string][]string)
+	if len(query.Filters) > 0 {
+		if err := json.Unmarshal([]byte(query.Filters), &inputFilters); err != nil {
+			utils.Error(w, "Failed to parse filters", http.StatusBadRequest, errors.Wrapf(err, "failed to parse filters"))
+			return
+		}
+	}
+	for key, values := range inputFilters {
+		for _, val := range values {
+			generatedFunc, err := shared.GenerateContainerFilterFuncs(key, val, runtime)
+			if err != nil {
+				utils.InternalServerError(w, errors.Wrapf(err, "failed to generate filter function"))
+			}
+			filterFuncs = append(filterFuncs, generatedFunc)
+		}
+	}
+	dcons, errs, err := runtime.PruneContainers(r.Context(), false, filterFuncs)
+	if err != nil {
+		utils.InternalServerError(w, err)
+	}
+	response := handlers.ContainerPruneResponse{
+		Containers: dcons,
+		Errors:     errs,
+	}
+	utils.WriteResponse(w, http.StatusOK, response)
 }
 
 func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
