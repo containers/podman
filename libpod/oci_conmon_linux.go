@@ -586,7 +586,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	// we don't want to step on users fds they asked to preserve
 	// Since 0-2 are used for stdio, start the fds we pass in at preserveFDs+3
-	execCmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
+	execCmd.Env = r.conmonEnv
+	execCmd.Env = append(execCmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", options.PreserveFDs+3), fmt.Sprintf("_OCI_STARTPIPE=%d", options.PreserveFDs+4), fmt.Sprintf("_OCI_ATTACHPIPE=%d", options.PreserveFDs+5))
 	execCmd.Env = append(execCmd.Env, conmonEnv...)
 
 	execCmd.ExtraFiles = append(execCmd.ExtraFiles, childSyncPipe, childStartPipe, childAttachPipe)
@@ -998,7 +999,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
-	cmd.Env = append(r.conmonEnv, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3), fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	cmd.Env = r.conmonEnv
+	cmd.Env = append(cmd.Env, fmt.Sprintf("_OCI_SYNCPIPE=%d", 3), fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, envFiles...)
@@ -1306,12 +1308,10 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 			control, err := cgroups.New(cgroupPath, &spec.LinuxResources{})
 			if err != nil {
 				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-			} else {
+			} else if err := control.AddPid(cmd.Process.Pid); err != nil {
 				// we need to remove this defer and delete the cgroup once conmon exits
 				// maybe need a conmon monitor?
-				if err := control.AddPid(cmd.Process.Pid); err != nil {
-					logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
-				}
+				logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 			}
 		}
 	}

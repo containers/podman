@@ -96,7 +96,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 		}
 		nlls = append(nlls, nll)
 		if !nll.Partial() {
-			tailCounter = tailCounter + 1
+			tailCounter++
 		}
 		if tailCounter == tail {
 			break
@@ -105,9 +105,9 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 	// Now we iterate the results and assemble partial messages to become full messages
 	for _, nll := range nlls {
 		if nll.Partial() {
-			partial = partial + nll.Msg
+			partial += nll.Msg
 		} else {
-			nll.Msg = nll.Msg + partial
+			nll.Msg += partial
 			tailLog = append(tailLog, nll)
 			partial = ""
 		}
@@ -127,7 +127,7 @@ func (l *LogLine) String(options *LogOptions) string {
 		out = fmt.Sprintf("%s ", cid)
 	}
 	if options.Timestamps {
-		out = out + fmt.Sprintf("%s ", l.Time.Format(LogTimeFormat))
+		out += fmt.Sprintf("%s ", l.Time.Format(LogTimeFormat))
 	}
 	return out + l.Msg
 }

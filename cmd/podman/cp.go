@@ -138,25 +138,25 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 	hostOwner := idtools.IDPair{UID: int(hostUID), GID: int(hostGID)}
 
 	if isFromHostToCtr {
-		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol {
+		if isVol, volDestName, volName := isVolumeDestName(destPath, ctr); isVol { //nolint(gocritic)
 			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, destPath)
 			if err != nil {
 				return errors.Wrapf(err, "error getting destination path from volume %s", volDestName)
 			}
 			destPath = path
-		} else if isBindMount, mount := isBindMountDestName(destPath, ctr); isBindMount {
+		} else if isBindMount, mount := isBindMountDestName(destPath, ctr); isBindMount { //nolint(gocritic)
 			path, err := pathWithBindMountSource(mount, destPath)
 			if err != nil {
 				return errors.Wrapf(err, "error getting destination path from bind mount %s", mount.Destination)
 			}
 			destPath = path
-		} else if filepath.IsAbs(destPath) {
+		} else if filepath.IsAbs(destPath) { //nolint(gocritic)
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, destPath)
 			if err != nil {
 				return err
 			}
 			destPath = cleanedPath
-		} else {
+		} else { //nolint(gocritic)
 			ctrWorkDir, err := securejoin.SecureJoin(mountPoint, ctr.WorkingDir())
 			if err != nil {
 				return err
@@ -172,25 +172,25 @@ func copyBetweenHostAndContainer(runtime *libpod.Runtime, src string, dest strin
 		}
 	} else {
 		destOwner = idtools.IDPair{UID: os.Getuid(), GID: os.Getgid()}
-		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol {
+		if isVol, volDestName, volName := isVolumeDestName(srcPath, ctr); isVol { //nolint(gocritic)
 			path, err := pathWithVolumeMount(ctr, runtime, volDestName, volName, srcPath)
 			if err != nil {
 				return errors.Wrapf(err, "error getting source path from volume %s", volDestName)
 			}
 			srcPath = path
-		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount {
+		} else if isBindMount, mount := isBindMountDestName(srcPath, ctr); isBindMount { //nolint(gocritic)
 			path, err := pathWithBindMountSource(mount, srcPath)
 			if err != nil {
 				return errors.Wrapf(err, "error getting source path from bind mount %s", mount.Destination)
 			}
 			srcPath = path
-		} else if filepath.IsAbs(srcPath) {
+		} else if filepath.IsAbs(srcPath) { //nolint(gocritic)
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, srcPath)
 			if err != nil {
 				return err
 			}
 			srcPath = cleanedPath
-		} else {
+		} else { //nolint(gocritic)
 			cleanedPath, err := securejoin.SecureJoin(mountPoint, filepath.Join(ctr.WorkingDir(), srcPath))
 			if err != nil {
 				return err

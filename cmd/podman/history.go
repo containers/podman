@@ -115,14 +115,14 @@ func genHistoryFormat(format string, quiet bool) string {
 }
 
 // historyToGeneric makes an empty array of interfaces for output
-func historyToGeneric(templParams []historyTemplateParams, JSONParams []*image.History) (genericParams []interface{}) {
+func historyToGeneric(templParams []historyTemplateParams, jsonParams []*image.History) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return

@@ -105,9 +105,10 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	var ctrs []*libpod.Container
 
 	containerFunc := runtime.GetRunningContainers
-	if len(c.InputArgs) > 0 {
+	switch {
+	case len(c.InputArgs) > 0:
 		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.InputArgs) }
-	} else if latest {
+	case latest:
 		containerFunc = func() ([]*libpod.Container, error) {
 			lastCtr, err := runtime.GetLatestContainer()
 			if err != nil {
@@ -115,7 +116,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			}
 			return []*libpod.Container{lastCtr}, nil
 		}
-	} else if all {
+	case all:
 		containerFunc = runtime.GetAllContainers
 	}
 
@@ -219,14 +220,14 @@ func genStatsFormat(format string) string {
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
-func statsToGeneric(templParams []statsOutputParams, JSONParams []statsOutputParams) (genericParams []interface{}) {
+func statsToGeneric(templParams []statsOutputParams, jsonParams []statsOutputParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return

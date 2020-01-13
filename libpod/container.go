@@ -472,11 +472,9 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		if err := json.Unmarshal(content, &returnSpec); err != nil {
 			return nil, errors.Wrapf(err, "error unmarshalling container config")
 		}
-	} else {
+	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
-		if !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "error opening container config")
-		}
+		return nil, errors.Wrapf(err, "error opening container config")
 	}
 
 	return returnSpec, nil

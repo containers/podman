@@ -609,11 +609,12 @@ func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) 
 		return state == define.ContainerStateExited
 	})
 
-	if c.Import != "" {
+	switch {
+	case c.Import != "":
 		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import, c.Name)
-	} else if c.All {
+	case c.All:
 		containers, err = r.GetContainers(filterFuncs...)
-	} else {
+	default:
 		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
 	}
 	if err != nil {
@@ -835,25 +836,26 @@ func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) 
 	inputTimeout := c.Timeout
 
 	// Handle --latest
-	if c.Latest {
+	switch {
+	case c.Latest:
 		lastCtr, err := r.Runtime.GetLatestContainer()
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "unable to get latest container")
 		}
 		restartContainers = append(restartContainers, lastCtr)
-	} else if c.Running {
+	case c.Running:
 		containers, err = r.GetRunningContainers()
 		if err != nil {
 			return nil, nil, err
 		}
 		restartContainers = append(restartContainers, containers...)
-	} else if c.All {
+	case c.All:
 		containers, err = r.Runtime.GetAllContainers()
 		if err != nil {
 			return nil, nil, err
 		}
 		restartContainers = append(restartContainers, containers...)
-	} else {
+	default:
 		for _, id := range c.InputArgs {
 			ctr, err := r.Runtime.LookupContainer(id)
 			if err != nil {

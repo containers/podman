@@ -320,13 +320,14 @@ func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) 
 // generate the template based on conditions given
 func genPodPsFormat(c *cliconfig.PodPsValues) string {
 	format := ""
-	if c.Format != "" {
+	switch {
+	case c.Format != "":
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
 		format = strings.Replace(c.Format, `\t`, "\t", -1)
-	} else if c.Quiet {
+	case c.Quiet:
 		format = formats.IDString
-	} else {
+	default:
 		format = "table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Created}}"
 		if c.Bool("namespace") {
 			format += "\t{{.Cgroup}}\t{{.Namespaces}}"
@@ -341,14 +342,14 @@ func genPodPsFormat(c *cliconfig.PodPsValues) string {
 	return format
 }
 
-func podPsToGeneric(templParams []podPsTemplateParams, JSONParams []podPsJSONParams) (genericParams []interface{}) {
+func podPsToGeneric(templParams []podPsTemplateParams, jsonParams []podPsJSONParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return

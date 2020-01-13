@@ -650,10 +650,7 @@ func getNamespaceInfo(path string) (string, error) {
 
 // getStrFromSquareBrackets gets the string inside [] from a string.
 func getStrFromSquareBrackets(cmd string) string {
-	reg, err := regexp.Compile(`.*\[|\].*`)
-	if err != nil {
-		return ""
-	}
+	reg := regexp.MustCompile(`.*\[|\].*`)
 	arr := strings.Split(reg.ReplaceAllLiteralString(cmd, ""), ",")
 	return strings.Join(arr, ",")
 }

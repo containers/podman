@@ -124,10 +124,8 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		for i := 0; i < t.NumField(); i++ {
 			value := strings.ToUpper(splitCamelCase(t.Field(i).Name))
 			switch value {
-			case "CPU":
-				value = value + " %"
-			case "MEM":
-				value = value + " %"
+			case "CPU", "MEM":
+				value += " %"
 			case "MEM USAGE":
 				value = "MEM USAGE / LIMIT"
 			}
@@ -167,10 +165,8 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 			results := podContainerStatsToPodStatOut(newStats)
 			if len(format) == 0 {
 				outputToStdOut(results)
-			} else {
-				if err := printPSFormat(c.Format, results, headerNames); err != nil {
-					return err
-				}
+			} else if err := printPSFormat(c.Format, results, headerNames); err != nil {
+				return err
 			}
 		}
 		time.Sleep(time.Second)

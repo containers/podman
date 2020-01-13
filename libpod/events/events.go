@@ -129,8 +129,6 @@ func StringToStatus(name string) (Status, error) {
 		return Attach, nil
 	case Checkpoint.String():
 		return Checkpoint, nil
-	case Restore.String():
-		return Restore, nil
 	case Cleanup.String():
 		return Cleanup, nil
 	case Commit.String():

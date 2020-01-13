@@ -72,17 +72,13 @@ var mainCommands = []*cobra.Command{
 }
 
 var rootCmd = &cobra.Command{
-	Use:  path.Base(os.Args[0]),
-	Long: "manage pods and images",
-	RunE: commandRunE(),
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return before(cmd, args)
-	},
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		return after(cmd, args)
-	},
-	SilenceUsage:  true,
-	SilenceErrors: true,
+	Use:                path.Base(os.Args[0]),
+	Long:               "manage pods and images",
+	RunE:               commandRunE(),
+	PersistentPreRunE:  before,
+	PersistentPostRunE: after,
+	SilenceUsage:       true,
+	SilenceErrors:      true,
 }
 
 var MainGlobalOpts cliconfig.MainFlags
@@ -160,16 +156,13 @@ func main() {
 	}
 	if err := rootCmd.Execute(); err != nil {
 		outputError(err)
-	} else {
+	} else if exitCode == define.ExecErrorCodeGeneric {
 		// The exitCode modified from define.ExecErrorCodeGeneric,
 		// indicates an application
 		// running inside of a container failed, as opposed to the
 		// podman command failed.  Must exit with that exit code
 		// otherwise command exited correctly.
-		if exitCode == define.ExecErrorCodeGeneric {
-			exitCode = 0
-		}
-
+		exitCode = 0
 	}
 
 	// Check if /etc/containers/registries.conf exists when running in

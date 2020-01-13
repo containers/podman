@@ -19,7 +19,7 @@ import (
 )
 
 // NewPod makes a new, empty pod
-func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Pod, Err error) {
+func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Pod, deferredErr error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -65,7 +65,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 	pod.config.LockID = pod.lock.ID()
 
 	defer func() {
-		if Err != nil {
+		if deferredErr != nil {
 			if err := pod.lock.Free(); err != nil {
 				logrus.Errorf("Error freeing pod lock after failed creation: %v", err)
 			}
@@ -126,7 +126,7 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 		return nil, errors.Wrapf(err, "error adding pod to state")
 	}
 	defer func() {
-		if Err != nil {
+		if deferredErr != nil {
 			if err := r.removePod(ctx, pod, true, true); err != nil {
 				logrus.Errorf("Error removing pod after pause container creation failure: %v", err)
 			}

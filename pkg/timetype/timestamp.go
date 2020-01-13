@@ -34,7 +34,7 @@ func GetTimestamp(value string, reference time.Time) (string, error) {
 	// if the string has a Z or a + or three dashes use parse otherwise use parseinlocation
 	parseInLocation := !(strings.ContainsAny(value, "zZ+") || strings.Count(value, "-") == 3)
 
-	if strings.Contains(value, ".") {
+	if strings.Contains(value, ".") { // nolint(gocritic)
 		if parseInLocation {
 			format = rFC3339NanoLocal
 		} else {

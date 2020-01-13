@@ -134,14 +134,14 @@ func genVolLsFormat(c *cliconfig.VolumeLsValues) string {
 }
 
 // Convert output to genericParams for printing
-func volLsToGeneric(templParams []volumeLsTemplateParams, JSONParams []volumeLsJSONParams) (genericParams []interface{}) {
+func volLsToGeneric(templParams []volumeLsTemplateParams, jsonParams []volumeLsJSONParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return

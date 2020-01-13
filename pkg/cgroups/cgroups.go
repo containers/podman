@@ -155,7 +155,7 @@ func (c *CgroupControl) getCgroupv1Path(name string) string {
 }
 
 // createCgroupv2Path creates the cgroupv2 path and enables all the available controllers
-func createCgroupv2Path(path string) (Err error) {
+func createCgroupv2Path(path string) (deferredError error) {
 	content, err := ioutil.ReadFile("/sys/fs/cgroup/cgroup.controllers")
 	if err != nil {
 		return errors.Wrapf(err, "read /sys/fs/cgroup/cgroup.controllers")
@@ -169,7 +169,7 @@ func createCgroupv2Path(path string) (Err error) {
 		if i == 0 {
 			res = fmt.Sprintf("+%s", c)
 		} else {
-			res = res + fmt.Sprintf(" +%s", c)
+			res += fmt.Sprintf(" +%s", c)
 		}
 	}
 	resByte := []byte(res)
@@ -186,7 +186,7 @@ func createCgroupv2Path(path string) (Err error) {
 			} else {
 				// If the directory was created, be sure it is not left around on errors.
 				defer func() {
-					if Err != nil {
+					if deferredError != nil {
 						os.Remove(current)
 					}
 				}()

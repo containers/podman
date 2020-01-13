@@ -407,7 +407,8 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 	w := bufio.NewWriter(os.Stdout)
 	for event := range eventChannel {
-		if c.Format == formats.JSONString {
+		switch {
+		case c.Format == formats.JSONString:
 			jsonStr, err := event.ToJSONString()
 			if err != nil {
 				return errors.Wrapf(err, "unable to format json")
@@ -415,11 +416,11 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 			if _, err := w.Write([]byte(jsonStr)); err != nil {
 				return err
 			}
-		} else if len(c.Format) > 0 {
+		case len(c.Format) > 0:
 			if err := tmpl.Execute(w, event); err != nil {
 				return err
 			}
-		} else {
+		default:
 			if _, err := w.Write([]byte(event.ToHumanReadable())); err != nil {
 				return err
 			}

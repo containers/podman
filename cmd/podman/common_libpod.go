@@ -24,7 +24,8 @@ func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtim
 	var containers []*libpod.Container
 	var lastError error
 	var err error
-	if c.Bool("all") {
+	switch {
+	case c.Bool("all"):
 		if filterState != -1 {
 			var filterFuncs []libpod.ContainerFilter
 			filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
@@ -38,13 +39,13 @@ func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtim
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to get %s containers", verb)
 		}
-	} else if c.Bool("latest") {
+	case c.Bool("latest"):
 		lastCtr, err := runtime.GetLatestContainer()
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to get latest container")
 		}
 		containers = append(containers, lastCtr)
-	} else {
+	default:
 		args := c.InputArgs
 		for _, i := range args {
 			container, err := runtime.LookupContainer(i)
