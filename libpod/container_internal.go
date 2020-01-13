@@ -22,7 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cyphar/filepath-securejoin"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -339,7 +339,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (restarted bool, er
 	c.newContainerEvent(events.Restart)
 
 	// Increment restart count
-	c.state.RestartCount = c.state.RestartCount + 1
+	c.state.RestartCount += 1
 	logrus.Debugf("Container %s now on retry %d", c.ID(), c.state.RestartCount)
 	if err := c.save(); err != nil {
 		return false, err
@@ -1286,7 +1286,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 // TODO: Add ability to override mount label so we can use this for Mount() too
 // TODO: Can we use this for export? Copying SHM into the export might not be
 // good
-func (c *Container) mountStorage() (_ string, Err error) {
+func (c *Container) mountStorage() (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
@@ -1307,7 +1307,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", errors.Wrapf(err, "failed to chown %s", c.config.ShmDir)
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmountSHM(c.config.ShmDir); err != nil {
 					logrus.Errorf("Error unmounting SHM for container %s after mount error: %v", c.ID(), err)
 				}
@@ -1324,7 +1324,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err != nil {
+			if deferredErr != nil {
 				if err := c.unmount(false); err != nil {
 					logrus.Errorf("Error unmounting container %s after mount error: %v", c.ID(), err)
 				}
@@ -1339,7 +1339,7 @@ func (c *Container) mountStorage() (_ string, Err error) {
 			return "", err
 		}
 		defer func() {
-			if Err == nil {
+			if deferredErr == nil {
 				return
 			}
 			vol.lock.Lock()

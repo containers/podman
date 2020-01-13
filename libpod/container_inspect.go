@@ -1214,11 +1214,12 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 
 	// Network mode parsing.
 	networkMode := ""
-	if c.config.CreateNetNS {
+	switch {
+	case c.config.CreateNetNS:
 		networkMode = "default"
-	} else if c.config.NetNsCtr != "" {
+	case c.config.NetNsCtr != "":
 		networkMode = fmt.Sprintf("container:%s", c.config.NetNsCtr)
-	} else {
+	default:
 		// Find the spec's network namespace.
 		// If there is none, it's host networking.
 		// If there is one and it has a path, it's "ns:".

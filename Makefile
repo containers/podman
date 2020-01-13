@@ -148,9 +148,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch $@
 
-lint: .gopathok varlink_generate ## Execute the source code linter
-	@echo "checking lint"
-	@./.tool/lint
+lint: golangci-lint
 
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
 	$(GOBIN)/golangci-lint run --tests=false --skip-files swagger.go
@@ -313,12 +311,6 @@ remotesystem:
 
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
-
-perftest:  ## Build perf tests
-	$ cd contrib/perftest;go build
-
-run-perftest: perftest ## Build and run perf tests
-	$ contrib/perftest/perftest
 
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
@@ -517,7 +509,7 @@ endef
 
 .install.golangci-lint: .gopathok
 	if [ ! -x "$(GOBIN)/golangci-lint" ]; then \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.17.1; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.18.0; \
 	fi
 
 .install.md2man: .gopathok

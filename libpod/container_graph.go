@@ -113,7 +113,7 @@ func detectCycles(graph *ContainerGraph) (bool, error) {
 		info := new(nodeInfo)
 		info.index = index
 		info.lowLink = index
-		index = index + 1
+		index++
 
 		nodes[node.id] = info
 

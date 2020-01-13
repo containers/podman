@@ -902,8 +902,7 @@ func (i *Image) Annotations(ctx context.Context) (map[string]string, error) {
 		}
 	}
 	annotations := make(map[string]string)
-	switch manifestType {
-	case ociv1.MediaTypeImageManifest:
+	if manifestType == ociv1.MediaTypeImageManifest {
 		var m ociv1.Manifest
 		if err := json.Unmarshal(imageManifest, &m); err == nil {
 			for k, v := range m.Annotations {

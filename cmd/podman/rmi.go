@@ -65,7 +65,7 @@ func rmiCmd(c *cliconfig.RmiValues) error {
 		return errors.Errorf("when using the --all switch, you may not pass any images names or IDs")
 	}
 
-	images := args[:]
+	images := args
 
 	removeImage := func(img *adapter.ContainerImage) {
 		response, err := runtime.RemoveImage(ctx, img, c.Force)

@@ -238,7 +238,7 @@ func (c *Container) updateHealthCheckLog(hcl HealthCheckLog, inStartPeriod bool)
 		}
 		if !inStartPeriod {
 			// increment failing streak
-			healthCheck.FailingStreak = healthCheck.FailingStreak + 1
+			healthCheck.FailingStreak += 1
 			// if failing streak > retries, then status to unhealthy
 			if healthCheck.FailingStreak >= c.HealthCheckConfig().Retries {
 				healthCheck.Status = HealthCheckUnhealthy

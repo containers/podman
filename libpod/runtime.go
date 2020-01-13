@@ -180,12 +180,13 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 		// Set up the lock manager
 		manager, err = lock.OpenSHMLockManager(lockPath, runtime.config.NumLocks)
 		if err != nil {
-			if os.IsNotExist(errors.Cause(err)) {
+			switch {
+			case os.IsNotExist(errors.Cause(err)):
 				manager, err = lock.NewSHMLockManager(lockPath, runtime.config.NumLocks)
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to get new shm lock manager")
 				}
-			} else if errors.Cause(err) == syscall.ERANGE && runtime.doRenumber {
+			case errors.Cause(err) == syscall.ERANGE && runtime.doRenumber:
 				logrus.Debugf("Number of locks does not match - removing old locks")
 
 				// ERANGE indicates a lock numbering mismatch.
@@ -199,7 +200,7 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 				if err != nil {
 					return nil, err
 				}
-			} else {
+			default:
 				return nil, err
 			}
 		}
@@ -289,10 +290,8 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		logrus.Debug("Not configuring container store")
 	} else if runtime.noStore {
 		logrus.Debug("No store required. Not opening container store.")
-	} else {
-		if err := runtime.configureStore(); err != nil {
-			return err
-		}
+	} else if err := runtime.configureStore(); err != nil {
+		return err
 	}
 	defer func() {
 		if err != nil && store != nil {
@@ -718,18 +717,14 @@ func (r *Runtime) generateName() (string, error) {
 		// Make sure container with this name does not exist
 		if _, err := r.state.LookupContainer(name); err == nil {
 			continue
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchCtr {
-				return "", err
-			}
+		} else if errors.Cause(err) != define.ErrNoSuchCtr {
+			return "", err
 		}
 		// Make sure pod with this name does not exist
 		if _, err := r.state.LookupPod(name); err == nil {
 			continue
-		} else {
-			if errors.Cause(err) != define.ErrNoSuchPod {
-				return "", err
-			}
+		} else if errors.Cause(err) != define.ErrNoSuchPod {
+			return "", err
 		}
 		return name, nil
 	}

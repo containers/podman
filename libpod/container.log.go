@@ -56,7 +56,7 @@ func (c *Container) readFromLogFile(options *logs.LogOptions, logChannel chan *l
 				continue
 			}
 			if nll.Partial() {
-				partial = partial + nll.Msg
+				partial += nll.Msg
 				continue
 			} else if !nll.Partial() && len(partial) > 1 {
 				nll.Msg = partial

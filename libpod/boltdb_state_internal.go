@@ -652,11 +652,9 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 				if string(depCtrPod) != pod.ID() {
 					return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is in a different pod (%s)", ctr.ID(), dependsCtr, string(depCtrPod))
 				}
-			} else {
+			} else if depCtrPod != nil {
 				// If we're not part of a pod, we cannot depend on containers in a pod
-				if depCtrPod != nil {
-					return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is in a pod - containers not in pods cannot depend on containers in pods", ctr.ID(), dependsCtr)
-				}
+				return errors.Wrapf(define.ErrInvalidArg, "container %s depends on container %s which is in a pod - containers not in pods cannot depend on containers in pods", ctr.ID(), dependsCtr)
 			}
 
 			depNamespace := depCtrBkt.Get(namespaceKey)

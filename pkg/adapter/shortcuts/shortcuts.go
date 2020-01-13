@@ -42,12 +42,13 @@ func GetContainersByContext(all, latest bool, names []string, runtime *libpod.Ru
 	var ctr *libpod.Container
 	ctrs = []*libpod.Container{}
 
-	if all {
+	switch {
+	case all:
 		ctrs, err = runtime.GetAllContainers()
-	} else if latest {
+	case latest:
 		ctr, err = runtime.GetLatestContainer()
 		ctrs = append(ctrs, ctr)
-	} else {
+	default:
 		for _, n := range names {
 			ctr, e := runtime.LookupContainer(n)
 			if e != nil {

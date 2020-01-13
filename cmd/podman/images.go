@@ -209,7 +209,7 @@ func (i imagesOptions) setOutputFormat() string {
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
-func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) []interface{} {
+func imagesToGeneric(templParams []imagesTemplateParams, jsonParams []imagesJSONParams) []interface{} {
 	genericParams := []interface{}{}
 	if len(templParams) > 0 {
 		for _, v := range templParams {
@@ -217,7 +217,7 @@ func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSON
 		}
 		return genericParams
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return genericParams
@@ -282,10 +282,8 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 				if len(tag) == 71 && strings.HasPrefix(tag, "sha256:") {
 					imageDigest = digest.Digest(tag)
 					tag = ""
-				} else {
-					if img.Digest() != "" {
-						imageDigest = img.Digest()
-					}
+				} else if img.Digest() != "" {
+					imageDigest = img.Digest()
 				}
 				params := imagesTemplateParams{
 					Repository:  repo,

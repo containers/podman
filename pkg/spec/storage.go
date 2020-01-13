@@ -409,9 +409,10 @@ func getBindMount(args []string) (spec.Mount, error) {
 			// ro=[true|false]
 			// rw
 			// rw=[true|false]
-			if len(kv) == 1 {
+			switch len(kv) {
+			case 1:
 				newMount.Options = append(newMount.Options, kv[0])
-			} else if len(kv) == 2 {
+			case 2:
 				switch strings.ToLower(kv[1]) {
 				case "true":
 					newMount.Options = append(newMount.Options, kv[0])
@@ -424,7 +425,7 @@ func getBindMount(args []string) (spec.Mount, error) {
 				default:
 					return newMount, errors.Wrapf(optionArgError, "%s must be set to true or false, instead received %q", kv[0], kv[1])
 				}
-			} else {
+			default:
 				return newMount, errors.Wrapf(optionArgError, "badly formatted option %q", val)
 			}
 		case "nosuid", "suid":

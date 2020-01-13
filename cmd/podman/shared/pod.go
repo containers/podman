@@ -59,18 +59,20 @@ func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (stri
 		}
 	}
 
-	if statuses[PodStateRunning] > 0 {
+	switch {
+	case statuses[PodStateRunning] > 0:
 		return PodStateRunning, nil
-	} else if statuses[PodStatePaused] == ctrNum {
+	case statuses[PodStatePaused] == ctrNum:
 		return PodStatePaused, nil
-	} else if statuses[PodStateStopped] == ctrNum {
+	case statuses[PodStateStopped] == ctrNum:
 		return PodStateExited, nil
-	} else if statuses[PodStateStopped] > 0 {
+	case statuses[PodStateStopped] > 0:
 		return PodStateStopped, nil
-	} else if statuses[PodStateErrored] > 0 {
+	case statuses[PodStateErrored] > 0:
 		return PodStateErrored, nil
+	default:
+		return PodStateCreated, nil
 	}
-	return PodStateCreated, nil
 }
 
 // GetNamespaceOptions transforms a slice of kernel namespaces

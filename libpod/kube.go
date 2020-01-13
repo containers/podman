@@ -15,7 +15,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -365,11 +365,12 @@ func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
 	// neither a directory or a file lives here, default to creating a directory
 	// TODO should this be an error instead?
 	var hostPathType v1.HostPathType
-	if err != nil {
+	switch {
+	case err != nil:
 		hostPathType = v1.HostPathDirectoryOrCreate
-	} else if isDir {
+	case isDir:
 		hostPathType = v1.HostPathDirectory
-	} else {
+	default:
 		hostPathType = v1.HostPathFile
 	}
 	vo.HostPath.Type = &hostPathType

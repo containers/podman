@@ -733,7 +733,9 @@ func WithExitCommand(exitCommand []string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		ctr.config.ExitCommand = append(exitCommand, ctr.ID())
+		ctr.config.ExitCommand = exitCommand
+		ctr.config.ExitCommand = append(ctr.config.ExitCommand, ctr.ID())
+
 		return nil
 	}
 }

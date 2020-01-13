@@ -28,7 +28,7 @@ func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) 
 }
 
 // newVolume creates a new empty volume
-func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, Err error) {
+func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (_ *Volume, deferredErr error) {
 	volume, err := newVolume(r)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error creating volume")
@@ -98,7 +98,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	volume.config.LockID = volume.lock.ID()
 
 	defer func() {
-		if Err != nil {
+		if deferredErr != nil {
 			if err := volume.lock.Free(); err != nil {
 				logrus.Errorf("Error freeing volume lock after failed creation: %v", err)
 			}

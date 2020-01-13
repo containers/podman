@@ -62,7 +62,7 @@ func (c *Container) unmountSHM(mount string) error {
 
 // prepare mounts the container and sets up other required resources like net
 // namespaces
-func (c *Container) prepare() (Err error) {
+func (c *Container) prepare() error {
 	var (
 		wg                              sync.WaitGroup
 		netNS                           ns.NetNS
@@ -1277,21 +1277,21 @@ func (c *Container) generateResolvConf() (string, error) {
 	}
 
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
-	if len(c.config.DNSServer) > 0 {
+	switch {
+	case len(c.config.DNSServer) > 0:
 		// We store DNS servers as net.IP, so need to convert to string
 		for _, server := range c.config.DNSServer {
 			nameservers = append(nameservers, server.String())
 		}
-	} else if len(cniNameServers) > 0 {
+	case len(cniNameServers) > 0:
 		nameservers = append(nameservers, cniNameServers...)
-	} else {
+	default:
 		// Make a new resolv.conf
 		nameservers = resolvconf.GetNameservers(resolv.Content)
 		// slirp4netns has a built in DNS server.
 		if c.config.NetMode.IsSlirp4netns() {
 			nameservers = append([]string{"10.0.2.3"}, nameservers...)
 		}
-
 	}
 
 	search := resolvconf.GetSearchDomains(resolv.Content)
@@ -1451,23 +1451,24 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if (rootless.IsRootless() && !unified) || c.config.NoCgroups {
+	switch {
+	case (rootless.IsRootless() && !unified) || c.config.NoCgroups:
 		return "", nil
-	} else if c.runtime.config.CgroupManager == define.SystemdCgroupsManager {
+	case c.runtime.config.CgroupManager == define.SystemdCgroupsManager:
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	} else if c.runtime.config.CgroupManager == define.CgroupfsCgroupsManager {
+	case c.runtime.config.CgroupManager == define.CgroupfsCgroupsManager:
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {
 			return "", err
 		}
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
-	} else {
+	default:
 		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.CgroupManager)
 	}
 }

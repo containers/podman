@@ -444,11 +444,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// USER
 	user := c.String("user")
 	if user == "" {
-		if usernsMode.IsKeepID() {
+		switch {
+		case usernsMode.IsKeepID():
 			user = fmt.Sprintf("%d:%d", rootless.GetRootlessUID(), rootless.GetRootlessGID())
-		} else if data == nil {
+		case data == nil:
 			user = "0"
-		} else {
+		default:
 			user = data.Config.User
 		}
 	}

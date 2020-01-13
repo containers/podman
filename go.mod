@@ -51,7 +51,7 @@ require (
 	github.com/opencontainers/selinux v1.3.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.8.1
-	github.com/pkg/profile v1.4.0
+	github.com/pkg/profile v1.4.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/rootless-containers/rootlesskit v0.7.1
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f

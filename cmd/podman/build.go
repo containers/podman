@@ -116,21 +116,22 @@ func getContainerfiles(files []string) []string {
 func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
 	var ret []buildah.NamespaceOption
 	if c.Network != "" {
-		if c.Network == "host" {
+		switch {
+		case c.Network == "host":
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
 				Host: true,
 			})
-		} else if c.Network == "container" {
+		case c.Network == "container":
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
 			})
-		} else if c.Network[0] == '/' {
+		case c.Network[0] == '/':
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
 				Path: c.Network,
 			})
-		} else {
+		default:
 			return nil, fmt.Errorf("unsupported configuration network=%s", c.Network)
 		}
 	}
