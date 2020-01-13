@@ -296,7 +296,7 @@ meta_task:
     timeout_in: 10m
 
     # Cirrus-CI ignores entrypoint defined in image
-    script: '/usr/local/bin/entrypoint.sh |& ${TIMESTAMP}'
+    script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/update_meta.sh |& ${TIMESTAMP}'
 
 
 # Remove old and disused images based on labels set by meta_task
