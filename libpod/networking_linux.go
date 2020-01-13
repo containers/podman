@@ -148,7 +148,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() {
+	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
 		networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	}
 	return ctrNS, networkStatus, err
@@ -462,7 +462,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	// rootless containers do not use the CNI plugin
-	if !rootless.IsRootless() {
+	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP
