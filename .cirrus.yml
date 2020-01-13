@@ -102,6 +102,8 @@ gating_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
 
     gate_script:
+        # TODO: remove once the image doesn't ship with pre-installed tools
+        - rm /go/bin/*
         # N/B: entrypoint.sh resets $GOSRC (same as make clean)
         - '/usr/local/bin/entrypoint.sh install.tools |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh validate |& ${TIMESTAMP}'
