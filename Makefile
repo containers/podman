@@ -148,9 +148,7 @@ ifeq ("$(wildcard $(GOPKGDIR))","")
 endif
 	touch $@
 
-lint: .gopathok varlink_generate ## Execute the source code linter
-	@echo "checking lint"
-	@./.tool/lint
+lint: golangci-lint
 
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
 	$(GOBIN)/golangci-lint run --tests=false --skip-files swagger.go
