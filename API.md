@@ -1065,7 +1065,7 @@ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveImage '{"name": "regi
 
 method RemoveImageWithResponse(name: [string](https://godoc.org/builtin#string), force: [bool](https://godoc.org/builtin#bool)) [RemoveImageResponse](#RemoveImageResponse)</div>
 RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
-should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The reponse is
+should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
 in the form of a RemoveImageResponse .
 ### <a name="RemovePod"></a>func RemovePod
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">

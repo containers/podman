@@ -25,7 +25,7 @@ func outputError(err error) {
 		}
 		var ne error
 		switch e := err.(type) {
-		// For some reason golang wont let me list them with commas so listing them all.
+		// For some reason golang won't let me list them with commas so listing them all.
 		case *iopodman.ImageNotFound:
 			ne = errors.New(e.Reason)
 		case *iopodman.ContainerNotFound:
@@ -48,7 +48,7 @@ func outputError(err error) {
 func setExitCode(err error) int {
 	cause := errors.Cause(err)
 	switch e := cause.(type) {
-	// For some reason golang wont let me list them with commas so listing them all.
+	// For some reason golang won't let me list them with commas so listing them all.
 	case *iopodman.ContainerNotFound:
 		return 1
 	case *iopodman.InvalidState:

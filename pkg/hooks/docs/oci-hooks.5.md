@@ -25,7 +25,7 @@ Tools consuming this format may also opt to monitor the hook directories for cha
 
 Hooks are injected in the order obtained by sorting the JSON file names, after converting them to lower case, based on their Unicode code points.
 For example, a matching hook defined in `01-my-hook.json` would be injected before matching hooks defined in `02-another-hook.json` and `01-UPPERCASE.json`.
-It is strongly recommended to make the sort oder unambiguous depending on an ASCII-only prefix (like the `01`/`02` above).
+It is strongly recommended to make the sort order unambiguous depending on an ASCII-only prefix (like the `01`/`02` above).
 
 Each JSON file should contain an object with one of the following schemas.
 

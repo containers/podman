@@ -8,7 +8,7 @@ import (
 /*
 attention
 
-in this file you will see alot of struct duplication.  this was done because people wanted a strongly typed
+in this file you will see a lot of struct duplication.  this was done because people wanted a strongly typed
 varlink mechanism.  this resulted in us creating this intermediate layer that allows us to take the input
 from the cli and make an intermediate layer which can be transferred as strongly typed structures over a varlink
 interface.

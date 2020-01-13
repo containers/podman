@@ -351,6 +351,9 @@ install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 man-page-check:
 	hack/man-page-checker
 
+codespell:
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked
+
 # When publishing releases include critical build-time details
 .PHONY: release.txt
 release.txt:
