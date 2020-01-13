@@ -506,7 +506,7 @@ endef
 
 .install.golangci-lint: .gopathok
 	if [ ! -x "$(GOBIN)/golangci-lint" ]; then \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.17.1; \
+		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.18.0; \
 	fi
 
 .install.md2man: .gopathok

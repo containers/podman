@@ -6,8 +6,9 @@ run:
     - selinux
   concurrency: 6
   deadline: 5m
+  skip-dirs-use-default: true
   skip-dirs:
-    - dependencies/*
+    - dependencies
     - contrib
     - test/e2e
     - docs
@@ -18,7 +19,7 @@ run:
 linters:
   disable-all: true
   enable:
-    - bodyclose
+    # - bodyclose
     - deadcode
     - depguard
     # dupl really overdid it; disabling
