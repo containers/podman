@@ -169,7 +169,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 	}
 
 	infraCommandFlag := c.Flags().Lookup("infra-command")
-	if infraCommandFlag != nil && infraImageFlag.Changed {
+	if infraCommandFlag != nil && infraCommandFlag.Changed {
 		infraCommand, _ := c.Flags().GetString("infra-command")
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}

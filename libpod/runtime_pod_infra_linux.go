@@ -36,29 +36,40 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	isRootless := rootless.IsRootless()
 
-	entryCmd := []string{r.config.InfraCommand}
+	entryCmd := []string{}
 	// I've seen circumstances where config is being passed as nil.
 	// Let's err on the side of safety and make sure it's safe to use.
-	if config != nil {
+	if config == nil {
+		command := "/pause"
+		if r.config.InfraCommand != "" {
+			command = r.config.InfraCommand
+		}
+		entryCmd = []string{"/bin/sh", "-c", command}
+	} else {
 		setEntrypoint := false
 		// default to entrypoint in image if there is one
 		if len(config.Entrypoint) > 0 {
 			entryCmd = config.Entrypoint
 			setEntrypoint = true
 		}
-		if len(config.Cmd) > 0 {
-			// We can't use the default pause command, since we're
-			// sourcing from the image. If we didn't already set an
-			// entrypoint, set one now.
-			if !setEntrypoint {
-				// Use the Docker default "/bin/sh -c"
-				// entrypoint, as we're overriding command.
-				// If an image doesn't want this, it can
-				// override entrypoint too.
-				entryCmd = []string{"/bin/sh", "-c"}
-			}
-			entryCmd = append(entryCmd, config.Cmd...)
+		command := config.Cmd
+		if r.config.InfraCommand != "" {
+			command = []string{r.config.InfraCommand}
 		}
+		// We can't use the default pause command, since we're
+		// sourcing from the image. If we didn't already set an
+		// entrypoint, set one now.
+		if !setEntrypoint {
+			if len(command) == 0 {
+				command = []string{"/pause"}
+			}
+			// Use the Docker default "/bin/sh -c"
+			// entrypoint, as we're overriding command.
+			// If an image doesn't want this, it can
+			// override entrypoint too.
+			entryCmd = []string{"/bin/sh", "-c"}
+		}
+		entryCmd = append(entryCmd, command...)
 		if len(config.Env) > 0 {
 			for _, nameValPair := range config.Env {
 				nameValSlice := strings.Split(nameValPair, "=")
