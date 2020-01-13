@@ -13,6 +13,7 @@ run:
     - test
   skip-files:
     - iopodman.go
+    - swagger.go
 linters:
   enable-all: true
   disable:
