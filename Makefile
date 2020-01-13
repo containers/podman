@@ -312,12 +312,6 @@ remotesystem:
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
-perftest:  ## Build perf tests
-	$ cd contrib/perftest;go build
-
-run-perftest: perftest ## Build and run perf tests
-	$ contrib/perftest/perftest
-
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
