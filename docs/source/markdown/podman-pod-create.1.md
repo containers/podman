@@ -29,7 +29,7 @@ Create an infra container and associate it with the pod. An infra container is a
 
 **--infra-command**=*command*
 
-The command that will be run to start the infra container. Default: "/pause"
+The command that will be run to start the infra container. Default: ""
 
 **--infra-image**=*image*
 
