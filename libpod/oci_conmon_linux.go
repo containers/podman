@@ -149,9 +149,23 @@ func (r *ConmonOCIRuntime) Path() string {
 	return r.path
 }
 
+// hasCurrentUserMapped checks whether the current user is mapped inside the container user namespace
+func hasCurrentUserMapped(ctr *Container) bool {
+	if len(ctr.config.IDMappings.UIDMap) == 0 && len(ctr.config.IDMappings.GIDMap) == 0 {
+		return true
+	}
+	uid := os.Geteuid()
+	for _, m := range ctr.config.IDMappings.UIDMap {
+		if uid >= m.HostID && uid < m.HostID+m.Size {
+			return true
+		}
+	}
+	return false
+}
+
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
-	if len(ctr.config.IDMappings.UIDMap) != 0 || len(ctr.config.IDMappings.GIDMap) != 0 {
+	if !hasCurrentUserMapped(ctr) {
 		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
 				return err
