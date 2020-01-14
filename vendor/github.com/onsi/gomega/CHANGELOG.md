@@ -1,3 +1,14 @@
+## 1.8.1
+
+### Fixes
+- Fix unexpected MatchError() behaviour (#375) [8ae7b2f]
+
+## 1.8.0
+
+### Features
+- Allow optional description to be lazily evaluated function (#364) [bf64010]
+- Support wrapped errors (#359) [0a981cb]
+
 ## 1.7.1
 
 ### Fixes

@@ -2,6 +2,64 @@
 
 # Changelog
 
+## v1.13.1 (2020-01-14)
+Changelog for v1.13.1 (2020-01-14)
+    Bump github.com/containers/common from 0.0.5 to 0.0.7
+    Bump github.com/onsi/ginkgo from 1.10.3 to 1.11.0
+    Bump github.com/pkg/errors from 0.8.1 to 0.9.0
+    Bump github.com/onsi/gomega from 1.7.1 to 1.8.1
+    Add codespell support
+    copyFileWithTar: close source files at the right time
+    copy: don't digest files that we ignore
+    Check for .dockerignore specifically
+    Travis: rm go 1.12.x
+    Don't setup excludes, if their is only one pattern to match
+    set HOME env to /root on chroot-isolation by default
+    docs: fix references to containers-*.5
+    update openshift/api
+    fix bug Add check .dockerignore COPY file
+    buildah bud --volume: run from tmpdir, not source dir
+    Fix imageNamePrefix to give consistent names in buildah-from
+    cpp: use -traditional and -undef flags
+    Fix image reference in tutorial 4
+    discard outputs coming from onbuild command on buildah-from --quiet
+    make --format columnizing consistent with buildah images
+    Bump to v1.14.0-dev
+    Bump to v1.13.0
+    Bump to c/storage v1.15.5
+    Update container/storage to v1.15.4
+    Fix option handling for volumes in build
+    Rework overlay pkg for use with libpod
+    Fix buildahimage builds for buildah
+    Add support for FIPS-Mode backends
+    Set the TMPDIR for pulling/pushing image to $TMPDIR
+    WIP: safer test for pull --all-tags
+    BATS major cleanup: blobcache.bats: refactor
+    BATS major cleanup: part 4: manual stuff
+    BATS major cleanup, step 3: yet more run_buildah
+    BATS major cleanup, part 2: use more run_buildah
+    BATS major cleanup, part 1: log-level
+    Bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+    Bump github.com/containers/common from 0.0.3 to 0.0.5
+    Bump to v1.13.0-dev
+
+## v1.13.0 (2019-12-27)
+    Bump to c/storage v1.15.5
+    Update container/storage to v1.15.4
+    Fix option handling for volumes in build
+    Rework overlay pkg for use with libpod
+    Fix buildahimage builds for buildah
+    Add support for FIPS-Mode backends
+    Set the TMPDIR for pulling/pushing image to $TMPDIR
+    WIP: safer test for pull --all-tags
+    BATS major cleanup: blobcache.bats: refactor
+    BATS major cleanup: part 4: manual stuff
+    BATS major cleanup, step 3: yet more run_buildah
+    BATS major cleanup, part 2: use more run_buildah
+    BATS major cleanup, part 1: log-level
+    Bump github.com/containers/image/v5 from 5.0.0 to 5.1.0
+    Bump github.com/containers/common from 0.0.3 to 0.0.5
+    Bump to v1.13.0-dev
 
 ## v1.12.0 (2019-12-13)
     Allow ADD to use http src

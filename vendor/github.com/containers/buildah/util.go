@@ -165,11 +165,6 @@ func (b *Builder) copyFileWithTar(tarIDMappingOptions *IDMappingOptions, chownOp
 				if err != nil {
 					return errors.Wrapf(err, "error opening %q to copy its contents", src)
 				}
-				defer func() {
-					if err := f.Close(); err != nil {
-						logrus.Debugf("error closing %s: %v", fi.Name(), err)
-					}
-				}()
 			}
 		}
 
@@ -200,6 +195,9 @@ func (b *Builder) copyFileWithTar(tarIDMappingOptions *IDMappingOptions, chownOp
 					logrus.Debugf("error copying contents of %s: %v", fi.Name(), err)
 					copyErr = err
 				}
+				if err = srcFile.Close(); err != nil {
+					logrus.Debugf("error closing %s: %v", fi.Name(), err)
+				}
 			}
 			if err = writer.Close(); err != nil {
 				logrus.Debugf("error closing write pipe for %s: %v", hdr.Name, err)
@@ -213,7 +211,6 @@ func (b *Builder) copyFileWithTar(tarIDMappingOptions *IDMappingOptions, chownOp
 		if err == nil {
 			err = copyErr
 		}
-		f = nil
 		if pipeWriter != nil {
 			pipeWriter.Close()
 		}
