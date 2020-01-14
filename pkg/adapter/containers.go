@@ -927,9 +927,7 @@ func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
 
 	output, err = r.execPS(container, descriptors)
 	if err != nil {
-		// Note: return psgoErr to guide users into using the AIX descriptors
-		// instead of using ps(1).
-		return nil, psgoErr
+		return nil, errors.Wrapf(err, "error executing ps(1) in the container")
 	}
 
 	// Trick: filter the ps command from the output instead of
@@ -956,10 +954,8 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = wPipe
 	streams.ErrorStream = wPipe
-	streams.InputStream = bufio.NewReader(os.Stdin)
 	streams.AttachOutput = true
 	streams.AttachError = true
-	streams.AttachInput = true
 
 	psOutput := []string{}
 	go func() {

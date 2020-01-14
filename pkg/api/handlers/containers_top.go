@@ -4,8 +4,10 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -28,24 +30,19 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := mux.Vars(r)["name"]
-	ctnr, err := runtime.LookupContainer(name)
-	if err != nil {
-		utils.ContainerNotFound(w, name, err)
-		return
-	}
 
-	state, err := ctnr.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if state != define.ContainerStateRunning {
-		utils.ContainerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
-		return
-	}
+	adapterRuntime := adapter.LocalRuntime{}
+	adapterRuntime.Runtime = runtime
 
-	output, err := ctnr.Top([]string{})
+	topValues := cliconfig.TopValues{}
+	topValues.InputArgs = []string{name, query.PsArgs}
+
+	output, err := adapterRuntime.Top(&topValues)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+			return
+		}
 		utils.InternalServerError(w, err)
 		return
 	}
