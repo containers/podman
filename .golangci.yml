@@ -8,14 +8,12 @@ run:
   deadline: 5m
   skip-dirs-use-default: true
   skip-dirs:
-    - dependencies
     - contrib
-    - test/e2e
-    - docs
-    - test/
-    - tracing
+    - dependencies
+    - test
   skip-files:
     - iopodman.go
+    - swagger.go
 linters:
   enable-all: true
   disable:

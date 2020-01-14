@@ -21,7 +21,6 @@ __pycache__
 /cmd/podman/varlink/ioprojectatomicpodman.go
 /cmd/podman/varlink/iopodman.go
 .gopathok
-test/e2e/e2e.coverprofile
 release.txt
 podman-remote*.zip
 podman*.tar.gz
@@ -29,3 +28,4 @@ podman*.tar.gz
 .vscode*
 contrib/spec/podman.spec
 *.rpm
+*.coverprofile

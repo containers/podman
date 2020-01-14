@@ -134,7 +134,7 @@ func TestDefaultContent(t *testing.T) {
 	if _, err := os.Stat(aapath); err != nil {
 		t.Skip("AppArmor isn't available in this environment")
 	}
-	if err := DefaultContent(profile); err != nil {
+	if _, err := DefaultContent(profile); err != nil {
 		t.Fatalf("Couldn't retrieve default AppArmor profile content '%s': %v", profile, err)
 	}
 }

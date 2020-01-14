@@ -25,9 +25,10 @@ func Test_networkIntersect(t *testing.T) {
 		{"Two 24s", args{n1: parseCIDR("192.168.1.0/24"), n2: parseCIDR("192.168.2.0/24")}, false},
 	}
 	for _, tt := range tests {
+		test := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if got := networkIntersect(tt.args.n1, tt.args.n2); got != tt.want {
-				t.Errorf("networkIntersect() = %v, want %v", got, tt.want)
+			if got := networkIntersect(test.args.n1, test.args.n2); got != test.want {
+				t.Errorf("networkIntersect() = %v, want %v", got, test.want)
 			}
 		})
 	}

@@ -92,14 +92,15 @@ func TestReadRemoteConfig(t *testing.T) {
 		{"nouser", args{reader: strings.NewReader(noUser)}, makeNoUserResult(), false},
 	}
 	for _, tt := range tests {
+		test := tt
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ReadRemoteConfig(tt.args.reader)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ReadRemoteConfig() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := ReadRemoteConfig(test.args.reader)
+			if (err != nil) != test.wantErr {
+				t.Errorf("ReadRemoteConfig() error = %v, wantErr %v", err, test.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ReadRemoteConfig() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("ReadRemoteConfig() = %v, want %v", got, test.want)
 			}
 		})
 	}
@@ -150,17 +151,18 @@ func TestRemoteConfig_GetDefault(t *testing.T) {
 		{"single", fields{Connections: none}, nil, true},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test := tt
+		t.Run(test.name, func(t *testing.T) {
 			r := &RemoteConfig{
-				Connections: tt.fields.Connections,
+				Connections: test.fields.Connections,
 			}
 			got, err := r.GetDefault()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RemoteConfig.GetDefault() error = %v, wantErr %v", err, tt.wantErr)
+			if (err != nil) != test.wantErr {
+				t.Errorf("RemoteConfig.GetDefault() error = %v, wantErr %v", err, test.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RemoteConfig.GetDefault() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("RemoteConfig.GetDefault() = %v, want %v", got, test.want)
 			}
 		})
 	}
@@ -192,17 +194,18 @@ func TestRemoteConfig_GetRemoteConnection(t *testing.T) {
 		{"none", fields{Connections: blank}, args{name: "foobar"}, nil, true},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		test := tt
+		t.Run(test.name, func(t *testing.T) {
 			r := &RemoteConfig{
-				Connections: tt.fields.Connections,
+				Connections: test.fields.Connections,
 			}
-			got, err := r.GetRemoteConnection(tt.args.name)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("RemoteConfig.GetRemoteConnection() error = %v, wantErr %v", err, tt.wantErr)
+			got, err := r.GetRemoteConnection(test.args.name)
+			if (err != nil) != test.wantErr {
+				t.Errorf("RemoteConfig.GetRemoteConnection() error = %v, wantErr %v", err, test.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("RemoteConfig.GetRemoteConnection() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(got, test.want) {
+				t.Errorf("RemoteConfig.GetRemoteConnection() = %v, want %v", got, test.want)
 			}
 		})
 	}

@@ -17,10 +17,10 @@ func TestCreateAndDeallocate(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(d)
 
-	l, err := OpenFileLock(filepath.Join(d, "locks"))
+	_, err = OpenFileLock(filepath.Join(d, "locks"))
 	assert.Error(t, err)
 
-	l, err = CreateFileLock(filepath.Join(d, "locks"))
+	l, err := CreateFileLock(filepath.Join(d, "locks"))
 	assert.NoError(t, err)
 
 	lock, err := l.AllocateLock()

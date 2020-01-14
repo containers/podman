@@ -94,7 +94,7 @@ func TestRunEnvironment(t *testing.T) {
 		Path: path,
 		Args: []string{"sh", "-c", "env"},
 	}
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name     string
 		env      []string
 		expected map[string]string
@@ -120,6 +120,7 @@ func TestRunEnvironment(t *testing.T) {
 			},
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			var stderr, stdout bytes.Buffer
 			hook.Env = test.env
@@ -147,7 +148,7 @@ func TestRunCancel(t *testing.T) {
 		Args: []string{"sh", "-c", "echo waiting; sleep 2; echo done"},
 	}
 	one := 1
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name              string
 		contextTimeout    time.Duration
 		hookTimeout       *int
@@ -174,6 +175,7 @@ func TestRunCancel(t *testing.T) {
 			expectedRunError:  context.DeadlineExceeded,
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
 			var stderr, stdout bytes.Buffer
