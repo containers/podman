@@ -1308,6 +1308,11 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 		mustCreateCgroup = false
 	}
 
+	// $INVOCATION_ID is set by systemd when running as a service.
+	if os.Getenv("INVOCATION_ID") != "" {
+		mustCreateCgroup = false
+	}
+
 	if mustCreateCgroup {
 		cgroupParent := ctr.CgroupParent()
 		if r.cgroupManager == define.SystemdCgroupsManager {
