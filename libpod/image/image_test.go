@@ -3,7 +3,6 @@ package image
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -91,8 +90,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
-	var writer io.Writer
-	writer = os.Stdout
+	writer := os.Stdout
 
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
@@ -108,7 +106,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 
 	for _, image := range tm {
 		// tag our images
-		image.img.TagImage(image.taggedName)
+		err = image.img.TagImage(image.taggedName)
 		assert.NoError(t, err)
 		for _, name := range image.names {
 			newImage, err := ir.NewFromLocal(name)
@@ -142,8 +140,7 @@ func TestImage_New(t *testing.T) {
 	// Build the list of pull names
 	names = append(names, bbNames...)
 	names = append(names, fedoraNames...)
-	var writer io.Writer
-	writer = os.Stdout
+	writer := os.Stdout
 
 	// Iterate over the names and delete the image
 	// after the pull
@@ -213,7 +210,7 @@ func TestImage_RepoDigests(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name     string
 		names    []string
 		expected []string
@@ -234,6 +231,7 @@ func TestImage_RepoDigests(t *testing.T) {
 			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			image := &Image{
 				image: &storage.Image{

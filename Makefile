@@ -151,7 +151,7 @@ endif
 lint: golangci-lint
 
 golangci-lint: .gopathok varlink_generate .install.golangci-lint
-	$(GOBIN)/golangci-lint run --tests=false
+	$(GOBIN)/golangci-lint run
 
 gofmt: ## Verify the source code gofmt
 	find . -name '*.go' ! -path './vendor/*' -exec gofmt -s -w {} \+

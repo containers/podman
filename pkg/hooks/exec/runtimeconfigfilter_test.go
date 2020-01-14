@@ -25,9 +25,9 @@ func pointerFileMode(value os.FileMode) *os.FileMode {
 }
 
 func TestRuntimeConfigFilter(t *testing.T) {
-	unexpectedEndOfJSONInput := json.Unmarshal([]byte("{\n"), nil)
+	unexpectedEndOfJSONInput := json.Unmarshal([]byte("{\n"), nil) //nolint
 
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name              string
 		contextTimeout    time.Duration
 		hooks             []spec.Hook
@@ -244,6 +244,7 @@ func TestRuntimeConfigFilter(t *testing.T) {
 			expectedRunError: unexpectedEndOfJSONInput,
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
 			if test.contextTimeout > 0 {

@@ -24,9 +24,10 @@ func TestValidateRestartPolicy(t *testing.T) {
 		{"failblank", ContainerInfo{restart: ""}, true},
 	}
 	for _, tt := range tests {
+		test := tt
 		t.Run(tt.name, func(t *testing.T) {
-			if err := validateRestartPolicy(tt.ContainerInfo.restart); (err != nil) != tt.wantErr {
-				t.Errorf("ValidateRestartPolicy() error = %v, wantErr %v", err, tt.wantErr)
+			if err := validateRestartPolicy(test.ContainerInfo.restart); (err != nil) != test.wantErr {
+				t.Errorf("ValidateRestartPolicy() error = %v, wantErr %v", err, test.wantErr)
 			}
 		})
 	}
@@ -221,18 +222,19 @@ WantedBy=multi-user.target`
 		},
 	}
 	for _, tt := range tests {
+		test := tt
 		t.Run(tt.name, func(t *testing.T) {
 			opts := Options{
 				Files: false,
-				New:   tt.info.New,
+				New:   test.info.New,
 			}
-			got, err := CreateContainerSystemdUnit(&tt.info, opts)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("CreateContainerSystemdUnit() error = \n%v, wantErr \n%v", err, tt.wantErr)
+			got, err := CreateContainerSystemdUnit(&test.info, opts)
+			if (err != nil) != test.wantErr {
+				t.Errorf("CreateContainerSystemdUnit() error = \n%v, wantErr \n%v", err, test.wantErr)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("CreateContainerSystemdUnit() = \n%v\n---------> want\n%v", got, tt.want)
+			if got != test.want {
+				t.Errorf("CreateContainerSystemdUnit() = \n%v\n---------> want\n%v", got, test.want)
 			}
 		})
 	}
