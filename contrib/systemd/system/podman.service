@@ -1,0 +1,17 @@
+[Unit]
+Description=Podman API Service
+Requires=podman.socket
+After=podman.socket
+Documentation=man:podman-api(1)
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+Environment=REGISTRIES_CONFIG_PATH=/etc/containers/registries.conf
+ExecStart=/usr/local/bin/service
+TimeoutStopSec=30
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+Also=podman.socket
