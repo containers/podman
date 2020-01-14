@@ -355,14 +355,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	// Instead of integrating here, should be done in libpod
 	// However, that also involves setting up security opts
 	// when the pod's namespace is integrated
-	namespaceNet := c.String("network")
-	if c.Changed("net") {
-		namespaceNet = c.String("net")
-	}
 	namespaces = map[string]string{
 		"cgroup": c.String("cgroupns"),
 		"pid":    c.String("pid"),
-		"net":    namespaceNet,
+		"net":    c.String("network"),
 		"ipc":    c.String("ipc"),
 		"user":   c.String("userns"),
 		"uts":    c.String("uts"),
@@ -636,11 +632,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 	// This is done because cobra cannot have two aliased flags. So we have to check
 	// both
-	network := c.String("network")
-	if c.Changed("net") {
-		network = c.String("net")
-	}
-
 	memorySwappiness := c.Int64("memory-swappiness")
 
 	logDriver := libpod.KubernetesLogging
@@ -687,7 +678,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		DNSServers:   c.StringSlice("dns"),
 		HTTPProxy:    c.Bool("http-proxy"),
 		MacAddress:   c.String("mac-address"),
-		Network:      network,
+		Network:      c.String("network"),
 		NetMode:      netMode,
 		IPAddress:    c.String("ip"),
 		Publish:      c.StringSlice("publish"),

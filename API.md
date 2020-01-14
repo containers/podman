@@ -1587,8 +1587,6 @@ memorySwappiness [?int](#?int)
 
 name [?string](#?string)
 
-net [?string](#?string)
-
 network [?string](#?string)
 
 noHosts [?bool](#?bool)

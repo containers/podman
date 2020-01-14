@@ -61,6 +61,8 @@ func aliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 		name = "health-start-period"
 	case "healthcheck-timeout":
 		name = "health-timeout"
+	case "net":
+		name = "network"
 	}
 	return pflag.NormalizedName(name)
 }

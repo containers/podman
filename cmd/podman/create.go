@@ -85,13 +85,7 @@ func createInit(c *cliconfig.PodmanCommand) error {
 		logrus.Warn("setting security options with --privileged has no effect")
 	}
 
-	var setNet string
-	if c.IsSet("network") {
-		setNet = c.String("network")
-	} else if c.IsSet("net") {
-		setNet = c.String("net")
-	}
-	if (c.IsSet("dns") || c.IsSet("dns-opt") || c.IsSet("dns-search")) && (setNet == "none" || strings.HasPrefix(setNet, "container:")) {
+	if (c.IsSet("dns") || c.IsSet("dns-opt") || c.IsSet("dns-search")) && (c.String("network") == "none" || strings.HasPrefix(c.String("network"), "container:")) {
 		return errors.Errorf("conflicting options: dns and the network mode.")
 	}
 

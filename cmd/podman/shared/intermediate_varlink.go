@@ -127,7 +127,6 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		MemorySwap:             StringToPtr(g.Find("memory-swap")),
 		MemorySwappiness:       AnyIntToInt64Ptr(g.Find("memory-swappiness")),
 		Name:                   StringToPtr(g.Find("name")),
-		Net:                    StringToPtr(g.Find("net")),
 		Network:                StringToPtr(g.Find("network")),
 		OomKillDisable:         BoolToPtr(g.Find("oom-kill-disable")),
 		OomScoreAdj:            AnyIntToInt64Ptr(g.Find("oom-score-adj")),
@@ -386,7 +385,6 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["memory-swap"] = stringFromVarlink(opts.MemorySwap, "memory-swap", nil)
 	m["memory-swappiness"] = int64FromVarlink(opts.MemorySwappiness, "memory-swappiness", &memSwapDefault)
 	m["name"] = stringFromVarlink(opts.Name, "name", nil)
-	m["net"] = stringFromVarlink(opts.Net, "net", &netModeDefault)
 	m["network"] = stringFromVarlink(opts.Network, "network", &netModeDefault)
 	m["no-hosts"] = boolFromVarlink(opts.NoHosts, "no-hosts", false)
 	m["oom-kill-disable"] = boolFromVarlink(opts.OomKillDisable, "oon-kill-disable", false)
