@@ -1297,8 +1297,14 @@ func startCommandGivenSelinux(cmd *exec.Cmd) error {
 // it then signals for conmon to start by sending nonse data down the start fd
 func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
 	mustCreateCgroup := true
-	// If cgroup creation is disabled - just signal.
+
 	if ctr.config.NoCgroups {
+		mustCreateCgroup = false
+	}
+
+	// If cgroup creation is disabled - just signal.
+	switch ctr.config.CgroupsMode {
+	case "disabled", "no-conmon":
 		mustCreateCgroup = false
 	}
 

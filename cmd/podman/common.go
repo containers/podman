@@ -158,7 +158,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"cgroups", "enabled",
-		"control container cgroup configuration",
+		`control container cgroup configuration ("enabled"|"disabled"|"no-conmon")`,
 	)
 	createFlags.String(
 		"cgroup-parent", "",
