@@ -951,17 +951,31 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	defer wPipe.Close()
 	defer rPipe.Close()
 
+	rErrPipe, wErrPipe, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer wErrPipe.Close()
+	defer rErrPipe.Close()
+
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = wPipe
-	streams.ErrorStream = wPipe
+	streams.ErrorStream = wErrPipe
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	psOutput := []string{}
+	stdout := []string{}
 	go func() {
 		scanner := bufio.NewScanner(rPipe)
 		for scanner.Scan() {
-			psOutput = append(psOutput, scanner.Text())
+			stdout = append(stdout, scanner.Text())
+		}
+	}()
+	stderr := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rErrPipe)
+		for scanner.Scan() {
+			stderr = append(stderr, scanner.Text())
 		}
 	}()
 
@@ -970,10 +984,18 @@ func (r *LocalRuntime) execPS(c *libpod.Container, args []string) ([]string, err
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
-		return nil, errors.Errorf("Runtime failed with exit status: %d and output: %s", ec, strings.Join(psOutput, " "))
+		return nil, errors.Errorf("Runtime failed with exit status: %d and output: %s", ec, strings.Join(stderr, " "))
 	}
 
-	return psOutput, nil
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		// If we're running in debug mode or higher, we might want to have a
+		// look at stderr which includes debug logs from conmon.
+		for _, log := range stderr {
+			logrus.Debugf("%s", log)
+		}
+	}
+
+	return stdout, nil
 }
 
 // ExecContainer executes a command in the container
