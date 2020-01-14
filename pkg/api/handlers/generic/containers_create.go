@@ -71,11 +71,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type ctrCreateResponse struct {
-		Id       string   `json:"Id"`
-		Warnings []string `json:"Warnings"`
-	}
-	response := ctrCreateResponse{
+	response := ContainerCreateResponse{
 		Id:       ctr.ID(),
 		Warnings: []string{}}
 
