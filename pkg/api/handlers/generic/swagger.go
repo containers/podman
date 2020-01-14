@@ -16,7 +16,6 @@ type swagCtrWaitResponse struct {
 	Body struct {
 		// container exit code
 		StatusCode int
-		error      message
 		Error      struct {
 			Message string
 		}
