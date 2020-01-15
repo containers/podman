@@ -143,9 +143,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	// timestamps
 	// tail string
 }
-func StatsContainer(w http.ResponseWriter, r *http.Request) {
-	//stream
-}
+
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 }

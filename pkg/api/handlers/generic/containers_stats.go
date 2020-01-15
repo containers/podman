@@ -76,7 +76,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			OnlineCPUs:     0,
 			ThrottlingData: docker.ThrottlingData{},
 		}
-		time.Sleep(DefaultStatsPeriod)
 	}
 
 	for ok := true; ok; ok = query.Stream {
