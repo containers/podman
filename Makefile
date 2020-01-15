@@ -481,7 +481,7 @@ uninstall:
 	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
-install.tools: .install.gitvalidation .install.gometalinter .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
+install.tools: .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint ## Install needed tools
 
 define go-get
 	env GO111MODULE=off \
@@ -496,15 +496,6 @@ endef
 .install.gitvalidation: .gopathok
 	if [ ! -x "$(GOBIN)/git-validation" ]; then \
 		$(call go-get,github.com/vbatts/git-validation); \
-	fi
-
-.install.gometalinter: .gopathok
-	if [ ! -x "$(GOBIN)/gometalinter" ]; then \
-		$(call go-get,github.com/alecthomas/gometalinter); \
-		cd $(FIRST_GOPATH)/src/github.com/alecthomas/gometalinter; \
-		git checkout --detach e8d801238da6f0dfd14078d68f9b53fa50a7eeb5; \
-		$(GO) install github.com/alecthomas/gometalinter; \
-		$(GOBIN)/gometalinter --install; \
 	fi
 
 .install.golangci-lint: .gopathok
