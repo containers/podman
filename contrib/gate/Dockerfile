@@ -1,6 +1,5 @@
-FROM fedora:30
+FROM fedora:31
 RUN dnf -y install \
-      atomic-registries \
       btrfs-progs-devel \
       bzip2 \
       container-selinux \
@@ -46,7 +45,6 @@ WORKDIR $GOSRC
 
 # Install dependencies
 RUN set -x && \
-    make install.tools && \
     install -D -m 755 $GOSRC/contrib/gate/entrypoint.sh /usr/local/bin/ && \
     rm -rf "$GOSRC"
 
