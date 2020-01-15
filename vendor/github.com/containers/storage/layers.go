@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/tarlog"
@@ -776,8 +777,17 @@ func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error)
 		return "", ErrLayerUnknown
 	}
 	if layer.MountCount > 0 {
-		layer.MountCount++
-		return layer.MountPoint, r.saveMounts()
+		mounted, err := mount.Mounted(layer.MountPoint)
+		if err != nil {
+			return "", err
+		}
+		// If the container is not mounted then we have a condition
+		// where the kernel umounted the mount point. This means
+		// that the mount count never got decremented.
+		if mounted {
+			layer.MountCount++
+			return layer.MountPoint, r.saveMounts()
+		}
 	}
 	if options.MountLabel == "" {
 		options.MountLabel = layer.MountLabel

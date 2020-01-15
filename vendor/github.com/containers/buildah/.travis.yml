@@ -2,7 +2,6 @@ language: go
 dist: xenial
 sudo: required
 go:
-    - 1.12.x
     - 1.13.x
     - tip
 go_import_path: github.com/containers/buildah
@@ -43,7 +42,7 @@ before_install:
     - sudo apt-get -qq install software-properties-common
     - sudo add-apt-repository -y ppa:duggan/bats
     - sudo apt-get update
-    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev
+    - sudo apt-get -qq install bats btrfs-tools git libapparmor-dev libc-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libselinux1-dev linux-libc-dev realpath e2fslibs-dev libfuse-dev codespell
     - sudo apt-get -qq update
     - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
     - mkdir /home/travis/auth

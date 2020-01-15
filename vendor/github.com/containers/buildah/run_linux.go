@@ -460,7 +460,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	}
 
 	// Get the list of secrets mounts.
-	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, cdir, int(rootUID), int(rootGID), unshare.IsRootless(), false)
+	secretMounts := secrets.SecretMountsWithUIDGID(b.MountLabel, cdir, b.DefaultMountsFilePath, mountPoint, int(rootUID), int(rootGID), unshare.IsRootless(), false)
 
 	// Add temporary copies of the contents of volume locations at the
 	// volume locations, unless we already have something there.
@@ -1670,7 +1670,17 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 		}
 		if foundO {
-			overlayMount, contentDir, err := overlay.MountTemp(b.store, b.ContainerID, host, container, rootUID, rootGID)
+			containerDir, err := b.store.ContainerDirectory(b.ContainerID)
+			if err != nil {
+				return specs.Mount{}, err
+			}
+
+			contentDir, err := overlay.TempDir(containerDir, rootUID, rootGID)
+			if err != nil {
+				return specs.Mount{}, errors.Wrapf(err, "failed to create TempDir in the %s directory", containerDir)
+			}
+
+			overlayMount, err := overlay.Mount(contentDir, host, container, rootUID, rootGID, b.store.GraphOptions())
 			if err == nil {
 
 				b.TempVolumes[contentDir] = true

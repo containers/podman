@@ -25,9 +25,11 @@ func GetUser(rootdir, userspec string) (uint32, uint32, string, error) {
 	spec := strings.SplitN(userspec, ":", 2)
 	userspec = spec[0]
 	groupspec := ""
+
 	if userspec == "" {
-		return 0, 0, "/", nil
+		userspec = "0"
 	}
+
 	if len(spec) > 1 {
 		groupspec = spec[1]
 	}

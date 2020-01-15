@@ -280,7 +280,7 @@ func preprocessDockerfileContents(r io.Reader, ctxDir string) (rdrCloser *io.Rea
 	stdout := bytes.Buffer{}
 	stderr := bytes.Buffer{}
 
-	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-")
+	cmd := exec.Command(cppPath, "-E", "-iquote", ctxDir, "-traditional", "-undef", "-")
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 

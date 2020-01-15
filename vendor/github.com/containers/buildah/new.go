@@ -68,13 +68,13 @@ func getImageName(name string, img *storage.Image) string {
 
 func imageNamePrefix(imageName string) string {
 	prefix := imageName
-	s := strings.Split(imageName, "/")
-	if len(s) > 0 {
-		prefix = s[len(s)-1]
-	}
-	s = strings.Split(prefix, ":")
+	s := strings.Split(prefix, ":")
 	if len(s) > 0 {
 		prefix = s[0]
+	}
+	s = strings.Split(prefix, "/")
+	if len(s) > 0 {
+		prefix = s[len(s)-1]
 	}
 	s = strings.Split(prefix, "@")
 	if len(s) > 0 {
