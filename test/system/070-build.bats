@@ -40,7 +40,7 @@ EOF
 
     # Make an empty test directory, with a subdirectory used for tar
     tmpdir=$PODMAN_TMPDIR/build-test
-    run mkdir -p $tmpdir/subtest || die "Could not mkdir $tmpdir/subtest"
+    mkdir -p $tmpdir/subtest || die "Could not mkdir $tmpdir/subtest"
 
     echo "This is the ORIGINAL file" > $tmpdir/subtest/myfile1
     run tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
@@ -79,6 +79,25 @@ EOF
 
     run_podman rmi -f build_test $iid
 }
+
+@test "podman build - URLs" {
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
+
+    cat >$tmpdir/Dockerfile <<EOF
+FROM $IMAGE
+ADD https://github.com/containers/libpod/blob/master/README.md /tmp/
+EOF
+    run_podman build -t add_url $tmpdir
+    run_podman run --rm add_url stat /tmp/README.md
+    run_podman rmi -f add_url
+
+    # Now test COPY. That should fail.
+    sed -i -e 's/ADD/COPY/' $tmpdir/Dockerfile
+    run_podman 125 build -t copy_url $tmpdir
+    is "$output" ".*error building at STEP .*: source can't be a URL for COPY"
+}
+
 
 function teardown() {
     # A timeout or other error in 'build' can leave behind stale images

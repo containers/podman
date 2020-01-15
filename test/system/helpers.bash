@@ -192,13 +192,22 @@ function wait_for_output {
         fi
     done
 
-    [ -n "$cid" ] || die "FATAL: wait_for_ready: no container name/ID in '$*'"
+    [ -n "$cid" ] || die "FATAL: wait_for_output: no container name/ID in '$*'"
 
     t1=$(expr $SECONDS + $how_long)
     while [ $SECONDS -lt $t1 ]; do
         run_podman logs $cid
-        if expr "$output" : ".*$expect" >/dev/null; then
+        logs=$output
+        if expr "$logs" : ".*$expect" >/dev/null; then
             return
+        fi
+
+        # Barf if container is not running
+        run_podman inspect --format '{{.State.Running}}' $cid
+        if [ $output != "true" ]; then
+            run_podman inspect --format '{{.State.ExitCode}}' $cid
+            exitcode=$output
+            die "Container exited (status: $exitcode) before we saw '$expect': $logs"
         fi
 
         sleep $sleep_delay
@@ -258,6 +267,7 @@ function skip_if_not_systemd() {
 #  die  #  Abort with helpful message
 #########
 function die() {
+    # FIXME: handle multi-line output
     echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
     echo "#| FAIL: $*"                                           >&2
     echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2

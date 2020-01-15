@@ -85,4 +85,55 @@ echo $rand        |   0 | $rand
     run_podman 1 run --rm $IMAGE sh -c /bin/false
 }
 
+@test "podman run --name" {
+    randomname=$(random_string 30)
+
+    # Assume that 4 seconds gives us enough time for 3 quick tests (or at
+    # least for the 'ps'; the 'container exists' should pass even in the
+    # unlikely case that the container exits before we get to them)
+    run_podman run -d --name $randomname $IMAGE sleep 4
+    cid=$output
+
+    run_podman ps --format '{{.Names}}--{{.ID}}'
+    is "$output" "$randomname--${cid:0:12}"
+
+    run_podman container exists $randomname
+    run_podman container exists $cid
+
+    # Done with live-container tests; now let's test after container finishes
+    run_podman wait $cid
+
+    # Container still exists even after stopping:
+    run_podman container exists $randomname
+    run_podman container exists $cid
+
+    # ...but not after being removed:
+    run_podman rm $cid
+    run_podman 1 container exists $randomname
+    run_podman 1 container exists $cid
+}
+
+@test "podman run --pull" {
+    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
+
+    run_podman run --pull=missing $IMAGE true
+    is "$output" "" "--pull=missing [present]: no output"
+
+    run_podman run --pull=never $IMAGE true
+    is "$output" "" "--pull=never [present]: no output"
+
+    # Now test with busybox, which we don't have present
+    run_podman 125 run --pull=never busybox true
+    is "$output" "Error: unable to find a name and tag match for busybox in repotags: no such image" "--pull=never [busybox/missing]: error"
+
+    run_podman run --pull=missing busybox true
+    is "$output" "Trying to pull .*" "--pull=missing [busybox/missing]: fetches"
+
+    run_podman run --pull=always busybox true
+    is "$output" "Trying to pull .*" "--pull=always [busybox/present]: fetches"
+
+    run_podman rm -a
+    run_podman rmi busybox
+}
+
 # vim: filetype=sh
