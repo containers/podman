@@ -463,6 +463,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["volume"] = newCRStringArray(c, "volume")
 	m["volumes-from"] = newCRStringSlice(c, "volumes-from")
 	m["workdir"] = newCRString(c, "workdir")
+	m["seccomp-policy"] = newCRString(c, "seccomp-policy")
 	// global flag
 	if !remote {
 		m["authfile"] = newCRString(c, "authfile")
