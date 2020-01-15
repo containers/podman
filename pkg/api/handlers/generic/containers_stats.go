@@ -51,10 +51,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state != define.ContainerStateRunning && !query.Stream {
-		utils.WriteJSON(w, http.StatusOK, &handlers.Stats{StatsJSON: docker.StatsJSON{
-			Name: ctnr.Name(),
-			ID:   ctnr.ID(),
-		}})
+		utils.InternalServerError(w, define.ErrCtrStateInvalid)
 		return
 	}
 
@@ -82,44 +79,30 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(DefaultStatsPeriod)
 	}
 
-	// Anonymous function to get the cgroup on demand.
-	getCgroup := func() *cgroups.CgroupControl {
-		cgroupPath, err := ctnr.CGroupPath()
-		if err != nil {
-			return &cgroups.CgroupControl{}
-		}
-
-		cgroup, err := cgroups.Load(cgroupPath)
-		if err != nil {
-			return &cgroups.CgroupControl{}
-		}
-
-		return cgroup
-	}
-
 	for ok := true; ok; ok = query.Stream {
-		state, err := ctnr.State()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		if state != define.ContainerStateRunning {
-			time.Sleep(10 * time.Second)
-			continue
-		}
-
-		cgroup := getCgroup()
-		cgroupStat, err := cgroup.Stat()
-		if err != nil {
-			cgroupStat = &cgroups.Metrics{}
-		}
-
+		// Container stats
 		stats, err := ctnr.GetContainerStats(stats)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
 		}
 		inspect, err := ctnr.Inspect(false)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		// Cgroup stats
+		cgroupPath, err := ctnr.CGroupPath()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		cgroup, err := cgroups.Load(cgroupPath)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		cgroupStat, err := cgroup.Stat()
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
