@@ -52,7 +52,7 @@ func (c Connection) PruneVolumes() ([]string, error) {
 func (c Connection) RemoveVolume(nameOrID string, force bool) error {
 	params := make(map[string]string)
 	params["force"] = strconv.FormatBool(force)
-	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/volumes/prune", nameOrID), nil, params)
+	response, err := c.newRequest(http.MethodPost, "/volumes/prune", nil, params)
 	if err != nil {
 		return err
 	}

@@ -109,12 +109,14 @@ func (c Connection) UnpauseContainer(nameOrID string) error {
 }
 
 func (c Connection) WaitContainer(nameOrID string) error {
-	_, err := http.Post(c.makeEndpoint(fmt.Sprintf("containers/%s/wait", nameOrID)), "application/json", nil)
+	// TODO when returns are ironed out, we can should use the newRequest approach
+	_, err := http.Post(c.makeEndpoint(fmt.Sprintf("containers/%s/wait", nameOrID)), "application/json", nil) // nolint
 	return err
 }
 
 func (c Connection) ContainerExists(nameOrID string) (bool, error) {
-	response, err := http.Get(c.makeEndpoint(fmt.Sprintf("/containers/%s/exists", nameOrID)))
+	response, err := http.Get(c.makeEndpoint(fmt.Sprintf("/containers/%s/exists", nameOrID))) // nolint
+	defer closeResponseBody(response)
 	if err != nil {
 		return false, err
 	}

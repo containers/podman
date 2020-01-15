@@ -117,9 +117,7 @@ type swagPodAlreadyStopped struct {
 // swagger:response DockerImageSummary
 type swagImageSummary struct {
 	// in:body
-	Body struct {
-		handlers.ImageSummary
-	}
+	Body []handlers.ImageSummary
 }
 
 // List Containers
@@ -128,7 +126,7 @@ type swagListContainers struct {
 	// in:body
 	Body struct {
 		// This causes go-swagger to crash
-		//handlers.Container
+		// handlers.Container
 	}
 }
 
