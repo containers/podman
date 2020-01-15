@@ -15,10 +15,14 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
+	defaultValue := "-ef"
+	if utils.IsLibpodRequest(r) {
+		defaultValue = ""
+	}
 	query := struct {
 		PsArgs string `schema:"ps_args"`
 	}{
-		PsArgs: "-ef",
+		PsArgs: defaultValue,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
