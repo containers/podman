@@ -43,6 +43,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If the container isn't returning, then let's not bother and return
+	// immediately.
 	state, err := ctnr.State()
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -56,15 +58,14 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var preRead time.Time
-	var preCPUStats docker.CPUStats
-
 	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain Container %s stats", name))
 		return
 	}
 
+	var preRead time.Time
+	var preCPUStats docker.CPUStats
 	if query.Stream {
 		preRead = time.Now()
 		preCPUStats = docker.CPUStats{
@@ -81,16 +82,19 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(DefaultStatsPeriod)
 	}
 
-	cgroupPath, err := ctnr.CGroupPath()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
+	// Anonymous function to get the cgroup on demand.
+	getCgroup := func() *cgroups.CgroupControl {
+		cgroupPath, err := ctnr.CGroupPath()
+		if err != nil {
+			return &cgroups.CgroupControl{}
+		}
 
-	cgroup, err := cgroups.Load(cgroupPath)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
+		cgroup, err := cgroups.Load(cgroupPath)
+		if err != nil {
+			return &cgroups.CgroupControl{}
+		}
+
+		return cgroup
 	}
 
 	for ok := true; ok; ok = query.Stream {
@@ -104,12 +108,13 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		stats, err := ctnr.GetContainerStats(stats)
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
+		cgroup := getCgroup()
 		cgroupStat, err := cgroup.Stat()
+		if err != nil {
+			cgroupStat = &cgroups.Metrics{}
+		}
+
+		stats, err := ctnr.GetContainerStats(stats)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -120,8 +125,13 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// FIXME: network inspection does not yet work entirely
 		net := make(map[string]docker.NetworkStats)
-		net[inspect.NetworkSettings.EndpointID] = docker.NetworkStats{
+		networkName := inspect.NetworkSettings.EndpointID
+		if networkName == "" {
+			networkName = "network"
+		}
+		net[networkName] = docker.NetworkStats{
 			RxBytes:    stats.NetInput,
 			RxPackets:  0,
 			RxErrors:   0,
@@ -192,17 +202,21 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		preRead = s.Read
 		bits, err := json.Marshal(s.CPUStats)
 		if err != nil {
-			logrus.Errorf("unable to marshal cpu stats: %q", err)
+			logrus.Errorf("Unable to marshal cpu stats: %q", err)
 		}
 		if err := json.Unmarshal(bits, &preCPUStats); err != nil {
-			logrus.Errorf("unable to unmarshal previous stats: %q", err)
+			logrus.Errorf("Unable to unmarshal previous stats: %q", err)
 		}
-		time.Sleep(DefaultStatsPeriod)
+
+		// Only sleep when we're streaming.
+		if query.Stream {
+			time.Sleep(DefaultStatsPeriod)
+		}
 	}
 }
 
 func toBlkioStatEntry(entries []cgroups.BlkIOEntry) []docker.BlkioStatEntry {
-	results := make([]docker.BlkioStatEntry, 0, len(entries))
+	results := make([]docker.BlkioStatEntry, len(entries))
 	for i, e := range entries {
 		bits, err := json.Marshal(e)
 		if err != nil {
