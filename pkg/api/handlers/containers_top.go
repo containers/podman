@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -16,10 +15,14 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
+	defaultValue := "-ef"
+	if utils.IsLibpodRequest(r) {
+		defaultValue = ""
+	}
 	query := struct {
 		PsArgs string `schema:"ps_args"`
 	}{
-		PsArgs: "-ef",
+		PsArgs: defaultValue,
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
@@ -28,23 +31,13 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := mux.Vars(r)["name"]
-	ctnr, err := runtime.LookupContainer(name)
+	c, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
 
-	state, err := ctnr.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if state != define.ContainerStateRunning {
-		utils.ContainerNotRunning(w, name, errors.Errorf("Container %s must be running to perform top operation", name))
-		return
-	}
-
-	output, err := ctnr.Top([]string{})
+	output, err := c.Top([]string{query.PsArgs})
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

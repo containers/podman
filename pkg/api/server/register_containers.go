@@ -371,7 +371,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: ps_args
 	//    type: string
-	//    description: arguments to pass to ps such as aux
+	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// produces:
 	// - application/json
 	// responses:
@@ -703,6 +703,34 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/{nameOrID}/top containers topContainer
+	//
+	// List processes running inside a container. Note
+	//
+	// ---
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: stream
+	//    type: bool
+	//    default: true
+	//    description: Stream the output
+	//    name: ps_args
+	//    type: string
+	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
+	// produces:
+	// - application/json
+	// responses:
+	//   '200':
+	//     description: no error
+	//       "ref": "#/responses/DockerTopResponse"
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{nameOrID}/unpause libpod libpodUnpauseContainer
 	// ---

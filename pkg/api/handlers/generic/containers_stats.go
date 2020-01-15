@@ -43,7 +43,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// If the container isn't returning, then let's not bother and return
+	// If the container isn't running, then let's not bother and return
 	// immediately.
 	state, err := ctnr.State()
 	if err != nil {

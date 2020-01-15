@@ -135,7 +135,6 @@ type Stats struct {
 
 type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
-	ID string `json:"Id"`
 }
 
 type PodCreateConfig struct {

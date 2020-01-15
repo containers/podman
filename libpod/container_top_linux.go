@@ -3,6 +3,8 @@
 package libpod
 
 import (
+	"bufio"
+	"os"
 	"strconv"
 	"strings"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/psgo"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Top gathers statistics about the running processes in a container. It returns a
@@ -36,7 +39,34 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 			}
 		}
 	}
-	return c.GetContainerPidInformation(psgoDescriptors)
+
+	// If we encountered an ErrUnknownDescriptor error, fallback to executing
+	// ps(1). This ensures backwards compatibility to users depending on ps(1)
+	// and makes sure we're ~compatible with docker.
+	output, psgoErr := c.GetContainerPidInformation(psgoDescriptors)
+	if psgoErr == nil {
+		return output, nil
+	}
+	if errors.Cause(psgoErr) != psgo.ErrUnknownDescriptor {
+		return nil, psgoErr
+	}
+
+	output, err = c.execPS(descriptors)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error executing ps(1) in the container")
+	}
+
+	// Trick: filter the ps command from the output instead of
+	// checking/requiring PIDs in the output.
+	filtered := []string{}
+	cmd := strings.Join(descriptors, " ")
+	for _, line := range output {
+		if !strings.Contains(line, cmd) {
+			filtered = append(filtered, line)
+		}
+	}
+
+	return filtered, nil
 }
 
 // GetContainerPidInformation returns process-related data of all processes in
@@ -64,4 +94,60 @@ func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, 
 		res = append(res, strings.Join(out, "\t"))
 	}
 	return res, nil
+}
+
+// execPS executes ps(1) with the specified args in the container.
+func (c *Container) execPS(args []string) ([]string, error) {
+	rPipe, wPipe, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer wPipe.Close()
+	defer rPipe.Close()
+
+	rErrPipe, wErrPipe, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	defer wErrPipe.Close()
+	defer rErrPipe.Close()
+
+	streams := new(AttachStreams)
+	streams.OutputStream = wPipe
+	streams.ErrorStream = wErrPipe
+	streams.AttachOutput = true
+	streams.AttachError = true
+
+	stdout := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rPipe)
+		for scanner.Scan() {
+			stdout = append(stdout, scanner.Text())
+		}
+	}()
+	stderr := []string{}
+	go func() {
+		scanner := bufio.NewScanner(rErrPipe)
+		for scanner.Scan() {
+			stderr = append(stderr, scanner.Text())
+		}
+	}()
+
+	cmd := append([]string{"ps"}, args...)
+	ec, err := c.Exec(false, false, map[string]string{}, cmd, "", "", streams, 0, nil, "")
+	if err != nil {
+		return nil, err
+	} else if ec != 0 {
+		return nil, errors.Errorf("Runtime failed with exit status: %d and output: %s", ec, strings.Join(stderr, " "))
+	}
+
+	if logrus.GetLevel() >= logrus.DebugLevel {
+		// If we're running in debug mode or higher, we might want to have a
+		// look at stderr which includes debug logs from conmon.
+		for _, log := range stderr {
+			logrus.Debugf("%s", log)
+		}
+	}
+
+	return stdout, nil
 }
