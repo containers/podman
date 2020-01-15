@@ -43,21 +43,17 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// If the container isn't returning, then let's not bother and return
+	// immediately.
 	state, err := ctnr.State()
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 	if state != define.ContainerStateRunning && !query.Stream {
-		utils.WriteJSON(w, http.StatusOK, &handlers.Stats{StatsJSON: docker.StatsJSON{
-			Name: ctnr.Name(),
-			ID:   ctnr.ID(),
-		}})
+		utils.InternalServerError(w, define.ErrCtrStateInvalid)
 		return
 	}
-
-	var preRead time.Time
-	var preCPUStats docker.CPUStats
 
 	stats, err := ctnr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
@@ -65,6 +61,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var preRead time.Time
+	var preCPUStats docker.CPUStats
 	if query.Stream {
 		preRead = time.Now()
 		preCPUStats = docker.CPUStats{
@@ -78,25 +76,44 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			OnlineCPUs:     0,
 			ThrottlingData: docker.ThrottlingData{},
 		}
-		time.Sleep(DefaultStatsPeriod)
 	}
 
-	cgroupPath, _ := ctnr.CGroupPath()
-	cgroup, _ := cgroups.Load(cgroupPath)
-
 	for ok := true; ok; ok = query.Stream {
-		state, _ := ctnr.State()
-		if state != define.ContainerStateRunning {
-			time.Sleep(10 * time.Second)
-			continue
+		// Container stats
+		stats, err := ctnr.GetContainerStats(stats)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		inspect, err := ctnr.Inspect(false)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		// Cgroup stats
+		cgroupPath, err := ctnr.CGroupPath()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		cgroup, err := cgroups.Load(cgroupPath)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		cgroupStat, err := cgroup.Stat()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
 		}
 
-		stats, _ := ctnr.GetContainerStats(stats)
-		cgroupStat, _ := cgroup.Stat()
-		inspect, _ := ctnr.Inspect(false)
-
+		// FIXME: network inspection does not yet work entirely
 		net := make(map[string]docker.NetworkStats)
-		net[inspect.NetworkSettings.EndpointID] = docker.NetworkStats{
+		networkName := inspect.NetworkSettings.EndpointID
+		if networkName == "" {
+			networkName = "network"
+		}
+		net[networkName] = docker.NetworkStats{
 			RxBytes:    stats.NetInput,
 			RxPackets:  0,
 			RxErrors:   0,
@@ -126,13 +143,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 					IoMergedRecursive:       nil,
 					IoTimeRecursive:         nil,
 					SectorsRecursive:        nil,
-				},
-				NumProcs: 0,
-				StorageStats: docker.StorageStats{
-					ReadCountNormalized:  0,
-					ReadSizeBytes:        0,
-					WriteCountNormalized: 0,
-					WriteSizeBytes:       0,
 				},
 				CPUStats: docker.CPUStats{
 					CPUUsage: docker.CPUUsage{
@@ -174,17 +184,21 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		preRead = s.Read
 		bits, err := json.Marshal(s.CPUStats)
 		if err != nil {
-			logrus.Errorf("unable to marshal cpu stats: %q", err)
+			logrus.Errorf("Unable to marshal cpu stats: %q", err)
 		}
 		if err := json.Unmarshal(bits, &preCPUStats); err != nil {
-			logrus.Errorf("unable to unmarshal previous stats: %q", err)
+			logrus.Errorf("Unable to unmarshal previous stats: %q", err)
 		}
-		time.Sleep(DefaultStatsPeriod)
+
+		// Only sleep when we're streaming.
+		if query.Stream {
+			time.Sleep(DefaultStatsPeriod)
+		}
 	}
 }
 
 func toBlkioStatEntry(entries []cgroups.BlkIOEntry) []docker.BlkioStatEntry {
-	results := make([]docker.BlkioStatEntry, 0, len(entries))
+	results := make([]docker.BlkioStatEntry, len(entries))
 	for i, e := range entries {
 		bits, err := json.Marshal(e)
 		if err != nil {

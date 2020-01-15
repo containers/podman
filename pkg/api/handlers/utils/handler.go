@@ -33,6 +33,7 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 }
 
 func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
+	// FIXME: we don't need to write the header in all/some circumstances.
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 
