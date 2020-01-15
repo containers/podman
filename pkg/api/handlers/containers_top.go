@@ -4,10 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -30,19 +27,14 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := mux.Vars(r)["name"]
-
-	adapterRuntime := adapter.LocalRuntime{}
-	adapterRuntime.Runtime = runtime
-
-	topValues := cliconfig.TopValues{}
-	topValues.InputArgs = []string{name, query.PsArgs}
-
-	output, err := adapterRuntime.Top(&topValues)
+	c, err := runtime.LookupContainer(name)
 	if err != nil {
-		if errors.Cause(err) == define.ErrNoSuchCtr {
-			utils.ContainerNotFound(w, name, err)
-			return
-		}
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	output, err := c.Top([]string{query.PsArgs})
+	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
