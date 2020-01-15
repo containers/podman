@@ -499,9 +499,7 @@ endef
 	fi
 
 .install.golangci-lint: .gopathok
-	if [ ! -x "$(GOBIN)/golangci-lint" ]; then \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOBIN)/ v1.18.0; \
-	fi
+	VERSION=1.18.0 GOBIN=$(GOBIN) sh ./hack/install_golangci.sh
 
 .install.md2man: .gopathok
 	if [ ! -x "$(GOMD2MAN)" ]; then \
