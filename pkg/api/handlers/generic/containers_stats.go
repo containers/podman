@@ -81,19 +81,44 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(DefaultStatsPeriod)
 	}
 
-	cgroupPath, _ := ctnr.CGroupPath()
-	cgroup, _ := cgroups.Load(cgroupPath)
+	cgroupPath, err := ctnr.CGroupPath()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	cgroup, err := cgroups.Load(cgroupPath)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 
 	for ok := true; ok; ok = query.Stream {
-		state, _ := ctnr.State()
+		state, err := ctnr.State()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 		if state != define.ContainerStateRunning {
 			time.Sleep(10 * time.Second)
 			continue
 		}
 
-		stats, _ := ctnr.GetContainerStats(stats)
-		cgroupStat, _ := cgroup.Stat()
-		inspect, _ := ctnr.Inspect(false)
+		stats, err := ctnr.GetContainerStats(stats)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		cgroupStat, err := cgroup.Stat()
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		inspect, err := ctnr.Inspect(false)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 
 		net := make(map[string]docker.NetworkStats)
 		net[inspect.NetworkSettings.EndpointID] = docker.NetworkStats{
