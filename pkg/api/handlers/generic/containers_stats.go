@@ -127,13 +127,6 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 					IoTimeRecursive:         nil,
 					SectorsRecursive:        nil,
 				},
-				NumProcs: 0,
-				StorageStats: docker.StorageStats{
-					ReadCountNormalized:  0,
-					ReadSizeBytes:        0,
-					WriteCountNormalized: 0,
-					WriteSizeBytes:       0,
-				},
 				CPUStats: docker.CPUStats{
 					CPUUsage: docker.CPUUsage{
 						TotalUsage:        cgroupStat.CPU.Usage.Total,
