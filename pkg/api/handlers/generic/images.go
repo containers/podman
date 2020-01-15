@@ -350,7 +350,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
 		return
 	}
-	var summaries = make([]*handlers.ImageSummary, len(images))
+	var summaries = make([]*handlers.ImageSummary, len(images)+1)
 	for j, img := range images {
 		is, err := handlers.ImageToImageSummary(img)
 		if err != nil {
