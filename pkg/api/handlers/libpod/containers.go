@@ -30,11 +30,6 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request) {
-	// 204 no error
-	// 400 bad param
-	// 404 no such container
-	// 409 conflict
-	// 500 internal error
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Force bool `schema:"force"`

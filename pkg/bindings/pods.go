@@ -14,7 +14,8 @@ func (c Connection) CreatePod() error {
 }
 
 func (c Connection) PodExists(nameOrID string) (bool, error) {
-	response, err := http.Get(c.makeEndpoint(fmt.Sprintf("/pods/%s/exists", nameOrID)))
+	response, err := http.Get(c.makeEndpoint(fmt.Sprintf("/pods/%s/exists", nameOrID))) // nolint
+	defer closeResponseBody(response)
 	if err != nil {
 		return false, err
 	}

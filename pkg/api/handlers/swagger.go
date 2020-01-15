@@ -57,9 +57,7 @@ type swagLibpodInspectImageResponse struct {
 // swagger:response DocsContainerPruneReport
 type swagContainerPruneReport struct {
 	// in: body
-	Body struct {
-		ContainersPruneReport
-	}
+	Body []ContainersPruneReport
 }
 
 // Inspect container
@@ -84,9 +82,7 @@ type swagDockerTopResponse struct {
 // swagger:response LibpodListContainersResponse
 type swagLibpodListContainersResponse struct {
 	// in:body
-	Body struct {
-		shared.PsContainerOutput
-	}
+	Body []shared.PsContainerOutput
 }
 
 // Inspect container
