@@ -8,7 +8,7 @@ import (
 )
 
 func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
-	// swagger:operation GET /info libpod libpodGetInfo
+	// swagger:operation GET /info compat getInfo
 	// ---
 	// summary: Get info
 	// description: Returns information on the system and libpod configuration

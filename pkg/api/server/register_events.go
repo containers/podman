@@ -1,12 +1,14 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/gorilla/mux"
 )
 
 func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
-	// swagger:operation GET /events system getEvents
+	// swagger:operation GET /events compat getEvents
 	// ---
 	// summary: Returns events filtered on query parameters
 	// produces:
@@ -27,6 +29,6 @@ func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
 	//   "500":
 	//     description: Failed
 	//     "$ref": "#/responses/InternalError"
-	r.Handle(VersionedPath("/events"), APIHandler(s.Context, handlers.GetEvents))
+	r.Handle(VersionedPath("/events"), APIHandler(s.Context, handlers.GetEvents)).Methods(http.MethodGet)
 	return nil
 }

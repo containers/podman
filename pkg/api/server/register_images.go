@@ -10,7 +10,7 @@ import (
 )
 
 func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
-	// swagger:operation POST /images/create compat createImage
+	// swagger:operation POST /images/create compat createImageFromImage
 	//
 	// ---
 	// tags:
@@ -42,7 +42,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     schema:
 	//      $ref: '#/responses/GenericError'
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, generic.CreateImageFromImage)).Methods(http.MethodPost).Queries("fromImage", "{fromImage}")
-	// swagger:operation POST /images/create compat createImage
+	// swagger:operation POST /images/create compat createImageFromSrc
 	// ---
 	// tags:
 	//  - images (compat)
@@ -73,7 +73,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     schema:
 	//      $ref: '#/responses/GenericError'
 	r.Handle(VersionedPath("/images/create"), APIHandler(s.Context, generic.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
-	// swagger:operation GET /images/json compat listImages
+	// swagger:operation GET /images/json compat getImages
 	// ---
 	// tags:
 	//  - images (compat)
@@ -222,7 +222,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:..*}/get"), APIHandler(s.Context, generic.ExportImage)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{nameOrID}/history compat imageHistory
+	// swagger:operation GET /images/{nameOrID}/history compat historyImage
 	// ---
 	// tags:
 	//  - images (compat)
@@ -243,7 +243,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/{name:..*}/history"), APIHandler(s.Context, handlers.HistoryImage)).Methods(http.MethodGet)
-	// swagger:operation GET /images/{nameOrID}/json compat inspectImage
+	// swagger:operation GET /images/{nameOrID}/json compat getImage
 	// ---
 	// tags:
 	//  - images (compat)
@@ -263,7 +263,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//       $ref: "#/responses/NoSuchImage"
 	//   '500':
 	//      $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/images/{name:..*}/json"), APIHandler(s.Context, generic.GetImage))
+	r.Handle(VersionedPath("/images/{name:..*}/json"), APIHandler(s.Context, generic.GetImage)).Methods(http.MethodGet)
 	// swagger:operation POST /images/{nameOrID}/tag compat tagImage
 	// ---
 	// tags:
@@ -297,7 +297,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:..*}/tag"), APIHandler(s.Context, handlers.TagImage)).Methods(http.MethodPost)
-	// swagger:operation POST /commit/ compat commitContainer
+	// swagger:operation POST /commit compat commitContainer
 	// ---
 	// tags:
 	//  - commit (compat)
@@ -346,7 +346,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 		libpod endpoints
 	*/
 
-	// swagger:operation POST /libpod/images/{nameOrID}/exists libpod libpodImageExists
+	// swagger:operation GET /libpod/images/{nameOrID}/exists libpod libpodImageExists
 	// ---
 	// tags:
 	//  - images
@@ -366,9 +366,10 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
 	//      $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/{name:..*}/exists"), APIHandler(s.Context, libpod.ImageExists))
-	r.Handle(VersionedPath("/libpod/images/{name:..*}/tree"), APIHandler(s.Context, libpod.ImageTree))
-	// swagger:operation GET /libpod/images/{nameOrID}/history libpod libpodImageHistory
+	r.Handle(VersionedPath("/libpod/images/{name:..*}/exists"), APIHandler(s.Context, libpod.ImageExists)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/images/{nameOrID}/tree libpod libpodImageTree
+	r.Handle(VersionedPath("/libpod/images/{name:..*}/tree"), APIHandler(s.Context, libpod.ImageTree)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/images/history libpod historyImage
 	// ---
 	// tags:
 	//  - images
@@ -391,7 +392,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/history"), APIHandler(s.Context, handlers.HistoryImage)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/json libpod libpodListImages
+	// swagger:operation GET /libpod/images/json libpod libpodGetImages
 	// ---
 	// tags:
 	//  - images
@@ -405,7 +406,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/json"), APIHandler(s.Context, libpod.GetImages)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/images/load libpod libpodLoadImage
+	// swagger:operation POST /libpod/images/load libpod loadImage
 	// ---
 	// tags:
 	//  - images
@@ -458,7 +459,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/prune"), APIHandler(s.Context, libpod.PruneImages)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/images/search libpod libpodSearchImages
+	// swagger:operation GET /libpod/images/search libpod searchImages
 	// ---
 	// tags:
 	//  - images
@@ -491,7 +492,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/search"), APIHandler(s.Context, handlers.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/images/{nameOrID} libpod libpodRemoveImage
+	// swagger:operation DELETE /libpod/images/{nameOrID} libpod removeImage
 	// ---
 	// tags:
 	//  - images
@@ -518,7 +519,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/images/{nameOrID}/get libpod libpoodExportImage
+	// swagger:operation GET /libpod/images/{nameOrID}/get libpod libpodExportImage
 	// ---
 	// tags:
 	//  - images
@@ -550,7 +551,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   '500':
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/get"), APIHandler(s.Context, libpod.ExportImage)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/images/{nameOrID}/json libpod libpodInspectImage
+	// swagger:operation GET /libpod/images/{nameOrID}/json libpod libpodGetImage
 	// ---
 	// tags:
 	//  - images
@@ -570,8 +571,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//       $ref: '#/responses/NoSuchImage'
 	//   '500':
 	//      $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/{name:..*}/json"), APIHandler(s.Context, libpod.GetImage))
-	// swagger:operation POST /libpod/images/{nameOrID}/tag libpod libpodTagImage
+	r.Handle(VersionedPath("/libpod/images/{name:..*}/json"), APIHandler(s.Context, libpod.GetImage)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/images/{nameOrID}/tag libpod tagImage
 	// ---
 	// tags:
 	//  - images
@@ -605,6 +606,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:..*}/tag"), APIHandler(s.Context, handlers.TagImage)).Methods(http.MethodPost)
 
+	// swagger:operation POST /build compat buildImage
 	r.Handle(VersionedPath("/build"), APIHandler(s.Context, handlers.BuildImage)).Methods(http.MethodPost)
 	return nil
 }
