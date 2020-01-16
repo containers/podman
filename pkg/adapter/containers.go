@@ -1116,7 +1116,11 @@ func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
 	)
 
 	if !c.All {
-		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
+		names := []string{}
+		if len(c.InputArgs) > 1 {
+			names = []string{c.InputArgs[0]}
+		}
+		containers, err = shortcuts.GetContainersByContext(false, c.Latest, names, r.Runtime)
 	} else {
 		containers, err = r.Runtime.GetRunningContainers()
 	}
