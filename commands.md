@@ -73,6 +73,7 @@
 | [podman-rmi(1)](/docs/source/markdown/podman-rmi.1.md)                                   | Removes one or more images                                                 |
 | [podman-run(1)](/docs/source/markdown/podman-run.1.md)                                   | Run a command in a container                                               |
 | [podman-save(1)](/docs/source/markdown/podman-save.1.md)                                 | Saves an image to an archive                                               |
+| [podman-service(1)](/docs/source/markdown/podman-service.1.md)                           | Run an API listening service |
 | [podman-search(1)](/docs/source/markdown/podman-search.1.md)                             | Search a registry for an image                                             |
 | [podman-start(1)](/docs/source/markdown/podman-start.1.md)                               | Starts one or more containers                                              |
 | [podman-stats(1)](/docs/source/markdown/podman-stats.1.md)                               | Display a live stream of one or more containers' resource usage statistics |

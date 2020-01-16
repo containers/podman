@@ -599,6 +599,12 @@ type VarlinkValues struct {
 	Timeout int64
 }
 
+type ServiceValues struct {
+	PodmanCommand
+	Varlink bool
+	Timeout int64
+}
+
 type SetTrustValues struct {
 	PodmanCommand
 	PolicyPath  string

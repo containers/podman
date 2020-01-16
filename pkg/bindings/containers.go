@@ -126,11 +126,11 @@ func (c Connection) ContainerExists(nameOrID string) (bool, error) {
 	return false, nil
 }
 
-func (c Connection) StopContainer(nameOrID string, timeout int) error {
-	// TODO we might need to distinguish whether a timeout is desired; a zero, the int
-	// zero value is valid; what do folks want to do?
+func (c Connection) StopContainer(nameOrID string, timeout *int) error {
 	params := make(map[string]string)
-	params["t"] = strconv.Itoa(timeout)
+	if timeout != nil {
+		params["t"] = strconv.Itoa(*timeout)
+	}
 	response, err := c.newRequest(http.MethodPost, fmt.Sprintf("/containers/%s/stop", nameOrID), nil, params)
 	if err != nil {
 		return err

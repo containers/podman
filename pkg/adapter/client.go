@@ -57,7 +57,7 @@ func (r RemoteRuntime) RemoteEndpoint() (remoteEndpoint *Endpoint, err error) {
 		//	last resort is to make a socket connection with the default varlink address for root user
 	} else {
 		logrus.Debug("creating a varlink address based default root address")
-		remoteEndpoint, err = newSocketConnection(DefaultAddress)
+		remoteEndpoint, err = newSocketConnection(DefaultVarlinkAddress)
 	}
 	return
 }

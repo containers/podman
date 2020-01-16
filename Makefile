@@ -199,14 +199,6 @@ bin/podman.cross.%: .gopathok
 	GOARCH="$${TARGET##*.}" \
 	$(GO_BUILD) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags '$(BUILDTAGS_CROSS)' -o "$@" $(PROJECT)/cmd/podman
 
-.PHONY: service
-service: .gopathok
-	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o bin/$@ $(PROJECT)/cmd/service
-
-.PHONY:
-run-service:
-	systemd-socket-activate -l 8080 ./bin/service
-
 .PHONY: run-docker-py-tests
 run-docker-py-tests:
 	$(eval testLogs=$(shell mktemp))
@@ -328,7 +320,7 @@ system.test-binary: .install.ginkgo
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman podman-remote service ## Build podman
+binaries: varlink_generate podman podman-remote ## Build podman
 
 install.catatonit:
 	./hack/install_catatonit.sh

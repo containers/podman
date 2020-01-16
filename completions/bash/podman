@@ -1755,6 +1755,19 @@ _podman_search() {
 	_complete_ "$options_with_args" "$boolean_options"
 }
 
+_podman_service() {
+	local options_with_args="
+	-t
+	--timeout
+	"
+	local boolean_options="
+	      --help
+	      -h
+	      --varlink
+	"
+	_complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_unmount() {
     _podman_umount $@
 }

@@ -191,6 +191,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-rmi(1)](podman-rmi.1.md)                 | Removes one or more locally stored images.                                  |
 | [podman-run(1)](podman-run.1.md)                 | Run a command in a new container.                                           |
 | [podman-save(1)](podman-save.1.md)               | Save an image to a container archive.                                       |
+| [podman-service(1)](podman-service.1.md)           |  Run an API service                                          |
 | [podman-search(1)](podman-search.1.md)           | Search a registry for an image.                                             |
 | [podman-start(1)](podman-start.1.md)             | Start one or more containers.                                               |
 | [podman-stats(1)](podman-stats.1.md)             | Display a live stream of one or more container's resource usage statistics. |

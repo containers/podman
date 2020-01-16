@@ -640,29 +640,29 @@ verify_test_built_images_task:
     always:
         <<: *standardlogs
 
-upload_snap_task:
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-
-    # Only when PR or branch is merged into master
-
-    depends_on:
-        - "test_building_snap"
-
-    container:
-        image: yakshaveinc/snapcraft:core18
-
-    env:
-        SNAPCRAFT_LOGIN: ENCRYPTED[d8e82eb31c6372fec07f405f413d57806026b1a9f8400033531ebcd54d6750a5e4a8b1f68e3ec65c98c65e0d9b2a6a75]
-    snapcraft_login_file:
-        path: /root/.snapcraft/login.cfg
-        variable_name: SNAPCRAFT_LOGIN
-    snapcraft_script:
-        - 'apt-get -y update'
-        - 'snapcraft login --with "/root/.snapcraft/login.cfg"'
-        - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
+        #upload_snap_task:
+        #    only_if: >-
+        #        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        #        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        #        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+        #
+        #    # Only when PR or branch is merged into master
+        #
+        #    depends_on:
+        #        - "test_building_snap"
+        #
+        #    container:
+        #        image: yakshaveinc/snapcraft:core18
+        #
+        #    env:
+        #        SNAPCRAFT_LOGIN: ENCRYPTED[d8e82eb31c6372fec07f405f413d57806026b1a9f8400033531ebcd54d6750a5e4a8b1f68e3ec65c98c65e0d9b2a6a75]
+        #    snapcraft_login_file:
+        #        path: /root/.snapcraft/login.cfg
+        #        variable_name: SNAPCRAFT_LOGIN
+        #    snapcraft_script:
+        #        - 'apt-get -y update'
+        #        - 'snapcraft login --with "/root/.snapcraft/login.cfg"'
+        #        - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
 
 
 docs_task:
@@ -705,7 +705,6 @@ success_task:
         - "special_testing_endpoint"
         - "test_build_cache_images"
         - "test_building_snap"
-        - "upload_snap"
         - "verify_test_built_images"
         - "docs"
 
