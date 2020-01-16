@@ -428,6 +428,91 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name:..*}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{nameOrID}/attach compat attach
+	// ---
+	// tags:
+	//   - containers (compat)
+	// summary: Attach to a container
+	// description: Hijacks the connection to forward the container's standard streams to the client.
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: detachKeys
+	//    required: false
+	//    type: string
+	//    description: keys to use for detaching from the container
+	//  - in: query
+	//    name: logs
+	//    required: false
+	//    type: bool
+	//    description: Not yet supported
+	//  - in: query
+	//    name: stream
+	//    required: false
+	//    type: bool
+	//    default: true
+	//    description: If passed, must be set to true; stream=false is not yet supported
+	//  - in: query
+	//    name: stdout
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDOUT
+	//  - in: query
+	//    name: stderr
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDERR
+	//  - in: query
+	//    name: stdin
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDIN
+	// produces:
+	// - application/json
+	// responses:
+	//   '101':
+	//     description: No error, connection has been hijacked for transporting streams.
+	//   '400':
+	//       "$ref": "#/responses/BadParamError"
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//       "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name:..*}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{nameOrID}/resize compat resize
+	// ---
+	// tags:
+	//  - containers (compat)
+	// summary: Resize a container's TTY
+	// description: Resize the terminal attached to a container (for use with Attach).
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: h
+	//    type: int
+	//    required: false
+	//    description: Height to set for the terminal, in characters
+	//  - in: query
+	//    name: w
+	//    type: int
+	//    required: false
+	//    description: Width to set for the terminal, in characters
+	// produces:
+	// - application/json
+	// responses:
+	//   '200':
+	//        description: no error
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//       "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name:..*}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
 
 	/*
 		libpod endpoints
@@ -823,5 +908,90 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{nameOrID}/attach libpod attach
+	// ---
+	// tags:
+	//   - containers
+	// summary: Attach to a container
+	// description: Hijacks the connection to forward the container's standard streams to the client.
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: detachKeys
+	//    required: false
+	//    type: string
+	//    description: keys to use for detaching from the container
+	//  - in: query
+	//    name: logs
+	//    required: false
+	//    type: bool
+	//    description: Not yet supported
+	//  - in: query
+	//    name: stream
+	//    required: false
+	//    type: bool
+	//    default: true
+	//    description: If passed, must be set to true; stream=false is not yet supported
+	//  - in: query
+	//    name: stdout
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDOUT
+	//  - in: query
+	//    name: stderr
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDERR
+	//  - in: query
+	//    name: stdin
+	//    required: false
+	//    type: bool
+	//    description: Attach to container STDIN
+	// produces:
+	// - application/json
+	// responses:
+	//   '101':
+	//     description: No error, connection has been hijacked for transporting streams.
+	//   '400':
+	//       "$ref": "#/responses/BadParamError"
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//       "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{nameOrID}/resize libpod resize
+	// ---
+	// tags:
+	//  - containers
+	// summary: Resize a container's TTY
+	// description: Resize the terminal attached to a container (for use with Attach).
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: h
+	//    type: int
+	//    required: false
+	//    description: Height to set for the terminal, in characters
+	//  - in: query
+	//    name: w
+	//    type: int
+	//    required: false
+	//    description: Width to set for the terminal, in characters
+	// produces:
+	// - application/json
+	// responses:
+	//   '200':
+	//        description: no error
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//       "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
 	return nil
 }

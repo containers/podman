@@ -1,6 +1,9 @@
 package libpod
 
 import (
+	"bufio"
+	"net"
+
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -46,6 +49,23 @@ type OCIRuntime interface {
 	PauseContainer(ctr *Container) error
 	// UnpauseContainer unpauses the given container.
 	UnpauseContainer(ctr *Container) error
+
+	// HTTPAttach performs an attach intended to be transported over HTTP.
+	// For terminal attach, the container's output will be directly streamed
+	// to output; otherwise, STDOUT and STDERR will be multiplexed, with
+	// a header prepended as follows: 1-byte STREAM (0, 1, 2 for STDIN,
+	// STDOUT, STDERR), 3 null (0x00) bytes, 4-byte big endian length.
+	// If a cancel channel is provided, it can be used to asyncronously
+	// termninate the attach session. Detach keys, if given, will also cause
+	// the attach session to be terminated if provided via the STDIN
+	// channel. If they are not provided, the default detach keys will be
+	// used instead. Detach keys of "" will disable detaching via keyboard.
+	// The streams parameter may be passed for containers that did not
+	// create a terminal and will determine which streams to forward to the
+	// client.
+	HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf *bufio.ReadWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool) error
+	// AttachResize resizes the terminal in use by the given container.
+	AttachResize(ctr *Container, newSize remotecommand.TerminalSize) error
 
 	// ExecContainer executes a command in a running container.
 	// Returns an int (exit code), error channel (errors from attach), and
@@ -129,4 +149,13 @@ type ExecOptions struct {
 	// DetachKeys is a set of keys that, when pressed in sequence, will
 	// detach from the container.
 	DetachKeys string
+}
+
+// HTTPAttachStreams informs the HTTPAttach endpoint which of the container's
+// standard streams should be streamed to the client. If this is passed, at
+// least one of the streams must be set to true.
+type HTTPAttachStreams struct {
+	Stdin  bool
+	Stdout bool
+	Stderr bool
 }
