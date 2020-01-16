@@ -36,6 +36,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/libpod/libpod"
@@ -43,7 +44,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 type APIServer struct {
@@ -67,9 +68,6 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		return nil, errors.Errorf("Wrong number of file descriptors from systemd for socket activation (%d != 1)", len(listeners))
 	}
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit)
-
 	router := mux.NewRouter()
 
 	server := APIServer{
@@ -88,7 +86,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 	}
 	server.Timer = time.AfterFunc(server.Duration, func() {
 		if err := server.Shutdown(); err != nil {
-			log.Errorf("unable to shutdown server: %q", err)
+			logrus.Errorf("unable to shutdown server: %q", err)
 		}
 	})
 
@@ -106,7 +104,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 	router.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// We can track user errors...
-			log.Infof("Failed Request: (%d:%s) for %s:'%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.Method, r.URL.String())
+			logrus.Infof("Failed Request: (%d:%s) for %s:'%s'", http.StatusNotFound, http.StatusText(http.StatusNotFound), r.Method, r.URL.String())
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		},
 	)
@@ -132,7 +130,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		}
 	}
 
-	if log.IsLevelEnabled(log.DebugLevel) {
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error { // nolint
 			path, err := route.GetPathTemplate()
 			if err != nil {
@@ -142,7 +140,7 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 			if err != nil {
 				methods = []string{}
 			}
-			log.Debugf("Methods: %s Path: %s", strings.Join(methods, ", "), path)
+			logrus.Debugf("Methods: %s Path: %s", strings.Join(methods, ", "), path)
 			return nil
 		})
 	}
@@ -154,9 +152,23 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 func (s *APIServer) Serve() error {
 	defer s.CancelFunc()
 
-	err := s.Server.Serve(s.Listener)
-	if err != nil && err != http.ErrServerClosed {
-		return errors.Wrap(err, "Failed to start APIServer")
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	errChan := make(chan error, 1)
+
+	go func() {
+		err := s.Server.Serve(s.Listener)
+		if err != nil && err != http.ErrServerClosed {
+			errChan <- errors.Wrap(err, "Failed to start APIServer")
+		}
+		errChan <- nil
+	}()
+
+	select {
+	case err := <-errChan:
+		return err
+	case sig := <-sigChan:
+		logrus.Info("APIServer terminated by signal %v", sig)
 	}
 
 	return nil
@@ -174,7 +186,7 @@ func (s *APIServer) Shutdown() error {
 	go func() {
 		err := s.Server.Shutdown(s.Context)
 		if err != nil && err != context.Canceled {
-			log.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
+			logrus.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
 		}
 	}()
 
