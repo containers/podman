@@ -96,8 +96,8 @@ Restart={{.RestartPolicy}}
 {{- if .New}}
 ExecStartPre=/usr/bin/rm -f /%t/%n-pid /%t/%n-cid
 ExecStart={{.RunCommand}}
-ExecStop={{.Executable}} stop --cidfile /%t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
-ExecStopPost={{.Executable}} rm -f --cidfile /%t/%n-cid
+ExecStop={{.Executable}} stop --ignore --cidfile /%t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
+ExecStopPost={{.Executable}} rm --ignore -f --cidfile /%t/%n-cid
 PIDFile=/%t/%n-pid
 {{- else}}
 ExecStart={{.Executable}} start {{.ContainerName}}
