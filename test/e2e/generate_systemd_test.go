@@ -191,7 +191,7 @@ var _ = Describe("Podman generate systemd", func() {
 		found, _ := session.GrepString("# container-foo.service")
 		Expect(found).To(BeTrue())
 
-		found, _ = session.GrepString("stop --cidfile /%t/%n-cid -t 42")
+		found, _ = session.GrepString("stop --ignore --cidfile /%t/%n-cid -t 42")
 		Expect(found).To(BeTrue())
 	})
 
