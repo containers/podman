@@ -322,7 +322,7 @@ system.test-binary: .install.ginkgo
 vagrant-check:
 	BOX=$(BOX) sh ./vagrant.sh
 
-binaries: varlink_generate podman podman-remote  ## Build podman
+binaries: varlink_generate podman podman-remote service ## Build podman
 
 install.catatonit:
 	./hack/install_catatonit.sh
