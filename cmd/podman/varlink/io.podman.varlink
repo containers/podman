@@ -350,7 +350,6 @@ type Create (
     memorySwap: ?string,
     memorySwappiness: ?int,
     name: ?string,
-    net: ?string,
     network: ?string,
     noHosts: ?bool,
     oomKillDisable: ?bool,

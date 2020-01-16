@@ -376,10 +376,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Assign a name to the container",
 	)
 	createFlags.String(
-		"net", getDefaultNetwork(),
-		"Connect a container to a network",
-	)
-	createFlags.String(
 		"network", getDefaultNetwork(),
 		"Connect a container to a network",
 	)

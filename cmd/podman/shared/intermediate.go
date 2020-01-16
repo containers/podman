@@ -423,7 +423,6 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["memory-swap"] = newCRString(c, "memory-swap")
 	m["memory-swappiness"] = newCRInt64(c, "memory-swappiness")
 	m["name"] = newCRString(c, "name")
-	m["net"] = newCRString(c, "net")
 	m["network"] = newCRString(c, "network")
 	m["no-hosts"] = newCRBool(c, "no-hosts")
 	m["oom-kill-disable"] = newCRBool(c, "oom-kill-disable")

@@ -25,7 +25,7 @@ var (
 			return runCmd(&runCommand)
 		},
 		Example: `podman run imageID ls -alF /etc
-  podman run --net=host imageID dnf -y install java
+  podman run --network=host imageID dnf -y install java
   podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 )
