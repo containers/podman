@@ -168,7 +168,7 @@ func (s *APIServer) Serve() error {
 	case err := <-errChan:
 		return err
 	case sig := <-sigChan:
-		logrus.Info("APIServer terminated by signal %v", sig)
+		logrus.Infof("APIServer terminated by signal %v", sig)
 	}
 
 	return nil
