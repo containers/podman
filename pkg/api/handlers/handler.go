@@ -36,11 +36,11 @@ func getRuntime(r *http.Request) *libpod.Runtime {
 	return r.Context().Value("runtime").(*libpod.Runtime)
 }
 
-func getHeader(r *http.Request, k string) string {
-	return r.Header.Get(k)
-}
-
-func hasHeader(r *http.Request, k string) bool {
-	_, found := r.Header[k]
-	return found
-}
+// func getHeader(r *http.Request, k string) string {
+// 	return r.Header.Get(k)
+// }
+//
+// func hasHeader(r *http.Request, k string) bool {
+// 	_, found := r.Header[k]
+// 	return found
+// }
