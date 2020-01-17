@@ -4,7 +4,7 @@ set -e
 
 source /usr/local/bin/lib_entrypoint.sh
 
-req_env_var GCPJSON_FILEPATH GCPNAME GCPPROJECT BUCKET FROM_FILEPATH TO_FILENAME ALSO_FILENAME
+req_env_var GCPJSON_FILEPATH GCPNAME GCPPROJECT BUCKET FROM_FILEPATH TO_FILENAME
 
 [[ -r "$FROM_FILEPATH" ]] || \
     die 2 ERROR Cannot read release archive file: "$FROM_FILEPATH"
