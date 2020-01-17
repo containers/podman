@@ -4,14 +4,15 @@
 podman\-tag - Add an additional name to a local image
 
 ## SYNOPSIS
-**podman tag** *image*[:*tag*] *target-name*[:*tag*] [*options*]
+**podman tag** *image*[:*tag*] [*target-name*[:*tag*]...] [*options*]
 
-**podman image tag** *image*[:*tag*] *target-name*[:*tag*] [*options*]
+**podman image tag** *image*[:*tag*] [*target-name*[:*tag*]...] [*options*]
 
 ## DESCRIPTION
-Assigns a new alias to an image.  An alias refers to the entire image name, including the optional
-*tag* after the `:`.  If you do not provide *tag*, podman will default to `latest` for both
-the *image* and the *target-name*.
+Assigns a new image name to an existing image.  A full name refers to the entire
+image name, including the optional *tag* after the `:`.  If there is no *tag*
+provided, then podman will default to `latest` for both the *image* and the
+*target-name*.
 
 ## OPTIONS
 
@@ -32,4 +33,5 @@ $ podman tag httpd myregistryhost:5000/fedora/httpd:v2
 podman(1)
 
 ## HISTORY
+December 2019, Update description to refer to 'name' instead of 'alias' by Sascha Grunert <sgrunert@suse.com>
 July 2017, Originally compiled by Ryan Cole <rycole@redhat.com>

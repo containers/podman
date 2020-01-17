@@ -12,7 +12,7 @@ var (
 
 	tagDescription = "Adds one or more additional names to locally-stored image."
 	_tagCommand    = &cobra.Command{
-		Use:   "tag [flags] IMAGE TAG [TAG...]",
+		Use:   "tag [flags] IMAGE TARGET_NAME [TARGET_NAME...]",
 		Short: "Add an additional name to a local image",
 		Long:  tagDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -51,7 +51,7 @@ func tagCmd(c *cliconfig.TagValues) error {
 
 	for _, tagName := range args[1:] {
 		if err := newImage.TagImage(tagName); err != nil {
-			return errors.Wrapf(err, "error adding '%s' to image %q", tagName, newImage.InputName)
+			return errors.Wrapf(err, "error adding %q to image %q", tagName, newImage.InputName)
 		}
 	}
 	return nil
