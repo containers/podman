@@ -1,0 +1,29 @@
+# -*- sh -*-
+#
+# test container-related endpoints
+#
+
+podman pull $IMAGE &>/dev/null
+
+# Unimplemented
+#t POST libpod/containers/create '' 201 'sdf'
+
+# Ensure clean slate
+podman rm -a -f &>/dev/null
+
+t GET libpod/containers/json 200 []
+
+podman run $IMAGE true
+
+t GET libpod/containers/json 200 \
+  .[0].ID~[0-9a-f]\\{12\\} \
+  .[0].Image=$IMAGE \
+  .[0].Command=true \
+  .[0].State=4 \
+  .[0].IsInfra=false
+
+cid=$(jq -r '.[0].ID' <<<"$output")
+
+t DELETE libpod/containers/$cid 204
+
+# vim: filetype=sh
