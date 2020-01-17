@@ -660,24 +660,17 @@ upload_snap_task:
         - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
 
 
-test_docs_task:
+docs_task:
 
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*'
+    # Only run this for PRs on mention, but always run after merge
+    only_if: $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*' || $CIRRUS_BRANCH == $DEST_BRANCH
+
     depends_on:
         - "gating"
-        - "vendor"
-          #- "test_docs"
-          #- "varlink_api"
-          #- "build_each_commit"
-    stub_script: '/bin/true'
 
-
-#publish_docs_task:
-#
-#    only_if: $CIRRUS_BRANCH == $DEST_BRANCH &&
-#             $CIRRUS_TAG =~ '^v[0-9]\.[0-9]\.[0-9]$'
+    script:
+        - "$SCRIPT_BASE/build_swagger.sh |& ${TIMESTAMP}"
+        - "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
 
 
 # Post message to IRC if everything passed PR testing
@@ -706,7 +699,7 @@ success_task:
         - "test_building_snap"
         - "upload_snap"
         - "verify_test_built_images"
-        - "test_docs"
+        - "docs"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
