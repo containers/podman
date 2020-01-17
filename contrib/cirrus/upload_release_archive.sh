@@ -62,7 +62,7 @@ echo "$RELEASE_GCPJSON" > "$TMPF"
 unset RELEASE_GCPJSON
 
 cd $GOSRC
-for filename in $(ls -1 *.tar.gz *.zip *.msi)
+for filename in $(ls -1 *.tar.gz *.zip *.msi *.yaml)
 do
     unset EXT
     EXT=$(echo "$filename" | sed -r -e 's/.+\.(.+$)/\1/g')

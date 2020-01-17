@@ -671,14 +671,19 @@ test_docs_task:
           #- "test_docs"
           #- "varlink_api"
           #- "build_each_commit"
+        - make swagger
     stub_script: '/bin/true'
 
 
 #publish_docs_task:
-#
-#    only_if: $CIRRUS_BRANCH == $DEST_BRANCH &&
-#             $CIRRUS_TAG =~ '^v[0-9]\.[0-9]\.[0-9]$'
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*'
 
+    depends_on:
+        - "test_docs"
+
+    script: "$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}"
 
 # Post message to IRC if everything passed PR testing
 success_task:
@@ -707,6 +712,7 @@ success_task:
         - "upload_snap"
         - "verify_test_built_images"
         - "test_docs"
+        - "publish_docs_task"
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
