@@ -15,11 +15,13 @@ parts:
   podman:
     plugin: make
     source: ../..
+    build-snaps:
+     - go/1.13/stable
     build-packages:
      # https://github.com/containers/libpod/blob/master/install.md#build-and-run-dependencies
      - btrfs-tools
      - git
-     - golang-go
+     #- golang-go
      - go-md2man
      - iptables
      - libassuan-dev
