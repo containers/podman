@@ -19,8 +19,8 @@ then
     BUCKET="libpod-pr-releases"
 elif [[ -n "$CIRRUS_BRANCH" ]]
 then
-    # Only release non-development tagged commit ranges
-    if is_release
+    # Only release binaries for tagged commit ranges, unless working on docs
+    if is_release || [[ $CIRRUS_TASK_NAME =~ "docs" ]]
     then
         PR_OR_BRANCH="$CIRRUS_BRANCH"
         BUCKET="libpod-$CIRRUS_BRANCH-releases"
