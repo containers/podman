@@ -788,11 +788,13 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/{nameOrID}/top containers topContainer
+	// swagger:operation GET /libpod/containers/{nameOrID}/top libpod libpodTopContainer
 	//
 	// List processes running inside a container. Note
 	//
 	// ---
+	// tags:
+	//  - containers
 	// parameters:
 	//  - in: path
 	//    name: nameOrID
@@ -810,7 +812,6 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     description: no error
 	//       "ref": "#/responses/DockerTopResponse"
 	//   '404':
 	//       "$ref": "#/responses/NoSuchContainer"

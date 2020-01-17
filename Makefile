@@ -212,6 +212,12 @@ run-docker-py-tests:
 	$(eval testLogs=$(shell mktemp))
 	./bin/podman run --rm --security-opt label=disable --privileged -v $(testLogs):/testLogs --net=host -e DOCKER_HOST=tcp://localhost:8080 $(DOCKERPY_IMAGE) sh -c "pytest $(DOCKERPY_TEST) "
 
+pkg/api/swagger.yaml: .gopathok release.txt
+	make -C pkg/api
+
+.PHONY: swagger
+swagger: pkg/api/swagger.yaml
+
 clean: ## Clean artifacts
 	rm -rf \
 		.gopathok \
