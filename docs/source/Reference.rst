@@ -1,4 +1,4 @@
 Reference
 =========
 
-Check out our new `API documentation <api.html>`_
+Check out our new `API documentation <_static/api.html>`_
