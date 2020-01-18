@@ -9,6 +9,7 @@ CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
 PROJECT := github.com/containers/libpod
 GIT_BASE_BRANCH ?= origin/master
+VERSION ?= $(shell git describe HEAD 2>/dev/null)
 GIT_BRANCH ?= $(shell git rev-parse --abbrev-ref HEAD 2>/dev/null)
 GIT_BRANCH_CLEAN ?= $(shell echo $(GIT_BRANCH) | sed -e "s/[^[:alnum:]]/-/g")
 LIBPOD_IMAGE ?= libpod_dev$(if $(GIT_BRANCH_CLEAN),:$(GIT_BRANCH_CLEAN))
@@ -89,7 +90,7 @@ LIBSECCOMP_COMMIT := v2.3.3
 GINKGOTIMEOUT ?= -timeout=90m
 
 RELEASE_VERSION ?= $(shell hack/get_release_info.sh VERSION)
-RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER|sed -e 's/^v\(.*\)/\1/')
+RELEASE_NUMBER ?= $(shell hack/get_release_info.sh NUMBER)
 RELEASE_DIST ?= $(shell hack/get_release_info.sh DIST)
 RELEASE_DIST_VER ?= $(shell hack/get_release_info.sh DIST_VER)
 RELEASE_ARCH ?= $(shell hack/get_release_info.sh ARCH)

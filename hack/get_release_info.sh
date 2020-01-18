@@ -19,10 +19,16 @@ unset OUTPUT
 case "$1" in
     # Wild-card suffix needed by valid_args() e.g. possible bad grep of "$(echo $FOO)"
     VERSION*)
-        OUTPUT="${CIRRUS_TAG:-$(git fetch --tags && git describe HEAD 2> /dev/null)}"
+        # v1.7.0-152-g9be6430
+        OUTPUT="${CIRRUS_TAG:-$VERSION}"
+        ;;
+    TAG*)
+        # v1.7.0
+        OUTPUT="$($0 VERSION | sed 's/-.*//')"
         ;;
     NUMBER*)
-        OUTPUT="$($0 VERSION | sed 's/-.*//')"
+        # 1.7.0
+        OUTPUT="$($0 TAG | sed -e 's/^v\(.*\)/\1/')"
         ;;
     DIST_VER*)
         OUTPUT="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
