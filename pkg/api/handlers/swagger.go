@@ -30,9 +30,7 @@ type swagImageInspect struct {
 // swagger:response DocsImageDeleteResponse
 type swagImageDeleteResponse struct {
 	// in:body
-	Body struct {
-		image.ImageDeleteResponse
-	}
+	Body []image.ImageDeleteResponse
 }
 
 // Search results

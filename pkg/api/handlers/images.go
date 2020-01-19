@@ -74,8 +74,25 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func RemoveImage(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
+	query := struct {
+		noPrune bool
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	muxVars := mux.Vars(r)
+	if _, found := muxVars["noprune"]; found {
+		if query.noPrune {
+			utils.UnSupportedParameter("noprune")
+		}
+	}
 	name := mux.Vars(r)["name"]
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {

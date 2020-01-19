@@ -143,6 +143,22 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func UnmountContainer(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := mux.Vars(r)["name"]
+	conn, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	// TODO In future it might be an improvement that libpod unmount return a
+	// "container not mounted" error so we can surface that to the endpoint user
+	if err := conn.Unmount(false); err != nil {
+		utils.InternalServerError(w, err)
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+
+}
 func MountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]

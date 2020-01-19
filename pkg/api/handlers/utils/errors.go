@@ -86,3 +86,8 @@ func (e ErrorModel) Error() string {
 func (e ErrorModel) Cause() error {
 	return errors.New(e.Because)
 }
+
+// UnsupportedParameter logs a given param by its string name as not supported.
+func UnSupportedParameter(param string) {
+	log.Infof("API parameter %q: not supported", param)
+}

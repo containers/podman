@@ -665,7 +665,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/kill"), APIHandler(s.Context, libpod.KillContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/{nameOrID}/mount libpod mountContainer
+	// swagger:operation POST /libpod/containers/{nameOrID}/mount libpod mountContainer
 	// ---
 	// tags:
 	//  - containers
@@ -684,12 +684,33 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     schema:
 	//      description: id
 	//      type: string
-	//      example: 3c784de79b791b4ebd3ac55e511f97fedc042328499554937a3f8bfd9c1a2cb8
+	//      example: /var/lib/containers/storage/overlay/f3f693bd88872a1e3193f4ebb925f4c282e8e73aadb8ab3e7492754dda3a02a4/merged
 	//   '404':
 	//       "$ref": "#/responses/NoSuchContainer"
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/mount"), APIHandler(s.Context, libpod.MountContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/containers/{nameOrID}/unmount libpod unmountContainer
+	// ---
+	// tags:
+	//  - containers
+	// summary: Unmount a container
+	// description: Unmount a container from the filesystem
+	// parameters:
+	//  - in: path
+	//    name: nameOrID
+	//    required: true
+	//    description: the name or ID of the container
+	// produces:
+	// - application/json
+	// responses:
+	//   '204':
+	//     description: no error
+	//   '404':
+	//       "$ref": "#/responses/NoSuchContainer"
+	//   '500':
+	//      "$ref": "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/unmount"), APIHandler(s.Context, libpod.UnmountContainer)).Methods(http.MethodPost)
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/logs"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{nameOrID}/pause libpod libpodPauseContainer
 	// ---

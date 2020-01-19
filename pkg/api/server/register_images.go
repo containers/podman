@@ -193,8 +193,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   '200':
 	//       $ref: "#/responses/DocsImageDeleteResponse"
-	//   '400':
-	//       $ref: '#/responses/BadParamError'
+	//   '404':
+	//       $ref: '#/responses/NoSuchImage'
 	//   '409':
 	//       $ref: '#/responses/ConflictError'
 	//   '500':
@@ -506,11 +506,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//     schema:
-	//     items:
-	//       $ref: "#/responses/DocsIageDeleteResponse"
-	//   '400':
-	//       $ref: "#/responses/BadParamError"
+	//       $ref: "#/responses/DocsImageDeleteResponse"
 	//   '404':
 	//       $ref: '#/responses/NoSuchImage'
 	//   '409':
@@ -533,10 +529,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: format
 	//    type: string
 	//    description: format for exported image
+	//    default: oci-archive
 	//  - in: query
 	//    name: compress
 	//    type: bool
 	//    description: use compression on image
+	//    default: false
 	// produces:
 	// - application/json
 	// responses:
