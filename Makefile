@@ -536,7 +536,7 @@ validate.completions: completions/bash/podman
 	. completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 
-validate: gofmt .gitvalidation validate.completions golangci-lint man-page-check
+validate: lint gofmt .gitvalidation validate.completions golangci-lint man-page-check
 
 build-all-new-commits:
 	# Validate that all the commits build on top of $(GIT_BASE_BRANCH)

@@ -163,8 +163,7 @@ show_env_vars() {
     _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
         egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
         sort -u)
-    for _env_var_name in $_ENV_VAR_NAMES
-    do
+    for _env_var_name in $_ENV_VAR_NAMES; do
         # Supports older BASH versions
         printf "    ${_env_var_name}=%q\n" "$(printenv $_env_var_name)"
     done
@@ -199,8 +198,7 @@ timeout_attempt_delay_command() {
     STDOUTERR=$(mktemp -p '' $(basename $0)_XXXXX)
     req_env_var ATTEMPTS DELAY
     echo "Retrying $ATTEMPTS times with a $DELAY delay, and $TIMEOUT timeout for command: $@"
-    for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
-    do
+    for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ )); do
         echo "##### (attempt #$COUNT)" &>> "$STDOUTERR"
         if timeout --foreground $TIMEOUT "$@" &>> "$STDOUTERR"
         then
@@ -326,8 +324,7 @@ setup_rootless() {
         egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
         egrep "$ROOTLESS_ENV_RE" | \
         sort -u)
-    for _env_var_name in $_ENV_VAR_NAMES
-    do
+    for _env_var_name in $_ENV_VAR_NAMES; do
         # Works with older versions of bash
         printf "${_env_var_name}=%q\n" "$(printenv $_env_var_name)" >> "/home/$ROOTLESS_USER/.bashrc"
     done
@@ -336,8 +333,7 @@ setup_rootless() {
     systemctl start sshd
     NOW=$(date +%s)
     TIMEOUT=$(date --date '+5 minutes' +%s)
-    while [[ "$(date +%s)" -lt "$TIMEOUT" ]]
-    do
+    while [[ "$(date +%s)" -lt "$TIMEOUT" ]]; do
         if timeout --foreground -k 1s 1s \
             ssh $ROOTLESS_USER@localhost \
             -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \
@@ -398,10 +394,8 @@ remove_packaged_podman_files() {
     req_env_var OS_RELEASE_ID
 
     # If any binaries are resident they could cause unexpected pollution
-    for unit in io.podman.service io.podman.socket
-    do
-        for state in enabled active
-        do
+    for unit in io.podman.service io.podman.socket; do
+        for state in enabled active; do
             if systemctl --quiet is-$state $unit
             then
                 echo "Warning: $unit found $state prior to packaged-file removal"

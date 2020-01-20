@@ -15,8 +15,7 @@ then
 fi
 
 echo "Disabling periodic services that could destabilize testing:"
-for unit in $EVIL_UNITS
-do
+for unit in $EVIL_UNITS; do
     echo "Banishing $unit (ignoring errors)"
     (
         sudo systemctl stop $unit

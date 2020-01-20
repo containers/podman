@@ -64,8 +64,7 @@ echo "$RELEASE_GCPJSON" > "$TMPF"
 unset RELEASE_GCPJSON
 
 cd $GOSRC
-for filename in $(ls -1 *.tar.gz *.zip *.msi $SWAGGER_FILEPATH)
-do
+for filename in $(ls -1 *.tar.gz *.zip *.msi $SWAGGER_FILEPATH); do
     unset EXT
     EXT=$(echo "$filename" | sed -r -e 's/.+\.(.+$)/\1/g')
     if [[ -z "$EXT" ]] || [[ "$EXT" == "$filename" ]]

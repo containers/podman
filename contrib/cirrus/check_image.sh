@@ -43,8 +43,7 @@ do
         "$(systemctl list-unit-files --no-legend $REQ_UNIT)" = "$REQ_UNIT enabled" || let "NFAILS+=1"
 done
 
-for evil_unit in $EVIL_UNITS
-do
+for evil_unit in $EVIL_UNITS; do
     # Exits zero if any unit matching pattern is running
     unit_status=$(systemctl is-active $evil_unit &> /dev/null; echo $?)
     item_test "No $evil_unit unit is present or active:" "$unit_status" -ne "0" || let "NFAILS+=1"

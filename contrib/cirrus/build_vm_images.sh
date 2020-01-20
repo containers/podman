@@ -28,8 +28,7 @@ cd "$GOSRC/$PACKER_BASE"
 # Add/update labels on base-images used in this build to prevent premature deletion
 ARGS="
 "
-for base_image_var in $BASE_IMAGE_VARS
-do
+for base_image_var in $BASE_IMAGE_VARS; do
     # See entrypoint.sh in contrib/imgts and contrib/imgprune
     # These updates can take a while, run them in the background, check later
     gcloud compute images update \

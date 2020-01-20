@@ -15,8 +15,7 @@ ARGS="
     --update-labels=project=$GCPPROJECT
 "
 
-for image in $IMGNAMES
-do
+for image in $IMGNAMES; do
     $GCLOUD compute images update "$image" $ARGS &
 done
 

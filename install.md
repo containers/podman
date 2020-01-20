@@ -90,7 +90,7 @@ Built-in, no need to install
 #### [Raspbian](https://raspbian.org)
 
 The Kubic project provides packages for Raspbian 10.
- 
+
 ```bash
 # Raspbian 10
 echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
@@ -187,7 +187,7 @@ with our [COPR repository](https://copr.fedorainfracloud.org/coprs/baude/Upstrea
 #### [Raspbian](https://raspbian.org)
 
 The Kubic project provides RC/testing packages for Raspbian 10.
- 
+
 ```bash
 # Raspbian 10
 echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:testing.list

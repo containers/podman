@@ -10,3 +10,22 @@ repos:
       - id: check-byte-order-marker
       - id: check-executables-have-shebangs
       - id: check-merge-conflict
+  - repo: https://github.com/openstack-dev/bashate.git
+    rev: "0.6.0"
+    hooks:
+      - id: bashate
+        entry: bashate --error . --ignore=E003,E002,E006,E011,E020,E041,E042
+        # Run bashate check for all bash scripts
+        # Ignores the following rules:
+        # E006: Line longer than 79 columns (as many scripts use jinja
+        #       templating, this is very difficult)
+        # E040: Syntax error determined using `bash -n` (as many scripts
+        #       use jinja templating, this will often fail and the syntax
+        #       error will be discovered in execution anyway)
+        # TODO(ssbarnea): remove temporary skips made during adoption:
+        # E002 Tab indents
+        # E010 The "do" should be on same line as for
+        # E011 Then keyword is not on same line as if or elif keyword
+        # E020 Function declaration not in format ^function name {$
+        # E041 Arithmetic expansion using $[ is deprecated for $((
+        # E042 local declaration hides errors

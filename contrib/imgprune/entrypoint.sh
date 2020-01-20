@@ -12,8 +12,7 @@ LIB="$CIRRUS_WORKING_DIR/$SCRIPT_BASE/lib.sh"
 if [[ "$CI" == "true" ]] && [[ -r "$LIB" ]]
 then
     # Avoid importing anything that might conflict
-    for env in $(sed -ne 's/^[^#]\+_BASE_IMAGE=/img=/p' "$LIB")
-    do
+    for env in $(sed -ne 's/^[^#]\+_BASE_IMAGE=/img=/p' "$LIB"); do
         eval $env
         BASE_IMAGES="$BASE_IMAGES $img"
     done
@@ -50,8 +49,7 @@ count_image() {
 echo "Using filter: $FILTER"
 echo "Searching images for pruning candidates older than $TOO_OLD ($(date --date="$TOO_OLD" --iso-8601=date)):"
 $GCLOUD compute images list --format="$FORMAT" --filter="$FILTER" | \
-    while read name selfLink creationTimestamp labels
-    do
+    while read name selfLink creationTimestamp labels; do
         count_image
         created_ymd=$(date --date=$creationTimestamp --iso-8601=date)
         last_used=$(egrep --only-matching --max-count=1 'last-used=[[:digit:]]+' <<< $labels || true)
@@ -92,8 +90,7 @@ then
     exit 0
 fi
 
-for image_name in $(sort --random-sort $TODELETE | tail -$PRUNE_LIMIT)
-do
+for image_name in $(sort --random-sort $TODELETE | tail -$PRUNE_LIMIT); do
     if echo "$IMGNAMES $BASE_IMAGES" | grep -q "$image_name"
     then
         # double-verify in-use images were filtered out in search loop above

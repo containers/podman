@@ -19,8 +19,7 @@ exithandler() {
 trap exithandler EXIT
 
 # Verify basic dependencies
-for depbin in go rsync unzip sha256sum curl make python3 git
-do
+for depbin in go rsync unzip sha256sum curl make python3 git; do
     if ! type -P "$depbin" &> /dev/null
     then
         echo "***** WARNING: $depbin binary not found in $PATH *****"

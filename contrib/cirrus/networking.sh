@@ -6,8 +6,7 @@
 
 source $(dirname $0)/lib.sh
 
-while read host port
-do
+while read host port; do
     if [[ "$port" -eq "443" ]]
     then
         item_test "SSL/TLS to $host:$port" "$(echo -n '' | openssl s_client -quiet -no_ign_eof -connect $host:$port &> /dev/null; echo $?)" -eq "0"

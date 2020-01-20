@@ -111,8 +111,8 @@ podman rm myweb
 ########
 prun_test_failed=0
 podman rmi docker.io/library/busybox:latest > /dev/null || :
-for i in `seq 10`
-do ( podman run -d --name b$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+for i in `seq 10`; do
+    ( podman run -d --name b$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
 done
 echo -e "\nwaiting for creation...\n"
 wait
@@ -126,7 +126,9 @@ count=$( podman ps -q  | wc -l )
 }
 
 prun_test_failed=0
-for i in `seq 10`; do ( podman stop -t=1 b$i; podman rm b$i )& done
+for i in `seq 10`; do
+    ( podman stop -t=1 b$i; podman rm b$i )&
+done
 echo -e "\nwaiting for deletion...\n"
 wait
 echo -e "\ndone\n"
@@ -145,8 +147,8 @@ count=$( podman ps -q  | wc -l )
 ########
 prun_test_failed=0
 podman pull docker.io/library/busybox:latest > /dev/null || :
-for i in `seq 10`
-do ( podman run -d --name c$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
+for i in `seq 10`; do
+    ( podman run -d --name c$i docker.io/library/busybox:latest busybox httpd -f -p 80 )&
 done
 echo -e "\nwaiting for creation...\n"
 wait
@@ -160,7 +162,9 @@ count=$( podman ps -q  | wc -l )
 }
 
 
-for i in `seq 10`; do ( podman stop -t=1 c$i; podman rm c$i )& done
+for i in `seq 10`; do
+    ( podman stop -t=1 c$i; podman rm c$i )&
+done
 echo -e "\nwaiting for deletion...\n"
 wait
 echo -e "\ndone\n"

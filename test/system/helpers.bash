@@ -1,3 +1,4 @@
+#!/usr/bin/env false
 # -*- bash -*-
 
 # Podman command to run; may be podman-remote

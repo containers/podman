@@ -30,8 +30,7 @@ then
                          sort -u | \
                          tail -$MAX_NICKS)
 
-        for c_email in $COMMIT_AUTHORS
-        do
+        for c_email in $COMMIT_AUTHORS; do
             c_email=$(echo "$c_email" | tr --delete --complement "$EMAILCSET")
             echo -e "\tExamining $c_email"
             NICK=$(echo "$AUTHOR_NICKS" | grep -m 1 "$c_email" | \

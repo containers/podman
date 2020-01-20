@@ -90,15 +90,15 @@ show_usage() {
 }
 
 get_env_vars() {
-    python -c '
+    python - <<END
 import yaml
 env=yaml.load(open(".cirrus.yml"), Loader=yaml.SafeLoader)["env"]
 keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
 for k,v in env.items():
     v=str(v)
     if "ENCRYPTED" not in v:
-        print "{0}=\"{1}\"".format(k, v),
-    '
+        print("{0}=\"{1}\"".format(k, v),)
+END
 }
 
 parse_args(){
@@ -116,8 +116,7 @@ parse_args(){
     IMAGE_NAME=""
     ROOTLESS_USER=""
     SPECIALMODE="none"
-    for arg
-    do
+    for arg; do
         if [[ "$SPECIALMODE" == "GRABNEXT" ]] && [[ "${arg:0:1}" != "-" ]]
         then
             SPECIALMODE="$arg"
@@ -252,8 +251,7 @@ trap delvm EXIT
 echo -e "\n${YEL}Waiting up to 30s for ssh port to open${NOR}"
 trap 'COUNT=9999' INT
 ATTEMPTS=10
-for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
-do
+for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ )); do
     if $SSH_CMD --command "true"; then break; else sleep 3s; fi
 done
 if (( COUNT > $ATTEMPTS ))
