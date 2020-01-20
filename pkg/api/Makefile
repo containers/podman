@@ -1,3 +1,5 @@
+export GO111MODULE=off
+
 SWAGGER_OUT ?= swagger.yaml
 
 swagger:

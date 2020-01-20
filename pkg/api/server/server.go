@@ -1,6 +1,8 @@
-// Package serviceapi Provides a Container compatible interface.
+// Package serviceapi Provides a Container compatible interface (EXPERIMENTAL)
 //
-// This documentation describes the HTTP LibPod interface
+// This documentation describes the HTTP LibPod interface.  It is to be consider
+// only as experimental as this point.  The endpoints, parameters, inputs, and
+// return values can all change.
 //
 //     Schemes: http, https
 //     Host: podman.io
@@ -8,6 +10,10 @@
 //     Version: 0.0.1
 //     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
 //     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
+//     InfoExtensions:
+//     x-logo:
+//       - url: https://raw.githubusercontent.com/containers/libpod/master/logo/podman-logo.png
+//       - altText: "Podman logo"
 //
 //     Consumes:
 //     - application/json
