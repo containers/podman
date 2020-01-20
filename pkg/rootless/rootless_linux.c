@@ -266,6 +266,8 @@ static void __attribute__((constructor)) init()
       char path[PATH_MAX];
       const char *const suffix = "/libpod/pause.pid";
       char *cwd = getcwd (NULL, 0);
+      char uid_fmt[16];
+      char gid_fmt[16];
 
       if (cwd == NULL)
         {
@@ -323,6 +325,13 @@ static void __attribute__((constructor)) init()
           fprintf (stderr, "cannot open %s: %s", path, strerror (errno));
           exit (EXIT_FAILURE);
         }
+
+      sprintf (uid_fmt, "%d", uid);
+      sprintf (gid_fmt, "%d", gid);
+
+      setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+      setenv ("_CONTAINERS_ROOTLESS_UID", uid_fmt, 1);
+      setenv ("_CONTAINERS_ROOTLESS_GID", gid_fmt, 1);
 
       r = setns (fd, 0);
       if (r < 0)
