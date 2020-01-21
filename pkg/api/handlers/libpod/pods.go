@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -384,17 +385,26 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
+		signal  = "SIGKILL"
 	)
 	query := struct {
-		signal int `schema:"signal"`
+		signal string `schema:"signal"`
 	}{
 		// override any golang type defaults
 	}
-
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
+	}
+	muxVars := mux.Vars(r)
+	if _, found := muxVars["signal"]; found {
+		signal = query.signal
+	}
+
+	sig, err := util.ParseSignal(signal)
+	if err != nil {
+		utils.InternalServerError(w, errors.Wrapf(err, "unable to parse signal value"))
 	}
 	name := mux.Vars(r)["name"]
 	pod, err := runtime.LookupPod(name)
@@ -419,8 +429,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, msg, http.StatusConflict, errors.Errorf("cannot kill a pod with no running containers: %s", pod.ID()))
 		return
 	}
-	// TODO How do we differentiate if a signal was sent vs accepting the pod/container default?
-	_, err = pod.Kill(uint(query.signal))
+	_, err = pod.Kill(uint(sig))
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return

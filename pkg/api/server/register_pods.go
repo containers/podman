@@ -121,8 +121,9 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    description: the name or ID of the pod
 	//  - in: query
 	//    name: signal
-	//    type: int
+	//    type: string
 	//    description: signal to be sent to pod
+	//    default: SIGKILL
 	// responses:
 	//   '204':
 	//      description: no error
