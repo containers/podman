@@ -5,6 +5,8 @@ outdir := $(CURDIR)
 topdir := $(CURDIR)/rpmbuild
 SHORT_COMMIT ?= $(shell git rev-parse --short=8 HEAD)
 
+export GO111MODULE=off
+
 srpm:
 	mkdir -p $(topdir)
 	sh $(current_dir)/prepare.sh
