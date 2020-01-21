@@ -58,6 +58,13 @@ type swagContainerPruneReport struct {
 	Body []ContainersPruneReport
 }
 
+// Prune containers
+// swagger:response DocsLibpodPruneResponse
+type swagLibpodContainerPruneReport struct {
+	// in: body
+	Body []LibpodContainersPruneReport
+}
+
 // Inspect container
 // swagger:response DocsContainerInspectResponse
 type swagContainerInspectResponse struct {

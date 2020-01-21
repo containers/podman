@@ -43,6 +43,12 @@ type ContainersPruneReport struct {
 	docker.ContainersPruneReport
 }
 
+type LibpodContainersPruneReport struct {
+	ID             string `json:"id"`
+	SpaceReclaimed int64  `json:"space"`
+	PruneError     string `json:"error"`
+}
+
 type Info struct {
 	docker.Info
 	BuildahVersion     string

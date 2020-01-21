@@ -42,6 +42,20 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Returns a list of containers
 	// parameters:
 	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Return all containers. By default, only running containers are shown
+	//  - in: query
+	//    name: limit
+	//    description: Return this number of most recently created containers, including non-running ones.
+	//    type: integer
+	//  - in: query
+	//    name: size
+	//    type: boolean
+	//    default: false
+	//    description: Return the size of container as fields SizeRw and SizeRootFs.
+	//  - in: query
 	//    name: filters
 	//    type: string
 	//    description: |
@@ -91,7 +105,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/DocsContainerPruneReport"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/prune"), APIHandler(s.Context, generic.PruneContainers)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/prune"), APIHandler(s.Context, handlers.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation DELETE /containers/{name} compat removeContainer
 	// ---
 	// tags:
@@ -175,6 +189,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    default: TERM
 	//    description: signal to be sent to container
+	//    default: SIGKILL
 	// produces:
 	// - application/json
 	// responses:
@@ -301,7 +316,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: detachKeys
 	//    type: string
-	//    description: needs description
+	//    description: "Override the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _."
+	//    default: ctrl-p,ctrl-q
 	// produces:
 	// - application/json
 	// responses:
@@ -431,7 +447,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: condition
 	//    type: string
-	//    description: Wait until the container reaches the given condition
+	//    description: not supported
 	// produces:
 	// - application/json
 	// responses:
@@ -541,6 +557,55 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - containers
 	// summary: List containers
 	// description: Returns a list of containers
+	// parameters:
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    default: false
+	//    description: Return all containers. By default, only running containers are shown
+	//  - in: query
+	//    name: limit
+	//    description: Return this number of most recently created containers, including non-running ones.
+	//    type: integer
+	//  - in: query
+	//    name: namespace
+	//    type: boolean
+	//    description: Include namespace information
+	//    default: false
+	//  - in: query
+	//    name: pod
+	//    type: boolean
+	//    default: false
+	//    description: Include Pod ID and Name if applicable
+	//  - in: query
+	//    name: size
+	//    type: boolean
+	//    default: false
+	//    description: Return the size of container as fields SizeRw and SizeRootFs.
+	//  - in: query
+	//    name: sync
+	//    type: boolean
+	//    default: false
+	//    description: Sync container state with OCI runtime
+	//  - in: query
+	//    name: filters
+	//    type: string
+	//    description: |
+	//       Returns a list of containers.
+	//        - ancestor=(<image-name>[:<tag>], <image id>, or <image@digest>)
+	//        - before=(<container id> or <container name>)
+	//        - expose=(<port>[/<proto>]|<startport-endport>/[<proto>])
+	//        - exited=<int> containers with exit code of <int>
+	//        - health=(starting|healthy|unhealthy|none)
+	//        - id=<ID> a container's ID
+	//        - is-task=(true|false)
+	//        - label=key or label="key=value" of a container label
+	//        - name=<name> a container's name
+	//        - network=(<network id> or <network name>)
+	//        - publish=(<port>[/<proto>]|<startport-endport>/[<proto>])
+	//        - since=(<container id> or <container name>)
+	//        - status=(created|restarting|running|removing|paused|exited|dead)
+	//        - volume=(<volume name> or <mount point destination>)
 	// produces:
 	// - application/json
 	// responses:
@@ -551,17 +616,13 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/json"), APIHandler(s.Context, libpod.ListContainers)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/prune libpod libpodPruneContainers
+	// swagger:operation POST  /libpod/containers/prune libpod libpodPruneContainers
 	// ---
 	// tags:
-	//  - containers
-	// summary: Prune unused containers
-	// description: Remove stopped and exited containers
+	//   - containers
+	// summary: Delete stopped containers
+	// description: Remove containers not in use
 	// parameters:
-	//  - in: query
-	//    name: force
-	//    type: boolean
-	//    description: TODO This should be removed from API.  Will always be true...
 	//  - in: query
 	//    name: filters
 	//    type: string
@@ -573,12 +634,10 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     type: string
-	//     description: success
-	//     example: OK
+	//     $ref: "#/responses/DocsLibpodPruneResponse"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/prune"), APIHandler(s.Context, libpod.PruneContainers)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/prune"), APIHandler(s.Context, handlers.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/showmounted libpod showMounterContainers
 	// ---
 	// tags:
@@ -796,7 +855,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: detachKeys
 	//    type: string
-	//    description: needs description
+	//    description: "Override the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _."
+	//    default: ctrl-p,ctrl-q
 	// produces:
 	// - application/json
 	// responses:
@@ -902,10 +962,6 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
-	//  - in: query
-	//    name: condition
-	//    type: string
-	//    description: Wait until the container reaches the given condition
 	// produces:
 	// - application/json
 	// responses:

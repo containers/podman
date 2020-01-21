@@ -51,3 +51,11 @@ func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
 		logrus.Errorf("unable to write json: %q", err)
 	}
 }
+
+func FilterMapToString(filters map[string][]string) (string, error) {
+	f, err := json.Marshal(filters)
+	if err != nil {
+		return "", err
+	}
+	return string(f), nil
+}

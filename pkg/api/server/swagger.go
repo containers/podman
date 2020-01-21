@@ -50,15 +50,6 @@ type swagInternalError struct {
 	}
 }
 
-// Generic error
-// swagger:response GenericError
-type swagGenericError struct {
-	// in:body
-	Body struct {
-		utils.ErrorModel
-	}
-}
-
 // Conflict error in operation
 // swagger:response ConflictError
 type swagConflictError struct {
@@ -127,21 +118,6 @@ type swagListContainers struct {
 	Body struct {
 		// This causes go-swagger to crash
 		// handlers.Container
-	}
-}
-
-// To be determined
-// swagger:response tbd
-type swagTBD struct {
-}
-
-// Success
-// swagger:response
-type swag struct {
-	// in:body
-	Body struct {
-		// example: OK
-		ok string
 	}
 }
 

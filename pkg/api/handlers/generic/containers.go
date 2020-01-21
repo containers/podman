@@ -1,7 +1,6 @@
 package generic
 
 import (
-	"context"
 	"encoding/binary"
 	"fmt"
 	"net/http"
@@ -11,12 +10,10 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -47,14 +44,40 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
+	var (
+		containers []*libpod.Container
+		err        error
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	containers, err := runtime.GetAllContainers()
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		All     bool                `schema:"all"`
+		Limit   int                 `schema:"limit"`
+		Size    bool                `schema:"size"`
+		Filters map[string][]string `schema:"filters"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	if query.All {
+		containers, err = runtime.GetAllContainers()
+	} else {
+		containers, err = runtime.GetRunningContainers()
+	}
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-
+	if _, found := mux.Vars(r)["limit"]; found {
+		last := query.Limit
+		if len(containers) > last {
+			containers = containers[len(containers)-last:]
+		}
+	}
+	// TODO filters still need to be applied
 	infoData, err := runtime.Info()
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "Failed to obtain system info"))
@@ -123,51 +146,6 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 			Message: msg,
 		},
 	})
-}
-
-func PruneContainers(w http.ResponseWriter, r *http.Request) {
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	containers, err := runtime.GetAllContainers()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
-	deletedContainers := []string{}
-	var spaceReclaimed uint64
-	for _, ctnr := range containers {
-		// Only remove stopped or exit'ed containers.
-		state, err := ctnr.State()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		switch state {
-		case define.ContainerStateStopped, define.ContainerStateExited:
-		default:
-			continue
-		}
-
-		deletedContainers = append(deletedContainers, ctnr.ID())
-		cSize, err := ctnr.RootFsSize()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		spaceReclaimed += uint64(cSize)
-
-		err = runtime.RemoveContainer(context.Background(), ctnr, false, false)
-		if err != nil && !(errors.Cause(err) == define.ErrCtrRemoved) {
-			utils.InternalServerError(w, err)
-			return
-		}
-	}
-	report := types.ContainersPruneReport{
-		ContainersDeleted: deletedContainers,
-		SpaceReclaimed:    spaceReclaimed,
-	}
-	utils.WriteResponse(w, http.StatusOK, report)
 }
 
 func LogsFromContainer(w http.ResponseWriter, r *http.Request) {

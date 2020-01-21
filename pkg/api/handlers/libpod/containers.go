@@ -1,7 +1,9 @@
 package libpod
 
 import (
+	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
@@ -46,12 +48,18 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	utils.RemoveContainer(w, r, query.Force, query.Vols)
 }
 func ListContainers(w http.ResponseWriter, r *http.Request) {
+	var (
+		filters []string
+	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Filter []string `schema:"filter"`
-		Last   int      `schema:"last"`
-		Size   bool     `schema:"size"`
-		Sync   bool     `schema:"sync"`
+		All       bool                `schema:"all"`
+		Filter    map[string][]string `schema:"filter"`
+		Last      int                 `schema:"last"`
+		Namespace bool                `schema:"namespace"`
+		Pod       bool                `schema:"pod"`
+		Size      bool                `schema:"size"`
+		Sync      bool                `schema:"sync"`
 	}{
 		// override any golang type defaults
 	}
@@ -63,15 +71,22 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	opts := shared.PsOptions{
-		All:       true,
+		All:       query.All,
 		Last:      query.Last,
 		Size:      query.Size,
 		Sort:      "",
-		Namespace: true,
+		Namespace: query.Namespace,
+		Pod:       query.Pod,
 		Sync:      query.Sync,
 	}
-
-	pss, err := shared.GetPsContainerOutput(runtime, opts, query.Filter, 2)
+	if len(query.Filter) > 0 {
+		for k, v := range query.Filter {
+			for _, val := range v {
+				filters = append(filters, fmt.Sprintf("%s=%s", k, val))
+			}
+		}
+	}
+	pss, err := shared.GetPsContainerOutput(runtime, opts, filters, 2)
 	if err != nil {
 		utils.InternalServerError(w, err)
 	}
@@ -117,19 +132,12 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
-	_, err := utils.WaitContainer(w, r)
+	exitCode, err := utils.WaitContainer(w, r)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
-}
-
-func PruneContainers(w http.ResponseWriter, r *http.Request) {
-	// TODO Needs rebase to get  filers; Also would be handy to define
-	// an actual libpod container prune method.
-	// force
-	// filters
+	utils.WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))
 }
 
 func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
