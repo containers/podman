@@ -263,7 +263,7 @@ localunit: test/goecho/goecho varlink_generate
 	ginkgo \
 		-r \
 		$(TESTFLAGS) \
-		--skipPackage test/e2e,pkg/apparmor,test/endpoint \
+		--skipPackage test/e2e,pkg/apparmor,test/endpoint,pkg/bindings \
 		--cover \
 		--covermode atomic \
 		--tags "$(BUILDTAGS)" \

@@ -21,8 +21,9 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	// Log detailed message of what happened to machine running podman service
 	log.Infof("Request Failed(%s): %s", http.StatusText(code), err.Error())
 	em := ErrorModel{
-		Because: (errors.Cause(err)).Error(),
-		Message: err.Error(),
+		Because:      (errors.Cause(err)).Error(),
+		Message:      err.Error(),
+		ResponseCode: code,
 	}
 	WriteJSON(w, code, em)
 }
@@ -79,6 +80,8 @@ type ErrorModel struct {
 	// human error message, formatted for a human to read
 	// example: human error message
 	Message string `json:"message"`
+	// http response code
+	ResponseCode int `json:"response"`
 }
 
 func (e ErrorModel) Error() string {
@@ -87,6 +90,10 @@ func (e ErrorModel) Error() string {
 
 func (e ErrorModel) Cause() error {
 	return errors.New(e.Because)
+}
+
+func (e ErrorModel) Code() int {
+	return e.ResponseCode
 }
 
 // UnsupportedParameter logs a given param by its string name as not supported.

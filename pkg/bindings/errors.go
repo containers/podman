@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -37,10 +36,10 @@ func (a APIResponse) Process(unmarshalInto interface{}) error {
 	return handleError(data)
 }
 
-func closeResponseBody(r *http.Response) {
-	if r != nil {
-		if err := r.Body.Close(); err != nil {
-			logrus.Error(errors.Wrap(err, "unable to close response body"))
-		}
+func CheckResponseCode(inError error) (int, error) {
+	e, ok := inError.(utils.ErrorModel)
+	if !ok {
+		return -1, errors.New("error is not type ErrorModel")
 	}
+	return e.Code(), nil
 }

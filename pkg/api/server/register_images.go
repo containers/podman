@@ -195,7 +195,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/ConflictError'
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/images/name"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
+	r.Handle(VersionedPath("/images/{name}"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /images/{name}/get compat exportImage
 	// ---
 	// tags:
@@ -607,13 +607,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: List Images
 	// description: Returns a list of images on the server
 	// parameters:
-	//   - name: "all"
-	//     in: "query"
-	//     description: "Show all images. Only images from a final layer (no children) are shown by default."
-	//     type: "boolean"
+	//   - name: all
+	//     in: query
+	//     description: Show all images. Only images from a final layer (no children) are shown by default.
+	//     type: boolean
 	//     default: false
-	//   - name: "filters"
-	//     in: "query"
+	//   - name: filters
+	//     in: query
 	//     description: |
 	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
 	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
@@ -621,12 +621,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `label=key` or `label="key=value"` of an image label
 	//        - `reference`=(`<image-name>[:<tag>]`)
 	//        - `since`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
-	//     type: "string"
-	//   - name: "digests"
-	//     in: "query"
-	//     description: Not supported
-	//     type: "boolean"
-	//     default: false
+	//     type: string
 	// produces:
 	// - application/json
 	// responses:
@@ -753,7 +748,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/ConflictError'
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/name"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
+	r.Handle(VersionedPath("/libpod/images/{name}"), APIHandler(s.Context, handlers.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/images/{name}/get libpod libpoodExportImage
 	// ---
 	// tags:
