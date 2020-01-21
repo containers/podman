@@ -1,7 +1,10 @@
 package adapter
 
-// DefaultAddress is the default address of the varlink socket
-const DefaultAddress = "unix:/run/podman/io.podman"
+// DefaultAPIAddress is the default address of the REST socket
+const DefaultAPIAddress = "unix:/run/podman/podman.sock"
+
+// DefaultVarlinkAddress is the default address of the varlink socket
+const DefaultVarlinkAddress = "unix:/run/podman/io.podman"
 
 // EndpointType declares the type of server connection
 type EndpointType int

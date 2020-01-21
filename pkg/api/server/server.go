@@ -54,9 +54,9 @@ import (
 )
 
 type APIServer struct {
-	http.Server        // Where the HTTP work happens
+	http.Server        // The  HTTP work happens here
 	*schema.Decoder    // Decoder for Query parameters to structs
-	context.Context    // Context for graceful server shutdown
+	context.Context    // Context to carry objects to handlers
 	*libpod.Runtime    // Where the real work happens
 	net.Listener       // mux for routing HTTP API calls to libpod routines
 	context.CancelFunc // Stop APIServer
@@ -64,14 +64,37 @@ type APIServer struct {
 	time.Duration      // Duration of client access sliding window
 }
 
-// NewServer will create and configure a new API HTTP server
+// Number of seconds to wait for next request, if exceeded shutdown server
+const (
+	DefaultServiceDuration   = 300 * time.Second
+	UnlimitedServiceDuration = 0 * time.Second
+)
+
+// NewServer will create and configure a new API server with all defaults
 func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
-	listeners, err := activation.Listeners()
-	if err != nil {
-		return nil, errors.Wrap(err, "Cannot retrieve file descriptors from systemd")
-	}
-	if len(listeners) != 1 {
-		return nil, errors.Errorf("Wrong number of file descriptors from systemd for socket activation (%d != 1)", len(listeners))
+	return newServer(runtime, DefaultServiceDuration, nil)
+}
+
+// NewServerWithSettings will create and configure a new API server using provided settings
+func NewServerWithSettings(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
+	return newServer(runtime, duration, listener)
+}
+
+func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Listener) (*APIServer, error) {
+	// If listener not provided try socket activation protocol
+	if listener == nil {
+		if _, found := os.LookupEnv("LISTEN_FDS"); !found {
+			return nil, errors.Errorf("Cannot create Server, no listener provided and socket activation protocol is not active.")
+		}
+
+		listeners, err := activation.Listeners()
+		if err != nil {
+			return nil, errors.Wrap(err, "Cannot retrieve file descriptors from systemd")
+		}
+		if len(listeners) != 1 {
+			return nil, errors.Errorf("Wrong number of file descriptors for socket activation protocol (%d != 1)", len(listeners))
+		}
+		listener = &listeners[0]
 	}
 
 	router := mux.NewRouter()
@@ -86,9 +109,9 @@ func NewServer(runtime *libpod.Runtime) (*APIServer, error) {
 		Decoder:    schema.NewDecoder(),
 		Context:    nil,
 		Runtime:    runtime,
-		Listener:   listeners[0],
+		Listener:   *listener,
 		CancelFunc: nil,
-		Duration:   300 * time.Second,
+		Duration:   duration,
 	}
 	server.Timer = time.AfterFunc(server.Duration, func() {
 		if err := server.Shutdown(); err != nil {
@@ -182,6 +205,11 @@ func (s *APIServer) Serve() error {
 
 // Shutdown is a clean shutdown waiting on existing clients
 func (s *APIServer) Shutdown() error {
+	// Duration == 0 flags no auto-shutdown of server
+	if s.Duration == 0 {
+		return nil
+	}
+
 	// We're still in the sliding service window
 	if s.Timer.Stop() {
 		s.Timer.Reset(s.Duration)
