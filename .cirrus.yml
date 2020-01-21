@@ -669,7 +669,7 @@ docs_task:
 
     # Only run this for PRs on mention, and after merge
     only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_BRANCH == $DEST_BRANCH &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*'
 
