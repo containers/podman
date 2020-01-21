@@ -251,6 +251,14 @@ func (APIServer) SwaggerDoc() map[string]string {
 	return map_APIServer
 }
 
+var map_APIServerEncryption = map[string]string{
+	"type": "type defines what encryption type should be used to encrypt resources at the datastore layer. When this field is unset (i.e. when it is set to the empty string), identity is implied. The behavior of unset can and will change over time.  Even if encryption is enabled by default, the meaning of unset may change to a different encryption type based on changes in best practices.\n\nWhen encryption is enabled, all sensitive resources shipped with the platform are encrypted. This list of sensitive resources can and will change over time.  The current authoritative list is:\n\n  1. secrets\n  2. configmaps\n  3. routes.route.openshift.io\n  4. oauthaccesstokens.oauth.openshift.io\n  5. oauthauthorizetokens.oauth.openshift.io",
+}
+
+func (APIServerEncryption) SwaggerDoc() map[string]string {
+	return map_APIServerEncryption
+}
+
 var map_APIServerNamedServingCert = map[string]string{
 	"":                   "APIServerNamedServingCert maps a server DNS name, as understood by a client, to a certificate.",
 	"names":              "names is a optional list of explicit DNS names (leading wildcards allowed) that should use this certificate to serve secure traffic. If no names are provided, the implicit names will be extracted from the certificates. Exact names trump over wildcard names. Explicit names defined here trump over extracted implicit names.",
@@ -273,6 +281,8 @@ var map_APIServerSpec = map[string]string{
 	"servingCerts":                 "servingCert is the TLS cert info for serving secure traffic. If not specified, operator managed certificates will be used for serving secure traffic.",
 	"clientCA":                     "clientCA references a ConfigMap containing a certificate bundle for the signers that will be recognized for incoming client certificates in addition to the operator managed signers. If this is empty, then only operator managed signers are valid. You usually only have to set this if you have your own PKI you wish to honor client certificates from. The ConfigMap must exist in the openshift-config namespace and contain the following required fields: - ConfigMap.Data[\"ca-bundle.crt\"] - CA bundle.",
 	"additionalCORSAllowedOrigins": "additionalCORSAllowedOrigins lists additional, user-defined regular expressions describing hosts for which the API server allows access using the CORS headers. This may be needed to access the API and the integrated OAuth server from JavaScript applications. The values are regular expressions that correspond to the Golang regular expression language.",
+	"encryption":                   "encryption allows the configuration of encryption of resources at the datastore layer.",
+	"tlsSecurityProfile":           "tlsSecurityProfile specifies settings for TLS connections for externally exposed servers.\n\nIf unset, a default (which may change between releases) is chosen. Note that only Old and Intermediate profiles are currently supported, and the maximum available MinTLSVersions is VersionTLS12.",
 }
 
 func (APIServerSpec) SwaggerDoc() map[string]string {
@@ -280,22 +290,13 @@ func (APIServerSpec) SwaggerDoc() map[string]string {
 }
 
 var map_Authentication = map[string]string{
-	"":         "Authentication specifies cluster-wide settings for authentication (like OAuth and webhook token authenticators). The canonical name of an instance is `cluster`.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Authentication specifies cluster-wide settings for authentication (like OAuth and webhook token authenticators). The canonical name of an instance is `cluster`.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Authentication) SwaggerDoc() map[string]string {
 	return map_Authentication
-}
-
-var map_AuthenticationList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (AuthenticationList) SwaggerDoc() map[string]string {
-	return map_AuthenticationList
 }
 
 var map_AuthenticationSpec = map[string]string{
@@ -326,7 +327,7 @@ func (WebhookTokenAuthenticator) SwaggerDoc() map[string]string {
 }
 
 var map_Build = map[string]string{
-	"":     "Build holds cluster-wide information on how to handle builds. The canonical name is `cluster`",
+	"":     "Build configures the behavior of OpenShift builds for the entire cluster. This includes default settings that can be overridden in BuildConfig objects, and overrides which are applied to all builds.\n\nThe canonical name is \"cluster\"",
 	"spec": "Spec holds user-settable values for the build controller configuration",
 }
 
@@ -346,14 +347,6 @@ func (BuildDefaults) SwaggerDoc() map[string]string {
 	return map_BuildDefaults
 }
 
-var map_BuildList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (BuildList) SwaggerDoc() map[string]string {
-	return map_BuildList
-}
-
 var map_BuildOverrides = map[string]string{
 	"imageLabels":  "ImageLabels is a list of docker labels that are applied to the resulting image. If user provided a label in their Build/BuildConfig with the same name as one in this list, the user's label will be overwritten.",
 	"nodeSelector": "NodeSelector is a selector which must be true for the build pod to fit on a node",
@@ -365,7 +358,7 @@ func (BuildOverrides) SwaggerDoc() map[string]string {
 }
 
 var map_BuildSpec = map[string]string{
-	"additionalTrustedCA": "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds. The namespace for this config map is openshift-config.",
+	"additionalTrustedCA": "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted for image pushes and pulls during builds. The namespace for this config map is openshift-config.\n\nDEPRECATED: Additional CAs for image pull and push should be set on image.config.openshift.io/cluster instead.",
 	"buildDefaults":       "BuildDefaults controls the default information for Builds",
 	"buildOverrides":      "BuildOverrides controls override settings for builds",
 }
@@ -385,8 +378,8 @@ func (ImageLabel) SwaggerDoc() map[string]string {
 
 var map_ClusterOperator = map[string]string{
 	"":       "ClusterOperator is the Custom Resource object which holds the current state of an operator. This object is used by operators to convey their state to the rest of the cluster.",
-	"spec":   "spec hold the intent of how this operator should behave.",
-	"status": "status holds the information about the state of an operator.  It is consistent with status information across the kube ecosystem.",
+	"spec":   "spec holds configuration that could apply to any operator.",
+	"status": "status holds the information about the state of an operator.  It is consistent with status information across the Kubernetes ecosystem.",
 }
 
 func (ClusterOperator) SwaggerDoc() map[string]string {
@@ -411,8 +404,8 @@ func (ClusterOperatorSpec) SwaggerDoc() map[string]string {
 
 var map_ClusterOperatorStatus = map[string]string{
 	"":               "ClusterOperatorStatus provides information about the status of the operator.",
-	"conditions":     "conditions describes the state of the operator's reconciliation functionality.",
-	"versions":       "versions is a slice of operand version tuples.  Operators which manage multiple operands will have multiple entries in the array.  If an operator is Available, it must have at least one entry.  You must report the version of the operator itself with the name \"operator\".",
+	"conditions":     "conditions describes the state of the operator's managed and monitored components.",
+	"versions":       "versions is a slice of operator and operand version tuples.  Operators which manage multiple operands will have multiple operand entries in the array.  Available operators must report the version of the operator itself with the name \"operator\". An operator reports a new \"operator\" version when it has rolled out the new version to all of its operands.",
 	"relatedObjects": "relatedObjects is a list of objects that are \"interesting\" or related to this operator.  Common uses are: 1. the detailed resource driving the operator 2. operator namespaces 3. operand namespaces",
 	"extension":      "extension contains any additional status information specific to the operator which owns this status object.",
 }
@@ -422,11 +415,11 @@ func (ClusterOperatorStatus) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterOperatorStatusCondition = map[string]string{
-	"":                   "ClusterOperatorStatusCondition represents the state of the operator's reconciliation functionality.",
-	"type":               "type specifies the state of the operator's reconciliation functionality.",
+	"":                   "ClusterOperatorStatusCondition represents the state of the operator's managed and monitored components.",
+	"type":               "type specifies the aspect reported by this condition.",
 	"status":             "status of the condition, one of True, False, Unknown.",
-	"lastTransitionTime": "lastTransitionTime is the time of the last update to the current status object.",
-	"reason":             "reason is the reason for the condition's last transition.  Reasons are CamelCase",
+	"lastTransitionTime": "lastTransitionTime is the time of the last update to the current status property.",
+	"reason":             "reason is the CamelCase reason for the condition's current status.",
 	"message":            "message provides additional information about the current condition. This is only to be consumed by humans.",
 }
 
@@ -448,7 +441,7 @@ func (ObjectReference) SwaggerDoc() map[string]string {
 
 var map_OperandVersion = map[string]string{
 	"name":    "name is the name of the particular operand this version is for.  It usually matches container images, not operators.",
-	"version": "version indicates which version of a particular operand is currently being manage.  It must always match the Available condition.  If 1.0.0 is Available, then this must indicate 1.0.0 even if the operator is trying to rollout 1.1.0",
+	"version": "version indicates which version of a particular operand is currently being managed.  It must always match the Available operand.  If 1.0.0 is Available, then this must indicate 1.0.0 even if the operator is trying to rollout 1.1.0",
 }
 
 func (OperandVersion) SwaggerDoc() map[string]string {
@@ -490,7 +483,7 @@ var map_ClusterVersionStatus = map[string]string{
 	"":                   "ClusterVersionStatus reports the status of the cluster versioning, including any upgrades that are in progress. The current field will be set to whichever version the cluster is reconciling to, and the conditions array will report whether the update succeeded, is in progress, or is failing.",
 	"desired":            "desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.",
 	"history":            "history contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
-	"observedGeneration": "observedGeneration reports which version of the spec is being synced. If this value is not equal to metadata.generation, then the desired and conditions fields may represent from a previous version.",
+	"observedGeneration": "observedGeneration reports which version of the spec is being synced. If this value is not equal to metadata.generation, then the desired and conditions fields may represent a previous version.",
 	"versionHash":        "versionHash is a fingerprint of the content that the cluster will be updated with. It is used by the operator to avoid unnecessary work and is for internal use only.",
 	"conditions":         "conditions provides information about the cluster version. The condition \"Available\" is set to true if the desiredUpdate has been reached. The condition \"Progressing\" is set to true if an update is being applied. The condition \"Degraded\" is set to true if an update is currently blocked by a temporary or permanent error. Conditions are only valid for the current desiredUpdate when metadata.generation is equal to status.generation.",
 	"availableUpdates":   "availableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.",
@@ -539,10 +532,9 @@ func (UpdateHistory) SwaggerDoc() map[string]string {
 }
 
 var map_Console = map[string]string{
-	"":         "Console holds cluster-wide configuration for the web console, including the logout URL, and reports the public URL of the console. The canonical name is `cluster`.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Console holds cluster-wide configuration for the web console, including the logout URL, and reports the public URL of the console. The canonical name is `cluster`.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Console) SwaggerDoc() map[string]string {
@@ -556,14 +548,6 @@ var map_ConsoleAuthentication = map[string]string{
 
 func (ConsoleAuthentication) SwaggerDoc() map[string]string {
 	return map_ConsoleAuthentication
-}
-
-var map_ConsoleList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (ConsoleList) SwaggerDoc() map[string]string {
-	return map_ConsoleList
 }
 
 var map_ConsoleSpec = map[string]string{
@@ -584,22 +568,13 @@ func (ConsoleStatus) SwaggerDoc() map[string]string {
 }
 
 var map_DNS = map[string]string{
-	"":         "DNS holds cluster-wide information about DNS. The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "DNS holds cluster-wide information about DNS. The canonical name is `cluster`",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (DNS) SwaggerDoc() map[string]string {
 	return map_DNS
-}
-
-var map_DNSList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (DNSList) SwaggerDoc() map[string]string {
-	return map_DNSList
 }
 
 var map_DNSSpec = map[string]string{
@@ -632,22 +607,13 @@ func (CustomFeatureGates) SwaggerDoc() map[string]string {
 }
 
 var map_FeatureGate = map[string]string{
-	"":         "Feature holds cluster-wide information about feature gates.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Feature holds cluster-wide information about feature gates.  The canonical name is `cluster`",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (FeatureGate) SwaggerDoc() map[string]string {
 	return map_FeatureGate
-}
-
-var map_FeatureGateList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (FeatureGateList) SwaggerDoc() map[string]string {
-	return map_FeatureGateList
 }
 
 var map_FeatureGateSelection = map[string]string{
@@ -660,29 +626,20 @@ func (FeatureGateSelection) SwaggerDoc() map[string]string {
 }
 
 var map_Image = map[string]string{
-	"":         "Image holds cluster-wide information about how to handle images.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Image governs policies related to imagestream imports and runtime configuration for external registries. It allows cluster admins to configure which registries OpenShift is allowed to import images from, extra CA trust bundles for external registries, and policies to blacklist/whitelist registry hostnames. When exposing OpenShift's image registry to the public, this also lets cluster admins specify the external hostname.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Image) SwaggerDoc() map[string]string {
 	return map_Image
 }
 
-var map_ImageList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (ImageList) SwaggerDoc() map[string]string {
-	return map_ImageList
-}
-
 var map_ImageSpec = map[string]string{
-	"allowedRegistriesForImport": "AllowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
+	"allowedRegistriesForImport": "allowedRegistriesForImport limits the container image registries that normal users may import images from. Set this list to the registries that you trust to contain valid Docker images and that you want applications to be able to import from. Users with permission to create Images or ImageStreamMappings via the API are not affected by this policy - typically only administrators or system integrations will have those permissions.",
 	"externalRegistryHostnames":  "externalRegistryHostnames provides the hostnames for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The first value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
-	"additionalTrustedCA":        "AdditionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import, pod image pull, and imageregistry pullthrough. The namespace for this config map is openshift-config.",
-	"registrySources":            "RegistrySources contains configuration that determines how the container runtime should treat individual registries when accessing images for builds+pods. (e.g. whether or not to allow insecure access).  It does not contain configuration for the internal cluster registry.",
+	"additionalTrustedCA":        "additionalTrustedCA is a reference to a ConfigMap containing additional CAs that should be trusted during imagestream import, pod image pull, build image pull, and imageregistry pullthrough. The namespace for this config map is openshift-config.",
+	"registrySources":            "registrySources contains configuration that determines how the container runtime should treat individual registries when accessing images for builds+pods. (e.g. whether or not to allow insecure access).  It does not contain configuration for the internal cluster registry.",
 }
 
 func (ImageSpec) SwaggerDoc() map[string]string {
@@ -690,7 +647,7 @@ func (ImageSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ImageStatus = map[string]string{
-	"internalRegistryHostname":  "this value is set by the image registry operator which controls the internal registry hostname InternalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
+	"internalRegistryHostname":  "internalRegistryHostname sets the hostname for the default internal image registry. The value must be in \"hostname[:port]\" format. This value is set by the image registry operator which controls the internal registry hostname. For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY environment variable but this setting overrides the environment variable.",
 	"externalRegistryHostnames": "externalRegistryHostnames provides the hostnames for the default external image registry. The external hostname should be set only when the image registry is exposed externally. The first value is used in 'publicDockerImageRepository' field in ImageStreams. The value must be in \"hostname[:port]\" format.",
 }
 
@@ -700,8 +657,8 @@ func (ImageStatus) SwaggerDoc() map[string]string {
 
 var map_RegistryLocation = map[string]string{
 	"":           "RegistryLocation contains a location of the registry specified by the registry domain name. The domain name might include wildcards, like '*' or '??'.",
-	"domainName": "DomainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
-	"insecure":   "Insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
+	"domainName": "domainName specifies a domain name for the registry In case the registry use non-standard (80 or 443) port, the port should be included in the domain name as well.",
+	"insecure":   "insecure indicates whether the registry is secure (https) or insecure (http) By default (if not specified) the registry is assumed as secure.",
 }
 
 func (RegistryLocation) SwaggerDoc() map[string]string {
@@ -710,9 +667,9 @@ func (RegistryLocation) SwaggerDoc() map[string]string {
 
 var map_RegistrySources = map[string]string{
 	"":                   "RegistrySources holds cluster-wide information about how to handle the registries config.",
-	"insecureRegistries": "InsecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.",
-	"blockedRegistries":  "BlockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
-	"allowedRegistries":  "AllowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+	"insecureRegistries": "insecureRegistries are registries which do not have a valid TLS certificates or only support HTTP connections.",
+	"blockedRegistries":  "blockedRegistries are blacklisted from image pull/push. All other registries are allowed.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
+	"allowedRegistries":  "allowedRegistries are whitelisted for image pull/push. All other registries are blocked.\n\nOnly one of BlockedRegistries or AllowedRegistries may be set.",
 }
 
 func (RegistrySources) SwaggerDoc() map[string]string {
@@ -729,8 +686,9 @@ func (AWSPlatformStatus) SwaggerDoc() map[string]string {
 }
 
 var map_AzurePlatformStatus = map[string]string{
-	"":                  "AzurePlatformStatus holds the current status of the Azure infrastructure provider.",
-	"resourceGroupName": "resourceGroupName is the Resource Group for new Azure resources created for the cluster.",
+	"":                         "AzurePlatformStatus holds the current status of the Azure infrastructure provider.",
+	"resourceGroupName":        "resourceGroupName is the Resource Group for new Azure resources created for the cluster.",
+	"networkResourceGroupName": "networkResourceGroupName is the Resource Group for network resources like the Virtual Network and Subnets used by the cluster. If empty, the value is same as ResourceGroupName.",
 }
 
 func (AzurePlatformStatus) SwaggerDoc() map[string]string {
@@ -738,7 +696,7 @@ func (AzurePlatformStatus) SwaggerDoc() map[string]string {
 }
 
 var map_BareMetalPlatformStatus = map[string]string{
-	"":                    "BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider.",
+	"":                    "BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider. For more information about the network architecture used with the BareMetal platform type, see: https://github.com/openshift/installer/blob/master/docs/design/baremetal/networking-infrastructure.md",
 	"apiServerInternalIP": "apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.",
 	"ingressIP":           "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.",
 	"nodeDNSIP":           "nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for BareMetal deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.",
@@ -759,10 +717,9 @@ func (GCPPlatformStatus) SwaggerDoc() map[string]string {
 }
 
 var map_Infrastructure = map[string]string{
-	"":         "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Infrastructure) SwaggerDoc() map[string]string {
@@ -770,8 +727,7 @@ func (Infrastructure) SwaggerDoc() map[string]string {
 }
 
 var map_InfrastructureList = map[string]string{
-	"":         "InfrastructureList is",
-	"metadata": "Standard object's metadata.",
+	"": "InfrastructureList is",
 }
 
 func (InfrastructureList) SwaggerDoc() map[string]string {
@@ -813,6 +769,17 @@ func (OpenStackPlatformStatus) SwaggerDoc() map[string]string {
 	return map_OpenStackPlatformStatus
 }
 
+var map_OvirtPlatformStatus = map[string]string{
+	"":                    "OvirtPlatformStatus holds the current status of the  oVirt infrastructure provider.",
+	"apiServerInternalIP": "apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used by components inside the cluster, like kubelets using the infrastructure rather than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI points to. It is the IP for a self-hosted load balancer in front of the API servers.",
+	"ingressIP":           "ingressIP is an external IP which routes to the default ingress controller. The IP is a suitable target of a wildcard DNS record used to resolve default route host names.",
+	"nodeDNSIP":           "nodeDNSIP is the IP address for the internal DNS used by the nodes. Unlike the one managed by the DNS operator, `NodeDNSIP` provides name resolution for the nodes themselves. There is no DNS-as-a-service for oVirt deployments. In order to minimize necessary changes to the datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames to the nodes in the cluster.",
+}
+
+func (OvirtPlatformStatus) SwaggerDoc() map[string]string {
+	return map_OvirtPlatformStatus
+}
+
 var map_PlatformStatus = map[string]string{
 	"":          "PlatformStatus holds the current status specific to the underlying infrastructure provider of the current cluster. Since these are used at status-level for the underlying cluster, it is supposed that only one of the status structs is set.",
 	"type":      "type is the underlying infrastructure provider for the cluster. This value controls whether infrastructure automation such as service load balancers, dynamic volume provisioning, machine creation and deletion, and other integrations are enabled. If None, no infrastructure automation is enabled. Allowed values are \"AWS\", \"Azure\", \"BareMetal\", \"GCP\", \"Libvirt\", \"OpenStack\", \"VSphere\", \"oVirt\", and \"None\". Individual components may not support all platforms, and must handle unrecognized platforms as None if they do not support that platform.",
@@ -821,6 +788,7 @@ var map_PlatformStatus = map[string]string{
 	"gcp":       "GCP contains settings specific to the Google Cloud Platform infrastructure provider.",
 	"baremetal": "BareMetal contains settings specific to the BareMetal platform.",
 	"openstack": "OpenStack contains settings specific to the OpenStack infrastructure provider.",
+	"ovirt":     "Ovirt contains settings specific to the oVirt infrastructure provider.",
 }
 
 func (PlatformStatus) SwaggerDoc() map[string]string {
@@ -828,26 +796,17 @@ func (PlatformStatus) SwaggerDoc() map[string]string {
 }
 
 var map_Ingress = map[string]string{
-	"":         "Ingress holds cluster-wide information about Ingress.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Ingress holds cluster-wide information about ingress, including the default ingress domain used for routes. The canonical name is `cluster`.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Ingress) SwaggerDoc() map[string]string {
 	return map_Ingress
 }
 
-var map_IngressList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (IngressList) SwaggerDoc() map[string]string {
-	return map_IngressList
-}
-
 var map_IngressSpec = map[string]string{
-	"domain": "domain is used to generate a default host name for a route when the route's host name is empty.  The generated host name will follow this pattern: \"<route-name>.<route-namespace>.<domain>\".",
+	"domain": "domain is used to generate a default host name for a route when the route's host name is empty. The generated host name will follow this pattern: \"<route-name>.<route-namespace>.<domain>\".\n\nIt is also used as the default wildcard domain suffix for ingress. The default ingresscontroller domain will follow this pattern: \"*.<domain>\".\n\nOnce set, changing domain is not currently supported.",
 }
 
 func (IngressSpec) SwaggerDoc() map[string]string {
@@ -866,7 +825,7 @@ func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
 
 var map_ExternalIPConfig = map[string]string{
 	"":                "ExternalIPConfig specifies some IP blocks relevant for the ExternalIP field of a Service resource.",
-	"policy":          "policy is a set of restrictions applied to the ExternalIP field. If nil, any value is allowed for an ExternalIP. If the empty/zero policy is supplied, then ExternalIP is not allowed to be set.",
+	"policy":          "policy is a set of restrictions applied to the ExternalIP field. If nil or empty, then ExternalIP is not allowed to be set.",
 	"autoAssignCIDRs": "autoAssignCIDRs is a list of CIDRs from which to automatically assign Service.ExternalIP. These are assigned when the service is of type LoadBalancer. In general, this is only useful for bare-metal clusters. In Openshift 3.x, this was misleadingly called \"IngressIPs\". Automatically assigned External IPs are not affected by any ExternalIPPolicy rules. Currently, only one entry may be provided.",
 }
 
@@ -885,30 +844,21 @@ func (ExternalIPPolicy) SwaggerDoc() map[string]string {
 }
 
 var map_Network = map[string]string{
-	"":         "Network holds cluster-wide information about Network.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration.",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Network holds cluster-wide information about Network. The canonical name is `cluster`. It is used to configure the desired network configuration, such as: IP address pools for services/pod IPs, network plugin, etc. Please view network.spec for an explanation on what applies when configuring this resource.",
+	"spec":   "spec holds user settable values for configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Network) SwaggerDoc() map[string]string {
 	return map_Network
 }
 
-var map_NetworkList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (NetworkList) SwaggerDoc() map[string]string {
-	return map_NetworkList
-}
-
 var map_NetworkSpec = map[string]string{
-	"":               "NetworkSpec is the desired network configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, changing ClusterNetwork, ServiceNetwork, or NetworkType after installation is not supported.",
-	"clusterNetwork": "IP address pool to use for pod IPs.",
-	"serviceNetwork": "IP address pool for services. Currently, we only support a single entry here.",
-	"networkType":    "NetworkType is the plugin that is to be deployed (e.g. OpenShiftSDN). This should match a value that the cluster-network-operator understands, or else no networking will be installed. Currently supported values are: - OpenShiftSDN",
-	"externalIP":     "externalIP defines configuration for controllers that affect Service.ExternalIP",
+	"":               "NetworkSpec is the desired network configuration. As a general rule, this SHOULD NOT be read directly. Instead, you should consume the NetworkStatus, as it indicates the currently deployed configuration. Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.",
+	"clusterNetwork": "IP address pool to use for pod IPs. This field is immutable after installation.",
+	"serviceNetwork": "IP address pool for services. Currently, we only support a single entry here. This field is immutable after installation.",
+	"networkType":    "NetworkType is the plugin that is to be deployed (e.g. OpenShiftSDN). This should match a value that the cluster-network-operator understands, or else no networking will be installed. Currently supported values are: - OpenShiftSDN This field is immutable after installation.",
+	"externalIP":     "externalIP defines configuration for controllers that affect Service.ExternalIP. If nil, then ExternalIP is not allowed to be set.",
 }
 
 func (NetworkSpec) SwaggerDoc() map[string]string {
@@ -1183,8 +1133,9 @@ func (OperatorHubList) SwaggerDoc() map[string]string {
 }
 
 var map_OperatorHubSpec = map[string]string{
-	"":        "OperatorHubSpec defines the desired state of OperatorHub",
-	"sources": "sources is the list of default hub sources and their configuration. If the list is empty, it indicates that the default hub sources are enabled on the cluster. The list of default hub sources and their current state will always be reflected in the status block.",
+	"":                         "OperatorHubSpec defines the desired state of OperatorHub",
+	"disableAllDefaultSources": "disableAllDefaultSources allows you to disable all the default hub sources. If this is true, a specific entry in sources can be used to enable a default source. If this is false, a specific entry in sources can be used to disable or enable a default source.",
+	"sources":                  "sources is the list of default hub sources and their configuration. If the list is empty, it implies that the default hub sources are enabled on the cluster unless disableAllDefaultSources is true. If disableAllDefaultSources is true and sources is not empty, the configuration present in sources will take precedence. The list of default hub sources and their current state will always be reflected in the status block.",
 }
 
 func (OperatorHubSpec) SwaggerDoc() map[string]string {
@@ -1201,22 +1152,13 @@ func (OperatorHubStatus) SwaggerDoc() map[string]string {
 }
 
 var map_Project = map[string]string{
-	"":         "Project holds cluster-wide information about Project.  The canonical name is `cluster`",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Project holds cluster-wide information about Project.  The canonical name is `cluster`",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Project) SwaggerDoc() map[string]string {
 	return map_Project
-}
-
-var map_ProjectList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (ProjectList) SwaggerDoc() map[string]string {
-	return map_ProjectList
 }
 
 var map_ProjectSpec = map[string]string{
@@ -1248,14 +1190,6 @@ func (Proxy) SwaggerDoc() map[string]string {
 	return map_Proxy
 }
 
-var map_ProxyList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (ProxyList) SwaggerDoc() map[string]string {
-	return map_ProxyList
-}
-
 var map_ProxySpec = map[string]string{
 	"":                   "ProxySpec contains cluster proxy creation configuration.",
 	"httpProxy":          "httpProxy is the URL of the proxy for HTTP requests.  Empty means unset and will not result in an env var.",
@@ -1281,22 +1215,13 @@ func (ProxyStatus) SwaggerDoc() map[string]string {
 }
 
 var map_Scheduler = map[string]string{
-	"":         "Scheduler holds cluster-wide config information to run the Kubernetes Scheduler and influence its placement decisions. The canonical name for this config is `cluster`.",
-	"metadata": "Standard object's metadata.",
-	"spec":     "spec holds user settable values for configuration",
-	"status":   "status holds observed values from the cluster. They may not be overridden.",
+	"":       "Scheduler holds cluster-wide config information to run the Kubernetes Scheduler and influence its placement decisions. The canonical name for this config is `cluster`.",
+	"spec":   "spec holds user settable values for configuration",
+	"status": "status holds observed values from the cluster. They may not be overridden.",
 }
 
 func (Scheduler) SwaggerDoc() map[string]string {
 	return map_Scheduler
-}
-
-var map_SchedulerList = map[string]string{
-	"metadata": "Standard object's metadata.",
-}
-
-func (SchedulerList) SwaggerDoc() map[string]string {
-	return map_SchedulerList
 }
 
 var map_SchedulerSpec = map[string]string{
@@ -1307,6 +1232,61 @@ var map_SchedulerSpec = map[string]string{
 
 func (SchedulerSpec) SwaggerDoc() map[string]string {
 	return map_SchedulerSpec
+}
+
+var map_CustomTLSProfile = map[string]string{
+	"": "CustomTLSProfile is a user-defined TLS security profile. Be extremely careful using a custom TLS profile as invalid configurations can be catastrophic.",
+}
+
+func (CustomTLSProfile) SwaggerDoc() map[string]string {
+	return map_CustomTLSProfile
+}
+
+var map_IntermediateTLSProfile = map[string]string{
+	"": "IntermediateTLSProfile is a TLS security profile based on: https://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28default.29",
+}
+
+func (IntermediateTLSProfile) SwaggerDoc() map[string]string {
+	return map_IntermediateTLSProfile
+}
+
+var map_ModernTLSProfile = map[string]string{
+	"": "ModernTLSProfile is a TLS security profile based on: https://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility",
+}
+
+func (ModernTLSProfile) SwaggerDoc() map[string]string {
+	return map_ModernTLSProfile
+}
+
+var map_OldTLSProfile = map[string]string{
+	"": "OldTLSProfile is a TLS security profile based on: https://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility",
+}
+
+func (OldTLSProfile) SwaggerDoc() map[string]string {
+	return map_OldTLSProfile
+}
+
+var map_TLSProfileSpec = map[string]string{
+	"":              "TLSProfileSpec is the desired behavior of a TLSSecurityProfile.",
+	"ciphers":       "ciphers is used to specify the cipher algorithms that are negotiated during the TLS handshake.  Operators may remove entries their operands do not support.  For example, to use DES-CBC3-SHA  (yaml):\n\n  ciphers:\n    - DES-CBC3-SHA",
+	"minTLSVersion": "minTLSVersion is used to specify the minimal version of the TLS protocol that is negotiated during the TLS handshake. For example, to use TLS versions 1.1, 1.2 and 1.3 (yaml):\n\n  minTLSVersion: TLSv1.1\n\nNOTE: currently the highest minTLSVersion allowed is VersionTLS12",
+}
+
+func (TLSProfileSpec) SwaggerDoc() map[string]string {
+	return map_TLSProfileSpec
+}
+
+var map_TLSSecurityProfile = map[string]string{
+	"":             "TLSSecurityProfile defines the schema for a TLS security profile. This object is used by operators to apply TLS security settings to operands.",
+	"type":         "type is one of Old, Intermediate, Modern or Custom. Custom provides the ability to specify individual TLS security profile parameters. Old, Intermediate and Modern are TLS security profiles based on:\n\nhttps://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations\n\nThe profiles are intent based, so they may change over time as new ciphers are developed and existing ciphers are found to be insecure.  Depending on precisely which ciphers are available to a process, the list may be reduced.\n\nNote that the Modern profile is currently not supported because it is not yet well adopted by common software libraries.",
+	"old":          "old is a TLS security profile based on:\n\nhttps://wiki.mozilla.org/Security/Server_Side_TLS#Old_backward_compatibility\n\nand looks like this (yaml):\n\n  ciphers:\n    - TLS_AES_128_GCM_SHA256\n    - TLS_AES_256_GCM_SHA384\n    - TLS_CHACHA20_POLY1305_SHA256\n    - ECDHE-ECDSA-AES128-GCM-SHA256\n    - ECDHE-RSA-AES128-GCM-SHA256\n    - ECDHE-ECDSA-AES256-GCM-SHA384\n    - ECDHE-RSA-AES256-GCM-SHA384\n    - ECDHE-ECDSA-CHACHA20-POLY1305\n    - ECDHE-RSA-CHACHA20-POLY1305\n    - DHE-RSA-AES128-GCM-SHA256\n    - DHE-RSA-AES256-GCM-SHA384\n    - DHE-RSA-CHACHA20-POLY1305\n    - ECDHE-ECDSA-AES128-SHA256\n    - ECDHE-RSA-AES128-SHA256\n    - ECDHE-ECDSA-AES128-SHA\n    - ECDHE-RSA-AES128-SHA\n    - ECDHE-ECDSA-AES256-SHA384\n    - ECDHE-RSA-AES256-SHA384\n    - ECDHE-ECDSA-AES256-SHA\n    - ECDHE-RSA-AES256-SHA\n    - DHE-RSA-AES128-SHA256\n    - DHE-RSA-AES256-SHA256\n    - AES128-GCM-SHA256\n    - AES256-GCM-SHA384\n    - AES128-SHA256\n    - AES256-SHA256\n    - AES128-SHA\n    - AES256-SHA\n    - DES-CBC3-SHA\n  minTLSVersion: TLSv1.0",
+	"intermediate": "intermediate is a TLS security profile based on:\n\nhttps://wiki.mozilla.org/Security/Server_Side_TLS#Intermediate_compatibility_.28recommended.29\n\nand looks like this (yaml):\n\n  ciphers:\n    - TLS_AES_128_GCM_SHA256\n    - TLS_AES_256_GCM_SHA384\n    - TLS_CHACHA20_POLY1305_SHA256\n    - ECDHE-ECDSA-AES128-GCM-SHA256\n    - ECDHE-RSA-AES128-GCM-SHA256\n    - ECDHE-ECDSA-AES256-GCM-SHA384\n    - ECDHE-RSA-AES256-GCM-SHA384\n    - ECDHE-ECDSA-CHACHA20-POLY1305\n    - ECDHE-RSA-CHACHA20-POLY1305\n    - DHE-RSA-AES128-GCM-SHA256\n    - DHE-RSA-AES256-GCM-SHA384\n  minTLSVersion: TLSv1.2",
+	"modern":       "modern is a TLS security profile based on:\n\nhttps://wiki.mozilla.org/Security/Server_Side_TLS#Modern_compatibility\n\nand looks like this (yaml):\n\n  ciphers:\n    - TLS_AES_128_GCM_SHA256\n    - TLS_AES_256_GCM_SHA384\n    - TLS_CHACHA20_POLY1305_SHA256\n  minTLSVersion: TLSv1.3\n\nNOTE: Currently unsupported.",
+	"custom":       "custom is a user-defined TLS security profile. Be extremely careful using a custom profile as invalid configurations can be catastrophic. An example custom profile looks like this:\n\n  ciphers:\n    - ECDHE-ECDSA-CHACHA20-POLY1305\n    - ECDHE-RSA-CHACHA20-POLY1305\n    - ECDHE-RSA-AES128-GCM-SHA256\n    - ECDHE-ECDSA-AES128-GCM-SHA256\n  minTLSVersion: TLSv1.1",
+}
+
+func (TLSSecurityProfile) SwaggerDoc() map[string]string {
+	return map_TLSSecurityProfile
 }
 
 // AUTO-GENERATED FUNCTIONS END HERE

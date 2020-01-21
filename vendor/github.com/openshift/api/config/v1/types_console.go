@@ -10,8 +10,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // logout URL, and reports the public URL of the console. The canonical name is
 // `cluster`.
 type Console struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -40,9 +39,9 @@ type ConsoleStatus struct {
 
 type ConsoleList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Console `json:"items"`
+
+	Items []Console `json:"items"`
 }
 
 // ConsoleAuthentication defines a list of optional configuration for console authentication.
@@ -58,6 +57,6 @@ type ConsoleAuthentication struct {
 	// provides the user the option to perform single logout (SLO) through the identity
 	// provider to destroy their single sign-on session.
 	// +optional
-	// +kubebuilder:validation:Pattern=^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))$
+	// +kubebuilder:validation:Pattern=`^$|^((https):\/\/?)[^\s()<>]+(?:\([\w\d]+\)|([^[:punct:]\s]|\/?))$`
 	LogoutRedirect string `json:"logoutRedirect,omitempty"`
 }

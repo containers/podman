@@ -8,8 +8,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // Project holds cluster-wide information about Project.  The canonical name is `cluster`
 type Project struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -49,7 +48,7 @@ type ProjectStatus struct {
 
 type ProjectList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Project `json:"items"`
+
+	Items []Project `json:"items"`
 }

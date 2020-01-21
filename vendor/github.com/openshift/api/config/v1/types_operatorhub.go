@@ -6,10 +6,19 @@ import (
 
 // OperatorHubSpec defines the desired state of OperatorHub
 type OperatorHubSpec struct {
+	// disableAllDefaultSources allows you to disable all the default hub
+	// sources. If this is true, a specific entry in sources can be used to
+	// enable a default source. If this is false, a specific entry in
+	// sources can be used to disable or enable a default source.
+	// +optional
+	DisableAllDefaultSources bool `json:"disableAllDefaultSources,omitempty"`
 	// sources is the list of default hub sources and their configuration.
-	// If the list is empty, it indicates that the default hub sources are
-	// enabled on the cluster. The list of default hub sources and their
-	// current state will always be reflected in the status block.
+	// If the list is empty, it implies that the default hub sources are
+	// enabled on the cluster unless disableAllDefaultSources is true.
+	// If disableAllDefaultSources is true and sources is not empty,
+	// the configuration present in sources will take precedence. The list of
+	// default hub sources and their current state will always be reflected in
+	// the status block.
 	// +optional
 	Sources []HubSource `json:"sources,omitempty"`
 }
@@ -61,9 +70,9 @@ type HubSource struct {
 // HubSourceStatus is used to reflect the current state of applying the
 // configuration to a default source
 type HubSourceStatus struct {
-	HubSource
+	HubSource `json:",omitempty"`
 	// status indicates success or failure in applying the configuration
-	Status string `json:"status"`
+	Status string `json:"status,omitempty"`
 	// message provides more information regarding failures
 	Message string `json:"message,omitempty"`
 }

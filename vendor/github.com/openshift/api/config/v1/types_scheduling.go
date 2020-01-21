@@ -9,8 +9,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 // Scheduler holds cluster-wide config information to run the Kubernetes Scheduler
 // and influence its placement decisions. The canonical name for this config is `cluster`.
 type Scheduler struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -69,7 +68,7 @@ type SchedulerStatus struct {
 
 type SchedulerList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Scheduler `json:"items"`
+
+	Items []Scheduler `json:"items"`
 }
