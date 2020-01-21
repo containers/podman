@@ -514,6 +514,7 @@ special_testing_cgroupv2_task:
     always:
         <<: *standardlogs
 
+
 special_testing_endpoint_task:
 
     depends_on:
@@ -561,7 +562,8 @@ test_build_cache_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
@@ -593,7 +595,8 @@ verify_test_built_images_task:
 
     only_if: >-
         $CIRRUS_BRANCH != $DEST_BRANCH &&
-        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*'
+        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
 
     depends_on:
@@ -637,11 +640,13 @@ verify_test_built_images_task:
     always:
         <<: *standardlogs
 
-
 upload_snap_task:
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
     # Only when PR or branch is merged into master
-    only_if: $CIRRUS_BRANCH == $DEST_BRANCH
 
     depends_on:
         - "test_building_snap"
@@ -662,8 +667,11 @@ upload_snap_task:
 
 docs_task:
 
-    # Only run this for PRs on mention, but always run after merge
-    only_if: $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*' || $CIRRUS_BRANCH == $DEST_BRANCH
+    # Only run this for PRs on mention, and after merge
+    only_if: >-
+        $CIRRUS_BRANCH != $DEST_BRANCH &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE =~ '.*CI:DOCS.*'
 
     depends_on:
         - "gating"
