@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/errors"
+	"golang.org/x/sys/unix"
 )
 
 var (
@@ -27,7 +28,7 @@ func IsCgroup2UnifiedMode() (bool, error) {
 		if err := syscall.Statfs("/sys/fs/cgroup", &st); err != nil {
 			isUnified, isUnifiedErr = false, err
 		} else {
-			isUnified, isUnifiedErr = st.Type == _cgroup2SuperMagic, nil
+			isUnified, isUnifiedErr = st.Type == unix.CGROUP2_SUPER_MAGIC, nil
 		}
 	})
 	return isUnified, isUnifiedErr
