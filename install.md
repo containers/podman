@@ -140,7 +140,7 @@ The Kubic project provides RC/testing packages for Debian 10, testing and
 unstable.
 
 ```bash
-# Debian Untesting/Sid
+# Debian Unstable/Sid
 echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/testing/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:testing.list
 wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:testing/Debian_Unstable/Release.key -O Release.key
 
