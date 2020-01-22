@@ -1078,25 +1078,26 @@ func WithLogTag(tag string) CtrCreateOption {
 
 }
 
-// WithNoCgroups disables the creation of CGroups for the new container.
-func WithNoCgroups() CtrCreateOption {
+// WithCgroupsMode disables the creation of CGroups for the conmon process.
+func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
-		if ctr.config.CgroupParent != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups conflicts with CgroupParent")
+		switch mode {
+		case "disabled":
+			ctr.config.NoCgroups = true
+			ctr.config.CgroupsMode = mode
+		case "enabled", "no-conmon":
+			ctr.config.CgroupsMode = mode
+		default:
+			return errors.Wrapf(define.ErrInvalidArg, "Invalid cgroup mode %q", mode)
 		}
-
-		if ctr.config.PIDNsCtr != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "NoCgroups requires a private PID namespace and cannot be used when PID namespace is shared with another container")
-		}
-
-		ctr.config.NoCgroups = true
 
 		return nil
 	}
+
 }
 
 // WithCgroupParent sets the Cgroup Parent of the new container.

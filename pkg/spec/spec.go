@@ -358,10 +358,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			return nil, errors.New("cannot specify resource limits when cgroups are disabled is specified")
 		}
 		configSpec.Linux.Resources = &spec.LinuxResources{}
-	case "enabled", "":
+	case "enabled", "no-conmon", "":
 		// Do nothing
 	default:
-		return nil, errors.New("unrecognized option for cgroups; supported are 'default' and 'disabled'")
+		return nil, errors.New("unrecognized option for cgroups; supported are 'default', 'disabled', 'no-conmon'")
 	}
 
 	// Add annotations

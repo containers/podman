@@ -153,13 +153,14 @@ func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, erro
 		if len(info.CreateCommand) < index+1 {
 			return "", errors.Errorf("container's create command is too short or invalid: %v", info.CreateCommand)
 		}
-		// We're hard-coding the first four arguments and append the
-		// CreatCommand with a stripped command and subcomand.
+		// We're hard-coding the first five arguments and append the
+		// CreateCommand with a stripped command and subcomand.
 		command := []string{
 			info.Executable,
 			"run",
 			"--conmon-pidfile", "/%t/%n-pid",
 			"--cidfile", "/%t/%n-cid",
+			"--cgroups=no-conmon",
 		}
 		command = append(command, info.CreateCommand[index:]...)
 		info.RunCommand = strings.Join(command, " ")

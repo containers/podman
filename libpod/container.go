@@ -373,8 +373,11 @@ type ContainerConfig struct {
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
 	// NoCgroups indicates that the container will not create CGroups. It is
-	// incompatible with CgroupParent.
+	// incompatible with CgroupParent.  Deprecated in favor of CgroupsMode.
 	NoCgroups bool `json:"noCgroups,omitempty"`
+	// CgroupsMode indicates how the container will create cgroups
+	// (disabled, no-conmon, enabled).  It supersedes NoCgroups.
+	CgroupsMode string `json:"cgroupsMode,omitempty"`
 	// Cgroup parent of the container
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location

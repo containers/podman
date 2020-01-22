@@ -92,8 +92,9 @@ If the host uses cgroups v1, the default is set to **host**.  On cgroups v2 the 
 **--cgroups**=*mode*
 
 Determines whether the container will create CGroups.
-Valid values are *enabled* and *disabled*, which the default being *enabled*.
+Valid values are *enabled*, *disabled*, *no-conmon*, which the default being *enabled*.
 The *disabled* option will force the container to not create CGroups, and thus conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**).
+The *no-conmon* option disables a new CGroup only for the conmon process.
 
 **--cgroup-parent**=*cgroup*
 

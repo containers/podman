@@ -213,8 +213,8 @@ func (c *CgroupConfig) ToCreateOptions(runtime *libpod.Runtime) ([]libpod.CtrCre
 		options = append(options, libpod.WithCgroupParent(c.CgroupParent))
 	}
 
-	if c.Cgroups == "disabled" {
-		options = append(options, libpod.WithNoCgroups())
+	if c.Cgroups != "" {
+		options = append(options, libpod.WithCgroupsMode(c.Cgroups))
 	}
 
 	return options, nil

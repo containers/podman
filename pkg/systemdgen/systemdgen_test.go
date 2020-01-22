@@ -122,7 +122,7 @@ Documentation=man:podman-generate-systemd(1)
 [Service]
 Restart=always
 ExecStartPre=/usr/bin/rm -f /%t/%n-pid /%t/%n-cid
-ExecStart=/usr/bin/podman run --conmon-pidfile /%t/%n-pid --cidfile /%t/%n-cid --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
+ExecStart=/usr/bin/podman run --conmon-pidfile /%t/%n-pid --cidfile /%t/%n-cid --cgroups=no-conmon --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
 ExecStop=/usr/bin/podman stop --ignore --cidfile /%t/%n-cid -t 42
 ExecStopPost=/usr/bin/podman rm --ignore -f --cidfile /%t/%n-cid
 PIDFile=/%t/%n-pid
