@@ -29,7 +29,7 @@ podman rmi c0ed59d05ff7
 Remove an image and its associated containers.
 ```
 podman rmi --force imageID
-````
+```
 
 Remove multiple images by their shortened IDs.
 ```
