@@ -31,12 +31,13 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle("/libpod/volumes/prune", APIHandler(s.Context, libpod.PruneVolumes)).Methods(http.MethodPost)
-	// swagger:operation GET /volumes/{nameOrID}/json volumes inspectVolume
+	// swagger:operation GET /volumes/{name}/json volumes inspectVolume
 	// ---
 	// summary: Inspect volume
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the volume
 	// produces:
@@ -48,30 +49,31 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//       "$ref": "#/responses/NoSuchVolume"
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
-	r.Handle("/libpod/volumes/{name:..*}/json", APIHandler(s.Context, libpod.InspectVolume)).Methods(http.MethodGet)
-	// swagger:operation DELETE /volumes/{nameOrID} volumes removeVolume
+	r.Handle("/libpod/volumes/{name}/json", APIHandler(s.Context, libpod.InspectVolume)).Methods(http.MethodGet)
+	// swagger:operation DELETE /volumes/{name} volumes removeVolume
 	// ---
 	// summary: Remove volume
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the volume
 	//  - in: query
 	//    name: force
-	//    type: bool
+	//    type: boolean
 	//    description: force removal
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
-	//       description: no error
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchVolume"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.Handle("/libpod/volumes/{name:..*}", APIHandler(s.Context, libpod.RemoveVolume)).Methods(http.MethodDelete)
+	//   204:
+	//     description: no error
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchVolume"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.Handle("/libpod/volumes/{name}", APIHandler(s.Context, libpod.RemoveVolume)).Methods(http.MethodDelete)
 	return nil
 }

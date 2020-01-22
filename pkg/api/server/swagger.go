@@ -41,7 +41,7 @@ type swagErrNoSuchPod struct {
 	}
 }
 
-// Internal error
+// Internal server error
 // swagger:response InternalError
 type swagInternalError struct {
 	// in:body
@@ -59,7 +59,7 @@ type swagGenericError struct {
 	}
 }
 
-// Conflict error
+// Conflict error in operation
 // swagger:response ConflictError
 type swagConflictError struct {
 	// in:body
@@ -68,7 +68,7 @@ type swagConflictError struct {
 	}
 }
 
-// Bad parameter
+// Bad parameter in request
 // swagger:response BadParamError
 type swagBadParamError struct {
 	// in:body
@@ -133,4 +133,24 @@ type swagListContainers struct {
 // To be determined
 // swagger:response tbd
 type swagTBD struct {
+}
+
+// Success
+// swagger:response
+type swag struct {
+	// in:body
+	Body struct {
+		// example: OK
+		ok string
+	}
+}
+
+// Success
+// swagger:response
+type ok struct {
+	// in:body
+	Body struct {
+		// example: OK
+		ok string
+	}
 }

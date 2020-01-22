@@ -27,34 +27,34 @@ func Error(w http.ResponseWriter, apiMessage string, code int, err error) {
 	WriteJSON(w, code, em)
 }
 
-func VolumeNotFound(w http.ResponseWriter, nameOrId string, err error) {
+func VolumeNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Cause(err) != define.ErrNoSuchVolume {
 		InternalServerError(w, err)
 	}
-	msg := fmt.Sprintf("No such volume: %s", nameOrId)
+	msg := fmt.Sprintf("No such volume: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
-func ContainerNotFound(w http.ResponseWriter, nameOrId string, err error) {
+func ContainerNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Cause(err) != define.ErrNoSuchCtr {
 		InternalServerError(w, err)
 	}
-	msg := fmt.Sprintf("No such container: %s", nameOrId)
+	msg := fmt.Sprintf("No such container: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
-func ImageNotFound(w http.ResponseWriter, nameOrId string, err error) {
+func ImageNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Cause(err) != define.ErrNoSuchImage {
 		InternalServerError(w, err)
 	}
-	msg := fmt.Sprintf("No such image: %s", nameOrId)
+	msg := fmt.Sprintf("No such image: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
-func PodNotFound(w http.ResponseWriter, nameOrId string, err error) {
+func PodNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Cause(err) != define.ErrNoSuchPod {
 		InternalServerError(w, err)
 	}
-	msg := fmt.Sprintf("No such pod: %s", nameOrId)
+	msg := fmt.Sprintf("No such pod: %s", name)
 	Error(w, msg, http.StatusNotFound, err)
 }
 
@@ -73,9 +73,11 @@ func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 }
 
 type ErrorModel struct {
-	// root cause
+	// API root cause formatted for automated parsing
+	// example: API root cause
 	Because string `json:"cause"`
-	// error message
+	// human error message, formatted for a human to read
+	// example: human error message
 	Message string `json:"message"`
 }
 
