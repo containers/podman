@@ -1,6 +1,6 @@
-// Package serviceapi Provides a Container compatible interface (EXPERIMENTAL)
+// Package api Provides a container compatible interface.
 //
-// This documentation describes the HTTP LibPod interface.  It is to be consider
+// This documentation describes the HTTP Libpod interface.  It is to be consider
 // only as experimental as this point.  The endpoints, parameters, inputs, and
 // return values can all change.
 //
@@ -25,12 +25,18 @@
 //     - text/html
 //
 //     tags:
-//     - name: "Containers"
-//       description: manage containers
-//     - name: "Images"
-//       description: manage images
-//     - name: "System"
-//       description: manage system resources
+//     - name: containers
+//       description: Actions related to containers
+//     - name: images
+//       description: Actions related to images
+//     - name: pods
+//       description: Actions related to pods
+//     - name: volumes
+//       description: Actions related to volumes
+//     - name: containers (compat)
+//       description: Actions related to containers for the compatibility endpoints
+//     - name: images (compat)
+//       description: Actions related to images for the compatibility endpoints
 //
 // swagger:meta
 package server

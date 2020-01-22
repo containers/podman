@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -9,23 +10,30 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/archive"
-	log "github.com/sirupsen/logrus"
+	"github.com/gorilla/mux"
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
 	authConfigs := map[string]AuthConfig{}
-	if hasHeader(r, "X-Registry-Config") {
-		registryHeader := getHeader(r, "X-Registry-Config")
-		authConfigsJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(registryHeader))
+	if hdr, found := r.Header["X-Registry-Config"]; found && len(hdr) > 0 {
+		authConfigsJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(hdr[0]))
 		if json.NewDecoder(authConfigsJSON).Decode(&authConfigs) != nil {
-			utils.BadRequest(w, "X-Registry-Config", registryHeader, json.NewDecoder(authConfigsJSON).Decode(&authConfigs))
+			utils.BadRequest(w, "X-Registry-Config", hdr[0], json.NewDecoder(authConfigsJSON).Decode(&authConfigs))
 			return
+		}
+	}
+
+	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
+		if hdr[0] != "application/x-tar" {
+			utils.BadRequest(w, "Content-Type", hdr[0],
+				fmt.Errorf("Content-Type: %s is not supported. Should be \"application/x-tar\"", hdr[0]))
 		}
 	}
 
@@ -34,33 +42,34 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	// defer os.RemoveAll(anchorDir)
+	defer os.RemoveAll(anchorDir)
 
 	query := struct {
-		Dockerfile  string `json:"dockerfile"`
-		Tag         string `json:"t"`
-		ExtraHosts  string `json:"extrahosts"`
-		Remote      string `json:"remote"`
-		Quiet       bool   `json:"q"`
-		NoCache     bool   `json:"nocache"`
-		CacheFrom   string `json:"cachefrom"`
-		Pull        string `json:"pull"`
-		Rm          bool   `json:"rm"`
-		ForceRm     bool   `json:"forcerm"`
-		Memory      int    `json:"memory"`
-		MemSwap     int    `json:"memswap"`
-		CpuShares   int    `json:"cpushares"`
-		CpuSetCpus  string `json:"cpusetcpus"`
-		CpuPeriod   int    `json:"cpuperiod"`
-		CpuQuota    int    `json:"cpuquota"`
-		BuildArgs   string `json:"buildargs"`
-		ShmSize     int    `json:"shmsize"`
-		Squash      bool   `json:"squash"`
-		Labels      string `json:"labels"`
-		NetworkMode string `json:"networkmode"`
-		Platform    string `json:"platform"`
-		Target      string `json:"target"`
-		Outputs     string `json:"outputs"`
+		Dockerfile  string `schema:"dockerfile"`
+		Tag         string `schema:"t"`
+		ExtraHosts  string `schema:"extrahosts"`
+		Remote      string `schema:"remote"`
+		Quiet       bool   `schema:"q"`
+		NoCache     bool   `schema:"nocache"`
+		CacheFrom   string `schema:"cachefrom"`
+		Pull        bool   `schema:"pull"`
+		Rm          bool   `schema:"rm"`
+		ForceRm     bool   `schema:"forcerm"`
+		Memory      int64  `schema:"memory"`
+		MemSwap     int64  `schema:"memswap"`
+		CpuShares   uint64 `schema:"cpushares"`
+		CpuSetCpus  string `schema:"cpusetcpus"`
+		CpuPeriod   uint64 `schema:"cpuperiod"`
+		CpuQuota    int64  `schema:"cpuquota"`
+		BuildArgs   string `schema:"buildargs"`
+		ShmSize     int    `schema:"shmsize"`
+		Squash      bool   `schema:"squash"`
+		Labels      string `schema:"labels"`
+		NetworkMode string `schema:"networkmode"`
+		Platform    string `schema:"platform"`
+		Target      string `schema:"target"`
+		Outputs     string `schema:"outputs"`
+		Registry    string `schema:"registry"`
 	}{
 		Dockerfile:  "Dockerfile",
 		Tag:         "",
@@ -69,7 +78,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Quiet:       false,
 		NoCache:     false,
 		CacheFrom:   "",
-		Pull:        "",
+		Pull:        false,
 		Rm:          true,
 		ForceRm:     false,
 		Memory:      0,
@@ -86,6 +95,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Platform:    "",
 		Target:      "",
 		Outputs:     "",
+		Registry:    "docker.io",
 	}
 
 	if err := decodeQuery(r, &query); err != nil {
@@ -93,80 +103,121 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tag is the name with optional tag...
-	var name = query.Tag
-	var tag string
+	var (
+		// Tag is the name with optional tag...
+		name = query.Tag
+		tag  = "latest"
+	)
 	if strings.Contains(query.Tag, ":") {
 		tokens := strings.SplitN(query.Tag, ":", 2)
 		name = tokens[0]
 		tag = tokens[1]
 	}
 
+	if t, found := mux.Vars(r)["target"]; found {
+		name = t
+	}
+
 	var buildArgs = map[string]string{}
-	if found := hasVar(r, "buildargs"); found {
-		if err := json.Unmarshal([]byte(query.BuildArgs), &buildArgs); err != nil {
-			utils.BadRequest(w, "buildargs", query.BuildArgs, err)
+	if a, found := mux.Vars(r)["buildargs"]; found {
+		if err := json.Unmarshal([]byte(a), &buildArgs); err != nil {
+			utils.BadRequest(w, "buildargs", a, err)
 			return
 		}
 	}
 
 	// convert label formats
 	var labels = []string{}
-	if hasVar(r, "labels") {
+	if l, found := mux.Vars(r)["labels"]; found {
 		var m = map[string]string{}
-		if err := json.Unmarshal([]byte(query.Labels), &m); err != nil {
-			utils.BadRequest(w, "labels", query.Labels, err)
+		if err := json.Unmarshal([]byte(l), &m); err != nil {
+			utils.BadRequest(w, "labels", l, err)
 			return
 		}
 
 		for k, v := range m {
-			labels = append(labels, fmt.Sprintf("%s=%v", k, v))
+			labels = append(labels, k+"="+v)
 		}
 	}
 
+	pullPolicy := buildah.PullIfMissing
+	if _, found := mux.Vars(r)["pull"]; found {
+		if query.Pull {
+			pullPolicy = buildah.PullAlways
+		}
+	}
+
+	// build events will be recorded here
+	var (
+		buildEvents = []string{}
+		progress    = bytes.Buffer{}
+	)
+
 	buildOptions := imagebuildah.BuildOptions{
 		ContextDirectory:               filepath.Join(anchorDir, "build"),
-		PullPolicy:                     0,
-		Registry:                       "",
-		IgnoreUnrecognizedInstructions: false,
+		PullPolicy:                     pullPolicy,
+		Registry:                       query.Registry,
+		IgnoreUnrecognizedInstructions: true,
 		Quiet:                          query.Quiet,
-		Isolation:                      0,
+		Isolation:                      buildah.IsolationChroot,
 		Runtime:                        "",
 		RuntimeArgs:                    nil,
 		TransientMounts:                nil,
-		Compression:                    0,
+		Compression:                    archive.Gzip,
 		Args:                           buildArgs,
 		Output:                         name,
 		AdditionalTags:                 []string{tag},
-		Log:                            nil,
-		In:                             nil,
-		Out:                            nil,
-		Err:                            nil,
-		SignaturePolicyPath:            "",
-		ReportWriter:                   nil,
-		OutputFormat:                   "",
-		SystemContext:                  nil,
-		NamespaceOptions:               nil,
-		ConfigureNetwork:               0,
-		CNIPluginPath:                  "",
-		CNIConfigDir:                   "",
-		IDMappingOptions:               nil,
-		AddCapabilities:                nil,
-		DropCapabilities:               nil,
-		CommonBuildOpts:                &buildah.CommonBuildOptions{},
-		DefaultMountsFilePath:          "",
-		IIDFile:                        "",
-		Squash:                         query.Squash,
-		Labels:                         labels,
-		Annotations:                    nil,
-		OnBuild:                        nil,
-		Layers:                         false,
-		NoCache:                        query.NoCache,
-		RemoveIntermediateCtrs:         query.Rm,
-		ForceRmIntermediateCtrs:        query.ForceRm,
-		BlobDirectory:                  "",
-		Target:                         query.Target,
-		Devices:                        nil,
+		Log: func(format string, args ...interface{}) {
+			buildEvents = append(buildEvents, fmt.Sprintf(format, args...))
+		},
+		In:                  nil,
+		Out:                 &progress,
+		Err:                 &progress,
+		SignaturePolicyPath: "",
+		ReportWriter:        &progress,
+		OutputFormat:        buildah.Dockerv2ImageManifest,
+		SystemContext:       nil,
+		NamespaceOptions:    nil,
+		ConfigureNetwork:    0,
+		CNIPluginPath:       "",
+		CNIConfigDir:        "",
+		IDMappingOptions:    nil,
+		AddCapabilities:     nil,
+		DropCapabilities:    nil,
+		CommonBuildOpts: &buildah.CommonBuildOptions{
+			AddHost:            nil,
+			CgroupParent:       "",
+			CPUPeriod:          query.CpuPeriod,
+			CPUQuota:           query.CpuQuota,
+			CPUShares:          query.CpuShares,
+			CPUSetCPUs:         query.CpuSetCpus,
+			CPUSetMems:         "",
+			HTTPProxy:          false,
+			Memory:             query.Memory,
+			DNSSearch:          nil,
+			DNSServers:         nil,
+			DNSOptions:         nil,
+			MemorySwap:         query.MemSwap,
+			LabelOpts:          nil,
+			SeccompProfilePath: "",
+			ApparmorProfile:    "",
+			ShmSize:            strconv.Itoa(query.ShmSize),
+			Ulimit:             nil,
+			Volumes:            nil,
+		},
+		DefaultMountsFilePath:   "",
+		IIDFile:                 "",
+		Squash:                  query.Squash,
+		Labels:                  labels,
+		Annotations:             nil,
+		OnBuild:                 nil,
+		Layers:                  false,
+		NoCache:                 query.NoCache,
+		RemoveIntermediateCtrs:  query.Rm,
+		ForceRmIntermediateCtrs: query.ForceRm,
+		BlobDirectory:           "",
+		Target:                  query.Target,
+		Devices:                 nil,
 	}
 
 	id, _, err := getRuntime(r).Build(r.Context(), buildOptions, query.Dockerfile)
@@ -179,17 +230,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		struct {
 			Stream string `json:"stream"`
 		}{
-			Stream: fmt.Sprintf("Successfully built %s\n", id),
+			Stream: progress.String() + "\n" +
+				strings.Join(buildEvents, "\n") +
+				fmt.Sprintf("\nSuccessfully built %s\n", id),
 		})
 }
 
 func extractTarFile(r *http.Request, w http.ResponseWriter) (string, error) {
-	var (
-		// length  int64
-		// n       int64
-		copyErr error
-	)
-
 	// build a home for the request body
 	anchorDir, err := ioutil.TempDir("", "libpod_builder")
 	if err != nil {
@@ -204,26 +251,14 @@ func extractTarFile(r *http.Request, w http.ResponseWriter) (string, error) {
 	}
 	defer tarBall.Close()
 
-	// if hasHeader(r, "Content-Length") {
-	// 	length, err := strconv.ParseInt(getHeader(r, "Content-Length"), 10, 64)
-	// 	if err != nil {
-	// 		return "", errors.New(fmt.Sprintf("Failed request: unable to parse Content-Length of '%s'", getHeader(r, "Content-Length")))
-	// 	}
-	// 	n, copyErr = io.CopyN(tarBall, r.Body, length+1)
-	// } else {
-	_, copyErr = io.Copy(tarBall, r.Body)
-	// }
+	// Content-Length not used as too many existing API clients didn't honor it
+	_, err = io.Copy(tarBall, r.Body)
 	r.Body.Close()
 
-	if copyErr != nil {
+	if err != nil {
 		utils.InternalServerError(w,
 			fmt.Errorf("failed Request: Unable to copy tar file from request body %s", r.RequestURI))
 	}
-	log.Debugf("Content-Length: %s", getVar(r, "Content-Length"))
-
-	// if hasHeader(r, "Content-Length") && n != length {
-	// 	return "", errors.New(fmt.Sprintf("Failed request: Given Content-Length does not match file size %d != %d", n, length))
-	// }
 
 	_, _ = tarBall.Seek(0, 0)
 	if err := archive.Untar(tarBall, buildDir, &archive.TarOptions{}); err != nil {
