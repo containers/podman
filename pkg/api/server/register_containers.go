@@ -23,21 +23,21 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//      type: string
 	//      description: container name
 	//   responses:
-	//     '201':
-	//         $ref: "#/responses/ContainerCreateResponse"
-	//     '400':
-	//         "$ref": "#/responses/BadParamError"
-	//     '404':
-	//         "$ref": "#/responses/NoSuchContainer"
-	//     '409':
-	//         "$ref": "#/responses/ConflictError"
-	//     '500':
-	//        "$ref": "#/responses/InternalError"
+	//     201:
+	//       $ref: "#/responses/ContainerCreateResponse"
+	//     400:
+	//       $ref: "#/responses/BadParamError"
+	//     404:
+	//       $ref: "#/responses/NoSuchContainer"
+	//     409:
+	//       $ref: "#/responses/ConflictError"
+	//     500:
+	//       $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/create"), APIHandler(s.Context, generic.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/json compat listContainers
 	// ---
-	//   tags:
-	//    - containers (compat)
+	// tags:
+	//  - containers (compat)
 	// summary: List containers
 	// description: Returns a list of containers
 	// parameters:
@@ -63,17 +63,17 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//        "$ref": "#/responses/DocsListContainer"
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   200:
+	//     $ref: "#/responses/DocsListContainer"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/json"), APIHandler(s.Context, generic.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST  /containers/prune compat pruneContainers
 	// ---
-	//   tags:
-	//    - containers (compat)
+	// tags:
+	//   - containers (compat)
 	// summary: Delete stopped containers
 	// description: Remove containers not in use
 	// parameters:
@@ -87,76 +87,78 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//       "$ref": "#/responses/DocsContainerPruneReport"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   200:
+	//     $ref: "#/responses/DocsContainerPruneReport"
+	//   500:
+	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/prune"), APIHandler(s.Context, generic.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation DELETE /containers/{nameOrID} compat removeContainer
+	// swagger:operation DELETE /containers/{name} compat removeContainer
 	// ---
-	//   tags:
-	//    - containers (compat)
+	// tags:
+	//  - containers (compat)
 	// summary: Remove a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: force
-	//    type: bool
+	//    type: boolean
 	//    default: false
 	//    description: If the container is running, kill it before removing it.
 	//  - in: query
 	//    name: v
-	//    type: bool
+	//    type: boolean
 	//    default: false
 	//    description: Remove the volumes associated with the container.
 	//  - in: query
 	//    name: link
-	//    type: bool
+	//    type: boolean
 	//    description: not supported
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '409':
-	//       "$ref": "#/responses/ConflictError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}"), APIHandler(s.Context, generic.RemoveContainer)).Methods(http.MethodDelete)
-	// swagger:operation GET /containers/{nameOrID}/json compat getContainer
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}"), APIHandler(s.Context, generic.RemoveContainer)).Methods(http.MethodDelete)
+	// swagger:operation GET /containers/{name}/json compat getContainer
 	// ---
-	//   tags:
-	//    - containers (compat)
+	// tags:
+	//  - containers (compat)
 	// summary: Inspect container
 	// description: Return low-level information about a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or id of the container
 	//  - in: query
 	//    name: size
-	//    type: bool
+	//    type: boolean
 	//    default: false
 	//    description: include the size of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//      "$ref": "#/responses/DocsContainerInspectResponse"
-	//   '404':
-	//     "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//     "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/json"), APIHandler(s.Context, generic.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation post /containers/{nameOrID}/kill compat killcontainer
+	//   200:
+	//     $ref: "#/responses/DocsContainerInspectResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/json"), APIHandler(s.Context, generic.GetContainer)).Methods(http.MethodGet)
+	// swagger:operation post /containers/{name}/kill compat killcontainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -164,26 +166,28 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Signal to send to the container as an integer or string (e.g. SIGINT)
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: signal
-	//    type: int
+	//    type: string
+	//    default: TERM
 	//    description: signal to be sent to container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '409':
-	//       "$ref": "#/responses/ConflictError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/kill"), APIHandler(s.Context, generic.KillContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{nameOrID}/logs compat LogsFromContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/kill"), APIHandler(s.Context, generic.KillContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /containers/{name}/logs compat LogsFromContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -191,20 +195,21 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Get stdout and stderr logs from a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: follow
-	//    type: bool
+	//    type: boolean
 	//    description: Keep connection after returning logs.
 	//  - in: query
 	//    name: stdout
-	//    type: bool
+	//    type: boolean
 	//    description: not supported
 	//  - in: query
 	//    name: stderr
-	//    type: bool
+	//    type: boolean
 	//    description: not supported?
 	//  - in: query
 	//    name: since
@@ -216,7 +221,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//    description: Only return logs before this time, as a UNIX timestamp
 	//  - in: query
 	//    name: timestamps
-	//    type: bool
+	//    type: boolean
 	//    default: false
 	//    description: Add timestamps to every log line
 	//  - in: query
@@ -227,14 +232,14 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
+	//   200:
 	//     description:  logs returned as a stream in response body.
-	//   '404':
-	//      "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{nameOrID}/pause compat pauseContainer
+	//   404:
+	//      $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//      $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /containers/{name}/pause compat pauseContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -242,52 +247,55 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Use the cgroups freezer to suspend all processes in a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/rename"), APIHandler(s.Context, handlers.UnsupportedHandler)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{nameOrID}/restart compat restartContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/rename"), APIHandler(s.Context, handlers.UnsupportedHandler)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/restart compat restartContainer
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Restart container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: t
-	//    type: int
+	//    type: integer
 	//    description: timeout before sending kill signal to container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{nameOrID}/start compat startContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/start compat startContainer
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Start a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -297,16 +305,16 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '304':
-	//       "$ref": "#/responses/ContainerAlreadyStartedError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{nameOrID}/stats compat statsContainer
+	//   304:
+	//     $ref: "#/responses/ContainerAlreadyStartedError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /containers/{name}/stats compat statsContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -314,58 +322,62 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: This returns a live stream of a container’s resource usage statistics.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: stream
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	//    description: Stream the output
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{nameOrID}/stop compat stopContainer
+	//   200:
+	//     description: OK
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /containers/{name}/stop compat stopContainer
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: Stop a container
+	// description: Stop a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: t
-	//    type: int
+	//    type: integer
 	//    description: number of seconds to wait before killing container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '304':
-	//       "$ref": "#/responses/ContainerAlreadyStoppedError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{nameOrID}/top compat topContainer
+	//   304:
+	//     $ref: "#/responses/ContainerAlreadyStoppedError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /containers/{name}/top compat topContainer
 	// ---
 	// tags:
 	//   - containers (compat)
 	// summary: List processes running inside a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -375,14 +387,14 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//       "ref": "#/responses/DockerTopResponse"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /containers/{nameOrID}/unpause compat unpauseContainer
+	//   200:
+	//     $ref: "#/responses/DockerTopResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /containers/{name}/unpause compat unpauseContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -390,20 +402,21 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Resume a paused container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{nameOrID}/wait compat waitContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/wait compat waitContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -411,7 +424,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Block until a container stops, then returns the exit code.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -421,14 +435,14 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
+	//   200:
 	//     $ref: "#/responses/ContainerWaitResponse"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{nameOrID}/attach compat attach
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/attach compat attach
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -436,7 +450,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Hijacks the connection to forward the container's standard streams to the client.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -447,42 +462,42 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: logs
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Not yet supported
 	//  - in: query
 	//    name: stream
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	//    description: If passed, must be set to true; stream=false is not yet supported
 	//  - in: query
 	//    name: stdout
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDOUT
 	//  - in: query
 	//    name: stderr
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDERR
 	//  - in: query
 	//    name: stdin
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDIN
 	// produces:
 	// - application/json
 	// responses:
-	//   '101':
+	//   101:
 	//     description: No error, connection has been hijacked for transporting streams.
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//       "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{nameOrID}/resize compat resize
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /containers/{name}/resize compat resize
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -490,29 +505,30 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Resize the terminal attached to a container (for use with Attach).
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: h
-	//    type: int
+	//    type: integer
 	//    required: false
 	//    description: Height to set for the terminal, in characters
 	//  - in: query
 	//    name: w
-	//    type: int
+	//    type: integer
 	//    required: false
 	//    description: Width to set for the terminal, in characters
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//        description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//       "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name:..*}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
+	//   200:
+	//     $ref: "#/responses/ok"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/containers/{name}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
 
 	/*
 		libpod endpoints
@@ -528,13 +544,12 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     schema:
-	//       "$ref": "#/responses/LibpodListContainersResponse"
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   200:
+	//     $ref: "#/responses/LibpodListContainersResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/json"), APIHandler(s.Context, libpod.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/prune libpod libpodPruneContainers
 	// ---
@@ -545,8 +560,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// parameters:
 	//  - in: query
 	//    name: force
-	//    type: bool
-	//    description: something
+	//    type: boolean
+	//    description: TODO This should be removed from API.  Will always be true...
 	//  - in: query
 	//    name: filters
 	//    type: string
@@ -557,10 +572,12 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//     description: to be determined
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   200:
+	//     type: string
+	//     description: success
+	//     example: OK
+	//   500:
+	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/prune"), APIHandler(s.Context, libpod.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/showmounted libpod showMounterContainers
 	// ---
@@ -571,48 +588,50 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
+	//   200:
 	//     description: mounted containers
 	//     schema:
 	//      type: object
 	//      additionalProperties:
 	//       type: string
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   500:
+	//      $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/showmounted"), APIHandler(s.Context, libpod.ShowMountedContainers)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/containers/json libpod libpodRemoveContainer
+	// swagger:operation DELETE /libpod/containers/{name} libpod libpodRemoveContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Delete container
+	// description: Delete container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: force
-	//    type: bool
+	//    type: boolean
 	//    description: need something
 	//  - in: query
 	//    name: v
-	//    type: bool
+	//    type: boolean
 	//    description: delete volumes
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '409':
-	//       "$ref": "#/responses/ConflictError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}"), APIHandler(s.Context, libpod.RemoveContainer)).Methods(http.MethodDelete)
-	// swagger:operation GET /libpod/containers/{nameOrID}/json libpod libpodGetContainer
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}"), APIHandler(s.Context, libpod.RemoveContainer)).Methods(http.MethodDelete)
+	// swagger:operation GET /libpod/containers/{name}/json libpod libpodGetContainer
 	// ---
 	// tags:
 	//  - containers
@@ -620,24 +639,25 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Return low-level information about a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: size
-	//    type: bool
+	//    type: boolean
 	//    description: display filesystem usage
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//       "$ref": "#/responses/LibpodInspectContainerResponse"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/json"), APIHandler(s.Context, libpod.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{nameOrID}/kill libpod libpodKillContainer
+	//   200:
+	//     $ref: "#/responses/LibpodInspectContainerResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/json"), APIHandler(s.Context, libpod.GetContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/containers/{name}/kill libpod libpodKillContainer
 	// ---
 	// tags:
 	//  - containers
@@ -645,27 +665,28 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: send a signal to a container, defaults to killing the container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: signal
-	//    type: int
-	//    default: 15
-	//    description: signal to be sent to container
+	//    type: string
+	//    default: TERM
+	//    description: signal to be sent to container, either by integer or SIG_ name
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '409':
-	//       "$ref": "#/responses/ConflictError"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/kill"), APIHandler(s.Context, libpod.KillContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{nameOrID}/mount libpod mountContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   409:
+	//     $ref: "#/responses/ConflictError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), APIHandler(s.Context, libpod.KillContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/{name}/mount libpod mountContainer
 	// ---
 	// tags:
 	//  - containers
@@ -673,46 +694,48 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Mount a container to the filesystem
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
+	//   200:
 	//     description: mounted container
 	//     schema:
 	//      description: id
 	//      type: string
 	//      example: /var/lib/containers/storage/overlay/f3f693bd88872a1e3193f4ebb925f4c282e8e73aadb8ab3e7492754dda3a02a4/merged
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/mount"), APIHandler(s.Context, libpod.MountContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{nameOrID}/unmount libpod unmountContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/mount"), APIHandler(s.Context, libpod.MountContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/unmount libpod libpodUnmountContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Unmount a container
 	// description: Unmount a container from the filesystem
-	// parameters:
-	//  - in: path
-	//    name: nameOrID
-	//    required: true
-	//    description: the name or ID of the container
 	// produces:
 	// - application/json
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
 	// responses:
-	//   '204':
-	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/unmount"), APIHandler(s.Context, libpod.UnmountContainer)).Methods(http.MethodPost)
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/logs"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{nameOrID}/pause libpod libpodPauseContainer
+	//   204:
+	//     description: ok
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unmount"), APIHandler(s.Context, libpod.UnmountContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/containers/{name}/pause libpod libpodPauseContainer
 	// ---
 	// tags:
 	//  - containers
@@ -720,51 +743,54 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Use the cgroups freezer to suspend all processes in a container.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//   404:
+	//     "$ref": "#/responses/NoSuchContainer"
+	//   500:
+	//     "$ref": "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/restart libpod libpodRestartContainer
+	// swagger:operation POST /libpod/containers/{name}/restart libpod libpodRestartContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Restart a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: t
-	//    type: int
+	//    type: integer
 	//    description: timeout before sending kill signal to container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/start libpod libpodStartContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/start libpod libpodStartContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Start a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -774,16 +800,16 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '304':
-	//       "$ref": "#/responses/ContainerAlreadyStartedError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/{nameOrID}/stats libpod statsContainer
+	//   304:
+	//     $ref: "#/responses/ContainerAlreadyStartedError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/containers/{name}/stats libpod libpodStatsContainer
 	// ---
 	// tags:
 	//  - containers
@@ -791,82 +817,89 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: This returns a live stream of a container’s resource usage statistics.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: stream
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	//    description: Stream the output
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
+	//   200:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/{nameOrID}/top libpod libpodTopContainer
-	//
-	// List processes running inside a container. Note
-	//
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/{name}/top libpod libpodTopContainer
 	// ---
 	// tags:
 	//  - containers
+	// summary: List processes
+	// description: List processes running inside a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
-	//    description: the name or ID of the container
+	//    description: |
+	//      Name of container to query for processes
+	//      (As of version 1.xx)
 	//  - in: query
 	//    name: stream
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	//    description: Stream the output
+	//  - in: query
 	//    name: ps_args
 	//    type: string
+	//    default: -ef
 	//    description: arguments to pass to ps such as aux. Requires ps(1) to be installed in the container if no ps(1) compatible AIX descriptors are used.
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//       "ref": "#/responses/DockerTopResponse"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{nameOrID}/unpause libpod libpodUnpauseContainer
+	//   200:
+	//     $ref: "#/responses/DockerTopResponse"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/containers/{name}/unpause libpod libpodUnpauseContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Unpause Container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/wait libpod libpodWaitContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/wait libpod libpodWaitContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Wait on a container to exit
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -876,14 +909,14 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/wait"), APIHandler(s.Context, libpod.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/exists libpod containerExists
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/wait"), APIHandler(s.Context, libpod.WaitContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/exists libpod containerExists
 	// ---
 	// tags:
 	//  - containers
@@ -891,46 +924,48 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Quick way to determine if a container exists by name or ID
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: container exists
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/exists"), APIHandler(s.Context, libpod.ContainerExists)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/containers/{nameOrID}/stop libpod libpodStopContainer
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/exists"), APIHandler(s.Context, libpod.ContainerExists)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/containers/{name}/stop libpod libpodStopContainer
 	// ---
 	// tags:
 	//  - containers
 	// summary: Stop a container
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: t
-	//    type: int
+	//    type: integer
 	//    description: number of seconds to wait before killing container
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
+	//   204:
 	//     description: no error
-	//   '304':
-	//       "$ref": "#/responses/ContainerAlreadyStoppedError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//      "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/attach libpod attach
+	//   304:
+	//     $ref: "#/responses/ContainerAlreadyStoppedError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/attach libpod libpodAttach
 	// ---
 	// tags:
 	//   - containers
@@ -938,7 +973,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Hijacks the connection to forward the container's standard streams to the client.
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
@@ -949,42 +985,42 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: logs
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Not yet supported
 	//  - in: query
 	//    name: stream
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	//    description: If passed, must be set to true; stream=false is not yet supported
 	//  - in: query
 	//    name: stdout
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDOUT
 	//  - in: query
 	//    name: stderr
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDERR
 	//  - in: query
 	//    name: stdin
 	//    required: false
-	//    type: bool
+	//    type: boolean
 	//    description: Attach to container STDIN
 	// produces:
 	// - application/json
 	// responses:
-	//   '101':
+	//   101:
 	//     description: No error, connection has been hijacked for transporting streams.
-	//   '400':
-	//       "$ref": "#/responses/BadParamError"
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//       "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{nameOrID}/resize libpod resize
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/resize libpod libpodResize
 	// ---
 	// tags:
 	//  - containers
@@ -992,28 +1028,29 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// description: Resize the terminal attached to a container (for use with Attach).
 	// parameters:
 	//  - in: path
-	//    name: nameOrID
+	//    name: name
+	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
 	//  - in: query
 	//    name: h
-	//    type: int
+	//    type: integer
 	//    required: false
 	//    description: Height to set for the terminal, in characters
 	//  - in: query
 	//    name: w
-	//    type: int
+	//    type: integer
 	//    required: false
 	//    description: Width to set for the terminal, in characters
 	// produces:
 	// - application/json
 	// responses:
-	//   '200':
-	//        description: no error
-	//   '404':
-	//       "$ref": "#/responses/NoSuchContainer"
-	//   '500':
-	//       "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
+	//   200:
+	//     $ref: "#/responses/ok"
+	//   404:
+	//     $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//     $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
 	return nil
 }

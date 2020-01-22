@@ -6,6 +6,6 @@ import (
 )
 
 func (s *APIServer) RegisterDistributionHandlers(r *mux.Router) error {
-	r.HandleFunc(VersionedPath("/distribution/{name:..*}/json"), handlers.UnsupportedHandler)
+	r.HandleFunc(VersionedPath("/distribution/{name}/json"), handlers.UnsupportedHandler)
 	return nil
 }

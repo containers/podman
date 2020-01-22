@@ -96,9 +96,7 @@ type swagLibpodInspectContainerResponse struct {
 // swagger:response ListPodsResponse
 type swagListPodsResponse struct {
 	// in:body
-	Body struct {
-		libpod.PodInspect
-	}
+	Body []libpod.PodInspect
 }
 
 // Inspect pod
