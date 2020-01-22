@@ -8,8 +8,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // Infrastructure holds cluster-wide information about Infrastructure.  The canonical name is `cluster`
 type Infrastructure struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
+	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
@@ -130,6 +129,10 @@ type PlatformStatus struct {
 	// OpenStack contains settings specific to the OpenStack infrastructure provider.
 	// +optional
 	OpenStack *OpenStackPlatformStatus `json:"openstack,omitempty"`
+
+	// Ovirt contains settings specific to the oVirt infrastructure provider.
+	// +optional
+	Ovirt *OvirtPlatformStatus `json:"ovirt,omitempty"`
 }
 
 // AWSPlatformStatus holds the current status of the Amazon Web Services infrastructure provider.
@@ -142,6 +145,11 @@ type AWSPlatformStatus struct {
 type AzurePlatformStatus struct {
 	// resourceGroupName is the Resource Group for new Azure resources created for the cluster.
 	ResourceGroupName string `json:"resourceGroupName"`
+
+	// networkResourceGroupName is the Resource Group for network resources like the Virtual Network and Subnets used by the cluster.
+	// If empty, the value is same as ResourceGroupName.
+	// +optional
+	NetworkResourceGroupName string `json:"networkResourceGroupName,omitempty"`
 }
 
 // GCPPlatformStatus holds the current status of the Google Cloud Platform infrastructure provider.
@@ -154,6 +162,8 @@ type GCPPlatformStatus struct {
 }
 
 // BareMetalPlatformStatus holds the current status of the BareMetal infrastructure provider.
+// For more information about the network architecture used with the BareMetal platform type, see:
+// https://github.com/openshift/installer/blob/master/docs/design/baremetal/networking-infrastructure.md
 type BareMetalPlatformStatus struct {
 	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
 	// by components inside the cluster, like kubelets using the infrastructure rather
@@ -199,12 +209,33 @@ type OpenStackPlatformStatus struct {
 	NodeDNSIP string `json:"nodeDNSIP,omitempty"`
 }
 
+// OvirtPlatformStatus holds the current status of the  oVirt infrastructure provider.
+type OvirtPlatformStatus struct {
+	// apiServerInternalIP is an IP address to contact the Kubernetes API server that can be used
+	// by components inside the cluster, like kubelets using the infrastructure rather
+	// than Kubernetes networking. It is the IP that the Infrastructure.status.apiServerInternalURI
+	// points to. It is the IP for a self-hosted load balancer in front of the API servers.
+	APIServerInternalIP string `json:"apiServerInternalIP,omitempty"`
+
+	// ingressIP is an external IP which routes to the default ingress controller.
+	// The IP is a suitable target of a wildcard DNS record used to resolve default route host names.
+	IngressIP string `json:"ingressIP,omitempty"`
+
+	// nodeDNSIP is the IP address for the internal DNS used by the
+	// nodes. Unlike the one managed by the DNS operator, `NodeDNSIP`
+	// provides name resolution for the nodes themselves. There is no DNS-as-a-service for
+	// oVirt deployments. In order to minimize necessary changes to the
+	// datacenter DNS, a DNS service is hosted as a static pod to serve those hostnames
+	// to the nodes in the cluster.
+	NodeDNSIP string `json:"nodeDNSIP,omitempty"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InfrastructureList is
 type InfrastructureList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
 	metav1.ListMeta `json:"metadata"`
-	Items           []Infrastructure `json:"items"`
+
+	Items []Infrastructure `json:"items"`
 }

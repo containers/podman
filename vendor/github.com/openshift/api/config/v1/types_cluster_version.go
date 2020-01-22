@@ -33,6 +33,8 @@ type ClusterVersionSpec struct {
 	// clusterID uniquely identifies this cluster. This is expected to be
 	// an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in
 	// hexadecimal values). This is a required field.
+	// +kubebuilder:validation:Required
+	// +required
 	ClusterID ClusterID `json:"clusterID"`
 
 	// desiredUpdate is an optional field that indicates the desired value of
@@ -80,6 +82,8 @@ type ClusterVersionStatus struct {
 	// desired is the version that the cluster is reconciling towards.
 	// If the cluster is not yet fully initialized desired will be set
 	// with the information available, which may be an image or a tag.
+	// +kubebuilder:validation:Required
+	// +required
 	Desired Update `json:"desired"`
 
 	// history contains a list of the most recent versions applied to the cluster.
@@ -94,12 +98,16 @@ type ClusterVersionStatus struct {
 
 	// observedGeneration reports which version of the spec is being synced.
 	// If this value is not equal to metadata.generation, then the desired
-	// and conditions fields may represent from a previous version.
+	// and conditions fields may represent a previous version.
+	// +kubebuilder:validation:Required
+	// +required
 	ObservedGeneration int64 `json:"observedGeneration"`
 
 	// versionHash is a fingerprint of the content that the cluster will be
 	// updated with. It is used by the operator to avoid unnecessary work
 	// and is for internal use only.
+	// +kubebuilder:validation:Required
+	// +required
 	VersionHash string `json:"versionHash"`
 
 	// conditions provides information about the cluster version. The condition
@@ -117,6 +125,8 @@ type ClusterVersionStatus struct {
 	// if the update service is unavailable, or if an invalid channel has
 	// been specified.
 	// +nullable
+	// +kubebuilder:validation:Required
+	// +required
 	AvailableUpdates []Update `json:"availableUpdates"`
 }
 
@@ -139,14 +149,20 @@ type UpdateHistory struct {
 	// indicates the update is not fully applied, while the Completed state
 	// indicates the update was successfully rolled out at least once (all
 	// parts of the update successfully applied).
+	// +kubebuilder:validation:Required
+	// +required
 	State UpdateState `json:"state"`
 
 	// startedTime is the time at which the update was started.
+	// +kubebuilder:validation:Required
+	// +required
 	StartedTime metav1.Time `json:"startedTime"`
 	// completionTime, if set, is when the update was fully applied. The update
 	// that is currently being applied will have a null completion time.
 	// Completion time will always be set for entries that are not the current
 	// update (usually to the started time of the next update).
+	// +kubebuilder:validation:Required
+	// +required
 	// +nullable
 	CompletionTime *metav1.Time `json:"completionTime"`
 
@@ -158,9 +174,13 @@ type UpdateHistory struct {
 	Version string `json:"version"`
 	// image is a container image location that contains the update. This value
 	// is always populated.
+	// +kubebuilder:validation:Required
+	// +required
 	Image string `json:"image"`
 	// verified indicates whether the provided update was properly verified
 	// before it was installed. If this is false the cluster may not be trusted.
+	// +kubebuilder:validation:Required
+	// +required
 	Verified bool `json:"verified"`
 }
 
@@ -172,19 +192,29 @@ type ClusterID string
 // +k8s:deepcopy-gen=true
 type ComponentOverride struct {
 	// kind indentifies which object to override.
+	// +kubebuilder:validation:Required
+	// +required
 	Kind string `json:"kind"`
 	// group identifies the API group that the kind is in.
+	// +kubebuilder:validation:Required
+	// +required
 	Group string `json:"group"`
 
 	// namespace is the component's namespace. If the resource is cluster
 	// scoped, the namespace should be empty.
+	// +kubebuilder:validation:Required
+	// +required
 	Namespace string `json:"namespace"`
 	// name is the component's name.
+	// +kubebuilder:validation:Required
+	// +required
 	Name string `json:"name"`
 
 	// unmanaged controls if cluster version operator should stop managing the
 	// resources in this cluster.
 	// Default: false
+	// +kubebuilder:validation:Required
+	// +required
 	Unmanaged bool `json:"unmanaged"`
 }
 
