@@ -36,12 +36,6 @@ write_spec_version()
 	sed -i "s/^\(Version: *\).*/\1${LOCAL_VERSION}/" contrib/spec/podman.spec.in
 }
 
-write_makefile_epoch()
-{
-	LOCAL_EPOCH="$1"
-	sed -i "s/^\(EPOCH_TEST_COMMIT ?= \).*/\1${LOCAL_EPOCH}/" Makefile
-}
-
 write_changelog()
 {
 	echo "- Changelog for v${VERSION} (${DATE})" >.changelog.txt &&
@@ -66,17 +60,8 @@ dev_version_commit()
 	git commit -asm "Bump to v${NEXT_VERSION}-dev"
 }
 
-epoch_commit()
-{
-	LOCAL_EPOCH="$1"
-	write_makefile_epoch "${LOCAL_EPOCH}" &&
-	git commit -asm 'Bump gitvalidation epoch'
-}
-
 git fetch origin &&
 git checkout -b "bump-${VERSION}" origin/master &&
-EPOCH=$(git rev-parse HEAD) &&
 release_commit &&
 git tag -s -m "version ${VERSION}" "v${VERSION}" &&
 dev_version_commit &&
-epoch_commit "${EPOCH}"
