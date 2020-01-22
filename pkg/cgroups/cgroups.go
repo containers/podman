@@ -97,8 +97,7 @@ type controllerHandler interface {
 }
 
 const (
-	cgroupRoot         = "/sys/fs/cgroup"
-	_cgroup2SuperMagic = 0x63677270
+	cgroupRoot = "/sys/fs/cgroup"
 	// CPU is the cpu controller
 	CPU = "cpu"
 	// CPUAcct is the cpuacct controller
