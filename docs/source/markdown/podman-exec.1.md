@@ -105,9 +105,11 @@ non-zero code, the exit codes follow the `chroot` standard, see below:
 
 ## EXAMPLES
 
+```
 $ podman exec -it ctrID ls
 $ podman exec -it -w /tmp myCtr pwd
 $ podman exec --user root ctrID ls
+```
 
 ## SEE ALSO
 podman(1), podman-run(1)
