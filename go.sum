@@ -73,6 +73,8 @@ github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784 h1:rqUVL
 github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/plugins v0.8.2 h1:5lnwfsAYO+V7yXhysJKy3E1A2Gy9oVut031zfdOzI9w=
 github.com/containernetworking/plugins v0.8.2/go.mod h1:TxALKWZpWL79BC3GOYKJzzXr7U8R23PdhwaLp6F3adc=
+github.com/containernetworking/plugins v0.8.5 h1:pCvEMrFf7yzJI8+/D/7jkvE96KD52b7/Eu+jpahihy8=
+github.com/containernetworking/plugins v0.8.5/go.mod h1:UZ2539umj8djuRQmBxuazHeJbYrLV8BSBejkk+she6o=
 github.com/containers/buildah v1.12.0 h1:bi/8ACl8qobazwfYgNze5y+aRuBIG+R7lMStFbnDOxE=
 github.com/containers/buildah v1.12.0/go.mod h1:yzPuQ/mJTPsfSLCyBPbeaoXgBLanjnf36M2cDzyckMg=
 github.com/containers/buildah v1.13.1 h1:EdhllQxXmOZ56mGFf68AkrpIj9XtEkkGq0WaPWFuGM0=
@@ -107,6 +109,8 @@ github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
 github.com/coreos/go-iptables v0.4.2 h1:KH0EwId05JwWIfb96gWvkiT2cbuOu8ygqUaB+yPAwIg=
 github.com/coreos/go-iptables v0.4.2/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
+github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
+github.com/coreos/go-iptables v0.4.5/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
 github.com/coreos/go-semver v0.2.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
 github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7 h1:u9SHYsPQNyt5tgDm3YN7+9dYrpK96E5wFilTFWIDZOM=
 github.com/coreos/go-systemd v0.0.0-20180511133405-39ca1b05acc7/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
