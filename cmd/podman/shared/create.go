@@ -31,9 +31,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// seccompAnnotationKey is the key of the image annotation embedding a seccomp
+// seccompLabelKey is the key of the image annotation embedding a seccomp
 // profile.
-const seccompAnnotationKey = "io.containers.seccomp.profile"
+const seccompLabelKey = "io.containers.seccomp.profile"
 
 func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
@@ -709,7 +709,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// SECCOMP
 	if data != nil {
-		if value, exists := data.Annotations[seccompAnnotationKey]; exists {
+		if value, exists := labels[seccompLabelKey]; exists {
 			secConfig.SeccompProfileFromImage = value
 		}
 	}

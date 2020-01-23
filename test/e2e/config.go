@@ -19,8 +19,8 @@ var (
 	// The intention behind blocking all syscalls is to prevent
 	// regressions in the future.  The required syscalls can vary
 	// depending on which runtime we're using.
-	alpineSeccomp = "docker.io/libpod/alpine-with-seccomp:latest"
+	alpineSeccomp = "docker.io/libpod/alpine-with-seccomp:label"
 	// This image has a bogus/invalid seccomp profile which should
 	// yield a json error when being read.
-	alpineBogusSeccomp = "docker.io/libpod/alpine-with-bogus-seccomp:latest"
+	alpineBogusSeccomp = "docker.io/libpod/alpine-with-bogus-seccomp:label"
 )
