@@ -72,7 +72,7 @@ require (
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	google.golang.org/appengine v1.6.1 // indirect
 	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
-	gopkg.in/yaml.v2 v2.2.7
+	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
