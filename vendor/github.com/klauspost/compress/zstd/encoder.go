@@ -29,6 +29,7 @@ type Encoder struct {
 
 type encoder interface {
 	Encode(blk *blockEnc, src []byte)
+	EncodeNoHist(blk *blockEnc, src []byte)
 	Block() *blockEnc
 	CRC() *xxhash.Digest
 	AppendCRC([]byte) []byte
@@ -433,7 +434,8 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 	}()
 	enc.Reset()
 	blk := enc.Block()
-	single := len(src) > 1<<20
+	// Use single segments when above minimum window and below 1MB.
+	single := len(src) < 1<<20 && len(src) > MinWindowSize
 	if e.o.single != nil {
 		single = *e.o.single
 	}
@@ -454,25 +456,22 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 		panic(err)
 	}
 
-	for len(src) > 0 {
-		todo := src
-		if len(todo) > e.o.blockSize {
-			todo = todo[:e.o.blockSize]
-		}
-		src = src[len(todo):]
+	if len(src) <= e.o.blockSize && len(src) <= maxBlockSize {
+		// Slightly faster with no history and everything in one block.
 		if e.o.crc {
-			_, _ = enc.CRC().Write(todo)
+			_, _ = enc.CRC().Write(src)
 		}
 		blk.reset(nil)
-		blk.pushOffsets()
-		enc.Encode(blk, todo)
-		if len(src) == 0 {
-			blk.last = true
-		}
-		err := errIncompressible
+		blk.last = true
+		enc.EncodeNoHist(blk, src)
+
 		// If we got the exact same number of literals as input,
 		// assume the literals cannot be compressed.
-		if len(blk.literals) != len(todo) || len(todo) != e.o.blockSize {
+		err := errIncompressible
+		oldout := blk.output
+		if len(blk.literals) != len(src) || len(src) != e.o.blockSize {
+			// Output directly to dst
+			blk.output = dst
 			err = blk.encode(e.o.noEntropy)
 		}
 
@@ -481,13 +480,49 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 			if debug {
 				println("Storing incompressible block as raw")
 			}
-			blk.encodeRaw(todo)
-			blk.popOffsets()
+			dst = blk.encodeRawTo(dst, src)
 		case nil:
+			dst = blk.output
 		default:
 			panic(err)
 		}
-		dst = append(dst, blk.output...)
+		blk.output = oldout
+	} else {
+		for len(src) > 0 {
+			todo := src
+			if len(todo) > e.o.blockSize {
+				todo = todo[:e.o.blockSize]
+			}
+			src = src[len(todo):]
+			if e.o.crc {
+				_, _ = enc.CRC().Write(todo)
+			}
+			blk.reset(nil)
+			blk.pushOffsets()
+			enc.Encode(blk, todo)
+			if len(src) == 0 {
+				blk.last = true
+			}
+			err := errIncompressible
+			// If we got the exact same number of literals as input,
+			// assume the literals cannot be compressed.
+			if len(blk.literals) != len(todo) || len(todo) != e.o.blockSize {
+				err = blk.encode(e.o.noEntropy)
+			}
+
+			switch err {
+			case errIncompressible:
+				if debug {
+					println("Storing incompressible block as raw")
+				}
+				dst = blk.encodeRawTo(dst, todo)
+				blk.popOffsets()
+			case nil:
+				dst = append(dst, blk.output...)
+			default:
+				panic(err)
+			}
+		}
 	}
 	if e.o.crc {
 		dst = enc.AppendCRC(dst)

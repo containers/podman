@@ -36,7 +36,7 @@ so as always, testing is recommended.
 For now, a high speed (fastest) and medium-fast (default) compressor has been implemented. 
 
 The "Fastest" compression ratio is roughly equivalent to zstd level 1. 
-The "Default" compression ration is roughly equivalent to zstd level 3 (default).
+The "Default" compression ratio is roughly equivalent to zstd level 3 (default).
 
 In terms of speed, it is typically 2x as fast as the stdlib deflate/gzip in its fastest mode. 
 The compression ratio compared to stdlib is around level 3, but usually 3x as fast.

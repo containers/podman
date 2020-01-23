@@ -142,8 +142,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	if opts.mountProgram == "" {
 		switch fsMagic {
 		case graphdriver.FsMagicAufs, graphdriver.FsMagicZfs, graphdriver.FsMagicOverlay, graphdriver.FsMagicEcryptfs:
-			logrus.Errorf("'overlay' is not supported over %s", backingFs)
-			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s", backingFs)
+			return nil, errors.Wrapf(graphdriver.ErrIncompatibleFS, "'overlay' is not supported over %s, a mount_program is required", backingFs)
 		}
 	}
 

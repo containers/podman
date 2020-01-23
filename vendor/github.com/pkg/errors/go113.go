@@ -36,36 +36,3 @@ func As(err error, target interface{}) bool { return stderrors.As(err, target) }
 func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
-
-// Cause recursively unwraps an error chain and returns the underlying cause of
-// the error, if possible. There are two ways that an error value may provide a
-// cause. First, the error may implement the following interface:
-//
-//     type causer interface {
-//            Cause() error
-//     }
-//
-// Second, the error may return a non-nil value when passed as an argument to
-// the Unwrap function. This makes Cause forwards-compatible with Go 1.13 error
-// chains.
-//
-// If an error value satisfies both methods of unwrapping, Cause will use the
-// causer interface.
-//
-// If the error is nil, nil will be returned without further investigation.
-func Cause(err error) error {
-	type causer interface {
-		Cause() error
-	}
-
-	for err != nil {
-		if cause, ok := err.(causer); ok {
-			err = cause.Cause()
-		} else if unwrapped := Unwrap(err); unwrapped != nil {
-			err = unwrapped
-		} else {
-			break
-		}
-	}
-	return err
-}
