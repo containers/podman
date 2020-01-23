@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -42,12 +43,12 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 func ImageTree(w http.ResponseWriter, r *http.Request) {
 	// tree is a bit of a mess ... logic is in adapter and therefore not callable from here. needs rework
 
-	//name := mux.Vars(r)["name"]
-	//_, layerInfoMap, _, err := s.Runtime.Tree(name)
-	//if err != nil {
+	// name := mux.Vars(r)["name"]
+	// _, layerInfoMap, _, err := s.Runtime.Tree(name)
+	// if err != nil {
 	//	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to find image information for %q", name))
 	//	return
-	//}
+	// }
 	//	it is not clear to me how to deal with this given all the processing of the image
 	// is in main.  we need to discuss how that really should be and return something useful.
 	handlers.UnsupportedHandler(w, r)
@@ -95,8 +96,8 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		All     bool     `schema:"all"`
-		Filters []string `schema:"filters"`
+		All     bool                `schema:"all"`
+		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
 	}
@@ -106,7 +107,14 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, query.Filters)
+
+	var libpodFilters = []string{}
+	if _, found := r.URL.Query()["filters"]; found {
+		for k, v := range query.Filters {
+			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
+		}
+	}
+	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, libpodFilters)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
