@@ -836,3 +836,44 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	}
 	return ctrs[lastCreatedIndex], nil
 }
+
+// PruneContainers removes stopped and exited containers from localstorage.  A set of optional filters
+// can be provided to be more granular.
+func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int64, map[string]error, error) {
+	pruneErrors := make(map[string]error)
+	prunedContainers := make(map[string]int64)
+	// We add getting the exited and stopped containers via a filter
+	containerStateFilter := func(c *Container) bool {
+		if c.PodID() != "" {
+			return false
+		}
+		state, err := c.State()
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+			return true
+		}
+		return false
+	}
+	filterFuncs = append(filterFuncs, containerStateFilter)
+	delContainers, err := r.GetContainers(filterFuncs...)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, c := range delContainers {
+		ctr := c
+		size, err := ctr.RWSize()
+		if err != nil {
+			pruneErrors[ctr.ID()] = err
+			continue
+		}
+		err = r.RemoveContainer(context.Background(), ctr, false, false)
+		pruneErrors[ctr.ID()] = err
+		if err != nil {
+			prunedContainers[ctr.ID()] = size
+		}
+	}
+	return prunedContainers, pruneErrors, nil
+}

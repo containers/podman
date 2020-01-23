@@ -6,6 +6,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/gorilla/mux"
@@ -83,7 +84,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 	}
 
 	if len(query.Condition) > 0 {
-		return 0, errors.Errorf("the condition parameter is not supported")
+		UnSupportedParameter("condition")
 	}
 
 	name := mux.Vars(r)["name"]
@@ -100,4 +101,22 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		return con.WaitWithInterval(d)
 	}
 	return con.Wait()
+}
+
+// GenerateFilterFuncsFromMap is used to generate un-executed functions that can be used to filter
+// containers.  It is specifically designed for the RESTFUL API input.
+func GenerateFilterFuncsFromMap(r *libpod.Runtime, filters map[string][]string) ([]libpod.ContainerFilter, error) {
+	var (
+		filterFuncs []libpod.ContainerFilter
+	)
+	for k, v := range filters {
+		for _, val := range v {
+			f, err := shared.GenerateContainerFilterFuncs(k, val, r)
+			if err != nil {
+				return filterFuncs, err
+			}
+			filterFuncs = append(filterFuncs, f)
+		}
+	}
+	return filterFuncs, nil
 }
