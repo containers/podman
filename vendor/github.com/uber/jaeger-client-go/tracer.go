@@ -52,6 +52,7 @@ type Tracer struct {
 		highTraceIDGenerator        func() uint64 // custom high trace ID generator
 		maxTagValueLength           int
 		noDebugFlagOnForcedSampling bool
+		maxLogsPerSpan              int
 		// more options to come
 	}
 	// allocator of Span objects

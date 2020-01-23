@@ -1,6 +1,34 @@
 Changes by Version
 ==================
 
+2.22.1 (2020-01-16)
+-------------------
+
+- Increase UDP batch overhead to account for data loss metrics ([#488](https://github.com/jaegertracing/jaeger-client-go/pull/488)) -- Yuri Shkuro
+
+
+2.22.0 (2020-01-15)
+-------------------
+
+- Report data loss stats to Jaeger backend ([#482](https://github.com/jaegertracing/jaeger-client-go/pull/482)) -- Yuri Shkuro
+- Add limit on log records per span ([#483](https://github.com/jaegertracing/jaeger-client-go/pull/483)) -- Sokolov Yura
+
+
+2.21.1 (2019-12-20)
+-------------------
+
+- Update version correctly.
+
+
+2.21.0 (2019-12-20)
+-------------------
+
+- Clarify reporting error logs ([#469](https://github.com/jaegertracing/jaeger-client-go/pull/469)) -- Yuri Shkuro
+- Do not strip leading zeros from trace IDs ([#472](https://github.com/jaegertracing/jaeger-client-go/pull/472)) -- Yuri Shkuro
+- Chore (docs): fixed a couple of typos ([#475](https://github.com/jaegertracing/jaeger-client-go/pull/475)) -- Marc Bramaud
+- Support custom HTTP headers when reporting spans over HTTP ([#479](https://github.com/jaegertracing/jaeger-client-go/pull/479)) -- Albert Teoh
+
+
 2.20.1 (2019-11-08)
 -------------------
 

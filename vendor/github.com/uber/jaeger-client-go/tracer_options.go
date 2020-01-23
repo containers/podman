@@ -144,6 +144,18 @@ func (tracerOptions) MaxTagValueLength(maxTagValueLength int) TracerOption {
 	}
 }
 
+// MaxLogsPerSpan limits the number of Logs in a span (if set to a nonzero
+// value). If a span has more logs than this value, logs are dropped as
+// necessary (and replaced with a log describing how many were dropped).
+//
+// About half of the MaxLogsPerSpan logs kept are the oldest logs, and about
+// half are the newest logs.
+func (tracerOptions) MaxLogsPerSpan(maxLogsPerSpan int) TracerOption {
+	return func(tracer *Tracer) {
+		tracer.options.maxLogsPerSpan = maxLogsPerSpan
+	}
+}
+
 func (tracerOptions) ZipkinSharedRPCSpan(zipkinSharedRPCSpan bool) TracerOption {
 	return func(tracer *Tracer) {
 		tracer.options.zipkinSharedRPCSpan = zipkinSharedRPCSpan

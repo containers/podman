@@ -494,6 +494,8 @@ github.com/theckman/go-flock v0.7.1/go.mod h1:kjuth3y9VJ2aNlkNEO99G/8lp9fMIKaGyB
 github.com/u-root/u-root v5.0.0+incompatible/go.mod h1:RYkpo8pTHrNjW08opNd/U6p/RJE7K0D8fXO0d47+3YY=
 github.com/uber/jaeger-client-go v2.20.1+incompatible h1:HgqpYBng0n7tLJIlyT4kPCIv5XgCsF+kai1NnnrJzEU=
 github.com/uber/jaeger-client-go v2.20.1+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
+github.com/uber/jaeger-client-go v2.22.1+incompatible h1:NHcubEkVbahf9t3p75TOCR83gdUHXjRJvjoBh1yACsM=
+github.com/uber/jaeger-client-go v2.22.1+incompatible/go.mod h1:WVhlPFC8FDjOFMMWRy2pZqQJSXxYSwNYOkTr/Z6d3Kk=
 github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 h1:CwmGyzHTzCqCdZJkWR0A7ucZXgrCY7spRcpvm7ci//s=
 github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5/go.mod h1:ComeNDZlWwrWnDv8aPp0Ba6+uUTzImX/AauajbLI56U=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
