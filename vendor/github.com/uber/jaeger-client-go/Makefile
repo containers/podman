@@ -83,8 +83,12 @@ cover-html: cover
 test-examples:
 	make -C examples
 
+.PHONY: thrift
+thrift: idl-submodule thrift-compile
+
 # TODO at the moment we're not generating tchan_*.go files
-thrift: idl-submodule thrift-image
+.PHONY: thrift-compile
+thrift-compile: thrift-image
 	$(THRIFT) -o /data --gen go:$(THRIFT_GO_ARGS) --out /data/$(THRIFT_GEN_DIR) /data/idl/thrift/agent.thrift
 	$(THRIFT) -o /data --gen go:$(THRIFT_GO_ARGS) --out /data/$(THRIFT_GEN_DIR) /data/idl/thrift/sampling.thrift
 	$(THRIFT) -o /data --gen go:$(THRIFT_GO_ARGS) --out /data/$(THRIFT_GEN_DIR) /data/idl/thrift/jaeger.thrift
@@ -99,10 +103,12 @@ thrift: idl-submodule thrift-image
 	rm -rf crossdock/thrift/*/*-remote
 	rm -rf thrift-gen/jaeger/collector.go
 
+.PHONY: idl-submodule
 idl-submodule:
 	git submodule init
 	git submodule update
 
+.PHONY: thrift-image
 thrift-image:
 	$(THRIFT) -version
 

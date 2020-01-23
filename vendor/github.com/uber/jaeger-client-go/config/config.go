@@ -134,6 +134,10 @@ type ReporterConfig struct {
 	// Password instructs reporter to include a password for basic http authentication when sending spans to
 	// jaeger-collector. Can be set by exporting an environment variable named JAEGER_PASSWORD
 	Password string `yaml:"password"`
+
+	// HTTPHeaders instructs the reporter to add these headers to the http request when reporting spans.
+	// This field takes effect only when using HTTPTransport by setting the CollectorEndpoint.
+	HTTPHeaders map[string]string `yaml:"http_headers"`
 }
 
 // BaggageRestrictionsConfig configures the baggage restrictions manager which can be used to whitelist
@@ -397,11 +401,12 @@ func (rc *ReporterConfig) NewReporter(
 
 func (rc *ReporterConfig) newTransport() (jaeger.Transport, error) {
 	switch {
-	case rc.CollectorEndpoint != "" && rc.User != "" && rc.Password != "":
-		return transport.NewHTTPTransport(rc.CollectorEndpoint, transport.HTTPBatchSize(1),
-			transport.HTTPBasicAuth(rc.User, rc.Password)), nil
 	case rc.CollectorEndpoint != "":
-		return transport.NewHTTPTransport(rc.CollectorEndpoint, transport.HTTPBatchSize(1)), nil
+		httpOptions := []transport.HTTPOption{transport.HTTPBatchSize(1), transport.HTTPHeaders(rc.HTTPHeaders)}
+		if rc.User != "" && rc.Password != "" {
+			httpOptions = append(httpOptions, transport.HTTPBasicAuth(rc.User, rc.Password))
+		}
+		return transport.NewHTTPTransport(rc.CollectorEndpoint, httpOptions...), nil
 	default:
 		return jaeger.NewUDPTransport(rc.LocalAgentHostPort, 0)
 	}

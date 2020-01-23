@@ -59,6 +59,9 @@ type Span struct {
 	// The span's "micro-log"
 	logs []opentracing.LogRecord
 
+	// The number of logs dropped because of MaxLogsPerSpan.
+	numDroppedLogs int
+
 	// references for this span
 	references []Reference
 
@@ -152,7 +155,12 @@ func (s *Span) Logs() []opentracing.LogRecord {
 	s.Lock()
 	defer s.Unlock()
 
-	return append([]opentracing.LogRecord(nil), s.logs...)
+	logs := append([]opentracing.LogRecord(nil), s.logs...)
+	if s.numDroppedLogs != 0 {
+		fixLogs(logs, s.numDroppedLogs)
+	}
+
+	return logs
 }
 
 // References returns references for this span
@@ -234,8 +242,65 @@ func (s *Span) Log(ld opentracing.LogData) {
 
 // this function should only be called while holding a Write lock
 func (s *Span) appendLogNoLocking(lr opentracing.LogRecord) {
-	// TODO add logic to limit number of logs per span (issue #46)
-	s.logs = append(s.logs, lr)
+	maxLogs := s.tracer.options.maxLogsPerSpan
+	if maxLogs == 0 || len(s.logs) < maxLogs {
+		s.logs = append(s.logs, lr)
+		return
+	}
+
+	// We have too many logs. We don't touch the first numOld logs; we treat the
+	// rest as a circular buffer and overwrite the oldest log among those.
+	numOld := (maxLogs - 1) / 2
+	numNew := maxLogs - numOld
+	s.logs[numOld+s.numDroppedLogs%numNew] = lr
+	s.numDroppedLogs++
+}
+
+// rotateLogBuffer rotates the records in the buffer: records 0 to pos-1 move at
+// the end (i.e. pos circular left shifts).
+func rotateLogBuffer(buf []opentracing.LogRecord, pos int) {
+	// This algorithm is described in:
+	//    http://www.cplusplus.com/reference/algorithm/rotate
+	for first, middle, next := 0, pos, pos; first != middle; {
+		buf[first], buf[next] = buf[next], buf[first]
+		first++
+		next++
+		if next == len(buf) {
+			next = middle
+		} else if first == middle {
+			middle = next
+		}
+	}
+}
+
+func fixLogs(logs []opentracing.LogRecord, numDroppedLogs int) {
+	// We dropped some log events, which means that we used part of Logs as a
+	// circular buffer (see appendLog). De-circularize it.
+	numOld := (len(logs) - 1) / 2
+	numNew := len(logs) - numOld
+	rotateLogBuffer(logs[numOld:], numDroppedLogs%numNew)
+
+	// Replace the log in the middle (the oldest "new" log) with information
+	// about the dropped logs. This means that we are effectively dropping one
+	// more "new" log.
+	numDropped := numDroppedLogs + 1
+	logs[numOld] = opentracing.LogRecord{
+		// Keep the timestamp of the last dropped event.
+		Timestamp: logs[numOld].Timestamp,
+		Fields: []log.Field{
+			log.String("event", "dropped Span logs"),
+			log.Int("dropped_log_count", numDropped),
+			log.String("component", "jaeger-client"),
+		},
+	}
+}
+
+func (s *Span) fixLogsIfDropped() {
+	if s.numDroppedLogs == 0 {
+		return
+	}
+	fixLogs(s.logs, s.numDroppedLogs)
+	s.numDroppedLogs = 0
 }
 
 // SetBaggageItem implements SetBaggageItem() of opentracing.SpanContext
@@ -274,8 +339,9 @@ func (s *Span) FinishWithOptions(options opentracing.FinishOptions) {
 		s.applySamplingDecision(decision, true)
 	}
 	if s.context.IsSampled() {
+		s.Lock()
+		s.fixLogsIfDropped()
 		if len(options.LogRecords) > 0 || len(options.BulkLogData) > 0 {
-			s.Lock()
 			// Note: bulk logs are not subject to maxLogsPerSpan limit
 			if options.LogRecords != nil {
 				s.logs = append(s.logs, options.LogRecords...)
@@ -283,8 +349,8 @@ func (s *Span) FinishWithOptions(options opentracing.FinishOptions) {
 			for _, ld := range options.BulkLogData {
 				s.logs = append(s.logs, ld.ToLogRecord())
 			}
-			s.Unlock()
 		}
+		s.Unlock()
 	}
 	// call reportSpan even for non-sampled traces, to return span to the pool
 	// and update metrics counter
@@ -344,6 +410,7 @@ func (s *Span) reset() {
 	// Note: To reuse memory we can save the pointers on the heap
 	s.tags = s.tags[:0]
 	s.logs = s.logs[:0]
+	s.numDroppedLogs = 0
 	s.references = s.references[:0]
 }
 
