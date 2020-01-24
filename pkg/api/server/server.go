@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/coreos/go-systemd/activation"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -71,7 +72,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 			ReadTimeout:       20 * time.Second,
 			WriteTimeout:      2 * time.Minute,
 		},
-		Decoder:    schema.NewDecoder(),
+		Decoder:    handlers.NewAPIDecoder(),
 		Context:    nil,
 		Runtime:    runtime,
 		Listener:   *listener,
@@ -85,15 +86,13 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	})
 
 	ctx, cancelFn := context.WithCancel(context.Background())
+	server.CancelFunc = cancelFn
 
 	// TODO: Use ConnContext when ported to go 1.13
 	ctx = context.WithValue(ctx, "decoder", server.Decoder)
 	ctx = context.WithValue(ctx, "runtime", runtime)
 	ctx = context.WithValue(ctx, "shutdownFunc", server.Shutdown)
 	server.Context = ctx
-
-	server.CancelFunc = cancelFn
-	server.Decoder.IgnoreUnknownKeys(true)
 
 	router.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

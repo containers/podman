@@ -108,7 +108,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		filters []string `schema:"filters"`
+		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
 	}
@@ -117,10 +117,12 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if len(query.filters) > 0 {
+
+	if _, found := r.URL.Query()["filters"]; found {
 		utils.Error(w, "filters are not implemented yet", http.StatusInternalServerError, define.ErrNotImplemented)
 		return
 	}
+
 	pods, err := runtime.GetAllPods()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
@@ -164,7 +166,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		decoder   = r.Context().Value("decoder").(*schema.Decoder)
 	)
 	query := struct {
-		timeout int `schema:"t"`
+		Timeout int `schema:"t"`
 	}{
 		// override any golang type defaults
 	}
@@ -207,8 +209,8 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if query.timeout > 0 {
-		_, stopError = pod.StopWithTimeout(r.Context(), false, query.timeout)
+	if query.Timeout > 0 {
+		_, stopError = pod.StopWithTimeout(r.Context(), false, query.Timeout)
 	} else {
 		_, stopError = pod.Stop(r.Context(), false)
 	}

@@ -62,14 +62,14 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 500 internal
 	var (
-		dangling bool = true
+		dangling = true
 		err      error
 	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		filters map[string]string
+		Filters map[string][]string `schema:"filters"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -79,26 +79,25 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// FIXME This is likely wrong due to it not being a map[string][]string
-
 	// until ts is not supported on podman prune
-	if len(query.filters["until"]) > 0 {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "until is not supported yet"))
+	if v, found := query.Filters["until"]; found {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "until=%s is not supported yet", v))
 		return
 	}
 	// labels are not supported on podman prune
-	if len(query.filters["label"]) > 0 {
+	if _, found := query.Filters["since"]; found {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "labelis not supported yet"))
 		return
 	}
 
-	if len(query.filters["dangling"]) > 0 {
-		dangling, err = strconv.ParseBool(query.filters["dangling"])
+	if v, found := query.Filters["dangling"]; found {
+		dangling, err = strconv.ParseBool(v[0])
 		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "processing dangling filter"))
 			return
 		}
 	}
+
 	idr := []types.ImageDeleteResponseItem{}
 	//
 	// This code needs to be migrated to libpod to work correctly.  I could not

@@ -15,10 +15,11 @@ func getVar(r *http.Request, k string) string {
 	return mux.Vars(r)[k]
 }
 
-func hasVar(r *http.Request, k string) bool {
-	_, found := mux.Vars(r)[k]
-	return found
-}
+// func hasVar(r *http.Request, k string) bool {
+// 	_, found := mux.Vars(r)[k]
+// 	return found
+// }
+
 func getName(r *http.Request) string {
 	return getVar(r, "name")
 }
