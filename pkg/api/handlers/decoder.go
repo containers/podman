@@ -11,6 +11,8 @@ import (
 
 // NewAPIDecoder returns a configured schema.Decoder
 func NewAPIDecoder() *schema.Decoder {
+	_ = ParseDateTime
+
 	d := schema.NewDecoder()
 	d.IgnoreUnknownKeys(true)
 	d.RegisterConverter(map[string][]string{}, convertUrlValuesString)
@@ -39,12 +41,51 @@ func convertUrlValuesString(query string) reflect.Value {
 	return reflect.ValueOf(f)
 }
 
+// isZero() can be used to determine if parsing failed.
 func convertTimeString(query string) reflect.Value {
-	t, err := time.Parse(time.RFC3339, query)
-	if err != nil {
-		logrus.Infof("convertTimeString: Failed to Unmarshal %s: %s", query, err.Error())
+	var (
+		err error
+		t   time.Time
+	)
 
-		return reflect.ValueOf(time.Time{})
+	for _, f := range []string{
+		time.UnixDate,
+		time.ANSIC,
+		time.RFC1123,
+		time.RFC1123Z,
+		time.RFC3339,
+		time.RFC3339Nano,
+		time.RFC822,
+		time.RFC822Z,
+		time.RFC850,
+		time.RubyDate,
+		time.Stamp,
+		time.StampMicro,
+		time.StampMilli,
+		time.StampNano,
+	} {
+		t, err = time.Parse(f, query)
+		if err == nil {
+			return reflect.ValueOf(t)
+		}
+
+		if _, isParseError := err.(*time.ParseError); isParseError {
+			// Try next format
+			continue
+		} else {
+			break
+		}
 	}
-	return reflect.ValueOf(t)
+
+	// We've exhausted all formats, or something bad happened
+	if err != nil {
+		logrus.Infof("convertTimeString: Failed to parse %s: %s", query, err.Error())
+	}
+	return reflect.ValueOf(time.Time{})
+}
+
+// ParseDateTime is a helper function to aid in parsing different Time/Date formats
+// isZero() can be used to determine if parsing failed.
+func ParseDateTime(query string) time.Time {
+	return convertTimeString(query).Interface().(time.Time)
 }
