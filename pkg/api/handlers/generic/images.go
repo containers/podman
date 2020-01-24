@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -16,12 +15,10 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/containers/storage"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 )
 
 func ExportImage(w http.ResponseWriter, r *http.Request) {
@@ -59,11 +56,8 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
-	// 200 no error
-	// 500 internal
 	var (
-		dangling = true
-		err      error
+		filters []string
 	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -79,60 +73,24 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// until ts is not supported on podman prune
-	if v, found := query.Filters["until"]; found {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "until=%s is not supported yet", v))
-		return
-	}
-	// labels are not supported on podman prune
-	if _, found := query.Filters["since"]; found {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "labelis not supported yet"))
-		return
-	}
-
-	if v, found := query.Filters["dangling"]; found {
-		dangling, err = strconv.ParseBool(v[0])
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "processing dangling filter"))
-			return
-		}
-	}
-
 	idr := []types.ImageDeleteResponseItem{}
-	//
-	// This code needs to be migrated to libpod to work correctly.  I could not
-	// work my around the information docker needs with the existing prune in libpod.
-	//
-	pruneImages, err := runtime.ImageRuntime().GetPruneImages(!dangling, []image2.ImageFilter{})
+	for k, v := range query.Filters {
+		for _, val := range v {
+			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
+		}
+	}
+	pruneCids, err := runtime.ImageRuntime().PruneImages(r.Context(), false, filters)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to get images to prune"))
+		utils.InternalServerError(w, err)
 		return
 	}
-	for _, p := range pruneImages {
-		repotags, err := p.RepoTags()
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to get repotags for image"))
-			return
-		}
-		if err := p.Remove(r.Context(), true); err != nil {
-			if errors.Cause(err) == storage.ErrImageUsedByContainer {
-				logrus.Warnf("Failed to prune image %s as it is in use: %v", p.ID(), err)
-				continue
-			}
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to prune image"))
-			return
-		}
-		// newimageevent is not export therefore we cannot record the event. this will be fixed
-		// when the prune is fixed in libpod
-		// defer p.newImageEvent(events.Prune)
-		response := types.ImageDeleteResponseItem{
-			Deleted: fmt.Sprintf("sha256:%s", p.ID()), // I ack this is not ideal
-		}
-		if len(repotags) > 0 {
-			response.Untagged = repotags[0]
-		}
-		idr = append(idr, response)
+	for _, p := range pruneCids {
+		idr = append(idr, types.ImageDeleteResponseItem{
+			Deleted: p,
+		})
 	}
+
+	//FIXME/TODO to do this exacty correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
 	ipr := types.ImagesPruneReport{
 		ImagesDeleted:  idr,
 		SpaceReclaimed: 1, // TODO we cannot supply this right now
@@ -342,8 +300,6 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	images, err := utils.GetImages(w, r)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))

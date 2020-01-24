@@ -30,17 +30,15 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	// swagger:operation POST /libpod/pods/prune pods PrunePods
 	// ---
 	// summary: Prune unused pods
-	// parameters:
-	//  - in: query
-	//    name: force
-	//    description: force delete
-	//    type: boolean
-	//    default: false
 	// produces:
 	// - application/json
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     description: tbd
+	//     schema:
+	//       type: object
+	//       additionalProperties:
+	//         type: string
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:
@@ -60,7 +58,7 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: force
 	//    type: boolean
-	//    description: force delete
+	//    description : force removal of a running pod by first stopping all containers, then removing all containers in the pod
 	// responses:
 	//   204:
 	//     description: no error

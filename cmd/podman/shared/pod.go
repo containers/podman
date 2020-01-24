@@ -10,14 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	PodStateStopped = "Stopped"
-	PodStateRunning = "Running"
-	PodStatePaused  = "Paused"
-	PodStateExited  = "Exited"
-	PodStateErrored = "Error"
-	PodStateCreated = "Created"
-)
+// TODO GetPodStatus and CreatePodStatusResults should removed once the adapter
+// and shared packages are reworked.  It has now been duplicated in libpod proper.
 
 // GetPodStatus determines the status of the pod based on the
 // statuses of the containers in the pod.
@@ -25,7 +19,7 @@ const (
 func GetPodStatus(pod *libpod.Pod) (string, error) {
 	ctrStatuses, err := pod.Status()
 	if err != nil {
-		return PodStateErrored, err
+		return define.PodStateErrored, err
 	}
 	return CreatePodStatusResults(ctrStatuses)
 }
@@ -33,45 +27,45 @@ func GetPodStatus(pod *libpod.Pod) (string, error) {
 func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
-		return PodStateCreated, nil
+		return define.PodStateCreated, nil
 	}
 	statuses := map[string]int{
-		PodStateStopped: 0,
-		PodStateRunning: 0,
-		PodStatePaused:  0,
-		PodStateCreated: 0,
-		PodStateErrored: 0,
+		define.PodStateStopped: 0,
+		define.PodStateRunning: 0,
+		define.PodStatePaused:  0,
+		define.PodStateCreated: 0,
+		define.PodStateErrored: 0,
 	}
 	for _, ctrStatus := range ctrStatuses {
 		switch ctrStatus {
 		case define.ContainerStateExited:
 			fallthrough
 		case define.ContainerStateStopped:
-			statuses[PodStateStopped]++
+			statuses[define.PodStateStopped]++
 		case define.ContainerStateRunning:
-			statuses[PodStateRunning]++
+			statuses[define.PodStateRunning]++
 		case define.ContainerStatePaused:
-			statuses[PodStatePaused]++
+			statuses[define.PodStatePaused]++
 		case define.ContainerStateCreated, define.ContainerStateConfigured:
-			statuses[PodStateCreated]++
+			statuses[define.PodStateCreated]++
 		default:
-			statuses[PodStateErrored]++
+			statuses[define.PodStateErrored]++
 		}
 	}
 
 	switch {
-	case statuses[PodStateRunning] > 0:
-		return PodStateRunning, nil
-	case statuses[PodStatePaused] == ctrNum:
-		return PodStatePaused, nil
-	case statuses[PodStateStopped] == ctrNum:
-		return PodStateExited, nil
-	case statuses[PodStateStopped] > 0:
-		return PodStateStopped, nil
-	case statuses[PodStateErrored] > 0:
-		return PodStateErrored, nil
+	case statuses[define.PodStateRunning] > 0:
+		return define.PodStateRunning, nil
+	case statuses[define.PodStatePaused] == ctrNum:
+		return define.PodStatePaused, nil
+	case statuses[define.PodStateStopped] == ctrNum:
+		return define.PodStateExited, nil
+	case statuses[define.PodStateStopped] > 0:
+		return define.PodStateStopped, nil
+	case statuses[define.PodStateErrored] > 0:
+		return define.PodStateErrored, nil
 	default:
-		return PodStateCreated, nil
+		return define.PodStateCreated, nil
 	}
 }
 

@@ -58,9 +58,9 @@ func (r *LocalRuntime) PrunePods(ctx context.Context, cli *cliconfig.PodPruneVal
 	}
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
-	states := []string{shared.PodStateStopped, shared.PodStateExited}
+	states := []string{define.PodStateStopped, define.PodStateExited}
 	if cli.Force {
-		states = append(states, shared.PodStateRunning)
+		states = append(states, define.PodStateRunning)
 	}
 
 	pods, err := r.GetPodsByStatus(states)

@@ -33,7 +33,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//       $ref: "#/responses/ConflictError"
 	//     500:
 	//       $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/create"), APIHandler(s.Context, generic.CreateContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/create"), APIHandler(s.Context, handlers.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/json compat listContainers
 	// ---
 	// tags:
@@ -550,7 +550,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 		libpod endpoints
 	*/
 
-	r.HandleFunc(VersionedPath("/libpod/containers/create"), APIHandler(s.Context, libpod.CreateContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/create"), APIHandler(s.Context, handlers.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/json libpod libpodListContainers
 	// ---
 	// tags:
