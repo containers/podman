@@ -3,6 +3,11 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/libpod/pkg/apparmor"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/spf13/cobra"
 )
 
@@ -76,4 +81,18 @@ func getSystemSubCommands() []*cobra.Command {
 		_dfSystemCommand,
 		_migrateCommand,
 	}
+}
+
+func getDefaultSecurityOptions() []string {
+	securityOpts := []string{}
+	if defaultContainerConfig.Containers.SeccompProfile != "" && defaultContainerConfig.Containers.SeccompProfile != parse.SeccompDefaultPath {
+		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", defaultContainerConfig.Containers.SeccompProfile))
+	}
+	if apparmor.IsEnabled() && defaultContainerConfig.Containers.ApparmorProfile != "" {
+		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", defaultContainerConfig.Containers.ApparmorProfile))
+	}
+	if selinux.GetEnabled() && !defaultContainerConfig.Containers.EnableLabeling {
+		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
+	}
+	return securityOpts
 }

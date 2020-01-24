@@ -555,6 +555,7 @@ Valid values are:
 - `host`: use the Podman host network stack. Note: the host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
 - `<network-name>|<network-id>`: connect to a user-defined network, multiple networks should be comma separated
 - `ns:<path>`: path to a network namespace to join
+- `private`: create a new namespace for the container (default)
 - `slirp4netns`: use slirp4netns to create a user network stack.  This is the default for rootless containers
 
 **--network-alias**=*alias*
@@ -585,6 +586,7 @@ Default is to create a private PID namespace for the container
 - `container:<name|id>`: join another container's PID namespace
 - `host`: use the host's PID namespace for the container. Note: the host mode gives the container full access to local PID and is therefore considered insecure.
 - `ns`: join the specified PID namespace
+- `private`: create a new namespace for the container (default)
 
 **--pids-limit**=*limit*
 
@@ -850,14 +852,16 @@ Without this argument the command will be run as root in the container.
 **--userns**=host
 **--userns**=keep-id
 **--userns**=container:container
+**--userns**=private
 **--userns**=ns:my_namespace
 
 Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value means user namespaces are disabled.
 
+- `container`: join the user namespace of the specified container.
 - `host`: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
 - `keep-id`: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
 - `ns`: run the container in the given existing user namespace.
-- `container`: join the user namespace of the specified container.
+- `private`: create a new namespace for the container (default)
 
 This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 
@@ -866,7 +870,8 @@ This option is incompatible with --gidmap, --uidmap, --subuid and --subgid
 Set the UTS mode for the container
 
 - `host`: use the host's UTS namespace inside the container.
-- `ns`: specify the user namespace to use.
+- `ns`: specify the uts namespace to use.
+- `private`: create a new namespace for the container (default)
 
 **NOTE**: the host mode gives the container access to changing the host's hostname and is therefore considered insecure.
 

@@ -308,7 +308,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 	}
 
 	systemContext.AuthFilePath = authfile
-	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command)
+	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command, cliconfig.GetDefaultConfig())
 	if err != nil {
 		return "", nil, err
 	}

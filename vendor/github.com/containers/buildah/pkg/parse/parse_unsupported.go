@@ -12,6 +12,6 @@ func getDefaultProcessLimits() []string {
 	return []string{}
 }
 
-func DeviceFromPath(device string) (configs.Device, error) {
-	return configs.Device{}, fmt.Errorf("devices not supported")
+func DeviceFromPath(device string) ([]configs.Device, error) {
+	return []configs.Device{}, fmt.Errorf("devices not supported")
 }

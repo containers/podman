@@ -9,11 +9,13 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,7 +86,7 @@ func init() {
 	}
 
 	flag.DefValue = "true"
-	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues, defaultContainerConfig)
 
 	flags.AddFlagSet(&budFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
@@ -276,7 +278,8 @@ func buildCmd(c *cliconfig.BuildValues) error {
 
 	defer runtime.DeferredShutdown(false)
 
-	var stdout, stderr, reporter *os.File
+	var stdin, stdout, stderr, reporter *os.File
+	stdin = os.Stdin
 	stdout = os.Stdout
 	stderr = os.Stderr
 	reporter = os.Stderr
@@ -312,6 +315,17 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		return err
 	}
 
+	networkPolicy := buildah.NetworkDefault
+	for _, ns := range nsValues {
+		if ns.Name == "none" {
+			networkPolicy = buildah.NetworkDisabled
+			break
+		} else if !filepath.IsAbs(ns.Path) {
+			networkPolicy = buildah.NetworkEnabled
+			break
+		}
+	}
+
 	buildOpts := buildah.CommonBuildOptions{
 		AddHost:      c.AddHost,
 		CgroupParent: c.CgroupParent,
@@ -343,23 +357,56 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		layers = false
 	}
 
+	capabilities := defaultContainerConfig.Capabilities("", c.CapAdd, c.CapDrop)
+	compression := imagebuildah.Gzip
+	if c.DisableCompression {
+		compression = imagebuildah.Uncompressed
+	}
+
+	devices := []configs.Device{}
+	for _, device := range append(defaultContainerConfig.Containers.AdditionalDevices, c.Devices...) {
+		dev, err := parse.DeviceFromPath(device)
+		if err != nil {
+			return err
+		}
+		devices = append(devices, dev...)
+	}
+
+	transientMounts := []imagebuildah.Mount{}
+	for _, volume := range append(defaultContainerConfig.Containers.AdditionalVolumes, c.Volumes...) {
+		mount, err := parse.Volume(volume)
+		if err != nil {
+			return err
+		}
+
+		transientMounts = append(transientMounts, imagebuildah.Mount(mount))
+	}
+
 	options := imagebuildah.BuildOptions{
-		CommonBuildOpts:         &buildOpts,
 		AdditionalTags:          tags,
 		Annotations:             c.Annotation,
+		Architecture:            c.Arch,
 		Args:                    args,
+		BlobDirectory:           c.BlobCache,
 		CNIConfigDir:            c.CNIConfigDir,
 		CNIPluginPath:           c.CNIPlugInPath,
-		Compression:             imagebuildah.Gzip,
+		Capabilities:            capabilities,
+		CommonBuildOpts:         &buildOpts,
+		Compression:             compression,
+		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
+		DefaultEnv:              defaultContainerConfig.GetDefaultEnv(),
 		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
+		Devices:                 devices,
 		Err:                     stderr,
 		ForceRmIntermediateCtrs: c.ForceRm,
 		IIDFile:                 c.Iidfile,
+		In:                      stdin,
 		Labels:                  c.Label,
 		Layers:                  layers,
 		NamespaceOptions:        nsValues,
 		NoCache:                 c.NoCache,
+		OS:                      c.OS,
 		Out:                     stdout,
 		Output:                  output,
 		OutputFormat:            format,
@@ -368,13 +415,15 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		RemoveIntermediateCtrs:  c.Rm,
 		ReportWriter:            reporter,
 		RuntimeArgs:             runtimeFlags,
+		SignBy:                  c.SignBy,
 		SignaturePolicyPath:     c.SignaturePolicy,
 		Squash:                  c.Squash,
 		SystemContext: &types.SystemContext{
 			OSChoice:           c.OverrideOS,
 			ArchitectureChoice: c.OverrideArch,
 		},
-		Target: c.Target,
+		Target:          c.Target,
+		TransientMounts: transientMounts,
 	}
 	_, _, err = runtime.Build(getContext(), c, options, containerfiles)
 	return err

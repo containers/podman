@@ -38,7 +38,6 @@ func init() {
 	createCommand.PodmanCommand.Command = _createCommand
 	createCommand.SetHelpTemplate(HelpTemplate())
 	createCommand.SetUsageTemplate(UsageTemplate())
-
 	getCreateFlags(&createCommand.PodmanCommand)
 	flags := createCommand.Flags()
 	flags.SetInterspersed(false)

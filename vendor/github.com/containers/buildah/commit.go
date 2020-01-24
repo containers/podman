@@ -81,6 +81,8 @@ type CommitOptions struct {
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
 	OmitTimestamp bool
+	// SignBy is the fingerprint of a GPG key to use for signing the image.
+	SignBy string
 }
 
 // PushOptions can be used to alter how an image is copied somewhere.
@@ -115,6 +117,11 @@ type PushOptions struct {
 	// the user will be displayed, this is best used for logging.
 	// The default is false.
 	Quiet bool
+	// SignBy is the fingerprint of a GPG key to use for signing the image.
+	SignBy string
+	// RemoveSignatures causes any existing signatures for the image to be
+	// discarded for the pushed copy.
+	RemoveSignatures bool
 }
 
 var (
@@ -293,8 +300,16 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	case archive.Gzip:
 		systemContext.DirForceCompress = true
 	}
+
+	if systemContext.ArchitectureChoice != b.Architecture() {
+		systemContext.ArchitectureChoice = b.Architecture()
+	}
+	if systemContext.OSChoice != b.OS() {
+		systemContext.OSChoice = b.OS()
+	}
+
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(b.store, options.ReportWriter, nil, systemContext, "")); err != nil {
+	if manifestBytes, err = cp.Image(ctx, policyContext, maybeCachedDest, maybeCachedSrc, getCopyOptions(b.store, options.ReportWriter, nil, systemContext, "", false, options.SignBy)); err != nil {
 		return imgID, nil, "", errors.Wrapf(err, "error copying layers and metadata for container %q", b.ContainerID)
 	}
 	// If we've got more names to attach, and we know how to do that for
@@ -426,7 +441,7 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 		systemContext.DirForceCompress = true
 	}
 	var manifestBytes []byte
-	if manifestBytes, err = cp.Image(ctx, policyContext, dest, maybeCachedSrc, getCopyOptions(options.Store, options.ReportWriter, nil, systemContext, options.ManifestType)); err != nil {
+	if manifestBytes, err = cp.Image(ctx, policyContext, dest, maybeCachedSrc, getCopyOptions(options.Store, options.ReportWriter, nil, systemContext, options.ManifestType, options.RemoveSignatures, options.SignBy)); err != nil {
 		return nil, "", errors.Wrapf(err, "error copying layers and metadata from %q to %q", transports.ImageName(maybeCachedSrc), transports.ImageName(dest))
 	}
 	if options.ReportWriter != nil {

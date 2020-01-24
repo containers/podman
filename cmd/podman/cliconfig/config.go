@@ -2,7 +2,10 @@ package cliconfig
 
 import (
 	"net"
+	"os"
 
+	"github.com/containers/common/pkg/config"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -691,4 +694,14 @@ type SystemDfValues struct {
 
 type UntagValues struct {
 	PodmanCommand
+}
+
+func GetDefaultConfig() *config.Config {
+	var err error
+	conf, err := config.NewConfig("")
+	if err != nil {
+		logrus.Errorf("Error loading container config %v\n", err)
+		os.Exit(1)
+	}
+	return conf
 }

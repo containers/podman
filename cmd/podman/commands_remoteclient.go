@@ -47,3 +47,7 @@ func getTrustSubCommands() []*cobra.Command {
 func getSystemSubCommands() []*cobra.Command {
 	return []*cobra.Command{}
 }
+
+func getDefaultSecurityOptions() []string {
+	return []string{}
+}

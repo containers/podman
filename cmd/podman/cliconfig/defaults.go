@@ -11,6 +11,4 @@ var (
 	DefaultHealthCheckTimeout = "30s"
 	// DefaultImageVolume default value
 	DefaultImageVolume = "bind"
-	// DefaultShmSize default value
-	DefaultShmSize = "65536k"
 )

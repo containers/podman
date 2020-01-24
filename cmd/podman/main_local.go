@@ -32,9 +32,11 @@ import (
 const remote = false
 
 func init() {
-	cgroupManager := define.SystemdCgroupsManager
+	cgroupManager := defaultContainerConfig.Containers.CgroupManager
 	cgroupHelp := `Cgroup manager to use ("cgroupfs"|"systemd")`
 	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
+
+	defaultContainerConfig = cliconfig.GetDefaultConfig()
 	if rootless.IsRootless() && !cgroupv2 {
 		cgroupManager = ""
 		cgroupHelp = "Cgroup manager is not supported in rootless mode"
@@ -42,25 +44,27 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CGroupManager, "cgroup-manager", cgroupManager, cgroupHelp)
 	// -c is deprecated due to conflict with -c on subcommands
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CpuProfile, "cpu-profile", "", "Path for the cpu profiling results")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Config, "config", "", "Path of a libpod config file detailing container server configuration options")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.ConmonPath, "conmon", "", "Path of the conmon binary")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.NetworkCmdPath, "network-cmd-path", "", "Path to the command for configuring the network")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", "", "Path of the configuration directory for CNI networks")
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", "", "Path to default mounts file")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.NetworkCmdPath, "network-cmd-path", defaultContainerConfig.Libpod.NetworkCmdPath, "Path to the command for configuring the network")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.CniConfigDir, "cni-config-dir", getCNIPluginsDir(), "Path of the configuration directory for CNI networks")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.DefaultMountsFile, "default-mounts-file", defaultContainerConfig.Containers.DefaultMountsFile, "Path to default mounts file")
+	if err := rootCmd.PersistentFlags().MarkHidden("cpu-profile"); err != nil {
+		logrus.Error("unable to mark default-mounts-file flag as hidden")
+	}
 	if err := rootCmd.PersistentFlags().MarkHidden("default-mounts-file"); err != nil {
 		logrus.Error("unable to mark default-mounts-file flag as hidden")
 	}
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", "", `Events backend to use ("file"|"journald"|"none")`)
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.EventsBackend, "events-backend", defaultContainerConfig.Libpod.EventsLogger, `Events backend to use ("file"|"journald"|"none")`)
 	// Override default --help information of `--help` global flag
 	var dummyHelp bool
 	rootCmd.PersistentFlags().BoolVar(&dummyHelp, "help", false, "Help for podman")
-	rootCmd.PersistentFlags().StringSliceVar(&MainGlobalOpts.HooksDir, "hooks-dir", []string{}, "Set the OCI hooks directory path (may be set multiple times)")
+	rootCmd.PersistentFlags().StringSliceVar(&MainGlobalOpts.HooksDir, "hooks-dir", defaultContainerConfig.Libpod.HooksDir, "Set the OCI hooks directory path (may be set multiple times)")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.LogLevel, "log-level", "error", `Log messages above specified level ("debug"|"info"|"warn"|"error"|"fatal"|"panic")`)
 	rootCmd.PersistentFlags().IntVar(&MainGlobalOpts.MaxWorks, "max-workers", 0, "The maximum number of workers for parallel operations")
 	if err := rootCmd.PersistentFlags().MarkHidden("max-workers"); err != nil {
 		logrus.Error("unable to mark max-workers flag as hidden")
 	}
-	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Namespace, "namespace", "", "Set the libpod namespace, used to create separate views of the containers and pods on the system")
+	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Namespace, "namespace", defaultContainerConfig.Libpod.Namespace, "Set the libpod namespace, used to create separate views of the containers and pods on the system")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Root, "root", "", "Path to the root directory in which data, including images, is stored")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Runroot, "runroot", "", "Path to the 'run directory' where all state information is stored")
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.Runtime, "runtime", "", "Path to the OCI-compatible binary used to run containers, default is /usr/bin/runc")
@@ -262,4 +266,11 @@ func setUMask() {
 // checkInput can be used to verify any of the globalopt values
 func checkInput() error {
 	return nil
+}
+func getCNIPluginsDir() string {
+	if rootless.IsRootless() {
+		return ""
+	}
+
+	return defaultContainerConfig.Network.CNIPluginDirs[0]
 }

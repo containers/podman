@@ -182,8 +182,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CNIPluginPath:       "",
 		CNIConfigDir:        "",
 		IDMappingOptions:    nil,
-		AddCapabilities:     nil,
-		DropCapabilities:    nil,
+		Capabilities:        nil,
 		CommonBuildOpts: &buildah.CommonBuildOptions{
 			AddHost:            nil,
 			CgroupParent:       "",

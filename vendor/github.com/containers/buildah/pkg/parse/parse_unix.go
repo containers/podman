@@ -32,8 +32,8 @@ func DeviceFromPath(device string) ([]configs.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	if unshare.IsRootless() {
-		return nil, errors.Errorf("Renaming device %s to %s is not a supported in rootless containers", src, dst)
+	if unshare.IsRootless() && src != dst {
+		return nil, errors.Errorf("Renaming device %s to %s is not supported in rootless containers", src, dst)
 	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {

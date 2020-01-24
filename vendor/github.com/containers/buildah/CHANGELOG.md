@@ -3,7 +3,6 @@
 # Changelog
 
 ## v1.13.1 (2020-01-14)
-Changelog for v1.13.1 (2020-01-14)
     Bump github.com/containers/common from 0.0.5 to 0.0.7
     Bump github.com/onsi/ginkgo from 1.10.3 to 1.11.0
     Bump github.com/pkg/errors from 0.8.1 to 0.9.0

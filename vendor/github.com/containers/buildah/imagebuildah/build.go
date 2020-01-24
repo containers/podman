@@ -122,14 +122,10 @@ type BuildOptions struct {
 	// ID mapping options to use if we're setting up our own user namespace
 	// when handling RUN instructions.
 	IDMappingOptions *buildah.IDMappingOptions
-	// AddCapabilities is a list of capabilities to add to the default set when
+	// Capabilities is a list of capabilities to use when
 	// handling RUN instructions.
-	AddCapabilities []string
-	// DropCapabilities is a list of capabilities to remove from the default set
-	// when handling RUN instructions. If a capability appears in both lists, it
-	// will be dropped.
-	DropCapabilities []string
-	CommonBuildOpts  *buildah.CommonBuildOptions
+	Capabilities    []string
+	CommonBuildOpts *buildah.CommonBuildOptions
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format
 	DefaultMountsFilePath string
 	// IIDFile tells the builder to write the image ID to the specified file
@@ -156,10 +152,18 @@ type BuildOptions struct {
 	ForceRmIntermediateCtrs bool
 	// BlobDirectory is a directory which we'll use for caching layer blobs.
 	BlobDirectory string
-	// Target the targeted FROM in the Dockerfile to build
+	// Target the targeted FROM in the Dockerfile to build.
 	Target string
-	// Devices are the additional devices to add to the containers
+	// Devices are the additional devices to add to the containers.
 	Devices []configs.Device
+	// DefaultEnv for containers.
+	DefaultEnv []string
+	// SignBy is the fingerprint of a GPG key to use for signing images.
+	SignBy string
+	// Architecture specifies the target architecture of the image to be built.
+	Architecture string
+	// OS is the specifies the operating system of the image to be built.
+	OS string
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
@@ -250,6 +254,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}
 	b := imagebuilder.NewBuilder(options.Args)
+	b.Env = append(options.DefaultEnv, b.Env...)
 	stages, err := imagebuilder.NewStages(mainNode, b)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error reading multiple stages")

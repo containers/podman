@@ -9,7 +9,9 @@ import (
 	"github.com/containers/buildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/containers/libpod/pkg/util/camelcase"
@@ -107,13 +109,6 @@ func getContext() context.Context {
 		return Ctx
 	}
 	return context.TODO()
-}
-
-func getDefaultNetwork() string {
-	if rootless.IsRootless() {
-		return "slirp4netns"
-	}
-	return "bridge"
 }
 
 func getCreateFlags(c *cliconfig.PodmanCommand) {
@@ -217,8 +212,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	*detachKeys = ""
 
 	createFlags.StringSlice(
-		"device", []string{},
-		"Add a host device to the container (default [])",
+		"device", defaultContainerConfig.Containers.AdditionalDevices,
+		fmt.Sprintf("Add a host device to the container"),
 	)
 	createFlags.StringSlice(
 		"device-read-bps", []string{},
@@ -237,15 +232,15 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
 	createFlags.StringSlice(
-		"dns", []string{},
+		"dns", defaultContainerConfig.Containers.DNSServers,
 		"Set custom DNS servers",
 	)
 	createFlags.StringSlice(
-		"dns-opt", []string{},
+		"dns-opt", defaultContainerConfig.Containers.DNSOptions,
 		"Set custom DNS options",
 	)
 	createFlags.StringSlice(
-		"dns-search", []string{},
+		"dns-search", defaultContainerConfig.Containers.DNSSearches,
 		"Set custom DNS search domains",
 	)
 	createFlags.String(
@@ -253,7 +248,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Overwrite the default ENTRYPOINT of the image",
 	)
 	createFlags.StringArrayP(
-		"env", "e", []string{},
+		"env", "e", defaultContainerConfig.Containers.Env,
 		"Set environment variables in container",
 	)
 	createFlags.Bool(
@@ -265,7 +260,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"expose", []string{},
-		"Expose a port or a range of ports (default [])",
+		"Expose a port or a range of ports",
 	)
 	createFlags.StringSlice(
 		"gidmap", []string{},
@@ -273,7 +268,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"group-add", []string{},
-		"Add additional groups to join (default [])",
+		"Add additional groups to join",
 	)
 	createFlags.Bool(
 		"help", false, "",
@@ -311,13 +306,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 	)
 	createFlags.Bool(
-		"init", false,
+		"init", defaultContainerConfig.Containers.Init,
 		"Run an init binary inside the container that forwards signals and reaps processes",
 	)
 	createFlags.String(
 		"init-path", "",
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary (default: %q)", define.DefaultInitPath),
+		fmt.Sprintf("Path to the container-init binary"),
 	)
 	createFlags.BoolP(
 		"interactive", "i", false,
@@ -328,7 +323,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Specify a static IPv4 address for the container",
 	)
 	createFlags.String(
-		"ipc", "",
+		"ipc", defaultContainerConfig.Containers.IPCNS,
 		"IPC namespace to use",
 	)
 	createFlags.String(
@@ -337,11 +332,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringArrayP(
 		"label", "l", []string{},
-		"Set metadata on container (default [])",
+		"Set metadata on container",
 	)
 	createFlags.StringSlice(
 		"label-file", []string{},
-		"Read in a line delimited file of labels (default [])",
+		"Read in a line delimited file of labels",
 	)
 	createFlags.String(
 		"log-driver", "",
@@ -349,7 +344,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.StringSlice(
 		"log-opt", []string{},
-		"Logging driver options (default [])",
+		"Logging driver options",
 	)
 	createFlags.String(
 		"mac-address", "",
@@ -376,7 +371,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Assign a name to the container",
 	)
 	createFlags.String(
-		"network", getDefaultNetwork(),
+		"network", shared.GetDefaultNetwork(defaultContainerConfig.Containers.NetNS),
 		"Connect a container to a network",
 	)
 	createFlags.Bool(
@@ -402,11 +397,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	markFlagHidden(createFlags, "override-os")
 	createFlags.String(
-		"pid", "",
+		"pid", defaultContainerConfig.Containers.PidNS,
 		"PID namespace to use",
 	)
 	createFlags.Int64(
-		"pids-limit", sysinfo.GetDefaultPidsLimit(),
+		"pids-limit", getDefaultPidsLimit(),
 		"Tune container pids limit (set 0 for unlimited)",
 	)
 	createFlags.String(
@@ -454,11 +449,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"The first argument is not an image but the rootfs to the exploded container",
 	)
 	createFlags.StringArray(
-		"security-opt", []string{},
-		"Security Options (default [])",
+		"security-opt", getDefaultSecurityOptions(),
+		fmt.Sprintf("Security Options"),
 	)
 	createFlags.String(
-		"shm-size", cliconfig.DefaultShmSize,
+		"shm-size", defaultContainerConfig.Containers.ShmSize,
 		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.String(
@@ -483,8 +478,8 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 
 	createFlags.StringSlice(
-		"sysctl", []string{},
-		"Sysctl options (default [])",
+		"sysctl", defaultContainerConfig.Containers.DefaultSysctls,
+		fmt.Sprintf("Sysctl options (default %v)", defaultContainerConfig.Containers.DefaultSysctls),
 	)
 	createFlags.String(
 		"systemd", "true",
@@ -503,19 +498,19 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"UID map to use for the user namespace",
 	)
 	createFlags.StringSlice(
-		"ulimit", []string{},
-		"Ulimit options (default [])",
+		"ulimit", defaultContainerConfig.Containers.DefaultUlimits,
+		fmt.Sprintf("Ulimit options (default %v)", defaultContainerConfig.Containers.DefaultUlimits),
 	)
 	createFlags.StringP(
 		"user", "u", "",
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", os.Getenv("PODMAN_USERNS"),
+		"userns", getDefaultUserNS(),
 		"User namespace to use",
 	)
 	createFlags.String(
-		"uts", "",
+		"uts", defaultContainerConfig.Containers.UTSNS,
 		"UTS namespace to use",
 	)
 	createFlags.StringArray(
@@ -523,12 +518,12 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Attach a filesystem mount to the container (default [])",
 	)
 	createFlags.StringArrayP(
-		"volume", "v", []string{},
-		"Bind mount a volume into the container (default [])",
+		"volume", "v", defaultContainerConfig.Containers.AdditionalVolumes,
+		"Bind mount a volume into the container",
 	)
 	createFlags.StringSlice(
 		"volumes-from", []string{},
-		"Mount volumes from the specified container(s) (default [])",
+		"Mount volumes from the specified container(s)",
 	)
 	createFlags.StringP(
 		"workdir", "w", "",
@@ -593,4 +588,22 @@ Flags:
 {{.LocalFlags.FlagUsages | trimTrailingWhitespaces}}{{end}}{{if .HasAvailableInheritedFlags}}
 {{end}}
 `
+}
+
+func getDefaultUserNS() string {
+	userns := os.Getenv("PODMAN_USERNS")
+	if userns != "" {
+		return userns
+	}
+	return defaultContainerConfig.Containers.UserNS
+}
+
+func getDefaultPidsLimit() int64 {
+	if rootless.IsRootless() {
+		cgroup2, _ := cgroups.IsCgroup2UnifiedMode()
+		if cgroup2 {
+			return defaultContainerConfig.Containers.PidsLimit
+		}
+	}
+	return sysinfo.GetDefaultPidsLimit()
 }

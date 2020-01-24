@@ -25,6 +25,9 @@ var (
 	Ctx      context.Context
 	span     opentracing.Span
 	closer   io.Closer
+	// defaultContainerConfig structure defines the default container
+	// configuration, including customizations made in containers.conf
+	defaultContainerConfig = cliconfig.GetDefaultConfig()
 )
 
 // Commands that the remote and local client have
@@ -95,7 +98,6 @@ func init() {
 }
 
 func initConfig() {
-	//	we can do more stuff in here.
 }
 
 func before(cmd *cobra.Command, args []string) error {

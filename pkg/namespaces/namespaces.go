@@ -101,7 +101,7 @@ func (n UsernsMode) IsPrivate() bool {
 func (n UsernsMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType, "keep-id", nsType:
+	case "", privateType, hostType, "keep-id", nsType:
 	case containerType:
 		if len(parts) != 2 || parts[1] == "" {
 			return false
@@ -173,7 +173,7 @@ func (n UTSMode) Container() string {
 func (n UTSMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType:
+	case "", privateType, hostType:
 	case containerType:
 		if len(parts) != 2 || parts[1] == "" {
 			return false
@@ -255,7 +255,7 @@ func (n PidMode) IsContainer() bool {
 func (n PidMode) Valid() bool {
 	parts := strings.Split(string(n), ":")
 	switch mode := parts[0]; mode {
-	case "", hostType:
+	case "", privateType, hostType:
 	case containerType:
 		if len(parts) != 2 || parts[1] == "" {
 			return false

@@ -18,7 +18,7 @@ const (
 	DOCKER = "docker"
 )
 
-func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string) *cp.Options {
+func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string) *cp.Options {
 	sourceCtx := getSystemContext(store, nil, "")
 	if sourceSystemContext != nil {
 		*sourceCtx = *sourceSystemContext
@@ -33,6 +33,8 @@ func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemCon
 		SourceCtx:             sourceCtx,
 		DestinationCtx:        destinationCtx,
 		ForceManifestMIMEType: manifestType,
+		RemoveSignatures:      removeSignatures,
+		SignBy:                addSigner,
 	}
 }
 

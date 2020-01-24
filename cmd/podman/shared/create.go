@@ -471,7 +471,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	// ENVIRONMENT VARIABLES
-	env := EnvVariablesFromData(data)
+	env := map[string]string{}
+	for k, v := range EnvVariablesFromData(data) {
+		env[k] = v
+	}
+
 	if c.Bool("env-host") {
 		for _, e := range os.Environ() {
 			pair := strings.SplitN(e, "=", 2)
@@ -570,7 +574,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
 	}
-
 	// Verify the additional hosts are in correct format
 	for _, host := range c.StringSlice("add-host") {
 		if _, err := parse.ValidateExtraHost(host); err != nil {
@@ -578,18 +581,21 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
+	dnsSearches := c.StringSlice("dns-search")
 	// Check for . and dns-search domains
-	if util.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
-		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+	if util.StringInSlice(".", c.StringSlice("dns-search")) {
+		if len(c.StringSlice("dns-search")) > 1 {
+			return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+		}
+		dnsSearches = c.StringSlice("dns-search")
 	}
-
 	// Check for explicit dns-search domain of ''
-	if c.Changed("dns-search") && len(c.StringSlice("dns-search")) == 0 {
+	if c.Changed("dns-search") && len(dnsSearches) == 0 {
 		return nil, errors.Errorf("'' is not a valid domain")
 	}
 
 	// Validate domains are good
-	for _, dom := range c.StringSlice("dns-search") {
+	for _, dom := range dnsSearches {
 		if dom == "." {
 			continue
 		}
@@ -597,6 +603,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			return nil, err
 		}
 	}
+	dnsServers := c.StringSlice("dns")
+	dnsOptions := c.StringSlice("dns-opt")
 
 	var ImageVolumes map[string]struct{}
 	if data != nil && c.String("image-volume") != "ignore" {
@@ -671,11 +679,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		HostAdd:  c.StringSlice("add-host"),
 		Hostname: c.String("hostname"),
 	}
-
 	net := &cc.NetworkConfig{
-		DNSOpt:       c.StringSlice("dns-opt"),
-		DNSSearch:    c.StringSlice("dns-search"),
-		DNSServers:   c.StringSlice("dns"),
+		DNSOpt:       dnsOptions,
+		DNSSearch:    dnsSearches,
+		DNSServers:   dnsServers,
 		HTTPProxy:    c.Bool("http-proxy"),
 		MacAddress:   c.String("mac-address"),
 		Network:      c.String("network"),
@@ -718,7 +725,8 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	} else {
 		secConfig.SeccompPolicy = policy
 	}
-
+	volumes := c.StringArray("volume")
+	devices := c.StringSlice("device")
 	config := &cc.CreateConfig{
 		Annotations:       annotations,
 		BuiltinImgVolumes: ImageVolumes,
@@ -728,7 +736,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Command:           command,
 		UserCommand:       userCommand,
 		Detach:            c.Bool("detach"),
-		Devices:           c.StringSlice("device"),
+		Devices:           devices,
 		Entrypoint:        entrypoint,
 		Env:               env,
 		// ExposedPorts:   ports,
@@ -781,7 +789,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Tmpfs:         c.StringArray("tmpfs"),
 		Tty:           tty,
 		MountsFlag:    c.StringArray("mount"),
-		Volumes:       c.StringArray("volume"),
+		Volumes:       volumes,
 		WorkDir:       workDir,
 		Rootfs:        rootfs,
 		VolumesFrom:   c.StringSlice("volumes-from"),
@@ -900,4 +908,12 @@ func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig
 	hc.StartPeriod = startPeriodDuration
 
 	return &hc, nil
+}
+
+// GetDefaultNetwork returns the default network for the container
+func GetDefaultNetwork(network string) string {
+	if rootless.IsRootless() {
+		return "slirp4netns"
+	}
+	return network
 }

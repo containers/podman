@@ -3304,7 +3304,6 @@ _podman_volume() {
 _podman_podman() {
      local options_with_args="
 	   --config -c
-	   --cpu-profile
 	   --root
 	   --runroot
 	   --storage-driver
