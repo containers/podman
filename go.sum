@@ -307,6 +307,8 @@ github.com/klauspost/compress v1.9.4 h1:xhvAeUPQ2drNUhKtrGdTGNvV9nNafHMUkRyLkzxJ
 github.com/klauspost/compress v1.9.4/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.9.7 h1:hYW1gP94JUmAhBtJ+LNz5My+gBobDxPR1iVuKug26aA=
 github.com/klauspost/compress v1.9.7/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
+github.com/klauspost/compress v1.9.8 h1:VMAMUUOh+gaxKTMk+zqbjsSjsIcUcL/LF4o63i82QyA=
+github.com/klauspost/compress v1.9.8/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
@@ -335,6 +337,8 @@ github.com/mattn/go-shellwords v1.0.6 h1:9Jok5pILi5S1MnDirGVTufYGtksUs/V2BWUP3Zk
 github.com/mattn/go-shellwords v1.0.6/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
 github.com/mattn/go-shellwords v1.0.7 h1:KqhVjVZomx2puPACkj9vrGFqnp42Htvo9SEAWePHKOs=
 github.com/mattn/go-shellwords v1.0.7/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
+github.com/mattn/go-shellwords v1.0.9 h1:eaB5JspOwiKKcHdqcjbfe5lA9cNn/4NRRtddXJCimqk=
+github.com/mattn/go-shellwords v1.0.9/go.mod h1:EZzvwXDESEeg03EKmM+RmDnNOPKG4lLtQsUlTZDWQ8Y=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mistifyio/go-zfs v2.1.1+incompatible h1:gAMO1HM9xBRONLHHYnu5iFsOJUiJdNZo6oqSENd4eW8=
@@ -464,6 +468,12 @@ github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 h1:2c1EFnZHIPCW8qKWgHMH/fX2PkSabFc5mrVzfUNdg5U=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8/go.mod h1:Z0q5wiBQGYcxhMZ6gUqHn6pYNLypFAvaL3UvgZLR0U4=
+github.com/saschagrunert/storage v1.12.3-0.20200124114247-e33abf452ce8 h1:mlC9/wAgY3JF30hsAAR2wV7pTbna1SWTG5Q8DnqvnRg=
+github.com/saschagrunert/storage v1.12.3-0.20200124114247-e33abf452ce8/go.mod h1:14O8Zwr2pII2achcnTY7G3enmkWMbWo62Z7LIrpJUJc=
+github.com/saschagrunert/storage v1.12.3-0.20200128122619-870700a8f42e h1:Ksdt9t0jLvq82D3yQkHPqtD5kPIqMmEzYZjSIfHJCeM=
+github.com/saschagrunert/storage v1.12.3-0.20200128122619-870700a8f42e/go.mod h1:14O8Zwr2pII2achcnTY7G3enmkWMbWo62Z7LIrpJUJc=
+github.com/saschagrunert/storage v1.12.3-0.20200130093958-dd3bd89fca5b h1:hg6/1XPo+466nVtWu2crksvVjrG8snQDg52gijqPmvE=
+github.com/saschagrunert/storage v1.12.3-0.20200130093958-dd3bd89fca5b/go.mod h1:zhvjIIl/fR6wt/lgqQAC+xanHQ+8gUQ0GBVeXYN81qI=
 github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4 h1:rOG9oHVIndNR14f3HRyBy9UPQYmIPniWqTU1TDdHhq4=
 github.com/seccomp/containers-golang v0.0.0-20180629143253-cdfdaa7543f4/go.mod h1:f/98/SnvAzhAEFQJ3u836FePXvcbE8BS0YGMQNn4mhA=
 github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f h1:OtU/w6sBKmXYaw2KEODxjcYi3oPSyyslhgGFgIJVGAI=

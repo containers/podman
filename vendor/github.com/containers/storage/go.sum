@@ -77,6 +77,8 @@ github.com/klauspost/compress v1.9.5 h1:U+CaK85mrNNb4k8BNOfgJtJ/gr6kswUCFj6miSzV
 github.com/klauspost/compress v1.9.5/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.9.7 h1:hYW1gP94JUmAhBtJ+LNz5My+gBobDxPR1iVuKug26aA=
 github.com/klauspost/compress v1.9.7/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
+github.com/klauspost/compress v1.9.8 h1:VMAMUUOh+gaxKTMk+zqbjsSjsIcUcL/LF4o63i82QyA=
+github.com/klauspost/compress v1.9.8/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
@@ -89,6 +91,8 @@ github.com/mattn/go-shellwords v1.0.6 h1:9Jok5pILi5S1MnDirGVTufYGtksUs/V2BWUP3Zk
 github.com/mattn/go-shellwords v1.0.6/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
 github.com/mattn/go-shellwords v1.0.7 h1:KqhVjVZomx2puPACkj9vrGFqnp42Htvo9SEAWePHKOs=
 github.com/mattn/go-shellwords v1.0.7/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vqg+NOMyg4B2o=
+github.com/mattn/go-shellwords v1.0.9 h1:eaB5JspOwiKKcHdqcjbfe5lA9cNn/4NRRtddXJCimqk=
+github.com/mattn/go-shellwords v1.0.9/go.mod h1:EZzvwXDESEeg03EKmM+RmDnNOPKG4lLtQsUlTZDWQ8Y=
 github.com/mistifyio/go-zfs v2.1.1+incompatible h1:gAMO1HM9xBRONLHHYnu5iFsOJUiJdNZo6oqSENd4eW8=
 github.com/mistifyio/go-zfs v2.1.1+incompatible/go.mod h1:8AuVvqP/mXw1px98n46wfvcGfQ4ci2FwoAjKYxuo3Z4=
 github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618 h1:7InQ7/zrOh6SlFjaXFubv0xX0HsuC9qJsdqm7bNQpYM=
@@ -111,6 +115,8 @@ github.com/opencontainers/selinux v1.2.2 h1:Kx9J6eDG5/24A6DtUquGSpJQ+m2MUTahn4Ft
 github.com/opencontainers/selinux v1.2.2/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
 github.com/opencontainers/selinux v1.3.0 h1:xsI95WzPZu5exzA6JzkLSfdr/DilzOhCJOqGe5TgR0g=
 github.com/opencontainers/selinux v1.3.0/go.mod h1:+BLncwf63G4dgOzykXAxcmnFlUaOlkDdmw/CqsW6pjs=
+github.com/opencontainers/selinux v1.3.1 h1:dn2Rc3wTEvTB6iVqoFrKKeMb0uZ38ZheeyMu2h5C1TI=
+github.com/opencontainers/selinux v1.3.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
@@ -194,6 +200,8 @@ golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3 h1:7TYNF4UdlohbFwpNH04CoPMp1
 golang.org/x/sys v0.0.0-20190916202348-b4ddaad3f8a3/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191025090151-53bf42e6b339 h1:zSqWKgm/o7HAnlAzBQ+aetp9fpuyytsXnKA8eiLHYQM=
 golang.org/x/sys v0.0.0-20191025090151-53bf42e6b339/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191115151921-52ab43148777 h1:wejkGHRTr38uaKRqECZlsCsJ1/TGxIyFbH32x5zUdu4=
+golang.org/x/sys v0.0.0-20191115151921-52ab43148777/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2 h1:/J2nHFg1MTqaRLFO7M+J78ASNsJoz3r0cvHBPQ77fsE=
 golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=

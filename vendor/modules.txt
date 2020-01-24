@@ -138,7 +138,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.15.7
+# github.com/containers/storage v1.15.7 => github.com/saschagrunert/storage v1.12.3-0.20200130093958-dd3bd89fca5b
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -312,7 +312,7 @@ github.com/inconshreveable/mousetrap
 github.com/ishidawataru/sctp
 # github.com/json-iterator/go v1.1.9
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.9.7
+# github.com/klauspost/compress v1.9.8
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
 github.com/klauspost/compress/huff0
@@ -323,7 +323,7 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/mattn/go-shellwords v1.0.7
+# github.com/mattn/go-shellwords v1.0.9
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil

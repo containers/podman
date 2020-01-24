@@ -77,14 +77,14 @@ func createLockerForPath(path string, ro bool) (Locker, error) {
 
 // lock locks the lockfile via FCTNL(2) based on the specified type and
 // command.
-func (l *lockfile) lock(l_type int16, recursive bool) {
+func (l *lockfile) lock(lType int16, recursive bool) {
 	lk := unix.Flock_t{
-		Type:   l_type,
+		Type:   lType,
 		Whence: int16(os.SEEK_SET),
 		Start:  0,
 		Len:    0,
 	}
-	switch l_type {
+	switch lType {
 	case unix.F_RDLCK:
 		l.rwMutex.RLock()
 	case unix.F_WRLCK:
@@ -96,7 +96,7 @@ func (l *lockfile) lock(l_type int16, recursive bool) {
 			l.rwMutex.Lock()
 		}
 	default:
-		panic(fmt.Sprintf("attempted to acquire a file lock of unrecognized type %d", l_type))
+		panic(fmt.Sprintf("attempted to acquire a file lock of unrecognized type %d", lType))
 	}
 	l.stateMutex.Lock()
 	defer l.stateMutex.Unlock()
@@ -116,7 +116,7 @@ func (l *lockfile) lock(l_type int16, recursive bool) {
 			time.Sleep(10 * time.Millisecond)
 		}
 	}
-	l.locktype = l_type
+	l.locktype = lType
 	l.locked = true
 	l.recursive = recursive
 	l.counter++
