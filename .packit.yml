@@ -1,0 +1,18 @@
+specfile_path: contrib/spec/podman.spec
+upstream_package_name: libpod
+downstream_package_name: libpod
+jobs:
+- job: copr_build
+  trigger: pull_request
+  metadata:
+    targets:
+    - fedora-30-x86_64
+- job: tests
+  trigger: pull_request
+  metadata:
+    targets:
+    - fedora-30-x86_64
+- job: propose_downstream
+  trigger: release
+  metadata:
+    dist-git-branch: fedora-all
