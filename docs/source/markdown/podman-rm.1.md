@@ -10,13 +10,13 @@ podman\-rm - Remove one or more containers
 
 ## DESCRIPTION
 **podman rm** will remove one or more containers from the host.  The container name or ID can be used.  This does not remove images.
-Running or unusable containers will not be removed without the `-f` option.
+Running or unusable containers will not be removed without the **-f** option.
 
 ## OPTIONS
 
 **--all**, **-a**
 
-Remove all containers.  Can be used in conjunction with -f as well.
+Remove all containers.  Can be used in conjunction with **-f** as well.
 
 **--cidfile**
 
@@ -46,44 +46,44 @@ The latest option is not supported on the remote client.
 **--storage**
 
 Remove the container from the storage library only.
-This is only possible with containers that are not present in libpod (cannot be seen by `podman ps`).
-It is used to remove containers from `podman build` and `buildah`, and orphan containers which were only partially removed by `podman rm`.
+This is only possible with containers that are not present in libpod (cannot be seen by **podman ps**).
+It is used to remove containers from **podman build** and **buildah**, and orphan containers which were only partially removed by **podman rm**.
 The storage option conflicts with the **--all**, **--latest**, and **--volumes** options.
 
 **--volumes**, **-v**
 
 Remove anonymous volumes associated with the container. This does not include named volumes
-created with `podman volume create`, or the `--volume` option of `podman run` and `podman create`.
+created with **podman volume create**, or the **--volume** option of **podman run** and **podman create**.
 
 ## EXAMPLE
 Remove a container by its name *mywebserver*
 ```
-podman rm mywebserver
+$ podman rm mywebserver
 ```
 
 Remove several containers by name and container id.
 ```
-podman rm mywebserver myflaskserver 860a4b23
+$ podman rm mywebserver myflaskserver 860a4b23
 ```
 
 Remove several containers reading their IDs from files.
 ```
-podman rm --cidfile ./cidfile-1 --cidfile /home/user/cidfile-2
+$ podman rm --cidfile ./cidfile-1 --cidfile /home/user/cidfile-2
 ```
 
 Forcibly remove a container by container ID.
 ```
-podman rm -f 860a4b23
+$ podman rm -f 860a4b23
 ```
 
 Remove all containers regardless of its run state.
 ```
-podman rm -f -a
+$ podman rm -f -a
 ```
 
 Forcibly remove the latest container created.
 ```
-podman rm -f --latest
+$ podman rm -f --latest
 ```
 
 ## Exit Status
