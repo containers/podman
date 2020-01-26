@@ -2,9 +2,11 @@ package libpod
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strconv"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
@@ -91,12 +93,13 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 }
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
+	var (
+		all bool
+		err error
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		All     bool                `schema:"all"`
 		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
@@ -110,11 +113,16 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 
 	var libpodFilters = []string{}
 	if _, found := r.URL.Query()["filters"]; found {
+		all, err = strconv.ParseBool(query.Filters["all"][0])
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
 		for k, v := range query.Filters {
 			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
 		}
 	}
-	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, libpodFilters)
+	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), all, libpodFilters)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
@@ -170,4 +178,48 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	defer rdr.Close()
 	defer os.Remove(tmpfile.Name())
 	utils.WriteResponse(w, http.StatusOK, rdr)
+}
+
+func ImportImage(w http.ResponseWriter, r *http.Request) {
+	// TODO this is basically wrong
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	query := struct {
+		Changes map[string]string `json:"changes"`
+		Message string            `json:"message"`
+		Quiet   bool              `json:"quiet"`
+	}{
+		// This is where you can override the golang default value for one of fields
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	var (
+		err    error
+		writer io.Writer
+	)
+	f, err := ioutil.TempFile("", "api_load.tar")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
+		return
+	}
+	if err := handlers.SaveFromBody(f, r); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
+		return
+	}
+	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
+	//id, err := runtime.Import(r.Context())
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, struct {
+		Stream string `json:"stream"`
+	}{
+		Stream: fmt.Sprintf("Loaded image: %s\n", id),
+	})
 }

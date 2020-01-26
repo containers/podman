@@ -3,7 +3,6 @@ package handlers
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -125,46 +124,6 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 func GetImage(r *http.Request, name string) (*image.Image, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	return runtime.ImageRuntime().NewFromLocal(name)
-}
-
-func LoadImage(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-
-	query := struct {
-		//quiet bool # quiet is currently unused
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-
-	var (
-		err    error
-		writer io.Writer
-	)
-	f, err := ioutil.TempFile("", "api_load.tar")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
-		return
-	}
-	if err := SaveFromBody(f, r); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
-		return
-	}
-	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, struct {
-		Stream string `json:"stream"`
-	}{
-		Stream: fmt.Sprintf("Loaded image: %s\n", id),
-	})
 }
 
 func SaveFromBody(f *os.File, r *http.Request) error { // nolint

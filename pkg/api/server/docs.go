@@ -12,7 +12,8 @@
 //     Version: 0.0.1
 //     License: Apache-2.0 https://opensource.org/licenses/Apache-2.0
 //     Contact: Podman <podman@lists.podman.io> https://podman.io/community/
-//     Extensions:
+//
+//     InfoExtensions:
 //     x-logo:
 //       - url: https://raw.githubusercontent.com/containers/libpod/master/logo/podman-logo.png
 //       - altText: "Podman logo"

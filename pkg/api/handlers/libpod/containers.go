@@ -19,8 +19,6 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 }
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
-	// 404 no such container
-	// 200 ok
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := mux.Vars(r)["name"]
 	_, err := runtime.LookupContainer(name)
@@ -145,10 +143,6 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	// since
 	// timestamps
 	// tail string
-}
-
-func CreateContainer(w http.ResponseWriter, r *http.Request) {
-
 }
 
 func UnmountContainer(w http.ResponseWriter, r *http.Request) {

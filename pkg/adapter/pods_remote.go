@@ -540,9 +540,9 @@ func (r *LocalRuntime) PrunePods(ctx context.Context, cli *cliconfig.PodPruneVal
 		ok       = []string{}
 		failures = map[string]error{}
 	)
-	states := []string{shared.PodStateStopped, shared.PodStateExited}
+	states := []string{define.PodStateStopped, define.PodStateExited}
 	if cli.Force {
-		states = append(states, shared.PodStateRunning)
+		states = append(states, define.PodStateRunning)
 	}
 
 	ids, err := iopodman.GetPodsByStatus().Call(r.Conn, states)

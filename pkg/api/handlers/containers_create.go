@@ -1,4 +1,4 @@
-package generic
+package handlers
 
 import (
 	"encoding/json"
@@ -10,7 +10,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
@@ -25,7 +24,7 @@ import (
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	input := handlers.CreateContainerConfig{}
+	input := CreateContainerConfig{}
 	query := struct {
 		Name string `schema:"name"`
 	}{
@@ -74,13 +73,13 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := ContainerCreateResponse{
-		Id:       ctr.ID(),
+		ID:       ctr.ID(),
 		Warnings: []string{}}
 
 	utils.WriteResponse(w, http.StatusCreated, response)
 }
 
-func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err     error
 		init    bool

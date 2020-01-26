@@ -55,6 +55,27 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - images (compat)
 	// summary: List Images
 	// description: Returns a list of images on the server. Note that it uses a different, smaller representation of an image than inspecting a single image.
+	// parameters:
+	//   - name: all
+	//     in: query
+	//     description: "Show all images. Only images from a final layer (no children) are shown by default."
+	//     type: boolean
+	//     default: false
+	//   - name: filters
+	//     in: query
+	//     description: |
+	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
+	//        - `dangling=true`
+	//        - `label=key` or `label="key=value"` of an image label
+	//        - `reference`=(`<image-name>[:<tag>]`)
+	//        - `since`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
+	//     type: string
+	//   - name: digests
+	//     in: query
+	//     description: Not supported
+	//     type: boolean
+	//     default: false
 	// produces:
 	// - application/json
 	// responses:
@@ -63,7 +84,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/json"), APIHandler(s.Context, generic.GetImages)).Methods(http.MethodGet)
-	// swagger:operation POST /images/load compat loadImage
+	// swagger:operation POST /images/load compat importImage
 	// ---
 	// tags:
 	//  - images (compat)
@@ -86,7 +107,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: no error
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, handlers.LoadImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, libpod.ImportImage)).Methods(http.MethodPost)
 	// swagger:operation POST /images/prune compat pruneImages
 	// ---
 	// tags:
@@ -585,6 +606,27 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - images
 	// summary: List Images
 	// description: Returns a list of images on the server
+	// parameters:
+	//   - name: "all"
+	//     in: "query"
+	//     description: "Show all images. Only images from a final layer (no children) are shown by default."
+	//     type: "boolean"
+	//     default: false
+	//   - name: "filters"
+	//     in: "query"
+	//     description: |
+	//        A JSON encoded value of the filters (a `map[string][]string`) to process on the images list. Available filters:
+	//        - `before`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
+	//        - `dangling=true`
+	//        - `label=key` or `label="key=value"` of an image label
+	//        - `reference`=(`<image-name>[:<tag>]`)
+	//        - `since`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
+	//     type: "string"
+	//   - name: "digests"
+	//     in: "query"
+	//     description: Not supported
+	//     type: "boolean"
+	//     default: false
 	// produces:
 	// - application/json
 	// responses:
@@ -593,7 +635,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/json"), APIHandler(s.Context, libpod.GetImages)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/images/load libpod libpodLoadImage
+	// swagger:operation POST /libpod/images/load libpod libpodImportImage
 	// ---
 	// tags:
 	//  - images
@@ -604,6 +646,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: quiet
 	//    type: boolean
 	//    description: not supported
+	//  - in: query
+	//    name: change
+	//    description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//    type: string
+	//  - in: query
+	//    name: message
+	//    description: Set commit message for imported image
+	//    type: string
 	//  - in: body
 	//    name: request
 	//    description: tarball of container image
@@ -617,7 +667,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: no error
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, handlers.LoadImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImportImage)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/prune libpod libpodPruneImages
 	// ---
 	// tags:
@@ -635,10 +685,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//           (or `0`), all unused images are pruned.
 	//        - `until=<string>` Prune images created before this timestamp. The `<timestamp>` can be Unix timestamps, date formatted timestamps, or Go duration strings (e.g. `10m`, `1h30m`) computed relative to the daemon machine’s time.
 	//        - `label` (`label=<key>`, `label=<key>=<value>`, `label!=<key>`, or `label!=<key>=<value>`) Prune images with (or without, in case `label!=...` is used) the specified labels.
-	//  - in: query
-	//    name: all
-	//    type: boolean
-	//    description: prune all images
 	// produces:
 	// - application/json
 	// responses:

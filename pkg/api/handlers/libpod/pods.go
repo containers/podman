@@ -268,7 +268,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
 	query := struct {
-		force bool `schema:"force"`
+		Force bool `schema:"force"`
 	}{
 		// override any golang type defaults
 	}
@@ -284,7 +284,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	if err := runtime.RemovePod(r.Context(), pod, true, query.force); err != nil {
+	if err := runtime.RemovePod(r.Context(), pod, true, query.Force); err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
@@ -309,43 +309,14 @@ func PodRestart(w http.ResponseWriter, r *http.Request) {
 
 func PodPrune(w http.ResponseWriter, r *http.Request) {
 	var (
-		err     error
-		pods    []*libpod.Pod
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		decoder = r.Context().Value("decoder").(*schema.Decoder)
 	)
-	query := struct {
-		force bool `schema:"force"`
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+	pruned, err := runtime.PrunePods()
+	if err != nil {
+		utils.InternalServerError(w, err)
 		return
 	}
-
-	if query.force {
-		pods, err = runtime.GetAllPods()
-		if err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-			return
-		}
-	} else {
-		// TODO We need to make a libpod.PruneVolumes or this code will be a mess.  Volumes
-		// already does this right.  It will also help clean this code path up with less
-		// conditionals. We do this when we integrate with libpod again.
-		utils.Error(w, "not implemented", http.StatusInternalServerError, errors.New("not implemented"))
-		return
-	}
-	for _, p := range pods {
-		if err := runtime.RemovePod(r.Context(), p, true, query.force); err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-			return
-		}
-	}
-	utils.WriteResponse(w, http.StatusNoContent, "")
+	utils.WriteResponse(w, http.StatusOK, pruned)
 }
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
