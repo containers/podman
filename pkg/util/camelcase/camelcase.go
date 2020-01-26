@@ -55,7 +55,7 @@ func Split(src string) (entries []string) {
 	class := 0
 	// split into fields based on class of unicode character
 	for _, r := range src {
-		switch true {
+		switch {
 		case unicode.IsLower(r):
 			class = 1
 		case unicode.IsUpper(r):
@@ -86,5 +86,6 @@ func Split(src string) (entries []string) {
 			entries = append(entries, string(s))
 		}
 	}
-	return
+
+	return entries
 }

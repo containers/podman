@@ -29,7 +29,7 @@ require (
 	github.com/elazarl/goproxy v0.0.0-20190421051319-9d40249d3c2f // indirect
 	github.com/elazarl/goproxy/ext v0.0.0-20190911111923-ecfe977594f1 // indirect
 	github.com/etcd-io/bbolt v1.3.3
-	github.com/fatih/camelcase v1.0.0
+	github.com/fatih/camelcase v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
