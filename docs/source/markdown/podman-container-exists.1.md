@@ -21,7 +21,7 @@ Print usage statement
 
 Check if an container called `webclient` exists in local storage (the container does actually exist).
 ```
-$ sudo podman container exists webclient
+$ podman container exists webclient
 $ echo $?
 0
 $
@@ -29,7 +29,7 @@ $
 
 Check if an container called `webbackend` exists in local storage (the container does not actually exist).
 ```
-$ sudo podman container exists webbackend
+$ podman container exists webbackend
 $ echo $?
 1
 $
