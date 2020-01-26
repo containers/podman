@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log/syslog"
 	"os"
+	"os/exec"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -31,7 +32,37 @@ import (
 
 const remote = false
 
+func runRemote(path string, args ...string) (int, error) {
+	c := exec.Command(path, args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
+	if err := c.Run(); err != nil {
+		if exitError, ok := err.(*exec.ExitError); ok {
+			waitStatus := exitError.Sys().(syscall.WaitStatus)
+			return waitStatus.ExitStatus(), nil
+		}
+		return 1, err
+	}
+	return 0, nil
+}
+
 func init() {
+	host := os.Getenv("PODMAN_HOST")
+	bridge := os.Getenv("PODMAN_VARLINK_BRIDGE")
+	address := os.Getenv("PODMAN_VARLINK_ADDRESS")
+	if host != "" || bridge != "" || address != "" {
+		program := "podman-remote"
+		if path, err := exec.LookPath(program); err == nil {
+			if rc, err := runRemote(path, os.Args[1:]...); err == nil {
+				os.Exit(rc)
+			} else {
+				fmt.Fprintf(os.Stderr, "Error running %s: %v\n", path, err)
+			}
+		} else {
+			fmt.Fprintf(os.Stderr, "Error finding %s: %v\n", program, err)
+		}
+	}
 	cgroupManager := define.SystemdCgroupsManager
 	cgroupHelp := `Cgroup manager to use ("cgroupfs"|"systemd")`
 	cgroupv2, _ := cgroups.IsCgroup2UnifiedMode()
