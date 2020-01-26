@@ -270,26 +270,36 @@ RUN apk update && apk add man
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
-	It("podman images sort by tag", func() {
-		session := podmanTest.Podman([]string{"images", "--sort", "tag", "--format={{.Tag}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+	It("podman images sort by values", func() {
+		sortValueTest := func(value string, result int, format string) []string {
+			f := fmt.Sprintf("{{.%s}}", format)
+			session := podmanTest.Podman([]string{"images", "--sort", value, "--format", f})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(result))
 
-		sortedArr := session.OutputToStringArray()
+			return session.OutputToStringArray()
+		}
+
+		sortedArr := sortValueTest("created", 0, "CreatedTime")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] > sortedArr[j] })).To(BeTrue())
+
+		sortedArr = sortValueTest("id", 0, "ID")
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
-	})
 
-	It("podman images sort by size", func() {
-		session := podmanTest.Podman([]string{"images", "--sort", "size", "--format={{.Size}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		sortedArr = sortValueTest("repository", 0, "Repository")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
 
-		sortedArr := session.OutputToStringArray()
+		sortedArr = sortValueTest("size", 0, "Size")
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool {
 			size1, _ := units.FromHumanSize(sortedArr[i])
 			size2, _ := units.FromHumanSize(sortedArr[j])
 			return size1 < size2
 		})).To(BeTrue())
+		sortedArr = sortValueTest("tag", 0, "Tag")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+
+		sortValueTest("badvalue", 125, "Tag")
+		sortValueTest("id", 125, "badvalue")
 	})
 
 	It("podman images --all flag", func() {
