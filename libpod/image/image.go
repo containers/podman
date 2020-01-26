@@ -1012,6 +1012,15 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		History:      ociv1Img.History,
 		NamesHistory: i.NamesHistory(),
 	}
+	if manifestType == manifest.DockerV2Schema2MediaType {
+		hc, err := i.GetHealthCheck(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if hc != nil {
+			data.HealthCheck = hc
+		}
+	}
 	return data, nil
 }
 
