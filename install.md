@@ -68,6 +68,16 @@ Using [Homebrew](https://brew.sh/):
 brew cask install podman
 ```
 
+#### [OpenEmbedded](https://www.openembedded.org)
+
+Bitbake recipes for podman and its dependencies are available in the
+[meta-virtualization layer](https://git.yoctoproject.org/cgit/cgit.cgi/meta-virtualization/).
+Add the layer to your OpenEmbedded build environment and build podman using:
+
+```bash
+bitbake podman
+```
+
 #### [openSUSE](https://www.opensuse.org)
 
 ```bash
