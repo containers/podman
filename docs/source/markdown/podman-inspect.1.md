@@ -36,7 +36,7 @@ The latest option is not supported on the remote client or when invoked as *podm
 
 **--size**, **-s**
 
-Display the total file size if the type is a container
+In addition to normal output, display the total file size if the type is a container.
 
 
 ## EXAMPLE
