@@ -69,6 +69,10 @@ The [username[:password]] to use to authenticate with the registry if required.
 If one or both values are not supplied, a command line prompt will appear and the
 value can be entered.  The password is entered without echo.
 
+**--override-arch**=ARCH
+
+Override the machine's default architecture of the image to be pulled. For example, `arm`.
+
 **--quiet**, **-q**
 
 Suppress output information when pulling images
@@ -134,6 +138,18 @@ Writing manifest to image destination
 Storing signatures
 03290064078cb797f3e0a530e78c20c13dd22a3dd3adf84a5da2127b48df0438
 ```
+
+```
+$ podman pull --override-arch=arm arm32v7/debian:stretch
+Trying to pull docker.io/arm32v7/debian:stretch...
+Getting image source signatures
+Copying blob b531ae4a3925 done
+Copying config 3cba58dad5 done
+Writing manifest to image destination
+Storing signatures
+3cba58dad5d9b35e755b48b634acb3fdd185ab1c996ac11510cc72c17780e13c
+```
+
 ## FILES
 
 **registries.conf** (`/etc/containers/registries.conf`)
