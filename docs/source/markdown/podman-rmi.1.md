@@ -24,21 +24,21 @@ This option will cause podman to remove all containers that are using the image 
 
 Remove an image by its short ID
 ```
-podman rmi c0ed59d05ff7
+$ podman rmi c0ed59d05ff7
 ```
 Remove an image and its associated containers.
 ```
-podman rmi --force imageID
+$ podman rmi --force imageID
 ```
 
 Remove multiple images by their shortened IDs.
 ```
-podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
+$ podman rmi c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
 ```
 
 Remove all images and containers.
 ```
-podman rmi -a -f
+$ podman rmi -a -f
 ```
 ## Exit Status
 **_0_** if all specified images removed
