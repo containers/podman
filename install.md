@@ -187,6 +187,8 @@ If you use a newer Podman package from Fedora's `updates-testing`, we would
 appreciate your `+1` feedback in [Bodhi, Fedora's update management
 system](https://bodhi.fedoraproject.org/updates/?packages=podman).
 
+If you are running a non-rawhide Fedora distribution, you can also test the latest packages
+with our [COPR repository](https://copr.fedorainfracloud.org/coprs/baude/Upstream_CRIO_Family/).
 
 #### [Raspbian](https://raspbian.org)
 
