@@ -100,7 +100,8 @@ func pushCmd(c *cliconfig.PushValues) error {
 
 	// --compress and --format can only be used for the "dir" transport
 	splitArg := strings.SplitN(destName, ":", 2)
-	if c.Flag("compress").Changed || c.Flag("format").Changed {
+
+	if c.IsSet("compress") || c.Flag("format").Changed {
 		if splitArg[0] != directory.Transport.Name() {
 			return errors.Errorf("--compress and --format can be set only when pushing to a directory using the 'dir' transport")
 		}
@@ -141,7 +142,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      certPath,
 	}
-	if c.Flag("tls-verify").Changed {
+	if c.IsSet("tls-verify") {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
