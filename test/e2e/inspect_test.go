@@ -164,4 +164,17 @@ var _ = Describe("Podman inspect", func() {
 		Expect(inspectDst.ExitCode()).To(Equal(0))
 		Expect(inspectDst.OutputToString()).To(Equal("/test1"))
 	})
+
+	It("podman inspect shows healthcheck on docker image", func() {
+		pull := podmanTest.Podman([]string{"pull", healthcheck})
+		pull.WaitWithDefaultTimeout()
+		Expect(pull.ExitCode()).To(BeZero())
+
+		session := podmanTest.Podman([]string{"inspect", "--format=json", healthcheck})
+		session.WaitWithDefaultTimeout()
+		imageData := session.InspectImageJSON()
+		Expect(imageData[0].HealthCheck.Timeout).To(BeNumerically("==", 3000000000))
+		Expect(imageData[0].HealthCheck.Interval).To(BeNumerically("==", 60000000000))
+		Expect(imageData[0].HealthCheck.Test).To(Equal([]string{"CMD-SHELL", "curl -f http://localhost/ || exit 1"}))
+	})
 })
