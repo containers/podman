@@ -53,9 +53,15 @@ case "${OS_RELEASE_ID}" in
             warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
             echo "mq-deadline" > /sys/block/sda/queue/scheduler
             cat /sys/block/sda/queue/scheduler
+
+            warn "Forcing systemd cgroup manager"
+            X=$(echo "export CGROUP_MANAGER=systemd" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+
             warn "Testing with crun instead of runc"
             X=$(echo "export OCI_RUNTIME=/usr/bin/crun" | \
                 tee -a /etc/environment) && eval "$X" && echo "$X"
+
             warn "Upgrading to the latest crun"
             # Normally not something to do for stable testing
             # but crun is new, and late-breaking fixes may be required
