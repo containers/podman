@@ -18,7 +18,7 @@ installed on it and the varlink service activated.  You will also need to be abl
 system as a user with privileges to the varlink socket (more on this later).
 
 ## Building the remote client
-At this time, the remote-client is not being packaged for any distribution.  It must be built from
+At this time, the Podman remote-client is not being packaged for any distribution.  It must be built from
 source.  To set up your build environment, see [Installation notes](https://github.com/containers/libpod/blob/master/install.md) and follow the
 section [Building from scratch](https://github.com/containers/libpod/blob/master/install.md#building-from-scratch).  Once you can successfully
 build the regular Podman binary, you can now build the remote-client.
@@ -34,7 +34,14 @@ To use the remote-client, you must perform some setup on both the remote and Pod
 the remote node refers to where the remote-client is being run; and the Podman node refers to where
 Podman and its storage reside.
 
+
 ### Podman node setup
+
+Varlink bridge support is provided by the varlink cli command and installed using:
+```
+$ sudo dnf install varlink-cli
+```
+
 The Podman node must have Podman (not the remote-client) installed as normal. If your system uses systemd,
 then simply start the Podman varlink socket.
 ```
@@ -54,24 +61,28 @@ access to the remote system.  This limitation is being worked on.
 ### Remote node setup
 
 #### Initiate an ssh session to the Podman node
-To use the remote client, we must establish an ssh connection to the Podman server.  We will also use
-that session to bind the remote varlink socket locally.
+To use the remote client, an ssh connection to the Podman server must be established.
+
+Using the varlink bridge, an ssh tunnel must be initiated to connect to the server. Podman must then be informed of the location of the sshd server on the targeted server
 
 ```
-$ ssh -L 127.0.0.1:1234:/run/podman/io.podman root@remotehost
-```
-Note here we are binding the Podman socket to a local TCP socket on port 1234.
-
-#### Running the remote client
-With the ssh session established, we can now run the remote client in a different terminal window. You
-must inform Podman where to look for the bound socket you created in the previous step using an
-environment variable.
-
-```
-$ PODMAN_VARLINK_ADDRESS="tcp:127.0.0.1:1234" bin/podman-remote images
+$ export PODMAN_VARLINK_BRIDGE=$'ssh -T -p22 root@remotehost -- "varlink -A \'podman varlink \$VARLINK_ADDRESS\' bridge"'
+$ bin/podman-remote images
 REPOSITORY                     TAG      IMAGE ID       CREATED         SIZE
 docker.io/library/ubuntu       latest   47b19964fb50   2 weeks ago     90.7 MB
 docker.io/library/alpine       latest   caf27325b298   3 weeks ago     5.8 MB
 quay.io/cevich/gcloud_centos   latest   641dad61989a   5 weeks ago     489 MB
 k8s.gcr.io/pause               3.1      da86e6ba6ca1   14 months ago   747 kB
 ```
+
+The PODMAN_VARLINK_BRIDGE variable may be added to your log in settings. It does not change per connection.
+
+If coming from a Windows machine, the PODMAN_VARLINK_BRIDGE is formatted as:
+```
+set PODMAN_VARLINK_BRIDGE=C:\Windows\System32\OpenSSH\ssh.exe -T -p22 root@remotehost -- varlink -A "podman varlink $VARLINK_ADDRESS" bridge
+```
+
+The arguments before the `--` are presented to ssh while the arguments after are for the varlink cli. The varlink arguments should be copied verbatim.
+ - `-p` is the port on the remote host for the ssh tunnel.  `22` is the default.
+ - `root` is the currently supported user, while `remotehost` is the name or IP address of the host providing the Podman service.
+ - `-i` may be added to select an identity file.
