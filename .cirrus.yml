@@ -410,6 +410,7 @@ testing_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
         varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
 
 
 # This task executes tests under unique environments/conditions
