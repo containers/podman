@@ -1,0 +1,14 @@
+# -*- sh -*-
+#
+# volume-related tests
+#
+
+#
+# FIXME: endpoints seem to be unimplemented, return 404
+#
+if false; then
+t GET  libpod/volumes/json            200 null
+t POST libpod/volumes/create name=foo 201
+fi
+
+# vim: filetype=sh

@@ -1,0 +1,325 @@
+#!/bin/bash
+#
+# Usage: test-apiv2 [PORT]
+#
+# DEVELOPER NOTE: you almost certainly don't need to play in here. See README.
+#
+ME=$(basename $0)
+
+###############################################################################
+# BEGIN stuff you can but probably shouldn't customize
+
+PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
+PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
+PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"alpine_labels"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"latest"}
+PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
+
+IMAGE=$PODMAN_TEST_IMAGE_FQN
+
+# END   stuff you can but probably shouldn't customize
+###############################################################################
+# BEGIN setup
+
+TMPDIR=${TMPDIR:-/tmp}
+WORKDIR=$(mktemp --tmpdir -d $ME.tmp.XXXXXX)
+
+# Log of all HTTP requests and responses
+LOG=${TMPDIR}/$ME.log.$(date +'%Y%m%dT%H%M%S')
+
+HOST=localhost
+PORT=${PODMAN_SERVICE_PORT:-8081}
+
+# Keep track of test count and failures in files, not variables, because
+# variables don't carry back up from subshells.
+testcounter_file=$WORKDIR/.testcounter
+failures_file=$WORKDIR/.failures
+
+echo 0 >$testcounter_file
+echo 0 >$failures_file
+
+# Where the tests live
+TESTS_DIR=$(realpath $(dirname $0))
+
+# END   setup
+###############################################################################
+# BEGIN infrastructure code - the helper functions used in tests themselves
+
+#########
+#  die  #  Exit error with a message to stderr
+#########
+function die() {
+    echo "$ME: $*" >&2
+    exit 1
+}
+
+########
+#  is  #  Simple comparison
+########
+function is() {
+    local actual=$1
+    local expect=$2
+    local testname=$3
+
+    if [ "$actual" = "$expect" ]; then
+        # On success, include expected value; this helps readers understand
+        _show_ok 1 "$testname=$expect"
+        return
+    fi
+    _show_ok 0 "$testname" "$expect" "$actual"
+}
+
+##########
+#  like  #  Compare, but allowing patterns
+##########
+function like() {
+    local actual=$1
+    local expect=$2
+    local testname=$3
+
+    if expr "$actual" : "$expect" &>/dev/null; then
+        # On success, include expected value; this helps readers understand
+        _show_ok 1 "$testname~$expect"
+        return
+    fi
+    _show_ok 0 "$testname" "~ $expect" "$actual"
+}
+
+##############
+#  _show_ok  #  Helper for is() and like(): displays 'ok' or 'not ok'
+##############
+function _show_ok() {
+    local ok=$1
+    local testname=$2
+
+    # If output is a tty, colorize pass/fail
+    local red=
+    local green=
+    local reset=
+    local bold=
+    if [ -t 3 ]; then
+        red='\e[31m'
+        green='\e[32m'
+        reset='\e[0m'
+        bold='\e[1m'
+    fi
+
+    _bump $testcounter_file
+    count=$(<$testcounter_file)
+    if [ $ok -eq 1 ]; then
+        echo -e "${green}ok $count $testname${reset}" >&3
+        return
+    fi
+
+    # Failed
+    local expect=$3
+    local actual=$4
+    echo -e "${red}not ok $count $testname${reset}"       >&3
+    echo -e "${red}#  expected: $expect${reset}"          >&3
+    echo -e "${red}#    actual: ${bold}$actual${reset}"   >&3
+
+    _bump $failures_file
+}
+
+###########
+#  _bump  #  Increment a counter in a file
+###########
+function _bump() {
+    local file=$1
+
+    count=$(<$file)
+    echo $(( $count + 1 )) >| $file
+}
+
+#############
+#  jsonify  #  convert 'foo=bar,x=y' to json {"foo":"bar","x":"y"}
+#############
+function jsonify() {
+    # split by comma
+    local -a settings_in
+    read -ra settings_in <<<"$1"
+
+    # convert each to double-quoted form
+    local -a settings_out
+    for i in ${settings_in[*]}; do
+        settings_out+=$(sed -e 's/\(.*\)=\(.*\)/"\1":"\2"/' <<<$i)
+    done
+
+    # ...and wrap inside braces.
+    # FIXME: handle commas
+    echo "{${settings_out[*]}}"
+}
+
+#######
+#  t  #  Main test helper
+#######
+function t() {
+    local method=$1; shift
+    local path=$1; shift
+    local curl_args
+
+    local testname="$method $path"
+    # POST requests require an extra params arg
+    if [[ $method = "POST" ]]; then
+        curl_args="-d $(jsonify $1)"
+        testname="$testname [$1]"
+        shift
+    fi
+    # curl -X HEAD but without --head seems to wait for output anyway
+    if [[ $method == "HEAD" ]]; then
+        curl_args="--head"
+    fi
+    local expected_code=$1; shift
+
+    # If given path begins with /, use it as-is; otherwise prepend /version/
+    local url=http://$HOST:$PORT
+    if expr "$path" : "/" >/dev/null; then
+        url="$url$path"
+    else
+        url="$url/v1.40/$path"
+    fi
+
+    # Log every action we do
+    echo "-------------------------------------------------------------" >>$LOG
+    echo "\$ $testname"                                                  >>$LOG
+    rm -f $WORKDIR/curl.*
+    curl -s -X $method ${curl_args}                   \
+         -H 'Content-type: application/json'          \
+         --dump-header $WORKDIR/curl.headers.out       \
+         -o $WORKDIR/curl.result.out "$url"
+
+    if [[ $? -eq 7 ]]; then
+        echo "FATAL: curl failure on $url - cannot continue" >&2
+        exit 1
+    fi
+
+    cat $WORKDIR/curl.headers.out $WORKDIR/curl.result.out >>$LOG 2>/dev/null || true
+
+    # Test return code
+    actual_code=$(head -n1 $WORKDIR/curl.headers.out | awk '/^HTTP/ { print $2}')
+    is "$actual_code" "$expected_code" "$testname : status"
+
+    output=$(< $WORKDIR/curl.result.out)
+
+    for i; do
+        case "$i" in
+            # Exact match on json field
+            .*=*)
+                json_field=$(expr "$i" : "\([^=]*\)=")
+                expect=$(expr "$i" : '[^=]*=\(.*\)')
+                actual=$(jq -r "$json_field" <<<"$output")
+                is "$actual" "$expect" "$testname : $json_field"
+                ;;
+            # regex match on json field
+            .*~*)
+                json_field=$(expr "$i" : "\([^~]*\)~")
+                expect=$(expr "$i" : '[^~]*~\(.*\)')
+                actual=$(jq -r "$json_field" <<<"$output")
+                like "$actual" "$expect" "$testname : $json_field"
+                ;;
+            # Direct string comparison
+            *)
+                is "$output" "$i" "$testname : output"
+                ;;
+        esac
+    done
+}
+
+###################
+#  start_service  #  Run the socket listener
+###################
+service_pid=
+function start_service() {
+    # If there's a listener on the port, nothing for us to do
+    echo -n >/dev/tcp/$HOST/$PORT &>/dev/null && return
+
+    if [ "$HOST" != "localhost" ]; then
+        die "Cannot start service on non-localhost ($HOST)"
+    fi
+
+    if [ $(id -u) -ne 0 ]; then
+        echo "$ME: WARNING: running service rootless is unlikely to work!" >&2
+    fi
+
+    # Find the binary
+    SERVICE_BIN=${SERVICE_BIN:-${TESTS_DIR}/../../bin/service}
+    test -x $SERVICE_BIN || die "Not found: $SERVICE_BIN"
+
+    systemd-socket-activate -l 127.0.0.1:$PORT \
+                            $SERVICE_BIN --root $WORKDIR/root \
+        &> $WORKDIR/server.log &
+    service_pid=$!
+
+    # Wait
+    local _timeout=5
+    while [ $_timeout -gt 0 ]; do
+        echo -n >/dev/tcp/$HOST/$PORT &>/dev/null && return
+        sleep 1
+        _timeout=$(( $_timeout - 1 ))
+    done
+    die "Timed out waiting for service"
+}
+
+# END   infrastructure code
+###############################################################################
+# BEGIN sanity checks
+
+for tool in curl jq podman; do
+    type $tool &>/dev/null || die "$ME: Required tool '$tool' not found"
+done
+
+# END   sanity checks
+###############################################################################
+# BEGIN entry handler (subtest invoker)
+
+# Identify the tests to run. If called with args, use those as globs.
+tests_to_run=()
+if [ -n "$*" ]; then
+    shopt -s nullglob
+    for i; do
+        match=(${TESTS_DIR}/*${i}*.at)
+        if [ ${#match} -eq 0 ]; then
+            die "No match for $TESTS_DIR/*$i*.at"
+        fi
+        tests_to_run+=("${match[@]}")
+    done
+    shopt -u nullglob
+else
+    tests_to_run=($TESTS_DIR/*.at)
+fi
+
+# Because subtests may run podman or other commands that emit stderr;
+# redirect all those and use fd 3 for all output
+exec 3>&1 &>$WORKDIR/output.log
+
+start_service
+
+for i in ${tests_to_run[@]}; do
+    source $i
+done
+
+# END   entry handler
+###############################################################################
+
+# Clean up
+
+if [ -n "$service_pid" ]; then
+    # Yep, has to be -9. It ignores everything else.
+    kill -9 $service_pid
+fi
+
+test_count=$(<$testcounter_file)
+failure_count=$(<$failures_file)
+
+if [ $failure_count -gt 0 -a -s "$WORKDIR/output.log" ]; then
+    echo "# Collected stdout/stderr:"         >&3
+    sed -e 's/^/# /' < $WORKDIR/output.log    >&3
+fi
+
+if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
+    rm -rf $WORKDIR
+fi
+
+echo "1..${test_count}" >&3
+
+exit $failure_count

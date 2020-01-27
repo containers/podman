@@ -1,0 +1,49 @@
+# -*- sh -*-
+#
+# The earliest most basic tests. If any of these fail, life is bad
+#
+
+# NOTE: paths with a leading slash will be interpreted as-is;
+#       paths without will have '/v1.40/' prepended.
+t GET  /_ping        200  OK
+t HEAD /_ping        200
+t GET  /libpod/_ping 200 OK
+
+for i in /version version; do
+    t GET  $i      200                    \
+      .Components[0].Name="Podman Engine"       \
+      .Components[0].Details.APIVersion=1.40    \
+      .Components[0].Details.MinAPIVersion=1.24 \
+      .Components[0].Details.Os=linux           \
+      .ApiVersion=1.40                          \
+      .MinAPIVersion=1.24                       \
+      .Os=linux
+done
+
+#
+# Garbage tests - requests that should yield errors
+#
+t GET  /nonesuch                       404
+t POST /nonesuch ''                    404
+t GET  container/nonesuch/json         404
+t GET  libpod/containers/nonesuch/json 404
+t GET 'libpod/containers/json?a=b'     400
+
+# Method not allowed
+t POST   /_ping                 '' 405
+t DELETE /_ping                    405
+t POST   libpod/containers/json '' 405
+t POST   libpod/pods/abc        '' 405
+t POST   info                   '' 405
+t GET    libpod/containers/create  405
+
+#
+# system info
+#
+# FIXME: run 'podman info --format=json', and compare select fields
+t GET info 200           \
+  .OSType=linux          \
+  .DefaultRuntime=runc   \
+  .MemTotal~[0-9]\\+
+
+# vim: filetype=sh

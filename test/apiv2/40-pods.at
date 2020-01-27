@@ -1,0 +1,33 @@
+# -*- sh -*-
+#
+# test pod-related endpoints
+#
+
+t GET  libpod/pods/json            200 null
+t POST libpod/pods/create name=foo 201 '{"id":"machine.slice"}'   # FIXME!
+t GET  libpod/pods/foo/exists      204
+t GET  libpod/pods/notfoo/exists   404
+t GET  libpod/pods/foo/json        200     .Config.name=foo     .Containers=null
+t GET  libpod/pods/json            200 .[0].Config.name=foo .[0].Containers=null
+
+# Cannot create a dup pod with the same name (FIXME: should that be 409?)
+t POST libpod/pods/create name=foo 500 .cause="pod already exists"
+
+#t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
+
+t POST libpod/pods/foo/pause   '' 204
+t POST libpod/pods/foo/unpause '' 200
+t POST libpod/pods/foo/unpause '' 200   # (2nd time)
+t POST libpod/pods/foo/stop    '' 304
+t POST libpod/pods/foo/restart '' 500 .cause="no such container"
+
+t POST libpod/pods/bar/restart '' 404
+
+#t POST libpod/pods/prune ''    200     # FIXME: unimplemented, returns 500
+#t POST libpod/pods/prune 'a=b' 400     # FIXME: unimplemented, returns 500
+
+# Clean up; and try twice, making sure that the second time fails
+t DELETE libpod/pods/foo 204
+t DELETE libpod/pods/foo 404
+
+# vim: filetype=sh
