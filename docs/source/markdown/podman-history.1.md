@@ -29,17 +29,17 @@ Valid placeholders for the Go template are listed below:
 
 ## OPTIONS
 
-**--human**, **-H**
+**--human**, **-H**=*true|false*
 
-Display sizes and dates in human readable format
+Display sizes and dates in human readable format (default *true*).
 
-**--no-trunc**
+**--no-trunc**=*true|false*
 
-Do not truncate the output
+Do not truncate the output (default *false*).
 
-**--quiet**, **-q**
+**--quiet**, **-q**=*true|false*
 
-Print the numeric IDs only
+Print the numeric IDs only (default *false*).
 
 **--format**=*format*
 
