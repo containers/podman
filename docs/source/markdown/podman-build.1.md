@@ -633,11 +633,11 @@ $ podman build .
 
 $ podman build -f Containerfile.simple .
 
-$ cat ~/Dockerfile | podman build -f - .
+$ cat $HOME/Dockerfile | podman build -f - .
 
 $ podman build -f Dockerfile.simple -f Containerfile.notsosimple .
 
-$ podman build -f Dockerfile.in ~
+$ podman build -f Dockerfile.in $HOME
 
 $ podman build -t imageName .
 
@@ -649,7 +649,7 @@ $ podman build --runtime-flag log-format=json .
 
 $ podman build --runtime-flag debug .
 
-$ podman build --authfile /tmp/auths/myauths.json --cert-dir ~/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
+$ podman build --authfile /tmp/auths/myauths.json --cert-dir $HOME/auth --tls-verify=true --creds=username:password -t imageName -f Dockerfile.simple .
 
 $ podman build --memory 40m --cpu-period 10000 --cpu-quota 50000 --ulimit nofile=1024:1028 -t imageName .
 
