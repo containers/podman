@@ -67,8 +67,9 @@ case "${OS_RELEASE_ID}" in
             # but crun is new, and late-breaking fixes may be required
             # on short notice
             dnf update -y crun
-            warn "Setting SELinux into Permissive mode"
-            setenforce 0
+
+            #warn "Setting SELinux into Permissive mode"
+            #setenforce 0
         fi
         ;;
     centos)  # Current VM is an image-builder-image no local podman/testing
