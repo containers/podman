@@ -159,6 +159,21 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		filters = append(filters, fmt.Sprintf("reference=%s", image))
 	}
 
+	var sortValues = map[string]bool{
+		"created":    true,
+		"id":         true,
+		"repository": true,
+		"size":       true,
+		"tag":        true,
+	}
+	if !sortValues[c.Sort] {
+		keys := make([]string, 0, len(sortValues))
+		for k := range sortValues {
+			keys = append(keys, k)
+		}
+		return errors.Errorf("invalid sort value %q,  required values: %s", c.Sort, strings.Join(keys, ", "))
+	}
+
 	opts := imagesOptions{
 		quiet:     c.Quiet,
 		noHeading: c.Noheading,
