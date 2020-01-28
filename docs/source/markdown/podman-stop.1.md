@@ -38,27 +38,27 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
-**--timeout**, **--time**, **t**=*time*
+**--timeout**, **--time**, **-t**=*time*
 
 Timeout to wait before forcibly stopping the container
 
-## EXAMPLE
+## EXAMPLES
 
-podman stop mywebserver
+$ podman stop mywebserver
 
-podman stop 860a4b235279
+$ podman stop 860a4b235279
 
-podman stop mywebserver 860a4b235279
+$ podman stop mywebserver 860a4b235279
 
-podman stop --cidfile /home/user/cidfile-1
+$ podman stop --cidfile /home/user/cidfile-1
 
-podman stop --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
+$ podman stop --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 
-podman stop --timeout 2 860a4b235279
+$ podman stop --timeout 2 860a4b235279
 
-podman stop -a
+$ podman stop -a
 
-podman stop --latest
+$ podman stop --latest
 
 ## SEE ALSO
 podman(1), podman-rm(1)
