@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -604,7 +605,24 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	}
 
 	for _, container := range podYAML.Spec.Containers {
-		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, util.PullImageMissing)
+		pullPolicy := util.PullImageMissing
+		if len(container.ImagePullPolicy) > 0 {
+			pullPolicy, err = util.ValidatePullType(string(container.ImagePullPolicy))
+			if err != nil {
+				return nil, err
+			}
+		}
+		named, err := reference.ParseNormalizedNamed(container.Image)
+		if err != nil {
+			return nil, err
+		}
+		// In kube, if the image is tagged with latest, it should always pull
+		if tagged, isTagged := named.(reference.NamedTagged); isTagged {
+			if tagged.Tag() == image.LatestTag {
+				pullPolicy = util.PullImageAlways
+			}
+		}
+		newImage, err := r.ImageRuntime().New(ctx, container.Image, c.SignaturePolicy, c.Authfile, writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullPolicy)
 		if err != nil {
 			return nil, err
 		}

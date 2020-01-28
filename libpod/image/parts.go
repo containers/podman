@@ -67,7 +67,7 @@ func (ip *imageParts) suspiciousRefNameTagValuesForSearch() (string, string, str
 	} else if _, hasDigest := ip.unnormalizedRef.(reference.Digested); hasDigest {
 		tag = "none"
 	} else {
-		tag = "latest"
+		tag = LatestTag
 	}
 	return registry, imageName, tag
 }

@@ -47,6 +47,7 @@ spec:
       value: podman
     image: {{ .Image }}
     name: {{ .Name }}
+    imagePullPolicy: {{ .PullPolicy }}
     resources: {}
     {{ if .SecurityContext }}
     securityContext:
@@ -153,12 +154,13 @@ type Ctr struct {
 	Caps            bool
 	CapAdd          []string
 	CapDrop         []string
+	PullPolicy      string
 }
 
 // getCtr takes a list of ctrOptions and returns a Ctr with sane defaults
 // and the configured options
 func getCtr(options ...ctrOption) *Ctr {
-	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, true, false, nil, nil}
+	c := Ctr{defaultCtrName, defaultCtrImage, defaultCtrCmd, true, false, nil, nil, ""}
 	for _, option := range options {
 		option(&c)
 	}
@@ -196,6 +198,12 @@ func withCapDrop(caps []string) ctrOption {
 	return func(c *Ctr) {
 		c.CapDrop = caps
 		c.Caps = true
+	}
+}
+
+func withPullPolicy(policy string) ctrOption {
+	return func(c *Ctr) {
+		c.PullPolicy = policy
 	}
 }
 
@@ -395,5 +403,87 @@ var _ = Describe("Podman generate kube", func() {
 		logs.WaitWithDefaultTimeout()
 		Expect(logs.ExitCode()).To(Equal(0))
 		Expect(logs.OutputToString()).To(ContainSubstring("Operation not permitted"))
+	})
+
+	It("podman play kube with pull policy of never should be 125", func() {
+		ctr := getCtr(withPullPolicy("never"), withImage(BB_GLIBC))
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(125))
+	})
+
+	It("podman play kube with pull policy of missing", func() {
+		ctr := getCtr(withPullPolicy("missing"), withImage(BB))
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+	})
+
+	It("podman play kube with pull always", func() {
+		oldBB := "docker.io/library/busybox:1.30.1"
+		pull := podmanTest.Podman([]string{"pull", oldBB})
+		pull.WaitWithDefaultTimeout()
+
+		tag := podmanTest.Podman([]string{"tag", oldBB, BB})
+		tag.WaitWithDefaultTimeout()
+		Expect(tag.ExitCode()).To(BeZero())
+
+		rmi := podmanTest.Podman([]string{"rmi", oldBB})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"inspect", BB})
+		inspect.WaitWithDefaultTimeout()
+		oldBBinspect := inspect.InspectImageJSON()
+
+		ctr := getCtr(withPullPolicy("always"), withImage(BB))
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect = podmanTest.Podman([]string{"inspect", BB})
+		inspect.WaitWithDefaultTimeout()
+		newBBinspect := inspect.InspectImageJSON()
+		Expect(oldBBinspect[0].Digest).To(Not(Equal(newBBinspect[0].Digest)))
+	})
+
+	It("podman play kube with latest image should always pull", func() {
+		oldBB := "docker.io/library/busybox:1.30.1"
+		pull := podmanTest.Podman([]string{"pull", oldBB})
+		pull.WaitWithDefaultTimeout()
+
+		tag := podmanTest.Podman([]string{"tag", oldBB, BB})
+		tag.WaitWithDefaultTimeout()
+		Expect(tag.ExitCode()).To(BeZero())
+
+		rmi := podmanTest.Podman([]string{"rmi", oldBB})
+		rmi.WaitWithDefaultTimeout()
+		Expect(rmi.ExitCode()).To(BeZero())
+
+		inspect := podmanTest.Podman([]string{"inspect", BB})
+		inspect.WaitWithDefaultTimeout()
+		oldBBinspect := inspect.InspectImageJSON()
+
+		ctr := getCtr(withImage(BB))
+		err := generateKubeYaml(getPod(withCtr(ctr)), kubeYaml)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect = podmanTest.Podman([]string{"inspect", BB})
+		inspect.WaitWithDefaultTimeout()
+		newBBinspect := inspect.InspectImageJSON()
+		Expect(oldBBinspect[0].Digest).To(Not(Equal(newBBinspect[0].Digest)))
 	})
 })
