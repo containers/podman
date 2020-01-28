@@ -1,5 +1,5 @@
 Network
-=====
+=======
 
 :doc:`create <markdown/podman-network-create.1>` network create
 
