@@ -95,6 +95,7 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -113,6 +114,7 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout with flag --authfile", func() {
+		SkipIfRootless()
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--authfile", authFile, server})
 		session.WaitWithDefaultTimeout()
@@ -145,6 +147,7 @@ var _ = Describe("Podman login and logout", func() {
 	})
 
 	It("podman login and logout with --tls-verify", func() {
+		SkipIfRootless()
 		session := podmanTest.Podman([]string{"login", "--username", "podmantest", "--password", "test", "--tls-verify=false", server})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -158,6 +161,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 	It("podman login and logout with --cert-dir", func() {
+		SkipIfRootless()
 		certDir := filepath.Join(podmanTest.TempDir, "certs")
 		os.MkdirAll(certDir, os.ModePerm)
 
@@ -177,6 +181,7 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 	It("podman login and logout with multi registry", func() {
+		SkipIfRootless()
 		os.MkdirAll("/etc/containers/certs.d/localhost:9001", os.ModePerm)
 
 		cwd, _ := os.Getwd()
