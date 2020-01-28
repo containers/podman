@@ -24,7 +24,7 @@ func LoadCNIConfsFromDir(dir string) ([]*libcni.NetworkConfigList, error) {
 	for _, confFile := range files {
 		conf, err := libcni.ConfListFromFile(confFile)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "in %s", confFile)
 		}
 		configs = append(configs, conf)
 	}
@@ -41,7 +41,7 @@ func GetCNIConfigPathByName(name string) (string, error) {
 	for _, confFile := range files {
 		conf, err := libcni.ConfListFromFile(confFile)
 		if err != nil {
-			return "", err
+			return "", errors.Wrapf(err, "in %s", confFile)
 		}
 		if conf.Name == name {
 			return confFile, nil
