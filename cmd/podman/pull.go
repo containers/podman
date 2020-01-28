@@ -55,7 +55,6 @@ func init() {
 	flags.StringVar(&pullCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVarP(&pullCommand.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.StringVar(&pullCommand.OverrideArch, "override-arch", "", "use `ARCH` instead of the architecture of the machine for choosing images")
-	markFlagHidden(flags, "override-arch")
 	flags.StringVar(&pullCommand.OverrideOS, "override-os", "", "use `OS` instead of the running OS for choosing images")
 	markFlagHidden(flags, "override-os")
 	// Disabled flags for the remote client
