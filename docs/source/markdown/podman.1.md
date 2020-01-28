@@ -108,7 +108,7 @@ Storage driver option, Default storage driver options are configured in /etc/con
 
 Output logging information to syslog as well as the console.
 
-On remote clients, logging is directed to the file ~/.config/containers/podman.log
+On remote clients, logging is directed to the file $HOME/.config/containers/podman.log
 
 **--tmpdir**
 
@@ -266,9 +266,9 @@ Currently the slirp4netns package is required to be installed to create a networ
 
 ### **NOTE:** Unsupported file systems in rootless mode
 
-The Overlay file system (OverlayFS) is not supported in rootless mode.  The fuse-overlayfs package is a tool that provides the functionality of OverlayFS in user namespace that allows mounting file systems in rootless environments.  It is recommended to install the fuse-overlayfs package and to enable it by adding `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in the `~/.config/containers/storage.conf` file.
+The Overlay file system (OverlayFS) is not supported in rootless mode.  The fuse-overlayfs package is a tool that provides the functionality of OverlayFS in user namespace that allows mounting file systems in rootless environments.  It is recommended to install the fuse-overlayfs package and to enable it by adding `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in the `$HOME/.config/containers/storage.conf` file.
 
-The Network File System (NFS) and other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are not supported when running in rootless mode as these file systems do not understand user namespace.  However, rootless Podman can make use of an NFS Homedir by modifying the `~/.config/containers/storage.conf` to have the `graphroot` option point to a directory stored on local (Non NFS) storage.
+The Network File System (NFS) and other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are not supported when running in rootless mode as these file systems do not understand user namespace.  However, rootless Podman can make use of an NFS Homedir by modifying the `$HOME/.config/containers/storage.conf` to have the `graphroot` option point to a directory stored on local (Non NFS) storage.
 
 For more information, please refer to the [Podman Troubleshooting Page](https://github.com/containers/libpod/blob/master/troubleshooting.md).
 

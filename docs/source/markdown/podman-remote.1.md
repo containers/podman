@@ -135,7 +135,7 @@ the exit codes follow the `chroot` standard, see below:
 
 ## FILES
 
-**podman-remote.conf** (`~/.config/containers/podman-remote.conf`)
+**podman-remote.conf** (`$HOME/.config/containers/podman-remote.conf`)
 
     The podman-remote.conf file is the default configuration file for the podman
     remote client.  It is in the TOML format.  It is primarily used to keep track
