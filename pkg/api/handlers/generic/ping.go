@@ -3,6 +3,8 @@ package generic
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/containers/libpod/pkg/api/handlers"
 )
 
 func PingGET(w http.ResponseWriter, _ *http.Request) {
@@ -16,7 +18,7 @@ func PingHEAD(w http.ResponseWriter, _ *http.Request) {
 }
 
 func setHeaders(w http.ResponseWriter) {
-	w.Header().Set("API-Version", DefaultApiVersion)
+	w.Header().Set("API-Version", handlers.DefaultApiVersion)
 	w.Header().Set("BuildKit-Version", "")
 	w.Header().Set("Docker-Experimental", "true")
 	w.Header().Set("Cache-Control", "no-cache")
