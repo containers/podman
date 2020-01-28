@@ -456,6 +456,8 @@ github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uY
 github.com/rogpeppe/go-charset v0.0.0-20180617210344-2471d30d28b4/go.mod h1:qgYeAmZ5ZIpBWTGllZSQnw97Dj+woV0toclVaRGI8pc=
 github.com/rootless-containers/rootlesskit v0.7.1 h1:enhwHIAXDjfpV83bL4xF60WZ+1ATjMB7spDDvpWAfPk=
 github.com/rootless-containers/rootlesskit v0.7.1/go.mod h1:r9YL5mKRIdnwcYk4G8E5CSc9MDeFtgYmhfE4CSvDGYA=
+github.com/rootless-containers/rootlesskit v0.7.2 h1:gcWQ9/GN98ne1AqnoeOgQ8e6qpKd3BuB4ug+2h95Fr0=
+github.com/rootless-containers/rootlesskit v0.7.2/go.mod h1:r9YL5mKRIdnwcYk4G8E5CSc9MDeFtgYmhfE4CSvDGYA=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/safchain/ethtool v0.0.0-20190326074333-42ed695e3de8 h1:2c1EFnZHIPCW8qKWgHMH/fX2PkSabFc5mrVzfUNdg5U=
