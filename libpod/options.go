@@ -1546,17 +1546,16 @@ func WithVolumeGID(gid int) VolumeCreateOption {
 	}
 }
 
-// withSetCtrSpecific sets a bool notifying libpod that a volume was created
-// specifically for a container.
-// These volumes will be removed when the container is removed and volumes are
-// also specified for removal.
-func withSetCtrSpecific() VolumeCreateOption {
+// withSetAnon sets a bool notifying libpod that this volume is anonymous and
+// should be removed when containers using it are removed and volumes are
+// specified for removal.
+func withSetAnon() VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.IsCtrSpecific = true
+		volume.config.IsAnon = true
 
 		return nil
 	}
