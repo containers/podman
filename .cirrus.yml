@@ -85,10 +85,15 @@ gce_instance:
 # quick format, lint, and unit tests on the standard platform.
 gating_task:
 
+    # Only run this on PRs, never during post-merge testing.  This is also required
+    # for proper setting of EPOCH_TEST_COMMIT value, required by validation tools.
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
+
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
         GOPATH: "/go"
         GOSRC: "/go/src/github.com/containers/libpod"
+        EPOCH_TEST_COMMIT: "${CIRRUS_BASE_SHA}"
 
     # Runs within Cirrus's "community cluster"
     container:
