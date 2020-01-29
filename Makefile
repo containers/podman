@@ -108,8 +108,6 @@ endif
 
 GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
 
-BOX="fedora_atomic"
-
 CROSS_BUILD_TARGETS := \
 	bin/podman.cross.darwin.amd64 \
 	bin/podman.cross.linux.amd64
@@ -317,9 +315,6 @@ remotesystem:
 
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
-
-vagrant-check:
-	BOX=$(BOX) sh ./vagrant.sh
 
 binaries: varlink_generate podman podman-remote ## Build podman
 
