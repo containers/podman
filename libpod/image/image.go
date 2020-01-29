@@ -831,7 +831,8 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		id := "<missing>"
 		if x == numHistories {
 			id = i.ID()
-		} else if layer != nil {
+		}
+		if layer != nil {
 			if !oci.History[x].EmptyLayer {
 				size = layer.UncompressedSize
 			}
