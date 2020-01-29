@@ -15,6 +15,7 @@ import (
 
 const (
 	defaultPodmanBinaryLocation string = "/usr/bin/podman"
+	alpine                      string = "docker.io/library/alpine:latest"
 )
 
 type bindingTest struct {
