@@ -45,12 +45,6 @@ ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
 	GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
 endif
 
-ifeq (,$(findstring systemd,$(BUILDTAGS)))
-$(warning \
-	Podman is being compiled without the systemd build tag.\
-	Install libsystemd on Ubuntu or systemd-devel on rpm based distro for journald support)
-endif
-
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
 ifneq (,$(findstring varlink,$(BUILDTAGS)))
 	PODMAN_VARLINK_DEPENDENCIES = cmd/podman/varlink/iopodman.go
@@ -170,7 +164,14 @@ test/checkseccomp/checkseccomp: .gopathok $(wildcard test/checkseccomp/*.go)
 test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 	$(GO_BUILD) -ldflags '$(LDFLAGS_PODMAN)' -o $@ $(PROJECT)/test/goecho
 
+
 bin/podman: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
+# Make sure to warn in case we're building without the systemd buildtag.
+ifeq (,$(findstring systemd,$(BUILDTAGS)))
+$(warning \
+	Podman is being compiled without the systemd build tag.\
+	Install libsystemd on Ubuntu or systemd-devel on rpm based distro for journald support)
+endif
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
 podman: bin/podman
