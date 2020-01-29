@@ -38,9 +38,8 @@ type VolumeConfig struct {
 	// a list of mount options. For other drivers, they are passed to the
 	// volume driver handling the volume.
 	Options map[string]string `json:"volumeOptions,omitempty"`
-	// Whether this volume was created for a specific container and will be
-	// removed with it.
-	IsCtrSpecific bool `json:"ctrSpecific"`
+	// Whether this volume is anonymous (will be removed on container exit)
+	IsAnon bool `json:"isAnon"`
 	// UID the volume will be created as.
 	UID int `json:"uid"`
 	// GID the volume will be created as.
@@ -106,11 +105,10 @@ func (v *Volume) Options() map[string]string {
 	return options
 }
 
-// IsCtrSpecific returns whether this volume was created specifically for a
-// given container. Images with this set to true will be removed when the
-// container is removed with the Volumes parameter set to true.
-func (v *Volume) IsCtrSpecific() bool {
-	return v.config.IsCtrSpecific
+// Anonymous returns whether this volume is anonymous. Anonymous volumes were
+// created with a container, and will be removed when that container is removed.
+func (v *Volume) Anonymous() bool {
+	return v.config.IsAnon
 }
 
 // UID returns the UID the volume will be created as.

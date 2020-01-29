@@ -137,7 +137,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 				if err != nil {
 					return nil, errors.Wrapf(err, "volume %s used in container %s has been removed", v.Name, c.ID())
 				}
-				if vol.IsCtrSpecific() {
+				if vol.Anonymous() {
 					importBuilder.AddVolume(v.Dest)
 				}
 			}

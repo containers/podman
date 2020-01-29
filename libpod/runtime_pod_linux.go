@@ -261,7 +261,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 			logrus.Errorf("Error retrieving volume %s: %v", volName, err)
 			continue
 		}
-		if !volume.IsCtrSpecific() {
+		if !volume.Anonymous() {
 			continue
 		}
 		if err := r.removeVolume(ctx, volume, false); err != nil {

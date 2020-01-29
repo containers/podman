@@ -319,7 +319,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		// The volume does not exist, so we need to create it.
 		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
 		if isAnonymous {
-			volOptions = append(volOptions, withSetCtrSpecific())
+			volOptions = append(volOptions, withSetAnon())
 		}
 		newVol, err := r.newVolume(ctx, volOptions...)
 		if err != nil {
@@ -569,7 +569,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 
 	for _, v := range c.config.NamedVolumes {
 		if volume, err := runtime.state.Volume(v.Name); err == nil {
-			if !volume.IsCtrSpecific() {
+			if !volume.Anonymous() {
 				continue
 			}
 			if err := runtime.removeVolume(ctx, volume, false); err != nil && errors.Cause(err) != define.ErrNoSuchVolume {
@@ -707,7 +707,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 
 	for _, v := range c.config.NamedVolumes {
 		if volume, err := r.state.Volume(v.Name); err == nil {
-			if !volume.IsCtrSpecific() {
+			if !volume.Anonymous() {
 				continue
 			}
 			if err := r.removeVolume(ctx, volume, false); err != nil && err != define.ErrNoSuchVolume && err != define.ErrVolumeBeingUsed {

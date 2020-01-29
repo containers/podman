@@ -37,10 +37,10 @@ type InspectVolumeData struct {
 	UID int `json:"UID,omitempty"`
 	// GID is the GID that the volume was created with.
 	GID int `json:"GID,omitempty"`
-	// ContainerSpecific indicates that the volume was created as part of a
-	// specific container, and will be removed when that container is
-	// removed.
-	ContainerSpecific bool `json:"ContainerSpecific,omitempty"`
+	// Anonymous indicates that the volume was created as an anonymous
+	// volume for a specific container, and will be be removed when any
+	// container using it is removed.
+	Anonymous bool `json:"Anonymous,omitempty"`
 }
 
 // Inspect provides detailed information about the configuration of the given
@@ -67,7 +67,7 @@ func (v *Volume) Inspect() (*InspectVolumeData, error) {
 	}
 	data.UID = v.config.UID
 	data.GID = v.config.GID
-	data.ContainerSpecific = v.config.IsCtrSpecific
+	data.Anonymous = v.config.IsAnon
 
 	return data, nil
 }
