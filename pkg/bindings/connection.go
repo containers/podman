@@ -115,11 +115,12 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	)
 	safePathValues := make([]interface{}, len(pathValues))
 	// Make sure path values are http url safe
-	for _, pv := range pathValues {
-		safePathValues = append(safePathValues, url.QueryEscape(pv))
+	for i, pv := range pathValues {
+		safePathValues[i] = url.QueryEscape(pv)
 	}
+	// Lets eventually use URL for this which might lead to safer
+	// usage
 	safeEndpoint := fmt.Sprintf(endpoint, safePathValues...)
-
 	e := c.makeEndpoint(safeEndpoint)
 	req, err := http.NewRequest(httpMethod, e, httpBody)
 	if err != nil {
@@ -150,8 +151,8 @@ func GetConnectionFromContext(ctx context.Context) (*Connection, error) {
 	if c == nil {
 		return nil, errors.New("unable to get connection from context")
 	}
-	conn := c.(Connection)
-	return &conn, nil
+	conn := c.(*Connection)
+	return conn, nil
 }
 
 // FiltersToHTML converts our typical filter format of a

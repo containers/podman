@@ -34,7 +34,7 @@ var _ = Describe("Podman images", func() {
 		//podmanTest.Setup()
 		//podmanTest.SeedImages()
 		bt = newBindingTest()
-		p := bt.runPodman([]string{"pull", "docker.io/library/alpine:latest"})
+		p := bt.runPodman([]string{"pull", alpine})
 		p.Wait(45)
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
@@ -68,13 +68,13 @@ var _ = Describe("Podman images", func() {
 		_, err = images.GetImage(connText, data.ID[0:12], nil)
 		Expect(err).To(BeNil())
 		// Inspect by ID
-		// Inspect by long name should work, it doesnt (yet) i think it needs to be html escaped
-		//_, err = images.GetImage(connText, )
+		//Inspect by long name should work, it doesnt (yet) i think it needs to be html escaped
+		//_, err = images.GetImage(connText, alpine, nil)
 		//Expect(err).To(BeNil())
 	})
 	It("remove image", func() {
 		// Remove invalid image should be a 404
-		_, err = images.RemoveImage(connText, "foobar5000", &false)
+		_, err = images.Remove(connText, "foobar5000", &false)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", 404))
@@ -82,7 +82,7 @@ var _ = Describe("Podman images", func() {
 		_, err := images.GetImage(connText, "alpine", nil)
 		Expect(err).To(BeNil())
 
-		response, err := images.RemoveImage(connText, "alpine", &false)
+		response, err := images.Remove(connText, "alpine", &false)
 		Expect(err).To(BeNil())
 		fmt.Println(response)
 		//	to be continued
