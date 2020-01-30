@@ -17,7 +17,7 @@ import (
 
 func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	var allHistory []HistoryResponse
 
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
@@ -49,7 +49,7 @@ func TagImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	// /v1.xx/images/(name)/tag
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
@@ -92,7 +92,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 			utils.UnSupportedParameter("noprune")
 		}
 	}
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))

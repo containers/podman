@@ -8,15 +8,12 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	var (
 		volumeOptions []libpod.VolumeCreateOption
 		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
@@ -66,7 +63,7 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	vol, err := runtime.GetVolume(name)
 	if err != nil {
 		utils.VolumeNotFound(w, name, err)
@@ -132,7 +129,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	vol, err := runtime.LookupVolume(name)
 	if err != nil {
 		utils.VolumeNotFound(w, name, err)

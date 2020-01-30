@@ -67,10 +67,10 @@ var _ = Describe("Podman images", func() {
 		// Inspect with partial ID
 		_, err = images.GetImage(connText, data.ID[0:12], nil)
 		Expect(err).To(BeNil())
-		// Inspect by ID
+
 		//Inspect by long name should work, it doesnt (yet) i think it needs to be html escaped
-		//_, err = images.GetImage(connText, alpine, nil)
-		//Expect(err).To(BeNil())
+		_, err = images.GetImage(connText, alpine, nil)
+		Expect(err).To(BeNil())
 	})
 	It("remove image", func() {
 		// Remove invalid image should be a 404

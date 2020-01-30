@@ -16,7 +16,6 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/api/types"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -26,7 +25,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	// 500 server
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		utils.ImageNotFound(w, name, errors.Wrapf(err, "Failed to find image %s", name))
@@ -285,7 +284,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	// 200 no error
 	// 404 no such
 	// 500 internal
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))

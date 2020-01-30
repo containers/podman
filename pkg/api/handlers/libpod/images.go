@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -28,11 +27,8 @@ import (
 // create
 
 func ImageExists(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 
 	_, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
@@ -45,7 +41,7 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 func ImageTree(w http.ResponseWriter, r *http.Request) {
 	// tree is a bit of a mess ... logic is in adapter and therefore not callable from here. needs rework
 
-	// name := mux.Vars(r)["name"]
+	// name := utils.GetName(r)
 	// _, layerInfoMap, _, err := s.Runtime.Tree(name)
 	// if err != nil {
 	//	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to find image information for %q", name))
@@ -57,7 +53,7 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := handlers.GetImage(r, name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
@@ -160,7 +156,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to close tempfile"))
 		return
 	}
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	newImage, err := runtime.ImageRuntime().NewFromLocal(name)
 	if err != nil {
 		utils.ImageNotFound(w, name, err)
