@@ -89,4 +89,39 @@ var _ = Describe("Podman images", func() {
 
 	})
 
+	//Tests to validate the image tag command.
+	It("tag image", func() {
+		// Validates if invalid image name is given a bad response is encountered.
+		err = images.Tag(connText, "dummy", "demo", "alpine")
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 404))
+
+		// Validates if the image is tagged sucessfully.
+		err = images.Tag(connText, "alpine", "demo", "alpine")
+		Expect(err).To(BeNil())
+
+		//Validates if name updates when the image is retagged.
+		_, err := images.GetImage(connText, "alpine:demo", nil)
+		Expect(err).To(BeNil())
+
+	})
+
+	//Test to validate the List images command.
+	It("List image", func() {
+		//Array to hold the list of images returned
+		imageSummary, err := images.List(connText, nil, nil)
+		//There Should be no errors in the response.
+		Expect(err).To(BeNil())
+		//Since in the begin context only one image is created the list context should have only one image
+		Expect(len(imageSummary)).To(Equal(1))
+
+		//To be written create a new image and check list count again
+		//imageSummary, err = images.List(connText, nil, nil)
+
+		//Since in the begin context only one image adding one more image should
+		///Expect(len(imageSummary)).To(Equal(2)
+
+	})
+
 })
