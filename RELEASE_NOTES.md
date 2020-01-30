@@ -1,14 +1,15 @@
 # Release Notes
 
-## 1.7.1
+## 1.8.0
 ### Features
+- The `podman service` command has been added, providing a preview of Podman's new Docker-compatible API. This is still very early, and not yet ready for use, but is available for early testing
 - Rootless Podman now uses Rootlesskit for port forwarding, which should greatly improve performance and capabilities
 - The `podman untag` command has been added to remove tags from images without deleting them
-- The `podman service` command has been added to run an API server for managing Podman remotely
 - The `podman inspect` command on images now displays previous names they used
 - The `podman generate systemd` command now supports a `--new` option to generate service files that create and run new containers instead of managing existing containers
 - Support for `--log-opt tag=` to set logging tags has been added to the `journald` log driver
 - Added support for using Seccomp profiles embedded in images for `podman run` and `podman create` via the new `--seccomp-policy` CLI flag ([#4806](https://github.com/containers/libpod/pull/4806))
+- The `podman play kube` command now honors pull policy ([#4880](https://github.com/containers/libpod/issues/4880))
 
 ### Bugfixes
 - Fixed a bug where the `podman cp` command would not copy the contents of directories when paths ending in `/.` were given ([#4717](https://github.com/containers/libpod/issues/4717))
@@ -20,11 +21,20 @@
 - Fixed a bug where Podman, when run as root, would not properly configure `slirp4netns` networking when requested ([#4853](https://github.com/containers/libpod/pull/4853))
 - Fixed a bug where `podman run --userns=keep-id` did not work when the user had a UID over 65535 ([#4838](https://github.com/containers/libpod/issues/4838))
 - Fixed a bug where rootless `podman run` and `podman create` with the `--userns=keep-id` option could change permissions on `/run/user/$UID` and break KDE ([#4846](https://github.com/containers/libpod/issues/4846))
+- Fixed a bug where rootless Podman could not be run in a systemd service on systems using CGroups v2 ([#4833](https://github.com/containers/libpod/issues/4833))
+- Fixed a bug where `podman inspect` would show CPUShares as 0, instead of the default (1024), when it was not explicitly set ([#4822](https://github.com/containers/libpod/issues/4822))
+- Fixed a bug where `podman-remote push` would segfault ([#4706](https://github.com/containers/libpod/issues/4706))
+- Fixed a bug where image healthchecks were not shown in the output of `podman inspect` ([#4799](https://github.com/containers/libpod/issues/4799))
+- Fixed a bug where named volumes created with containers from pre-1.6.3 releases of Podman would be autoremoved with their containers if the `--rm` flag was given, even if they were given names ([#5009](https://github.com/containers/libpod/issues/5009))
+- Fixed a bug where `podman history` was not computing image sizes correctly ([#4916](https://github.com/containers/libpod/issues/4916))
+- Fixed a bug where Podman would not error on invalid values to the `--sort` flag to `podman images`
 
 ### Misc
 - Initial work on version 2 of the Podman remote API has been merged, but is still in an alpha state and not ready for use. Read more [here](https://podman.io/releases/2020/01/17/podman-new-api.html)
+- Many formatting corrections have been made to the manpages
+- The changes to address ([#5009](https://github.com/containers/libpod/issues/5009)) may cause anonymous volumes created by Podman versions 1.6.3 to 1.7.0 to not be removed when their container is removed
 - Updated vendored Buildah to v1.13.1
-- Updated vendored containers/storage to v1.15.5
+- Updated vendored containers/storage to v1.15.7
 
 ## 1.7.0
 ### Features
