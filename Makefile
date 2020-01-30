@@ -394,7 +394,7 @@ release.txt:
 		echo -n " $$field"; done >> "$@"
 	echo "" >> "$@"
 
-podman-v$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
+podman-release.tar.gz: binaries docs release.txt
 	$(eval TMPDIR := $(shell mktemp -d -p '' podman_XXXX))
 	$(eval SUBDIR := podman-v$(RELEASE_NUMBER))
 	mkdir -p "$(TMPDIR)/$(SUBDIR)"
@@ -404,8 +404,8 @@ podman-v$(RELEASE_NUMBER).tar.gz: binaries docs release.txt
 	tar -czvf $@ --xattrs -C "$(TMPDIR)" "./release.txt" "./$(SUBDIR)"
 	-rm -rf "$(TMPDIR)"
 
-# Must call make in-line: Dependency-spec. w/ wild-card also consumes variable value.
-podman-remote-v$(RELEASE_NUMBER)-%.zip:
+# Must call make in-line: Dependency-spec. w/ wild-card.
+podman-remote-release-%.zip:
 	$(MAKE) podman-remote-$* install-podman-remote-$*-docs release.txt \
 		RELEASE_BASENAME=$(shell hack/get_release_info.sh REMOTENAME) \
 		RELEASE_DIST=$* RELEASE_DIST_VER="-"
@@ -424,12 +424,12 @@ podman-remote-v$(RELEASE_NUMBER)-%.zip:
 .PHONY: podman-release
 podman-release:
 	rm -f release.txt
-	$(MAKE) podman-v$(RELEASE_NUMBER).tar.gz
+	$(MAKE) podman-release.tar.gz
 
 .PHONY: podman-remote-%-release
 podman-remote-%-release:
 	rm -f release.txt
-	$(MAKE) podman-remote-v$(RELEASE_NUMBER)-$*.zip
+	$(MAKE) podman-remote-release-$*.zip
 
 .PHONY: docker-docs
 docker-docs: docs
