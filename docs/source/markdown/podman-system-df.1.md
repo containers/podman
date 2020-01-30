@@ -10,7 +10,7 @@ podman\-system\-df - Show podman disk usage
 Show podman disk usage
 
 ## OPTIONS
-**--format=***format*
+**--format**=*format*
 
 Pretty-print images using a Go template
 

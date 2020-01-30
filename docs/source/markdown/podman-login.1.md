@@ -29,7 +29,7 @@ Password for registry
 
 Take the password from stdin
 
-**--username**, **-u=***username*
+**--username**, **-u**=*username*
 
 Username for registry
 
