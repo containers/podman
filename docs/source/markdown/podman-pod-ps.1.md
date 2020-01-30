@@ -75,7 +75,7 @@ Sort by created, ID, name, status, or number of containers
 
 Default: created
 
-**--filter**, **-f=***filter*
+**--filter**, **-f**=*filter*
 
 Filter output based on conditions given
 

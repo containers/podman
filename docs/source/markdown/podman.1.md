@@ -79,7 +79,7 @@ When namespace is set, created containers and pods will join the given namespace
 **--network-cmd-path**=*path*
 Path to the command binary to use for setting up a network.  It is currently only used for setting up a slirp4netns network.  If "" is used then the binary is looked up using the $PATH environment variable.
 
-**--root=***value*
+**--root**=*value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).
 Default root dir is configured in `/etc/containers/storage.conf`.
