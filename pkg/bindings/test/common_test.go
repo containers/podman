@@ -62,6 +62,12 @@ func (b *bindingTest) runPodman(command []string) *gexec.Session {
 	} else {
 		cmd = append(cmd, "--runroot", b.runRoot)
 	}
+	val, ok = os.LookupEnv("TEMPDIR")
+	if ok {
+		cmd = append(cmd, "--tmpdir", val)
+	} else {
+		cmd = append(cmd, "--tmpdir", b.tempDirPath)
+	}
 	val, ok = os.LookupEnv("STORAGE_DRIVER")
 	if ok {
 		cmd = append(cmd, "--storage-driver", val)

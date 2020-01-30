@@ -200,6 +200,9 @@ can_use_shortcut ()
   if (argv == NULL)
     return false;
 
+  if (strstr (argv[0], "podman") == NULL)
+    return false;
+
   for (argc = 0; argv[argc]; argc++)
     {
       if (argc == 0 || argv[argc][0] == '-')
