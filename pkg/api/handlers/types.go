@@ -360,7 +360,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 
 	return &Container{docker.Container{
 		ID:         l.ID(),
-		Names:      []string{l.Name()},
+		Names:      []string{fmt.Sprintf("/%s", l.Name())},
 		Image:      imageName,
 		ImageID:    imageId,
 		Command:    strings.Join(l.Command(), " "),
@@ -431,7 +431,7 @@ func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
 		HostsPath:       inspect.HostsPath,
 		LogPath:         l.LogPath(),
 		Node:            nil,
-		Name:            l.Name(),
+		Name:            fmt.Sprintf("/%s", l.Name()),
 		RestartCount:    0,
 		Driver:          inspect.Driver,
 		Platform:        "linux",
