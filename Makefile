@@ -174,9 +174,8 @@ test/goecho/goecho: .gopathok $(wildcard test/goecho/*.go)
 bin/podman: .gopathok $(SOURCES) go.mod go.sum $(PODMAN_VARLINK_DEPENDENCIES) ## Build with podman
 # Make sure to warn in case we're building without the systemd buildtag.
 ifeq (,$(findstring systemd,$(BUILDTAGS)))
-$(warning \
-	Podman is being compiled without the systemd build tag.\
-	Install libsystemd on Ubuntu or systemd-devel on rpm based distro for journald support)
+	@echo "Podman is being compiled without the systemd build tag. Install libsystemd on \
+		Ubuntu or systemd-devel on rpm based distro for journald support."
 endif
 	$(GO_BUILD) $(BUILDFLAGS) -gcflags '$(GCFLAGS)' -asmflags '$(ASMFLAGS)' -ldflags '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/podman
 
