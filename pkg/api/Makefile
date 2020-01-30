@@ -10,4 +10,3 @@ ${SWAGGER_OUT}:
 	# generate doesn't remove file on error
 	rm -f ${SWAGGER_OUT}
 	swagger generate spec -o ${SWAGGER_OUT} -i tags.yaml -w ./
-

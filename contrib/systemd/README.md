@@ -5,15 +5,15 @@
 The following unit file examples assume:
  1. copied the `service` executable into `/usr/local/bin`
  1. `chcon system_u:object_r:container_runtime_exec_t:s0 /usr/local/bin/service`
- 
+
 then:
  1. copy the `podman.service` and `podman.socket` files into `/etc/systemd/system`
  1. `systemctl daemon-reload`
  1. `systemctl enable podman.socket`
  1. `systemctl start podman.socket`
  1. `systemctl status podman.socket podman.service`
- 
-Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/podman/podman.sock` 
+
+Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/podman/podman.sock`
 
 ### podman.service
 ```toml
@@ -55,15 +55,15 @@ The following unit file examples assume:
  1. you have a created a directory `~/bin`
  1. copied the `service` executable into `~/bin`
  1. `chcon system_u:object_r:container_runtime_exec_t:s0 ~/bin/service`
- 
+
 then:
  1. `mkdir -p ~/.config/systemd/user`
  1. copy the `podman.service` and `podman.socket` files into `~/.config/systemd/user`
  1. `systemctl --user enable podman.socket`
  1. `systemctl --user start podman.socket`
  1. `systemctl --user status podman.socket podman.service`
- 
-Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/user/$(id -u)/podman/podman.sock` 
+
+Assuming the status messages show no errors, the libpod service is ready to respond to the APIv2 on the unix domain socket `/run/user/$(id -u)/podman/podman.sock`
 
 ### podman.service
 

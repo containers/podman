@@ -591,7 +591,7 @@ validate.completions: completions/bash/podman
 	if [ -x /bin/zsh ]; then /bin/zsh completions/zsh/_podman; fi
 
 .PHONY: validate
-validate: gofmt .gitvalidation validate.completions golangci-lint man-page-check
+validate: lint gofmt .gitvalidation validate.completions man-page-check
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
