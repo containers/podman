@@ -68,9 +68,9 @@ export FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1578586410"
 export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
-IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
+IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
 # Image for uploading releases
-UPLDREL_IMAGE="quay.io/libpod/upldrel:latest"
+UPLDREL_IMAGE="quay.io/libpod/upldrel:master"
 
 # Avoid getting stuck waiting for user input
 export DEBIAN_FRONTEND="noninteractive"

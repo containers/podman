@@ -1,17 +1,17 @@
 #!/bin/bash
 
-if [ -z "$VERSION" ]; then
-	echo \$VERSION is empty
-	exit 1
-fi
+set -e
 
-if [ -z "$GOBIN" ]; then
-	echo \$GOBIN is empty
-	exit 1
-fi
+die() { echo "${1:-No error message given} (from $(basename $0))"; exit 1; }
 
-$GOBIN/golangci-lint --version | grep $VERSION
-if [ $?  -ne 0 ]; then
-	set -e
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOBIN v$VERSION
+[ -n "$VERSION" ] || die "\$VERSION is empty or undefined"
+[ -n "$GOBIN" ] || die "\$GOBIN is empty or undefined"
+
+BIN="$GOBIN/golangci-lint"
+if [ ! -x "$BIN" ]; then
+    echo "Installing golangci-lint v$VERSION into $GOBIN"
+    curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $GOBIN v$VERSION
+else
+    # Prints it's own file name as part of --verison output
+    echo "Using existing $(dirname $BIN)/$($BIN --version)"
 fi
