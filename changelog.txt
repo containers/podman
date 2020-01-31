@@ -1,3 +1,191 @@
+- Changelog for v1.8.0-rc1 (2020-01-31)
+  * Fix a syntax error in hack/release.sh
+  * Minor update to release notes
+  * sigproxy: return after closing the channel
+  * fix longname handling for bindings
+  * Update release notes for v1.8.0
+  * compat container names begin with /
+  * Assure validate includes lint
+  * make image reference for commit optional
+  * adjusts install.md (Ubuntu): replaces ${NAME} with hard-encoded Ubuntu to support all *buntu flavors
+  * adjusts install.md (Ubuntu): registries.conf setup is now in containers-image package
+  * markdown: fix erroneous asterisk markup for options
+  * speed up Makefile
+  * Makefile: systemd: echo instead of warn
+  * Makefile: remove redundant BUILDFLAGS
+  * Makefile: consistent PHONY use
+  * Makefile: remove dead vagrant target
+  * Makefile: move systemd buildtag check
+  * rootless: enable shortcut only for podman
+  * test: honor TEMPDIR variable
+  * Cirrus: Set EPOCH_TEST_COMMIT during gate task
+  * Deprecate & remove IsCtrSpecific in favor of IsAnon
+  * apiv2 binding test fixes
+  * history: fix size computing
+  * run `varlink_generate` on Linux only
+  * display file name of bad cni conf
+  * Throw error on invalid sort value
+  * rootless login/logout tests fail
+  * Update remote client bridge documentation.
+  * honor pull policy in play kube
+  * docs: replace '~' with $HOME in markdown as '~' isn't rendered properly
+  * install.md: registries.conf setup in containers-image package
+  * [CI:DOCS]Binding overhauls
+  * docs: fix incomplete heading underlining in network.rst
+  * build(deps): bump github.com/rootless-containers/rootlesskit
+  * docs: add missing hyphen for '-t' option, command '$' prompts
+  * build(deps): bump github.com/opencontainers/selinux from 1.3.0 to 1.3.1
+  * [CI:DOCS]rootless exec cannot join root namespace
+  * expose --arch-override option for pull
+  * Add link from docker.sock to podman.sock
+  * inspect image healthchecks
+  * [CI:DOCS]Add copr link to fedora install page
+  * Hidden remote flags can be nil
+  * docs: add boolean values and defaults to "man podman-history" options
+  * docs: remove reference to "sudo" in "podman exists" examples
+  * docs: fix system-prune markdown; reword for clarity
+  * docs: clean up "man podman-rm", "man podman-rmi"
+  * install.md: mention availability of OpenEmbedded recipes
+  * Cleanup man pages exit code descriptions
+  * APIv2 review corrections #3
+  * camelcase: fix lint reports
+  * fork fatih/camelcase
+  * Refactor time parsing to be more liberal in accepted values
+  * apparmor: allow receiving of signals from 'podman kill'
+  * Add query parameter converters for complex types
+  * Review corrections pass #2
+  * build(deps): bump gopkg.in/yaml.v2 from 2.2.7 to 2.2.8
+  * Default CPUShares in Inspect are 1024
+  * markdown: fix grammar/formatting, standardize on markdown
+  * build(deps): bump k8s.io/api from 0.17.0 to 0.17.2
+  * build(deps): bump github.com/pkg/errors from 0.9.0 to 0.9.1
+  * build(deps): bump github.com/containers/conmon
+  * build(deps): bump github.com/json-iterator/go from 1.1.8 to 1.1.9
+  * build(deps): bump github.com/uber/jaeger-client-go
+  * build(deps): bump github.com/containernetworking/plugins
+  * seccomp policy: expect profile in config label
+  * build(deps): bump github.com/vishvananda/netlink from 1.0.0 to 1.1.0
+  * build(deps): bump github.com/containers/storage from 1.15.5 to 1.15.7
+  * Update README.md to reference latest version
+  * Enable swagger validation for each PR
+  * Fix example format in system df man
+  * markdown: fix formatting of commands at bottom of podman-exec
+  * markdown: reword 'podman-inspect' to properly explain '--size'
+  * correct search-and-replace error
+  * Update release script to not manage epoch
+  * markdown: remove extraneous backquote from "podman rmi"
+  * markdown: fix formatting/content typos in migrate man page
+  * Update RELEASE_NOTES for v1.7.1
+  * Add service endpoint
+  * Cirrus: Fix logic typo
+  * Update build images
+  * Cirrus: No upload snap for docs job
+  * [CI:DOCS]First pass at review comments
+  * go.mod: fix parse error
+  * Use cgroupv2 super magic from golang.org/x/sys/unix
+  * Disable go mods on varlink builds in spec
+  * [CI:DOCS] Add logo and dev statement
+  * rootless: set C variables also on shortcut
+  * [CI:DOCS]static files end up in _static on rtd
+  * [CI:DOCS] Correct link syntax
+  * [CI:DOCS]Connect API docs and RTD
+  * post-process swagger yaml for publish
+  * Tests for API v2
+  * Minor: Bugfix in upload image
+  * Update `tag` documentation regarding 'alias' usage
+  * update install instructions for Debian, Raspbian and Ubuntu
+  * oci_conmon: do not create a cgroup under systemd
+  * Add an API for Attach over HTTP API
+  * systemdgen: specify --cgroups=disabled-conmon for --new
+  * podman: add new option --cgroups=no-conmon
+  * systemdgen: add --ignore flag to generic services
+  * e2e/run_signal_test.go: make it more robust
+  * hack/install_golangci.sh: check env vars
+  * Remove c.String(net)
+  * make binaries: include service
+  * service: don't block sigterm
+  * Cirrus: remove workaround for cleaning /go/bin
+  * [CI:DOCS]swagger cleanup and left-hand nav
+  * Add APIv2 CLI example POC
+  * api: stats: fix typo
+  * api: utils: add an `IsLibpodRequest` handler
+  * refactor top code
+  * top: use a separate pipe for the error stream
+  * v2 api: top improvements
+  * v2: stats: drop redundant sleep when streaming
+  * v2: stats: libpod: use generic handler
+  * v2: stats: rigorous error checks
+  * v2: stats: fix errors
+  * v2: stats: do not ignore errors
+  * v2: stats: remove windows-specific fields
+  * make .install.golangci-lint: force specific version
+  * Makefile: remove gometalinter
+  * contrib/gate/Dockerfile: bump to F31
+  * [CI:DOCS]swagger corrections
+  * Bump to Buildah v1.13.1
+  * oci_conmon: not make accessible dirs if not needed
+  * Enable pre-commit tool linting
+  * .gitignore: ingore *.coverprofile from unit tests
+  * make lint: include unit tests
+  * .golangci.yml: move swagger.go from Makefile
+  * make lint: include docs/
+  * make lint: include pkg/tracing
+  * revert accidental change from codespell pr.
+  * swagger documentation updates
+  * Do not configure CNI when slirp4netns is requested
+  * clarify container prune --force
+  * more BATS tests
+  * gating: clean /go/bin to install fresh tools
+  * make lint: enable gocritic
+  * linter: blacklist linters instead of whitelisting
+  * bump golangci-lint to 1.18.0
+  * rm contrib/perftest
+  * remove `.tool/lint`
+  * docs: --privileged docs completeness, consistency
+  * [Makefile] Ensure .gopathok dependency is met for varlink
+  * Add codespell to validate spelling mistakes in code.
+  * libpod: fix --userns=keep-id with big UIDs
+  * fix e2e test failure
+  * Cirrus: Fix libpod base images going stale
+  * address review comments before merge
+  * [CI:DOCS]update apiv2 documentation with swagger goods
+  * Initial commit on compatible API
+  * cp: drop check for rootless
+  * test: fix error message
+  * log: support --log-opt tag=
+  * Fix Makefile ref libseccomp branch as a commit
+  * policy for seccomp-profile selection
+  * podman-generate-systemd --new
+  * shared/create.go: s/data/imageData/
+  * rootlessport: honor ctr.runtime.config.TmpDir
+  * rootlessport: remove state dir on exit
+  * Usage messages: show possible option values
+  * Update podmanimage build process
+  * exec: fix pipes
+  * fix lint - pkg/varlinkapi/virtwriter
+  * fix lint - pkg/util: func comment
+  * fix lint - pkg/spec
+  * fix lint in pkg/rootless
+  * fix lint - pkg/network: comment exported types
+  * fix lint - pkg/adapter: comment exported API
+  * fix lint - ignore image.ImageDeleteResponse definition
+  * fix lint - drop else block
+  * fix lint: add comment for NameRegex and error
+  * fix lint: correct func identifier in comment
+  * fix lint: "guarantess" is a misspelling of "guarantees"
+  * rootless: use RootlessKit port forwarder
+  * Add `untag` sub-command
+  * Update demo for the inspect command
+  * Fix podman-remote info to show registry data
+  * packaging: validate installed rpms
+  * github stale workflow: rephrase and bump close time
+  * Don't show PASS on success for gitvalidate
+  * Bump gitvalidation epoch
+  * Bump to v1.7.1-dev
+  * play kube: make seccomp handling better conform to k8s
+  * fix bug copy from container directory
+  * Add history names to image inspect data
+
 - Changelog for v1.7.0 (2020-01-06)
   * (minor) fix broken links to container-policy.json.5
   * Generate binaries only if they are changes in src code.
