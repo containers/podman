@@ -56,12 +56,15 @@ func commitCmd(c *cliconfig.CommitValues) error {
 	defer runtime.DeferredShutdown(false)
 
 	args := c.InputArgs
-	if len(args) != 2 {
-		return errors.Errorf("you must provide a container name or ID and a target image name")
+	if len(args) < 1 {
+		return errors.Errorf("you must provide a container name or ID and optionally a target image name")
 	}
 
 	container := args[0]
-	reference := args[1]
+	reference := ""
+	if len(args) > 1 {
+		reference = args[1]
+	}
 	if c.Flag("change").Changed {
 		for _, change := range c.Change {
 			splitChange := strings.Split(strings.ToUpper(change), "=")

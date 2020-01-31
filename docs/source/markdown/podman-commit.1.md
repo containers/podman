@@ -6,7 +6,7 @@ podman\-commit - Create new image based on the changed container
 ## SYNOPSIS
 **podman commit** [*options*] *container* *image*
 
-**podman container commit** [*options*] *container* *image*
+**podman container commit** [*options*] *container* [*image*]
 
 ## DESCRIPTION
 **podman commit** creates an image based on a changed container. The author of the
