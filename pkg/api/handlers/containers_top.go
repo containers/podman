@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -30,7 +29,7 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	c, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)

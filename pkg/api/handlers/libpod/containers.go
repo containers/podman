@@ -9,7 +9,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -20,7 +19,7 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	_, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -105,7 +104,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	container, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -147,7 +146,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	conn, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -163,7 +162,7 @@ func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 }
 func MountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	conn, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)

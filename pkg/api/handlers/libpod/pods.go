@@ -19,8 +19,6 @@ import (
 )
 
 func PodCreate(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 		options []libpod.PodCreateOption
@@ -141,7 +139,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 
 func PodInspect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -156,10 +154,6 @@ func PodInspect(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodStop(w http.ResponseWriter, r *http.Request) {
-	// 200
-	// 304 not modified
-	// 404 no such
-	// 500 internal
 	var (
 		stopError error
 		runtime   = r.Context().Value("runtime").(*libpod.Runtime)
@@ -177,7 +171,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	allContainersStopped := true
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -224,7 +218,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 func PodStart(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	allContainersRunning := true
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -278,7 +272,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -293,7 +287,7 @@ func PodDelete(w http.ResponseWriter, r *http.Request) {
 
 func PodRestart(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -321,7 +315,7 @@ func PodPrune(w http.ResponseWriter, r *http.Request) {
 
 func PodPause(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -336,11 +330,8 @@ func PodPause(w http.ResponseWriter, r *http.Request) {
 }
 
 func PodUnpause(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -379,7 +370,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		utils.InternalServerError(w, errors.Wrapf(err, "unable to parse signal value"))
 	}
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
@@ -412,7 +403,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 
 func PodExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	_, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)

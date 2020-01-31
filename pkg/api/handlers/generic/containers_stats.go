@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/cgroups"
 	docker "github.com/docker/docker/api/types"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -36,7 +35,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	ctnr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)

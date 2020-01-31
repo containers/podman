@@ -9,7 +9,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -26,7 +25,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) (*libpod.Container, e
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return nil, err
 	}
-	name := mux.Vars(r)["name"]
+	name := GetName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -54,7 +53,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) (*libpod.Container, e
 
 func RemoveContainer(w http.ResponseWriter, r *http.Request, force, vols bool) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := GetName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
@@ -87,7 +86,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		UnSupportedParameter("condition")
 	}
 
-	name := mux.Vars(r)["name"]
+	name := GetName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)

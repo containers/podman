@@ -77,7 +77,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := getName(r)
+	name := utils.GetName(r)
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
@@ -138,7 +138,7 @@ func ResizeContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	name := getName(r)
+	name := utils.GetName(r)
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)

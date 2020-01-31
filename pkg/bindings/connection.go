@@ -116,7 +116,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 	safePathValues := make([]interface{}, len(pathValues))
 	// Make sure path values are http url safe
 	for i, pv := range pathValues {
-		safePathValues[i] = url.QueryEscape(pv)
+		safePathValues[i] = url.PathEscape(pv)
 	}
 	// Lets eventually use URL for this which might lead to safer
 	// usage

@@ -63,8 +63,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		listener = &listeners[0]
 	}
 
-	router := mux.NewRouter()
-
+	router := mux.NewRouter().UseEncodedPath()
 	server := APIServer{
 		Server: http.Server{
 			Handler:           router,

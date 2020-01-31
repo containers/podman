@@ -5,15 +5,11 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 )
 
 func RunHealthCheck(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 404 no such
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	name := mux.Vars(r)["name"]
+	name := utils.GetName(r)
 	status, err := runtime.HealthCheck(name)
 	if err != nil {
 		if status == libpod.HealthCheckContainerNotFound {
