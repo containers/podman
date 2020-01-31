@@ -2,7 +2,7 @@
 
 ## 1.8.0
 ### Features
-- The `podman service` command has been added, providing a preview of Podman's new Docker-compatible API. This is still very early, and not yet ready for use, but is available for early testing
+- The `podman service` command has been added, providing a preview of Podman's new Docker-compatible API. This API is still very new, and not yet ready for production use, but is available for early testing
 - Rootless Podman now uses Rootlesskit for port forwarding, which should greatly improve performance and capabilities
 - The `podman untag` command has been added to remove tags from images without deleting them
 - The `podman inspect` command on images now displays previous names they used
@@ -28,6 +28,7 @@
 - Fixed a bug where named volumes created with containers from pre-1.6.3 releases of Podman would be autoremoved with their containers if the `--rm` flag was given, even if they were given names ([#5009](https://github.com/containers/libpod/issues/5009))
 - Fixed a bug where `podman history` was not computing image sizes correctly ([#4916](https://github.com/containers/libpod/issues/4916))
 - Fixed a bug where Podman would not error on invalid values to the `--sort` flag to `podman images`
+- Fixed a bug where providing a name for the image made by `podman commit` was mandatory, not optional as it should be ([#5027](https://github.com/containers/libpod/issues/5027))
 
 ### Misc
 - Initial work on version 2 of the Podman remote API has been merged, but is still in an alpha state and not ready for use. Read more [here](https://podman.io/releases/2020/01/17/podman-new-api.html)
