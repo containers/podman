@@ -1,6 +1,8 @@
 tags:
     - name: containers
       description: Actions related to containers
+    - name: exec
+      description: Actions related to exec
     - name: images
       description: Actions related to images
     - name: pods
@@ -9,5 +11,7 @@ tags:
       description: Actions related to volumes
     - name: containers (compat)
       description: Actions related to containers for the compatibility endpoints
+    - name: exec (compat)
+      description: Actions related to exec for the compatibility endpoints
     - name: images (compat)
       description: Actions related to images for the compatibility endpoints

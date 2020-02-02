@@ -105,6 +105,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		server.RegisterAuthHandlers,
 		server.RegisterContainersHandlers,
 		server.RegisterDistributionHandlers,
+		server.registerExecHandlers,
 		server.registerHealthCheckHandlers,
 		server.registerImagesHandlers,
 		server.registerInfoHandlers,
