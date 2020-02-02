@@ -1,4 +1,4 @@
-package handlers
+package generic
 
 import (
 	"encoding/json"
@@ -6,10 +6,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
@@ -17,14 +17,13 @@ import (
 	"github.com/docker/docker/pkg/signal"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	input := CreateContainerConfig{}
+	input := handlers.CreateContainerConfig{}
 	query := struct {
 		Name string `schema:"name"`
 	}{
@@ -52,34 +51,11 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
 	}
-
 	cc.Name = query.Name
-	var pod *libpod.Pod
-	ctr, err := shared.CreateContainerFromCreateConfig(runtime, &cc, r.Context(), pod)
-	if err != nil {
-		if strings.Contains(err.Error(), "invalid log driver") {
-			// this does not quite work yet and needs a little more massaging
-			w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
-			w.WriteHeader(http.StatusInternalServerError)
-			msg := fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type)
-			if _, err := fmt.Fprintln(w, msg); err != nil {
-				log.Errorf("%s: %q", msg, err)
-			}
-			//s.WriteResponse(w, http.StatusInternalServerError, fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type))
-			return
-		}
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
-		return
-	}
-
-	response := ContainerCreateResponse{
-		ID:       ctr.ID(),
-		Warnings: []string{}}
-
-	utils.WriteResponse(w, http.StatusCreated, response)
+	utils.CreateContainer(r.Context(), w, runtime, &cc)
 }
 
-func makeCreateConfig(input CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err     error
 		init    bool

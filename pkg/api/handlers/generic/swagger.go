@@ -1,13 +1,15 @@
 package generic
 
-import "github.com/containers/libpod/pkg/api/handlers"
+import (
+	"github.com/containers/libpod/pkg/api/handlers/utils"
+)
 
 // Create container
 // swagger:response ContainerCreateResponse
 type swagCtrCreateResponse struct {
 	// in:body
 	Body struct {
-		handlers.ContainerCreateResponse
+		utils.ContainerCreateResponse
 	}
 }
 

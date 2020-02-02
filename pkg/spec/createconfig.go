@@ -167,6 +167,7 @@ type SecurityConfig struct {
 }
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
+// swagger:model CreateConfig
 type CreateConfig struct {
 	Annotations       map[string]string
 	Args              []string

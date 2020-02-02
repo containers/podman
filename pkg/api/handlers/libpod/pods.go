@@ -94,12 +94,10 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.CgroupParent()})
+	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.ID()})
 }
 
 func Pods(w http.ResponseWriter, r *http.Request) {
-	// 200 ok
-	// 500 internal
 	var (
 		runtime        = r.Context().Value("runtime").(*libpod.Runtime)
 		podInspectData []*libpod.PodInspect

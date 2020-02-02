@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"syscall"
@@ -9,9 +10,18 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
+
+// ContainerCreateResponse is the response struct for creating a container
+type ContainerCreateResponse struct {
+	// ID of the container created
+	ID string `json:"id"`
+	// Warnings during container creation
+	Warnings []string `json:"Warnings"`
+}
 
 func KillContainer(w http.ResponseWriter, r *http.Request) (*libpod.Container, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -119,3 +129,30 @@ func GenerateFilterFuncsFromMap(r *libpod.Runtime, filters map[string][]string) 
 	}
 	return filterFuncs, nil
 }
+
+func CreateContainer(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, cc *createconfig.CreateConfig) {
+	var pod *libpod.Pod
+	ctr, err := shared.CreateContainerFromCreateConfig(runtime, cc, ctx, pod)
+	if err != nil {
+		//if strings.Contains(err.Error(), "invalid log driver") {
+		//	// this does not quite work yet and needs a little more massaging
+		//	w.Header().Set("Content-Type", "text/plain; charset=us-ascii")
+		//	w.WriteHeader(http.StatusInternalServerError)
+		//	msg := fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type)
+		//	if _, err := fmt.Fprintln(w, msg); err != nil {
+		//		log.Errorf("%s: %q", msg, err)
+		//	}
+		//	//s.WriteResponse(w, http.StatusInternalServerError, fmt.Sprintf("logger: no log driver named '%s' is registered", input.HostConfig.LogConfig.Type))
+		//	return
+		//}
+		Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "CreateContainerFromCreateConfig()"))
+		return
+	}
+
+	response := ContainerCreateResponse{
+		ID:       ctr.ID(),
+		Warnings: []string{}}
+
+	WriteResponse(w, http.StatusCreated, response)
+}
+
