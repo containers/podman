@@ -26,6 +26,25 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/json"), s.APIHandler(libpod.Pods)).Methods(http.MethodGet)
+	// swagger:operation POST /libpod/pods/create pods CreatePod
+	// ---
+	// summary: Create a pod
+	// produces:
+	// - application/json
+	// parameters:
+	// - in: body
+	//   name: create
+	//   description: attributes for creating a pod
+	//   schema:
+	//     type: object
+	//     $ref: "#/definitions/PodCreateConfig"
+	// responses:
+	//   200:
+	//     $ref: "#/definitions/IdResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
+	//   500:
+	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/create"), s.APIHandler(libpod.PodCreate)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/pods/prune pods PrunePods
 	// ---

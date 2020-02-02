@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ContianerImageLabel is the key of the image annotation embedding a seccomp
+// ContainerImageLabel is the key of the image annotation embedding a seccomp
 // profile.
 const ContainerImageLabel = "io.containers.seccomp.profile"
 

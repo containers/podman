@@ -2,24 +2,28 @@ package specgen
 
 import (
 	"net"
+	"syscall"
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-// TODO
-// mheon provided this an off the cuff suggestion. Adding it here to retain
-// for history as we implement it.  When this struct is implemented, we need
-// to remove the nolints.
-type Namespace struct {
-	isHost      bool   //nolint
-	isPath      string //nolint
-	isContainer string //nolint
-	isPod       bool   //nolint
+//  LogConfig describes the logging characteristics for a container
+type LogConfig struct {
+	// LogDriver is the container's log driver.
+	// Optional.
+	Driver string `json:"driver,omitempty"`
+	// LogPath is the path the container's logs will be stored at.
+	// Only available if LogDriver is set to "json-file" or "k8s-file".
+	// Optional.
+	Path string `json:"path,omitempty"`
+	// A set of options to accompany the log driver.
+	// Optional.
+	Options map[string]string `json:"options,omitempty"`
 }
 
 // ContainerBasicConfig contains the basic parts of a container.
@@ -62,7 +66,7 @@ type ContainerBasicConfig struct {
 	// If not provided, the default, SIGTERM, will be used.
 	// Will conflict with Systemd if Systemd is set to "true" or "always".
 	// Optional.
-	StopSignal *uint `json:"stop_signal,omitempty"`
+	StopSignal *syscall.Signal `json:"stop_signal,omitempty"`
 	// StopTimeout is a timeout between the container's stop signal being
 	// sent and SIGKILL being sent.
 	// If not provided, the default will be used.
@@ -70,13 +74,10 @@ type ContainerBasicConfig struct {
 	// instead.
 	// Optional.
 	StopTimeout *uint `json:"stop_timeout,omitempty"`
-	// LogDriver is the container's log driver.
-	// Optional.
-	LogDriver string `json:"log_driver,omitempty"`
-	// LogPath is the path the container's logs will be stored at.
-	// Only available if LogDriver is set to "json-file" or "k8s-file".
-	// Optional.
-	LogPath string `json:"log_path,omitempty"`
+	// LogConfiguration describes the logging for a container including
+	// driver, path, and options.
+	// Optional
+	LogConfiguration *LogConfig `json:"log_configuration,omitempty"`
 	// ConmonPidFile is a path at which a PID file for Conmon will be
 	// placed.
 	// If not given, a default location will be used.
@@ -111,12 +112,10 @@ type ContainerBasicConfig struct {
 	// Namespace is the libpod namespace the container will be placed in.
 	// Optional.
 	Namespace string `json:"namespace,omitempty"`
-
 	// PidNS is the container's PID namespace.
 	// It defaults to private.
 	// Mandatory.
 	PidNS Namespace `json:"pidns,omitempty"`
-
 	// UtsNS is the container's UTS namespace.
 	// It defaults to private.
 	// Must be set to Private to set Hostname.
@@ -128,6 +127,11 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
+	// Sysctl sets kernel parameters for the container
+	Sysctl map[string]string `json:"sysctl,omitempty"`
+	// Remove indicates if the container should be removed once it has been started
+	// and exits
+	Remove bool `json:"remove"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -175,7 +179,7 @@ type ContainerStorageConfig struct {
 	// Mandatory.
 	IpcNS Namespace `json:"ipcns,omitempty"`
 	// ShmSize is the size of the tmpfs to mount in at /dev/shm, in bytes.
-	// Conflicts with ShmSize if ShmSize is not private.
+	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
 	ShmSize *int64 `json:"shm_size,omitempty"`
 	// WorkDir is the container's working directory.
@@ -234,6 +238,9 @@ type ContainerSecurityConfig struct {
 	// will use.
 	// Optional.
 	ApparmorProfile string `json:"apparmor_profile,omitempty"`
+	// SeccompPolicy determines which seccomp profile gets applied
+	// the container. valid values: empty,default,image
+	SeccompPolicy string `json:"seccomp_policy,omitempty"`
 	// SeccompProfilePath is the path to a JSON file containing the
 	// container's Seccomp profile.
 	// If not specified, no Seccomp profile will be used.
@@ -252,7 +259,10 @@ type ContainerSecurityConfig struct {
 	// IDMappings are UID and GID mappings that will be used by user
 	// namespaces.
 	// Required if UserNS is private.
-	IDMappings storage.IDMappingOptions `json:"idmappings,omitempty"`
+	IDMappings *storage.IDMappingOptions `json:"idmappings,omitempty"`
+	// ReadOnlyFilesystem indicates that everything will be mounted
+	// as read-only
+	ReadOnlyFilesystem bool `json:"read_only_filesystem,omittempty"`
 }
 
 // ContainerCgroupConfig contains configuration information about a container's
@@ -260,16 +270,13 @@ type ContainerSecurityConfig struct {
 type ContainerCgroupConfig struct {
 	// CgroupNS is the container's cgroup namespace.
 	// It defaults to private.
-	// Conflicts with NoCgroups if not set to host.
 	// Mandatory.
 	CgroupNS Namespace `json:"cgroupns,omitempty"`
-	// NoCgroups indicates that the container should not create CGroups.
-	// Conflicts with CgroupParent and CgroupNS if CgroupNS is not set to
-	// host.
-	NoCgroups bool `json:"no_cgroups,omitempty"`
+	// CgroupsMode sets a policy for how cgroups will be created in the
+	// container, including the ability to disable creation entirely.
+	CgroupsMode string `json:"cgroups_mode,omitempty"`
 	// CgroupParent is the container's CGroup parent.
 	// If not set, the default for the current cgroup driver will be used.
-	// Conflicts with NoCgroups.
 	// Optional.
 	CgroupParent string `json:"cgroup_parent,omitempty"`
 }
@@ -348,7 +355,7 @@ type ContainerNetworkConfig struct {
 
 // ContainerResourceConfig contains information on container resource limits.
 type ContainerResourceConfig struct {
-	// ResourceLimits are resource limits to apply to the container.
+	// ResourceLimits are resource limits to apply to the container.,
 	// Can only be set as root on cgroups v1 systems, but can be set as
 	// rootless as well for cgroups v2.
 	// Optional.
@@ -365,11 +372,12 @@ type ContainerResourceConfig struct {
 // ContainerHealthCheckConfig describes a container healthcheck with attributes
 // like command, retries, interval, start period, and timeout.
 type ContainerHealthCheckConfig struct {
-	HealthConfig manifest.Schema2HealthConfig `json:"healthconfig,omitempty"`
+	HealthConfig *manifest.Schema2HealthConfig `json:"healthconfig,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create
 // a container based on the given configuration.
+// swagger:model SpecGenerator
 type SpecGenerator struct {
 	ContainerBasicConfig
 	ContainerStorageConfig
@@ -381,19 +389,24 @@ type SpecGenerator struct {
 }
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
-func NewSpecGenerator(image, rootfs *string) (*SpecGenerator, error) {
-	_ = image
-	_ = rootfs
-	return &SpecGenerator{}, define.ErrNotImplemented
+func NewSpecGenerator(image string) *SpecGenerator {
+	net := ContainerNetworkConfig{
+		NetNS: Namespace{
+			NSMode: Bridge,
+		},
+	}
+	csc := ContainerStorageConfig{Image: image}
+	if rootless.IsRootless() {
+		net.NetNS.NSMode = Slirp
+	}
+	return &SpecGenerator{
+		ContainerStorageConfig: csc,
+		ContainerNetworkConfig: net,
+	}
 }
 
-// Validate verifies that the given SpecGenerator is valid and satisfies required
-// input for creating a container.
-func (s *SpecGenerator) Validate() error {
-	return define.ErrNotImplemented
-}
-
-// MakeContainer creates a container based on the SpecGenerator
-func (s *SpecGenerator) MakeContainer() (*libpod.Container, error) {
-	return nil, define.ErrNotImplemented
+// NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
+func NewSpecGeneratorWithRootfs(rootfs string) *SpecGenerator {
+	csc := ContainerStorageConfig{Rootfs: rootfs}
+	return &SpecGenerator{ContainerStorageConfig: csc}
 }

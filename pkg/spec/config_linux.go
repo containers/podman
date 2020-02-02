@@ -32,8 +32,8 @@ func Device(d *configs.Device) spec.LinuxDevice {
 	}
 }
 
-// devicesFromPath computes a list of devices
-func devicesFromPath(g *generate.Generator, devicePath string) error {
+// DevicesFromPath computes a list of devices
+func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	devs := strings.Split(devicePath, ":")
 	resolvedDevicePath := devs[0]
 	// check if it is a symbolic link
@@ -216,7 +216,7 @@ func getDevices(path string) ([]*configs.Device, error) {
 	return out, nil
 }
 
-func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
+func addPrivilegedDevices(g *generate.Generator) error {
 	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
@@ -280,16 +280,16 @@ func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 		var lwds []spec.LinuxWeightDevice
 		ret = bio
 		for _, i := range c.Resources.BlkioWeightDevice {
-			wd, err := validateweightDevice(i)
+			wd, err := ValidateweightDevice(i)
 			if err != nil {
 				return ret, errors.Wrapf(err, "invalid values for blkio-weight-device")
 			}
-			wdStat, err := getStatFromPath(wd.path)
+			wdStat, err := GetStatFromPath(wd.Path)
 			if err != nil {
-				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.path)
+				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.Path)
 			}
 			lwd := spec.LinuxWeightDevice{
-				Weight: &wd.weight,
+				Weight: &wd.Weight,
 			}
 			lwd.Major = int64(unix.Major(wdStat.Rdev))
 			lwd.Minor = int64(unix.Minor(wdStat.Rdev))
@@ -347,7 +347,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 		if err != nil {
 			return []spec.LinuxThrottleDevice{}, err
 		}
-		ltdStat, err := getStatFromPath(t.path)
+		ltdStat, err := GetStatFromPath(t.path)
 		if err != nil {
 			return ltds, errors.Wrapf(err, "error getting stat from path %q", t.path)
 		}
@@ -361,7 +361,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 	return ltds, nil
 }
 
-func getStatFromPath(path string) (unix.Stat_t, error) {
+func GetStatFromPath(path string) (unix.Stat_t, error) {
 	s := unix.Stat_t{}
 	err := unix.Stat(path, &s)
 	return s, err

@@ -19,12 +19,12 @@ const Pod = "pod"
 
 // weightDevice is a structure that holds device:weight pair
 type weightDevice struct {
-	path   string
-	weight uint16
+	Path   string
+	Weight uint16
 }
 
 func (w *weightDevice) String() string {
-	return fmt.Sprintf("%s:%d", w.path, w.weight)
+	return fmt.Sprintf("%s:%d", w.Path, w.Weight)
 }
 
 // LinuxNS is a struct that contains namespace information
@@ -59,9 +59,9 @@ func NS(s string) string {
 	return ""
 }
 
-// validateweightDevice validates that the specified string has a valid device-weight format
+// ValidateweightDevice validates that the specified string has a valid device-weight format
 // for blkio-weight-device flag
-func validateweightDevice(val string) (*weightDevice, error) {
+func ValidateweightDevice(val string) (*weightDevice, error) {
 	split := strings.SplitN(val, ":", 2)
 	if len(split) != 2 {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -78,8 +78,8 @@ func validateweightDevice(val string) (*weightDevice, error) {
 	}
 
 	return &weightDevice{
-		path:   split[0],
-		weight: uint16(weight),
+		Path:   split[0],
+		Weight: uint16(weight),
 	}, nil
 }
 
