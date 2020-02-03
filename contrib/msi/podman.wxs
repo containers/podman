@@ -33,7 +33,7 @@
     </Directory>
 
     <Property Id="setx" Value="setx.exe"/>
-    <CustomAction Id="ChangePath" ExeCommand='PATH "%PATH%;[INSTALLDIR]"' Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
+    <CustomAction Id="ChangePath" ExeCommand="PATH &quot;%PATH%;[INSTALLDIR] &quot;" Property="setx" Execute="deferred" Impersonate="yes" Return="check"/>
 
     <Feature Id="Complete" Level="1">
       <ComponentRef Id="INSTALLDIR_Component"/>
