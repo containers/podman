@@ -139,7 +139,7 @@ func (m *gpgmeSigningMechanism) Sign(input []byte, keyIdentity string) ([]byte, 
 }
 
 // Verify parses unverifiedSignature and returns the content and the signer's identity
-func (m gpgmeSigningMechanism) Verify(unverifiedSignature []byte) (contents []byte, keyIdentity string, err error) {
+func (m *gpgmeSigningMechanism) Verify(unverifiedSignature []byte) (contents []byte, keyIdentity string, err error) {
 	signedBuffer := bytes.Buffer{}
 	signedData, err := gpgme.NewDataWriter(&signedBuffer)
 	if err != nil {
@@ -170,6 +170,6 @@ func (m gpgmeSigningMechanism) Verify(unverifiedSignature []byte) (contents []by
 // WARNING: The short key identifier (which correponds to "Key ID" for OpenPGP keys)
 // is NOT the same as a "key identity" used in other calls ot this interface, and
 // the values may have no recognizable relationship if the public key is not available.
-func (m gpgmeSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
+func (m *gpgmeSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
 	return gpgUntrustedSignatureContents(untrustedSignature)
 }

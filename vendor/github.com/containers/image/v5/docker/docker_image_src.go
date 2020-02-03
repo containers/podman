@@ -10,8 +10,10 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
@@ -53,43 +55,77 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref dockerRef
 	// non-mirror original location last; this both transparently handles the case
 	// of no mirrors configured, and ensures we return the error encountered when
 	// acessing the upstream location if all endpoints fail.
-	manifestLoadErr := errors.New("Internal error: newImageSource returned without trying any endpoint")
 	pullSources, err := registry.PullSourcesFromReference(ref.ref)
 	if err != nil {
 		return nil, err
 	}
-	for _, pullSource := range pullSources {
-		logrus.Debugf("Trying to pull %q", pullSource.Reference)
-		dockerRef, err := newReference(pullSource.Reference)
-		if err != nil {
-			return nil, err
-		}
-
-		endpointSys := sys
-		// sys.DockerAuthConfig does not explicitly specify a registry; we must not blindly send the credentials intended for the primary endpoint to mirrors.
-		if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(dockerRef.ref) != primaryDomain {
-			copy := *endpointSys
-			copy.DockerAuthConfig = nil
-			endpointSys = &copy
-		}
-
-		client, err := newDockerClientFromRef(endpointSys, dockerRef, false, "pull")
-		if err != nil {
-			return nil, err
-		}
-		client.tlsClientConfig.InsecureSkipVerify = pullSource.Endpoint.Insecure
-
-		testImageSource := &dockerImageSource{
-			ref: dockerRef,
-			c:   client,
-		}
-
-		manifestLoadErr = testImageSource.ensureManifestIsLoaded(ctx)
-		if manifestLoadErr == nil {
-			return testImageSource, nil
-		}
+	type attempt struct {
+		ref reference.Named
+		err error
 	}
-	return nil, manifestLoadErr
+	attempts := []attempt{}
+	for _, pullSource := range pullSources {
+		logrus.Debugf("Trying to access %q", pullSource.Reference)
+		s, err := newImageSourceAttempt(ctx, sys, pullSource, primaryDomain)
+		if err == nil {
+			return s, nil
+		}
+		logrus.Debugf("Accessing %q failed: %v", pullSource.Reference, err)
+		attempts = append(attempts, attempt{
+			ref: pullSource.Reference,
+			err: err,
+		})
+	}
+	switch len(attempts) {
+	case 0:
+		return nil, errors.New("Internal error: newImageSource returned without trying any endpoint")
+	case 1:
+		return nil, attempts[0].err // If no mirrors are used, perfectly preserve the error type and add no noise.
+	default:
+		// Don’t just build a string, try to preserve the typed error.
+		primary := &attempts[len(attempts)-1]
+		extras := []string{}
+		for i := 0; i < len(attempts)-1; i++ {
+			// This is difficult to fit into a single-line string, when the error can contain arbitrary strings including any metacharacters we decide to use.
+			// The paired [] at least have some chance of being unambiguous.
+			extras = append(extras, fmt.Sprintf("[%s: %v]", attempts[i].ref.String(), attempts[i].err))
+		}
+		return nil, errors.Wrapf(primary.err, "(Mirrors also failed: %s): %s", strings.Join(extras, "\n"), primary.ref.String())
+	}
+}
+
+// newImageSourceAttempt is an internal helper for newImageSource. Everyone else must call newImageSource.
+// Given a pullSource and primaryDomain, return a dockerImageSource if it is reachable.
+// The caller must call .Close() on the returned ImageSource.
+func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, pullSource sysregistriesv2.PullSource, primaryDomain string) (*dockerImageSource, error) {
+	ref, err := newReference(pullSource.Reference)
+	if err != nil {
+		return nil, err
+	}
+
+	endpointSys := sys
+	// sys.DockerAuthConfig does not explicitly specify a registry; we must not blindly send the credentials intended for the primary endpoint to mirrors.
+	if endpointSys != nil && endpointSys.DockerAuthConfig != nil && reference.Domain(ref.ref) != primaryDomain {
+		copy := *endpointSys
+		copy.DockerAuthConfig = nil
+		endpointSys = &copy
+	}
+
+	client, err := newDockerClientFromRef(endpointSys, ref, false, "pull")
+	if err != nil {
+		return nil, err
+	}
+	client.tlsClientConfig.InsecureSkipVerify = pullSource.Endpoint.Insecure
+
+	s := &dockerImageSource{
+		ref: ref,
+		c:   client,
+	}
+
+	if err := s.ensureManifestIsLoaded(ctx); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 // Reference returns the reference used to set up this source, _as specified by the user_
@@ -156,7 +192,8 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	if res.StatusCode != http.StatusOK {
 		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.ref.ref.Name())
 	}
-	manblob, err := ioutil.ReadAll(res.Body)
+
+	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
 	if err != nil {
 		return nil, "", err
 	}
@@ -239,7 +276,7 @@ func (s *dockerImageSource) GetBlob(ctx context.Context, info types.BlobInfo, ca
 	if err != nil {
 		return nil, 0, err
 	}
-	if err := httpResponseToError(res); err != nil {
+	if err := httpResponseToError(res, "Error fetching blob"); err != nil {
 		return nil, 0, err
 	}
 	cache.RecordKnownLocation(s.ref.Transport(), bicTransportScope(s.ref), info.Digest, newBICLocationReference(s.ref))
@@ -342,7 +379,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		} else if res.StatusCode != http.StatusOK {
 			return nil, false, errors.Errorf("Error reading signature from %s: status %d (%s)", url.String(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
-		sig, err := ioutil.ReadAll(res.Body)
+		sig, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureBodySize)
 		if err != nil {
 			return nil, false, err
 		}
@@ -401,7 +438,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	defer get.Body.Close()
-	manifestBody, err := ioutil.ReadAll(get.Body)
+	manifestBody, err := iolimits.ReadAtMost(get.Body, iolimits.MaxManifestBodySize)
 	if err != nil {
 		return err
 	}
@@ -424,7 +461,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 	defer delete.Body.Close()
 
-	body, err := ioutil.ReadAll(delete.Body)
+	body, err := iolimits.ReadAtMost(delete.Body, iolimits.MaxErrorBodySize)
 	if err != nil {
 		return err
 	}

@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache/none"
 	"github.com/containers/image/v5/types"
@@ -58,14 +59,16 @@ func (d *dockerImageDestination) Close() error {
 }
 
 func (d *dockerImageDestination) SupportedManifestMIMETypes() []string {
-	return []string{
+	mimeTypes := []string{
 		imgspecv1.MediaTypeImageManifest,
 		manifest.DockerV2Schema2MediaType,
 		imgspecv1.MediaTypeImageIndex,
 		manifest.DockerV2ListMediaType,
-		manifest.DockerV2Schema1SignedMediaType,
-		manifest.DockerV2Schema1MediaType,
 	}
+	if d.c.sys == nil || !d.c.sys.DockerDisableDestSchema1MIMETypes {
+		mimeTypes = append(mimeTypes, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema1MediaType)
+	}
+	return mimeTypes
 }
 
 // SupportsSignatures returns an error (to be displayed to the user) if the destination certainly can't store signatures.
@@ -620,7 +623,7 @@ sigExists:
 		}
 		defer res.Body.Close()
 		if res.StatusCode != http.StatusCreated {
-			body, err := ioutil.ReadAll(res.Body)
+			body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxErrorBodySize)
 			if err == nil {
 				logrus.Debugf("Error body %s", string(body))
 			}

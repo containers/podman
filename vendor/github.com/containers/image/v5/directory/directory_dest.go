@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -142,8 +143,11 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 		return types.BlobInfo{}, err
 	}
 	succeeded := false
+	explicitClosed := false
 	defer func() {
-		blobFile.Close()
+		if !explicitClosed {
+			blobFile.Close()
+		}
 		if !succeeded {
 			os.Remove(blobFile.Name())
 		}
@@ -164,10 +168,21 @@ func (d *dirImageDestination) PutBlob(ctx context.Context, stream io.Reader, inp
 	if err := blobFile.Sync(); err != nil {
 		return types.BlobInfo{}, err
 	}
-	if err := blobFile.Chmod(0644); err != nil {
-		return types.BlobInfo{}, err
+
+	// On POSIX systems, blobFile was created with mode 0600, so we need to make it readable.
+	// On Windows, the “permissions of newly created files” argument to syscall.Open is
+	// ignored and the file is already readable; besides, blobFile.Chmod, i.e. syscall.Fchmod,
+	// always fails on Windows.
+	if runtime.GOOS != "windows" {
+		if err := blobFile.Chmod(0644); err != nil {
+			return types.BlobInfo{}, err
+		}
 	}
+
 	blobPath := d.ref.layerPath(computedDigest)
+	// need to explicitly close the file, since a rename won't otherwise not work on Windows
+	blobFile.Close()
+	explicitClosed = true
 	if err := os.Rename(blobFile.Name(), blobPath); err != nil {
 		return types.BlobInfo{}, err
 	}
