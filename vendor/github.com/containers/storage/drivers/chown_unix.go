@@ -25,14 +25,14 @@ func platformLChown(path string, info os.FileInfo, toHost, toContainer *idtools.
 				UID: uid,
 				GID: gid,
 			}
-			mappedUid, mappedGid, err := toContainer.ToContainer(pair)
+			mappedUID, mappedGID, err := toContainer.ToContainer(pair)
 			if err != nil {
 				if (uid != 0) || (gid != 0) {
 					return fmt.Errorf("error mapping host ID pair %#v for %q to container: %v", pair, path, err)
 				}
-				mappedUid, mappedGid = uid, gid
+				mappedUID, mappedGID = uid, gid
 			}
-			uid, gid = mappedUid, mappedGid
+			uid, gid = mappedUID, mappedGID
 		}
 		if toHost != nil {
 			pair := idtools.IDPair{

@@ -226,8 +226,9 @@ func (p *Pattern) compile() error {
 
 	sl := string(os.PathSeparator)
 	escSL := sl
-	if sl == `\` {
-		escSL += `\`
+	const bs = `\`
+	if sl == bs {
+		escSL += bs
 	}
 
 	for scan.Peek() != scanner.EOF {
@@ -262,11 +263,11 @@ func (p *Pattern) compile() error {
 		} else if ch == '.' || ch == '$' {
 			// Escape some regexp special chars that have no meaning
 			// in golang's filepath.Match
-			regStr += `\` + string(ch)
+			regStr += bs + string(ch)
 		} else if ch == '\\' {
 			// escape next char. Note that a trailing \ in the pattern
 			// will be left alone (but need to escape it)
-			if sl == `\` {
+			if sl == bs {
 				// On windows map "\" to "\\", meaning an escaped backslash,
 				// and then just continue because filepath.Match on
 				// Windows doesn't allow escaping at all
@@ -274,9 +275,9 @@ func (p *Pattern) compile() error {
 				continue
 			}
 			if scan.Peek() != scanner.EOF {
-				regStr += `\` + string(scan.Next())
+				regStr += bs + string(scan.Next())
 			} else {
-				regStr += `\`
+				regStr += bs
 			}
 		} else {
 			regStr += string(ch)

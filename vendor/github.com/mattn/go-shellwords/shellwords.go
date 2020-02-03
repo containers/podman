@@ -88,9 +88,17 @@ loop:
 				backtick += string(r)
 			} else if got {
 				if p.ParseEnv {
-					buf = replaceEnv(p.Getenv, buf)
+					parser := &Parser{ParseEnv: false, ParseBacktick: false, Position: 0, Dir: p.Dir}
+					strs, err := parser.Parse(replaceEnv(p.Getenv, buf))
+					if err != nil {
+						return nil, err
+					}
+					for _, str := range strs {
+						args = append(args, str)
+					}
+				} else {
+					args = append(args, buf)
 				}
-				args = append(args, buf)
 				buf = ""
 				got = false
 			}
@@ -144,7 +152,7 @@ loop:
 			}
 		case '"':
 			if !singleQuoted && !dollarQuote {
-				if doubleQuoted && buf == "" {
+				if doubleQuoted {
 					got = true
 				}
 				doubleQuoted = !doubleQuoted
@@ -152,7 +160,7 @@ loop:
 			}
 		case '\'':
 			if !doubleQuoted && !dollarQuote {
-				if singleQuoted && buf == "" {
+				if singleQuoted {
 					got = true
 				}
 				singleQuoted = !singleQuoted
@@ -180,9 +188,17 @@ loop:
 
 	if got {
 		if p.ParseEnv {
-			buf = replaceEnv(p.Getenv, buf)
+			parser := &Parser{ParseEnv: false, ParseBacktick: false, Position: 0, Dir: p.Dir}
+			strs, err := parser.Parse(replaceEnv(p.Getenv, buf))
+			if err != nil {
+				return nil, err
+			}
+			for _, str := range strs {
+				args = append(args, str)
+			}
+		} else {
+			args = append(args, buf)
 		}
-		args = append(args, buf)
 	}
 
 	if escaped || singleQuoted || doubleQuoted || backQuote || dollarQuote {

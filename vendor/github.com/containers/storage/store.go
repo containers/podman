@@ -2783,8 +2783,14 @@ func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
 }
 
 func (s *store) Layers() ([]Layer, error) {
-	var layers []Layer
 	lstore, err := s.LayerStore()
+	if err != nil {
+		return nil, err
+	}
+	if err := lstore.LoadLocked(); err != nil {
+		return nil, err
+	}
+	layers, err := lstore.Layers()
 	if err != nil {
 		return nil, err
 	}
@@ -2794,7 +2800,7 @@ func (s *store) Layers() ([]Layer, error) {
 		return nil, err
 	}
 
-	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
+	for _, s := range lstores {
 		store := s
 		store.RLock()
 		defer store.Unlock()
