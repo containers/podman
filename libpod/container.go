@@ -216,9 +216,50 @@ type ContainerState struct {
 
 // ExecSession contains information on an active exec session
 type ExecSession struct {
-	ID      string   `json:"id"`
+	// ID is the ID of the exec session.
+	ID string `json:"id"`
+	// Command the the command that will be invoked in the exec session.
 	Command []string `json:"command"`
-	PID     int      `json:"pid"`
+	// State is the state of the exec session.
+	State define.ContainerExecStatus `json:"state"`
+	// PID is the PID of the process created by the exec session.
+	PID int `json:"pid,omitempty"`
+
+	// Terminal is whether the exec session will allocate a pseudoterminal.
+	Terminal bool `json:"terminal,omitempty"`
+	// AttachStdin is whether the STDIN stream will be forwarded to the exec
+	// session's first process when attaching. Only available if Terminal is
+	// false.
+	AttachStdin bool `json:"attachStdin,omitempty"`
+	// AttachStdout is whether the STDOUT stream will be forwarded to the
+	// exec session's first process when attaching. Only available if
+	// Terminal is false.
+	AttachStdout bool `json:"attachStdout,omitempty"`
+	// AttachStderr is whether the STDERR stream will be forwarded to the
+	// exec session's first process when attaching. Only available if
+	// Terminal is false.
+	AttachStderr bool `json:"attachStderr,omitempty"`
+	// DetachKeys are keys that will be used to detach from the exec
+	// session. Here, nil will use the default detach keys, where a pointer
+	// to the empty string ("") will disable detaching via detach keys.
+	DetachKeys *string `json:"detachKeys,omitempty"`
+	// Environment is a set of environment variables that will be set for
+	// the first process started by the exec session.
+	Environment map[string]string `json:"environment,omitempty"`
+	// Privileged is whether the exec session will be privileged - that is,
+	// will be granted additional capabilities.
+	Privileged bool `json:"privileged,omitempty"`
+	// User is the user the exec session will be run as.
+	User string `json:"user,omitempty"`
+	// WorkDir is the working directory for the first process that will be
+	// launched by the exec session.
+	WorkDir string `json:"workDir,omitempty"`
+	// PreserveFDs indicates that a number of extra FDs from the process
+	// running libpod will be passed into the container. These are assumed
+	// to begin at 3 (immediately after the standard streams). The number
+	// given is the number that will be passed into the exec session,
+	// starting at 3.
+	PreserveFDs uint `json:"preserveFds,omitempty"`
 }
 
 // ContainerConfig contains all information that was used to create the

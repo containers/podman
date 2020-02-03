@@ -78,3 +78,37 @@ func StringToContainerStatus(status string) (ContainerStatus, error) {
 		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
 	}
 }
+
+// ContainerExecStatus is the status of an exec session within a container.
+type ContainerExecStatus int
+
+const (
+	// ExecStateUnknown indicates that the state of the exec session is not
+	// known.
+	ExecStateUnknown ContainerExecStatus = iota
+	// ExecStateCreated indicates that the exec session has been created but
+	// not yet started
+	ExecStateCreated ContainerExecStatus = iota
+	// ExecStateRunning indicates that the exec session has been started but
+	// has not yet exited.
+	ExecStateRunning ContainerExecStatus = iota
+	// ExecStateStopped indicates that the exec session has stopped and is
+	// no longer running.
+	ExecStateStopped ContainerExecStatus = iota
+)
+
+// String returns a string representation of a given exec state.
+func (s ContainerExecStatus) String() string {
+	switch s {
+	case ExecStateUnknown:
+		return "unknown"
+	case ExecStateCreated:
+		return "created"
+	case ExecStateRunning:
+		return "running"
+	case ExecStateStopped:
+		return "stopped"
+	default:
+		return "bad state"
+	}
+}
