@@ -113,6 +113,7 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		server.registerPingHandlers,
 		server.RegisterPluginsHandlers,
 		server.registerPodsHandlers,
+		server.RegisterSwaggerHandlers,
 		server.RegisterSwarmHandlers,
 		server.registerSystemHandlers,
 		server.registerVersionHandlers,
