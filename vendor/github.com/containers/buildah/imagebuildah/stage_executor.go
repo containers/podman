@@ -253,7 +253,7 @@ func (s *StageExecutor) volumeCacheRestore() error {
 // don't care about the details of where in the filesystem the content actually
 // goes, because we're not actually going to add it here, so this is less
 // involved than Copy().
-func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []string) (string, error) {
+func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []string, envValues []string) (string, error) {
 	// No instruction: done.
 	if node == nil {
 		return "", nil
@@ -298,10 +298,11 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 		}
 	}
 
+	varValues := append(argValues, envValues...)
 	for _, src := range srcs {
 		// If src has an argument within it, resolve it to its
 		// value.  Otherwise just return the value found.
-		name, err := imagebuilder.ProcessWord(src, argValues)
+		name, err := imagebuilder.ProcessWord(src, varValues)
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to resolve source %q", src)
 		}
@@ -345,7 +346,7 @@ func (s *StageExecutor) digestSpecifiedContent(node *parser.Node, argValues []st
 
 	// If destination.Value has an argument within it, resolve it to its
 	// value.  Otherwise just return the value found.
-	destValue, destErr := imagebuilder.ProcessWord(destination.Value, argValues)
+	destValue, destErr := imagebuilder.ProcessWord(destination.Value, varValues)
 	if destErr != nil {
 		return "", errors.Wrapf(destErr, "unable to resolve destination %q", destination.Value)
 	}
@@ -451,6 +452,11 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 							ContextDir:       contextDir,
 							Excludes:         copyExcludes,
 							IDMappingOptions: idMappingOptions,
+						}
+						// If we've a tar file, it will create a directory using the name of the tar
+						// file if we don't blank it out.
+						if strings.HasSuffix(srcName, ".tar") || strings.HasSuffix(srcName, ".gz") {
+							srcName = ""
 						}
 						if err := s.builder.Add(filepath.Join(copy.Dest, srcName), copy.Download, options, srcSecure); err != nil {
 							return err
@@ -605,8 +611,7 @@ func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, f
 		CommonBuildOpts:       s.executor.commonBuildOptions,
 		DefaultMountsFilePath: s.executor.defaultMountsFilePath,
 		Format:                s.executor.outputFormat,
-		AddCapabilities:       s.executor.addCapabilities,
-		DropCapabilities:      s.executor.dropCapabilities,
+		Capabilities:          s.executor.capabilities,
 		Devices:               s.executor.devices,
 	}
 
@@ -869,7 +874,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
 			// In case we added content, retrieve its digest.
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments())
+			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}
@@ -918,7 +923,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 		// cached images so far, look for one that matches what we
 		// expect to produce for this instruction.
 		if checkForLayers && !(s.executor.squash && lastInstruction && lastStage) {
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments())
+			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}
@@ -976,7 +981,7 @@ func (s *StageExecutor) Execute(ctx context.Context, stage imagebuilder.Stage, b
 				return "", nil, errors.Wrapf(err, "error building at STEP \"%s\"", step.Message)
 			}
 			// In case we added content, retrieve its digest.
-			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments())
+			addedContentDigest, err := s.digestSpecifiedContent(node, ib.Arguments(), ib.Config().Env)
 			if err != nil {
 				return "", nil, err
 			}
@@ -1132,6 +1137,8 @@ func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, cr
 	}
 	s.builder.SetHostname(config.Hostname)
 	s.builder.SetDomainname(config.Domainname)
+	s.builder.SetArchitecture(s.executor.architecture)
+	s.builder.SetOS(s.executor.os)
 	s.builder.SetUser(config.User)
 	s.builder.ClearPorts()
 	for p := range config.ExposedPorts {
@@ -1204,6 +1211,7 @@ func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, cr
 		Squash:                s.executor.squash,
 		EmptyLayer:            emptyLayer,
 		BlobDirectory:         s.executor.blobDirectory,
+		SignBy:                s.executor.signBy,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

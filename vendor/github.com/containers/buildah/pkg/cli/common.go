@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
+	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -45,6 +47,7 @@ type NameSpaceResults struct {
 // BudResults represents the results for Bud flags
 type BudResults struct {
 	Annotation          []string
+	Arch                string
 	Authfile            string
 	BuildArg            []string
 	CacheFrom           string
@@ -60,6 +63,7 @@ type BudResults struct {
 	Logfile             string
 	Loglevel            int
 	NoCache             bool
+	OS                  string
 	Platform            string
 	Pull                bool
 	PullAlways          bool
@@ -69,6 +73,7 @@ type BudResults struct {
 	Runtime             string
 	RuntimeFlags        []string
 	SignaturePolicy     string
+	SignBy              string
 	Squash              bool
 	Tag                 []string
 	Target              string
@@ -143,6 +148,7 @@ func GetLayerFlags(flags *LayerResults) pflag.FlagSet {
 // GetBudFlags returns common bud flags
 func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs := pflag.FlagSet{}
+	fs.StringVar(&flags.Arch, "arch", runtime.GOARCH, "set the ARCH of the image to the provided value instead of the architecture of the host")
 	fs.StringArrayVar(&flags.Annotation, "annotation", []string{}, "Set metadata for an image (default [])")
 	fs.StringVar(&flags.Authfile, "authfile", GetDefaultAuthFile(), "path of the authentication file.")
 	fs.StringArrayVar(&flags.BuildArg, "build-arg", []string{}, "`argument=value` to supply to the builder")
@@ -159,7 +165,8 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.NoCache, "no-cache", false, "Do not use existing cached images for the container build. Build from the start with a new set of cached layers.")
 	fs.StringVar(&flags.Logfile, "logfile", "", "log to `file` instead of stdout/stderr")
 	fs.IntVar(&flags.Loglevel, "loglevel", 0, "adjust logging level (range from -2 to 3)")
-	fs.StringVar(&flags.Platform, "platform", "", "CLI compatibility: no action or effect")
+	fs.StringVar(&flags.OS, "os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
+	fs.StringVar(&flags.Platform, "platform", parse.DefaultPlatform(), "set the OS/ARCH to the provided value instead of the current operating system and architecture of the host (for example `linux/arm`)")
 	fs.BoolVar(&flags.Pull, "pull", true, "pull the image from the registry if newer or not present in store, if false, only pull the image if not present")
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	fs.BoolVar(&flags.PullNever, "pull-never", false, "do not pull the image, use the image present in store if available")
@@ -167,15 +174,16 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.BoolVar(&flags.Rm, "rm", true, "Remove intermediate containers after a successful build")
 	// "runtime" definition moved to avoid name collision in podman build.  Defined in cmd/buildah/bud.go.
 	fs.StringSliceVar(&flags.RuntimeFlags, "runtime-flag", []string{}, "add global flags for the container runtime")
+	fs.StringVar(&flags.SignBy, "sign-by", "", "sign the image using a GPG key with the specified `FINGERPRINT`")
 	fs.StringVar(&flags.SignaturePolicy, "signature-policy", "", "`pathname` of signature policy file (not usually used)")
-	fs.BoolVar(&flags.Squash, "squash", false, "Squash newly built layers into a single new layer.")
+	fs.BoolVar(&flags.Squash, "squash", false, "squash newly built layers into a single new layer")
 	fs.StringArrayVarP(&flags.Tag, "tag", "t", []string{}, "tagged `name` to apply to the built image")
 	fs.StringVar(&flags.Target, "target", "", "set the target build stage to build")
 	fs.BoolVar(&flags.TLSVerify, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	return fs
 }
 
-func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, namespaceResults *NameSpaceResults) pflag.FlagSet {
+func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, namespaceResults *NameSpaceResults, defaultConfig *config.Config) pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringSliceVar(&flags.AddHost, "add-host", []string{}, "add a custom host-to-IP mapping (`host:ip`) (default [])")
 	fs.StringVar(&flags.BlobCache, "blob-cache", "", "assume image blobs in the specified directory will be available for pushing")
@@ -190,10 +198,10 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 	fs.Uint64VarP(&flags.CPUShares, "cpu-shares", "c", 0, "CPU shares (relative weight)")
 	fs.StringVar(&flags.CPUSetCPUs, "cpuset-cpus", "", "CPUs in which to allow execution (0-3, 0,1)")
 	fs.StringVar(&flags.CPUSetMems, "cpuset-mems", "", "memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.")
-	fs.StringArrayVar(&flags.Devices, "device", []string{}, "Additional devices to be used within containers (default [])")
-	fs.StringSliceVar(&flags.DNSSearch, "dns-search", []string{}, "Set custom DNS search domains")
-	fs.StringSliceVar(&flags.DNSServers, "dns", []string{}, "Set custom DNS servers or disable it completely by setting it to 'none', which prevents the automatic creation of `/etc/resolv.conf`.")
-	fs.StringSliceVar(&flags.DNSOptions, "dns-option", []string{}, "Set custom DNS options")
+	fs.StringArrayVar(&flags.Devices, "device", defaultConfig.Containers.AdditionalDevices, "Additional devices to be used within containers (default [])")
+	fs.StringSliceVar(&flags.DNSSearch, "dns-search", defaultConfig.Containers.DNSSearches, "Set custom DNS search domains")
+	fs.StringSliceVar(&flags.DNSServers, "dns", defaultConfig.Containers.DNSServers, "Set custom DNS servers or disable it completely by setting it to 'none', which prevents the automatic creation of `/etc/resolv.conf`.")
+	fs.StringSliceVar(&flags.DNSOptions, "dns-option", defaultConfig.Containers.DNSOptions, "Set custom DNS options")
 	fs.BoolVar(&flags.HTTPProxy, "http-proxy", true, "pass through HTTP Proxy environment variables")
 	fs.StringVar(&flags.Isolation, "isolation", DefaultIsolation(), "`type` of process isolation to use. Use BUILDAH_ISOLATION environment variable to override.")
 	fs.StringVarP(&flags.Memory, "memory", "m", "", "memory limit (format: <number>[<unit>], where unit = b, k, m or g)")
@@ -207,9 +215,9 @@ func GetFromAndBudFlags(flags *FromAndBudResults, usernsResults *UserNSResults, 
 		panic(fmt.Sprintf("error marking override-arch as hidden: %v", err))
 	}
 	fs.StringArrayVar(&flags.SecurityOpt, "security-opt", []string{}, "security options (default [])")
-	fs.StringVar(&flags.ShmSize, "shm-size", "65536k", "size of '/dev/shm'. The format is `<number><unit>`.")
-	fs.StringSliceVar(&flags.Ulimit, "ulimit", []string{}, "ulimit options (default [])")
-	fs.StringArrayVarP(&flags.Volumes, "volume", "v", []string{}, "bind mount a volume into the container (default [])")
+	fs.StringVar(&flags.ShmSize, "shm-size", defaultConfig.Containers.ShmSize, "size of '/dev/shm'. The format is `<number><unit>`.")
+	fs.StringSliceVar(&flags.Ulimit, "ulimit", defaultConfig.Containers.DefaultUlimits, "ulimit options")
+	fs.StringArrayVarP(&flags.Volumes, "volume", "v", defaultConfig.Containers.AdditionalVolumes, "bind mount a volume into the container")
 
 	// Add in the usernamespace and namespaceflags
 	usernsFlags := GetUserNSFlags(usernsResults)

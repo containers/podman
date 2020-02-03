@@ -3,7 +3,7 @@
 package chroot
 
 import (
-	"github.com/opencontainers/runtime-spec/specs-go"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"github.com/sirupsen/logrus"
@@ -118,15 +118,32 @@ func setSeccomp(spec *specs.Spec) error {
 				continue
 			}
 			var conditions []libseccomp.ScmpCondition
+			opsAreAllEquality := true
 			for _, arg := range rule.Args {
 				condition, err := libseccomp.MakeCondition(arg.Index, mapOp(arg.Op), arg.Value, arg.ValueTwo)
 				if err != nil {
 					return errors.Wrapf(err, "error building a seccomp condition %d:%v:%d:%d", arg.Index, arg.Op, arg.Value, arg.ValueTwo)
 				}
+				if arg.Op != specs.OpEqualTo {
+					opsAreAllEquality = false
+				}
 				conditions = append(conditions, condition)
 			}
 			if err = filter.AddRuleConditional(scnum, mapAction(rule.Action), conditions); err != nil {
-				return errors.Wrapf(err, "error adding a conditional rule (%q:%q) to seccomp filter", scnames[scnum], rule.Action)
+				// Okay, if the rules specify multiple equality
+				// checks, assume someone thought that they
+				// were OR'd, when in fact they're ordinarily
+				// supposed to be AND'd.  Break them up into
+				// different rules to get that OR effect.
+				if len(rule.Args) > 1 && opsAreAllEquality && err.Error() == "two checks on same syscall argument" {
+					for i := range conditions {
+						if err = filter.AddRuleConditional(scnum, mapAction(rule.Action), conditions[i:i+1]); err != nil {
+							return errors.Wrapf(err, "error adding a conditional rule (%q:%q[%d]) to seccomp filter", scnames[scnum], rule.Action, i)
+						}
+					}
+				} else {
+					return errors.Wrapf(err, "error adding a conditional rule (%q:%q) to seccomp filter", scnames[scnum], rule.Action)
+				}
 			}
 		}
 	}

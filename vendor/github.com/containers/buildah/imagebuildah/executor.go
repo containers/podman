@@ -91,9 +91,11 @@ type Executor struct {
 	excludes                       []string
 	unusedArgs                     map[string]struct{}
 	buildArgs                      map[string]string
-	addCapabilities                []string
-	dropCapabilities               []string
+	capabilities                   []string
 	devices                        []configs.Device
+	signBy                         string
+	architecture                   string
+	os                             string
 }
 
 // NewExecutor creates a new instance of the imagebuilder.Executor interface.
@@ -148,9 +150,11 @@ func NewExecutor(store storage.Store, options BuildOptions, mainNode *parser.Nod
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
 		buildArgs:                      options.Args,
-		addCapabilities:                options.AddCapabilities,
-		dropCapabilities:               options.DropCapabilities,
+		capabilities:                   options.Capabilities,
 		devices:                        options.Devices,
+		signBy:                         options.SignBy,
+		architecture:                   options.Architecture,
+		os:                             options.OS,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr

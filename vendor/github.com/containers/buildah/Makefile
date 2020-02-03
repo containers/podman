@@ -18,8 +18,10 @@ GOVERSION := $(findstring $(GO110),$(shell go version))
 # test for go module support
 ifeq ($(shell go help mod >/dev/null 2>&1 && echo true), true)
 export GO_BUILD=GO111MODULE=on $(GO) build -mod=vendor
+export GO_TEST=GO111MODULE=on $(GO) test -mod=vendor
 else
 export GO_BUILD=$(GO) build
+export GO_TEST=$(GO) test
 endif
 
 GIT_COMMIT ?= $(if $(shell git rev-parse --short HEAD),$(shell git rev-parse --short HEAD),$(error "git failed"))
@@ -128,10 +130,10 @@ tests/testreport/testreport: tests/testreport/testreport.go
 
 .PHONY: test-unit
 test-unit: tests/testreport/testreport
-	$(GO) test -v -tags "$(STOAGETAGS) $(SECURITYTAGS)" -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd)
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" -race $(shell $(GO) list ./... | grep -v vendor | grep -v tests | grep -v cmd)
 	tmp=$(shell mktemp -d) ; \
 	mkdir -p $$tmp/root $$tmp/runroot; \
-	$(GO) test -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" ./cmd/buildah -args -root $$tmp/root -runroot $$tmp/runroot -storage-driver vfs -signature-policy $(shell pwd)/tests/policy.json -registries-conf $(shell pwd)/tests/registries.conf
+	$(GO_TEST) -v -tags "$(STORAGETAGS) $(SECURITYTAGS)" ./cmd/buildah -args -root $$tmp/root -runroot $$tmp/runroot -storage-driver vfs -signature-policy $(shell pwd)/tests/policy.json -registries-conf $(shell pwd)/tests/registries.conf
 
 vendor-in-container:
 	podman run --privileged --rm --env HOME=/root -v `pwd`:/src -w /src docker.io/library/golang:1.13 make vendor

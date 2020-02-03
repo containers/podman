@@ -7,9 +7,9 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"syscall"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
@@ -252,7 +252,7 @@ func Runtime() string {
 	}
 
 	// Need to switch default until runc supports cgroups v2
-	if unified, _ := cgroups.IsCgroup2UnifiedMode(); unified {
+	if unified, _ := IsCgroup2UnifiedMode(); unified {
 		return "crun"
 	}
 
@@ -395,3 +395,9 @@ func TruncateString(str string, to int) string {
 	}
 	return newStr
 }
+
+var (
+	isUnifiedOnce sync.Once
+	isUnified     bool
+	isUnifiedErr  error
+)

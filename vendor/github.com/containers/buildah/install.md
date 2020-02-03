@@ -10,6 +10,33 @@
 sudo pacman -S buildah
 ```
 
+#### [Debian](https://debian.org)
+
+The buildah package is [being worked on](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=928083)
+for inclusion in the default Debian repos.
+
+Alternatively, the [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+provides packages for Debian 10, testing and unstable.
+
+```bash
+# Debian Unstable/Sid
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Unstable/Release.key -O Release.key
+
+# Debian Testing
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Testing/Release.key -O Release.key
+
+# Debian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_10/Release.key -O Release.key
+
+sudo apt-key add - < Release.key
+sudo apt-get update -qq
+sudo apt-get -qq -y install buildah
+```
+
+
 ### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
 
 ```bash
@@ -53,6 +80,19 @@ sudo subscription-manager repos --enable=rhel-7-server-extras-rpms
 sudo yum -y install buildah
 ```
 
+#### [Raspbian](https://raspbian.org)
+
+The Kubic project provides packages for Raspbian 10.
+
+```bash
+# Raspbian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Raspbian_10/Release.key -O Release.key
+sudo apt-key add - < Release.key
+sudo apt-get update -qq
+sudo apt-get -qq -y install buildah
+```
+
 ### [RHEL8 Beta](https://www.redhat.com/en/blog/powering-its-future-while-preserving-present-introducing-red-hat-enterprise-linux-8-beta?intcmp=701f2000001Cz6OAAS)
 
 ```bash
@@ -62,10 +102,13 @@ sudo yum module install -y buildah
 
 ### [Ubuntu](https://www.ubuntu.com)
 
+The Kubic project provides packages for Ubuntu 18.04, 19.04 and 19.10.
+
 ```bash
-sudo apt-get update -qq
-sudo apt-get install -qq -y software-properties-common
-sudo add-apt-repository -y ppa:projectatomic/ppa
+. /etc/os-release
+sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${NAME}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${NAME}_${VERSION_ID}/Release.key -O Release.key
+sudo apt-key add - < Release.key
 sudo apt-get update -qq
 sudo apt-get -qq -y install buildah
 ```

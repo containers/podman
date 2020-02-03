@@ -60,7 +60,7 @@ github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.13.1
+# github.com/containers/buildah v1.13.2
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -75,8 +75,9 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.0.7
-github.com/containers/common/pkg/cgroups
+# github.com/containers/common v0.1.2
+github.com/containers/common/pkg/caps
+github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare
 # github.com/containers/conmon v2.0.10+incompatible
 github.com/containers/conmon/runner/config
@@ -323,7 +324,7 @@ github.com/klauspost/compress/zstd/internal/xxhash
 github.com/klauspost/pgzip
 # github.com/konsorten/go-windows-terminal-sequences v1.0.2
 github.com/konsorten/go-windows-terminal-sequences
-# github.com/mattn/go-shellwords v1.0.7
+# github.com/mattn/go-shellwords v1.0.9
 github.com/mattn/go-shellwords
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
 github.com/matttproud/golang_protobuf_extensions/pbutil

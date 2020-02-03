@@ -49,6 +49,9 @@ type PullOptions struct {
 	// AllTags is a boolean value that determines if all tagged images
 	// will be downloaded from the repository. The default is false.
 	AllTags bool
+	// RemoveSignatures causes any existing signatures for the image to be
+	// discarded when pulling it.
+	RemoveSignatures bool
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -260,7 +263,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, sc, nil, "")); err != nil {
+	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, "")); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}
