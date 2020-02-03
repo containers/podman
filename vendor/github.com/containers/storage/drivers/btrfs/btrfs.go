@@ -26,7 +26,7 @@ import (
 	"sync"
 	"unsafe"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"

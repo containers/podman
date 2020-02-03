@@ -69,8 +69,8 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 }
 
 // GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir(rootlessUid int) (string, error) {
-	path, err := getRootlessRuntimeDir(rootlessUid)
+func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
+	path, err := getRootlessRuntimeDir(rootlessUID)
 	if err != nil {
 		return "", err
 	}
@@ -81,18 +81,18 @@ func GetRootlessRuntimeDir(rootlessUid int) (string, error) {
 	return path, nil
 }
 
-func getRootlessRuntimeDir(rootlessUid int) (string, error) {
+func getRootlessRuntimeDir(rootlessUID int) (string, error) {
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
 
 	if runtimeDir != "" {
 		return runtimeDir, nil
 	}
-	tmpDir := fmt.Sprintf("/run/user/%d", rootlessUid)
+	tmpDir := fmt.Sprintf("/run/user/%d", rootlessUID)
 	st, err := system.Stat(tmpDir)
 	if err == nil && int(st.UID()) == os.Getuid() && st.Mode()&0700 == 0700 && st.Mode()&0066 == 0000 {
 		return tmpDir, nil
 	}
-	tmpDir = fmt.Sprintf("%s/%d", os.TempDir(), rootlessUid)
+	tmpDir = fmt.Sprintf("%s/%d", os.TempDir(), rootlessUID)
 	if err := os.MkdirAll(tmpDir, 0700); err != nil {
 		logrus.Errorf("failed to create %s: %v", tmpDir, err)
 	} else {
@@ -111,8 +111,8 @@ func getRootlessRuntimeDir(rootlessUid int) (string, error) {
 
 // getRootlessDirInfo returns the parent path of where the storage for containers and
 // volumes will be in rootless mode
-func getRootlessDirInfo(rootlessUid int) (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir(rootlessUid)
+func getRootlessDirInfo(rootlessUID int) (string, string, error) {
+	rootlessRuntime, err := GetRootlessRuntimeDir(rootlessUID)
 	if err != nil {
 		return "", "", err
 	}
@@ -135,10 +135,10 @@ func getRootlessDirInfo(rootlessUid int) (string, string, error) {
 }
 
 // getRootlessStorageOpts returns the storage opts for containers running as non root
-func getRootlessStorageOpts(rootlessUid int) (StoreOptions, error) {
+func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
 	var opts StoreOptions
 
-	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUid)
+	dataDir, rootlessRuntime, err := getRootlessDirInfo(rootlessUID)
 	if err != nil {
 		return opts, err
 	}
@@ -151,10 +151,6 @@ func getRootlessStorageOpts(rootlessUid int) (StoreOptions, error) {
 		opts.GraphDriverName = "vfs"
 	}
 	return opts, nil
-}
-
-type tomlOptionsConfig struct {
-	MountProgram string `toml:"mount_program"`
 }
 
 func getTomlStorage(storeOptions *StoreOptions) *tomlConfig {
@@ -189,21 +185,21 @@ func DefaultStoreOptionsAutoDetectUID() (StoreOptions, error) {
 }
 
 // DefaultStoreOptions returns the default storage ops for containers
-func DefaultStoreOptions(rootless bool, rootlessUid int) (StoreOptions, error) {
+func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	var (
 		defaultRootlessRunRoot   string
 		defaultRootlessGraphRoot string
 		err                      error
 	)
 	storageOpts := defaultStoreOptions
-	if rootless && rootlessUid != 0 {
-		storageOpts, err = getRootlessStorageOpts(rootlessUid)
+	if rootless && rootlessUID != 0 {
+		storageOpts, err = getRootlessStorageOpts(rootlessUID)
 		if err != nil {
 			return storageOpts, err
 		}
 	}
 
-	storageConf, err := DefaultConfigFile(rootless && rootlessUid != 0)
+	storageConf, err := DefaultConfigFile(rootless && rootlessUID != 0)
 	if err != nil {
 		return storageOpts, err
 	}
@@ -218,7 +214,7 @@ func DefaultStoreOptions(rootless bool, rootlessUid int) (StoreOptions, error) {
 		ReloadConfigurationFile(storageConf, &storageOpts)
 	}
 
-	if rootless && rootlessUid != 0 {
+	if rootless && rootlessUID != 0 {
 		if err == nil {
 			// If the file did not specify a graphroot or runroot,
 			// set sane defaults so we don't try and use root-owned

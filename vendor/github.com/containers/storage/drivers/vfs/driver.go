@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/parsers"

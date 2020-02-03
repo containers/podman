@@ -93,12 +93,12 @@ type huffmanBitWriter struct {
 	err             error
 	lastHeader      int
 	// Set between 0 (reused block can be up to 2x the size)
-	logReusePenalty uint
-	lastHuffMan     bool
-	bytes           [256]byte
-	literalFreq     [lengthCodesStart + 32]uint16
-	offsetFreq      [32]uint16
-	codegenFreq     [codegenCodeCount]uint16
+	logNewTablePenalty uint
+	lastHuffMan        bool
+	bytes              [256]byte
+	literalFreq        [lengthCodesStart + 32]uint16
+	offsetFreq         [32]uint16
+	codegenFreq        [codegenCodeCount]uint16
 
 	// codegen must have an extra space for the final symbol.
 	codegen [literalCount + offsetCodeCount + 1]uint8
@@ -119,7 +119,7 @@ type huffmanBitWriter struct {
 // If lastHuffMan is set, a table for outputting literals has been generated and offsets are invalid.
 //
 // An incoming block estimates the output size of a new table using a 'fresh' by calculating the
-// optimal size and adding a penalty in 'logReusePenalty'.
+// optimal size and adding a penalty in 'logNewTablePenalty'.
 // A Huffman table is not optimal, which is why we add a penalty, and generating a new table
 // is slower both for compression and decompression.
 
@@ -350,6 +350,13 @@ func (w *huffmanBitWriter) headerSize() (size, numCodegens int) {
 }
 
 // dynamicSize returns the size of dynamically encoded data in bits.
+func (w *huffmanBitWriter) dynamicReuseSize(litEnc, offEnc *huffmanEncoder) (size int) {
+	size = litEnc.bitLength(w.literalFreq[:]) +
+		offEnc.bitLength(w.offsetFreq[:])
+	return size
+}
+
+// dynamicSize returns the size of dynamically encoded data in bits.
 func (w *huffmanBitWriter) dynamicSize(litEnc, offEnc *huffmanEncoder, extraBits int) (size, numCodegens int) {
 	header, numCodegens := w.headerSize()
 	size = header +
@@ -451,12 +458,12 @@ func (w *huffmanBitWriter) writeDynamicHeader(numLiterals int, numOffsets int, n
 
 	i := 0
 	for {
-		var codeWord int = int(w.codegen[i])
+		var codeWord = uint32(w.codegen[i])
 		i++
 		if codeWord == badCode {
 			break
 		}
-		w.writeCode(w.codegenEncoding.codes[uint32(codeWord)])
+		w.writeCode(w.codegenEncoding.codes[codeWord])
 
 		switch codeWord {
 		case 16:
@@ -602,14 +609,14 @@ func (w *huffmanBitWriter) writeBlockDynamic(tokens *tokens, eof bool, input []b
 	var size int
 	// Check if we should reuse.
 	if w.lastHeader > 0 {
-		// Estimate size for using a new table
+		// Estimate size for using a new table.
+		// Use the previous header size as the best estimate.
 		newSize := w.lastHeader + tokens.EstimatedBits()
+		newSize += newSize >> w.logNewTablePenalty
 
 		// The estimated size is calculated as an optimal table.
 		// We add a penalty to make it more realistic and re-use a bit more.
-		newSize += newSize >> (w.logReusePenalty & 31)
-		extra := w.extraBitSize()
-		reuseSize, _ := w.dynamicSize(w.literalEncoding, w.offsetEncoding, extra)
+		reuseSize := w.dynamicReuseSize(w.literalEncoding, w.offsetEncoding) + w.extraBitSize()
 
 		// Check if a new table is better.
 		if newSize < reuseSize {
@@ -801,21 +808,30 @@ func (w *huffmanBitWriter) writeBlockHuff(eof bool, input []byte, sync bool) {
 	}
 
 	// Add everything as literals
-	estBits := histogramSize(input, w.literalFreq[:], !eof && !sync) + 15
+	// We have to estimate the header size.
+	// Assume header is around 70 bytes:
+	// https://stackoverflow.com/a/25454430
+	const guessHeaderSizeBits = 70 * 8
+	estBits, estExtra := histogramSize(input, w.literalFreq[:], !eof && !sync)
+	estBits += w.lastHeader + 15
+	if w.lastHeader == 0 {
+		estBits += guessHeaderSizeBits
+	}
+	estBits += estBits >> w.logNewTablePenalty
 
 	// Store bytes, if we don't get a reasonable improvement.
 	ssize, storable := w.storedSize(input)
-	if storable && ssize < (estBits+estBits>>4) {
+	if storable && ssize < estBits {
 		w.writeStoredHeader(len(input), eof)
 		w.writeBytes(input)
 		return
 	}
 
 	if w.lastHeader > 0 {
-		size, _ := w.dynamicSize(w.literalEncoding, huffOffset, w.lastHeader)
-		estBits += estBits >> (w.logReusePenalty)
+		reuseSize := w.literalEncoding.bitLength(w.literalFreq[:256])
+		estBits += estExtra
 
-		if estBits < size {
+		if estBits < reuseSize {
 			// We owe an EOB
 			w.writeCode(w.literalEncoding.codes[endBlockMarker])
 			w.lastHeader = 0

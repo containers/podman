@@ -1,7 +1,7 @@
 package zfs
 
 import (
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
