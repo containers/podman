@@ -26,6 +26,27 @@ type swagImageInspect struct {
 	}
 }
 
+// Load response
+// swagger:response DocsLibpodImagesLoadResponse
+type swagLibpodImagesLoadResponse struct {
+	// in:body
+	Body []LibpodImagesLoadReport
+}
+
+// Import response
+// swagger:response DocsLibpodImagesImportResponse
+type swagLibpodImagesImportResponse struct {
+	// in:body
+	Body LibpodImagesImportReport
+}
+
+// Pull response
+// swagger:response DocsLibpodImagesPullResponse
+type swagLibpodImagesPullResponse struct {
+	// in:body
+	Body LibpodImagesPullReport
+}
+
 // Delete response
 // swagger:response DocsImageDeleteResponse
 type swagImageDeleteResponse struct {

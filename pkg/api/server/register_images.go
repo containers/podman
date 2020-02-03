@@ -107,7 +107,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: no error
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, libpod.ImportImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/images/load"), APIHandler(s.Context, generic.LoadImages)).Methods(http.MethodPost)
 	// swagger:operation POST /images/prune compat pruneImages
 	// ---
 	// tags:
@@ -631,17 +631,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/json"), APIHandler(s.Context, libpod.GetImages)).Methods(http.MethodGet)
-	// swagger:operation POST /libpod/images/load libpod libpodImportImage
+	// swagger:operation POST /libpod/images/load libpod libpodImagesLoad
 	// ---
 	// tags:
 	//  - images
-	// summary: Import image
-	// description: Load a set of images and tags into a repository.
+	// summary: Load image
+	// description: Load an image (oci-archive or docker-archive) stream.
 	// parameters:
-	//  - in: query
-	//    name: quiet
-	//    type: boolean
-	//    description: not supported
 	//  - in: query
 	//    name: change
 	//    description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
@@ -660,10 +656,71 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     description: no error
+	//     $ref: "#/response/LibpodImagesLoadResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImportImage)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImagesLoad)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/images/import libpod libpodImagesImport
+	// ---
+	// tags:
+	//  - images
+	// summary: Import image
+	// description: Import a previosly exported tarball as an image.
+	// parameters:
+	//  - in: query
+	//    name: change
+	//    description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//    type: string
+	//  - in: query
+	//    name: message
+	//    description: Set commit message for imported image
+	//    type: string
+	//  - in: query
+	//    name: url
+	//    description: Specify a URL instead of a tarball
+	//    type: bool
+	//  - in: body
+	//    name: request
+	//    description: Tarball of (or URL to) container image
+	//    required: true
+	//    schema:
+	//      type: string
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/response/LibpodImagesImportResponse"
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/import"), APIHandler(s.Context, libpod.ImagesImport)).Methods(http.MethodPost)
+	// swagger:operation GET /libpod/images/pull libpod libpodImagesPull
+	// ---
+	// tags:
+	//  - images
+	// summary: Import image
+	// description: Import a previosly exported image as a tarball.
+	// parameters:
+	//  - in: query
+	//    name: reference
+	//    description: Mandatory reference to the image (e.g., quay.io/image/name:tag)/
+	//    type: string
+	//  - in: query
+	//    name: credentials
+	//    description: username:password for the registry.
+	//    type: string
+	//  - in: query
+	//    name: tls-verify
+	//    description: Require TLS verification.
+	//    type: bool
+	//    default: true
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/response/LibpodImagesPullResponse"
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/prune libpod libpodPruneImages
 	// ---
 	// tags:

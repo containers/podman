@@ -2,7 +2,6 @@ package libpod
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -176,46 +175,17 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, rdr)
 }
 
-func ImportImage(w http.ResponseWriter, r *http.Request) {
-	// TODO this is basically wrong
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+func ImagesLoad(w http.ResponseWriter, r *http.Request) {
+	//TODO ...
+	utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New("/libpod/images/load is not yet implemented"))
+}
 
-	query := struct {
-		Changes map[string]string `json:"changes"`
-		Message string            `json:"message"`
-		Quiet   bool              `json:"quiet"`
-	}{
-		// This is where you can override the golang default value for one of fields
-	}
+func ImagesImport(w http.ResponseWriter, r *http.Request) {
+	//TODO ...
+	utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New("/libpod/images/import is not yet implemented"))
+}
 
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-
-	var (
-		err    error
-		writer io.Writer
-	)
-	f, err := ioutil.TempFile("", "api_load.tar")
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
-		return
-	}
-	if err := handlers.SaveFromBody(f, r); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
-		return
-	}
-	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
-	//id, err := runtime.Import(r.Context())
-	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
-		return
-	}
-	utils.WriteResponse(w, http.StatusOK, struct {
-		Stream string `json:"stream"`
-	}{
-		Stream: fmt.Sprintf("Loaded image: %s\n", id),
-	})
+func ImagesPull(w http.ResponseWriter, r *http.Request) {
+	//TODO ...
+	utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New("/libpod/images/pull is not yet implemented"))
 }
