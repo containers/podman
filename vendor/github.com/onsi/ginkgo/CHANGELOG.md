@@ -1,3 +1,8 @@
+## 1.12.0
+
+### Features
+- Add module definition (#630) [78916ab]
+
 ## 1.11.0
 
 ### Features
