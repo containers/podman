@@ -1,3 +1,10 @@
+## 1.9.0
+
+### Features
+- Add ContainElements matcher (#370) [2f57380]
+- Output missing and extra elements in ConsistOf failure message [a31eda7]
+- Document method LargestMatching [7c5a280]
+
 ## 1.8.1
 
 ### Fixes

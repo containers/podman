@@ -306,6 +306,20 @@ func ConsistOf(elements ...interface{}) types.GomegaMatcher {
 	}
 }
 
+//ContainElements succeeds if actual contains the passed in elements. The ordering of the elements does not matter.
+//By default ContainElements() uses Equal() to match the elements, however custom matchers can be passed in instead. Here are some examples:
+//
+//    Expect([]string{"Foo", "FooBar"}).Should(ContainElements("FooBar"))
+//    Expect([]string{"Foo", "FooBar"}).Should(ContainElements(ContainSubstring("Bar"), "Foo"))
+//
+//Actual must be an array, slice or map.
+//For maps, ContainElements searches through the map's values.
+func ContainElements(elements ...interface{}) types.GomegaMatcher {
+	return &matchers.ContainElementsMatcher{
+		Elements: elements,
+	}
+}
+
 //HaveKey succeeds if actual is a map with the passed in key.
 //By default HaveKey uses Equal() to perform the match, however a
 //matcher can be passed in instead:
