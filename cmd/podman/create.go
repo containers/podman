@@ -41,6 +41,7 @@ func init() {
 
 	getCreateFlags(&createCommand.PodmanCommand)
 	flags := createCommand.Flags()
+	flags.AddFlagSet(getNetFlags())
 	flags.SetInterspersed(false)
 	flags.SetNormalizeFunc(aliasFlags)
 }

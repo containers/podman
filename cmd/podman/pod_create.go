@@ -44,6 +44,18 @@ func init() {
 	podCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := podCreateCommand.Flags()
 	flags.SetInterspersed(false)
+	// When we are ready to add the network options to the create commmand, we need to uncomment
+	// the following
+
+	//flags.AddFlagSet(getNetFlags())
+
+	// Once this is uncommented, then the publish option below needs to be removed because it
+	// conflicts with the publish in getNetFlags.  Upon removal, the c.Publish will not work
+	// anymore and needs to be cleaned up. I suggest starting with removing the Publish attribute
+	// from PodCreateValues structure. Running make should then expose all areas that need to be
+	// addressed.  To get the value of publish (and other flags in getNetFlags, use the syntax:
+	// c.<type>("<flag_name") or c.Bool("publish")
+	// Remember to do this safely by checking len, etc.
 
 	flags.StringVar(&podCreateCommand.CgroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&podCreateCommand.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
