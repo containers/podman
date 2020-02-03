@@ -300,8 +300,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// swagger:operation POST /commit/ compat commitContainer
 	// ---
 	// tags:
-	//  - commit (compat)
-	// summary: Create a new image from a container
+	//  - containers (compat)
+	// summary: New Image
+	// description: Create a new image from a container
 	// parameters:
 	//  - in: query
 	//    name: container

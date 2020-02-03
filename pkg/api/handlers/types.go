@@ -70,10 +70,6 @@ type ContainerStats struct {
 	docker.ContainerStats
 }
 
-type Ping struct {
-	docker.Ping
-}
-
 type Version struct {
 	docker.Version
 }
