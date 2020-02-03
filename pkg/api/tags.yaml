@@ -7,7 +7,11 @@ tags:
       description: Actions related to pods
     - name: volumes
       description: Actions related to volumes
+    - name: system
+      description: Actions related to Podman engine
     - name: containers (compat)
       description: Actions related to containers for the compatibility endpoints
     - name: images (compat)
       description: Actions related to images for the compatibility endpoints
+    - name: system (compat)
+      description: Actions related to Podman and compatiblity engines
