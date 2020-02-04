@@ -96,6 +96,7 @@ Display namespace information
 Filter what containers are shown in the output.
 Multiple filters can be given with multiple uses of the --filter flag.
 If multiple filters are given, only containers which match all of the given filters will be shown.
+Results will be drawn from all containers, regardless of whether --all was given.
 
 Valid filters are listed below:
 

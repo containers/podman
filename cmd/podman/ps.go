@@ -205,6 +205,10 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 	if c.Last >= 0 && c.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
+	// Filter forces all
+	if len(c.Filter) > 0 {
+		c.All = true
+	}
 	// Quiet conflicts with size and namespace and is overridden by a Go
 	// template.
 	if c.Quiet {

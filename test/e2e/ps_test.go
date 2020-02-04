@@ -227,6 +227,22 @@ var _ = Describe("Podman ps", func() {
 		Expect(output[0]).To(Equal(fullCid))
 	})
 
+	It("podman ps filter by exited does not need all", func() {
+		ctr := podmanTest.Podman([]string{"run", "-t", "-i", ALPINE, "ls", "/"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		psAll := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc"})
+		psAll.WaitWithDefaultTimeout()
+		Expect(psAll.ExitCode()).To(Equal(0))
+
+		psFilter := podmanTest.Podman([]string{"ps", "--no-trunc", "--quiet", "--filter", "status=exited"})
+		psFilter.WaitWithDefaultTimeout()
+		Expect(psFilter.ExitCode()).To(Equal(0))
+
+		Expect(psAll.OutputToString()).To(Equal(psFilter.OutputToString()))
+	})
+
 	It("podman ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"ps", "-aqs"})
 		session.WaitWithDefaultTimeout()
