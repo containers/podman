@@ -23,6 +23,15 @@ type swagErrNoSuchContainer struct {
 	}
 }
 
+// No such exec instance
+// swagger:response NoSuchExecInstance
+type swagErrNoSuchExecInstance struct {
+	// in:body
+	Body struct {
+		utils.ErrorModel
+	}
+}
+
 // No such volume
 // swagger:response NoSuchVolume
 type swagErrNoSuchVolume struct {
