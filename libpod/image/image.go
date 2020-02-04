@@ -709,11 +709,12 @@ func (i *Image) Size(ctx context.Context) (*uint64, error) {
 		}
 		i.image = localImage
 	}
-	if sum, err := i.imageruntime.store.ImageSize(i.ID()); err == nil && sum >= 0 {
+	sum, err := i.imageruntime.store.ImageSize(i.ID())
+	if err == nil && sum >= 0 {
 		usum := uint64(sum)
 		return &usum, nil
 	}
-	return nil, errors.Errorf("unable to determine size")
+	return nil, errors.Wrap(err, "unable to determine size")
 }
 
 // toImageRef returns an Image Reference type from an image
