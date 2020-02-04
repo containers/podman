@@ -234,10 +234,6 @@ func buildCmd(c *cliconfig.BuildValues) error {
 				return errors.Wrapf(err, "error determining path to file %q", containerfiles[i])
 			}
 			contextDir = filepath.Dir(absFile)
-			containerfiles[i], err = filepath.Rel(contextDir, absFile)
-			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", containerfiles[i])
-			}
 			break
 		}
 	}
