@@ -638,25 +638,24 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Load image
 	// description: Load an image (oci-archive or docker-archive) stream.
 	// parameters:
-	//  - in: query
-	//    name: change
-	//    description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//    type: string
-	//  - in: query
-	//    name: message
-	//    description: Set commit message for imported image
-	//    type: string
-	//  - in: body
-	//    name: request
-	//    description: tarball of container image
-	//    required: true
-	//    schema:
-	//      type: string
+	//   - in: query
+	//     name: change
+	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//     type: string
+	//   - in: query
+	//     name: message
+	//     description: Set commit message for imported image
+	//     type: string
+	//   - in: formData
+	//     name: upload
+	//     description: tarball of container image
+	//     type: file
+	//     required: true
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/response/LibpodImagesLoadResponse"
+	//     $ref: "#/responses/DocsLibpodImagesLoadResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImagesLoad)).Methods(http.MethodPost)
@@ -665,31 +664,30 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// tags:
 	//  - images
 	// summary: Import image
-	// description: Import a previosly exported tarball as an image.
+	// description: Import a previously exported tarball as an image.
 	// parameters:
-	//  - in: query
-	//    name: change
-	//    description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//    type: string
-	//  - in: query
-	//    name: message
-	//    description: Set commit message for imported image
-	//    type: string
-	//  - in: query
-	//    name: url
-	//    description: Specify a URL instead of a tarball
-	//    type: bool
-	//  - in: body
-	//    name: request
-	//    description: Tarball of (or URL to) container image
-	//    required: true
-	//    schema:
-	//      type: string
+	//   - in: query
+	//     name: change
+	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//     type: string
+	//   - in: query
+	//     name: message
+	//     description: Set commit message for imported image
+	//     type: string
+	//   - in: query
+	//     name: url
+	//     description: Specify a URL instead of a tarball
+	//     type: boolean
+	//   - in: formData
+	//     name: upload
+	//     type: file
+	//     required: true
+	//     description: tarball for imported image
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/response/LibpodImagesImportResponse"
+	//     $ref: "#/responses/DocsLibpodImagesImportResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), APIHandler(s.Context, libpod.ImagesImport)).Methods(http.MethodPost)
@@ -711,13 +709,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: tls-verify
 	//    description: Require TLS verification.
-	//    type: bool
+	//    type: boolean
 	//    default: true
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/response/LibpodImagesPullResponse"
+	//     $ref: "#/responses/DocsLibpodImagesPullResponse"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPost)
