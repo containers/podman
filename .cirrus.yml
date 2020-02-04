@@ -93,7 +93,6 @@ gating_task:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
         GOPATH: "/go"
         GOSRC: "/go/src/github.com/containers/libpod"
-        EPOCH_TEST_COMMIT: "${CIRRUS_BASE_SHA}"
 
     # Runs within Cirrus's "community cluster"
     container:
@@ -102,6 +101,16 @@ gating_task:
         memory: 12
 
     timeout_in: 20m
+
+    # Custom cloning is required to satisfy lint/validation needs
+    clone_script: |
+        git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+        git remote update origin
+        if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
+            git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
+            git checkout pull/$CIRRUS_PR
+        fi
+        git reset --hard $CIRRUS_CHANGE_IN_REPO
 
     # Don't bother going further if something is down
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'

@@ -3,7 +3,7 @@ export GOPROXY=https://proxy.golang.org
 
 GO ?= go
 DESTDIR ?=
-EPOCH_TEST_COMMIT ?= $(shell git merge-base HEAD $${DEST_BRANCH:-master})
+EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-master} HEAD)
 HEAD ?= HEAD
 CHANGELOG_BASE ?= HEAD~
 CHANGELOG_TARGET ?= HEAD
@@ -132,6 +132,9 @@ for cmd in sorted(cmds):
 endef
 export PRINT_HELP_PYSCRIPT
 
+# Dereference variable $(1), return value if non-empty, otherwise raise an error.
+err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
+
 .PHONY: help
 help:
 	@$(PYTHON) -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
@@ -146,6 +149,7 @@ endif
 
 .PHONY: lint
 lint: golangci-lint
+	@echo "Linting vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 ifeq ($(PRE_COMMIT),)
 	@echo "FATAL: pre-commit was not found, check https://pre-commit.com/ about installing it." >&2
 	@exit 2
@@ -531,6 +535,7 @@ uninstall:
 
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
+	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: install.tools
