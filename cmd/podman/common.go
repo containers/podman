@@ -16,6 +16,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
@@ -116,14 +117,49 @@ func getDefaultNetwork() string {
 	return "bridge"
 }
 
-func getCreateFlags(c *cliconfig.PodmanCommand) {
-
-	createFlags := c.Flags()
-
-	createFlags.StringSlice(
+func getNetFlags() *pflag.FlagSet {
+	netFlags := pflag.FlagSet{}
+	netFlags.StringSlice(
 		"add-host", []string{},
 		"Add a custom host-to-IP mapping (host:ip) (default [])",
 	)
+	netFlags.StringSlice(
+		"dns", []string{},
+		"Set custom DNS servers",
+	)
+	netFlags.StringSlice(
+		"dns-opt", []string{},
+		"Set custom DNS options",
+	)
+	netFlags.StringSlice(
+		"dns-search", []string{},
+		"Set custom DNS search domains",
+	)
+	netFlags.String(
+		"ip", "",
+		"Specify a static IPv4 address for the container",
+	)
+	netFlags.String(
+		"mac-address", "",
+		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
+	)
+	netFlags.String(
+		"network", getDefaultNetwork(),
+		"Connect a container to a network",
+	)
+	netFlags.StringSliceP(
+		"publish", "p", []string{},
+		"Publish a container's port, or a range of ports, to the host (default [])",
+	)
+	netFlags.Bool(
+		"no-hosts", false,
+		"Do not create /etc/hosts within the container, instead use the version from the image",
+	)
+	return &netFlags
+}
+
+func getCreateFlags(c *cliconfig.PodmanCommand) {
+	createFlags := c.Flags()
 	createFlags.StringSlice(
 		"annotation", []string{},
 		"Add annotations to container (key:value) (default [])",
@@ -236,18 +272,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"device-write-iops", []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
-	createFlags.StringSlice(
-		"dns", []string{},
-		"Set custom DNS servers",
-	)
-	createFlags.StringSlice(
-		"dns-opt", []string{},
-		"Set custom DNS options",
-	)
-	createFlags.StringSlice(
-		"dns-search", []string{},
-		"Set custom DNS search domains",
-	)
 	createFlags.String(
 		"entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
@@ -324,10 +348,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Keep STDIN open even if not attached",
 	)
 	createFlags.String(
-		"ip", "",
-		"Specify a static IPv4 address for the container",
-	)
-	createFlags.String(
 		"ipc", "",
 		"IPC namespace to use",
 	)
@@ -351,10 +371,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"log-opt", []string{},
 		"Logging driver options (default [])",
 	)
-	createFlags.String(
-		"mac-address", "",
-		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
-	)
 	createFlags.StringP(
 		"memory", "m", "",
 		"Memory limit "+sizeWithUnitFormat,
@@ -374,14 +390,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.String(
 		"name", "",
 		"Assign a name to the container",
-	)
-	createFlags.String(
-		"network", getDefaultNetwork(),
-		"Connect a container to a network",
-	)
-	createFlags.Bool(
-		"no-hosts", false,
-		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
 	createFlags.Bool(
 		"oom-kill-disable", false,
@@ -416,10 +424,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.Bool(
 		"privileged", false,
 		"Give extended privileges to container",
-	)
-	createFlags.StringSliceP(
-		"publish", "p", []string{},
-		"Publish a container's port, or a range of ports, to the host (default [])",
 	)
 	createFlags.BoolP(
 		"publish-all", "P", false,
