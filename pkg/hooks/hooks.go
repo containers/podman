@@ -42,11 +42,11 @@ type namedHook struct {
 // New creates a new hook manager.  Directories are ordered by
 // increasing preference (hook configurations in later directories
 // override configurations with the same filename from earlier
-// directories).
+// directories).  Empty directories will be skipped automatically.
 //
 // extensionStages allows callers to add additional stages beyond
 // those specified in the OCI Runtime Specification and to control
-// OCI-defined stages instead of delagating to the OCI runtime.  See
+// OCI-defined stages instead of delegating to the OCI runtime.  See
 // Hooks() for more information.
 func New(ctx context.Context, directories []string, extensionStages []string) (manager *Manager, err error) {
 	manager = &Manager{
@@ -56,6 +56,9 @@ func New(ctx context.Context, directories []string, extensionStages []string) (m
 	}
 
 	for _, dir := range directories {
+		if dir == "" {
+			continue
+		}
 		err = ReadDir(dir, manager.extensionStages, manager.hooks)
 		if err != nil && !os.IsNotExist(err) {
 			return nil, err
