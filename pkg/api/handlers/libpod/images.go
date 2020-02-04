@@ -1,15 +1,22 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
 
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -186,6 +193,120 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImagesPull(w http.ResponseWriter, r *http.Request) {
-	//TODO ...
-	utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New("/libpod/images/pull is not yet implemented"))
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Reference    string `schema:"reference"`
+		Credentials  string `schema:"credentials"`
+		OverrideOS   string `schema:"overrideOS"`
+		OverrideArch string `schema:"overrideArch"`
+		TLSVerify    bool   `schema:"tlsVerify"`
+		AllTags      bool   `schema:"allTags"`
+	}{
+		TLSVerify: true,
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	if len(query.Reference) == 0 {
+		utils.InternalServerError(w, errors.New("reference parameter cannot be empty"))
+		return
+	}
+	// Enforce the docker transport.  This is just a precaution as some callers
+	// might accustomed to using the "transport:reference" notation.  Using
+	// another than the "docker://" transport does not really make sense for a
+	// remote case. For loading tarballs, the load and import endpoints should
+	// be used.
+	imageRef, err := alltransports.ParseImageName(query.Reference)
+	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Errorf("reference %q must be a docker reference", query.Reference))
+		return
+	} else if err != nil {
+		origErr := err
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s:%s", docker.Transport.Name(), query.Reference))
+		if err != nil {
+			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+				errors.Wrapf(origErr, "reference %q must be a docker reference", query.Reference))
+			return
+		}
+	}
+
+	// all-tags doesn't work with a tagged reference, so let's check early
+	namedRef, err := reference.Parse(query.Reference)
+	if err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "error parsing reference %q", query.Reference))
+		return
+	}
+	if _, isTagged := namedRef.(reference.Tagged); isTagged && query.AllTags {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Errorf("reference %q must not have a tag for all-tags", query.Reference))
+		return
+	}
+
+	var registryCreds *types.DockerAuthConfig
+	if len(query.Credentials) != 0 {
+		creds, err := util.ParseRegistryCreds(query.Credentials)
+		if err != nil {
+			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+				errors.Wrapf(err, "error parsing credentials %q", query.Credentials))
+			return
+		}
+		registryCreds = creds
+	}
+
+	// Setup the registry options
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds: registryCreds,
+		OSChoice:            query.OverrideOS,
+		ArchitectureChoice:  query.OverrideArch,
+	}
+	if query.TLSVerify {
+		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
+	}
+
+	// Prepare the images we want to pull
+	imagesToPull := []string{}
+	res := []handlers.LibpodImagesPullReport{}
+	imageName := namedRef.String()
+
+	if !query.AllTags {
+		imagesToPull = append(imagesToPull, imageName)
+	} else {
+		systemContext := image.GetSystemContext("", "", false)
+		tags, err := docker.GetRepositoryTags(context.Background(), systemContext, imageRef)
+		if err != nil {
+			utils.InternalServerError(w, errors.Wrap(err, "error getting repository tags"))
+			return
+		}
+		for _, tag := range tags {
+			imagesToPull = append(imagesToPull, fmt.Sprintf("%s:%s", imageName, tag))
+		}
+	}
+
+	// Finally pull the images
+	for _, img := range imagesToPull {
+		newImage, err := runtime.ImageRuntime().New(
+			context.Background(),
+			img,
+			"",
+			"",
+			os.Stderr,
+			&dockerRegistryOptions,
+			image.SigningOptions{},
+			nil,
+			util.PullImageAlways)
+		if err != nil {
+			utils.InternalServerError(w, errors.Wrapf(err, "error pulling image %q", query.Reference))
+			return
+		}
+		res = append(res, handlers.LibpodImagesPullReport{ID: newImage.ID()})
+	}
+
+	utils.WriteResponse(w, http.StatusOK, res)
 }

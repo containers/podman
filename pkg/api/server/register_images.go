@@ -691,34 +691,49 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), APIHandler(s.Context, libpod.ImagesImport)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/images/pull libpod libpodImagesPull
+	// swagger:operation POST /libpod/images/pull libpod libpodImagesPull
 	// ---
 	// tags:
 	//  - images
-	// summary: Import image
-	// description: Import a previosly exported image as a tarball.
+	// summary: Pull images
+	// description: Pull one or more images from a container registry.
 	// parameters:
 	//  - in: query
 	//    name: reference
-	//    description: Mandatory reference to the image (e.g., quay.io/image/name:tag)/
+	//    description: Mandatory reference to the image (e.g., quay.io/image/name:tag)
 	//    type: string
 	//  - in: query
 	//    name: credentials
 	//    description: username:password for the registry.
 	//    type: string
 	//  - in: query
+	//    name: os
+	//    description: Pull image for the specified operating system.
+	//    type: string
+	//  - in: query
+	//    name: arch
+	//    description: Pull image for the specified architecture.
+	//    type: string
+	//  - in: query
 	//    name: tls-verify
 	//    description: Require TLS verification.
 	//    type: boolean
 	//    default: true
+	//  - in: query
+	//    name: all-tags
+	//    description: Pull all tagged images in the repository.
+	//    type: bool
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesPullResponse"
+	//     $ref: "#/response/LibpodImagesPullResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPut)
 	// swagger:operation POST /libpod/images/prune libpod libpodPruneImages
 	// ---
 	// tags:

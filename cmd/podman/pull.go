@@ -101,6 +101,7 @@ func pullCmd(c *cliconfig.PullValues) (retError error) {
 		}
 	}
 
+	// FIXME: that's a bug. What if we pass "localhost:5000/no-tag" ?
 	arr := strings.SplitN(args[0], ":", 2)
 	if len(arr) == 2 {
 		if c.Bool("all-tags") {
