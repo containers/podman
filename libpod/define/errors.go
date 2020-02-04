@@ -20,6 +20,10 @@ var (
 	// ErrNoSuchVolume indicates the requested volume does not exist
 	ErrNoSuchVolume = errors.New("no such volume")
 
+	// ErrNoSuchExecSession indicates that the requested exec session does
+	// not exist.
+	ErrNoSuchExecSession = errors.New("no such exec session")
+
 	// ErrCtrExists indicates a container with the same name or ID already
 	// exists
 	ErrCtrExists = errors.New("container already exists")
@@ -29,10 +33,16 @@ var (
 	ErrImageExists = errors.New("image already exists")
 	// ErrVolumeExists indicates a volume with the same name already exists
 	ErrVolumeExists = errors.New("volume already exists")
+	// ErrExecSessionExists indicates an exec session with the same ID
+	// already exists.
+	ErrExecSessionExists = errors.New("exec session already exists")
 
 	// ErrCtrStateInvalid indicates a container is in an improper state for
 	// the requested operation
 	ErrCtrStateInvalid = errors.New("container state improper")
+	// ErrExecSessionStateInvalid indicates that an exec session is in an
+	// improper state for the requested operation
+	ErrExecSessionStateInvalid = errors.New("exec session state improper")
 	// ErrVolumeBeingUsed indicates that a volume is being used by at least one container
 	ErrVolumeBeingUsed = errors.New("volume is being used")
 
@@ -90,6 +100,9 @@ var (
 	// ErrVolumeRemoved indicates that the volume has already been removed and
 	// no further operations can be performed on it
 	ErrVolumeRemoved = errors.New("volume has already been removed")
+	// ErrExecSessionRemoved indicates that the exec session has already
+	// been removed and no further operations can be performed on it.
+	ErrExecSessionRemoved = errors.New("exec session has already been removed")
 
 	// ErrDBClosed indicates that the connection to the state database has
 	// already been closed

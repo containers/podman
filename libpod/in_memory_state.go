@@ -20,10 +20,16 @@ type InMemoryState struct {
 	pods map[string]*Pod
 	// Maps container ID to container struct.
 	containers map[string]*Container
-	volumes    map[string]*Volume
+	// Maps volume ID to volume struct
+	volumes map[string]*Volume
+	// Maps exec session ID to ID of associated container
+	execSessions map[string]string
 	// Maps container ID to a list of IDs of dependencies.
-	ctrDepends    map[string][]string
+	ctrDepends map[string][]string
+	// Maps volume ID to IDs of dependencies
 	volumeDepends map[string][]string
+	// Maps container ID to IDs of associated exec sessions.
+	ctrExecSessions map[string][]string
 	// Maps pod ID to a map of container ID to container struct.
 	podContainers map[string]map[string]*Container
 	// Global name registry - ensures name uniqueness and performs lookups.
@@ -51,9 +57,12 @@ func NewInMemoryState() (State, error) {
 	state.pods = make(map[string]*Pod)
 	state.containers = make(map[string]*Container)
 	state.volumes = make(map[string]*Volume)
+	state.execSessions = make(map[string]string)
 
 	state.ctrDepends = make(map[string][]string)
 	state.volumeDepends = make(map[string][]string)
+
+	state.ctrExecSessions = make(map[string][]string)
 
 	state.podContainers = make(map[string]map[string]*Container)
 
@@ -316,6 +325,13 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
 	}
 
+	// Ensure we don't have active exec sessions
+	ctrSessions := s.ctrExecSessions[ctr.ID()]
+	if len(ctrSessions) > 0 {
+		sessStr := strings.Join(ctrSessions, ", ")
+		return errors.Wrapf(define.ErrCtrExists, "the following exec sessions are running for container %s: %s", ctr.ID(), sessStr)
+	}
+
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
 		return errors.Wrapf(define.ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
@@ -435,6 +451,117 @@ func (s *InMemoryState) GetContainerConfig(id string) (*ContainerConfig, error) 
 	}
 
 	return ctr.Config(), nil
+}
+
+// Add an exec session to the database
+func (s *InMemoryState) AddExecSession(ctr *Container, session *ExecSession) error {
+	if !ctr.valid {
+		return define.ErrCtrRemoved
+	}
+	if session.ContainerID() != ctr.ID() {
+		return errors.Wrapf(define.ErrInvalidArg, "container ID and exec session ID must match")
+	}
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		return define.ErrNoSuchCtr
+	}
+
+	if _, ok := s.execSessions[session.ID()]; ok {
+		return define.ErrExecSessionExists
+	}
+
+	s.execSessions[session.ID()] = ctr.ID()
+
+	ctrSessions, ok := s.ctrExecSessions[ctr.ID()]
+	if !ok {
+		ctrSessions = []string{}
+	}
+
+	ctrSessions = append(ctrSessions, session.ID())
+	s.ctrExecSessions[ctr.ID()] = ctrSessions
+
+	return nil
+}
+
+// Get an exec session from the database by full or partial ID.
+func (s *InMemoryState) GetExecSession(id string) (string, error) {
+	if id == "" {
+		return "", define.ErrEmptyID
+	}
+
+	session, ok := s.execSessions[id]
+	if !ok {
+		return "", define.ErrNoSuchExecSession
+	}
+
+	return session, nil
+}
+
+// RemoveExecSession removes an exec session from the database.
+func (s *InMemoryState) RemoveExecSession(session *ExecSession) error {
+	if _, ok := s.execSessions[session.ID()]; !ok {
+		return define.ErrNoSuchExecSession
+	}
+
+	ctrSessions, ok := s.ctrExecSessions[session.ContainerID()]
+	// If !ok - internal state seems inconsistent, but the thing we wanted
+	// to remove is gone. Continue.
+	if ok {
+		newSessions := []string{}
+		for _, sess := range ctrSessions {
+			if sess != session.ID() {
+				newSessions = append(newSessions, sess)
+			}
+		}
+		s.ctrExecSessions[session.ContainerID()] = newSessions
+	}
+
+	delete(s.execSessions, session.ID())
+
+	return nil
+}
+
+// GetContainerExecSessions retrieves all exec sessions for the given container.
+func (s *InMemoryState) GetContainerExecSessions(ctr *Container) ([]string, error) {
+	if !ctr.valid {
+		return nil, define.ErrCtrRemoved
+	}
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return nil, define.ErrNoSuchCtr
+	}
+
+	ctrSessions := s.ctrExecSessions[ctr.ID()]
+
+	return ctrSessions, nil
+}
+
+// RemoveContainerExecSessions removes all exec sessions for the given
+// container.
+func (s *InMemoryState) RemoveContainerExecSessions(ctr *Container) error {
+	if !ctr.valid {
+		return define.ErrCtrRemoved
+	}
+	if _, ok := s.containers[ctr.ID()]; !ok {
+		ctr.valid = false
+		return define.ErrNoSuchCtr
+	}
+
+	ctrSessions, ok := s.ctrExecSessions[ctr.ID()]
+	if !ok {
+		return nil
+	}
+
+	for _, sess := range ctrSessions {
+		if _, ok := s.execSessions[sess]; !ok {
+			// We have an internal state inconsistency
+			// Error out
+			return errors.Wrapf(define.ErrInternal, "inconsistent database state: exec session %s is missing", sess)
+		}
+		delete(s.execSessions, sess)
+	}
+	delete(s.ctrExecSessions, ctr.ID())
+
+	return nil
 }
 
 // RewriteContainerConfig rewrites a container's configuration.
@@ -1054,6 +1181,13 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
 		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+	}
+
+	// Ensure we don't have active exec sessions
+	ctrSessions := s.ctrExecSessions[ctr.ID()]
+	if len(ctrSessions) > 0 {
+		sessStr := strings.Join(ctrSessions, ", ")
+		return errors.Wrapf(define.ErrCtrExists, "the following exec sessions are running for container %s: %s", ctr.ID(), sessStr)
 	}
 
 	// Retrieve pod containers

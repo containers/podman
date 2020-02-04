@@ -125,6 +125,11 @@ func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options
 	return -1, nil, r.printError()
 }
 
+// ExecAttachResize is not available as the runtime is missing.
+func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
+	return r.printError()
+}
+
 // ExecStopContainer is not available as the runtime is missing.
 // TODO: We can also investigate using unix.Kill() on the PID of the exec
 // session here if we want to make stopping containers possible. Won't be

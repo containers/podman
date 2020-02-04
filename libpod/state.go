@@ -72,6 +72,8 @@ type State interface {
 	// Removes container from state.
 	// Containers that are part of pods must use RemoveContainerFromPod.
 	// The container must be part of the set namespace.
+	// All dependencies must be removed first.
+	// All exec sessions referencing the container must be removed first.
 	RemoveContainer(ctr *Container) error
 	// UpdateContainer updates a container's state from the backing store.
 	// The container must be part of the set namespace.
@@ -94,6 +96,30 @@ type State interface {
 
 	// Return a container config from the database by full ID
 	GetContainerConfig(id string) (*ContainerConfig, error)
+
+	// Add creates a reference to an exec session in the database.
+	// The container the exec session is attached to will be recorded.
+	// The container state will not be modified.
+	// The actual exec session itself is part of the container's state.
+	// We assume higher-level callers will add the session by saving the
+	// container's state before calling this. This only ensures that the ID
+	// of the exec session is associated with the ID of the container.
+	// Implementations may, but are not required to, verify that the state
+	// of the given container has an exec session with the ID given.
+	AddExecSession(ctr *Container, session *ExecSession) error
+	// Get retrieves the container a given exec session is attached to.
+	GetExecSession(id string) (string, error)
+	// Remove a reference to an exec session from the database.
+	// This will not modify container state to remove the exec session there
+	// and instead only removes the session ID -> container ID reference
+	// added by AddExecSession.
+	RemoveExecSession(session *ExecSession) error
+	// Get the IDs of all exec sessions attached to a given container.
+	GetContainerExecSessions(ctr *Container) ([]string, error)
+	// Remove all exec sessions for a single container.
+	// Usually used as part of removing the container.
+	// As with RemoveExecSession, container state will not be modified.
+	RemoveContainerExecSessions(ctr *Container) error
 
 	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// Rewrite a container's configuration.

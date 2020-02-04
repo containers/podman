@@ -93,7 +93,7 @@ func (c *Container) attach(streams *AttachStreams, keys string, resize <-chan re
 // 4. attachToExec sends on startFd, signalling it has attached to the socket and child is ready to go
 // 5. child receives on startFd, runs the runtime exec command
 // attachToExec is responsible for closing startFd and attachFd
-func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-chan remotecommand.TerminalSize, sessionID string, startFd, attachFd *os.File) error {
+func (c *Container) attachToExec(streams *AttachStreams, keys *string, sessionID string, startFd, attachFd *os.File) error {
 	if !streams.AttachOutput && !streams.AttachError && !streams.AttachInput {
 		return errors.Wrapf(define.ErrInvalidArg, "must provide at least one stream to attach to")
 	}
@@ -104,7 +104,11 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 	defer errorhandling.CloseQuiet(startFd)
 	defer errorhandling.CloseQuiet(attachFd)
 
-	detachKeys, err := processDetachKeys(keys)
+	detachString := define.DefaultDetachKeys
+	if keys != nil {
+		detachString = *keys
+	}
+	detachKeys, err := processDetachKeys(detachString)
 	if err != nil {
 		return err
 	}
@@ -133,10 +137,6 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 			logrus.Errorf("unable to close socket: %q", err)
 		}
 	}()
-
-	// Register the resize func after we've read the attach socket, as we know at this point the
-	// 'ctl' file has been created in conmon
-	registerResizeFunc(resize, c.execBundlePath(sessionID))
 
 	// start listening on stdio of the process
 	receiveStdoutError, stdinDone := setupStdioChannels(streams, conn, detachKeys)

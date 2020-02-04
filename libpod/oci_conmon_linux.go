@@ -769,7 +769,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	attachChan := make(chan error)
 	go func() {
 		// attachToExec is responsible for closing pipes
-		attachChan <- c.attachToExec(options.Streams, options.DetachKeys, options.Resize, sessionID, parentStartPipe, parentAttachPipe)
+		attachChan <- c.attachToExec(options.Streams, options.DetachKeys, sessionID, parentStartPipe, parentAttachPipe)
 		close(attachChan)
 	}()
 	attachToExecCalled = true
@@ -783,37 +783,54 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	return pid, attachChan, err
 }
 
+// ExecAttachResize resizes the TTY of the given exec session.
+func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize remotecommand.TerminalSize) error {
+	// TODO: probably want a dedicated function to get ctl file path?
+	controlPath := filepath.Join(ctr.execBundlePath(sessionID), "ctl")
+	controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY, 0)
+	if err != nil {
+		return errors.Wrapf(err, "could not open ctl file for terminal resize for container %s exec session %s", ctr.ID(), sessionID)
+	}
+	defer controlFile.Close()
+
+	logrus.Debugf("Received a resize event for container %s exec session %s: %+v", ctr.ID(), sessionID, newSize)
+	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, newSize.Height, newSize.Width); err != nil {
+		return errors.Wrapf(err, "failed to write to ctl file to resize terminal")
+	}
+
+	return nil
+}
+
 // ExecStopContainer stops a given exec session in a running container.
 func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
-	session, ok := ctr.state.ExecSessions[sessionID]
-	if !ok {
-		// TODO This should probably be a separate error
-		return errors.Wrapf(define.ErrInvalidArg, "no exec session with ID %s found in container %s", sessionID, ctr.ID())
+	pid, err := ctr.getExecSessionPID(sessionID)
+	if err != nil {
+		return err
 	}
 
 	logrus.Debugf("Going to stop container %s exec session %s", ctr.ID(), sessionID)
 
 	// Is the session dead?
 	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(session.PID, 0); err != nil {
+	if err := unix.Kill(pid, 0); err != nil {
 		if err == unix.ESRCH {
 			return nil
 		}
-		return errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, session.PID)
+		return errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, pid)
 	}
 
 	if timeout > 0 {
 		// Use SIGTERM by default, then SIGSTOP after timeout.
-		logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGTERM", sessionID, session.PID, ctr.ID())
-		if err := unix.Kill(session.PID, unix.SIGTERM); err != nil {
+		logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGTERM", sessionID, pid, ctr.ID())
+		if err := unix.Kill(pid, unix.SIGTERM); err != nil {
 			if err == unix.ESRCH {
 				return nil
 			}
-			return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGTERM", ctr.ID(), sessionID, session.PID)
+			return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGTERM", ctr.ID(), sessionID, pid)
 		}
 
 		// Wait for the PID to stop
-		if err := waitPidStop(session.PID, time.Duration(timeout)*time.Second); err != nil {
+		if err := waitPidStop(pid, time.Duration(timeout)*time.Second); err != nil {
 			logrus.Warnf("Timed out waiting for container %s exec session %s to stop, resorting to SIGKILL", ctr.ID(), sessionID)
 		} else {
 			// No error, container is dead
@@ -822,17 +839,17 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 	}
 
 	// SIGTERM did not work. On to SIGKILL.
-	logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGKILL", sessionID, session.PID, ctr.ID())
-	if err := unix.Kill(session.PID, unix.SIGTERM); err != nil {
+	logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGKILL", sessionID, pid, ctr.ID())
+	if err := unix.Kill(pid, unix.SIGTERM); err != nil {
 		if err == unix.ESRCH {
 			return nil
 		}
-		return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGKILL", ctr.ID(), sessionID, session.PID)
+		return errors.Wrapf(err, "error killing container %s exec session %s PID %d with SIGKILL", ctr.ID(), sessionID, pid)
 	}
 
 	// Wait for the PID to stop
-	if err := waitPidStop(session.PID, killContainerTimeout*time.Second); err != nil {
-		return errors.Wrapf(err, "timed out waiting for container %s exec session %s PID %d to stop after SIGKILL", ctr.ID(), sessionID, session.PID)
+	if err := waitPidStop(pid, killContainerTimeout*time.Second); err != nil {
+		return errors.Wrapf(err, "timed out waiting for container %s exec session %s PID %d to stop after SIGKILL", ctr.ID(), sessionID, pid)
 	}
 
 	return nil
@@ -840,21 +857,20 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 // ExecUpdateStatus checks if the given exec session is still running.
 func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
-	session, ok := ctr.state.ExecSessions[sessionID]
-	if !ok {
-		// TODO This should probably be a separate error
-		return false, errors.Wrapf(define.ErrInvalidArg, "no exec session with ID %s found in container %s", sessionID, ctr.ID())
+	pid, err := ctr.getExecSessionPID(sessionID)
+	if err != nil {
+		return false, err
 	}
 
 	logrus.Debugf("Checking status of container %s exec session %s", ctr.ID(), sessionID)
 
 	// Is the session dead?
 	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(session.PID, 0); err != nil {
+	if err := unix.Kill(pid, 0); err != nil {
 		if err == unix.ESRCH {
 			return false, nil
 		}
-		return false, errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, session.PID)
+		return false, errors.Wrapf(err, "error pinging container %s exec session %s PID %d with signal 0", ctr.ID(), sessionID, pid)
 	}
 
 	return true, nil

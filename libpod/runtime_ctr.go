@@ -462,11 +462,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	// Check that all of our exec sessions have finished
-	for _, session := range c.state.ExecSessions {
-		if err := c.ociRuntime.ExecStopContainer(c, session.ID, c.StopTimeout()); err != nil {
-			return errors.Wrapf(err, "error stopping exec session %s of container %s", session.ID, c.ID())
-		}
+	// Remove all active exec sessions
+	if err := c.removeAllExecSessions(); err != nil {
+		return err
 	}
 
 	// Check that no other containers depend on the container.
@@ -483,9 +481,8 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 	}
 
-	// Set ContainerStateRemoving and remove exec sessions
+	// Set ContainerStateRemoving
 	c.state.State = define.ContainerStateRemoving
-	c.state.ExecSessions = nil
 
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "unable to set container %s removing state in database", c.ID())

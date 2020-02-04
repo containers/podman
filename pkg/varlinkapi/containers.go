@@ -846,11 +846,6 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 		workDir = *opts.Workdir
 	}
 
-	var detachKeys string
-	if opts.DetachKeys != nil {
-		detachKeys = *opts.DetachKeys
-	}
-
 	resizeChan := make(chan remotecommand.TerminalSize)
 
 	reader, writer, _, pipeWriter, streams := setupStreams(call)
@@ -870,8 +865,17 @@ func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecO
 		}
 	}()
 
+	execConfig := new(libpod.ExecConfig)
+	execConfig.Command = opts.Cmd
+	execConfig.Terminal = opts.Tty
+	execConfig.Privileged = opts.Privileged
+	execConfig.Environment = envs
+	execConfig.User = user
+	execConfig.WorkDir = workDir
+	execConfig.DetachKeys = opts.DetachKeys
+
 	go func() {
-		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, detachKeys)
+		ec, err := ctr.Exec(execConfig, streams, resizeChan)
 		if err != nil {
 			logrus.Errorf(err.Error())
 		}
