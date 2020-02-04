@@ -3,7 +3,6 @@ package bindings
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/pkg/errors"
@@ -26,7 +25,7 @@ func (a APIResponse) Process(unmarshalInto interface{}) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to process API response")
 	}
-	if a.Response.StatusCode == http.StatusOK {
+	if a.IsSuccess() {
 		if unmarshalInto != nil {
 			return json.Unmarshal(data, unmarshalInto)
 		}
