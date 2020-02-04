@@ -126,6 +126,7 @@ func (ir *Runtime) pullGoalFromImageReference(ctx context.Context, srcRef types.
 		if err != nil {
 			return nil, err
 		}
+		defer tarSource.Close()
 		manifest, err := tarSource.LoadTarManifest()
 
 		if err != nil {
