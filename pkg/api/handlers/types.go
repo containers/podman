@@ -49,6 +49,21 @@ type LibpodContainersPruneReport struct {
 	PruneError     string `json:"error"`
 }
 
+type LibpodImagesLoadReport struct {
+	ID       string   `json:"id"`
+	RepoTags []string `json:"repoTags"`
+}
+
+type LibpodImagesImportReport struct {
+	ID       string   `json:"id"`
+	RepoTags []string `json:"repoTags"`
+}
+
+type LibpodImagesPullReport struct {
+	ID       string   `json:"id"`
+	RepoTags []string `json:"repoTags"`
+}
+
 type Info struct {
 	docker.Info
 	BuildahVersion     string
