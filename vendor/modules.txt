@@ -340,7 +340,7 @@ github.com/modern-go/reflect2
 github.com/morikuni/aec
 # github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 github.com/mrunalp/fileutils
-# github.com/mtrmac/gpgme v0.1.1
+# github.com/mtrmac/gpgme v0.1.2
 github.com/mtrmac/gpgme
 # github.com/onsi/ginkgo v1.11.0
 github.com/onsi/ginkgo

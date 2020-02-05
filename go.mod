@@ -45,6 +45,7 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/mrtazz/checkmake v0.0.0-20191009095831-03dd76b964dd // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
+	github.com/mtrmac/gpgme v0.1.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.9.0

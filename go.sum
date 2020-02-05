@@ -376,6 +376,8 @@ github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c h1:xa+eQWKuJ9MbB9FBL/
 github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c/go.mod h1:GhAqVMEWnTcW2dxoD/SO3n2enrgWl3y6Dnx4m59GvcA=
 github.com/mtrmac/gpgme v0.1.1 h1:a5ISnvahzTzBH0m/klhehN68N+9+/jLwhpPFtH3oPAQ=
 github.com/mtrmac/gpgme v0.1.1/go.mod h1:GYYHnGSuS7HK3zVS2n3y73y0okK/BeKzwnn5jgiVFNI=
+github.com/mtrmac/gpgme v0.1.2 h1:dNOmvYmsrakgW7LcgiprD0yfRuQQe8/C8F6Z+zogO3s=
+github.com/mtrmac/gpgme v0.1.2/go.mod h1:GYYHnGSuS7HK3zVS2n3y73y0okK/BeKzwnn5jgiVFNI=
 github.com/munnerz/goautoneg v0.0.0-20120707110453-a547fc61f48d/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mwitkow/go-conntrack v0.0.0-20161129095857-cc309e4a2223/go.mod h1:qRWi+5nqEBWmkhHvq77mSJWrCKwh8bxhgT7d/eI7P4U=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
