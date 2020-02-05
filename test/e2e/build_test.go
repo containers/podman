@@ -3,7 +3,9 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	. "github.com/containers/libpod/test/utils"
@@ -104,5 +106,40 @@ var _ = Describe("Podman build", func() {
 		session = podmanTest.PodmanNoCache([]string{"rmi", "-a", "-f"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman build Containerfile locations", func() {
+		// Given
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		defer Expect(os.Chdir(cwd)).To(BeNil())
+
+		// Write target and fake files
+		targetPath := filepath.Join(os.TempDir(), "dir")
+		Expect(os.MkdirAll(targetPath, 0755)).To(BeNil())
+
+		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
+		Expect(ioutil.WriteFile(fakeFile, []byte("FROM alpine"), 0755)).To(BeNil())
+
+		targetFile := filepath.Join(targetPath, "Containerfile")
+		Expect(ioutil.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(BeNil())
+
+		defer func() {
+			Expect(os.RemoveAll(fakeFile)).To(BeNil())
+			Expect(os.RemoveAll(targetFile)).To(BeNil())
+		}()
+
+		// When
+		session := podmanTest.PodmanNoCache([]string{
+			"build", "-f", targetFile, "-t", "test-locations",
+		})
+		session.WaitWithDefaultTimeout()
+
+		// Then
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(strings.Fields(session.OutputToString())).
+			To(ContainElement("scratch"))
 	})
 })
