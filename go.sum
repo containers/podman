@@ -61,6 +61,8 @@ github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982 h1:5WUe09k2s
 github.com/containers/buildah v1.11.5-0.20191031204705-20e92ffe0982/go.mod h1:eGWB4tLoo0hIBuytQpvgUC0hk2mvl2ofaYBeDsU/qoc=
 github.com/containers/image/v5 v5.0.0 h1:arnXgbt1ucsC/ndtSpiQY87rA0UjhF+/xQnPzqdBDn4=
 github.com/containers/image/v5 v5.0.0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
+github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0 h1:iV4aHKRoPcHp5BISsuiPMyaCjGJfLKp/FUMAG1NeqvE=
+github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0/go.mod h1:MgiLzCfIeo8lrHi+4Lb8HP+rh513sm0Mlk6RrhjFOLY=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/psgo v1.3.2 h1:jYfppPih3S/j2Yi5O14AXjd8GfCx1ph9L3YsoK3adko=

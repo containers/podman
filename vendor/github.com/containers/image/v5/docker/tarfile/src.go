@@ -11,6 +11,7 @@ import (
 	"path"
 	"sync"
 
+	"github.com/containers/image/v5/internal/iolimits"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
@@ -187,13 +188,13 @@ func findTarComponent(inputFile io.Reader, path string) (*tar.Reader, *tar.Heade
 }
 
 // readTarComponent returns full contents of componentPath.
-func (s *Source) readTarComponent(path string) ([]byte, error) {
+func (s *Source) readTarComponent(path string, limit int) ([]byte, error) {
 	file, err := s.openTarComponent(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Error loading tar component %s", path)
 	}
 	defer file.Close()
-	bytes, err := ioutil.ReadAll(file)
+	bytes, err := iolimits.ReadAtMost(file, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +225,7 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	}
 
 	// Read and parse config.
-	configBytes, err := s.readTarComponent(tarManifest[0].Config)
+	configBytes, err := s.readTarComponent(tarManifest[0].Config, iolimits.MaxConfigBodySize)
 	if err != nil {
 		return err
 	}
@@ -250,7 +251,7 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 // loadTarManifest loads and decodes the manifest.json.
 func (s *Source) loadTarManifest() ([]ManifestItem, error) {
 	// FIXME? Do we need to deal with the legacy format?
-	bytes, err := s.readTarComponent(manifestFileName)
+	bytes, err := s.readTarComponent(manifestFileName, iolimits.MaxTarFileManifestSize)
 	if err != nil {
 		return nil, err
 	}
