@@ -34,8 +34,7 @@ type ContainerConfig struct {
 }
 
 type LibpodImagesLoadReport struct {
-	ID       string   `json:"id"`
-	RepoTags []string `json:"repoTags"`
+	ID string `json:"id"`
 }
 
 type LibpodImagesImportReport struct {

@@ -3,6 +3,7 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -183,8 +184,41 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImagesLoad(w http.ResponseWriter, r *http.Request) {
-	//TODO ...
-	utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.New("/libpod/images/load is not yet implemented"))
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Reference string `schema:"reference"`
+	}{
+		// Add defaults here once needed.
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	tmpfile, err := ioutil.TempFile("", "libpod-images-load.tar")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to create tempfile"))
+		return
+	}
+	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
+
+	if _, err := io.Copy(tmpfile, r.Body); err != nil && err != io.EOF {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to write archive to temporary file"))
+		return
+	}
+
+	tmpfile.Close()
+	loadedImage, err := runtime.LoadImage(context.Background(), query.Reference, tmpfile.Name(), os.Stderr, "")
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to load image"))
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusOK, []handlers.LibpodImagesLoadReport{{ID: loadedImage}})
 }
 
 func ImagesImport(w http.ResponseWriter, r *http.Request) {

@@ -640,12 +640,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// parameters:
 	//   - in: query
 	//     name: change
-	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//     type: string
-	//   - in: query
-	//     name: message
-	//     description: Set commit message for imported image
-	//     type: string
+	//     description: "Optional Name[:TAG] for the image"
+	//     type: reference
 	//   - in: formData
 	//     name: upload
 	//     description: tarball of container image
@@ -656,6 +652,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesLoadResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImagesLoad)).Methods(http.MethodPost)
@@ -688,6 +686,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesImportResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), APIHandler(s.Context, libpod.ImagesImport)).Methods(http.MethodPost)
