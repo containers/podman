@@ -6,9 +6,9 @@
 # FIXME: API doesn't support pull yet, so use podman
 podman pull -q $IMAGE
 
-# We want the SHA without the "sha256:" prefix
-full_iid=$(podman images --no-trunc --format '{{.ID}}' $IMAGE)
-iid=${full_iid##sha256:}
+t GET libpod/images/json 200 \
+  .[0].Id~[0-9a-f]\\{64\\}
+iid=$(jq -r '.[0].Id' <<<"$output")
 
 t GET libpod/images/$iid/exists                     204
 t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/exists  204

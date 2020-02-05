@@ -27,7 +27,8 @@ t GET  /nonesuch                       404
 t POST /nonesuch ''                    404
 t GET  container/nonesuch/json         404
 t GET  libpod/containers/nonesuch/json 404
-t GET 'libpod/containers/json?a=b'     400
+
+#### FIXME: maybe someday: t GET 'libpod/containers/json?a=b'     400
 
 # Method not allowed
 t POST   /_ping                 '' 405

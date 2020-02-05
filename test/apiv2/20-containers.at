@@ -11,18 +11,22 @@ podman pull $IMAGE &>/dev/null
 # Ensure clean slate
 podman rm -a -f &>/dev/null
 
-t GET libpod/containers/json 200 []
+t GET libpod/containers/json 200 length=0
 
 podman run $IMAGE true
 
-t GET libpod/containers/json 200 \
-  .[0].ID~[0-9a-f]\\{12\\} \
+t GET libpod/containers/json 200 length=0
+
+t GET libpod/containers/json?all=true 200 \
+  length=1 \
+  .[0].Id~[0-9a-f]\\{12\\} \
   .[0].Image=$IMAGE \
-  .[0].Command=true \
-  .[0].State=4 \
+  .[0].Command[0]="true" \
+  .[0].State=exited \
+  .[0].ExitCode=0 \
   .[0].IsInfra=false
 
-cid=$(jq -r '.[0].ID' <<<"$output")
+cid=$(jq -r '.[0].Id' <<<"$output")
 
 t DELETE libpod/containers/$cid 204
 
