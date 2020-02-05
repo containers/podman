@@ -29,6 +29,8 @@ github.com/Microsoft/hcsshim/internal/wclayer
 github.com/Microsoft/hcsshim/osversion
 # github.com/VividCortex/ewma v1.1.1
 github.com/VividCortex/ewma
+# github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d
+github.com/acarl005/stripansi
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
 # github.com/blang/semver v3.5.1+incompatible
@@ -80,7 +82,7 @@ github.com/containers/common/pkg/cgroups
 github.com/containers/common/pkg/unshare
 # github.com/containers/conmon v2.0.10+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.1.0
+# github.com/containers/image/v5 v5.2.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -91,6 +93,7 @@ github.com/containers/image/v5/docker/policyconfiguration
 github.com/containers/image/v5/docker/reference
 github.com/containers/image/v5/docker/tarfile
 github.com/containers/image/v5/image
+github.com/containers/image/v5/internal/iolimits
 github.com/containers/image/v5/internal/pkg/keyctl
 github.com/containers/image/v5/internal/tmpdir
 github.com/containers/image/v5/manifest
@@ -337,7 +340,7 @@ github.com/modern-go/reflect2
 github.com/morikuni/aec
 # github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 github.com/mrunalp/fileutils
-# github.com/mtrmac/gpgme v0.0.0-20170102180018-b2432428689c
+# github.com/mtrmac/gpgme v0.1.2
 github.com/mtrmac/gpgme
 # github.com/onsi/ginkgo v1.11.0
 github.com/onsi/ginkgo
@@ -510,7 +513,7 @@ github.com/varlink/go/varlink/idl
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v4 v4.11.1
+# github.com/vbauerster/mpb/v4 v4.11.2
 github.com/vbauerster/mpb/v4
 github.com/vbauerster/mpb/v4/cwriter
 github.com/vbauerster/mpb/v4/decor

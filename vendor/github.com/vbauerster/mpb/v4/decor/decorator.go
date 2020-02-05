@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"unicode/utf8"
+
+	"github.com/acarl005/stripansi"
 )
 
 const (
@@ -117,25 +119,29 @@ var (
 // W represents width and C represents bit set of width related config.
 // A decorator should embed WC, to enable width synchronization.
 type WC struct {
-	W            int
-	C            int
-	dynFormat    string
-	staticFormat string
-	wsync        chan int
+	W         int
+	C         int
+	dynFormat string
+	wsync     chan int
 }
 
 // FormatMsg formats final message according to WC.W and WC.C.
 // Should be called by any Decorator implementation.
 func (wc *WC) FormatMsg(msg string) string {
+	var format string
+	runeCount := utf8.RuneCountInString(stripansi.Strip(msg))
+	ansiCount := utf8.RuneCountInString(msg) - runeCount
 	if (wc.C & DSyncWidth) != 0 {
-		wc.wsync <- utf8.RuneCountInString(msg)
-		max := <-wc.wsync
 		if (wc.C & DextraSpace) != 0 {
-			max++
+			runeCount++
 		}
-		return fmt.Sprintf(fmt.Sprintf(wc.dynFormat, max), msg)
+		wc.wsync <- runeCount
+		max := <-wc.wsync
+		format = fmt.Sprintf(wc.dynFormat, ansiCount+max)
+	} else {
+		format = fmt.Sprintf(wc.dynFormat, ansiCount+wc.W)
 	}
-	return fmt.Sprintf(wc.staticFormat, msg)
+	return fmt.Sprintf(format, msg)
 }
 
 // Init initializes width related config.
@@ -145,7 +151,6 @@ func (wc *WC) Init() WC {
 		wc.dynFormat += "-"
 	}
 	wc.dynFormat += "%ds"
-	wc.staticFormat = fmt.Sprintf(wc.dynFormat, wc.W)
 	if (wc.C & DSyncWidth) != 0 {
 		// it's deliberate choice to override wsync on each Init() call,
 		// this way globals like WCSyncSpace can be reused

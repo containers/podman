@@ -18,9 +18,7 @@ func (prox *proxyReader) Read(p []byte) (n int, err error) {
 		prox.iT = time.Now()
 	}
 	if err == io.EOF {
-		go func() {
-			prox.bar.SetTotal(0, true)
-		}()
+		go prox.bar.SetTotal(0, true)
 	}
 	return
 }
@@ -37,9 +35,7 @@ func (prox *proxyWriterTo) WriteTo(w io.Writer) (n int64, err error) {
 		prox.iT = time.Now()
 	}
 	if err == io.EOF {
-		go func() {
-			prox.bar.SetTotal(0, true)
-		}()
+		go prox.bar.SetTotal(0, true)
 	}
 	return
 }

@@ -154,6 +154,6 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 // WARNING: The short key identifier (which correponds to "Key ID" for OpenPGP keys)
 // is NOT the same as a "key identity" used in other calls ot this interface, and
 // the values may have no recognizable relationship if the public key is not available.
-func (m openpgpSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
+func (m *openpgpSigningMechanism) UntrustedSignatureContents(untrustedSignature []byte) (untrustedContents []byte, shortKeyIdentifier string, err error) {
 	return gpgUntrustedSignatureContents(untrustedSignature)
 }

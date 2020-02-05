@@ -709,7 +709,7 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 			wantedOS = sys.OSChoice
 		}
 		if wantedOS != c.OS {
-			return fmt.Errorf("Image operating system mismatch: image uses %q, expecting %q", c.OS, wantedOS)
+			logrus.Infof("Image operating system mismatch: image uses %q, expecting %q", c.OS, wantedOS)
 		}
 
 		wantedArch := runtime.GOARCH
@@ -717,7 +717,7 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 			wantedArch = sys.ArchitectureChoice
 		}
 		if wantedArch != c.Architecture {
-			return fmt.Errorf("Image architecture mismatch: image uses %q, expecting %q", c.Architecture, wantedArch)
+			logrus.Infof("Image architecture mismatch: image uses %q, expecting %q", c.Architecture, wantedArch)
 		}
 	}
 	return nil
