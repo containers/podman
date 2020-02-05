@@ -1254,6 +1254,12 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (err e
 				}
 			}
 		}
+		// Ensure we tear down the container network so it will be
+		// recreated - otherwise, behavior of restart differs from stop
+		// and start
+		if err := c.cleanupNetwork(); err != nil {
+			return err
+		}
 	}
 	defer func() {
 		if err != nil {
