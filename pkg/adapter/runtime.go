@@ -133,6 +133,15 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 	return &ContainerImage{img}, nil
 }
 
+// ImageTree reutnrs an new image.Tree for the provided `imageOrID` and `whatrequires` flag
+func (r *LocalRuntime) ImageTree(imageOrID string, whatRequires bool) (string, error) {
+	img, err := r.Runtime.ImageRuntime().NewFromLocal(imageOrID)
+	if err != nil {
+		return "", err
+	}
+	return img.GenerateTree(whatRequires)
+}
+
 // LoadFromArchiveReference calls into local storage to load an image from an archive
 func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
 	var containerImages []*ContainerImage

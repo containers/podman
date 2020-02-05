@@ -1188,6 +1188,16 @@ method GetPodsByStatus(statuses: []string) -> (pods: []string)
 # ~~~
 method ImageExists(name: string) -> (exists: int)
 
+# ImageTree returns the image tree for the provided image name or ID
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
+# {
+#   "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
+# }
+# ~~~
+method ImageTree(name: string, whatRequires: bool) -> (tree: string)
+
 # ContainerExists takes a full or partial container ID or name and returns an int as to
 # whether the container exists in local storage.  A result of 0 means the container does
 # exists; whereas a result of 1 means it could not be found.

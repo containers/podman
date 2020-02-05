@@ -344,6 +344,10 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 	return newImage, nil
 }
 
+func (r *LocalRuntime) ImageTree(imageOrID string, whatRequires bool) (string, error) {
+	return iopodman.ImageTree().Call(r.Conn, imageOrID, whatRequires)
+}
+
 // IsParent goes through the layers in the store and checks if i.TopLayer is
 // the parent of any other layer in store. Double check that image with that
 // layer exists as well.

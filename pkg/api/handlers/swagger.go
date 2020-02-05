@@ -136,3 +136,12 @@ type swagInspectVolumeResponse struct {
 		libpod.InspectVolumeData
 	}
 }
+
+// Image tree response
+// swagger:response LibpodImageTreeResponse
+type swagImageTreeResponse struct {
+	// in:body
+	Body struct {
+		ImageTreeResponse
+	}
+}
