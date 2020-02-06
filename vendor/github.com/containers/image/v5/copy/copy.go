@@ -380,6 +380,7 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 			return nil, "", errors.Wrap(err, "Can not copy signatures")
 		}
 	}
+	canModifyManifestList := (len(sigs) == 0)
 
 	// Determine if we'll need to convert the manifest list to a different format.
 	forceListMIMEType := options.ForceManifestMIMEType
@@ -394,7 +395,6 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 		return nil, "", errors.Wrapf(err, "Error determining manifest list type to write to destination")
 	}
 	if selectedListType != list.MIMEType() {
-		canModifyManifestList := (len(sigs) == 0)
 		if !canModifyManifestList {
 			return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", selectedListType)
 		}
@@ -451,12 +451,6 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 		return nil, "", errors.Wrapf(err, "Error updating manifest list")
 	}
 
-	// Check if the updates meaningfully changed the list of images.
-	listIsModified := false
-	if !reflect.DeepEqual(list.Instances(), originalList.Instances()) {
-		listIsModified = true
-	}
-
 	// Perform the list conversion.
 	if selectedListType != list.MIMEType() {
 		list, err = list.ConvertToMIMEType(selectedListType)
@@ -465,12 +459,23 @@ func (c *copier) copyMultipleImages(ctx context.Context, policyContext *signatur
 		}
 	}
 
-	// If we can't use the original value, but we have to change it, flag an error.
-	if listIsModified {
-		manifestList, err = list.Serialize()
-		if err != nil {
-			return nil, "", errors.Wrapf(err, "Error encoding updated manifest list (%q: %#v)", list.MIMEType(), list.Instances())
+	// Check if the updates or a type conversion meaningfully changed the list of images
+	// by serializing them both so that we can compare them.
+	updatedManifestList, err := list.Serialize()
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "Error encoding updated manifest list (%q: %#v)", list.MIMEType(), list.Instances())
+	}
+	originalManifestList, err := originalList.Serialize()
+	if err != nil {
+		return nil, "", errors.Wrapf(err, "Error encoding original manifest list for comparison (%q: %#v)", originalList.MIMEType(), originalList.Instances())
+	}
+
+	// If we can't just use the original value, but we have to change it, flag an error.
+	if !bytes.Equal(updatedManifestList, originalManifestList) {
+		if !canModifyManifestList {
+			return nil, "", errors.Errorf("Error: manifest list must be converted to type %q to be written to destination, but that would invalidate signatures", selectedListType)
 		}
+		manifestList = updatedManifestList
 		logrus.Debugf("Manifest list has been updated")
 	}
 

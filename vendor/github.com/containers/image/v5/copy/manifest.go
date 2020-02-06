@@ -127,13 +127,13 @@ func isMultiImage(ctx context.Context, img types.UnparsedImage) (bool, error) {
 // forced value, and returns the MIME type to which we should convert the list
 // of manifests, whether we are converting to it or using it unmodified.
 func (c *copier) determineListConversion(currentListMIMEType string, destSupportedMIMETypes []string, forcedListMIMEType string) (string, error) {
-	// If we're forcing it, we prefer the forced value over everything else.
-	if forcedListMIMEType != "" {
-		return forcedListMIMEType, nil
-	}
 	// If there's no list of supported types, then anything we support is expected to be supported.
 	if len(destSupportedMIMETypes) == 0 {
 		destSupportedMIMETypes = manifest.SupportedListMIMETypes
+	}
+	// If we're forcing it, replace the list of supported types with the forced value.
+	if forcedListMIMEType != "" {
+		destSupportedMIMETypes = []string{forcedListMIMEType}
 	}
 	var selectedType string
 	for i := range destSupportedMIMETypes {
@@ -148,8 +148,14 @@ func (c *copier) determineListConversion(currentListMIMEType string, destSupport
 			selectedType = destSupportedMIMETypes[i]
 		}
 	}
+	logrus.Debugf("Manifest list has MIME type %s, ordered candidate list [%s]", currentListMIMEType, strings.Join(destSupportedMIMETypes, ", "))
 	if selectedType == "" {
 		return "", errors.Errorf("destination does not support any supported manifest list types (%v)", manifest.SupportedListMIMETypes)
+	}
+	if selectedType != currentListMIMEType {
+		logrus.Debugf("... will convert to %s", selectedType)
+	} else {
+		logrus.Debugf("... will use the original manifest list type")
 	}
 	// Done.
 	return selectedType, nil

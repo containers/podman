@@ -12,7 +12,7 @@ require (
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.13.1
 	github.com/containers/conmon v2.0.10+incompatible
-	github.com/containers/image/v5 v5.2.0
+	github.com/containers/image/v5 v5.2.1
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.8
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
@@ -45,7 +45,6 @@ require (
 	github.com/json-iterator/go v1.1.9
 	github.com/mrtazz/checkmake v0.0.0-20191009095831-03dd76b964dd // indirect
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
-	github.com/mtrmac/gpgme v0.1.2 // indirect
 	github.com/olekukonko/tablewriter v0.0.4 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
