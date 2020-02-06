@@ -26,9 +26,6 @@ func getMainCommands() []*cobra.Command {
 	if len(_varlinkCommand.Use) > 0 {
 		rootCommands = append(rootCommands, _varlinkCommand)
 	}
-	if len(_serviceCommand.Use) > 0 {
-		rootCommands = append(rootCommands, _serviceCommand)
-	}
 	return rootCommands
 }
 
@@ -71,9 +68,15 @@ func getTrustSubCommands() []*cobra.Command {
 
 // Commands that the local client implements
 func getSystemSubCommands() []*cobra.Command {
-	return []*cobra.Command{
+	systemCommands := []*cobra.Command{
 		_renumberCommand,
 		_dfSystemCommand,
 		_migrateCommand,
 	}
+
+	if len(_serviceCommand.Use) > 0 {
+		systemCommands = append(systemCommands, _serviceCommand)
+	}
+
+	return systemCommands
 }

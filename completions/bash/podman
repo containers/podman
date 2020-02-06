@@ -1200,6 +1200,19 @@ _podman_system_prune() {
     esac
 }
 
+_podman_system_service() {
+	local options_with_args="
+	-t
+	--timeout
+	"
+	local boolean_options="
+	      --help
+	      -h
+	      --varlink
+	"
+	_complete_ "$options_with_args" "$boolean_options"
+}
+
 _podman_system() {
     local boolean_options="
 	--help
@@ -1751,19 +1764,6 @@ _podman_search() {
 	      --help
 	      -h
 	      --no-trunc
-	"
-	_complete_ "$options_with_args" "$boolean_options"
-}
-
-_podman_service() {
-	local options_with_args="
-	-t
-	--timeout
-	"
-	local boolean_options="
-	      --help
-	      -h
-	      --varlink
 	"
 	_complete_ "$options_with_args" "$boolean_options"
 }
