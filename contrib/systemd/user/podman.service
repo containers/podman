@@ -8,7 +8,7 @@ StartLimitIntervalSec=0
 [Service]
 Type=oneshot
 Environment=REGISTRIES_CONFIG_PATH=/etc/containers/registries.conf
-ExecStart=%h/bin/service
+ExecStart=/usr/bin/podman system service
 TimeoutStopSec=30
 KillMode=process
 
