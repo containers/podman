@@ -193,8 +193,6 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		}
 	}
 
-	var removalErr error
-
 	// We're going to be removing containers.
 	// If we are CGroupfs cgroup driver, to avoid races, we need to hit
 	// the pod and conmon CGroups with a PID limit to prevent them from
@@ -205,7 +203,7 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		conmonCgroupPath := filepath.Join(p.state.CgroupPath, "conmon")
 		conmonCgroup, err := cgroups.Load(conmonCgroupPath)
 		if err != nil && err != cgroups.ErrCgroupDeleted && err != cgroups.ErrCgroupV1Rootless {
-			removalErr = errors.Wrapf(err, "error retrieving pod %s conmon cgroup %s", p.ID(), conmonCgroupPath)
+			logrus.Errorf("Error retrieving pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
 		}
 
 		// New resource limits
@@ -216,14 +214,12 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 		// Don't try if we failed to retrieve the cgroup
 		if err == nil {
 			if err := conmonCgroup.Update(resLimits); err != nil {
-				if removalErr == nil {
-					removalErr = errors.Wrapf(err, "error updating pod %s conmon group", p.ID())
-				} else {
-					logrus.Errorf("Error updating pod %s conmon cgroup %s: %v", p.ID(), conmonCgroupPath, err)
-				}
+				logrus.Warnf("Error updating pod %s conmon cgroup %s PID limit: %v", p.ID(), conmonCgroupPath, err)
 			}
 		}
 	}
+
+	var removalErr error
 
 	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
 
