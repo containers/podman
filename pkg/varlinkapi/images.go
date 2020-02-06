@@ -143,6 +143,7 @@ func (i *LibpodAPI) GetImage(call iopodman.VarlinkCall, id string) error {
 func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildInfo) error {
 	var (
 		namespace []buildah.NamespaceOption
+		imageID   string
 		err       error
 	)
 
@@ -249,7 +250,8 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 
 	c := make(chan error)
 	go func() {
-		_, _, err := i.Runtime.Build(getContext(), options, newPathDockerFiles...)
+		iid, _, err := i.Runtime.Build(getContext(), options, newPathDockerFiles...)
+		imageID = iid
 		c <- err
 		close(c)
 	}()
@@ -291,13 +293,9 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 	}
 	call.Continues = false
 
-	newImage, err := i.Runtime.ImageRuntime().NewFromLocal(config.Output)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
 	br := iopodman.MoreResponse{
 		Logs: log,
-		Id:   newImage.ID(),
+		Id:   imageID,
 	}
 	return call.ReplyBuildImage(br)
 }
