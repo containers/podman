@@ -1,0 +1,1 @@
+FROM fedora-minimal:latest
