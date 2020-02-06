@@ -761,6 +761,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			CPURtPeriod:       c.Uint64("cpu-rt-period"),
 			CPURtRuntime:      c.Int64("cpu-rt-runtime"),
 			CPUs:              c.Float64("cpus"),
+			DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
 			DeviceReadBps:     c.StringSlice("device-read-bps"),
 			DeviceReadIOps:    c.StringSlice("device-read-iops"),
 			DeviceWriteBps:    c.StringSlice("device-write-bps"),

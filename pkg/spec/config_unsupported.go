@@ -30,3 +30,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 func devicesFromPath(g *generate.Generator, devicePath string) error {
 	return errors.New("function not implemented")
 }
+
+func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
+	return errors.New("function not implemented")
+}

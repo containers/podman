@@ -232,6 +232,12 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 				return nil, err
 			}
 		}
+		if len(config.Resources.DeviceCgroupRules) != 0 {
+			if err := deviceCgroupRules(&g, config.Resources.DeviceCgroupRules); err != nil {
+				return nil, err
+			}
+			addedResources = true
+		}
 	}
 
 	// SECURITY OPTS

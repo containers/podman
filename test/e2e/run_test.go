@@ -999,4 +999,16 @@ USER mail`
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("podman run --device-cgroup-rule", func() {
+		SkipIfRemote()
+		SkipIfRootless()
+		deviceCgroupRule := "c 42:* rwm"
+		session := podmanTest.Podman([]string{"run", "--name", "test", "-d", "--device-cgroup-rule", deviceCgroupRule, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"exec", "test", "mknod", "newDev", "c", "42", "1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
 })

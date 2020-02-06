@@ -386,6 +386,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["detach"] = newCRBool(c, "detach")
 	m["detach-keys"] = newCRString(c, "detach-keys")
 	m["device"] = newCRStringSlice(c, "device")
+	m["device-cgroup-rule"] = newCRStringSlice(c, "device-cgroup-rule")
 	m["device-read-bps"] = newCRStringSlice(c, "device-read-bps")
 	m["device-read-iops"] = newCRStringSlice(c, "device-read-iops")
 	m["device-write-bps"] = newCRStringSlice(c, "device-write-bps")

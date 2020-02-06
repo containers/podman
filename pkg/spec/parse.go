@@ -2,11 +2,16 @@ package createconfig
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/docker/go-units"
+	"github.com/pkg/errors"
 )
+
+// deviceCgroupRulegex defines the valid format of device-cgroup-rule
+var deviceCgroupRuleRegex = regexp.MustCompile(`^([acb]) ([0-9]+|\*):([0-9]+|\*) ([rwm]{1,3})$`)
 
 // Pod signifies a kernel namespace is being shared
 // by a container with the pod it is associated with
@@ -204,4 +209,17 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
+}
+
+// validateDeviceCgroupRule validates the format of deviceCgroupRule
+func validateDeviceCgroupRule(deviceCgroupRule string) error {
+	if !deviceCgroupRuleRegex.MatchString(deviceCgroupRule) {
+		return errors.Errorf("invalid device cgroup rule format: '%s'", deviceCgroupRule)
+	}
+	return nil
+}
+
+// parseDeviceCgroupRule matches and parses the deviceCgroupRule into slice
+func parseDeviceCgroupRule(deviceCgroupRule string) [][]string {
+	return deviceCgroupRuleRegex.FindAllStringSubmatch(deviceCgroupRule, -1)
 }

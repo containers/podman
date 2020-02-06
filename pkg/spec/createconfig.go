@@ -38,6 +38,7 @@ type CreateResourceConfig struct {
 	CPUs              float64  // cpus
 	CPUsetCPUs        string
 	CPUsetMems        string   // cpuset-mems
+	DeviceCgroupRules []string //device-cgroup-rule
 	DeviceReadBps     []string // device-read-bps
 	DeviceReadIOps    []string // device-read-iops
 	DeviceWriteBps    []string // device-write-bps

@@ -257,6 +257,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Add a host device to the container (default [])",
 	)
 	createFlags.StringSlice(
+		"device-cgroup-rule", []string{},
+		"Add a rule to the cgroup allowed devices list",
+	)
+	createFlags.StringSlice(
 		"device-read-bps", []string{},
 		"Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)",
 	)

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
@@ -88,6 +89,42 @@ func devicesFromPath(g *generate.Generator, devicePath string) error {
 	}
 
 	return addDevice(g, strings.Join(append([]string{resolvedDevicePath}, devs[1:]...), ":"))
+}
+
+func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
+	for _, deviceCgroupRule := range deviceCgroupRules {
+		if err := validateDeviceCgroupRule(deviceCgroupRule); err != nil {
+			return err
+		}
+		ss := parseDeviceCgroupRule(deviceCgroupRule)
+		if len(ss[0]) != 5 {
+			return errors.Errorf("invalid device cgroup rule format: '%s'", deviceCgroupRule)
+		}
+		matches := ss[0]
+		var major, minor *int64
+		if matches[2] == "*" {
+			majorDev := int64(-1)
+			major = &majorDev
+		} else {
+			majorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			major = &majorDev
+		}
+		if matches[3] == "*" {
+			minorDev := int64(-1)
+			minor = &minorDev
+		} else {
+			minorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			minor = &minorDev
+		}
+		g.AddLinuxResourcesDevice(true, matches[1], major, minor, matches[4])
+	}
+	return nil
 }
 
 func addDevice(g *generate.Generator, device string) error {
