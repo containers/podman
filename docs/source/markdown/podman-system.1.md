@@ -19,6 +19,8 @@ The system command allows you to manage the podman systems
 | prune    | [podman-system-prune(1)](podman-system-prune.1.md)  | Remove all unused container, image and volume data.                          |
 | renumber | [podman-system-renumber(1)](podman-system-renumber.1.md)| Migrate lock numbers to handle a change in maximum number of locks.      |
 | reset    | [podman-system-reset(1)](podman-system-reset.1.md)  | Reset storage back to initial state.                                         |
+| service  | [podman-service(1)](podman-system-service.1.md)     | Run an API service                                                           |
+
 
 ## SEE ALSO
 podman(1)
