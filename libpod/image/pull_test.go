@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
@@ -43,8 +44,12 @@ func newTestRuntime(t *testing.T) (*Runtime, func()) {
 	})
 	require.NoError(t, err)
 
-	ir := NewImageRuntimeFromStore(store)
-	cleanup := func() { _ = os.RemoveAll(wd) }
+	ir, err := NewImageRuntimeFromStore(store)
+	require.NoError(t, err)
+	cleanup := func() {
+		is.Transport.SetStore(nil) // Having multiple stores in a single process is extremely undesirable in production, fine ONLY for tests!
+		_ = os.RemoveAll(wd)
+	}
 	return ir, cleanup
 }
 

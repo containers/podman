@@ -26,6 +26,7 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/internal/localimage"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/inspect"
@@ -57,6 +58,7 @@ type Image struct {
 
 // Runtime contains the store
 type Runtime struct {
+	localStorage        *localimage.Storage
 	store               storage.Store
 	SignaturePolicyPath string
 	EventsLogFilePath   string
@@ -86,10 +88,15 @@ var ErrRepoTagNotFound = stderrors.New("unable to match user input to any specif
 var ErrImageIsBareList = stderrors.New("image contains a manifest list or image index, but no runnable image")
 
 // NewImageRuntimeFromStore creates an ImageRuntime based on a provided store
-func NewImageRuntimeFromStore(store storage.Store) *Runtime {
-	return &Runtime{
-		store: store,
+func NewImageRuntimeFromStore(store storage.Store) (*Runtime, error) {
+	localStorage, err := localimage.NewStorage(store)
+	if err != nil {
+		return nil, err
 	}
+	return &Runtime{
+		localStorage: localStorage,
+		store:        store,
+	}, nil
 }
 
 // NewImageRuntimeFromOptions creates an Image Runtime including the store given
@@ -99,7 +106,7 @@ func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) 
 	if err != nil {
 		return nil, err
 	}
-	return NewImageRuntimeFromStore(store), nil
+	return NewImageRuntimeFromStore(store)
 }
 
 func setStore(options storage.StoreOptions) (storage.Store, error) {

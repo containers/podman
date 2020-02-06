@@ -749,7 +749,10 @@ func (r *Runtime) configureStore() error {
 	}
 	r.storageService = storageService
 
-	ir := image.NewImageRuntimeFromStore(r.store)
+	ir, err := image.NewImageRuntimeFromStore(r.store)
+	if err != nil {
+		return err
+	}
 	ir.SignaturePolicyPath = r.config.SignaturePolicyPath
 	ir.EventsLogFilePath = r.config.EventsLogFilePath
 	ir.EventsLogger = r.config.EventsLogger
