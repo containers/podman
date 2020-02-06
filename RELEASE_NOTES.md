@@ -2,7 +2,7 @@
 
 ## 1.8.0
 ### Features
-- The `podman service` command has been added, providing a preview of Podman's new Docker-compatible API. This API is still very new, and not yet ready for production use, but is available for early testing
+- The `podman system service` command has been added, providing a preview of Podman's new Docker-compatible API. This API is still very new, and not yet ready for production use, but is available for early testing
 - Rootless Podman now uses Rootlesskit for port forwarding, which should greatly improve performance and capabilities
 - The `podman untag` command has been added to remove tags from images without deleting them
 - The `podman inspect` command on images now displays previous names they used
@@ -29,13 +29,20 @@
 - Fixed a bug where `podman history` was not computing image sizes correctly ([#4916](https://github.com/containers/libpod/issues/4916))
 - Fixed a bug where Podman would not error on invalid values to the `--sort` flag to `podman images`
 - Fixed a bug where providing a name for the image made by `podman commit` was mandatory, not optional as it should be ([#5027](https://github.com/containers/libpod/issues/5027))
+- Fixed a bug where the remote Podman client would append an extra `"` to `%PATH` ([#4335](https://github.com/containers/libpod/issues/4335))
+- Fixed a bug where the `podman build` command would sometimes ignore the `-f` option and build the wrong Containerfile
+- Fixed a bug where the `podman ps --filter` command would only filter running containers, instead of all containers, if `--all` was not passed ([#5050](https://github.com/containers/libpod/issues/5050))
+- Fixed a bug where the `podman load` command on compressed images would leave an extra copy on disk
+- Fixed a bug where the `podman restart` command would not properly clean up the network, causing it to function differently from `podman stop; podman start` ([#5051](https://github.com/containers/libpod/issues/5051))
+- Fixed a bug where setting the `--memory-swap` flag to `podman create` and `podman run` to `-1` (to indicate unlimited) was not supported ([#5091](https://github.com/containers/libpod/issues/5091))
 
 ### Misc
 - Initial work on version 2 of the Podman remote API has been merged, but is still in an alpha state and not ready for use. Read more [here](https://podman.io/releases/2020/01/17/podman-new-api.html)
 - Many formatting corrections have been made to the manpages
 - The changes to address ([#5009](https://github.com/containers/libpod/issues/5009)) may cause anonymous volumes created by Podman versions 1.6.3 to 1.7.0 to not be removed when their container is removed
 - Updated vendored Buildah to v1.13.1
-- Updated vendored containers/storage to v1.15.7
+- Updated vendored containers/storage to v1.15.8
+- Updated vendored containers/image to v5.2.0
 
 ## 1.7.0
 ### Features
