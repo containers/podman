@@ -1,3 +1,35 @@
+- Changelog for v1.8.0 (2020-02-06)
+  * [CI:DOCS]update contrib systemd user
+  * [CI:DOCS]fix systemd files for apiv2
+  * Update release notes for final release of v1.8.0
+  * Move podman-service to podman-system-service
+  * Only modify conmon cgroup if we have running containers
+  * fix swagger docs and make sure docs validation runs
+  * Special case memory-swap=-1
+  * vendor github.com/mtrmac/gpgme@v0.1.2
+  * vendor github.com/containers/image/v5@v5.2.0
+  * Add Containerfile location e2e test
+  * [CI:DOCS]addition of specgen package
+  * {CI:DOCS] run gofmt before lint
+  * build(deps): bump github.com/onsi/ginkgo from 1.11.0 to 1.12.0
+  * Close tarSource when finished using it
+  * Force --all when --filter is passed to podman ps
+  * Initial implementation of a spec generator package
+  * Fix wrong Containerfile location on build
+  * Wrap error for failing ImageSize calls
+  * swagger: v2: libpod/images/{import,load,pull}
+  * seperate container create network options
+  * Cirrus: Fix gate task + make lint|validate
+  * Add a binding test to check image tag and list commands.
+  * Update /_ping support
+  * [CI:DOCS]add apiv2 endpoints for exec
+  * build(deps): bump github.com/containers/storage from 1.15.7 to 1.15.8
+  * build(deps): bump github.com/onsi/gomega from 1.8.1 to 1.9.0
+  * Tear down network when restarting containers
+  * Move install.md to podman.io, leave link page
+  * Update XML to not embed quote in PATH on windows
+  * Bump to v1.8.0-dev
+
 - Changelog for v1.8.0-rc1 (2020-01-31)
   * Fix a syntax error in hack/release.sh
   * Minor update to release notes
