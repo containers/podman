@@ -99,10 +99,7 @@ func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	return &Runtime{
-		store: store,
-	}, nil
+	return NewImageRuntimeFromStore(store), nil
 }
 
 func setStore(options storage.StoreOptions) (storage.Store, error) {
