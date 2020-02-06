@@ -51,6 +51,18 @@ Filter output based on conditions provided
 
 Change the default output format.  This can be of a supported type like 'json'
 or a Go template.
+Valid placeholders for the Go template are listed below:
+
+| **Placeholder** | **Description**                                                               |
+| --------------- | ----------------------------------------------------------------------------- |
+| .ID             | Image ID                                                                      |
+| .Repository     | Image repository                                                              |
+| .Tag            | Image tag                                                                     |
+| .Digest         | Image digest                                                                  |
+| .CreatedSince   | Elapsed time since the image was created			     					  |
+| .CreatedAt      | Time when the image was created                                               |
+| .Size           | Size of layer on disk                                                         |
+| .History        | History of the image layer                                                    |
 
 **--history**
 

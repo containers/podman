@@ -21,16 +21,16 @@ import (
 )
 
 type imagesTemplateParams struct {
-	Repository  string
-	Tag         string
-	ID          string
-	Digest      digest.Digest
-	Digests     []digest.Digest
-	Created     string
-	CreatedTime time.Time
-	Size        string
-	ReadOnly    bool
-	History     string
+	Repository   string
+	Tag          string
+	ID           string
+	Digest       digest.Digest
+	Digests      []digest.Digest
+	CreatedAt    time.Time
+	CreatedSince string
+	Size         string
+	ReadOnly     bool
+	History      string
 }
 
 type imagesJSONParams struct {
@@ -65,7 +65,7 @@ func (a imagesSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type imagesSortedCreated struct{ imagesSorted }
 
 func (a imagesSortedCreated) Less(i, j int) bool {
-	return a.imagesSorted[i].CreatedTime.After(a.imagesSorted[j].CreatedTime)
+	return a.imagesSorted[i].CreatedAt.After(a.imagesSorted[j].CreatedAt)
 }
 
 type imagesSortedID struct{ imagesSorted }
@@ -185,7 +185,17 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		history:   c.History,
 	}
 
-	opts.outputformat = opts.setOutputFormat()
+	outputformat := opts.setOutputFormat()
+	// These fields were renamed, so we need to provide backward compat for
+	// the old names.
+	if strings.Contains(outputformat, "{{.Created}}") {
+		outputformat = strings.Replace(outputformat, "{{.Created}}", "{{.CreatedSince}}", -1)
+	}
+	if strings.Contains(outputformat, "{{.CreatedTime}}") {
+		outputformat = strings.Replace(outputformat, "{{.CreatedTime}}", "{{.CreatedAt}}", -1)
+	}
+	opts.outputformat = outputformat
+
 	filteredImages, err := runtime.GetFilteredImages(filters, false)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
@@ -216,7 +226,7 @@ func (i imagesOptions) setOutputFormat() string {
 	if i.digests {
 		format += "{{.Digest}}\t"
 	}
-	format += "{{.ID}}\t{{.Created}}\t{{.Size}}\t"
+	format += "{{.ID}}\t{{.CreatedSince}}\t{{.Size}}\t"
 	if i.history {
 		format += "{{if .History}}{{.History}}{{else}}<none>{{end}}\t"
 	}
@@ -301,16 +311,16 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					imageDigest = img.Digest()
 				}
 				params := imagesTemplateParams{
-					Repository:  repo,
-					Tag:         tag,
-					ID:          imageID,
-					Digest:      imageDigest,
-					Digests:     img.Digests(),
-					CreatedTime: createdTime,
-					Created:     units.HumanDuration(time.Since(createdTime)) + " ago",
-					Size:        sizeStr,
-					ReadOnly:    img.IsReadOnly(),
-					History:     strings.Join(img.NamesHistory(), ", "),
+					Repository:   repo,
+					Tag:          tag,
+					ID:           imageID,
+					Digest:       imageDigest,
+					Digests:      img.Digests(),
+					CreatedAt:    createdTime,
+					CreatedSince: units.HumanDuration(time.Since(createdTime)) + " ago",
+					Size:         sizeStr,
+					ReadOnly:     img.IsReadOnly(),
+					History:      strings.Join(img.NamesHistory(), ", "),
 				}
 				imagesOutput = append(imagesOutput, params)
 				if opts.quiet { // Show only one image ID when quiet
@@ -383,6 +393,9 @@ func GenImageOutputMap() map[string]string {
 		if value == "ReadOnly" {
 			values[key] = "R/O"
 			continue
+		}
+		if value == "CreatedSince" {
+			value = "created"
 		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}

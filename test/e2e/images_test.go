@@ -116,7 +116,8 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images in GO template format", func() {
-		session := podmanTest.Podman([]string{"images", "--format={{.ID}}"})
+		formatStr := "{{.ID}}\t{{.Created}}\t{{.CreatedAt}}\t{{.CreatedSince}}\t{{.CreatedTime}}"
+		session := podmanTest.Podman([]string{"images", fmt.Sprintf("--format=%s", formatStr)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -280,7 +281,7 @@ RUN apk update && apk add man
 			return session.OutputToStringArray()
 		}
 
-		sortedArr := sortValueTest("created", 0, "CreatedTime")
+		sortedArr := sortValueTest("created", 0, "CreatedAt")
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] > sortedArr[j] })).To(BeTrue())
 
 		sortedArr = sortValueTest("id", 0, "ID")
