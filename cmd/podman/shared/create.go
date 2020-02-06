@@ -309,9 +309,13 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 	if c.String("memory-swap") != "" {
-		memorySwap, err = units.RAMInBytes(c.String("memory-swap"))
-		if err != nil {
-			return nil, errors.Wrapf(err, "invalid value for memory-swap")
+		if c.String("memory-swap") == "-1" {
+			memorySwap = -1
+		} else {
+			memorySwap, err = units.RAMInBytes(c.String("memory-swap"))
+			if err != nil {
+				return nil, errors.Wrapf(err, "invalid value for memory-swap")
+			}
 		}
 	}
 	if c.String("kernel-memory") != "" {
