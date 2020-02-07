@@ -85,6 +85,9 @@ gating_task:
         GOPATH: "/go"
         GOSRC: "/go/src/github.com/containers/libpod"
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     # Runs within Cirrus's "community cluster"
     container:
         image: "quay.io/libpod/gate:v1.4.2-stable"
@@ -131,7 +134,7 @@ vendor_task:
     depends_on:
         - "gating"
 
-    # Ignoring this task as 'make vendor' doesn't work properly on this branch
+    # TODO: Making this task not-required given the age of this branch
     allow_failures: $CI == $CI
 
     env:
@@ -164,6 +167,9 @@ varlink_api_task:
 
     depends_on:
         - "gating"
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
@@ -198,6 +204,9 @@ build_each_commit_task:
     # $CIRRUS_BASE_BRANCH is only set when testing a PR
     only_if: $CIRRUS_BRANCH != 'v1.4.2-stable' &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     gce_instance:
         image_project: "libpod-218412"
@@ -270,6 +279,9 @@ testing_task:
 
     timeout_in: 120m
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     env:
         matrix:
             TEST_REMOTE_CLIENT: true
@@ -301,6 +313,9 @@ special_testing_rootless_task:
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     env:
         SPECIALMODE: 'rootless'  # See docs
 
@@ -330,6 +345,9 @@ special_testing_in_podman_task:
         - "build_each_commit"
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         SPECIALMODE: 'in_podman'  # See docs
@@ -371,6 +389,9 @@ test_build_cache_images_task:
             - compute
             - devstorage.full_control
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
 
@@ -394,6 +415,9 @@ verify_test_built_images_task:
             #image_name: "fedora-28${BUILT_IMAGE_SUFFIX}"
             image_name: "fedora-29${BUILT_IMAGE_SUFFIX}"
             image_name: "ubuntu-18${BUILT_IMAGE_SUFFIX}"
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         matrix:
