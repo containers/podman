@@ -13,32 +13,66 @@ import (
 	"github.com/pkg/errors"
 )
 
+type runtimeOptions struct {
+	name     string
+	renumber bool
+	migrate  bool
+	noStore  bool
+	withFDS  bool
+}
+
 // GetRuntimeMigrate gets a libpod runtime that will perform a migration of existing containers
 func GetRuntimeMigrate(ctx context.Context, c *cliconfig.PodmanCommand, newRuntime string) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, true, false, true, newRuntime)
+	return getRuntime(ctx, c, &runtimeOptions{
+		name:     newRuntime,
+		renumber: false,
+		migrate:  true,
+		noStore:  false,
+		withFDS:  true,
+	})
 }
 
 // GetRuntimeDisableFDs gets a libpod runtime that will disable sd notify
 func GetRuntimeDisableFDs(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, false, false, "")
+	return getRuntime(ctx, c, &runtimeOptions{
+		renumber: false,
+		migrate:  false,
+		noStore:  false,
+		withFDS:  false,
+	})
 }
 
 // GetRuntimeRenumber gets a libpod runtime that will perform a lock renumber
 func GetRuntimeRenumber(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, true, false, false, true, "")
+	return getRuntime(ctx, c, &runtimeOptions{
+		renumber: true,
+		migrate:  false,
+		noStore:  false,
+		withFDS:  true,
+	})
 }
 
 // GetRuntime generates a new libpod runtime configured by command line options
 func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, false, true, "")
+	return getRuntime(ctx, c, &runtimeOptions{
+		renumber: false,
+		migrate:  false,
+		noStore:  false,
+		withFDS:  true,
+	})
 }
 
 // GetRuntimeNoStore generates a new libpod runtime configured by command line options
 func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*libpod.Runtime, error) {
-	return getRuntime(ctx, c, false, false, true, true, "")
+	return getRuntime(ctx, c, &runtimeOptions{
+		renumber: false,
+		migrate:  false,
+		noStore:  true,
+		withFDS:  true,
+	})
 }
 
-func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migrate, noStore, withFDS bool, newRuntime string) (*libpod.Runtime, error) {
+func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, opts *runtimeOptions) (*libpod.Runtime, error) {
 	options := []libpod.RuntimeOption{}
 	storageOpts := storage.StoreOptions{}
 	storageSet := false
@@ -86,14 +120,14 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 		storageSet = true
 		storageOpts.GraphDriverOptions = c.GlobalFlags.StorageOpts
 	}
-	if migrate {
+	if opts.migrate {
 		options = append(options, libpod.WithMigrate())
-		if newRuntime != "" {
-			options = append(options, libpod.WithMigrateRuntime(newRuntime))
+		if opts.name != "" {
+			options = append(options, libpod.WithMigrateRuntime(opts.name))
 		}
 	}
 
-	if renumber {
+	if opts.renumber {
 		options = append(options, libpod.WithRenumber())
 	}
 
@@ -102,7 +136,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 		options = append(options, libpod.WithStorageConfig(storageOpts))
 	}
 
-	if !storageSet && noStore {
+	if !storageSet && opts.noStore {
 		options = append(options, libpod.WithNoStore())
 	}
 	// TODO CLI flags for image config?
@@ -174,7 +208,7 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, renumber, migra
 		options = append(options, libpod.WithDefaultInfraCommand(infraCommand))
 	}
 
-	if !withFDS {
+	if !opts.withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}
 	if c.Flags().Changed("config") {
