@@ -31,3 +31,9 @@ func NewStorage(store storage.Store) (*Storage, error) { // FIXME: Return an int
 		store: store,
 	}, nil
 }
+
+// NewImageFromStorageImage creates an Image referring to the input storageImage
+// FIXME: This shouldn’t be public, callers should get to storage (if at all) from here.
+func (s *Storage) NewImageFromStorageImage(storageImage *storage.Image) (*Image, error) { // FIXME: Return an interface?
+	return newImageFromStorageImage(s, storageImage)
+}

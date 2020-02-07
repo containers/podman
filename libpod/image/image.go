@@ -44,6 +44,7 @@ import (
 // Image is the primary struct for dealing with images
 // It is still very much a work in progress
 type Image struct {
+	localImage *localimage.Image
 	// Adding these two structs for now but will cull when we near
 	// completion of this library.
 	imgRef    types.Image
@@ -119,16 +120,21 @@ func setStore(options storage.StoreOptions) (storage.Store, error) {
 }
 
 // newImage creates a new image object given an "input name" and a storage.Image
-func (ir *Runtime) newImage(inputName string, img *storage.Image) *Image {
+func (ir *Runtime) newImage(inputName string, img *storage.Image) (*Image, error) {
+	localImage, err := ir.localStorage.NewImageFromStorageImage(img)
+	if err != nil {
+		return nil, err
+	}
 	return &Image{
+		localImage:   localImage,
 		InputName:    inputName,
 		imageruntime: ir,
 		image:        img,
-	}
+	}, nil
 }
 
 // newFromStorage creates a new image object from a storage.Image. Its "input name" will be its ID.
-func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
+func (ir *Runtime) newFromStorage(img *storage.Image) (*Image, error) {
 	return ir.newImage(img.ID, img)
 }
 
@@ -140,7 +146,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ir.newImage(updatedInputName, localImage), nil
+	return ir.newImage(updatedInputName, localImage)
 }
 
 // New creates a new image object where the image could be local
@@ -494,7 +500,10 @@ func (ir *Runtime) getImages(rwOnly bool) ([]*Image, error) {
 		// iterating over these, be careful to not iterate on the literal
 		// pointer.
 		image := i
-		img := ir.newFromStorage(&image)
+		img, err := ir.newFromStorage(&image)
+		if err != nil {
+			return nil, err
+		}
 		newImages = append(newImages, img)
 	}
 	return newImages, nil
