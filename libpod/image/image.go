@@ -1343,7 +1343,7 @@ func (i *Image) Containers() ([]string, error) {
 // Comment returns the Comment for an image depending on its ManifestType
 //
 // Deprecated: This has no external callers.
-func (i *Image) Comment(ctx context.Context, manifestType string) (string, error) {
+func (i *Image) Comment(ctx context.Context, manifestType string) (string, error) { // FIXME: Should be returned by c/image Inspect
 	if manifestType == manifest.DockerV2Schema2MediaType {
 		imgRef, err := i.toImageRef(ctx)
 		if err != nil {
@@ -1367,7 +1367,7 @@ func (i *Image) Comment(ctx context.Context, manifestType string) (string, error
 		return "", err
 	}
 	if len(ociv1Img.History) > 0 {
-		return ociv1Img.History[0].Comment, nil
+		return ociv1Img.History[0].Comment, nil // FIXME: Not the last layer???
 	}
 	return "", nil
 }
