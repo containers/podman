@@ -687,13 +687,6 @@ func (i *Image) toImageSourceRef(ctx context.Context) (types.ImageSource, error)
 
 //Size returns the size of the image
 func (i *Image) Size(ctx context.Context) (*uint64, error) {
-	if i.image == nil {
-		localImage, err := i.getLocalImage()
-		if err != nil {
-			return nil, err
-		}
-		i.image = localImage
-	}
 	sum, err := i.imageruntime.store.ImageSize(i.ID())
 	if err == nil && sum >= 0 {
 		usum := uint64(sum)
