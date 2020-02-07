@@ -111,14 +111,18 @@ func setStore(options storage.StoreOptions) (storage.Store, error) {
 	return store, nil
 }
 
-// newFromStorage creates a new image object from a storage.Image
-func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
-	image := Image{
-		InputName:    img.ID,
+// newImage creates a new image object given an "input name" and a storage.Image
+func (ir *Runtime) newImage(inputName string, img *storage.Image) *Image {
+	return &Image{
+		InputName:    inputName,
 		imageruntime: ir,
 		image:        img,
 	}
-	return &image
+}
+
+// newFromStorage creates a new image object from a storage.Image
+func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
+	return ir.newImage(img.ID, img)
 }
 
 // NewFromLocal creates a new image object that is intended
@@ -129,11 +133,7 @@ func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Image{
-		InputName:    updatedInputName,
-		imageruntime: ir,
-		image:        localImage,
-	}, nil
+	return ir.newImage(updatedInputName, localImage), nil
 }
 
 // New creates a new image object where the image could be local
