@@ -806,16 +806,7 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 	}
 
 	var allHistory []*History
-	var layer *storage.Layer
-
-	// Check if we have an actual top layer to prevent lookup errors.
-	if i.TopLayer() != "" {
-		layer, err = i.imageruntime.store.Layer(i.TopLayer())
-		if err != nil {
-			return nil, err
-		}
-	}
-
+	layerID := i.TopLayer()
 	// Iterate in reverse order over the history entries, and lookup the
 	// corresponding image ID, size and get the next later if needed.
 	topHistoryIndex := len(oci.History) - 1
@@ -828,29 +819,31 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 		if x == topHistoryIndex {
 			h.ID = i.ID()
 		}
-		if layer != nil {
-			if imageID, exists := topLayerMap[layer.ID]; exists {
+		nextLayerID := layerID
+		if layerID != "" {
+			if imageID, exists := topLayerMap[layerID]; exists {
 				if h.ID == "" {
 					h.ID = imageID
 				}
 				// Delete the entry to avoid reusing it for following history items.
-				delete(topLayerMap, layer.ID)
+				delete(topLayerMap, layerID)
+			}
+
+			layer, err := i.imageruntime.store.Layer(layerID)
+			if err != nil {
+				return nil, err
 			}
 			h.Tags = layer.Names
 			if !oci.History[x].EmptyLayer {
 				h.Size = layer.UncompressedSize
-				if layer.Parent != "" {
-					layer, err = i.imageruntime.store.Layer(layer.Parent)
-					if err != nil {
-						return nil, err
-					}
-				}
+				nextLayerID = layer.Parent
 			}
 		}
 		if h.ID == "" {
 			h.ID = "<missing>"
 		}
 		allHistory = append(allHistory, &h)
+		layerID = nextLayerID
 	}
 
 	return allHistory, nil
