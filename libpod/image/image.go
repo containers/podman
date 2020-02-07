@@ -218,7 +218,7 @@ func (i *Image) reloadImage() error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to reload image")
 	}
-	i.image = newImage.image
+	i.image = newImage
 	return nil
 }
 
@@ -245,7 +245,7 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 
 	img, err := ir.getImage(stripSha256(inputName))
 	if err == nil {
-		return inputName, img.image, err
+		return inputName, img, err
 	}
 
 	// container-storage wasn't able to find it in its current form
@@ -269,7 +269,7 @@ func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, erro
 	}
 	img, err = ir.getImage(ref.String())
 	if err == nil {
-		return inputName, img.image, err
+		return inputName, img, err
 	}
 
 	// grab all the local images
@@ -444,7 +444,7 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 // getImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
-func (ir *Runtime) getImage(image string) (*Image, error) {
+func (ir *Runtime) getImage(image string) (*storage.Image, error) {
 	var img *storage.Image
 	ref, err := is.Transport.ParseStoreReference(ir.store, image)
 	if err == nil {
@@ -460,8 +460,7 @@ func (ir *Runtime) getImage(image string) (*Image, error) {
 		}
 		img = img2
 	}
-	newImage := ir.newFromStorage(img)
-	return newImage, nil
+	return img, nil
 }
 
 // GetImages retrieves all images present in storage
