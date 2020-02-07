@@ -820,40 +820,34 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 	// corresponding image ID, size and get the next later if needed.
 	numHistories := len(oci.History) - 1
 	for x := numHistories; x >= 0; x-- {
-		var size int64
-
 		id := "<missing>"
 		if x == numHistories {
 			id = i.ID()
-		}
-		if layer != nil {
-			if !oci.History[x].EmptyLayer {
-				size = layer.UncompressedSize
-			}
-			if imageID, exists := topLayerMap[layer.ID]; exists {
-				id = imageID
-				// Delete the entry to avoid reusing it for following history items.
-				delete(topLayerMap, layer.ID)
-			}
 		}
 		h := History{
 			ID:        id,
 			Created:   oci.History[x].Created,
 			CreatedBy: oci.History[x].CreatedBy,
-			Size:      size,
 			Comment:   oci.History[x].Comment,
 		}
 		if layer != nil {
+			if imageID, exists := topLayerMap[layer.ID]; exists {
+				h.ID = imageID
+				// Delete the entry to avoid reusing it for following history items.
+				delete(topLayerMap, layer.ID)
+			}
 			h.Tags = layer.Names
-		}
-		allHistory = append(allHistory, &h)
-
-		if layer != nil && layer.Parent != "" && !oci.History[x].EmptyLayer {
-			layer, err = i.imageruntime.store.Layer(layer.Parent)
-			if err != nil {
-				return nil, err
+			if !oci.History[x].EmptyLayer {
+				h.Size = layer.UncompressedSize
+				if layer.Parent != "" {
+					layer, err = i.imageruntime.store.Layer(layer.Parent)
+					if err != nil {
+						return nil, err
+					}
+				}
 			}
 		}
+		allHistory = append(allHistory, &h)
 	}
 
 	return allHistory, nil
