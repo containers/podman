@@ -8,7 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -75,7 +75,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 			return ContainerInfo{}, define.ErrEmptyID
 		}
 		// Check if we have the specified image.
-		ref, err := istorage.Transport.ParseStoreReference(r.store, imageID)
+		ref, err := istorage.Transport.NewStoreReference(r.store, nil, imageID)
 		if err != nil {
 			return ContainerInfo{}, err
 		}

@@ -643,7 +643,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	}()
 
 	// Look up the source image, expecting it to be in local storage
-	src, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
+	src, err := is.Transport.NewStoreReference(i.imageruntime.store, nil, i.ID())
 	if err != nil {
 		return errors.Wrapf(err, "error getting source imageReference for ID %q", i.ID())
 	}
@@ -689,9 +689,9 @@ func (i *Image) toImageSourceRef(ctx context.Context) (types.ImageSource, error)
 		return nil, errors.Errorf("cannot convert nil image to image source reference")
 	}
 	if i.imgSrcRef == nil {
-		ref, err := is.Transport.ParseStoreReference(i.imageruntime.store, "@"+i.ID())
+		ref, err := is.Transport.NewStoreReference(i.imageruntime.store, nil, i.ID())
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing reference to image %q", i.ID())
+			return nil, errors.Wrapf(err, "error creating reference to image %q", i.ID())
 		}
 		imgSrcRef, err := ref.NewImageSource(ctx, nil)
 		if err != nil {
