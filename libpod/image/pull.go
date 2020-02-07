@@ -57,7 +57,7 @@ var (
 type pullRefPair struct {
 	image  string
 	srcRef types.ImageReference
-	dstRef types.ImageReference
+	dstRef types.ImageReference // Always an is.Transport reference
 }
 
 // pullGoal represents the prepared image references and decided behavior to be executed by imagePull
@@ -218,7 +218,7 @@ func toLocalImageName(imageName string) string {
 
 // pullImageFromHeuristicSource pulls an image based on inputName, which is heuristically parsed and may involve configured registries.
 // Use pullImageFromReference if the source is known precisely.
-func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName string, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]pullRefPair, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromHeuristicSource")
 	defer span.Finish()
 
@@ -251,7 +251,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 }
 
 // pullImageFromReference pulls an image from a types.imageReference.
-func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]string, error) {
+func (ir *Runtime) pullImageFromReference(ctx context.Context, srcRef types.ImageReference, writer io.Writer, authfile, signaturePolicyPath string, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions) ([]pullRefPair, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "pullImageFromReference")
 	defer span.Finish()
 
@@ -274,7 +274,7 @@ func cleanErrorMessage(err error) string {
 }
 
 // doPullImage is an internal helper interpreting pullGoal. Almost everyone should call one of the callers of doPullImage instead.
-func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]string, error) {
+func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goal pullGoal, writer io.Writer, signingOptions SigningOptions, dockerOptions *DockerRegistryOptions, label *string) ([]pullRefPair, error) {
 	span, _ := opentracing.StartSpanFromContext(ctx, "doPullImage")
 	defer span.Finish()
 
@@ -291,7 +291,7 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 	systemRegistriesConfPath := registries.SystemRegistriesConfPath()
 
 	var (
-		images     []string
+		results    []pullRefPair
 		pullErrors *multierror.Error
 	)
 
@@ -321,13 +321,13 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		} else {
 			if !goal.pullAllPairs {
 				ir.newImageEvent(events.Pull, "")
-				return []string{imageInfo.image}, nil
+				return []pullRefPair{imageInfo}, nil
 			}
-			images = append(images, imageInfo.image)
+			results = append(results, imageInfo)
 		}
 	}
 	// If no image was found, we should handle.  Lets be nicer to the user and see if we can figure out why.
-	if len(images) == 0 {
+	if len(results) == 0 {
 		if goal.usedSearchRegistries && len(goal.searchedRegistries) == 0 {
 			return nil, errors.Errorf("image name provided is a short name and no search registries are defined in the registries config file.")
 		}
@@ -340,10 +340,10 @@ func (ir *Runtime) doPullImage(ctx context.Context, sc *types.SystemContext, goa
 		}
 		return nil, pullErrors
 	}
-	if len(images) > 0 {
-		ir.newImageEvent(events.Pull, images[0])
+	if len(results) > 0 {
+		ir.newImageEvent(events.Pull, results[0].image)
 	}
-	return images, nil
+	return results, nil
 }
 
 // pullGoalFromPossiblyUnqualifiedName looks at inputName and determines the possible

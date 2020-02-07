@@ -138,6 +138,16 @@ func (ir *Runtime) newFromStorage(img *storage.Image) (*Image, error) {
 	return ir.newImage(img.ID, img)
 }
 
+func (ir *Runtime) newFromPullRefPair(rp pullRefPair) (*Image, error) {
+	// FIXME? NOTE: This looks up the image by dstRef again; dstRef is very likely a name, not an ID, so this may not refer to the
+	// pulled image if the tag has been moved.
+	localImage, err := is.Transport.GetStoreImage(ir.store, rp.dstRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", transports.ImageName(rp.dstRef))
+	}
+	return ir.newImage(rp.image, localImage)
+}
+
 // NewFromLocal creates a new image object that is intended
 // to only deal with local images already in the store (or
 // its aliases)
@@ -170,16 +180,12 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageName, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
+	refPairs, err := ir.pullImageFromHeuristicSource(ctx, name, writer, authfile, signaturePolicyPath, signingoptions, dockeroptions, label)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
-	newImage, err := ir.NewFromLocal(imageName[0])
-	if err != nil {
-		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
-	}
-	return newImage, nil
+	return ir.newFromPullRefPair(refPairs[0])
 }
 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
@@ -190,15 +196,15 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	if signaturePolicyPath == "" {
 		signaturePolicyPath = ir.SignaturePolicyPath
 	}
-	imageNames, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{})
+	refPairs, err := ir.pullImageFromReference(ctx, srcRef, writer, "", signaturePolicyPath, SigningOptions{}, &DockerRegistryOptions{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to pull %s", transports.ImageName(srcRef))
 	}
 
-	for _, name := range imageNames {
-		newImage, err := ir.NewFromLocal(name)
+	for _, rp := range refPairs {
+		newImage, err := ir.newFromPullRefPair(rp)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
+			return nil, err
 		}
 		newImages = append(newImages, newImage)
 	}
