@@ -99,10 +99,7 @@ func NewImageRuntimeFromOptions(options storage.StoreOptions) (*Runtime, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	return &Runtime{
-		store: store,
-	}, nil
+	return NewImageRuntimeFromStore(store), nil
 }
 
 func setStore(options storage.StoreOptions) (storage.Store, error) {
@@ -114,30 +111,29 @@ func setStore(options storage.StoreOptions) (storage.Store, error) {
 	return store, nil
 }
 
-// newFromStorage creates a new image object from a storage.Image
-func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
-	image := Image{
-		InputName:    img.ID,
+// newImage creates a new image object given an "input name" and a storage.Image
+func (ir *Runtime) newImage(inputName string, img *storage.Image) *Image {
+	return &Image{
+		InputName:    inputName,
 		imageruntime: ir,
 		image:        img,
 	}
-	return &image
+}
+
+// newFromStorage creates a new image object from a storage.Image. Its "input name" will be its ID.
+func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
+	return ir.newImage(img.ID, img)
 }
 
 // NewFromLocal creates a new image object that is intended
 // to only deal with local images already in the store (or
 // its aliases)
 func (ir *Runtime) NewFromLocal(name string) (*Image, error) {
-	image := Image{
-		InputName:    name,
-		imageruntime: ir,
-	}
-	localImage, err := image.getLocalImage()
+	updatedInputName, localImage, err := ir.getLocalImage(name)
 	if err != nil {
 		return nil, err
 	}
-	image.image = localImage
-	return &image, nil
+	return ir.newImage(updatedInputName, localImage), nil
 }
 
 // New creates a new image object where the image could be local
@@ -148,15 +144,10 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	defer span.Finish()
 
 	// We don't know if the image is local or not ... check local first
-	newImage := Image{
-		InputName:    name,
-		imageruntime: ir,
-	}
 	if pullType != util.PullImageAlways {
-		localImage, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err == nil {
-			newImage.image = localImage
-			return &newImage, nil
+			return newImage, nil
 		} else if pullType == util.PullImageNever {
 			return nil, err
 		}
@@ -171,13 +162,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
-	newImage.InputName = imageName[0]
-	img, err := newImage.getLocalImage()
+	newImage, err := ir.NewFromLocal(imageName[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 	}
-	newImage.image = img
-	return &newImage, nil
+	return newImage, nil
 }
 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
@@ -194,16 +183,11 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	}
 
 	for _, name := range imageNames {
-		newImage := Image{
-			InputName:    name,
-			imageruntime: ir,
-		}
-		img, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 		}
-		newImage.image = img
-		newImages = append(newImages, &newImage)
+		newImages = append(newImages, newImage)
 	}
 	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
@@ -234,7 +218,7 @@ func (i *Image) reloadImage() error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to reload image")
 	}
-	i.image = newImage.image
+	i.image = newImage
 	return nil
 }
 
@@ -247,60 +231,60 @@ func stripSha256(name string) string {
 }
 
 // getLocalImage resolves an unknown input describing an image and
-// returns a storage.Image or an error. It is used by NewFromLocal.
-func (i *Image) getLocalImage() (*storage.Image, error) {
-	imageError := fmt.Sprintf("unable to find '%s' in local storage", i.InputName)
-	if i.InputName == "" {
-		return nil, errors.Errorf("input name is blank")
+// returns an updated input name, and a storage.Image, or an error. It is used by NewFromLocal.
+func (ir *Runtime) getLocalImage(inputName string) (string, *storage.Image, error) {
+	imageError := fmt.Sprintf("unable to find '%s' in local storage", inputName)
+	if inputName == "" {
+		return "", nil, errors.Errorf("input name is blank")
 	}
 	// Check if the input name has a transport and if so strip it
-	dest, err := alltransports.ParseImageName(i.InputName)
+	dest, err := alltransports.ParseImageName(inputName)
 	if err == nil && dest.DockerReference() != nil {
-		i.InputName = dest.DockerReference().String()
+		inputName = dest.DockerReference().String()
 	}
 
-	img, err := i.imageruntime.getImage(stripSha256(i.InputName))
+	img, err := ir.getImage(stripSha256(inputName))
 	if err == nil {
-		return img.image, err
+		return inputName, img, err
 	}
 
 	// container-storage wasn't able to find it in its current form
 	// check if the input name has a tag, and if not, run it through
 	// again
-	decomposedImage, err := decompose(i.InputName)
+	decomposedImage, err := decompose(inputName)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// The image has a registry name in it and we made sure we looked for it locally
 	// with a tag.  It cannot be local.
 	if decomposedImage.hasRegistry {
-		return nil, errors.Wrapf(ErrNoSuchImage, imageError)
+		return "", nil, errors.Wrapf(ErrNoSuchImage, imageError)
 	}
 	// if the image is saved with the repository localhost, searching with localhost prepended is necessary
 	// We don't need to strip the sha because we have already determined it is not an ID
 	ref, err := decomposedImage.referenceWithRegistry(DefaultLocalRegistry)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
-	img, err = i.imageruntime.getImage(ref.String())
+	img, err = ir.getImage(ref.String())
 	if err == nil {
-		return img.image, err
+		return inputName, img, err
 	}
 
 	// grab all the local images
-	images, err := i.imageruntime.GetImages()
+	images, err := ir.GetImages()
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 
 	// check the repotags of all images for a match
 	repoImage, err := findImageInRepotags(decomposedImage, images)
 	if err == nil {
-		return repoImage, nil
+		return inputName, repoImage, nil
 	}
 
-	return nil, errors.Wrapf(ErrNoSuchImage, err.Error())
+	return "", nil, errors.Wrapf(ErrNoSuchImage, err.Error())
 }
 
 // ID returns the image ID as a string
@@ -460,7 +444,7 @@ func (i *Image) Remove(ctx context.Context, force bool) error {
 // getImage retrieves an image matching the given name or hash from system
 // storage
 // If no matching image can be found, an error is returned
-func (ir *Runtime) getImage(image string) (*Image, error) {
+func (ir *Runtime) getImage(image string) (*storage.Image, error) {
 	var img *storage.Image
 	ref, err := is.Transport.ParseStoreReference(ir.store, image)
 	if err == nil {
@@ -476,8 +460,7 @@ func (ir *Runtime) getImage(image string) (*Image, error) {
 		}
 		img = img2
 	}
-	newImage := ir.newFromStorage(img)
-	return newImage, nil
+	return img, nil
 }
 
 // GetImages retrieves all images present in storage
@@ -702,13 +685,6 @@ func (i *Image) toImageSourceRef(ctx context.Context) (types.ImageSource, error)
 
 //Size returns the size of the image
 func (i *Image) Size(ctx context.Context) (*uint64, error) {
-	if i.image == nil {
-		localImage, err := i.getLocalImage()
-		if err != nil {
-			return nil, err
-		}
-		i.image = localImage
-	}
 	sum, err := i.imageruntime.store.ImageSize(i.ID())
 	if err == nil && sum >= 0 {
 		usum := uint64(sum)
