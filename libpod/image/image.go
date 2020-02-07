@@ -120,7 +120,7 @@ func (ir *Runtime) newImage(inputName string, img *storage.Image) *Image {
 	}
 }
 
-// newFromStorage creates a new image object from a storage.Image
+// newFromStorage creates a new image object from a storage.Image. Its "input name" will be its ID.
 func (ir *Runtime) newFromStorage(img *storage.Image) *Image {
 	return ir.newImage(img.ID, img)
 }
