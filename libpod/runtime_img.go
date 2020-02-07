@@ -21,7 +21,7 @@ import (
 	"github.com/containers/image/v5/directory"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	ociarchive "github.com/containers/image/v5/oci/archive"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
@@ -252,8 +252,9 @@ func DownloadFromFile(reader *os.File) (string, error) {
 	return outFile.Name(), nil
 }
 
-// LoadImage loads a container image into local storage
-func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
+// LoadImages loads one or more container images into local storage, and returns an array of image objects.
+// WARNING: This is an UNSTABLE WIP interface
+func (r *Runtime) LoadImages(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) ([]*image.Image, error) {
 	var newImages []*image.Image
 	src, err := dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
 	if err == nil {
@@ -271,14 +272,21 @@ func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer 
 				newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
 			}
 			if err != nil {
-				return "", errors.Wrapf(err, "error pulling %q", name)
+				return nil, errors.Wrapf(err, "error pulling %q", name)
 			}
 		}
 	}
-	return getImageNames(newImages), nil
+	return newImages, nil
 }
 
-func getImageNames(images []*image.Image) string {
+// LoadImage loads a container image into local storage
+//
+// Deprecated: Use LoadImages instead of handling a ", "-separated string (!!)
+func (r *Runtime) LoadImage(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) (string, error) {
+	images, err := r.LoadImages(ctx, name, inputFile, writer, signaturePolicy)
+	if err != nil {
+		return "", err
+	}
 	var names string
 	for i := range images {
 		if i == 0 {
@@ -287,5 +295,5 @@ func getImageNames(images []*image.Image) string {
 			names += ", " + images[i].InputName
 		}
 	}
-	return names
+	return names, nil
 }

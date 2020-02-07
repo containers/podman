@@ -862,12 +862,12 @@ func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) e
 	return nil
 }
 
-// LoadImage loads a container image from a remote client's filesystem
-func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfig.LoadValues) (string, error) {
+// LoadImages loads a container image from a remote client's filesystem
+func (r *LocalRuntime) LoadImages(ctx context.Context, name string, cli *cliconfig.LoadValues) ([]*ContainerImage, error) {
 	var names string
 	remoteTempFile, err := r.SendFileOverVarlink(cli.Input)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	more := varlink.More
 	if cli.Quiet {
@@ -875,14 +875,14 @@ func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfi
 	}
 	reply, err := iopodman.LoadImage().Send(r.Conn, uint64(more), name, remoteTempFile, cli.Quiet, true)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for {
 		responses, flags, err := reply()
 		if err != nil {
 			logrus.Error(err)
-			return "", err
+			return nil, err
 		}
 		for _, line := range responses.Logs {
 			fmt.Print(line)
@@ -892,7 +892,15 @@ func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfi
 			break
 		}
 	}
-	return names, nil
+	images := []*ContainerImage{}
+	for _, name := range strings.Split(names, ", ") {
+		ci, err := r.NewImageFromLocal(name)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, ci)
+	}
+	return images, nil
 }
 
 // IsImageNotFound checks if the error indicates that no image was found.

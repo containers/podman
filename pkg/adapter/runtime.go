@@ -353,15 +353,24 @@ func (r *LocalRuntime) SaveImage(ctx context.Context, c *cliconfig.SaveValues) e
 	return newImage.Save(ctx, source, c.Format, c.Output, additionalTags, c.Quiet, c.Compress)
 }
 
-// LoadImage is a wrapper function for libpod LoadImage
-func (r *LocalRuntime) LoadImage(ctx context.Context, name string, cli *cliconfig.LoadValues) (string, error) {
+// LoadImages is a wrapper function for libpod LoadImages
+func (r *LocalRuntime) LoadImages(ctx context.Context, name string, cli *cliconfig.LoadValues) ([]*ContainerImage, error) {
 	var (
 		writer io.Writer
 	)
 	if !cli.Quiet {
 		writer = os.Stderr
 	}
-	return r.Runtime.LoadImage(ctx, name, cli.Input, writer, cli.SignaturePolicy)
+	imgs, err := r.Runtime.LoadImages(ctx, name, cli.Input, writer, cli.SignaturePolicy)
+	if err != nil {
+		return nil, err
+	}
+	containerImages := []*ContainerImage{}
+	for _, i := range imgs {
+		ci := ContainerImage{i}
+		containerImages = append(containerImages, &ci)
+	}
+	return containerImages, nil
 }
 
 // IsImageNotFound checks if the error indicates that no image was found.

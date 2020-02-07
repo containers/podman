@@ -348,15 +348,19 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		return
 	}
-	id, err := runtime.LoadImage(r.Context(), "", f.Name(), writer, "")
+	images, err := runtime.LoadImages(r.Context(), "", f.Name(), writer, "")
 	//id, err := runtime.Import(r.Context())
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to load image"))
 		return
 	}
+	names := []string{}
+	for _, i := range images {
+		names = append(names, i.InputName)
+	}
 	utils.WriteResponse(w, http.StatusOK, struct {
 		Stream string `json:"stream"`
 	}{
-		Stream: fmt.Sprintf("Loaded image: %s\n", id),
+		Stream: fmt.Sprintf("Loaded image: %s\n", strings.Join(names, ", ")),
 	})
 }

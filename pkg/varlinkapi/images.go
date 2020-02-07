@@ -901,7 +901,7 @@ func (i *LibpodAPI) ImageSave(call iopodman.VarlinkCall, options iopodman.ImageS
 // LoadImage ...
 func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string, deleteInputFile, quiet bool) error {
 	var (
-		names  string
+		images []*image.Image
 		writer io.Writer
 		err    error
 	)
@@ -916,7 +916,7 @@ func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string,
 
 	c := make(chan error)
 	go func() {
-		names, err = i.Runtime.LoadImage(getContext(), name, inputFile, writer, "")
+		images, err = i.Runtime.LoadImages(getContext(), name, inputFile, writer, "")
 		c <- err
 		close(c)
 	}()
@@ -955,9 +955,13 @@ func (i *LibpodAPI) LoadImage(call iopodman.VarlinkCall, name, inputFile string,
 	}
 	call.Continues = false
 
+	names := []string{}
+	for _, i := range images {
+		names = append(names, i.InputName)
+	}
 	br := iopodman.MoreResponse{
 		Logs: log,
-		Id:   names,
+		Id:   strings.Join(names, ", "),
 	}
 	if deleteInputFile {
 		if err := os.Remove(inputFile); err != nil {
