@@ -41,10 +41,10 @@ func (t archiveTransport) ValidatePolicyConfigurationScope(scope string) error {
 
 // archiveReference is an ImageReference for Docker images.
 type archiveReference struct {
-	// only used for destinations
+	path string
+	// only used for destinations,
 	// archiveReference.destinationRef is optional and can be nil for destinations as well.
 	destinationRef reference.NamedTagged
-	path           string
 }
 
 // ParseReference converts a string, which should not start with the ImageTransport.Name prefix, into an Docker ImageReference.
@@ -64,11 +64,6 @@ func ParseReference(refString string) (types.ImageReference, error) {
 			return nil, errors.Wrapf(err, "docker-archive parsing reference")
 		}
 		ref = reference.TagNameOnly(ref)
-
-		if _, isDigest := ref.(reference.Canonical); isDigest {
-			return nil, errors.Errorf("docker-archive doesn't support digest references: %s", refString)
-		}
-
 		refTagged, isTagged := ref.(reference.NamedTagged)
 		if !isTagged {
 			// Really shouldn't be hit...
@@ -77,9 +72,20 @@ func ParseReference(refString string) (types.ImageReference, error) {
 		destinationRef = refTagged
 	}
 
+	return NewReference(path, destinationRef)
+}
+
+// NewReference rethrns a Docker archive reference for a path and an optional destination reference.
+func NewReference(path string, destinationRef reference.NamedTagged) (types.ImageReference, error) {
+	if strings.Contains(path, ":") {
+		return nil, errors.Errorf("Invalid docker-archive: reference: colon in path %q is not supported", path)
+	}
+	if _, isDigest := destinationRef.(reference.Canonical); isDigest {
+		return nil, errors.Errorf("docker-archive doesn't support digest references: %s", destinationRef.String())
+	}
 	return archiveReference{
-		destinationRef: destinationRef,
 		path:           path,
+		destinationRef: destinationRef,
 	}, nil
 }
 

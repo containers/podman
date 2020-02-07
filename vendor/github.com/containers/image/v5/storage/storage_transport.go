@@ -43,6 +43,8 @@ type StoreTransport interface {
 	types.ImageTransport
 	// SetStore sets the default store for this transport.
 	SetStore(storage.Store)
+	// GetStoreIfSet returns the default store for this transport, or nil if not set/determined yet.
+	GetStoreIfSet() storage.Store
 	// GetImage retrieves the image from the transport's store that's named
 	// by the reference.
 	GetImage(types.ImageReference) (*storage.Image, error)
@@ -52,6 +54,9 @@ type StoreTransport interface {
 	// ParseStoreReference parses a reference, overriding any store
 	// specification that it may contain.
 	ParseStoreReference(store storage.Store, reference string) (*storageReference, error)
+	// NewStoreReference creates a reference for (named@ID) in store.
+	// either of name or ID can be unset; named must not be a reference.IsNameOnly.
+	NewStoreReference(store storage.Store, named reference.Named, id string) (*storageReference, error)
 	// SetDefaultUIDMap sets the default UID map to use when opening stores.
 	SetDefaultUIDMap(idmap []idtools.IDMap)
 	// SetDefaultGIDMap sets the default GID map to use when opening stores.
@@ -80,6 +85,11 @@ func (s *storageTransport) Name() string {
 // SetStore does not affect previously parsed references.
 func (s *storageTransport) SetStore(store storage.Store) {
 	s.store = store
+}
+
+// GetStoreIfSet returns the default store for this transport, as set using SetStore() or initialized by default, or nil if not set/determined yet.
+func (s *storageTransport) GetStoreIfSet() storage.Store {
+	return s.store
 }
 
 // SetDefaultUIDMap sets the default UID map to use when opening stores.
@@ -129,7 +139,7 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 		// If it looks like a digest, leave it alone for now.
 		if _, err := digest.Parse(possibleID); err != nil {
 			// Otherwise…
-			if idSum, err := digest.Parse("sha256:" + possibleID); err == nil && idSum.Validate() == nil {
+			if err := validateImageID(possibleID); err == nil {
 				id = possibleID // … it is a full ID
 			} else if img, err := store.Image(possibleID); err == nil && img != nil && len(possibleID) >= minimumTruncatedIDLength && strings.HasPrefix(img.ID, possibleID) {
 				// … it is a truncated version of the ID of an image that's present in local storage,
@@ -167,12 +177,18 @@ func (s storageTransport) ParseStoreReference(store storage.Store, ref string) (
 		named = reference.TagNameOnly(named)
 	}
 
-	result, err := newReference(storageTransport{store: store, defaultUIDMap: s.defaultUIDMap, defaultGIDMap: s.defaultGIDMap}, named, id)
+	result, err := s.NewStoreReference(store, named, id)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Debugf("parsed reference into %q", result.StringWithinTransport())
 	return result, nil
+}
+
+// NewStoreReference creates a reference for (named@ID) in store.
+// either of name or ID can be unset; named must not be a reference.IsNameOnly.
+func (s *storageTransport) NewStoreReference(store storage.Store, named reference.Named, id string) (*storageReference, error) {
+	return newReference(storageTransport{store: store, defaultUIDMap: s.defaultUIDMap, defaultGIDMap: s.defaultGIDMap}, named, id)
 }
 
 func (s *storageTransport) GetStore() (storage.Store, error) {
@@ -342,7 +358,7 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 	switch len(fields) {
 	case 1: // name only
 	case 2: // name:tag@ID or name[:tag]@digest
-		if _, idErr := digest.Parse("sha256:" + fields[1]); idErr != nil {
+		if idErr := validateImageID(fields[1]); idErr != nil {
 			if _, digestErr := digest.Parse(fields[1]); digestErr != nil {
 				return fmt.Errorf("%v is neither a valid digest(%s) nor a valid ID(%s)", fields[1], digestErr.Error(), idErr.Error())
 			}
@@ -351,7 +367,7 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 		if _, err := digest.Parse(fields[1]); err != nil {
 			return err
 		}
-		if _, err := digest.Parse("sha256:" + fields[2]); err != nil {
+		if err := validateImageID(fields[2]); err != nil {
 			return err
 		}
 	default: // Coverage: This should never happen
@@ -362,4 +378,10 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 	// from docker/distribution/reference.regexp.go, but other than that there
 	// are few semantically invalid strings.
 	return nil
+}
+
+// validateImageID returns nil if id is a valid (full) image ID, or an error
+func validateImageID(id string) error {
+	_, err := digest.Parse("sha256:" + id)
+	return err
 }
