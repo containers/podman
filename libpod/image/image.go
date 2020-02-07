@@ -169,10 +169,9 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	}
 
 	newImage := Image{
-		InputName:    name,
+		InputName:    imageName[0],
 		imageruntime: ir,
 	}
-	newImage.InputName = imageName[0]
 	img, err := newImage.getLocalImage()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
