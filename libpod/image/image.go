@@ -145,11 +145,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 	defer span.Finish()
 
 	// We don't know if the image is local or not ... check local first
-	newImage := Image{
-		InputName:    name,
-		imageruntime: ir,
-	}
 	if pullType != util.PullImageAlways {
+		newImage := Image{
+			InputName:    name,
+			imageruntime: ir,
+		}
 		localImage, err := newImage.getLocalImage()
 		if err == nil {
 			newImage.image = localImage
@@ -168,6 +168,10 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
+	newImage := Image{
+		InputName:    name,
+		imageruntime: ir,
+	}
 	newImage.InputName = imageName[0]
 	img, err := newImage.getLocalImage()
 	if err != nil {
