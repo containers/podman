@@ -818,10 +818,10 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 
 	// Iterate in reverse order over the history entries, and lookup the
 	// corresponding image ID, size and get the next later if needed.
-	numHistories := len(oci.History) - 1
-	for x := numHistories; x >= 0; x-- {
+	topHistoryIndex := len(oci.History) - 1
+	for x := topHistoryIndex; x >= 0; x-- {
 		id := "<missing>"
-		if x == numHistories {
+		if x == topHistoryIndex {
 			id = i.ID()
 		}
 		h := History{
