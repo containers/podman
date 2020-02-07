@@ -146,14 +146,9 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 
 	// We don't know if the image is local or not ... check local first
 	if pullType != util.PullImageAlways {
-		newImage := Image{
-			InputName:    name,
-			imageruntime: ir,
-		}
-		localImage, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err == nil {
-			newImage.image = localImage
-			return &newImage, nil
+			return newImage, nil
 		} else if pullType == util.PullImageNever {
 			return nil, err
 		}
@@ -168,16 +163,11 @@ func (ir *Runtime) New(ctx context.Context, name, signaturePolicyPath, authfile 
 		return nil, errors.Wrapf(err, "unable to pull %s", name)
 	}
 
-	newImage := Image{
-		InputName:    imageName[0],
-		imageruntime: ir,
-	}
-	img, err := newImage.getLocalImage()
+	newImage, err := ir.NewFromLocal(imageName[0])
 	if err != nil {
 		return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 	}
-	newImage.image = img
-	return &newImage, nil
+	return newImage, nil
 }
 
 // LoadFromArchiveReference creates a new image object for images pulled from a tar archive and the like (podman load)
@@ -194,16 +184,11 @@ func (ir *Runtime) LoadFromArchiveReference(ctx context.Context, srcRef types.Im
 	}
 
 	for _, name := range imageNames {
-		newImage := Image{
-			InputName:    name,
-			imageruntime: ir,
-		}
-		img, err := newImage.getLocalImage()
+		newImage, err := ir.NewFromLocal(name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error retrieving local image after pulling %s", name)
 		}
-		newImage.image = img
-		newImages = append(newImages, &newImage)
+		newImages = append(newImages, newImage)
 	}
 	ir.newImageEvent(events.LoadFromArchive, "")
 	return newImages, nil
