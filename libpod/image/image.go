@@ -322,6 +322,8 @@ func (i *Image) Digests() []digest.Digest {
 
 // GetManifest returns the image's manifest as a byte array
 // and manifest type as a string.
+//
+// Deprecated: This has no external callers.
 func (i *Image) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
 	imgSrcRef, err := i.toImageSourceRef(ctx)
 	if err != nil {
@@ -332,6 +334,8 @@ func (i *Image) GetManifest(ctx context.Context, instanceDigest *digest.Digest) 
 
 // Manifest returns the image's manifest as a byte array
 // and manifest type as a string.
+//
+// Deprecated: This has no external callers.
 func (i *Image) Manifest(ctx context.Context) ([]byte, string, error) {
 	imgRef, err := i.toImageRef(ctx)
 	if err != nil {
@@ -751,11 +755,15 @@ func (i *Image) toImageRef(ctx context.Context) (types.Image, error) {
 }
 
 // DriverData gets the driver data from the store on a layer
+//
+// Deprecated: No external callers.
 func (i *Image) DriverData() (*driver.Data, error) {
 	return driver.GetDriverData(i.imageruntime.store, i.TopLayer())
 }
 
 // Layer returns the image's top layer
+//
+// Deprecated: No external callers.
 func (i *Image) Layer() (*storage.Layer, error) {
 	return i.imageruntime.store.Layer(i.image.TopLayer)
 }
@@ -1250,6 +1258,8 @@ func (i *Image) GetParent(ctx context.Context) (*Image, error) {
 }
 
 // GetChildren returns a list of the imageIDs that depend on the image
+//
+// Deprecated: This has no external callers.
 func (i *Image) GetChildren(ctx context.Context) ([]string, error) {
 	children, err := i.getChildren(ctx, 0)
 	if err != nil {
@@ -1341,6 +1351,8 @@ func (i *Image) Containers() ([]string, error) {
 }
 
 // Comment returns the Comment for an image depending on its ManifestType
+//
+// Deprecated: This has no external callers.
 func (i *Image) Comment(ctx context.Context, manifestType string) (string, error) {
 	if manifestType == manifest.DockerV2Schema2MediaType {
 		imgRef, err := i.toImageRef(ctx)
@@ -1431,6 +1443,8 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 
 // GetConfigBlob returns a schema2image.  If the image is not a schema2, then
 // it will return an error
+//
+// Deprecated: This has no external callers.
 func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, error) {
 	imageRef, err := i.toImageRef(ctx)
 	if err != nil {
