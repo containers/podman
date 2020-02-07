@@ -820,19 +820,19 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 	// corresponding image ID, size and get the next later if needed.
 	topHistoryIndex := len(oci.History) - 1
 	for x := topHistoryIndex; x >= 0; x-- {
-		id := "<missing>"
-		if x == topHistoryIndex {
-			id = i.ID()
-		}
 		h := History{
-			ID:        id,
 			Created:   oci.History[x].Created,
 			CreatedBy: oci.History[x].CreatedBy,
 			Comment:   oci.History[x].Comment,
 		}
+		if x == topHistoryIndex {
+			h.ID = i.ID()
+		}
 		if layer != nil {
 			if imageID, exists := topLayerMap[layer.ID]; exists {
-				h.ID = imageID
+				if h.ID == "" {
+					h.ID = imageID
+				}
 				// Delete the entry to avoid reusing it for following history items.
 				delete(topLayerMap, layer.ID)
 			}
@@ -846,6 +846,9 @@ func (i *Image) History(ctx context.Context) ([]*History, error) {
 					}
 				}
 			}
+		}
+		if h.ID == "" {
+			h.ID = "<missing>"
 		}
 		allHistory = append(allHistory, &h)
 	}
