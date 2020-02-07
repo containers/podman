@@ -65,3 +65,34 @@ func (i *Image) AddTag(tag reference.Named) (bool, error) {
 	}
 	return true, nil
 }
+
+// RemoveTag removes tag from image.
+// If the tag is not present, the method silently succeeds.
+// The image is not removed even if the last tag is removed.
+// Returns true if the tag was found and removed, false if the tags were not changed. // FIXME: can/should this be dropped?
+// FIXME: This allows untagging using name@digest, and name:tag@digest.  Should that be allowed??!!
+func (i *Image) RemoveTag(tag reference.Named) (bool, error) {
+	if reference.IsNameOnly(tag) {
+		return false, fmt.Errorf("refusing to remove tag %q which has neither a tag nor a digest", tag.String())
+	}
+
+	si, err := i.storageImage()
+	if err != nil {
+		return false, err
+	}
+	tagString := tag.String()
+	if !util.StringInSlice(tagString, si.Names) {
+		return false, nil
+	}
+
+	newNames := []string{}
+	for _, t := range si.Names {
+		if t != tagString {
+			newNames = append(newNames, t)
+		}
+	}
+	if err := i.storage.store.SetNames(si.ID, newNames); err != nil {
+		return false, err
+	}
+	return true, nil
+}

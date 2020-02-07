@@ -573,26 +573,24 @@ func (i *Image) TagImage(tag string) error {
 
 // UntagImage removes a tag from the given image
 func (i *Image) UntagImage(tag string) error {
-	if err := i.reloadImage(); err != nil {
+	// Previously, this code only worked with an _exact_ match of the tag against i.Names(), which contains
+	// reference.Named.String()-formatted data.  So, for any input that worked previously, we can use reference.ParseNormalizedNamed()
+	// here safely without worrying about short names and the like.
+	// FIXME: Should this use normalizeTag anyway?
+	ref, err := reference.ParseNormalizedNamed(tag)
+	if err != nil {
 		return err
 	}
-	var newTags []string
-	tags := i.Names()
-	if !util.StringInSlice(tag, tags) {
+	updated, err := i.localImage.RemoveTag(ref)
+	if err != nil {
 		return nil
 	}
-	for _, t := range tags {
-		if tag != t {
-			newTags = append(newTags, t)
+	if updated {
+		if err := i.reloadImage(); err != nil {
+			return err
 		}
+		i.newImageEvent(events.Untag)
 	}
-	if err := i.imageruntime.store.SetNames(i.ID(), newTags); err != nil {
-		return err
-	}
-	if err := i.reloadImage(); err != nil {
-		return err
-	}
-	i.newImageEvent(events.Untag)
 	return nil
 }
 
