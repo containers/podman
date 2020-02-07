@@ -999,14 +999,12 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		History:      ociv1Img.History,
 		NamesHistory: i.NamesHistory(),
 	}
-	if manifestType == manifest.DockerV2Schema2MediaType {
-		hc, err := i.GetHealthCheck(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if hc != nil {
-			data.HealthCheck = hc
-		}
+	hc, err := i.GetHealthCheckIfSupported(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if hc != nil {
+		data.HealthCheck = hc
 	}
 	return data, nil
 }
@@ -1450,8 +1448,24 @@ func (i *Image) GetConfigBlob(ctx context.Context) (*manifest.Schema2Image, erro
 
 }
 
+// GetHealthCheckIfSupported returns a HealthConfig for an image, if set and supported.
+// If the format does not support heal checks, it returns (nil, nil)
+// WARNING: This is an UNSTABLE WIP interface
+func (i *Image) GetHealthCheckIfSupported(ctx context.Context) (*manifest.Schema2HealthConfig, error) {
+	_, mediaType, err := i.Manifest(ctx)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to determine mediatype of image %s", i.ID())
+	}
+	if mediaType != manifest.DockerV2Schema2MediaType {
+		return nil, nil
+	}
+	return i.GetHealthCheck(ctx)
+}
+
 // GetHealthCheck returns a HealthConfig for an image.  This function only works with
 // schema2 images.
+//
+// Deprecated: Use GetHealthCheckIfSupported.
 func (i *Image) GetHealthCheck(ctx context.Context) (*manifest.Schema2HealthConfig, error) {
 	configBlob, err := i.GetConfigBlob(ctx)
 	if err != nil {
