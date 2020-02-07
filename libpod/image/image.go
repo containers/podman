@@ -770,12 +770,12 @@ func (i *Image) Layer() (*storage.Layer, error) {
 
 // History contains the history information of an image
 type History struct {
-	ID        string     `json:"id"`
+	ID        string     `json:"id"` // FIXME: Report all of them, let UI deal with the ambiguity.
 	Created   *time.Time `json:"created"`
 	CreatedBy string     `json:"createdBy"`
 	Size      int64      `json:"size"`
 	Comment   string     `json:"comment"`
-	Tags      []string   `json:"tags"`
+	Tags      []string   `json:"tags"` // FIXME: These are LAYER tags (usually container-name+"-layer")
 }
 
 // History gets the history of an image and the IDs of images that are part of
