@@ -95,8 +95,8 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		return err
 	}
 	if len(imageName) > 0 {
-		split := strings.Split(names, ",")
-		newImage, err := runtime.NewImageFromLocal(split[0])
+		split := strings.Split(names, ",")                   // FIXME: This should just be an array
+		newImage, err := runtime.NewImageFromLocal(split[0]) // FIXME: How does it make sense to use the name for one iamge and ignore the others?... It doesn't really work anyway.
 		if err != nil {
 			return err
 		}
