@@ -554,25 +554,20 @@ func normalizedTag(tag string) (reference.Named, error) {
 
 // TagImage adds a tag to the given image
 func (i *Image) TagImage(tag string) error {
-	if err := i.reloadImage(); err != nil {
-		return err
-	}
 	ref, err := normalizedTag(tag)
 	if err != nil {
 		return err
 	}
-	tags := i.Names()
-	if util.StringInSlice(ref.String(), tags) {
+	updated, err := i.localImage.AddTag(ref)
+	if err != nil {
 		return nil
 	}
-	tags = append(tags, ref.String())
-	if err := i.imageruntime.store.SetNames(i.ID(), tags); err != nil {
-		return err
+	if updated {
+		if err := i.reloadImage(); err != nil {
+			return err
+		}
+		i.newImageEvent(events.Tag)
 	}
-	if err := i.reloadImage(); err != nil {
-		return err
-	}
-	i.newImageEvent(events.Tag)
 	return nil
 }
 
