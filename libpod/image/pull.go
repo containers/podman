@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/docker/tarfile"
 	ociarchive "github.com/containers/image/v5/oci/archive"
 	oci "github.com/containers/image/v5/oci/layout"
@@ -355,9 +356,14 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 	}
 
 	if decomposedImage.hasRegistry {
-		srcRef, err := docker.ParseReference("//" + inputName)
+		ref, err := decomposedImage.normalizedReference()
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", inputName)
+			return nil, err
+		}
+		ref = reference.TagNameOnly(ref)
+		srcRef, err := docker.NewReference(ref)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create a docker:// reference for '%s'", ref.String())
 		}
 		return ir.getSinglePullRefPairGoal(srcRef, inputName)
 	}
@@ -373,9 +379,10 @@ func (ir *Runtime) pullGoalFromPossiblyUnqualifiedName(inputName string) (*pullG
 			return nil, err
 		}
 		imageName := ref.String()
-		srcRef, err := docker.ParseReference("//" + imageName)
+		ref = reference.TagNameOnly(ref)
+		srcRef, err := docker.NewReference(ref)
 		if err != nil {
-			return nil, errors.Wrapf(err, "unable to parse '%s'", imageName)
+			return nil, errors.Wrapf(err, "unable to create a docker:// reference for '%s'", ref.String())
 		}
 		ps, err := ir.getPullRefPair(srcRef, imageName)
 		if err != nil {
