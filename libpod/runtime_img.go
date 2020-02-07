@@ -256,7 +256,7 @@ func DownloadFromFile(reader *os.File) (string, error) {
 // WARNING: This is an UNSTABLE WIP interface
 func (r *Runtime) LoadImages(ctx context.Context, name, inputFile string, writer io.Writer, signaturePolicy string) ([]*image.Image, error) {
 	var newImages []*image.Image
-	src, err := dockerarchive.ParseReference(inputFile) // FIXME? We should add dockerarchive.NewReference()
+	src, err := dockerarchive.NewReference(inputFile, nil)
 	if err == nil {
 		newImages, err = r.ImageRuntime().LoadFromArchiveReference(ctx, src, signaturePolicy, writer)
 	}

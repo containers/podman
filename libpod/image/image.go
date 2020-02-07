@@ -1015,7 +1015,7 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 
 // Import imports and image into the store and returns an image
 func (ir *Runtime) Import(ctx context.Context, path, reference string, writer io.Writer, signingOptions SigningOptions, imageConfig ociv1.Image) (*Image, error) {
-	src, err := tarball.Transport.ParseReference(path)
+	src, err := tarball.NewReference([]string{path}, nil)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error parsing image name %q", path)
 	}
@@ -1410,14 +1410,23 @@ func (i *Image) Save(ctx context.Context, source, format, output string, moreTag
 		}
 		manifestType = manifest.DockerV2Schema2MediaType
 	case "docker-archive", "":
-		dst := output
+		var destTag reference.NamedTagged = nil
 		destImageName := imageNameForSaveDestination(i, source)
 		if destImageName != "" {
-			dst = fmt.Sprintf("%s:%s", dst, destImageName)
+			ref, err := reference.ParseNormalizedNamed(destImageName)
+			if err != nil {
+				return errors.Wrapf(err, "source image name is an invalid Docker reference")
+			}
+			ref = reference.TagNameOnly(ref)
+			tagged, ok := ref.(reference.NamedTagged)
+			if !ok {
+				return fmt.Errorf("internal error: reference %s after TagNameOnly is not a NamedTagged", ref.String())
+			}
+			destTag = tagged
 		}
-		destRef, err = dockerarchive.ParseReference(dst) // FIXME? Add dockerarchive.NewReference
+		destRef, err = dockerarchive.NewReference(output, destTag)
 		if err != nil {
-			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q", dst)
+			return errors.Wrapf(err, "error getting Docker archive ImageReference for %q / %q", output, destImageName)
 		}
 	default:
 		return errors.Errorf("unknown format option %q", format)
