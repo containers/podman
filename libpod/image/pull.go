@@ -228,7 +228,7 @@ func (ir *Runtime) pullImageFromHeuristicSource(ctx context.Context, inputName s
 		sc.OSChoice = dockerOptions.OSChoice
 		sc.ArchitectureChoice = dockerOptions.ArchitectureChoice
 	}
-	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache")
+	sc.BlobInfoCacheDir = filepath.Join(ir.store.GraphRoot(), "cache") // FIXME: ... duplicated, and in one branch only.
 	srcRef, err := alltransports.ParseImageName(inputName)
 	if err != nil {
 		// We might be pulling with an unqualified image reference in which case
