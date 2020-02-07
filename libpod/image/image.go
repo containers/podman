@@ -52,7 +52,7 @@ type Image struct {
 	inspect.ImageData
 	inspect.ImageResult
 	inspectInfo  *types.ImageInspectInfo
-	InputName    string
+	InputName    string // Deprecated: Preserve the original user input instead.
 	image        *storage.Image
 	imageruntime *Runtime
 }
@@ -639,7 +639,7 @@ func (i *Image) PushImageToReference(ctx context.Context, dest types.ImageRefere
 	// Look up the source image, expecting it to be in local storage
 	src, err := is.Transport.ParseStoreReference(i.imageruntime.store, i.ID())
 	if err != nil {
-		return errors.Wrapf(err, "error getting source imageReference for %q", i.InputName)
+		return errors.Wrapf(err, "error getting source imageReference for ID %q", i.ID())
 	}
 	copyOptions := getCopyOptions(sc, writer, nil, dockerRegistryOptions, signingOptions, manifestMIMEType, additionalDockerArchiveTags)
 	copyOptions.DestinationCtx.SystemRegistriesConfPath = registries.SystemRegistriesConfPath() // FIXME: Set this more globally.  Probably no reason not to have it in every types.SystemContext, and to compute the value just once in one place.
@@ -727,11 +727,11 @@ func (i *Image) toImageRef(ctx context.Context) (types.Image, error) {
 					if list, err3 := manifest.ListFromBlob(manifestBytes, manifestType); err3 == nil {
 						switch manifestType {
 						case ociv1.MediaTypeImageIndex:
-							err = errors.Wrapf(ErrImageIsBareList, "%q is an image index", i.InputName)
+							err = errors.Wrapf(ErrImageIsBareList, "image is an OCI image index")
 						case manifest.DockerV2ListMediaType:
-							err = errors.Wrapf(ErrImageIsBareList, "%q is a manifest list", i.InputName)
+							err = errors.Wrapf(ErrImageIsBareList, "image is a manifest list")
 						default:
-							err = errors.Wrapf(ErrImageIsBareList, "%q", i.InputName)
+							err = ErrImageIsBareList
 						}
 						for _, instanceDigest := range list.Instances() {
 							instance := instanceDigest

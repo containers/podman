@@ -46,7 +46,8 @@ func untag(c *cliconfig.UntagValues) error {
 	}
 	defer runtime.DeferredShutdown(false)
 
-	newImage, err := runtime.NewImageFromLocal(args[0])
+	imageName := args[0]
+	newImage, err := runtime.NewImageFromLocal(imageName)
 	if err != nil {
 		return err
 	}
@@ -60,7 +61,7 @@ func untag(c *cliconfig.UntagValues) error {
 
 	for _, tag := range tags {
 		if err := newImage.UntagImage(tag); err != nil {
-			return errors.Wrapf(err, "removing %q from %q", tag, newImage.InputName)
+			return errors.Wrapf(err, "removing %q from %q", tag, imageName)
 		}
 	}
 	return nil

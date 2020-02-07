@@ -17,7 +17,7 @@ func (r *LocalRuntime) Tree(imageOrID string) (*image.InfoImage, map[string]*ima
 	// Fetch map of image-layers, which is used for printing output.
 	layerInfoMap, err := image.GetLayersMapWithImageInfo(r.Runtime.ImageRuntime())
 	if err != nil {
-		return nil, nil, nil, errors.Wrapf(err, "error while retrieving layers of image %q", img.InputName)
+		return nil, nil, nil, errors.Wrapf(err, "error while retrieving layers of image %q", imageOrID)
 	}
 
 	// Create an imageInfo and fill the image and layer info

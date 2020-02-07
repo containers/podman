@@ -44,14 +44,15 @@ func tagCmd(c *cliconfig.TagValues) error {
 	}
 	defer runtime.DeferredShutdown(false)
 
-	newImage, err := runtime.NewImageFromLocal(args[0])
+	existingImageName := args[0]
+	newImage, err := runtime.NewImageFromLocal(existingImageName)
 	if err != nil {
 		return err
 	}
 
 	for _, tagName := range args[1:] {
 		if err := newImage.TagImage(tagName); err != nil {
-			return errors.Wrapf(err, "error adding %q to image %q", tagName, newImage.InputName)
+			return errors.Wrapf(err, "error adding %q to image %q", tagName, existingImageName)
 		}
 	}
 	return nil

@@ -95,13 +95,14 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		return err
 	}
 	if len(imageName) > 0 {
-		split := strings.Split(names, ",")                   // FIXME: This should just be an array
-		newImage, err := runtime.NewImageFromLocal(split[0]) // FIXME: How does it make sense to use the name for one iamge and ignore the others?... It doesn't really work anyway.
+		split := strings.Split(names, ",") // FIXME: This should just be an array
+		loadedImageName := split[0]
+		newImage, err := runtime.NewImageFromLocal(loadedImageName) // FIXME: How does it make sense to use the name for one iamge and ignore the others?... It doesn't really work anyway.
 		if err != nil {
 			return err
 		}
 		if err := newImage.TagImage(imageName); err != nil {
-			return errors.Wrapf(err, "error adding '%s' to image %q", imageName, newImage.InputName)
+			return errors.Wrapf(err, "error adding '%s' to image %q", imageName, loadedImageName)
 		}
 	}
 	fmt.Println("Loaded image(s): " + names)

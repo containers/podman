@@ -82,8 +82,9 @@ func historyCmd(c *cliconfig.HistoryValues) error {
 	if len(args) > 1 {
 		return errors.Errorf("podman history takes at most 1 argument")
 	}
+	imageName := args[0]
 
-	image, err := runtime.NewImageFromLocal(args[0])
+	image, err := runtime.NewImageFromLocal(imageName)
 	if err != nil {
 		return err
 	}
@@ -96,7 +97,7 @@ func historyCmd(c *cliconfig.HistoryValues) error {
 
 	history, err := image.History(getContext())
 	if err != nil {
-		return errors.Wrapf(err, "error getting history of image %q", image.InputName)
+		return errors.Wrapf(err, "error getting history of image %q", imageName)
 	}
 
 	return generateHistoryOutput(history, opts)
