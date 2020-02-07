@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/docker/distribution/registry/client"
@@ -97,7 +98,8 @@ func (s *dockerImageSource) fetchManifest(ctx context.Context, tagOrDigest strin
 	if res.StatusCode != http.StatusOK {
 		return nil, "", errors.Wrapf(client.HandleErrorResponse(res), "Error reading manifest %s in %s", tagOrDigest, s.ref.ref.Name())
 	}
-	manblob, err := ioutil.ReadAll(res.Body)
+
+	manblob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxManifestBodySize)
 	if err != nil {
 		return nil, "", err
 	}
@@ -284,7 +286,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, url *url.URL) (
 		} else if res.StatusCode != http.StatusOK {
 			return nil, false, errors.Errorf("Error reading signature from %s: status %d (%s)", url.String(), res.StatusCode, http.StatusText(res.StatusCode))
 		}
-		sig, err := ioutil.ReadAll(res.Body)
+		sig, err := iolimits.ReadAtMost(res.Body, iolimits.MaxSignatureBodySize)
 		if err != nil {
 			return nil, false, err
 		}
@@ -345,7 +347,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 		return err
 	}
 	defer get.Body.Close()
-	manifestBody, err := ioutil.ReadAll(get.Body)
+	manifestBody, err := iolimits.ReadAtMost(get.Body, iolimits.MaxManifestBodySize)
 	if err != nil {
 		return err
 	}
@@ -368,7 +370,7 @@ func deleteImage(ctx context.Context, sys *types.SystemContext, ref dockerRefere
 	}
 	defer delete.Body.Close()
 
-	body, err := ioutil.ReadAll(delete.Body)
+	body, err := iolimits.ReadAtMost(delete.Body, iolimits.MaxErrorBodySize)
 	if err != nil {
 		return err
 	}

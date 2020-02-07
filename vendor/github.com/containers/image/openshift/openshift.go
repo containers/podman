@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/containers/image/docker"
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
 	"github.com/containers/image/version"
@@ -102,7 +102,7 @@ func (c *openshiftClient) doRequest(ctx context.Context, method, path string, re
 		return nil, err
 	}
 	defer res.Body.Close()
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := iolimits.ReadAtMost(res.Body, iolimits.MaxOpenShiftStatusBody)
 	if err != nil {
 		return nil, err
 	}
