@@ -665,17 +665,23 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Import a previously exported tarball as an image.
 	// parameters:
 	//   - in: query
-	//     name: change
-	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//     type: string
+	//     name: changes
+	//     description: "Apply the following possible instructions to the created image: CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//     type: array
+	//     items:
+	//       type: string
 	//   - in: query
 	//     name: message
 	//     description: Set commit message for imported image
 	//     type: string
 	//   - in: query
+	//     name: change
+	//     description: "Optional Name[:TAG] for the image"
+	//     type: reference
+	//   - in: query
 	//     name: url
-	//     description: Specify a URL instead of a tarball
-	//     type: boolean
+	//     description: Load image from the specified URL
+	//     type: string
 	//   - in: formData
 	//     name: upload
 	//     type: file

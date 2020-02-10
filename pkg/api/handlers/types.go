@@ -38,8 +38,7 @@ type LibpodImagesLoadReport struct {
 }
 
 type LibpodImagesImportReport struct {
-	ID       string   `json:"id"`
-	RepoTags []string `json:"repoTags"`
+	ID string `json:"id"`
 }
 
 type LibpodImagesPullReport struct {
