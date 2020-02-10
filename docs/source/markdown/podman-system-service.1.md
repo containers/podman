@@ -32,12 +32,12 @@ Print usage statement.
 
 Run an API listening for 5 seconds using the default socket.
 ```
-podman service --timeout 5000
+podman system service --timeout 5000
 ```
 
 Run the podman varlink service with an alternate URI and accept the default timeout.
 ```
-$ podman service --varlink unix:/tmp/io.podman
+$ podman system service --varlink unix:/tmp/io.podman
 ```
 
 ## SEE ALSO
