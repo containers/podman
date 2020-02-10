@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -64,17 +63,6 @@ func commitCmd(c *cliconfig.CommitValues) error {
 	reference := ""
 	if len(args) > 1 {
 		reference = args[1]
-	}
-	if c.Flag("change").Changed {
-		for _, change := range c.Change {
-			splitChange := strings.Split(strings.ToUpper(change), "=")
-			if len(splitChange) == 1 {
-				splitChange = strings.Split(strings.ToUpper(change), " ")
-			}
-			if !util.StringInSlice(splitChange[0], ChangeCmds) {
-				return errors.Errorf("invalid syntax for --change: %s", change)
-			}
-		}
 	}
 
 	iid, err := runtime.Commit(getContext(), c, container, reference)

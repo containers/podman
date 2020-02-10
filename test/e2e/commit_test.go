@@ -115,6 +115,25 @@ var _ = Describe("Podman commit", func() {
 		Expect(foundBlue).To(Equal(true))
 	})
 
+	It("podman commit container with change flag and JSON entrypoint with =", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"commit", "--change", `ENTRYPOINT ["foo", "bar=baz"]`, "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectImageJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Entrypoint)).To(Equal(2))
+		Expect(data[0].Config.Entrypoint[0]).To(Equal("foo"))
+		Expect(data[0].Config.Entrypoint[1]).To(Equal("bar=baz"))
+	})
+
 	It("podman commit container with change CMD flag", func() {
 		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
 		test.WaitWithDefaultTimeout()
