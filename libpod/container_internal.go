@@ -1383,17 +1383,33 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 	}
 	if vol.state.NeedsCopyUp {
 		logrus.Debugf("Copying up contents from container %s to volume %s", c.ID(), vol.Name())
+
+		// Set NeedsCopyUp to false immediately, so we don't try this
+		// again when there are already files copied.
+		vol.state.NeedsCopyUp = false
+		if err := vol.save(); err != nil {
+			return nil, err
+		}
+
+		// If the volume is not empty, we should not copy up.
+		volMount := vol.MountPoint()
+		contents, err := ioutil.ReadDir(volMount)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error listing contents of volume %s mountpoint when copying up from container %s", vol.Name(), c.ID())
+		}
+		if len(contents) > 0 {
+			// The volume is not empty. It was likely modified
+			// outside of Podman. For safety, let's not copy up into
+			// it. Fixes CVE-2020-1726.
+			return vol, nil
+		}
+
 		srcDir, err := securejoin.SecureJoin(mountpoint, v.Dest)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error calculating destination path to copy up container %s volume %s", c.ID(), vol.Name())
 		}
-		if err := c.copyWithTarFromImage(srcDir, vol.MountPoint()); err != nil && !os.IsNotExist(err) {
+		if err := c.copyWithTarFromImage(srcDir, volMount); err != nil && !os.IsNotExist(err) {
 			return nil, errors.Wrapf(err, "error copying content from container %s into volume %s", c.ID(), vol.Name())
-		}
-
-		vol.state.NeedsCopyUp = false
-		if err := vol.save(); err != nil {
-			return nil, err
 		}
 	}
 	return vol, nil
