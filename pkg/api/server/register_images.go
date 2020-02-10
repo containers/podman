@@ -639,9 +639,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Load an image (oci-archive or docker-archive) stream.
 	// parameters:
 	//   - in: query
-	//     name: change
+	//     name: reference
 	//     description: "Optional Name[:TAG] for the image"
-	//     type: reference
+	//     type: string
 	//   - in: formData
 	//     name: upload
 	//     description: tarball of container image
@@ -675,9 +675,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     description: Set commit message for imported image
 	//     type: string
 	//   - in: query
-	//     name: change
+	//     name: reference
 	//     description: "Optional Name[:TAG] for the image"
-	//     type: reference
+	//     type: string
 	//   - in: query
 	//     name: url
 	//     description: Load image from the specified URL
@@ -704,42 +704,41 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Pull images
 	// description: Pull one or more images from a container registry.
 	// parameters:
-	//  - in: query
-	//    name: reference
-	//    description: Mandatory reference to the image (e.g., quay.io/image/name:tag)
-	//    type: string
-	//  - in: query
-	//    name: credentials
-	//    description: username:password for the registry.
-	//    type: string
-	//  - in: query
-	//    name: os
-	//    description: Pull image for the specified operating system.
-	//    type: string
-	//  - in: query
-	//    name: arch
-	//    description: Pull image for the specified architecture.
-	//    type: string
-	//  - in: query
-	//    name: tls-verify
-	//    description: Require TLS verification.
-	//    type: boolean
-	//    default: true
-	//  - in: query
-	//    name: all-tags
-	//    description: Pull all tagged images in the repository.
-	//    type: bool
+	//   - in: query
+	//     name: reference
+	//     description: "Mandatory reference to the image (e.g., quay.io/image/name:tag)"
+	//     type: string
+	//   - in: query
+	//     name: credentials
+	//     description: "username:password for the registry"
+	//     type: string
+	//   - in: query
+	//     name: overrideOS
+	//     description: Pull image for the specified operating system.
+	//     type: string
+	//   - in: query
+	//     name: overrideArch
+	//     description: Pull image for the specified architecture.
+	//     type: string
+	//   - in: query
+	//     name: tlsVerify
+	//     description: Require TLS verification.
+	//     type: boolean
+	//     default: true
+	//   - in: query
+	//     name: allTags
+	//     description: Pull all tagged images in the repository.
+	//     type: boolean
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesPullResponse"
-	//     $ref: "#/response/LibpodImagesPullResponse"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPut)
+	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/prune libpod libpodPruneImages
 	// ---
 	// tags:
