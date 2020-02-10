@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/internal/iolimits"
 	"github.com/containers/image/internal/tmpdir"
 	"github.com/containers/image/manifest"
 	"github.com/containers/image/types"
@@ -135,7 +136,7 @@ func (d *Destination) PutBlob(ctx context.Context, stream io.Reader, inputInfo t
 	}
 
 	if isConfig {
-		buf, err := ioutil.ReadAll(stream)
+		buf, err := iolimits.ReadAtMost(stream, iolimits.MaxConfigBodySize)
 		if err != nil {
 			return types.BlobInfo{}, errors.Wrap(err, "Error reading Config file stream")
 		}
