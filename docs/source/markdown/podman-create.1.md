@@ -207,7 +207,7 @@ Add a host device to the container. The format is `<device-on-host>[:<device-on-
 
 Note: if the user only has access rights via a group then accessing the device
 from inside a rootless container will fail. The `crun` runtime offers a
-workaround for this by adding the option `--annotation io.crun.keep_original_groups=1`.
+workaround for this by adding the option `--annotation run.oci.keep_original_groups=1`.
 
 **--device-read-bps**=*path*
 
