@@ -339,7 +339,7 @@ var _ = Describe("Podman pull", func() {
 	})
 
 	It("podman pull check all tags", func() {
-		session := podmanTest.PodmanNoCache([]string{"pull", "--all-tags", "alpine"})
+		session := podmanTest.PodmanNoCache([]string{"pull", "--all-tags", "k8s.gcr.io/pause"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOuputStartsWith("Pulled Images:")).To(BeTrue())
