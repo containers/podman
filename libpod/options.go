@@ -1784,3 +1784,156 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 		return nil
 	}
 }
+
+// WithPodStaticIP sets a static IP for the pod.
+func WithPodStaticIP(ip net.IP) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if len(pod.config.InfraContainer.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
+		}
+
+		pod.config.InfraContainer.StaticIP = ip
+
+		return nil
+	}
+}
+
+// WithPodStaticMAC sets a static MAC address for the pod.
+func WithPodStaticMAC(mac net.HardwareAddr) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if len(pod.config.InfraContainer.Networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
+		}
+
+		pod.config.InfraContainer.StaticMAC = mac
+
+		return nil
+	}
+}
+
+// WithPodUseImageResolvConf sets a pod to use an image's resolv.conf and not
+// create its own.
+func WithPodUseImageResolvConf() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if len(pod.config.InfraContainer.DNSServer) != 0 ||
+			len(pod.config.InfraContainer.DNSSearch) != 0 ||
+			len(pod.config.InfraContainer.DNSOption) != 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "requested use of image resolv.conf conflicts with already-configured DNS settings")
+		}
+
+		pod.config.InfraContainer.UseImageResolvConf = true
+
+		return nil
+	}
+}
+
+// WithPodDNS sets the DNS Servers for a pod.
+func WithPodDNS(dnsServer []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS servers if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSServer = dnsServer
+
+		return nil
+	}
+}
+
+// WithPodDNSSearch sets the DNS Search domains for a pod.
+func WithPodDNSSearch(dnsSearch []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS search domains if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSSearch = dnsSearch
+
+		return nil
+	}
+}
+
+// WithPodDNSOption sets DNS Options for a pod.
+func WithPodDNSOption(dnsOption []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if pod.config.InfraContainer.UseImageResolvConf {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if pod will not create /etc/resolv.conf")
+		}
+
+		pod.config.InfraContainer.DNSOption = dnsOption
+
+		return nil
+	}
+}
+
+// WithPodUseImageHosts tells the pod not to create /etc/hosts and instead to
+// use the one provided by the image.
+func WithPodUseImageHosts() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if len(pod.config.InfraContainer.HostAdd) != 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
+		}
+
+		pod.config.InfraContainer.UseImageHosts = true
+
+		return nil
+	}
+}
+
+// WithPodHosts adds additional entries to the pod's /etc/hosts
+func WithPodHosts(hosts []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if pod.config.InfraContainer.UseImageHosts {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot add to /etc/hosts if container is using image hosts")
+		}
+
+		pod.config.InfraContainer.HostAdd = hosts
+
+		return nil
+	}
+}
+
+// WithPodNetworks sets additional CNI networks for the pod to join.
+func WithPodNetworks(networks []string) PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.InfraContainer.Networks = networks
+
+		return nil
+	}
+}
