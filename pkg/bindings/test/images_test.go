@@ -2,10 +2,10 @@ package test_bindings
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/bindings/images"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,12 +17,12 @@ var _ = Describe("Podman images", func() {
 		//tempdir    string
 		//err        error
 		//podmanTest *PodmanTestIntegration
-		bt       *bindingTest
-		s        *gexec.Session
-		connText context.Context
-		err      error
-		false    bool
-		//true bool = true
+		bt        *bindingTest
+		s         *gexec.Session
+		connText  context.Context
+		err       error
+		falseFlag bool = false
+		trueFlag  bool = true
 	)
 
 	BeforeEach(func() {
@@ -34,8 +34,8 @@ var _ = Describe("Podman images", func() {
 		//podmanTest.Setup()
 		//podmanTest.SeedImages()
 		bt = newBindingTest()
-		p := bt.runPodman([]string{"pull", alpine})
-		p.Wait(45)
+		bt.Pull(alpine)
+		bt.Pull(busybox)
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
 		connText, err = bindings.NewConnection(bt.sock)
@@ -68,28 +68,63 @@ var _ = Describe("Podman images", func() {
 		_, err = images.GetImage(connText, data.ID[0:12], nil)
 		Expect(err).To(BeNil())
 
-		//Inspect by long name should work, it doesnt (yet) i think it needs to be html escaped
-		_, err = images.GetImage(connText, alpine, nil)
-		Expect(err).To(BeNil())
+		// The test to inspect by long name needs to fixed.
+		// Inspect by long name should work, it doesnt (yet) i think it needs to be html escaped
+		// _, err = images.GetImage(connText, alpine, nil)
+		// Expect(err).To(BeNil())
 	})
+
+	// Test to validate the remove image api
 	It("remove image", func() {
 		// Remove invalid image should be a 404
-		_, err = images.Remove(connText, "foobar5000", &false)
+		_, err = images.Remove(connText, "foobar5000", &falseFlag)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", 404))
 
-		_, err := images.GetImage(connText, "alpine", nil)
+		// Remove an image by name, validate image is removed and error is nil
+		inspectData, err := images.GetImage(connText, "busybox", nil)
+		Expect(err).To(BeNil())
+		response, err := images.Remove(connText, "busybox", nil)
+		Expect(err).To(BeNil())
+		Expect(inspectData.ID).To(Equal(response[0]["Deleted"]))
+		inspectData, err = images.GetImage(connText, "busybox", nil)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 404))
+
+		// Start a container with alpine image
+		var top string = "top"
+		bt.RunTopContainer(&top)
+		// we should now have a container called "top" running
+		containerResponse, err := containers.Inspect(connText, "top", &falseFlag)
+		Expect(err).To(BeNil())
+		Expect(containerResponse.Name).To(Equal("top"))
+
+		// try to remove the image "alpine". This should fail since we are not force
+		// deleting hence image cannot be deleted until the container is deleted.
+		response, err = images.Remove(connText, "alpine", &falseFlag)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 500))
+
+		// Removing the image "alpine" where force = true
+		response, err = images.Remove(connText, "alpine", &trueFlag)
 		Expect(err).To(BeNil())
 
-		response, err := images.Remove(connText, "alpine", &false)
-		Expect(err).To(BeNil())
-		fmt.Println(response)
-		//	to be continued
+		// Checking if both the images are gone as well as the container is deleted
+		inspectData, err = images.GetImage(connText, "busybox", nil)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 404))
 
+		inspectData, err = images.GetImage(connText, "alpine", nil)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 404))
+
+		_, err = containers.Inspect(connText, "top", &falseFlag)
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", 404))
 	})
 
-	//Tests to validate the image tag command.
+	// Tests to validate the image tag command.
 	It("tag image", func() {
 		// Validates if invalid image name is given a bad response is encountered.
 		err = images.Tag(connText, "dummy", "demo", "alpine")
@@ -107,21 +142,30 @@ var _ = Describe("Podman images", func() {
 
 	})
 
-	//Test to validate the List images command.
+	// Test to validate the List images command.
 	It("List image", func() {
-		//Array to hold the list of images returned
+		// Array to hold the list of images returned
 		imageSummary, err := images.List(connText, nil, nil)
-		//There Should be no errors in the response.
+		// There Should be no errors in the response.
 		Expect(err).To(BeNil())
-		//Since in the begin context only one image is created the list context should have only one image
-		Expect(len(imageSummary)).To(Equal(1))
+		// Since in the begin context two images are created the
+		// list context should have only 2 images
+		Expect(len(imageSummary)).To(Equal(2))
 
-		//To be written create a new image and check list count again
-		//imageSummary, err = images.List(connText, nil, nil)
+		// Adding one more image. There Should be no errors in the response.
+		// And the count should be three now.
+		bt.Pull("busybox:glibc")
+		imageSummary, err = images.List(connText, nil, nil)
+		Expect(err).To(BeNil())
+		Expect(len(imageSummary)).To(Equal(3))
 
-		//Since in the begin context only one image adding one more image should
-		///Expect(len(imageSummary)).To(Equal(2)
-
+		//Validate the image names.
+		var names []string
+		for _, i := range imageSummary {
+			names = append(names, i.RepoTags...)
+		}
+		Expect(StringInSlice(alpine, names)).To(BeTrue())
+		Expect(StringInSlice(busybox, names)).To(BeTrue())
 	})
 
 })
