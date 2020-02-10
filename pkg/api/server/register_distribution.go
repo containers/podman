@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterDistributionHandlers(r *mux.Router) error {
+func (s *APIServer) registerDistributionHandlers(r *mux.Router) error {
 	r.HandleFunc(VersionedPath("/distribution/{name}/json"), handlers.UnsupportedHandler)
 	return nil
 }

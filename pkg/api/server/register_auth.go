@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterAuthHandlers(r *mux.Router) error {
-	r.Handle(VersionedPath("/auth"), APIHandler(s.Context, handlers.UnsupportedHandler))
+func (s *APIServer) registerAuthHandlers(r *mux.Router) error {
+	r.Handle(VersionedPath("/auth"), s.APIHandler(handlers.UnsupportedHandler))
 	return nil
 }

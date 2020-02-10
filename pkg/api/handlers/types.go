@@ -351,18 +351,21 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 
 func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {
 	imageId, imageName := l.Image()
-	sizeRW, err := l.RWSize()
-	if err != nil {
+
+	var (
+		err        error
+		sizeRootFs int64
+		sizeRW     int64
+		state      define.ContainerStatus
+	)
+
+	if state, err = l.State(); err != nil {
 		return nil, err
 	}
-
-	SizeRootFs, err := l.RootFsSize()
-	if err != nil {
+	if sizeRW, err = l.RWSize(); err != nil {
 		return nil, err
 	}
-
-	state, err := l.State()
-	if err != nil {
+	if sizeRootFs, err = l.RootFsSize(); err != nil {
 		return nil, err
 	}
 
@@ -375,7 +378,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 		Created:    l.CreatedTime().Unix(),
 		Ports:      nil,
 		SizeRw:     sizeRW,
-		SizeRootFs: SizeRootFs,
+		SizeRootFs: sizeRootFs,
 		Labels:     l.Labels(),
 		State:      string(state),
 		Status:     "",

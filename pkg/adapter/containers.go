@@ -26,7 +26,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
-	"github.com/containers/libpod/pkg/systemdgen"
+	"github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -1154,7 +1154,7 @@ func generateServiceName(c *cliconfig.GenerateSystemdValues, ctr *libpod.Contain
 
 // generateSystemdgenContainerInfo is a helper to generate a
 // systemdgen.ContainerInfo for `GenerateSystemd`.
-func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSystemdValues, nameOrID string, pod *libpod.Pod) (*systemdgen.ContainerInfo, bool, error) {
+func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSystemdValues, nameOrID string, pod *libpod.Pod) (*generate.ContainerInfo, bool, error) {
 	ctr, err := r.Runtime.LookupContainer(nameOrID)
 	if err != nil {
 		return nil, false, err
@@ -1172,7 +1172,7 @@ func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSyst
 	}
 
 	name, serviceName := generateServiceName(c, ctr, pod)
-	info := &systemdgen.ContainerInfo{
+	info := &generate.ContainerInfo{
 		ServiceName:       serviceName,
 		ContainerName:     name,
 		RestartPolicy:     c.RestartPolicy,
@@ -1187,7 +1187,7 @@ func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSyst
 
 // GenerateSystemd creates a unit file for a container or pod.
 func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
-	opts := systemdgen.Options{
+	opts := generate.Options{
 		Files: c.Files,
 		New:   c.New,
 	}
@@ -1196,7 +1196,7 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 	if info, found, err := r.generateSystemdgenContainerInfo(c, c.InputArgs[0], nil); found && err != nil {
 		return "", err
 	} else if found && err == nil {
-		return systemdgen.CreateContainerSystemdUnit(info, opts)
+		return generate.CreateContainerSystemdUnit(info, opts)
 	}
 
 	// --new does not support pods.
@@ -1242,7 +1242,7 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 
 	// Traverse the dependency graph and create systemdgen.ContainerInfo's for
 	// each container.
-	containerInfos := []*systemdgen.ContainerInfo{podInfo}
+	containerInfos := []*generate.ContainerInfo{podInfo}
 	for ctr, dependencies := range graph.DependencyMap() {
 		// Skip the infra container as we already generated it.
 		if ctr.ID() == infraID {
@@ -1272,7 +1272,7 @@ func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (stri
 		if i > 0 {
 			builder.WriteByte('\n')
 		}
-		out, err := systemdgen.CreateContainerSystemdUnit(info, opts)
+		out, err := generate.CreateContainerSystemdUnit(info, opts)
 		if err != nil {
 			return "", err
 		}

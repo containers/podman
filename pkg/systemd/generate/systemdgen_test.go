@@ -1,4 +1,4 @@
-package systemdgen
+package generate
 
 import (
 	"testing"

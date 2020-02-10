@@ -74,7 +74,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//	   description: container is paused
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/containers/{name}/create"), APIHandler(s.Context, handlers.CreateExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/containers/{name}/create"), s.APIHandler(handlers.CreateExec)).Methods(http.MethodPost)
 	// swagger:operation POST /exec/{id}/start compat startExec
 	// ---
 	// tags:
@@ -110,7 +110,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//	   description: container is stopped or paused
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/exec/{id}/start"), APIHandler(s.Context, handlers.StartExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(handlers.StartExec)).Methods(http.MethodPost)
 	// swagger:operation POST /exec/{id}/resize compat resizeExec
 	// ---
 	// tags:
@@ -141,7 +141,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/exec/{id}/resize"), APIHandler(s.Context, handlers.ResizeExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
 	// swagger:operation GET /exec/{id}/inspect compat inspectExec
 	// ---
 	// tags:
@@ -163,7 +163,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/exec/{id}/json"), APIHandler(s.Context, handlers.InspectExec)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/exec/{id}/json"), s.APIHandler(handlers.InspectExec)).Methods(http.MethodGet)
 
 	/*
 		libpod api follows
@@ -235,7 +235,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//	   description: container is paused
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/containers/{name}/create"), APIHandler(s.Context, handlers.CreateExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/containers/{name}/create"), s.APIHandler(handlers.CreateExec)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/exec/{id}/start libpod libpodStartExec
 	// ---
 	// tags:
@@ -271,7 +271,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//	   description: container is stopped or paused
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/exec/{id}/start"), APIHandler(s.Context, handlers.StartExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/exec/{id}/start"), s.APIHandler(handlers.StartExec)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/exec/{id}/resize libpod libpodResizeExec
 	// ---
 	// tags:
@@ -302,7 +302,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), APIHandler(s.Context, handlers.ResizeExec)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/exec/{id}/inspect libpod libpodInspectExec
 	// ---
 	// tags:
@@ -324,6 +324,6 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchExecInstance"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/libpod/exec/{id}/json"), APIHandler(s.Context, handlers.InspectExec)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/exec/{id}/json"), s.APIHandler(handlers.InspectExec)).Methods(http.MethodGet)
 	return nil
 }

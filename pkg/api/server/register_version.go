@@ -6,7 +6,7 @@ import (
 )
 
 func (s *APIServer) registerVersionHandlers(r *mux.Router) error {
-	r.Handle("/version", APIHandler(s.Context, handlers.VersionHandler))
-	r.Handle(VersionedPath("/version"), APIHandler(s.Context, handlers.VersionHandler))
+	r.Handle("/version", s.APIHandler(handlers.VersionHandler))
+	r.Handle(VersionedPath("/version"), s.APIHandler(handlers.VersionHandler))
 	return nil
 }

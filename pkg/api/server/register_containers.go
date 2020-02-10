@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
+func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// swagger:operation POST /containers/create compat containerCreate
 	// ---
 	//   summary: Create a container
@@ -33,7 +33,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//       $ref: "#/responses/ConflictError"
 	//     500:
 	//       $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/create"), APIHandler(s.Context, handlers.CreateContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/create"), s.APIHandler(handlers.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/json compat listContainers
 	// ---
 	// tags:
@@ -83,7 +83,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/json"), APIHandler(s.Context, generic.ListContainers)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/json"), s.APIHandler(generic.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST  /containers/prune compat pruneContainers
 	// ---
 	// tags:
@@ -105,7 +105,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/DocsContainerPruneReport"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/prune"), APIHandler(s.Context, handlers.PruneContainers)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/prune"), s.APIHandler(handlers.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation DELETE /containers/{name} compat removeContainer
 	// ---
 	// tags:
@@ -144,7 +144,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}"), APIHandler(s.Context, generic.RemoveContainer)).Methods(http.MethodDelete)
+	r.HandleFunc(VersionedPath("/containers/{name}"), s.APIHandler(generic.RemoveContainer)).Methods(http.MethodDelete)
 	// swagger:operation GET /containers/{name}/json compat getContainer
 	// ---
 	// tags:
@@ -171,7 +171,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/json"), APIHandler(s.Context, generic.GetContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/json"), s.APIHandler(generic.GetContainer)).Methods(http.MethodGet)
 	// swagger:operation post /containers/{name}/kill compat killcontainer
 	// ---
 	// tags:
@@ -201,7 +201,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/kill"), APIHandler(s.Context, generic.KillContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/kill"), s.APIHandler(generic.KillContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{name}/logs compat LogsFromContainer
 	// ---
 	// tags:
@@ -253,7 +253,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//      $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//      $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/logs"), s.APIHandler(generic.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{name}/pause compat pauseContainer
 	// ---
 	// tags:
@@ -275,8 +275,8 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
-	r.HandleFunc(VersionedPath("/containers/{name}/rename"), APIHandler(s.Context, handlers.UnsupportedHandler)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/pause"), s.APIHandler(handlers.PauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/rename"), s.APIHandler(handlers.UnsupportedHandler)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{name}/restart compat restartContainer
 	// ---
 	// tags:
@@ -301,7 +301,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/restart"), s.APIHandler(handlers.RestartContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{name}/start compat startContainer
 	// ---
 	// tags:
@@ -329,7 +329,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/start"), s.APIHandler(handlers.StartContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{name}/stats compat statsContainer
 	// ---
 	// tags:
@@ -356,7 +356,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/stats"), s.APIHandler(generic.StatsContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{name}/stop compat stopContainer
 	// ---
 	// tags:
@@ -384,7 +384,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/stop"), s.APIHandler(handlers.StopContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /containers/{name}/top compat topContainer
 	// ---
 	// tags:
@@ -409,7 +409,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/containers/{name}/top"), s.APIHandler(handlers.TopContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /containers/{name}/unpause compat unpauseContainer
 	// ---
 	// tags:
@@ -431,7 +431,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/unpause"), s.APIHandler(handlers.UnpauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{name}/wait compat waitContainer
 	// ---
 	// tags:
@@ -457,7 +457,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/wait"), APIHandler(s.Context, generic.WaitContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/wait"), s.APIHandler(generic.WaitContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{name}/attach compat attach
 	// ---
 	// tags:
@@ -512,7 +512,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/attach"), s.APIHandler(handlers.AttachContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /containers/{name}/resize compat resize
 	// ---
 	// tags:
@@ -544,13 +544,13 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/containers/{name}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/containers/{name}/resize"), s.APIHandler(handlers.ResizeContainer)).Methods(http.MethodPost)
 
 	/*
 		libpod endpoints
 	*/
 
-	r.HandleFunc(VersionedPath("/libpod/containers/create"), APIHandler(s.Context, handlers.CreateContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/create"), s.APIHandler(handlers.CreateContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/json libpod libpodListContainers
 	// ---
 	// tags:
@@ -615,7 +615,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/json"), APIHandler(s.Context, libpod.ListContainers)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/json"), s.APIHandler(libpod.ListContainers)).Methods(http.MethodGet)
 	// swagger:operation POST  /libpod/containers/prune libpod libpodPruneContainers
 	// ---
 	// tags:
@@ -637,7 +637,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/DocsLibpodPruneResponse"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/prune"), APIHandler(s.Context, handlers.PruneContainers)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/prune"), s.APIHandler(handlers.PruneContainers)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/showmounted libpod showMounterContainers
 	// ---
 	// tags:
@@ -655,7 +655,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//       type: string
 	//   500:
 	//      $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/showmounted"), APIHandler(s.Context, libpod.ShowMountedContainers)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/showmounted"), s.APIHandler(libpod.ShowMountedContainers)).Methods(http.MethodGet)
 	// swagger:operation DELETE /libpod/containers/{name} libpod libpodRemoveContainer
 	// ---
 	// tags:
@@ -689,7 +689,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}"), APIHandler(s.Context, libpod.RemoveContainer)).Methods(http.MethodDelete)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}"), s.APIHandler(libpod.RemoveContainer)).Methods(http.MethodDelete)
 	// swagger:operation GET /libpod/containers/{name}/json libpod libpodGetContainer
 	// ---
 	// tags:
@@ -715,7 +715,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/json"), APIHandler(s.Context, libpod.GetContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/json"), s.APIHandler(libpod.GetContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/kill libpod libpodKillContainer
 	// ---
 	// tags:
@@ -744,7 +744,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), APIHandler(s.Context, libpod.KillContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), s.APIHandler(libpod.KillContainer)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/containers/{name}/mount libpod mountContainer
 	// ---
 	// tags:
@@ -770,7 +770,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/mount"), APIHandler(s.Context, libpod.MountContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/mount"), s.APIHandler(libpod.MountContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/unmount libpod libpodUnmountContainer
 	// ---
 	// tags:
@@ -792,7 +792,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unmount"), APIHandler(s.Context, libpod.UnmountContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unmount"), s.APIHandler(libpod.UnmountContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/{name}/logs libpod libpodLogsFromContainer
 	// ---
 	// tags:
@@ -844,7 +844,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//      $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//      $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), s.APIHandler(generic.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/pause libpod libpodPauseContainer
 	// ---
 	// tags:
@@ -866,7 +866,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     "$ref": "#/responses/NoSuchContainer"
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/pause"), APIHandler(s.Context, handlers.PauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name:..*}/pause"), s.APIHandler(handlers.PauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/restart libpod libpodRestartContainer
 	// ---
 	// tags:
@@ -891,7 +891,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restart"), APIHandler(s.Context, handlers.RestartContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/restart"), s.APIHandler(handlers.RestartContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/start libpod libpodStartContainer
 	// ---
 	// tags:
@@ -919,7 +919,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/start"), APIHandler(s.Context, handlers.StartContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/start"), s.APIHandler(handlers.StartContainer)).Methods(http.MethodPost)
 	// swagger:operation GET /libpod/containers/{name}/stats libpod libpodStatsContainer
 	// ---
 	// tags:
@@ -946,7 +946,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), APIHandler(s.Context, generic.StatsContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stats"), s.APIHandler(generic.StatsContainer)).Methods(http.MethodGet)
 	// swagger:operation GET /libpod/containers/{name}/top libpod libpodTopContainer
 	// ---
 	// tags:
@@ -980,7 +980,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/top"), APIHandler(s.Context, handlers.TopContainer)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/top"), s.APIHandler(handlers.TopContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/unpause libpod libpodUnpauseContainer
 	// ---
 	// tags:
@@ -1001,7 +1001,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unpause"), APIHandler(s.Context, handlers.UnpauseContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unpause"), s.APIHandler(handlers.UnpauseContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/wait libpod libpodWaitContainer
 	// ---
 	// tags:
@@ -1022,7 +1022,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/wait"), APIHandler(s.Context, libpod.WaitContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/wait"), s.APIHandler(libpod.WaitContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/exists libpod containerExists
 	// ---
 	// tags:
@@ -1044,7 +1044,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/exists"), APIHandler(s.Context, libpod.ContainerExists)).Methods(http.MethodGet)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/exists"), s.APIHandler(libpod.ContainerExists)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/stop libpod libpodStopContainer
 	// ---
 	// tags:
@@ -1071,7 +1071,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stop"), APIHandler(s.Context, handlers.StopContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/stop"), s.APIHandler(handlers.StopContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/attach libpod libpodAttach
 	// ---
 	// tags:
@@ -1126,7 +1126,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/attach"), APIHandler(s.Context, handlers.AttachContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/attach"), s.APIHandler(handlers.AttachContainer)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/containers/{name}/resize libpod libpodResize
 	// ---
 	// tags:
@@ -1158,6 +1158,6 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), APIHandler(s.Context, handlers.ResizeContainer)).Methods(http.MethodPost)
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/resize"), s.APIHandler(handlers.ResizeContainer)).Methods(http.MethodPost)
 	return nil
 }
