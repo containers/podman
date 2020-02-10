@@ -507,7 +507,7 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 
 %files
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %{_bindir}/%{name}
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
@@ -523,19 +523,19 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %dir %{gopath}/src/%{provider}.%{provider_tld}/%{project}
 %endif
 
 %if 0%{?with_unit_test} && 0%{?with_devel}
 %files unit-test-devel -f unit-test-devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %endif
 
 %files -n podman-remote
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %{_bindir}/%{name}-remote
 
 %if %{with doc}
