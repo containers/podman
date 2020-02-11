@@ -33,6 +33,18 @@ type ContainerConfig struct {
 	dockerContainer.Config
 }
 
+type LibpodImagesLoadReport struct {
+	ID string `json:"id"`
+}
+
+type LibpodImagesImportReport struct {
+	ID string `json:"id"`
+}
+
+type LibpodImagesPullReport struct {
+	ID string `json:"id"`
+}
+
 type ImageSummary struct {
 	docker.ImageSummary
 	CreatedTime time.Time `json:"CreatedTime,omitempty"`
@@ -47,21 +59,6 @@ type LibpodContainersPruneReport struct {
 	ID             string `json:"id"`
 	SpaceReclaimed int64  `json:"space"`
 	PruneError     string `json:"error"`
-}
-
-type LibpodImagesLoadReport struct {
-	ID       string   `json:"id"`
-	RepoTags []string `json:"repoTags"`
-}
-
-type LibpodImagesImportReport struct {
-	ID       string   `json:"id"`
-	RepoTags []string `json:"repoTags"`
-}
-
-type LibpodImagesPullReport struct {
-	ID       string   `json:"id"`
-	RepoTags []string `json:"repoTags"`
 }
 
 type Info struct {

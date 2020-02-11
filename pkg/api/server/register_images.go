@@ -639,12 +639,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Load an image (oci-archive or docker-archive) stream.
 	// parameters:
 	//   - in: query
-	//     name: change
-	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//     type: string
-	//   - in: query
-	//     name: message
-	//     description: Set commit message for imported image
+	//     name: reference
+	//     description: "Optional Name[:TAG] for the image"
 	//     type: string
 	//   - in: formData
 	//     name: upload
@@ -656,6 +652,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesLoadResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/load"), APIHandler(s.Context, libpod.ImagesLoad)).Methods(http.MethodPost)
@@ -667,17 +665,23 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Import a previously exported tarball as an image.
 	// parameters:
 	//   - in: query
-	//     name: change
-	//     description: "Apply the following possible instructions to the created image (default []): CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
-	//     type: string
+	//     name: changes
+	//     description: "Apply the following possible instructions to the created image: CMD | ENTRYPOINT | ENV | EXPOSE | LABEL | STOPSIGNAL | USER | VOLUME | WORKDIR.  JSON encoded string"
+	//     type: array
+	//     items:
+	//       type: string
 	//   - in: query
 	//     name: message
 	//     description: Set commit message for imported image
 	//     type: string
 	//   - in: query
+	//     name: reference
+	//     description: "Optional Name[:TAG] for the image"
+	//     type: string
+	//   - in: query
 	//     name: url
-	//     description: Specify a URL instead of a tarball
-	//     type: boolean
+	//     description: Load image from the specified URL
+	//     type: string
 	//   - in: formData
 	//     name: upload
 	//     type: file
@@ -688,34 +692,50 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesImportResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/import"), APIHandler(s.Context, libpod.ImagesImport)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/images/pull libpod libpodImagesPull
+	// swagger:operation POST /libpod/images/pull libpod libpodImagesPull
 	// ---
 	// tags:
 	//  - images
-	// summary: Import image
-	// description: Import a previosly exported image as a tarball.
+	// summary: Pull images
+	// description: Pull one or more images from a container registry.
 	// parameters:
-	//  - in: query
-	//    name: reference
-	//    description: Mandatory reference to the image (e.g., quay.io/image/name:tag)/
-	//    type: string
-	//  - in: query
-	//    name: credentials
-	//    description: username:password for the registry.
-	//    type: string
-	//  - in: query
-	//    name: tls-verify
-	//    description: Require TLS verification.
-	//    type: boolean
-	//    default: true
+	//   - in: query
+	//     name: reference
+	//     description: "Mandatory reference to the image (e.g., quay.io/image/name:tag)"
+	//     type: string
+	//   - in: query
+	//     name: credentials
+	//     description: "username:password for the registry"
+	//     type: string
+	//   - in: query
+	//     name: overrideOS
+	//     description: Pull image for the specified operating system.
+	//     type: string
+	//   - in: query
+	//     name: overrideArch
+	//     description: Pull image for the specified architecture.
+	//     type: string
+	//   - in: query
+	//     name: tlsVerify
+	//     description: Require TLS verification.
+	//     type: boolean
+	//     default: true
+	//   - in: query
+	//     name: allTags
+	//     description: Pull all tagged images in the repository.
+	//     type: boolean
 	// produces:
 	// - application/json
 	// responses:
 	//   200:
 	//     $ref: "#/responses/DocsLibpodImagesPullResponse"
+	//   400:
+	//     $ref: "#/responses/BadParamError"
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/pull"), APIHandler(s.Context, libpod.ImagesPull)).Methods(http.MethodPost)
