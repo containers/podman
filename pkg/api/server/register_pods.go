@@ -41,6 +41,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//         type: string
 	//   400:
 	//     $ref: "#/responses/BadParamError"
+	//   409:
+	//     description: pod already exists
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/pods/prune"), APIHandler(s.Context, libpod.PodPrune)).Methods(http.MethodPost)

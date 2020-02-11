@@ -23,6 +23,14 @@ func IsLibpodRequest(r *http.Request) bool {
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client
 func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
+	// RFC2616 explicitly states that the following status codes "MUST NOT
+	// include a message-body":
+	switch code {
+	case http.StatusNoContent, http.StatusNotModified: // 204, 304
+		w.WriteHeader(code)
+		return
+	}
+
 	switch v := value.(type) {
 	case string:
 		w.Header().Set("Content-Type", "text/plain; charset=us-ascii")

@@ -91,7 +91,11 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 
 	pod, err := runtime.NewPod(r.Context(), options...)
 	if err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
+		http_code := http.StatusInternalServerError
+		if errors.Cause(err) == define.ErrPodExists {
+			http_code = http.StatusConflict
+		}
+		utils.Error(w, "Something went wrong.", http_code, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusCreated, handlers.IDResponse{ID: pod.CgroupParent()})
@@ -409,5 +413,5 @@ func PodExists(w http.ResponseWriter, r *http.Request) {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, "")
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
