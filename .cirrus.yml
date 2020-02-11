@@ -316,8 +316,10 @@ meta_task:
 # Remove old and disused images based on labels set by meta_task
 image_prune_task:
 
-    # Do not run this frequently
-    only_if: $CIRRUS_BRANCH == $DEST_BRANCH
+    # This should ONLY ever run from the master branch, and never
+    # anywhere else so it's behavior is always consistent, even
+    # as new branches are created.
+    only_if: $CIRRUS_BRANCH == "master"
 
     depends_on:
         - "meta"
