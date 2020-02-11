@@ -16,6 +16,7 @@ import (
 const (
 	defaultPodmanBinaryLocation string = "/usr/bin/podman"
 	alpine                      string = "docker.io/library/alpine:latest"
+	busybox                     string = "docker.io/library/busybox:latest"
 )
 
 type bindingTest struct {
@@ -113,7 +114,38 @@ func (b *bindingTest) startAPIService() *gexec.Session {
 }
 
 func (b *bindingTest) cleanup() {
+	s := b.runPodman([]string{"stop", "-a", "-t", "0"})
+	s.Wait(45)
 	if err := os.RemoveAll(b.tempDirPath); err != nil {
 		fmt.Println(err)
 	}
+}
+
+// Pull is a helper function to pull in images
+func (b *bindingTest) Pull(name string) {
+	p := b.runPodman([]string{"pull", name})
+	p.Wait(45)
+}
+
+// Run a container and add append the alpine image to it
+func (b *bindingTest) RunTopContainer(name *string) {
+	cmd := []string{"run", "-dt"}
+	if name != nil {
+		containerName := *name
+		cmd = append(cmd, "--name", containerName)
+	}
+	cmd = append(cmd, alpine, "top")
+	p := b.runPodman(cmd)
+	p.Wait(45)
+}
+
+//  StringInSlice returns a boolean based on whether a given
+//  string is in a given slice
+func StringInSlice(s string, sl []string) bool {
+	for _, val := range sl {
+		if s == val {
+			return true
+		}
+	}
+	return false
 }
