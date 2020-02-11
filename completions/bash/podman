@@ -1311,7 +1311,6 @@ _podman_build() {
      --net
      --network
      --pid
-     --runtime
      --runtime-flag
      --security-opt
      --shm-size
@@ -1329,15 +1328,10 @@ _podman_build() {
      -v
   "
 
-     local all_options="$options_with_args $boolean_options"
-
-     case "$prev" in
-	 --runtime)
-	     COMPREPLY=($(compgen -W 'runc runv' -- "$cur"))
+ case "$prev" in
+	 --file|-f)
+	     COMPREPLY=($(compgen -W "`ls`" -- "$cur"))
 	     ;;
-	 $(__podman_to_extglob "$options_with_args"))
- return
- ;;
  esac
 
  case "$cur" in
