@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/inspect"
@@ -102,13 +101,6 @@ type swagDockerTopResponse struct {
 	Body struct {
 		ContainerTopOKBody
 	}
-}
-
-// List containers
-// swagger:response LibpodListContainersResponse
-type swagLibpodListContainersResponse struct {
-	// in:body
-	Body []shared.PsContainerOutput
 }
 
 // Inspect container

@@ -640,6 +640,11 @@ func GetNamespaces(pid int) *Namespace {
 	}
 }
 
+// GetNamespaceInfo is an exported wrapper for getNamespaceInfo
+func GetNamespaceInfo(path string) (string, error) {
+	return getNamespaceInfo(path)
+}
+
 func getNamespaceInfo(path string) (string, error) {
 	val, err := os.Readlink(path)
 	if err != nil {

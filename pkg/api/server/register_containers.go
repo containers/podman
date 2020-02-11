@@ -610,7 +610,7 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   200:
-	//     $ref: "#/responses/LibpodListContainersResponse"
+	//     $ref: "#/responses/ListContainers"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   500:
