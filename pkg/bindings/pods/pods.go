@@ -97,7 +97,7 @@ func List(ctx context.Context, filters map[string][]string) (*[]libpod.PodInspec
 	}
 	params := make(map[string]string)
 	if filters != nil {
-		stringFilter, err := bindings.FiltersToHTML(filters)
+		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
