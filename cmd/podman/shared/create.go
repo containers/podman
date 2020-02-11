@@ -109,11 +109,11 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 
 		if overrideOS == "" && imageData.Os != goruntime.GOOS {
-			return nil, nil, errors.Errorf("incompatible image OS %q on %q host", imageData.Os, goruntime.GOOS)
+			logrus.Infof("Using %q (OS) image on %q host", imageData.Os, goruntime.GOOS)
 		}
 
 		if overrideArch == "" && imageData.Architecture != goruntime.GOARCH {
-			return nil, nil, errors.Errorf("incompatible image architecture %q on %q host", imageData.Architecture, goruntime.GOARCH)
+			logrus.Infof("Using %q (architecture) on %q host", imageData.Architecture, goruntime.GOARCH)
 		}
 
 		names := newImage.Names()
