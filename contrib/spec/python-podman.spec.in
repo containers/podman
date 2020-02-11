@@ -92,7 +92,7 @@ popd
 
 %files
 %license LICENSE
-%doc README.md CONTRIBUTING.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md install.md CODE-OF-CONDUCT.md transfer.md
 %{_bindir}/pypodman
 %{_mandir}/man1/pypodman.1*
 %dir %{python3_sitelib}/podman
