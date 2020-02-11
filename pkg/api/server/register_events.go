@@ -29,7 +29,7 @@ func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
 	//   description: JSON encoded map[string][]string of constraints
 	// responses:
 	//   200:
-	//     $ref: "#/responses/ok"
+	//     description: returns a string of json data describing an event
 	//   500:
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/events"), APIHandler(s.Context, handlers.GetEvents))

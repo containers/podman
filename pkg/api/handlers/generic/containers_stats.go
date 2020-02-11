@@ -19,9 +19,6 @@ import (
 const DefaultStatsPeriod = 5 * time.Second
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {
-	// 200 no error
-	// 404 no such
-	// 500 internal
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
