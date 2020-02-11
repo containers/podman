@@ -67,9 +67,9 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		preCPUStats = docker.CPUStats{
 			CPUUsage: docker.CPUUsage{
 				TotalUsage:        stats.CPUNano,
-				PercpuUsage:       []uint64{uint64(stats.CPU)},
-				UsageInKernelmode: 0,
-				UsageInUsermode:   0,
+				PercpuUsage:       stats.PerCPU,
+				UsageInKernelmode: stats.CPUSystemNano,
+				UsageInUsermode:   stats.CPUNano - stats.CPUSystemNano,
 			},
 			SystemUsage:    0,
 			OnlineCPUs:     0,
@@ -146,7 +146,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 				CPUStats: docker.CPUStats{
 					CPUUsage: docker.CPUUsage{
 						TotalUsage:        cgroupStat.CPU.Usage.Total,
-						PercpuUsage:       []uint64{uint64(stats.CPU)},
+						PercpuUsage:       cgroupStat.CPU.Usage.PerCPU,
 						UsageInKernelmode: cgroupStat.CPU.Usage.Kernel,
 						UsageInUsermode:   cgroupStat.CPU.Usage.Total - cgroupStat.CPU.Usage.Kernel,
 					},
