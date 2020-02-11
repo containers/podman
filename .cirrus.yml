@@ -143,6 +143,27 @@ gating_task:
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
+# This task checks to make sure that we can still build an rpm from the
+# source code using contrib/rpm/podman.spec.in
+rpmbuild_task:
+
+    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
+    depends_on:
+        - "gating"
+    env:
+        CIRRUS_WORKING_DIR: "/usr/src/libpod"
+
+    container:
+        image: quay.io/libpod/rpmbuild:$DEST_BRANCH
+        cpu: 2
+        memory: 4
+
+    rpmbuild_script:
+        - 'make -C ${CIRRUS_WORKING_DIR} -f ${CIRRUS_WORKING_DIR}/.copr/Makefile'
+        - 'rpmbuild --rebuild ${CIRRUS_WORKING_DIR}/podman-*.src.rpm'
+
+    on_failure:
+        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh |& ${TIMESTAMP}'
 
 # This task runs `make vendor` followed by ./hack/tree_status.sh to check
 # whether the git tree is clean.  The reasoning for that is to make sure
@@ -712,6 +733,7 @@ success_task:
         - "meta"
         - "image_prune"
         - "testing"
+        - "rpmbuild"
         - "special_testing_rootless"
         - "special_testing_in_podman"
         - "special_testing_cgroupv2"
