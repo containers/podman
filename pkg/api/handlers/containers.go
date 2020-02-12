@@ -41,10 +41,9 @@ func StopContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, errors.Wrapf(err, "unable to get state for Container %s", name))
 		return
 	}
-	// If the Container is stopped already, send a 302
+	// If the Container is stopped already, send a 304
 	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		utils.Error(w, http.StatusText(http.StatusNotModified), http.StatusNotModified,
-			errors.Errorf("Container %s is already stopped ", name))
+		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
 
@@ -134,8 +133,7 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if state == define.ContainerStateRunning {
-		msg := fmt.Sprintf("Container %s is already running", name)
-		utils.Error(w, msg, http.StatusNotModified, errors.New(msg))
+		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
 	if err := con.Start(r.Context(), false); err != nil {

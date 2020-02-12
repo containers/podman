@@ -202,8 +202,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if allContainersStopped {
-		alreadyStopped := errors.Errorf("pod %s is already stopped", pod.ID())
-		utils.Error(w, "Something went wrong", http.StatusNotModified, alreadyStopped)
+		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
 
@@ -249,8 +248,7 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	if allContainersRunning {
-		alreadyRunning := errors.Errorf("pod %s is already running", pod.ID())
-		utils.Error(w, "Something went wrong", http.StatusNotModified, alreadyRunning)
+		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
 	if _, err := pod.Start(r.Context()); err != nil {
