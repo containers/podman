@@ -22,6 +22,7 @@ import (
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/seccomp"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-connections/nat"
@@ -30,10 +31,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// seccompLabelKey is the key of the image annotation embedding a seccomp
-// profile.
-const seccompLabelKey = "io.containers.seccomp.profile"
 
 func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime) (*libpod.Container, *cc.CreateConfig, error) {
 	var (
@@ -713,11 +710,11 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	// SECCOMP
 	if data != nil {
-		if value, exists := labels[seccompLabelKey]; exists {
+		if value, exists := labels[seccomp.ContainerImageLabel]; exists {
 			secConfig.SeccompProfileFromImage = value
 		}
 	}
-	if policy, err := cc.LookupSeccompPolicy(c.String("seccomp-policy")); err != nil {
+	if policy, err := seccomp.LookupPolicy(c.String("seccomp-policy")); err != nil {
 		return nil, err
 	} else {
 		secConfig.SeccompPolicy = policy

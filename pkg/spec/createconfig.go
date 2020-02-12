@@ -2,7 +2,6 @@ package createconfig
 
 import (
 	"os"
-	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -11,6 +10,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/seccomp"
 	"github.com/containers/storage"
 	"github.com/docker/go-connections/nat"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -107,48 +107,6 @@ type NetworkConfig struct {
 	PublishAll   bool     //publish-all
 }
 
-// SeccompPolicy determines which seccomp profile gets applied to the container.
-type SeccompPolicy int
-
-const (
-	// SeccompPolicyDefault - if set use SecurityConfig.SeccompProfilePath,
-	// otherwise use the default profile.  The SeccompProfilePath might be
-	// explicitly set by the user.
-	SeccompPolicyDefault SeccompPolicy = iota
-	// SeccompPolicyImage - if set use SecurityConfig.SeccompProfileFromImage,
-	// otherwise follow SeccompPolicyDefault.
-	SeccompPolicyImage
-)
-
-// Map for easy lookups of supported policies.
-var supportedSeccompPolicies = map[string]SeccompPolicy{
-	"":        SeccompPolicyDefault,
-	"default": SeccompPolicyDefault,
-	"image":   SeccompPolicyImage,
-}
-
-// LookupSeccompPolicy looksup the corresponding SeccompPolicy for the specified
-// string. If none is found, an errors is returned including the list of
-// supported policies.
-// Note that an empty string resolved to SeccompPolicyDefault.
-func LookupSeccompPolicy(s string) (SeccompPolicy, error) {
-	policy, exists := supportedSeccompPolicies[s]
-	if exists {
-		return policy, nil
-	}
-
-	// Sort the keys first as maps are non-deterministic.
-	keys := []string{}
-	for k := range supportedSeccompPolicies {
-		if k != "" {
-			keys = append(keys, k)
-		}
-	}
-	sort.Strings(keys)
-
-	return -1, errors.Errorf("invalid seccomp policy %q: valid policies are %+q", s, keys)
-}
-
 // SecurityConfig configures the security features for the container
 type SecurityConfig struct {
 	CapAdd                  []string // cap-add
@@ -158,7 +116,7 @@ type SecurityConfig struct {
 	ApparmorProfile         string   //SecurityOpts
 	SeccompProfilePath      string   //SecurityOpts
 	SeccompProfileFromImage string   // seccomp profile from the container image
-	SeccompPolicy           SeccompPolicy
+	SeccompPolicy           seccomp.Policy
 	SecurityOpts            []string
 	Privileged              bool              //privileged
 	ReadOnlyRootfs          bool              //read-only
