@@ -26,7 +26,7 @@ func Search(ctx context.Context, term string, limit *int, filters map[string][]s
 		params["limit"] = strconv.Itoa(*limit)
 	}
 	if filters != nil {
-		stringFilter, err := bindings.FiltersToHTML(filters)
+		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}

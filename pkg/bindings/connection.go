@@ -130,7 +130,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 		// if more desirable we could use url to form the encoded endpoint with params
 		r := req.URL.Query()
 		for k, v := range queryParams {
-			r.Add(k, url.QueryEscape(v))
+			r.Add(k, v)
 		}
 		req.URL.RawQuery = r.Encode()
 	}
@@ -155,18 +155,14 @@ func GetConnectionFromContext(ctx context.Context) (*Connection, error) {
 	return conn, nil
 }
 
-// FiltersToHTML converts our typical filter format of a
+// FiltersToString converts our typical filter format of a
 // map[string][]string to a query/html safe string.
-func FiltersToHTML(filters map[string][]string) (string, error) {
+func FiltersToString(filters map[string][]string) (string, error) {
 	lowerCaseKeys := make(map[string][]string)
 	for k, v := range filters {
 		lowerCaseKeys[strings.ToLower(k)] = v
 	}
-	unsafeString, err := jsoniter.MarshalToString(lowerCaseKeys)
-	if err != nil {
-		return "", err
-	}
-	return url.QueryEscape(unsafeString), nil
+	return jsoniter.MarshalToString(lowerCaseKeys)
 }
 
 // IsInformation returns true if the response code is 1xx

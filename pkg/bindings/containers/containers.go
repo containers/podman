@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	lpapiv2 "github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
 )
 
@@ -15,13 +15,16 @@ import (
 // the most recent number of containers.  The pod and size booleans indicate that pod information and rootfs
 // size information should also be included.  Finally, the sync bool synchronizes the OCI runtime and
 // container state.
-func List(ctx context.Context, filters map[string][]string, last *int, pod, size, sync *bool) ([]*shared.PsContainerOutput, error) { // nolint:typecheck
+func List(ctx context.Context, filters map[string][]string, all *bool, last *int, pod, size, sync *bool) ([]lpapiv2.ListContainer, error) { // nolint:typecheck
 	conn, err := bindings.GetConnectionFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var images []*shared.PsContainerOutput
+	var containers []lpapiv2.ListContainer
 	params := make(map[string]string)
+	if all != nil {
+		params["all"] = strconv.FormatBool(*all)
+	}
 	if last != nil {
 		params["last"] = strconv.Itoa(*last)
 	}
@@ -35,7 +38,7 @@ func List(ctx context.Context, filters map[string][]string, last *int, pod, size
 		params["sync"] = strconv.FormatBool(*sync)
 	}
 	if filters != nil {
-		filterString, err := bindings.FiltersToHTML(filters)
+		filterString, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
@@ -43,9 +46,9 @@ func List(ctx context.Context, filters map[string][]string, last *int, pod, size
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/json", params)
 	if err != nil {
-		return images, err
+		return containers, err
 	}
-	return images, response.Process(nil)
+	return containers, response.Process(&containers)
 }
 
 // Prune removes stopped and exited containers from local storage.  The optional filters can be
@@ -62,7 +65,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	}
 	params := make(map[string]string)
 	if filters != nil {
-		filterString, err := bindings.FiltersToHTML(filters)
+		filterString, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}

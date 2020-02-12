@@ -38,7 +38,7 @@ func List(ctx context.Context, all *bool, filters map[string][]string) ([]*handl
 		params["all"] = strconv.FormatBool(*all)
 	}
 	if filters != nil {
-		strFilters, err := bindings.FiltersToHTML(filters)
+		strFilters, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +155,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	}
 	params := make(map[string]string)
 	if filters != nil {
-		stringFilter, err := bindings.FiltersToHTML(filters)
+		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}

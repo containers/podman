@@ -56,7 +56,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		All       bool                `schema:"all"`
-		Filter    map[string][]string `schema:"filter"`
+		Filters   map[string][]string `schema:"filters"`
 		Last      int                 `schema:"last"`
 		Namespace bool                `schema:"namespace"`
 		Pod       bool                `schema:"pod"`
@@ -71,6 +71,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
+
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	opts := shared.PsOptions{
 		All:       query.All,
@@ -82,8 +83,8 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		Pod:       query.Pod,
 		Sync:      query.Sync,
 	}
-	if len(query.Filter) > 0 {
-		for k, v := range query.Filter {
+	if len(query.Filters) > 0 {
+		for k, v := range query.Filters {
 			for _, val := range v {
 				generatedFunc, err := shared.GenerateContainerFilterFuncs(k, val, runtime)
 				if err != nil {
