@@ -5,7 +5,7 @@ import (
 	"syscall"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/docker/docker/pkg/signal"
+	"github.com/containers/libpod/pkg/signal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,7 +20,7 @@ func ProxySignals(ctr *libpod.Container) {
 		for s := range sigBuffer {
 			// Ignore SIGCHLD and SIGPIPE - these are mostly likely
 			// intended for the podman command itself.
-			if s == signal.SIGCHLD || s == signal.SIGPIPE {
+			if s == syscall.SIGCHLD || s == syscall.SIGPIPE {
 				continue
 			}
 
