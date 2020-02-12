@@ -41,6 +41,9 @@ echo 0 >$failures_file
 # Where the tests live
 TESTS_DIR=$(realpath $(dirname $0))
 
+# Path to podman binary
+PODMAN_BIN=${PODMAN:-${TESTS_DIR}/../../bin/podman}
+
 # END   setup
 ###############################################################################
 # BEGIN infrastructure code - the helper functions used in tests themselves
@@ -97,7 +100,7 @@ function _show_ok() {
     local green=
     local reset=
     local bold=
-    if [ -t 3 ]; then
+    if [ -t 1 ]; then
         red='\e[31m'
         green='\e[32m'
         reset='\e[0m'
@@ -107,16 +110,16 @@ function _show_ok() {
     _bump $testcounter_file
     count=$(<$testcounter_file)
     if [ $ok -eq 1 ]; then
-        echo -e "${green}ok $count $testname${reset}" >&3
+        echo -e "${green}ok $count $testname${reset}"
         return
     fi
 
     # Failed
     local expect=$3
     local actual=$4
-    echo -e "${red}not ok $count $testname${reset}"       >&3
-    echo -e "${red}#  expected: $expect${reset}"          >&3
-    echo -e "${red}#    actual: ${bold}$actual${reset}"   >&3
+    echo -e "${red}not ok $count $testname${reset}"
+    echo -e "${red}#  expected: $expect${reset}"
+    echo -e "${red}#    actual: ${bold}$actual${reset}"
 
     _bump $failures_file
 }
@@ -201,17 +204,28 @@ function t() {
 
     output=$(< $WORKDIR/curl.result.out)
 
+    # Special case: 204/304, by definition, MUST NOT return content (rfc2616)
+    if [[ $expected_code = 204 || $expected_code = 304 ]]; then
+        if [ -n "$*" ]; then
+            die "Internal error: ${expected_code} status returns no output; fix your test."
+        fi
+        if [ -n "$output" ]; then
+            _show_ok 0 "$testname: ${expected_code} status returns no output" "''" "$output"
+        fi
+        return
+    fi
+
     for i; do
         case "$i" in
             # Exact match on json field
-            .*=*)
+            *=*)
                 json_field=$(expr "$i" : "\([^=]*\)=")
                 expect=$(expr "$i" : '[^=]*=\(.*\)')
                 actual=$(jq -r "$json_field" <<<"$output")
                 is "$actual" "$expect" "$testname : $json_field"
                 ;;
             # regex match on json field
-            .*~*)
+            *~*)
                 json_field=$(expr "$i" : "\([^~]*\)~")
                 expect=$(expr "$i" : '[^~]*~\(.*\)')
                 actual=$(jq -r "$json_field" <<<"$output")
@@ -231,33 +245,49 @@ function t() {
 service_pid=
 function start_service() {
     # If there's a listener on the port, nothing for us to do
-    echo -n >/dev/tcp/$HOST/$PORT &>/dev/null && return
+    { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null && return
+
+    test -x $PODMAN_BIN || die "Not found: $PODMAN_BIN"
 
     if [ "$HOST" != "localhost" ]; then
         die "Cannot start service on non-localhost ($HOST)"
     fi
 
-    if [ $(id -u) -ne 0 ]; then
-        echo "$ME: WARNING: running service rootless is unlikely to work!" >&2
-    fi
-
-    # Find the binary
-    SERVICE_BIN=${SERVICE_BIN:-${TESTS_DIR}/../../bin/service}
-    test -x $SERVICE_BIN || die "Not found: $SERVICE_BIN"
-
-    systemd-socket-activate -l 127.0.0.1:$PORT \
-                            $SERVICE_BIN --root $WORKDIR/root \
+    $PODMAN_BIN --root $WORKDIR system service --timeout 15000 tcp:127.0.0.1:$PORT \
         &> $WORKDIR/server.log &
     service_pid=$!
 
     # Wait
     local _timeout=5
     while [ $_timeout -gt 0 ]; do
-        echo -n >/dev/tcp/$HOST/$PORT &>/dev/null && return
+        { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null && return
         sleep 1
         _timeout=$(( $_timeout - 1 ))
     done
     die "Timed out waiting for service"
+}
+
+############
+#  podman  #  Needed by some test scripts to invoke the actual podman binary
+############
+function podman() {
+    echo "\$ $PODMAN_BIN $*"           >>$WORKDIR/output.log
+    $PODMAN_BIN --root $WORKDIR "$@"   >>$WORKDIR/output.log 2>&1
+}
+
+####################
+#  root, rootless  #  Is server rootless?
+####################
+ROOTLESS=
+function root() {
+    ! rootless
+}
+
+function rootless() {
+    if [[ -z $ROOTLESS ]]; then
+        ROOTLESS=$(curl -s http://$HOST:$PORT/v1.40/info | jq .Rootless)
+    fi
+    test "$ROOTLESS" = "true"
 }
 
 # END   infrastructure code
@@ -288,10 +318,6 @@ else
     tests_to_run=($TESTS_DIR/*.at)
 fi
 
-# Because subtests may run podman or other commands that emit stderr;
-# redirect all those and use fd 3 for all output
-exec 3>&1 &>$WORKDIR/output.log
-
 start_service
 
 for i in ${tests_to_run[@]}; do
@@ -304,22 +330,17 @@ done
 # Clean up
 
 if [ -n "$service_pid" ]; then
-    # Yep, has to be -9. It ignores everything else.
-    kill -9 $service_pid
+    kill $service_pid
+    wait -f $service_pid
 fi
 
 test_count=$(<$testcounter_file)
 failure_count=$(<$failures_file)
 
-if [ $failure_count -gt 0 -a -s "$WORKDIR/output.log" ]; then
-    echo "# Collected stdout/stderr:"         >&3
-    sed -e 's/^/# /' < $WORKDIR/output.log    >&3
-fi
-
 if [ -z "$PODMAN_TESTS_KEEP_WORKDIR" ]; then
     rm -rf $WORKDIR
 fi
 
-echo "1..${test_count}" >&3
+echo "1..${test_count}"
 
 exit $failure_count
