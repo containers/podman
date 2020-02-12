@@ -18,7 +18,6 @@ import (
 var (
 	bbNames      = []string{"docker.io/library/busybox:latest", "docker.io/library/busybox", "docker.io/busybox:latest", "docker.io/busybox", "busybox:latest", "busybox"}
 	bbGlibcNames = []string{"docker.io/library/busybox:glibc", "docker.io/busybox:glibc", "busybox:glibc"}
-	fedoraNames  = []string{"registry.fedoraproject.org/fedora-minimal:latest", "registry.fedoraproject.org/fedora-minimal", "fedora-minimal:latest", "fedora-minimal"}
 )
 
 type localImageTest struct {
@@ -139,7 +138,6 @@ func TestImage_New(t *testing.T) {
 	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
-	names = append(names, fedoraNames...)
 	writer := os.Stdout
 
 	// Iterate over the names and delete the image

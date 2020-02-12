@@ -205,7 +205,7 @@ var _ = Describe("Podman load", func() {
 		podmanTest.RestoreArtifact(fedoraMinimal)
 		outfile := filepath.Join(podmanTest.TempDir, "load_test.tar.gz")
 
-		setup := podmanTest.PodmanNoCache([]string{"tag", "fedora-minimal", "hello"})
+		setup := podmanTest.PodmanNoCache([]string{"tag", fedoraMinimal, "hello"})
 		setup.WaitWithDefaultTimeout()
 		Expect(setup.ExitCode()).To(Equal(0))
 
