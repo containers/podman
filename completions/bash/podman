@@ -1221,8 +1221,11 @@ _podman_system() {
      subcommands="
 	df
 	info
+	migrate
 	prune
+	renumber
 	reset
+	service
      "
      __podman_subcommands "$subcommands" && return
 
