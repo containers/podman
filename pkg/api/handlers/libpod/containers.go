@@ -83,6 +83,8 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		Pod:       query.Pod,
 		Sync:      query.Sync,
 	}
+
+	all := query.All
 	if len(query.Filters) > 0 {
 		for k, v := range query.Filters {
 			for _, val := range v {
@@ -96,8 +98,12 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if !query.All {
-		// The default is get only running containers. Do this with a filterfunc
+	// Docker thinks that if status is given as an input, then we should override
+	// the all setting and always deal with all containers.
+	if len(query.Filters["status"]) > 0 {
+		all = true
+	}
+	if !all {
 		runningOnly, err := shared.GenerateContainerFilterFuncs("status", define.ContainerStateRunning.String(), runtime)
 		if err != nil {
 			utils.InternalServerError(w, err)
