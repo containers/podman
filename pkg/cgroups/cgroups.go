@@ -536,15 +536,14 @@ func (c *CgroupControl) Stat() (*Metrics, error) {
 	return &m, nil
 }
 
-func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, error) {
+func readCgroup2MapPath(path string) (map[string][]string, error) {
 	ret := map[string][]string{}
-	p := filepath.Join(cgroupRoot, ctr.path, name)
-	f, err := os.Open(p)
+	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ret, nil
 		}
-		return nil, errors.Wrapf(err, "open file %s", p)
+		return nil, errors.Wrapf(err, "open file %s", path)
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -557,7 +556,13 @@ func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, e
 		ret[parts[0]] = parts[1:]
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, errors.Wrapf(err, "parsing file %s", p)
+		return nil, errors.Wrapf(err, "parsing file %s", path)
 	}
 	return ret, nil
+}
+
+func readCgroup2MapFile(ctr *CgroupControl, name string) (map[string][]string, error) {
+	p := filepath.Join(cgroupRoot, ctr.path, name)
+
+	return readCgroup2MapPath(p)
 }
