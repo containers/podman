@@ -304,7 +304,7 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		origErr := err
-		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s:%s", docker.Transport.Name(), query.Reference))
+		imageRef, err = alltransports.ParseImageName(fmt.Sprintf("%s://%s", docker.Transport.Name(), query.Reference))
 		if err != nil {
 			utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 				errors.Wrapf(origErr, "reference %q must be a docker reference", query.Reference))
