@@ -397,4 +397,28 @@ var _ = Describe("Podman run with volumes", func() {
 		volMount.WaitWithDefaultTimeout()
 		Expect(volMount.ExitCode()).To(Not(Equal(0)))
 	})
+
+	It("Podman fix for CVE-2020-1726", func() {
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate.ExitCode()).To(Equal(0))
+
+		volPath := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{.Mountpoint}}", volName})
+		volPath.WaitWithDefaultTimeout()
+		Expect(volPath.ExitCode()).To(Equal(0))
+		path := volPath.OutputToString()
+
+		fileName := "thisIsATestFile"
+		file, err := os.Create(filepath.Join(path, fileName))
+		Expect(err).To(BeNil())
+		defer file.Close()
+
+		runLs := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "-v", fmt.Sprintf("%v:/etc/ssl", volName), ALPINE, "ls", "-1", "/etc/ssl"})
+		runLs.WaitWithDefaultTimeout()
+		Expect(runLs.ExitCode()).To(Equal(0))
+		outputArr := runLs.OutputToStringArray()
+		Expect(len(outputArr)).To(Equal(1))
+		Expect(strings.Contains(outputArr[0], fileName)).To(BeTrue())
+	})
 })
