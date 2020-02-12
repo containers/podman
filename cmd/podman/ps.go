@@ -205,9 +205,15 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 	if c.Last >= 0 && c.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// Filter forces all
+	// Filter on status forces all
 	if len(c.Filter) > 0 {
-		c.All = true
+		for _, filter := range c.Filter {
+			splitFilter := strings.SplitN(filter, "=", 2)
+			if strings.ToLower(splitFilter[0]) == "status" {
+				c.All = true
+				break
+			}
+		}
 	}
 	// Quiet conflicts with size and namespace and is overridden by a Go
 	// template.

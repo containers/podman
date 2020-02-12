@@ -243,6 +243,19 @@ var _ = Describe("Podman ps", func() {
 		Expect(psAll.OutputToString()).To(Equal(psFilter.OutputToString()))
 	})
 
+	It("podman filter without status does not find non-running", func() {
+		ctrName := "aContainerName"
+		ctr := podmanTest.Podman([]string{"create", "--name", ctrName, "-t", "-i", ALPINE, "ls", "/"})
+		ctr.WaitWithDefaultTimeout()
+		Expect(ctr.ExitCode()).To(Equal(0))
+
+		psFilter := podmanTest.Podman([]string{"ps", "--no-trunc", "--quiet", "--format", "{{.Names}}", "--filter", fmt.Sprintf("name=%s", ctrName)})
+		psFilter.WaitWithDefaultTimeout()
+		Expect(psFilter.ExitCode()).To(Equal(0))
+
+		Expect(strings.Contains(psFilter.OutputToString(), ctrName)).To(BeFalse())
+	})
+
 	It("podman ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"ps", "-aqs"})
 		session.WaitWithDefaultTimeout()
