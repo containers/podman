@@ -149,9 +149,6 @@ func parent() error {
 	cmd.Stdout = &logrusWriter{prefix: "child"}
 	cmd.Stderr = cmd.Stdout
 	cmd.Env = append(os.Environ(), reexecChildEnvOpaque+"="+string(opaqueJSON))
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig: syscall.SIGTERM,
-	}
 	childNS, err := ns.GetNS(cfg.NetNSPath)
 	if err != nil {
 		return err
@@ -162,6 +159,12 @@ func parent() error {
 	}); err != nil {
 		return err
 	}
+
+	defer func() {
+		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
+			logrus.WithError(err).Warn("kill child process")
+		}
+	}()
 
 	logrus.Info("waiting for initComplete")
 	// wait for the child to connect to the parent
