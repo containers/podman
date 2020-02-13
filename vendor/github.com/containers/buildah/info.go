@@ -52,10 +52,13 @@ func hostInfo() map[string]interface{} {
 		logrus.Error(err, "err reading cgroups mode")
 	}
 	cgroupVersion := "v1"
+	ociruntime := "runc"
 	if unified {
 		cgroupVersion = "v2"
+		ociruntime = "crun"
 	}
 	info["CgroupVersion"] = cgroupVersion
+	info["OCIRuntime"] = ociruntime
 
 	mi, err := system.ReadMemInfo()
 	if err != nil {
