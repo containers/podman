@@ -209,6 +209,13 @@ Note: if the user only has access rights via a group then accessing the device
 from inside a rootless container will fail. The `crun` runtime offers a
 workaround for this by adding the option `--annotation run.oci.keep_original_groups=1`.
 
+**--device-cgroup-rule**="type major:minor mode"
+
+Add a rule to the cgroup allowed devices list. The rule is expected to be in the format specified in the Linux kernel documentation (Documentation/cgroup-v1/devices.txt):
+       - type: a (all), c (char), or b (block);
+       - major and minor: either a number, or * for all;
+       - mode: a composition of r (read), w (write), and m (mknod(2)).
+
 **--device-read-bps**=*path*
 
 Limit read rate (bytes per second) from a device (e.g. --device-read-bps=/dev/sda:1mb)
