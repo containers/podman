@@ -7,7 +7,6 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/cgroups"
 	docker "github.com/docker/docker/api/types"
@@ -58,17 +57,18 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var preRead time.Time
-	var preCPUStats docker.CPUStats
+	var preCPUStats CPUStats
 	if query.Stream {
 		preRead = time.Now()
 		systemUsage, _ := cgroups.GetSystemCPUUsage()
-		preCPUStats = docker.CPUStats{
+		preCPUStats = CPUStats{
 			CPUUsage: docker.CPUUsage{
 				TotalUsage:        stats.CPUNano,
 				PercpuUsage:       stats.PerCPU,
 				UsageInKernelmode: stats.CPUSystemNano,
 				UsageInUsermode:   stats.CPUNano - stats.CPUSystemNano,
 			},
+			CPU:            stats.CPU,
 			SystemUsage:    systemUsage,
 			OnlineCPUs:     0,
 			ThrottlingData: docker.ThrottlingData{},
@@ -124,9 +124,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		}
 
 		systemUsage, _ := cgroups.GetSystemCPUUsage()
-
-		s := handlers.Stats{StatsJSON: docker.StatsJSON{
-			Stats: docker.Stats{
+		s := StatsJSON{
+			Stats: Stats{
 				Read:    time.Now(),
 				PreRead: preRead,
 				PidsStats: docker.PidsStats{
@@ -143,13 +142,14 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 					IoTimeRecursive:         nil,
 					SectorsRecursive:        nil,
 				},
-				CPUStats: docker.CPUStats{
+				CPUStats: CPUStats{
 					CPUUsage: docker.CPUUsage{
 						TotalUsage:        cgroupStat.CPU.Usage.Total,
 						PercpuUsage:       cgroupStat.CPU.Usage.PerCPU,
 						UsageInKernelmode: cgroupStat.CPU.Usage.Kernel,
 						UsageInUsermode:   cgroupStat.CPU.Usage.Total - cgroupStat.CPU.Usage.Kernel,
 					},
+					CPU:         stats.CPU,
 					SystemUsage: systemUsage,
 					OnlineCPUs:  uint32(len(cgroupStat.CPU.Usage.PerCPU)),
 					ThrottlingData: docker.ThrottlingData{
@@ -173,7 +173,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			Name:     stats.Name,
 			ID:       stats.ContainerID,
 			Networks: net,
-		}}
+		}
 
 		utils.WriteJSON(w, http.StatusOK, s)
 		if flusher, ok := w.(http.Flusher); ok {
