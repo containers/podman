@@ -4,6 +4,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -485,5 +486,47 @@ var _ = Describe("Podman generate kube", func() {
 		inspect.WaitWithDefaultTimeout()
 		newBBinspect := inspect.InspectImageJSON()
 		Expect(oldBBinspect[0].Digest).To(Not(Equal(newBBinspect[0].Digest)))
+	})
+
+	It("podman play kube with image data", func() {
+		testyaml := `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo_pod
+spec:
+  containers:
+  - image: demo
+    name: demo_kube
+`
+		pull := podmanTest.Podman([]string{"create", "--workdir", "/etc", "--name", "newBB", "--label", "key1=value1", "alpine"})
+
+		pull.WaitWithDefaultTimeout()
+		Expect(pull.ExitCode()).To(BeZero())
+
+		c := podmanTest.Podman([]string{"commit", "-c", "STOPSIGNAL=51", "newBB", "demo"})
+		c.WaitWithDefaultTimeout()
+		Expect(c.ExitCode()).To(Equal(0))
+
+		conffile := filepath.Join(podmanTest.TempDir, "kube.yaml")
+		tempdir, err = CreateTempDirInTempDir()
+		Expect(err).To(BeNil())
+
+		err := ioutil.WriteFile(conffile, []byte(testyaml), 0755)
+		Expect(err).To(BeNil())
+
+		kube := podmanTest.Podman([]string{"play", "kube", conffile})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "demo_kube"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+
+		ctr := inspect.InspectContainerToJSON()
+		Expect(ctr[0].Config.WorkingDir).To(ContainSubstring("/etc"))
+		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
+		Expect(ctr[0].Config.Labels["key1"]).To(ContainSubstring("value1"))
+		Expect(ctr[0].Config.StopSignal).To(Equal(uint(51)))
 	})
 })

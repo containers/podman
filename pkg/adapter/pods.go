@@ -764,7 +764,6 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.ImageID = newImage.ID()
 	containerConfig.Name = containerYAML.Name
 	containerConfig.Tty = containerYAML.TTY
-	containerConfig.WorkDir = containerYAML.WorkingDir
 
 	containerConfig.Pod = podID
 
@@ -796,6 +795,27 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 
 	containerConfig.StopSignal = 15
 
+	containerConfig.WorkDir = "/"
+	if imageData != nil {
+		// FIXME,
+		// we are currently ignoring imageData.Config.ExposedPorts
+		containerConfig.BuiltinImgVolumes = imageData.Config.Volumes
+		if imageData.Config.WorkingDir != "" {
+			containerConfig.WorkDir = imageData.Config.WorkingDir
+		}
+		containerConfig.Labels = imageData.Config.Labels
+		if imageData.Config.StopSignal != "" {
+			stopSignal, err := util.ParseSignal(imageData.Config.StopSignal)
+			if err != nil {
+				return nil, err
+			}
+			containerConfig.StopSignal = stopSignal
+		}
+	}
+
+	if containerYAML.WorkingDir != "" {
+		containerConfig.WorkDir = containerYAML.WorkingDir
+	}
 	// If the user does not pass in ID mappings, just set to basics
 	if userConfig.IDMappings == nil {
 		userConfig.IDMappings = &storage.IDMappingOptions{}
