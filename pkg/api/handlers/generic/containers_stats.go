@@ -61,14 +61,15 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 	var preCPUStats docker.CPUStats
 	if query.Stream {
 		preRead = time.Now()
+		systemUsage, _ := cgroups.GetSystemCPUUsage()
 		preCPUStats = docker.CPUStats{
 			CPUUsage: docker.CPUUsage{
 				TotalUsage:        stats.CPUNano,
-				PercpuUsage:       []uint64{uint64(stats.CPU)},
-				UsageInKernelmode: 0,
-				UsageInUsermode:   0,
+				PercpuUsage:       stats.PerCPU,
+				UsageInKernelmode: stats.CPUSystemNano,
+				UsageInUsermode:   stats.CPUNano - stats.CPUSystemNano,
 			},
-			SystemUsage:    0,
+			SystemUsage:    systemUsage,
 			OnlineCPUs:     0,
 			ThrottlingData: docker.ThrottlingData{},
 		}
@@ -122,6 +123,8 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			InstanceID: "",
 		}
 
+		systemUsage, _ := cgroups.GetSystemCPUUsage()
+
 		s := handlers.Stats{StatsJSON: docker.StatsJSON{
 			Stats: docker.Stats{
 				Read:    time.Now(),
@@ -143,11 +146,11 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 				CPUStats: docker.CPUStats{
 					CPUUsage: docker.CPUUsage{
 						TotalUsage:        cgroupStat.CPU.Usage.Total,
-						PercpuUsage:       []uint64{uint64(stats.CPU)},
+						PercpuUsage:       cgroupStat.CPU.Usage.PerCPU,
 						UsageInKernelmode: cgroupStat.CPU.Usage.Kernel,
 						UsageInUsermode:   cgroupStat.CPU.Usage.Total - cgroupStat.CPU.Usage.Kernel,
 					},
-					SystemUsage: 0,
+					SystemUsage: systemUsage,
 					OnlineCPUs:  uint32(len(cgroupStat.CPU.Usage.PerCPU)),
 					ThrottlingData: docker.ThrottlingData{
 						Periods:          0,
