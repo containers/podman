@@ -29,7 +29,7 @@ var (
 	infra            = "k8s.gcr.io/pause:3.1"
 	BB               = "docker.io/library/busybox:latest"
 	redis            = "docker.io/library/redis:alpine"
-	fedoraMinimal    = "registry.fedoraproject.org/fedora-minimal:latest"
+	fedoraMinimal    = "quay.io/libpod/fedora-minimal:latest"
 )
 
 type EndpointTestIntegration struct {
