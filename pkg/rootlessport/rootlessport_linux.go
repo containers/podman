@@ -122,6 +122,7 @@ func parent() error {
 			logrus.WithError(driverErr).Warn("parent driver exited")
 		}
 		errCh <- driverErr
+		close(errCh)
 	}()
 	opaque := driver.OpaqueForChild()
 	logrus.Infof("opaque=%+v", opaque)
@@ -142,15 +143,12 @@ func parent() error {
 	}()
 
 	// reexec the child process in the child netns
-	cmd := exec.Command(fmt.Sprintf("/proc/%d/exe", os.Getpid()))
+	cmd := exec.Command("/proc/self/exe")
 	cmd.Args = []string{reexecChildKey}
 	cmd.Stdin = childQuitR
 	cmd.Stdout = &logrusWriter{prefix: "child"}
 	cmd.Stderr = cmd.Stdout
 	cmd.Env = append(os.Environ(), reexecChildEnvOpaque+"="+string(opaqueJSON))
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Pdeathsig: syscall.SIGTERM,
-	}
 	childNS, err := ns.GetNS(cfg.NetNSPath)
 	if err != nil {
 		return err
@@ -162,14 +160,27 @@ func parent() error {
 		return err
 	}
 
+	defer func() {
+		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
+			logrus.WithError(err).Warn("kill child process")
+		}
+	}()
+
 	logrus.Info("waiting for initComplete")
 	// wait for the child to connect to the parent
-	select {
-	case <-initComplete:
-		logrus.Infof("initComplete is closed; parent and child established the communication channel")
-	case err := <-errCh:
-		return err
+outer:
+	for {
+		select {
+		case <-initComplete:
+			logrus.Infof("initComplete is closed; parent and child established the communication channel")
+			break outer
+		case err := <-errCh:
+			if err != nil {
+				return err
+			}
+		}
 	}
+
 	defer func() {
 		logrus.Info("stopping parent driver")
 		quit <- struct{}{}
