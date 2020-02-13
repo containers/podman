@@ -546,26 +546,31 @@ func (c *Client) RenameContainer(opts RenameContainerOptions) error {
 
 // InspectContainer returns information about a container by its ID.
 //
-// See https://goo.gl/FaI5JT for more details.
+// Deprecated: Use InspectContainerWithOptions instead.
 func (c *Client) InspectContainer(id string) (*Container, error) {
-	return c.inspectContainer(id, doOptions{})
+	return c.InspectContainerWithOptions(InspectContainerOptions{ID: id})
 }
 
 // InspectContainerWithContext returns information about a container by its ID.
 // The context object can be used to cancel the inspect request.
 //
-// See https://goo.gl/FaI5JT for more details.
+// Deprecated: Use InspectContainerWithOptions instead.
 //nolint:golint
 func (c *Client) InspectContainerWithContext(id string, ctx context.Context) (*Container, error) {
-	return c.inspectContainer(id, doOptions{context: ctx})
+	return c.InspectContainerWithOptions(InspectContainerOptions{ID: id, Context: ctx})
 }
 
-func (c *Client) inspectContainer(id string, opts doOptions) (*Container, error) {
-	path := "/containers/" + id + "/json"
-	resp, err := c.do(http.MethodGet, path, opts)
+// InspectContainerWithOptions returns information about a container by its ID.
+//
+// See https://goo.gl/FaI5JT for more details.
+func (c *Client) InspectContainerWithOptions(opts InspectContainerOptions) (*Container, error) {
+	path := "/containers/" + opts.ID + "/json?" + queryString(opts)
+	resp, err := c.do(http.MethodGet, path, doOptions{
+		context: opts.Context,
+	})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
-			return nil, &NoSuchContainer{ID: id}
+			return nil, &NoSuchContainer{ID: opts.ID}
 		}
 		return nil, err
 	}
@@ -575,6 +580,15 @@ func (c *Client) inspectContainer(id string, opts doOptions) (*Container, error)
 		return nil, err
 	}
 	return &container, nil
+}
+
+// InspectContainerOptions specifies parameters for InspectContainerWithOptions.
+//
+// See https://goo.gl/FaI5JT for more details.
+type InspectContainerOptions struct {
+	Context context.Context
+	ID      string `qs:"-"`
+	Size    bool
 }
 
 // ContainerChanges returns changes in the filesystem of the given container.

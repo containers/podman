@@ -26,7 +26,7 @@ func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.I
 		return errors.Wrapf(err, "error getting manifest MIME type for %q", transports.ImageName(img.Reference()))
 	}
 	if wantedManifestMIMEType != actualManifestMIMEType {
-		img, err = img.UpdatedImage(ctx, types.ManifestUpdateOptions{
+		updatedImg, err := img.UpdatedImage(ctx, types.ManifestUpdateOptions{
 			ManifestMIMEType: wantedManifestMIMEType,
 			InformationOnly: types.ManifestUpdateInformation{ // Strictly speaking, every value in here is invalid. But…
 				Destination:  nil, // Destination is technically required, but actually necessary only for conversion _to_ v2s1.  Leave it nil, we will crash if that ever changes.
@@ -35,8 +35,9 @@ func unmarshalConvertedConfig(ctx context.Context, dest interface{}, img types.I
 			},
 		})
 		if err != nil {
-			return errors.Wrapf(err, "error converting image %q to %s", transports.ImageName(img.Reference()), wantedManifestMIMEType)
+			return errors.Wrapf(err, "error converting image %q from %q to %q", transports.ImageName(img.Reference()), actualManifestMIMEType, wantedManifestMIMEType)
 		}
+		img = updatedImg
 	}
 	config, err := img.ConfigBlob(ctx)
 	if err != nil {
