@@ -221,11 +221,11 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: stdout
 	//    type: boolean
-	//    description: not supported
+	//    description: Return logs from stdout
 	//  - in: query
 	//    name: stderr
 	//    type: boolean
-	//    description: not supported?
+	//    description: Return logs from stderr
 	//  - in: query
 	//    name: since
 	//    type:  string
@@ -793,7 +793,58 @@ func (s *APIServer) RegisterContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/unmount"), APIHandler(s.Context, libpod.UnmountContainer)).Methods(http.MethodPost)
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), APIHandler(s.Context, libpod.LogsFromContainer)).Methods(http.MethodGet)
+	// swagger:operation GET /libpod/containers/{name}/logs libpod libpodLogsFromContainer
+	// ---
+	// tags:
+	//   - containers
+	// summary: Get container logs
+	// description: Get stdout and stderr logs from a container.
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the container
+	//  - in: query
+	//    name: follow
+	//    type: boolean
+	//    description: Keep connection after returning logs.
+	//  - in: query
+	//    name: stdout
+	//    type: boolean
+	//    description: Return logs from stdout
+	//  - in: query
+	//    name: stderr
+	//    type: boolean
+	//    description: Return logs from stderr
+	//  - in: query
+	//    name: since
+	//    type:  string
+	//    description: Only return logs since this time, as a UNIX timestamp
+	//  - in: query
+	//    name: until
+	//    type:  string
+	//    description: Only return logs before this time, as a UNIX timestamp
+	//  - in: query
+	//    name: timestamps
+	//    type: boolean
+	//    default: false
+	//    description: Add timestamps to every log line
+	//  - in: query
+	//    name: tail
+	//    type: string
+	//    description: Only return this number of log lines from the end of the logs
+	//    default: all
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description:  logs returned as a stream in response body.
+	//   404:
+	//      $ref: "#/responses/NoSuchContainer"
+	//   500:
+	//      $ref: "#/responses/InternalError"
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/logs"), APIHandler(s.Context, generic.LogsFromContainer)).Methods(http.MethodGet)
 	// swagger:operation POST /libpod/containers/{name}/pause libpod libpodPauseContainer
 	// ---
 	// tags:
