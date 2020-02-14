@@ -13,10 +13,30 @@ import (
 	"github.com/pkg/errors"
 )
 
+type testImage struct {
+	name        string
+	shortName   string
+	tarballName string
+}
+
 const (
 	defaultPodmanBinaryLocation string = "/usr/bin/podman"
-	alpine                      string = "docker.io/library/alpine:latest"
-	busybox                     string = "docker.io/library/busybox:latest"
+)
+
+var (
+	ImageCacheDir = "/tmp/podman/imagecachedir"
+	LockTmpDir    string
+	alpine        = testImage{
+		name:        "docker.io/library/alpine:latest",
+		shortName:   "alpine",
+		tarballName: "alpine.tar",
+	}
+	busybox = testImage{
+		name:        "docker.io/library/busybox:latest",
+		shortName:   "busybox",
+		tarballName: "busybox.tar",
+	}
+	CACHE_IMAGES = []testImage{alpine, busybox}
 )
 
 type bindingTest struct {
@@ -109,7 +129,7 @@ func (b *bindingTest) startAPIService() *gexec.Session {
 	var (
 		cmd []string
 	)
-	cmd = append(cmd, "--log-level=debug", "service", "--timeout=999999", b.sock)
+	cmd = append(cmd, "--log-level=debug", "system", "service", "--timeout=999999", b.sock)
 	return b.runPodman(cmd)
 }
 
@@ -127,6 +147,21 @@ func (b *bindingTest) Pull(name string) {
 	p.Wait(45)
 }
 
+func (b *bindingTest) Save(i testImage) {
+	p := b.runPodman([]string{"save", "-o", filepath.Join(ImageCacheDir, i.tarballName), i.name})
+	p.Wait(45)
+}
+
+func (b *bindingTest) RestoreImagesFromCache() {
+	for _, i := range CACHE_IMAGES {
+		b.restoreImageFromCache(i)
+	}
+}
+func (b *bindingTest) restoreImageFromCache(i testImage) {
+	p := b.runPodman([]string{"load", "-i", filepath.Join(ImageCacheDir, i.tarballName), i.name})
+	p.Wait(45)
+}
+
 // Run a container and add append the alpine image to it
 func (b *bindingTest) RunTopContainer(name *string) {
 	cmd := []string{"run", "-dt"}
@@ -134,7 +169,7 @@ func (b *bindingTest) RunTopContainer(name *string) {
 		containerName := *name
 		cmd = append(cmd, "--name", containerName)
 	}
-	cmd = append(cmd, alpine, "top")
+	cmd = append(cmd, alpine.name, "top")
 	p := b.runPodman(cmd)
 	p.Wait(45)
 }
@@ -148,4 +183,37 @@ func StringInSlice(s string, sl []string) bool {
 		}
 	}
 	return false
+}
+
+var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
+	// make cache dir
+	if err := os.MkdirAll(ImageCacheDir, 0777); err != nil {
+		fmt.Printf("%q\n", err)
+		os.Exit(1)
+	}
+
+	// If running localized tests, the cache dir is created and populated. if the
+	// tests are remote, this is a no-op
+	createCache()
+	path, err := ioutil.TempDir("", "libpodlock")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	return []byte(path)
+}, func(data []byte) {
+	LockTmpDir = string(data)
+})
+
+func createCache() {
+	b := newBindingTest()
+	for _, i := range CACHE_IMAGES {
+		_, err := os.Stat(filepath.Join(ImageCacheDir, i.tarballName))
+		if os.IsNotExist(err) {
+			//	pull the image
+			b.Pull(i.name)
+			b.Save(i)
+		}
+	}
+	b.cleanup()
 }
