@@ -104,7 +104,7 @@ __podman_complete_containers_running() {
 }
 
 __podman_complete_containers_stopped() {
-	__podman_complete_containers "$@" --filter status=exited
+	__podman_complete_containers "$@" --all --filter status=exited
 }
 
 __podman_complete_containers_unpauseable() {
@@ -2448,7 +2448,7 @@ _podman_start() {
 	    COMPREPLY=($(compgen -W "$boolean_options $options_with_args" -- "$cur"))
 	    ;;
 	*)
-	    __podman_complete_container_names
+	    __podman_complete_containers_stopped
 	    ;;
     esac
 }
