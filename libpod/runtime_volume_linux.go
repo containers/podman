@@ -85,7 +85,7 @@ func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) 
 	if err := os.Chown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
 		return nil, errors.Wrapf(err, "error chowning volume directory %q to %d:%d", fullVolPath, volume.config.UID, volume.config.GID)
 	}
-	if err := LabelVolumePath(fullVolPath, true); err != nil {
+	if err := LabelVolumePath(fullVolPath); err != nil {
 		return nil, err
 	}
 	volume.config.MountPoint = fullVolPath
