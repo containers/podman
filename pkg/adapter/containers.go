@@ -444,9 +444,12 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		}
 	}
 
-	keys, err := r.selectDetachKeys(c.String("detach-keys"))
-	if err != nil {
-		return exitCode, err
+	keys := c.String("detach-keys")
+	if !c.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return exitCode, err
+		}
 	}
 
 	// if the container was created as part of a pod, also start its dependencies, if any.
@@ -534,9 +537,12 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 		inputStream = nil
 	}
 
-	keys, err := r.selectDetachKeys(c.DetachKeys)
-	if err != nil {
-		return err
+	keys := c.DetachKeys
+	if !c.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return err
+		}
 	}
 
 	// If the container is in a pod, also set to recursively start dependencies
@@ -674,9 +680,12 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 				}
 			}
 
-			keys, err := r.selectDetachKeys(c.DetachKeys)
-			if err != nil {
-				return exitCode, err
+			keys := c.DetachKeys
+			if !c.IsSet("detach-keys") {
+				keys, err = r.selectDetachKeys(keys)
+				if err != nil {
+					return exitCode, err
+				}
 			}
 
 			// attach to the container and also start it not already running
@@ -975,9 +984,12 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	streams.AttachOutput = true
 	streams.AttachError = true
 
-	keys, err := r.selectDetachKeys(cli.DetachKeys)
-	if err != nil {
-		return ec, err
+	keys := cli.DetachKeys
+	if !cli.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return ec, err
+		}
 	}
 
 	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, env, cmd, cli.User, cli.Workdir, streams, uint(cli.PreserveFDs), keys)
