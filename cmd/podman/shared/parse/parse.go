@@ -79,6 +79,34 @@ func ValidateDomain(val string) (string, error) {
 	return "", fmt.Errorf("%s is not a valid domain", val)
 }
 
+// GetAllLabels retrieves all labels given a potential label file and a number
+// of labels provided from the command line.
+func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
+	labels := make(map[string]string)
+	for _, file := range labelFile {
+		// Use of parseEnvFile still seems safe, as it's missing the
+		// extra parsing logic of parseEnv.
+		// There's an argument that we SHOULD be doing that parsing for
+		// all environment variables, even those sourced from files, but
+		// that would require a substantial rework.
+		if err := parseEnvFile(labels, file); err != nil {
+			return nil, err
+		}
+	}
+	for _, label := range inputLabels {
+		split := strings.SplitN(label, "=", 2)
+		if split[0] == "" {
+			return nil, errors.Errorf("invalid label format: %q", label)
+		}
+		value := ""
+		if len(split) > 1 {
+			value = split[1]
+		}
+		labels[split[0]] = value
+	}
+	return labels, nil
+}
+
 // reads a file of line terminated key=value pairs, and overrides any keys
 // present in the file with additional pairs specified in the override parameter
 // for env-file and labels-file flags

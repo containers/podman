@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -103,7 +104,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 		defer errorhandling.SyncQuiet(podIdFile)
 	}
 
-	labels, err := shared.GetAllLabels(c.LabelFile, c.Labels)
+	labels, err := parse.GetAllLabels(c.LabelFile, c.Labels)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}

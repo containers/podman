@@ -4,23 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/cgroups"
 	cc "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-// GetAllLabels ...
-func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
-	labels := make(map[string]string)
-	labelErr := parse.ReadKVStrings(labels, labelFile, inputLabels)
-	if labelErr != nil {
-		return labels, errors.Wrapf(labelErr, "unable to process labels from --label and label-file")
-	}
-	return labels, nil
-}
 
 // validateSysctl validates a sysctl and returns it.
 func validateSysctl(strSlice []string) (map[string]string, error) {
