@@ -565,8 +565,8 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 						return nil, errors.Errorf("Error creating HostPath %s at %s", volume.Name, hostPath.Path)
 					}
 				}
-				// unconditionally label a newly created volume as private
-				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+				// Label a newly created volume
+				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
 					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
 			case v1.HostPathFileOrCreate:
@@ -579,8 +579,8 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 						logrus.Warnf("Error in closing newly created HostPath file: %v", err)
 					}
 				}
-				// unconditionally label a newly created volume as private
-				if err := libpod.LabelVolumePath(hostPath.Path, false); err != nil {
+				// unconditionally label a newly created volume
+				if err := libpod.LabelVolumePath(hostPath.Path); err != nil {
 					return nil, errors.Wrapf(err, "Error giving %s a label", hostPath.Path)
 				}
 			case v1.HostPathDirectory:
