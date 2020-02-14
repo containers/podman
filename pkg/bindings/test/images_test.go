@@ -93,7 +93,7 @@ var _ = Describe("Podman images", func() {
 
 		// Start a container with alpine image
 		var top string = "top"
-		bt.RunTopContainer(&top)
+		bt.RunTopContainer(&top, &falseFlag, nil)
 		// we should now have a container called "top" running
 		containerResponse, err := containers.Inspect(connText, "top", &falseFlag)
 		Expect(err).To(BeNil())

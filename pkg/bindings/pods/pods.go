@@ -87,9 +87,9 @@ func Prune(ctx context.Context) error {
 
 // List returns all pods in local storage.  The optional filters parameter can
 // be used to refine which pods should be listed.
-func List(ctx context.Context, filters map[string][]string) (*[]libpod.PodInspect, error) {
+func List(ctx context.Context, filters map[string][]string) ([]*libpod.PodInspect, error) {
 	var (
-		inspect []libpod.PodInspect
+		inspect []*libpod.PodInspect
 	)
 	conn, err := bindings.GetConnectionFromContext(ctx)
 	if err != nil {
@@ -103,11 +103,11 @@ func List(ctx context.Context, filters map[string][]string) (*[]libpod.PodInspec
 		}
 		params["filters"] = stringFilter
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/json", params)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/json", params)
 	if err != nil {
-		return &inspect, err
+		return inspect, err
 	}
-	return &inspect, response.Process(&inspect)
+	return inspect, response.Process(&inspect)
 }
 
 // Restart restarts all containers in a pod.
@@ -147,7 +147,7 @@ func Start(ctx context.Context, nameOrID string) error {
 	if err != nil {
 		return err
 	}
-	response, err := conn.DoRequest(nil, http.MethodDelete, "/pods/%s/start", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/start", nil, nameOrID)
 	if err != nil {
 		return err
 	}

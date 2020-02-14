@@ -162,16 +162,30 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 	p.Wait(45)
 }
 
-// Run a container and add append the alpine image to it
-func (b *bindingTest) RunTopContainer(name *string) {
+// Run a container within or without a pod
+// and add or append the alpine image to it
+func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) {
 	cmd := []string{"run", "-dt"}
-	if name != nil {
-		containerName := *name
-		cmd = append(cmd, "--name", containerName)
+	if *insidePod && podName != nil {
+		pName := *podName
+		cmd = append(cmd, "--pod", pName)
+	} else if containerName != nil {
+		cName := *containerName
+		cmd = append(cmd, "--name", cName)
 	}
 	cmd = append(cmd, alpine.name, "top")
-	p := b.runPodman(cmd)
-	p.Wait(45)
+	b.runPodman(cmd).Wait(45)
+}
+
+// This method creates a pod with the given pod name.
+// Podname is an optional parameter
+func (b *bindingTest) Podcreate(name *string) {
+	if name != nil {
+		podname := *name
+		b.runPodman([]string{"pod", "create", "--name", podname}).Wait(45)
+	} else {
+		b.runPodman([]string{"pod", "create"}).Wait(45)
+	}
 }
 
 //  StringInSlice returns a boolean based on whether a given
