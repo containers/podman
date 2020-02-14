@@ -60,6 +60,8 @@ type PodConfig struct {
 
 	InfraContainer *InfraContainerConfig `json:"infraConfig"`
 
+	PinNamespaces bool `json:"pin_namespaces"`
+
 	// Time pod was created
 	CreatedTime time.Time `json:"created"`
 
@@ -74,6 +76,8 @@ type podState struct {
 	// InfraContainerID is the container that holds pod namespace information
 	// Most often an infra container
 	InfraContainerID string
+
+	PinnedNamespacesPath string
 }
 
 // PodInspect represents the data we want to display for
@@ -86,8 +90,9 @@ type PodInspect struct {
 
 // PodInspectState contains inspect data on the pod's state
 type PodInspectState struct {
-	CgroupPath       string `json:"cgroupPath"`
-	InfraContainerID string `json:"infraContainerID"`
+	CgroupPath           string `json:"cgroupPath"`
+	InfraContainerID     string `json:"infraContainerID"`
+	PinnedNamespacesPath string `json:"pinnedNamespacesPath"`
 }
 
 // PodContainerInfo keeps information on a container in a pod
@@ -238,6 +243,23 @@ func (p *Pod) allContainers() ([]*Container, error) {
 // HasInfraContainer returns whether the pod will create an infra container
 func (p *Pod) HasInfraContainer() bool {
 	return p.config.InfraContainer.HasInfraContainer
+}
+
+// PinNamespaces returns whether the pod will pin the namespaces or not
+func (p *Pod) PinNamespaces() bool {
+	return p.config.PinNamespaces
+}
+
+// PinnedNamespacesPath returns the path to the pods pinned namespaces
+func (p *Pod) PinnedNamespacesPath() (string, error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+
+	if err := p.updatePod(); err != nil {
+		return "", err
+	}
+
+	return p.state.PinnedNamespacesPath, nil
 }
 
 // SharesNamespaces checks if the pod has any kernel namespaces set as shared. An infra container will not be

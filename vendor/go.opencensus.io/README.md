@@ -78,7 +78,7 @@ Package `tag` allows adding or modifying tags in the current context.
 
 [embedmd]:# (internal/readme/tags.go new)
 ```go
-ctx, err = tag.New(ctx,
+ctx, err := tag.New(ctx,
 	tag.Insert(osKey, "macOS-10.12.5"),
 	tag.Upsert(userIDKey, "cde36753ed"),
 )

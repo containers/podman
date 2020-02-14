@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
@@ -16,7 +15,6 @@ require (
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.15.8
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
@@ -69,17 +67,13 @@ require (
 	github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5 // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
-	go.uber.org/atomic v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
-	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
-	google.golang.org/appengine v1.6.1 // indirect
-	google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601 // indirect
 	gopkg.in/yaml.v2 v2.2.8
 	gotest.tools/v3 v3.0.2 // indirect
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab
-	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
+	k8s.io/release v0.2.4-0.20200214094417-6f893148a75f
 )

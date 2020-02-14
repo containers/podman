@@ -59,6 +59,7 @@ func init() {
 	// Remember to do this safely by checking len, etc.
 
 	flags.StringVar(&podCreateCommand.CgroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
+	flags.BoolVarP(&podCreateCommand.PinNamespaces, "pin-namespaces", "i", false, "Pin namespaces instead of using an infra container")
 	flags.BoolVar(&podCreateCommand.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
 	flags.StringVar(&podCreateCommand.InfraImage, "infra-image", define.DefaultInfraImage, "The image of the infra container to associate with the pod")
 	flags.StringVar(&podCreateCommand.InfraCommand, "infra-command", define.DefaultInfraCommand, "The command to run on the infra container when the pod is started")

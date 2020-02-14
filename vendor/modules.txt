@@ -239,6 +239,7 @@ github.com/docker/docker/pkg/namesgenerator
 github.com/docker/docker/pkg/parsers
 github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/stdcopy
+github.com/docker/docker/pkg/symlink
 github.com/docker/docker/pkg/system
 github.com/docker/docker/pkg/term
 github.com/docker/docker/pkg/term/windows
@@ -277,6 +278,8 @@ github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/protoc-gen-gogo/descriptor
 github.com/gogo/protobuf/sortkeys
+# github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
+github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
 github.com/golang/protobuf/ptypes
@@ -297,8 +300,6 @@ github.com/gorilla/schema
 github.com/hashicorp/errwrap
 # github.com/hashicorp/go-multierror v1.0.0
 github.com/hashicorp/go-multierror
-# github.com/hashicorp/golang-lru v0.5.1
-github.com/hashicorp/golang-lru/simplelru
 # github.com/hpcloud/tail v1.0.0
 github.com/hpcloud/tail
 github.com/hpcloud/tail/ratelimiter
@@ -527,7 +528,7 @@ github.com/xeipuuv/gojsonpointer
 github.com/xeipuuv/gojsonreference
 # github.com/xeipuuv/gojsonschema v1.1.0
 github.com/xeipuuv/gojsonschema
-# go.opencensus.io v0.22.0
+# go.opencensus.io v0.22.1
 go.opencensus.io
 go.opencensus.io/internal
 go.opencensus.io/trace
@@ -564,7 +565,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+# golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
@@ -597,10 +598,10 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 # golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0
 golang.org/x/time/rate
-# golang.org/x/xerrors v0.0.0-20190717185122-a985d3407aa7
+# golang.org/x/xerrors v0.0.0-20191011141410-1b5146add898
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/appengine v1.6.1
+# google.golang.org/appengine v1.6.2
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
@@ -608,7 +609,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601
+# google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.24.0
 google.golang.org/grpc/codes
@@ -689,7 +690,9 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
+# k8s.io/release v0.2.4-0.20200214094417-6f893148a75f
+k8s.io/release/pkg/command
+# k8s.io/utils v0.0.0-20200117235808-5f6fbceb4c31
 k8s.io/utils/integer
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml

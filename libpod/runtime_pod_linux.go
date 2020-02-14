@@ -121,6 +121,9 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 	if pod.HasInfraContainer() && !pod.SharesNamespaces() {
 		logrus.Warnf("Pod has an infra container, but shares no namespaces")
 	}
+	if pod.PinNamespaces() && !pod.HasInfraContainer() {
+		return nil, errors.Errorf("Pods must have an infra container to pin namespaces")
+	}
 
 	if err := r.state.AddPod(pod); err != nil {
 		return nil, errors.Wrapf(err, "error adding pod to state")
@@ -134,11 +137,17 @@ func (r *Runtime) NewPod(ctx context.Context, options ...PodCreateOption) (_ *Po
 	}()
 
 	if pod.HasInfraContainer() {
-		ctr, err := r.createInfraContainer(ctx, pod)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error adding Infra Container")
+		if pod.PinNamespaces() {
+			if err := r.pinNamespaces(pod); err != nil {
+				return nil, errors.Wrapf(err, "pinning namespaces")
+			}
+		} else {
+			ctr, err := r.createInfraContainer(ctx, pod)
+			if err != nil {
+				return nil, errors.Wrapf(err, "error adding Infra Container")
+			}
+			pod.state.InfraContainerID = ctr.ID()
 		}
-		pod.state.InfraContainerID = ctr.ID()
 		if err := pod.save(); err != nil {
 			return nil, err
 		}
@@ -158,6 +167,12 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	}
 
 	numCtrs := len(ctrs)
+
+	if p.PinNamespaces() {
+		if err := r.unpinNamespaces(p); err != nil {
+			return errors.Wrapf(err, "unable to unpin namepsaces")
+		}
+	}
 
 	// If the only container in the pod is the pause container, remove the pod and container unconditionally.
 	pauseCtrID := p.state.InfraContainerID

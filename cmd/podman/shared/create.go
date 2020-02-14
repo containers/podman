@@ -231,6 +231,39 @@ func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[
 	if err != nil {
 		return namespaces, "", err
 	}
+
+	if pod.PinNamespaces() {
+		return configurePodForPinnedNamespaces(c, runtime, namespaces, pod)
+	}
+	return configurePodForInfraContainer(c, runtime, namespaces, pod)
+}
+
+func configurePodForPinnedNamespaces(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[string]string, pod *libpod.Pod) (map[string]string, string, error) {
+	pinnedNamespacesPath, err := pod.PinnedNamespacesPath()
+	if err != nil {
+		return nil, "", errors.Wrap(err, "unable to retrieve pod’s pinned namespaces path")
+	}
+
+	/* if (namespaces["cgroup"] == cc.Pod) || (!c.IsSet("cgroupns") && pod.SharesCgroup()) {
+		namespaces["cgroup"] = fmt.Sprintf("ns:%s", filepath.Join(pinnedNamespacesPath, "cgroup"))
+	}
+	if (namespaces["pid"] == cc.Pod) || (!c.IsSet("pid") && pod.SharesPID()) {
+		namespaces["pid"] = fmt.Sprintf("ns:%s", filepath.Join(pinnedNamespacesPath, "pid"))
+	} */
+
+	if (namespaces["net"] == cc.Pod) || (!c.IsSet("net") && !c.IsSet("network") && pod.SharesNet()) {
+		namespaces["net"] = fmt.Sprintf("ns:%s", filepath.Join(pinnedNamespacesPath, "net"))
+	}
+	if (namespaces["ipc"] == cc.Pod) || (!c.IsSet("ipc") && pod.SharesIPC()) {
+		namespaces["ipc"] = fmt.Sprintf("ns:%s", filepath.Join(pinnedNamespacesPath, "ipc"))
+	}
+	if (namespaces["uts"] == cc.Pod) || (!c.IsSet("uts") && pod.SharesUTS()) {
+		namespaces["uts"] = fmt.Sprintf("ns:%s", filepath.Join(pinnedNamespacesPath, "uts"))
+	}
+	return namespaces, "", nil
+}
+
+func configurePodForInfraContainer(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[string]string, pod *libpod.Pod) (map[string]string, string, error) {
 	podInfraID, err := pod.InfraContainerID()
 	if err != nil {
 		return namespaces, "", err

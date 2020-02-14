@@ -1774,6 +1774,19 @@ func WithInfraContainer() PodCreateOption {
 	}
 }
 
+// WithPinnedNamespaces tells the pod to create pinned namespaces
+func WithPinnedNamespaces() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		pod.config.PinNamespaces = true
+
+		return nil
+	}
+}
+
 // WithInfraContainerPorts tells the pod to add port bindings to the pause container
 func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 	return func(pod *Pod) error {

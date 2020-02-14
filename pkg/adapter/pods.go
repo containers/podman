@@ -273,6 +273,10 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 		options = append(options, nsOptions...)
 	}
 
+	if cli.PinNamespaces {
+		options = append(options, libpod.WithPinnedNamespaces())
+	}
+
 	if len(cli.Publish) > 0 {
 		portBindings, err := shared.CreatePortBindings(cli.Publish)
 		if err != nil {

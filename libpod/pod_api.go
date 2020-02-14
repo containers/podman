@@ -466,8 +466,9 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	inspectData := PodInspect{
 		Config: config,
 		State: &PodInspectState{
-			CgroupPath:       p.state.CgroupPath,
-			InfraContainerID: infraContainerID,
+			CgroupPath:           p.state.CgroupPath,
+			InfraContainerID:     infraContainerID,
+			PinnedNamespacesPath: p.state.PinnedNamespacesPath,
 		},
 		Containers: podContainers,
 	}
