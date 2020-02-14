@@ -3,9 +3,9 @@ package adapter
 import (
 	"context"
 	"os"
-	gosignal "os/signal"
+	"os/signal"
 
-	"github.com/docker/docker/pkg/signal"
+	lsignal "github.com/containers/libpod/pkg/signal"
 	"github.com/docker/docker/pkg/term"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -33,7 +33,7 @@ func getResize() *remotecommand.TerminalSize {
 // Helper for prepareAttach - set up a goroutine to generate terminal resize events
 func resizeTty(ctx context.Context, resize chan remotecommand.TerminalSize) {
 	sigchan := make(chan os.Signal, 1)
-	gosignal.Notify(sigchan, signal.SIGWINCH)
+	signal.Notify(sigchan, lsignal.SIGWINCH)
 	go func() {
 		defer close(resize)
 		// Update the terminal size immediately without waiting

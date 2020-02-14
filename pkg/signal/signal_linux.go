@@ -1,8 +1,18 @@
-// +build !mips,!mipsle,!mips64,!mips64le
+// +build linux
 
-package signal // import "github.com/docker/docker/pkg/signal"
+// Signal handling for Linux only.
+package signal
+
+// Copyright 2013-2018 Docker, Inc.
+
+// NOTE: this package has originally been copied from github.com/docker/docker.
 
 import (
+	"fmt"
+	"os"
+	"os/signal"
+	"strconv"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -11,10 +21,12 @@ import (
 const (
 	sigrtmin = 34
 	sigrtmax = 64
+
+	SIGWINCH = syscall.SIGWINCH // For cross-compilation with Windows
 )
 
-// SignalMap is a map of Linux signals.
-var SignalMap = map[string]syscall.Signal{
+// signalMap is a map of Linux signals.
+var signalMap = map[string]syscall.Signal{
 	"ABRT":     unix.SIGABRT,
 	"ALRM":     unix.SIGALRM,
 	"BUS":      unix.SIGBUS,
@@ -80,4 +92,36 @@ var SignalMap = map[string]syscall.Signal{
 	"RTMAX-2":  sigrtmax - 2,
 	"RTMAX-1":  sigrtmax - 1,
 	"RTMAX":    sigrtmax,
+}
+
+// ParseSignal translates a string to a valid syscall signal.
+// It returns an error if the signal map doesn't include the given signal.
+func ParseSignal(rawSignal string) (syscall.Signal, error) {
+	s, err := strconv.Atoi(rawSignal)
+	if err == nil {
+		if s == 0 {
+			return -1, fmt.Errorf("invalid signal: %s", rawSignal)
+		}
+		return syscall.Signal(s), nil
+	}
+	signal, ok := signalMap[strings.TrimPrefix(strings.ToUpper(rawSignal), "SIG")]
+	if !ok {
+		return -1, fmt.Errorf("invalid signal: %s", rawSignal)
+	}
+	return signal, nil
+}
+
+// CatchAll catches all signals and relays them to the specified channel.
+func CatchAll(sigc chan os.Signal) {
+	var handledSigs []os.Signal
+	for _, s := range signalMap {
+		handledSigs = append(handledSigs, s)
+	}
+	signal.Notify(sigc, handledSigs...)
+}
+
+// StopCatch stops catching the signals and closes the specified channel.
+func StopCatch(sigc chan os.Signal) {
+	signal.Stop(sigc)
+	close(sigc)
 }

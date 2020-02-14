@@ -70,10 +70,10 @@ load helpers
     for s in ${bad_signal_names[@]}; do
         # 'nosuchcontainer' is fine: podman should bail before it gets there
         run_podman 125 kill -s $s nosuchcontainer
-        is "$output" "Error: Invalid signal: $s" "Error from kill -s $s"
+        is "$output" "Error: invalid signal: $s" "Error from kill -s $s"
 
         run_podman 125 pod kill -s $s nosuchpod
-        is "$output" "Error: Invalid signal: $s" "Error from pod kill -s $s"
+        is "$output" "Error: invalid signal: $s" "Error from pod kill -s $s"
     done
 
     # Special case: these too are thrown by docker/signal.ParseSignal(),
@@ -82,7 +82,7 @@ load helpers
     local -a bad_dash_signals=(-0 -SIGBADSIG -SIG -BADSIG -)
     for s in ${bad_dash_signals[@]}; do
         run_podman 125 kill -s $s nosuchcontainer
-        is "$output" "Error: Invalid signal: ${s##-}" "Error from kill -s $s"
+        is "$output" "Error: invalid signal: ${s##-}" "Error from kill -s $s"
     done
 
     # This error (signal out of range) is thrown by our wrapper

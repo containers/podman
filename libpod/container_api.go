@@ -11,8 +11,8 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/capabilities"
 	"github.com/containers/storage/pkg/stringid"
-	"github.com/docker/docker/oci/caps"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -237,7 +237,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	}
 
 	if privileged || c.config.Privileged {
-		capList = caps.GetAllCapabilities()
+		capList = capabilities.AllCapabilities()
 	}
 
 	// Generate exec session ID

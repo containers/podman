@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/docker/docker/oci/caps"
+	"github.com/containers/libpod/pkg/capabilities"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
@@ -118,7 +118,7 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 	if useNotRoot(user.User) {
 		configSpec.Process.Capabilities.Bounding = caplist
 	}
-	caplist, err = caps.TweakCapabilities(configSpec.Process.Capabilities.Bounding, c.CapAdd, c.CapDrop, nil, false)
+	caplist, err = capabilities.MergeCapabilities(configSpec.Process.Capabilities.Bounding, c.CapAdd, c.CapDrop)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 	configSpec.Process.Capabilities.Effective = caplist
 	configSpec.Process.Capabilities.Ambient = caplist
 	if useNotRoot(user.User) {
-		caplist, err = caps.TweakCapabilities(bounding, c.CapAdd, c.CapDrop, nil, false)
+		caplist, err = capabilities.MergeCapabilities(bounding, c.CapAdd, c.CapDrop)
 		if err != nil {
 			return err
 		}
