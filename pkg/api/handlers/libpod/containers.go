@@ -184,13 +184,6 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))
 }
 
-func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
-	// follow
-	// since
-	// timestamps
-	// tail string
-}
-
 func UnmountContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	name := utils.GetName(r)
