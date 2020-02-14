@@ -31,9 +31,26 @@ The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package pr
 
 ### Ensure fuse-overlayfs is installed
 
-When using Podman in a rootless environment, it is recommended to use fuse-overlayfs rather than the VFS file system.  Installing the fuse3-devel package gives Podman the dependencies it needs to install, build and use fuse-overlayfs in a rootless environment for you.  The fuse-overlayfs project is also available from [GitHub](https://github.com/containers/fuse-overlayfs).  This especially needs to be checked on Ubuntu distributions as fuse-overlayfs is not generally installed by default.
+When using Podman in a rootless environment, it is recommended to use fuse-overlayfs rather than the VFS file system. For that you need the `fuse-overlayfs` executable available in `$PATH`.
 
-If Podman is installed before fuse-overlayfs, it may be necessary to change the `driver` option under `[storage]` to `"overlay"`.
+Your distribution might already provide it in the `fuse-overlayfs` package, but be aware that you need at least version **0.7.6**. This especially needs to be checked on Ubuntu distributions as `fuse-overlayfs` is not generally installed by default and the 0.7.6 version is not available natively on Ubuntu releases prior to **20.04**.
+
+The fuse-overlayfs project is available from [GitHub](https://github.com/containers/fuse-overlayfs), and provides instructions for easily building a static `fuse-overlayfs` executable.
+
+If Podman is used before fuse-overlayfs is installed, it may be necessary to adjust the `storage.conf` file (see "User Configuration Files" below) to change the `driver` option under `[storage]` to `"overlay"` and point the `mount_program` option in `[storage.options]` to the path of the `fuse-overlayfs` executable:
+
+```
+[storage]
+  driver = "overlay"
+
+  (...)
+
+  [storage.options]
+
+    (...)
+
+    mount_program = "/usr/bin/fuse-overlayfs"
+```
 
 ### Enable user namespaces (on RHEL7 machines)
 
@@ -87,11 +104,11 @@ The majority of the work necessary to run Podman in a rootless environment is on
 
 Once the Administrator has completed the setup on the machine and then the configurations for the user in /etc/subuid and /etc/subgid, the user can just start using any Podman command that they wish.
 
-### User Configuration Files.
+### User Configuration Files
 
-The Podman configuration files for root reside in /usr/share/containers with overrides in /etc/containers.  In the rootless environment they reside in ${XDG\_CONFIG\_HOME}/containers and are owned by each individual user.  The main files are libpod.conf and storage.conf and the user can modify these files as they wish.
+The Podman configuration files for root reside in `/usr/share/containers` with overrides in `/etc/containers`.  In the rootless environment they reside in `${XDG_CONFIG_HOME}/containers` (usually `~/.config/containers`) and are owned by each individual user.  The main files are `libpod.conf` and `storage.conf` and the user can modify these files as they wish.
 
-The default authorization file used by the `podman login` and `podman logout` commands reside in ${XDG\_RUNTIME\_DIR}/containers/auth.json.
+The default authorization file used by the `podman login` and `podman logout` commands reside in `${XDG_RUNTIME_DIR}/containers/auth.json`.
 
 ## Systemd unit for rootless container
 
