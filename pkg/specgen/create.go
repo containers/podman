@@ -36,9 +36,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 		return nil, err
 	}
 
-	// TODO mheon wants to talk with Dan about this
-	useImageVolumes := s.ImageVolumeMode == "bind"
-	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, useImageVolumes))
+	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image))
 
 	runtimeSpec, err := s.toOCISpec(rt, newImage)
 	if err != nil {

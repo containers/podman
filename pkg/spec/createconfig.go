@@ -341,9 +341,8 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	}
 	options = append(options, nsOpts...)
 
-	useImageVolumes := c.ImageVolumeType == TypeBind
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, useImageVolumes))
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))

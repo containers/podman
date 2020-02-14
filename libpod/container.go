@@ -249,8 +249,6 @@ type ContainerConfig struct {
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	// Rootfs to use for the container, this conflicts with RootfsImageID
 	Rootfs string `json:"rootfs,omitempty"`
-	// Whether to mount volumes specified in the image.
-	ImageVolumes bool `json:"imageVolumes"`
 	// Src path to be mounted on /dev/shm in container.
 	ShmDir string `json:"ShmDir,omitempty"`
 	// Size of the container's SHM.
@@ -508,12 +506,6 @@ func (c *Container) Namespace() string {
 // Image returns the ID and name of the image used as the container's rootfs
 func (c *Container) Image() (string, string) {
 	return c.config.RootfsImageID, c.config.RootfsImageName
-}
-
-// ImageVolumes returns whether the container is configured to create
-// persistent volumes requested by the image
-func (c *Container) ImageVolumes() bool {
-	return c.config.ImageVolumes
 }
 
 // ShmDir returns the sources path to be mounted on /dev/shm in container

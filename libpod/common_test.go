@@ -23,7 +23,6 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			Name:            name,
 			RootfsImageID:   id,
 			RootfsImageName: "testimg",
-			ImageVolumes:    true,
 			StaticDir:       "/does/not/exist/",
 			LogPath:         "/does/not/exist/",
 			Stdin:           true,
