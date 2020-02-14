@@ -19,7 +19,7 @@ var (
 const (
 	// CtrRemoveTimeout is the default number of seconds to wait after stopping a container
 	// before sending the kill signal
-	CtrRemoveTimeout = 10
+	CtrRemoveTimeout = 30
 	// DefaultTransport is a prefix that we apply to an image name
 	// to check docker hub first for the image
 	DefaultTransport = "docker://"
