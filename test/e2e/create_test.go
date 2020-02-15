@@ -304,4 +304,42 @@ var _ = Describe("Podman create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(Not(Equal(0)))
 	})
+
+	It("podman create with unset label", func() {
+		// Alpine is assumed to have no labels here, which seems safe
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--label", "TESTKEY1=", "--label", "TESTKEY2", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		_, ok1 := data[0].Config.Labels["TESTKEY1"]
+		Expect(ok1).To(BeTrue())
+		_, ok2 := data[0].Config.Labels["TESTKEY2"]
+		Expect(ok2).To(BeTrue())
+	})
+
+	It("podman create with set label", func() {
+		// Alpine is assumed to have no labels here, which seems safe
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--label", "TESTKEY1=value1", "--label", "TESTKEY2=bar", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		val1, ok1 := data[0].Config.Labels["TESTKEY1"]
+		Expect(ok1).To(BeTrue())
+		Expect(val1).To(Equal("value1"))
+		val2, ok2 := data[0].Config.Labels["TESTKEY2"]
+		Expect(ok2).To(BeTrue())
+		Expect(val2).To(Equal("bar"))
+	})
 })

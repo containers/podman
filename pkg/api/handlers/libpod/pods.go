@@ -42,7 +42,8 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(input.Labels) > 0 {
-		if err := parse.ReadKVStrings(labels, []string{}, input.Labels); err != nil {
+		labels, err = parse.GetAllLabels([]string{}, input.Labels)
+		if err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 			return
 		}

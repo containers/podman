@@ -488,7 +488,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	// LABEL VARIABLES
-	labels, err := GetAllLabels(c.StringSlice("label-file"), c.StringArray("label"))
+	labels, err := parse.GetAllLabels(c.StringSlice("label-file"), c.StringArray("label"))
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to process labels")
 	}

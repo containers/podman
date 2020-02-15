@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -51,12 +51,12 @@ func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
 		return errors.Errorf("too many arguments, create takes at most 1 argument")
 	}
 
-	labels, err := shared.GetAllLabels([]string{}, c.Label)
+	labels, err := parse.GetAllLabels([]string{}, c.Label)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	opts, err := shared.GetAllLabels([]string{}, c.Opt)
+	opts, err := parse.GetAllLabels([]string{}, c.Opt)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process options")
 	}
