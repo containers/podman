@@ -4,7 +4,7 @@
 podman\-commit - Create new image based on the changed container
 
 ## SYNOPSIS
-**podman commit** [*options*] *container* *image*
+**podman commit** [*options*] *container* [*image*]
 
 **podman container commit** [*options*] *container* [*image*]
 
@@ -18,6 +18,7 @@ image. If this is not desired, the `--pause` flag can be set to false. When the 
 is complete, Podman will print out the ID of the new image.
 
 If *image* does not begin with a registry name component, `localhost` will be added to the name.
+If *image* is not provided, the values for the `REPOSITORY` and `TAG` values of the created image will each be set to `<none>`.
 
 ## OPTIONS
 
@@ -83,6 +84,11 @@ e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 
 ```
 $ podman commit -q --pause=false containerID image-committed
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
+```
+
+```
+$ podman commit containerID
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 

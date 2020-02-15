@@ -15,7 +15,7 @@ var (
 	commitDescription = `Create an image from a container's changes. Optionally tag the image created, set the author with the --author flag, set the commit message with the --message flag, and make changes to the instructions with the --change flag.`
 
 	_commitCommand = &cobra.Command{
-		Use:   "commit [flags] CONTAINER IMAGE",
+		Use:   "commit [flags] CONTAINER [IMAGE]",
 		Short: "Create new image based on the changed container",
 		Long:  commitDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -26,7 +26,8 @@ var (
 		},
 		Example: `podman commit -q --message "committing container to image" reverent_golick image-committed
   podman commit -q --author "firstName lastName" reverent_golick image-committed
-  podman commit -q --pause=false containerID image-committed`,
+  podman commit -q --pause=false containerID image-committed
+  podman commit containerID`,
 	}
 
 	// ChangeCmds is the list of valid Changes commands to passed to the Commit call
