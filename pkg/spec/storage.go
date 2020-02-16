@@ -739,6 +739,7 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 
 	for vol := range config.BuiltinImgVolumes {
 		cleanDest := filepath.Clean(vol)
+		logrus.Debugf("Adding image volume at %s", cleanDest)
 		if config.ImageVolumeType == "tmpfs" {
 			// Tmpfs image volumes are handled as mounts
 			mount := spec.Mount{
@@ -747,13 +748,13 @@ func (config *CreateConfig) getImageVolumes() (map[string]spec.Mount, map[string
 				Type:        TypeTmpfs,
 				Options:     []string{"rprivate", "rw", "nodev", "exec"},
 			}
-			mounts[vol] = mount
+			mounts[cleanDest] = mount
 		} else {
 			// Anonymous volumes have no name.
 			namedVolume := new(libpod.ContainerNamedVolume)
 			namedVolume.Options = []string{"rprivate", "rw", "nodev", "exec"}
 			namedVolume.Dest = cleanDest
-			volumes[vol] = namedVolume
+			volumes[cleanDest] = namedVolume
 		}
 	}
 

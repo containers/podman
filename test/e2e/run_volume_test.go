@@ -15,6 +15,10 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
+var VolumeTrailingSlashDockerfile = `
+FROM alpine:latest
+VOLUME /test/`
+
 var _ = Describe("Podman run with volumes", func() {
 	var (
 		tempdir    string
@@ -420,5 +424,21 @@ var _ = Describe("Podman run with volumes", func() {
 		outputArr := runLs.OutputToStringArray()
 		Expect(len(outputArr)).To(Equal(1))
 		Expect(strings.Contains(outputArr[0], fileName)).To(BeTrue())
+	})
+
+	It("Podman mount over image volume with trailing /", func() {
+		image := "podman-volume-test:trailing"
+		podmanTest.BuildImage(VolumeTrailingSlashDockerfile, image, "false")
+
+		ctrName := "testCtr"
+		create := podmanTest.Podman([]string{"create", "-v", "/tmp:/test", "--name", ctrName, image, "ls"})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		data := podmanTest.InspectContainer(ctrName)
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Mounts)).To(Equal(1))
+		Expect(data[0].Mounts[0].Source).To(Equal("/tmp"))
+		Expect(data[0].Mounts[0].Destination).To(Equal("/test"))
 	})
 })
