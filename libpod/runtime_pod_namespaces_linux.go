@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/mount"
 	"github.com/docker/docker/pkg/symlink"
 	"github.com/pkg/errors"
@@ -52,7 +53,29 @@ func (r *Runtime) pinNamespaces(p *Pod) error {
 		)
 	}
 
+	if err := r.setupPodNetworkForPinnedNamespace(p, filepath.Join(pinDir, "net")); err != nil {
+		return errors.Wrap(err, "unable to setup pod network for pinned namespace")
+	}
+
 	p.state.PinnedNamespacesPath = pinDir
+	return nil
+}
+
+func (r *Runtime) setupPodNetworkForPinnedNamespace(pod *Pod, nsPath string) error {
+	network := ocicni.PodNetwork{
+		Name:      pod.Name(),
+		Namespace: pod.Name(),
+		ID:        pod.ID(),
+		NetNS:     nsPath,
+		RuntimeConfig: map[string]ocicni.RuntimeConfig{
+			r.netPlugin.GetDefaultNetworkName(): {},
+		},
+	}
+	_, err := r.netPlugin.SetUpPod(network)
+	if err != nil {
+		return errors.Wrap(err, "unable to setup pod")
+	}
+
 	return nil
 }
 
