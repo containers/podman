@@ -95,6 +95,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func ImageSave(options: ImageSaveOptions) MoreResponse](#ImageSave)
 
+[func ImageTree(name: string, whatRequires: bool) string](#ImageTree)
+
 [func ImagesPrune(all: bool, filter: []string) []string](#ImagesPrune)
 
 [func ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) string](#ImportImage)
@@ -775,6 +777,18 @@ $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageExists '{"name": "im
 
 method ImageSave(options: [ImageSaveOptions](#ImageSaveOptions)) [MoreResponse](#MoreResponse)</div>
 ImageSave allows you to save an image from the local image storage to a tarball
+### <a name="ImageTree"></a>func ImageTree
+<div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
+
+method ImageTree(name: [string](https://godoc.org/builtin#string), whatRequires: [bool](https://godoc.org/builtin#bool)) [string](https://godoc.org/builtin#string)</div>
+ImageTree returns the image tree for the provided image name or ID
+#### Example
+~~~
+$ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
+{
+  "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
+}
+~~~
 ### <a name="ImagesPrune"></a>func ImagesPrune
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 

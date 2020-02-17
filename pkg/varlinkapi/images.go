@@ -1016,3 +1016,17 @@ func (i *LibpodAPI) BuildImageHierarchyMap(call iopodman.VarlinkCall, name strin
 	}
 	return call.ReplyBuildImageHierarchyMap(string(b))
 }
+
+// ImageTree returns the image tree string for the provided image name or ID
+func (i *LibpodAPI) ImageTree(call iopodman.VarlinkCall, nameOrID string, whatRequires bool) error {
+	img, err := i.Runtime.ImageRuntime().NewFromLocal(nameOrID)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
+	tree, err := img.GenerateTree(whatRequires)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyImageTree(tree)
+}

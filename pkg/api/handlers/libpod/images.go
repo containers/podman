@@ -46,17 +46,34 @@ func ImageExists(w http.ResponseWriter, r *http.Request) {
 }
 
 func ImageTree(w http.ResponseWriter, r *http.Request) {
-	// tree is a bit of a mess ... logic is in adapter and therefore not callable from here. needs rework
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := utils.GetName(r)
 
-	// name := utils.GetName(r)
-	// _, layerInfoMap, _, err := s.Runtime.Tree(name)
-	// if err != nil {
-	//	Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "Failed to find image information for %q", name))
-	//	return
-	// }
-	//	it is not clear to me how to deal with this given all the processing of the image
-	// is in main.  we need to discuss how that really should be and return something useful.
-	handlers.UnsupportedHandler(w, r)
+	img, err := runtime.ImageRuntime().NewFromLocal(name)
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
+		return
+	}
+
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		WhatRequires bool `schema:"whatrequires"`
+	}{
+		WhatRequires: false,
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	tree, err := img.GenerateTree(query.WhatRequires)
+	if err != nil {
+		utils.Error(w, "Server error", http.StatusInternalServerError, errors.Wrapf(err, "failed to generate image tree for %s", name))
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusOK, tree)
 }
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
@@ -72,8 +89,8 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
-
 }
+
 func GetImages(w http.ResponseWriter, r *http.Request) {
 	images, err := utils.GetImages(w, r)
 	if err != nil {
