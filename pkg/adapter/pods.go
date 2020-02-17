@@ -538,6 +538,9 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 	if hasUserns {
 		namespaces["user"] = fmt.Sprintf("container:%s", podInfraID)
 	}
+	if podYAML.Spec.HostNetwork {
+		namespaces["net"] = "host"
+	}
 	if !c.Quiet {
 		writer = os.Stderr
 	}
