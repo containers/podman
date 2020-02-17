@@ -953,6 +953,16 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 			return define.ErrCtrFinalized
 		}
 
+		if rootless.IsRootless() {
+			if len(networks) > 0 {
+				return errors.Wrapf(define.ErrInvalidArg, "cannot use CNI networks with rootless containers")
+			}
+		}
+
+		if len(networks) > 1 && (ctr.config.StaticIP != nil || ctr.config.StaticMAC != nil) {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot join more than one CNI network if configuring a static IP or MAC address")
+		}
+
 		if ctr.config.NetNsCtr != "" {
 			return errors.Wrapf(define.ErrInvalidArg, "container is already set to join another container's net ns, cannot create a new net ns")
 		}
@@ -961,12 +971,6 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
-
-		if rootless.IsRootless() {
-			if len(networks) > 0 {
-				return errors.New("cannot use CNI networks with rootless containers")
-			}
-		}
 
 		ctr.config.Networks = networks
 
@@ -1792,6 +1796,10 @@ func WithPodStaticIP(ip net.IP) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set static IP if host network is specified")
+		}
+
 		if len(pod.config.InfraContainer.Networks) > 1 {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
 		}
@@ -1807,6 +1815,10 @@ func WithPodStaticMAC(mac net.HardwareAddr) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set static MAC if host network is specified")
 		}
 
 		if len(pod.config.InfraContainer.Networks) > 1 {
@@ -1932,7 +1944,36 @@ func WithPodNetworks(networks []string) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if (pod.config.InfraContainer.StaticIP != nil || pod.config.InfraContainer.StaticMAC != nil) &&
+			len(networks) > 1 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot join more than one CNI network if setting a static IP or MAC address")
+		}
+
+		if pod.config.InfraContainer.HostNetwork {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot join pod to CNI networks if host network is specified")
+		}
+
 		pod.config.InfraContainer.Networks = networks
+
+		return nil
+	}
+}
+
+// WithPodHostNetwork tells the pod to use the host's network namespace.
+func WithPodHostNetwork() PodCreateOption {
+	return func(pod *Pod) error {
+		if pod.valid {
+			return define.ErrPodFinalized
+		}
+
+		if len(pod.config.InfraContainer.PortBindings) > 0 ||
+			pod.config.InfraContainer.StaticIP != nil ||
+			pod.config.InfraContainer.StaticMAC != nil ||
+			len(pod.config.InfraContainer.Networks) > 0 {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set host network if network-related configuration is specified")
+		}
+
+		pod.config.InfraContainer.HostNetwork = true
 
 		return nil
 	}
