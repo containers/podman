@@ -4,11 +4,12 @@
 podman\-login - Login to a container registry
 
 ## SYNOPSIS
-**podman login** [*options*] *registry*
+**podman login** [*options*] [*registry*]
 
 ## DESCRIPTION
 **podman login** logs into a specified registry server with the correct username
-and password. **podman login** reads in the username and password from STDIN.
+and password. If the registry is not specified, the first registry under [registries.search]
+from registries.conf will be used. **podman login** reads in the username and password from STDIN.
 The username and password can also be set using the **username** and **password** flags.
 The path of the authentication file can be specified by the user by setting the **authfile**
 flag. The default path used is **${XDG\_RUNTIME\_DIR}/containers/auth.json**.
@@ -17,7 +18,7 @@ flag. The default path used is **${XDG\_RUNTIME\_DIR}/containers/auth.json**.
 
 **podman login [GLOBAL OPTIONS]**
 
-**podman login [OPTIONS] REGISTRY [GLOBAL OPTIONS]**
+**podman login [OPTIONS] [REGISTRY] [GLOBAL OPTIONS]**
 
 ## OPTIONS
 

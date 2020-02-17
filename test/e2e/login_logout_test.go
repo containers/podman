@@ -19,14 +19,15 @@ import (
 
 var _ = Describe("Podman login and logout", func() {
 	var (
-		tempdir    string
-		err        error
-		podmanTest *PodmanTestIntegration
-		authPath   string
-		certPath   string
-		port       int
-		server     string
-		testImg    string
+		tempdir                  string
+		err                      error
+		podmanTest               *PodmanTestIntegration
+		authPath                 string
+		certPath                 string
+		port                     int
+		server                   string
+		testImg                  string
+		registriesConfWithSearch []byte
 	)
 
 	BeforeEach(func() {
@@ -64,6 +65,9 @@ var _ = Describe("Podman login and logout", func() {
 		f.Sync()
 		port = 4999 + config.GinkgoConfig.ParallelNode
 		server = strings.Join([]string{"localhost", strconv.Itoa(port)}, ":")
+
+		registriesConfWithSearch = []byte(fmt.Sprintf("[registries.search]\nregistries = ['%s']", server))
+
 		testImg = strings.Join([]string{server, "test-apline"}, "/")
 
 		os.MkdirAll(filepath.Join("/etc/containers/certs.d", server), os.ModePerm)
@@ -111,6 +115,38 @@ var _ = Describe("Podman login and logout", func() {
 		session = podmanTest.Podman([]string{"push", ALPINE, testImg})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError())
+	})
+
+	It("podman login and logout without registry parameter", func() {
+		SkipIfRootless()
+
+		registriesConf, err := ioutil.TempFile("", "TestLoginWithoutParameter")
+		Expect(err).To(BeNil())
+		defer registriesConf.Close()
+		defer os.Remove(registriesConf.Name())
+
+		err = ioutil.WriteFile(registriesConf.Name(), []byte(registriesConfWithSearch), os.ModePerm)
+		Expect(err).To(BeNil())
+
+		// Environment is per-process, so this looks very unsafe; actually it seems fine because tests are not
+		// run in parallel unless they opt in by calling t.Parallel().  So don’t do that.
+		oldRCP, hasRCP := os.LookupEnv("REGISTRIES_CONFIG_PATH")
+		defer func() {
+			if hasRCP {
+				os.Setenv("REGISTRIES_CONFIG_PATH", oldRCP)
+			} else {
+				os.Unsetenv("REGISTRIES_CONFIG_PATH")
+			}
+		}()
+		os.Setenv("REGISTRIES_CONFIG_PATH", registriesConf.Name())
+
+		session := podmanTest.Podman([]string{"login", "-u", "podmantest", "-p", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+
+		session = podmanTest.Podman([]string{"logout"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman login and logout with flag --authfile", func() {
