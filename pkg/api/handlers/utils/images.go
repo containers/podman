@@ -31,12 +31,16 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	if _, found := mux.Vars(r)["digests"]; found && query.Digests {
 		UnSupportedParameter("digests")
 	}
+
 	if len(query.Filters) > 0 {
 		for k, v := range query.Filters {
 			for _, val := range v {
 				filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 			}
 		}
+		return runtime.ImageRuntime().GetImagesWithFilters(filters)
+	} else {
+		return runtime.ImageRuntime().GetImages()
 	}
-	return runtime.ImageRuntime().GetImagesWithFilters(filters)
+
 }
