@@ -1114,22 +1114,17 @@ func (c *Container) makeBindMounts() error {
 				return errors.Wrapf(err, "error fetching bind mounts from dependency %s of container %s", depCtr.ID(), c.ID())
 			}
 
-			if !c.config.UseImageResolvConf {
-				// The other container may not have a resolv.conf or /etc/hosts
-				// If it doesn't, don't copy them
-				resolvPath, exists := bindMounts["/etc/resolv.conf"]
-				if exists {
-					c.state.BindMounts["/etc/resolv.conf"] = resolvPath
-				}
+			// The other container may not have a resolv.conf or /etc/hosts
+			// If it doesn't, don't copy them
+			resolvPath, exists := bindMounts["/etc/resolv.conf"]
+			if !c.config.UseImageResolvConf && exists {
+				c.state.BindMounts["/etc/resolv.conf"] = resolvPath
 			}
 
-			if !c.config.UseImageHosts {
-				// check if dependency container has an /etc/hosts file
-				hostsPath, exists := bindMounts["/etc/hosts"]
-				if !exists {
-					return errors.Errorf("error finding hosts file of dependency container %s for container %s", depCtr.ID(), c.ID())
-				}
-
+			// check if dependency container has an /etc/hosts file.
+			// It may not have one, so only use it if it does.
+			hostsPath, exists := bindMounts["/etc/hosts"]
+			if !c.config.UseImageHosts && exists {
 				depCtr.lock.Lock()
 				// generate a hosts file for the dependency container,
 				// based on either its old hosts file, or the default,

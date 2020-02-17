@@ -1784,6 +1784,9 @@ func WithInfraContainerPorts(bindings []ocicni.PortMapping) PodCreateOption {
 		if pod.valid {
 			return define.ErrPodFinalized
 		}
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod ports as no infra container is being created")
+		}
 		pod.config.InfraContainer.PortBindings = bindings
 		return nil
 	}
@@ -1794,6 +1797,10 @@ func WithPodStaticIP(ip net.IP) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod static IP as no infra container is being created")
 		}
 
 		if pod.config.InfraContainer.HostNetwork {
@@ -1815,6 +1822,10 @@ func WithPodStaticMAC(mac net.HardwareAddr) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot set pod static MAC as no infra container is being created")
 		}
 
 		if pod.config.InfraContainer.HostNetwork {
@@ -1839,6 +1850,10 @@ func WithPodUseImageResolvConf() PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
 		if len(pod.config.InfraContainer.DNSServer) != 0 ||
 			len(pod.config.InfraContainer.DNSSearch) != 0 ||
 			len(pod.config.InfraContainer.DNSOption) != 0 {
@@ -1858,6 +1873,10 @@ func WithPodDNS(dnsServer []string) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
 		if pod.config.InfraContainer.UseImageResolvConf {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS servers if pod will not create /etc/resolv.conf")
 		}
@@ -1875,6 +1894,10 @@ func WithPodDNSSearch(dnsSearch []string) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
+		}
+
 		if pod.config.InfraContainer.UseImageResolvConf {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS search domains if pod will not create /etc/resolv.conf")
 		}
@@ -1890,6 +1913,10 @@ func WithPodDNSOption(dnsOption []string) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod DNS as no infra container is being created")
 		}
 
 		if pod.config.InfraContainer.UseImageResolvConf {
@@ -1910,6 +1937,10 @@ func WithPodUseImageHosts() PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod hosts as no infra container is being created")
+		}
+
 		if len(pod.config.InfraContainer.HostAdd) != 0 {
 			return errors.Wrapf(define.ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
 		}
@@ -1927,6 +1958,10 @@ func WithPodHosts(hosts []string) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod hosts as no infra container is being created")
+		}
+
 		if pod.config.InfraContainer.UseImageHosts {
 			return errors.Wrapf(define.ErrInvalidArg, "cannot add to /etc/hosts if container is using image hosts")
 		}
@@ -1942,6 +1977,10 @@ func WithPodNetworks(networks []string) PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod CNI networks as no infra container is being created")
 		}
 
 		if (pod.config.InfraContainer.StaticIP != nil || pod.config.InfraContainer.StaticMAC != nil) &&
@@ -1964,6 +2003,10 @@ func WithPodHostNetwork() PodCreateOption {
 	return func(pod *Pod) error {
 		if pod.valid {
 			return define.ErrPodFinalized
+		}
+
+		if !pod.config.InfraContainer.HasInfraContainer {
+			return errors.Wrapf(define.ErrInvalidArg, "cannot configure pod host networking as no infra container is being created")
 		}
 
 		if len(pod.config.InfraContainer.PortBindings) > 0 ||

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -248,6 +249,17 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 		err     error
 	)
 
+	// This needs to be first, as a lot of options depend on
+	// WithInfraContainer()
+	if cli.Infra {
+		options = append(options, libpod.WithInfraContainer())
+		nsOptions, err := shared.GetNamespaceOptions(strings.Split(cli.Share, ","))
+		if err != nil {
+			return "", err
+		}
+		options = append(options, nsOptions...)
+	}
+
 	if cli.Flag("cgroup-parent").Changed {
 		options = append(options, libpod.WithPodCgroupParent(cli.CgroupParent))
 	}
@@ -264,17 +276,78 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 		options = append(options, libpod.WithPodHostname(cli.Hostname))
 	}
 
-	if cli.Infra {
-		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(strings.Split(cli.Share, ","))
-		if err != nil {
-			return "", err
+	if cli.Flag("add-host").Changed {
+		options = append(options, libpod.WithPodHosts(cli.StringSlice("add-host")))
+	}
+	if cli.Flag("dns").Changed {
+		dns := cli.StringSlice("dns")
+		foundHost := false
+		for _, entry := range dns {
+			if entry == "host" {
+				foundHost = true
+			}
 		}
-		options = append(options, nsOptions...)
+		if foundHost && len(dns) > 1 {
+			return "", errors.Errorf("cannot set dns=host and still provide other DNS servers")
+		}
+		if foundHost {
+			options = append(options, libpod.WithPodUseImageResolvConf())
+		} else {
+			options = append(options, libpod.WithPodDNS(cli.StringSlice("dns")))
+		}
+	}
+	if cli.Flag("dns-opt").Changed {
+		options = append(options, libpod.WithPodDNSOption(cli.StringSlice("dns-opt")))
+	}
+	if cli.Flag("dns-search").Changed {
+		options = append(options, libpod.WithPodDNSSearch(cli.StringSlice("dns-search")))
+	}
+	if cli.Flag("ip").Changed {
+		ip := net.ParseIP(cli.String("ip"))
+		if ip == nil {
+			return "", errors.Errorf("invalid IP address %q passed to --ip", cli.String("ip"))
+		}
+
+		options = append(options, libpod.WithPodStaticIP(ip))
+	}
+	if cli.Flag("mac-address").Changed {
+		mac, err := net.ParseMAC(cli.String("mac-address"))
+		if err != nil {
+			return "", errors.Wrapf(err, "invalid MAC address %q passed to --mac-address", cli.String("mac-address"))
+		}
+
+		options = append(options, libpod.WithPodStaticMAC(mac))
+	}
+	if cli.Flag("network").Changed {
+		netValue := cli.String("network")
+		switch strings.ToLower(netValue) {
+		case "bridge":
+			// Do nothing.
+			// TODO: Maybe this should be split between slirp and
+			// bridge? Better to wait until someone asks...
+			logrus.Debugf("Pod using default network mode")
+		case "host":
+			logrus.Debugf("Pod will use host networking")
+			options = append(options, libpod.WithPodHostNetwork())
+		case "":
+			return "", errors.Errorf("invalid value passed to --net: must provide a comma-separated list of CNI networks or host")
+		default:
+			// We'll assume this is a comma-separated list of CNI
+			// networks.
+			networks := strings.Split(netValue, ",")
+			logrus.Debugf("Pod joining CNI networks: %v", networks)
+			options = append(options, libpod.WithPodNetworks(networks))
+		}
+	}
+	if cli.Flag("no-hosts").Changed {
+		if cli.Bool("no-hosts") {
+			options = append(options, libpod.WithPodUseImageHosts())
+		}
 	}
 
-	if len(cli.Publish) > 0 {
-		portBindings, err := shared.CreatePortBindings(cli.Publish)
+	publish := cli.StringSlice("publish")
+	if len(publish) > 0 {
+		portBindings, err := shared.CreatePortBindings(publish)
 		if err != nil {
 			return "", err
 		}
@@ -496,6 +569,10 @@ func (r *LocalRuntime) PlayKubeYAML(ctx context.Context, c *cliconfig.KubePlayVa
 		hostname = podName
 	}
 	podOptions = append(podOptions, libpod.WithPodHostname(hostname))
+
+	if podYAML.Spec.HostNetwork {
+		podOptions = append(podOptions, libpod.WithPodHostNetwork())
+	}
 
 	nsOptions, err := shared.GetNamespaceOptions(strings.Split(shared.DefaultKernelNamespaces, ","))
 	if err != nil {

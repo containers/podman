@@ -185,7 +185,7 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 		Infra:        cli.Infra,
 		InfraCommand: cli.InfraCommand,
 		InfraImage:   cli.InfraCommand,
-		Publish:      cli.Publish,
+		Publish:      cli.StringSlice("publish"),
 	}
 
 	return iopodman.CreatePod().Call(r.Conn, pc)
