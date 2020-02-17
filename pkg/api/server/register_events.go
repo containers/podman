@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/gorilla/mux"
 )
@@ -32,6 +34,6 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	//     description: returns a string of json data describing an event
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.Handle(VersionedPath("/events"), s.APIHandler(handlers.GetEvents))
+	r.Handle(VersionedPath("/events"), s.APIHandler(handlers.GetEvents)).Methods(http.MethodGet)
 	return nil
 }

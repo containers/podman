@@ -142,7 +142,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
-	// swagger:operation GET /exec/{id}/inspect compat inspectExec
+	// swagger:operation GET /exec/{id}/json compat inspectExec
 	// ---
 	// tags:
 	//   - exec (compat)
@@ -303,7 +303,7 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/exec/{id}/resize"), s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/exec/{id}/inspect libpod libpodInspectExec
+	// swagger:operation GET /libpod/exec/{id}/json libpod libpodInspectExec
 	// ---
 	// tags:
 	//   - exec
