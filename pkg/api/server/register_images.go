@@ -621,6 +621,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//        - `dangling=true`
 	//        - `label=key` or `label="key=value"` of an image label
 	//        - `reference`=(`<image-name>[:<tag>]`)
+	//        - `id`=(`<image-id>`)
 	//        - `since`=(`<image-name>[:<tag>]`,  `<image id>` or `<image@digest>`)
 	//     type: string
 	// produces:
