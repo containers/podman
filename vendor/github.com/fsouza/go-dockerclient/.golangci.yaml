@@ -25,5 +25,6 @@ linters:
     - gochecknoglobals
     - gocognit
     - goconst
+    - gomnd
     - lll
     - wsl

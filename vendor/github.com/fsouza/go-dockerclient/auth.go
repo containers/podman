@@ -30,7 +30,7 @@ type AuthConfiguration struct {
 	ServerAddress string `json:"serveraddress,omitempty"`
 
 	// IdentityToken can be supplied with the identitytoken response of the AuthCheck call
-	// see https://godoc.org/github.com/docker/docker/api/types#AuthConfig
+	// see https://pkg.go.dev/github.com/docker/docker/api/types?tab=doc#AuthConfig
 	// It can be used in place of password not in conjunction with it
 	IdentityToken string `json:"identitytoken,omitempty"`
 
@@ -170,9 +170,14 @@ func authConfigs(confs map[string]dockerConfig) (*AuthConfigurations, error) {
 		if conf.Auth == "" {
 			continue
 		}
+
+		// support both padded and unpadded encoding
 		data, err := base64.StdEncoding.DecodeString(conf.Auth)
 		if err != nil {
-			return nil, err
+			data, err = base64.StdEncoding.WithPadding(base64.NoPadding).DecodeString(conf.Auth)
+		}
+		if err != nil {
+			return nil, errors.New("error decoding plaintext credentials")
 		}
 
 		userpass := strings.SplitN(string(data), ":", 2)

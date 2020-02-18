@@ -50,6 +50,31 @@ func Command(args ...string) *Cmd {
 	}
 }
 
+func getRootlessUID() int {
+	uidEnv := getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Geteuid()
+}
+
+func getRootlessGID() int {
+	gidEnv := getenv("_CONTAINERS_ROOTLESS_GID")
+	if gidEnv != "" {
+		u, _ := strconv.Atoi(gidEnv)
+		return u
+	}
+
+	/* If the _CONTAINERS_ROOTLESS_UID is set, assume the gid==uid.  */
+	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	if uidEnv != "" {
+		u, _ := strconv.Atoi(uidEnv)
+		return u
+	}
+	return os.Getegid()
+}
+
 func (c *Cmd) Start() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -61,10 +86,10 @@ func (c *Cmd) Start() error {
 	c.Env = append(c.Env, fmt.Sprintf("_Containers-unshare=%d", c.UnshareFlags))
 
 	// Please the libpod "rootless" package to find the expected env variables.
-	if os.Geteuid() != 0 {
+	if IsRootless() {
 		c.Env = append(c.Env, "_CONTAINERS_USERNS_CONFIGURED=done")
-		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%d", os.Geteuid()))
-		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_GID=%d", os.Getegid()))
+		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%d", getRootlessUID()))
+		c.Env = append(c.Env, fmt.Sprintf("_CONTAINERS_ROOTLESS_GID=%d", getRootlessGID()))
 	}
 
 	// Create the pipe for reading the child's PID.
@@ -318,14 +343,14 @@ const (
 // IsRootless tells us if we are running in rootless mode
 func IsRootless() bool {
 	isRootlessOnce.Do(func() {
-		isRootless = os.Geteuid() != 0 || os.Getenv(UsernsEnvName) != ""
+		isRootless = getRootlessUID() != 0 || getenv(UsernsEnvName) != ""
 	})
 	return isRootless
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS
 func GetRootlessUID() int {
-	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
+	uidEnv := getenv("_CONTAINERS_ROOTLESS_UID")
 	if uidEnv != "" {
 		u, _ := strconv.Atoi(uidEnv)
 		return u

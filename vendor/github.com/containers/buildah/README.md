@@ -3,7 +3,9 @@
 # [Buildah](https://www.youtube.com/embed/YVk5NgSiUw8) - a tool that facilitates building [Open Container Initiative (OCI)](https://www.opencontainers.org/) container images
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/buildah)](https://goreportcard.com/report/github.com/containers/buildah)
-[![Travis](https://travis-ci.org/containers/buildah.svg?branch=master)](https://travis-ci.org/containers/buildah)
+
+[![Bors enabled](https://bors.tech/images/badge_small.svg)](https://app.bors.tech/repositories/22803)
+
 
 The Buildah package provides a command line tool that can be used to
 * create a working container, either from scratch or using an image as a starting point

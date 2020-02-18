@@ -1,0 +1,44 @@
+# Bors-ng is a service which provides a merge and review bot for github PRs.
+# When approved for merging (`bors r+`) or test merging (`bors try`), all
+# pending PRs at the time will be merged together in one of two special
+# branches. Either 'staging' or 'trying'.  In the case of `staging` branch,
+# when all status tests pass (see below) the serialized set of merges will become
+# the new destination branch HEAD (i.e. master).  This guarantees there is never
+# any conflicts with PR merge order on the destination branch(es).
+#
+# Note: The branches 'staging.tmp' and 'trying.tmp' must always be ignored
+# by _all_ CI systems.  They are by bors temporarily, and may go away at
+# unpredictable times.
+#
+# Format Ref: https://bors.tech/documentation/#configuration-borstoml
+#
+# status
+# ------------------
+# Selects which tests are required for merging, matching against values
+# from BOTH the older github 'status API' (ref: https://developer.github.com/v3/repos/statuses
+# /#list-statuses-for-a-specific-ref) AND newer 'checks API'. Ref: https://developer.github.com/v3/checks
+# /runs/#list-check-runs-in-a-check-suite both return JSON:
+#
+# Status API:  Matches against '[].context' values
+# Checks API:  Matches against 'check_runs[].name' values
+#
+# Note: The wild-card character '%' is available.
+status = [
+    "cirrus-ci/success",
+]
+
+# Same as 'status' (above) but statuses that must pass on every PR
+pr_status = [
+    "cirrus-ci/success",
+]
+
+# Cirrus-CI Max Timeout is 60 * 60 * 2
+timeout_sec = 7200
+
+# List of strings: PR Labels that must NOT be present
+block_labels = []
+
+# The number of required GitHub code reviews set 'Approve'
+# before 'bors r+' will allow merging.  Does not require
+# the reviewer being in the 'Reviewers' list for the PR.
+required_approvals = 0

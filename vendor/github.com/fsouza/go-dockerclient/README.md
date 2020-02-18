@@ -2,7 +2,7 @@
 
 [![Travis Build Status](https://travis-ci.com/fsouza/go-dockerclient.svg?branch=master)](https://travis-ci.com/fsouza/go-dockerclient)
 [![AppVeyor Build status](https://ci.appveyor.com/api/projects/status/4yusq1f9dqbicobt?svg=true)](https://ci.appveyor.com/project/fsouza/go-dockerclient)
-[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://godoc.org/github.com/fsouza/go-dockerclient)
+[![GoDoc](https://img.shields.io/badge/api-Godoc-blue.svg?style=flat-square)](https://pkg.go.dev/github.com/docker/docker/api/types?tab=doc#AuthConfig)
 
 This package presents a client for the Docker remote API. It also provides
 support for the extensions in the [Swarm API](https://docs.docker.com/swarm/swarm-api/).

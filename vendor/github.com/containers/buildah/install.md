@@ -4,11 +4,86 @@
 
 ## Installing packaged versions of buildah
 
+#### [Amazon Linux 2](https://aws.amazon.com/amazon-linux-2/)
+
+The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+provides updated packages for CentOS 7 which can be used unmodified on Amazon Linux 2.
+
+```bash
+cd /etc/yum.repos.d/
+sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+sudo yum -y install buildah
+```
+
 ### [Arch Linux](https://www.archlinux.org)
 
 ```bash
 sudo pacman -S buildah
 ```
+
+#### [CentOS](https://www.centos.org)
+
+Buildah is available in the default Extras repos for CentOS 7 and in
+the AppStream repo for CentOS 8 and Stream, however the available version often
+lags the upstream release.
+
+```bash
+sudo yum -y install buildah
+```
+
+The [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+provides updated packages for CentOS 7, 8 and Stream.
+
+```bash
+# CentOS 7
+cd /etc/yum.repos.d/
+sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+sudo yum -y install buildah
+
+# CentOS 8
+sudo dnf -y module disable container-tools
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable rhcontainerbot/container-selinux
+cd /etc/yum.repos.d
+sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8/devel:kubic:libcontainers:stable.repo
+sudo dnf -y install buildah
+
+# CentOS Stream
+sudo dnf -y module disable container-tools
+sudo dnf -y install 'dnf-command(copr)'
+sudo dnf -y copr enable rhcontainerbot/container-selinux
+cd /etc/yum.repos.d
+sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_8_Stream/devel:kubic:libcontainers:stable.repo
+sudo dnf -y install buildah
+```
+
+
+#### [Debian](https://debian.org)
+
+The buildah package is [being worked on](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=928083)
+for inclusion in the default Debian repos.
+
+Alternatively, the [Kubic project](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
+provides packages for Debian 10, testing and unstable.
+
+```bash
+# Debian Unstable/Sid
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Unstable/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Unstable/Release.key -O Release.key
+
+# Debian Testing
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_Testing/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_Testing/Release.key -O Release.key
+
+# Debian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Debian_10/Release.key -O Release.key
+
+sudo apt-key add - < Release.key
+sudo apt-get update -qq
+sudo apt-get -qq -y install buildah
+```
+
 
 ### [Fedora](https://www.fedoraproject.org), [CentOS](https://www.centos.org)
 
@@ -26,7 +101,7 @@ Not Available.  Must be installed via package layering.
 
 rpm-ostree install buildah
 
-Note: `[podman](https://podman.io) build` is available by default.
+Note: [`podman`](https://podman.io) build is available by default.
 
 ### [Gentoo](https://www.gentoo.org)
 
@@ -53,6 +128,19 @@ sudo subscription-manager repos --enable=rhel-7-server-extras-rpms
 sudo yum -y install buildah
 ```
 
+#### [Raspbian](https://raspbian.org)
+
+The Kubic project provides packages for Raspbian 10.
+
+```bash
+# Raspbian 10
+echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Raspbian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/Raspbian_10/Release.key -O Release.key
+sudo apt-key add - < Release.key
+sudo apt-get update -qq
+sudo apt-get -qq -y install buildah
+```
+
 ### [RHEL8 Beta](https://www.redhat.com/en/blog/powering-its-future-while-preserving-present-introducing-red-hat-enterprise-linux-8-beta?intcmp=701f2000001Cz6OAAS)
 
 ```bash
@@ -62,10 +150,13 @@ sudo yum module install -y buildah
 
 ### [Ubuntu](https://www.ubuntu.com)
 
+The Kubic project provides packages for Ubuntu 18.04, 19.04 and 19.10 (it should also work with direct derivatives like Pop!\_OS).
+
 ```bash
-sudo apt-get update -qq
-sudo apt-get install -qq -y software-properties-common
-sudo add-apt-repository -y ppa:projectatomic/ppa
+. /etc/os-release
+sudo sh -c "echo 'deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/x${ID^}_${VERSION_ID}/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list"
+wget -nv https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/x${ID^}_${VERSION_ID}/Release.key -O Release.key
+sudo apt-key add - < Release.key
 sudo apt-get update -qq
 sudo apt-get -qq -y install buildah
 ```
@@ -107,9 +198,9 @@ named `containernetworking-cni`).  If not, they will need to be installed,
 for example using:
 ```
   git clone https://github.com/containernetworking/plugins
-  ( cd ./plugins; ./build.sh )
-  mkdir -p /opt/cni/bin
-  install -v ./plugins/bin/* /opt/cni/bin
+  ( cd ./plugins; ./build_linux.sh )
+  sudo mkdir -p /opt/cni/bin
+  sudo install -v ./plugins/bin/* /opt/cni/bin
 ```
 
 The CNI library needs to be configured so that it will know which plugins to
@@ -233,13 +324,13 @@ The build steps for Buildah on SUSE / openSUSE are the same as for Fedora, above
 In Ubuntu zesty and xenial, you can use these commands:
 
 ```
-  apt-get -y install software-properties-common
-  add-apt-repository -y ppa:alexlarsson/flatpak
-  add-apt-repository -y ppa:gophers/archive
-  apt-add-repository -y ppa:projectatomic/ppa
-  apt-get -y -qq update
-  apt-get -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
-  apt-get -y install golang-1.12
+  sudo apt-get -y install software-properties-common
+  sudo add-apt-repository -y ppa:alexlarsson/flatpak
+  sudo add-apt-repository -y ppa:gophers/archive
+  sudo apt-add-repository -y ppa:projectatomic/ppa
+  sudo apt-get -y -qq update
+  sudo apt-get -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
+  sudo apt-get -y install golang-1.12
 ```
 Then to install Buildah on Ubuntu follow the steps in this example:
 
@@ -249,7 +340,7 @@ Then to install Buildah on Ubuntu follow the steps in this example:
   export GOPATH=`pwd`
   git clone https://github.com/containers/buildah ./src/github.com/containers/buildah
   cd ./src/github.com/containers/buildah
-  PATH=/usr/lib/go-1.10/bin:$PATH make runc all SECURITYTAGS="apparmor seccomp"
+  PATH=/usr/lib/go-1.12/bin:$PATH make runc all SECURITYTAGS="apparmor seccomp"
   sudo make install install.runc
   buildah --help
 ```
@@ -260,11 +351,11 @@ To install the required dependencies, you can use those commands, tested under D
 
 ```
 gpg --recv-keys 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D
-gpg --export 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D >> /usr/share/keyrings/projectatomic-ppa.gpg
-echo 'deb [signed-by=/usr/share/keyrings/projectatomic-ppa.gpg] http://ppa.launchpad.net/projectatomic/ppa/ubuntu zesty main' > /etc/apt/sources.list.d/projectatomic-ppa.list
-apt update
-apt -y install -t stretch-backports golang
-apt -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
+sudo gpg --export 0x018BA5AD9DF57A4448F0E6CF8BECF1637AD8C79D >> /usr/share/keyrings/projectatomic-ppa.gpg
+sudo echo 'deb [signed-by=/usr/share/keyrings/projectatomic-ppa.gpg] http://ppa.launchpad.net/projectatomic/ppa/ubuntu zesty main' > /etc/apt/sources.list.d/projectatomic-ppa.list
+sudo apt update
+sudo apt -y install -t stretch-backports golang
+sudo apt -y install bats btrfs-tools git libapparmor-dev libdevmapper-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev skopeo-containers go-md2man
 ```
 
 The build steps on Debian are otherwise the same as Ubuntu, above.
