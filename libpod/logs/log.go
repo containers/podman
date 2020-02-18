@@ -35,6 +35,7 @@ type LogOptions struct {
 	Timestamps bool
 	Multi      bool
 	WaitGroup  *sync.WaitGroup
+	UseNames   bool
 }
 
 // LogLine describes the information for each line of a log
@@ -44,6 +45,7 @@ type LogLine struct {
 	Time         time.Time
 	Msg          string
 	CID          string
+	CName        string
 }
 
 // GetLogFile returns an hp tail for a container given options
@@ -120,11 +122,16 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 func (l *LogLine) String(options *LogOptions) string {
 	var out string
 	if options.Multi {
-		cid := l.CID
-		if len(cid) > 12 {
-			cid = cid[:12]
+		if options.UseNames {
+			cname := l.CName
+			out = fmt.Sprintf("%s ", cname)
+		} else {
+			cid := l.CID
+			if len(cid) > 12 {
+				cid = cid[:12]
+			}
+			out = fmt.Sprintf("%s ", cid)
 		}
-		out = fmt.Sprintf("%s ", cid)
 	}
 	if options.Timestamps {
 		out += fmt.Sprintf("%s ", l.Time.Format(LogTimeFormat))

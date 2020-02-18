@@ -260,6 +260,7 @@ type LogsValues struct {
 	Tail       int64
 	Timestamps bool
 	Latest     bool
+	UseNames   bool
 }
 
 type MountValues struct {
