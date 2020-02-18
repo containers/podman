@@ -15,7 +15,7 @@ var (
 	logsCommand     cliconfig.LogsValues
 	logsDescription = `Retrieves logs for one or more containers.
 
-  This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs.
+  This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs).
 `
 	_logsCommand = &cobra.Command{
 		Use:   "logs [flags] CONTAINER [CONTAINER...]",
