@@ -18,8 +18,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//     description: tbd
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
-	r.Handle("/libpod/volumes/create", APIHandler(s.Context, libpod.CreateVolume)).Methods(http.MethodPost)
-	r.Handle("/libpod/volumes/json", APIHandler(s.Context, libpod.ListVolumes)).Methods(http.MethodGet)
+	r.Handle("/libpod/volumes/create", s.APIHandler(libpod.CreateVolume)).Methods(http.MethodPost)
+	r.Handle("/libpod/volumes/json", s.APIHandler(libpod.ListVolumes)).Methods(http.MethodGet)
 	// swagger:operation POST /volumes/prune volumes pruneVolumes
 	// ---
 	// summary: Prune volumes
@@ -30,7 +30,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//     description: no error
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
-	r.Handle("/libpod/volumes/prune", APIHandler(s.Context, libpod.PruneVolumes)).Methods(http.MethodPost)
+	r.Handle("/libpod/volumes/prune", s.APIHandler(libpod.PruneVolumes)).Methods(http.MethodPost)
 	// swagger:operation GET /volumes/{name}/json volumes inspectVolume
 	// ---
 	// summary: Inspect volume
@@ -49,7 +49,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//       "$ref": "#/responses/NoSuchVolume"
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
-	r.Handle("/libpod/volumes/{name}/json", APIHandler(s.Context, libpod.InspectVolume)).Methods(http.MethodGet)
+	r.Handle("/libpod/volumes/{name}/json", s.APIHandler(libpod.InspectVolume)).Methods(http.MethodGet)
 	// swagger:operation DELETE /volumes/{name} volumes removeVolume
 	// ---
 	// summary: Remove volume
@@ -74,6 +74,6 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/NoSuchVolume"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle("/libpod/volumes/{name}", APIHandler(s.Context, libpod.RemoveVolume)).Methods(http.MethodDelete)
+	r.Handle("/libpod/volumes/{name}", s.APIHandler(libpod.RemoveVolume)).Methods(http.MethodDelete)
 	return nil
 }

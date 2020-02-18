@@ -20,20 +20,26 @@ import (
 )
 
 type APIServer struct {
-	http.Server        // The  HTTP work happens here
-	*schema.Decoder    // Decoder for Query parameters to structs
-	context.Context    // Context to carry objects to handlers
-	*libpod.Runtime    // Where the real work happens
-	net.Listener       // mux for routing HTTP API calls to libpod routines
-	context.CancelFunc // Stop APIServer
-	*time.Timer        // Hold timer for sliding window
-	time.Duration      // Duration of client access sliding window
+	http.Server                 // The  HTTP work happens here
+	*schema.Decoder             // Decoder for Query parameters to structs
+	context.Context             // Context to carry objects to handlers
+	*libpod.Runtime             // Where the real work happens
+	net.Listener                // mux for routing HTTP API calls to libpod routines
+	context.CancelFunc          // Stop APIServer
+	*time.Timer                 // Hold timer for sliding window
+	time.Duration               // Duration of client access sliding window
+	ActiveConnections  uint64   // Number of handlers holding a connection
+	TotalConnections   uint64   // Number of connections handled
+	ConnectionCh       chan int // Channel for signalling handler enter/exit
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
 const (
 	DefaultServiceDuration   = 300 * time.Second
 	UnlimitedServiceDuration = 0 * time.Second
+	EnterHandler             = 1
+	ExitHandler              = -1
+	NOOPHandler              = 0
 )
 
 // NewServer will create and configure a new API server with all defaults
@@ -68,30 +74,18 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		Server: http.Server{
 			Handler:           router,
 			ReadHeaderTimeout: 20 * time.Second,
-			ReadTimeout:       20 * time.Second,
-			WriteTimeout:      2 * time.Minute,
+			IdleTimeout:       duration,
 		},
-		Decoder:    handlers.NewAPIDecoder(),
-		Context:    nil,
-		Runtime:    runtime,
-		Listener:   *listener,
-		CancelFunc: nil,
-		Duration:   duration,
+		Decoder:      handlers.NewAPIDecoder(),
+		Runtime:      runtime,
+		Listener:     *listener,
+		Duration:     duration,
+		ConnectionCh: make(chan int),
 	}
+
 	server.Timer = time.AfterFunc(server.Duration, func() {
-		if err := server.Shutdown(); err != nil {
-			logrus.Errorf("unable to shutdown server: %q", err)
-		}
+		server.ConnectionCh <- NOOPHandler
 	})
-
-	ctx, cancelFn := context.WithCancel(context.Background())
-	server.CancelFunc = cancelFn
-
-	// TODO: Use ConnContext when ported to go 1.13
-	ctx = context.WithValue(ctx, "decoder", server.Decoder)
-	ctx = context.WithValue(ctx, "runtime", runtime)
-	ctx = context.WithValue(ctx, "shutdownFunc", server.Shutdown)
-	server.Context = ctx
 
 	router.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -102,20 +96,19 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 	)
 
 	for _, fn := range []func(*mux.Router) error{
-		server.RegisterAuthHandlers,
-		server.RegisterContainersHandlers,
-		server.RegisterDistributionHandlers,
+		server.registerAuthHandlers,
+		server.registerContainersHandlers,
+		server.registerDistributionHandlers,
 		server.registerExecHandlers,
-		server.RegisterEventsHandlers,
+		server.registerEventsHandlers,
 		server.registerHealthCheckHandlers,
 		server.registerImagesHandlers,
 		server.registerInfoHandlers,
-		server.RegisterMonitorHandlers,
+		server.registerMonitorHandlers,
 		server.registerPingHandlers,
-		server.RegisterPluginsHandlers,
+		server.registerPluginsHandlers,
 		server.registerPodsHandlers,
-		server.RegisterSwaggerHandlers,
-		server.RegisterSwarmHandlers,
+		server.registerSwarmHandlers,
 		server.registerSystemHandlers,
 		server.registerVersionHandlers,
 		server.registerVolumeHandlers,
@@ -145,7 +138,41 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 
 // Serve starts responding to HTTP requests
 func (s *APIServer) Serve() error {
-	defer s.CancelFunc()
+	// stalker to count the connections.  Should the timer expire it will shutdown the service.
+	go func() {
+		for {
+			select {
+			case delta := <-s.ConnectionCh:
+				// Always stop the current timer, things will change...
+				s.Timer.Stop()
+				switch delta {
+				case EnterHandler:
+					s.ActiveConnections += 1
+					s.TotalConnections += 1
+				case ExitHandler:
+					s.ActiveConnections -= 1
+					if s.ActiveConnections == 0 {
+						// Server will be shutdown iff the timer expires before being reset or stopped
+						s.Timer = time.AfterFunc(s.Duration, func() {
+							if err := s.Shutdown(); err != nil {
+								logrus.Errorf("Failed to shutdown APIServer: %v", err)
+								os.Exit(1)
+							}
+						})
+					} else {
+						s.Timer.Reset(s.Duration)
+					}
+				case NOOPHandler:
+					// push the check out another duration...
+					s.Timer.Reset(s.Duration)
+				default:
+					logrus.Errorf("ConnectionCh received unsupported input %d", delta)
+				}
+			default:
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -155,6 +182,7 @@ func (s *APIServer) Serve() error {
 		err := s.Server.Serve(s.Listener)
 		if err != nil && err != http.ErrServerClosed {
 			errChan <- errors.Wrap(err, "Failed to start APIServer")
+			return
 		}
 		errChan <- nil
 	}()
@@ -171,27 +199,23 @@ func (s *APIServer) Serve() error {
 
 // Shutdown is a clean shutdown waiting on existing clients
 func (s *APIServer) Shutdown() error {
-	// Duration == 0 flags no auto-shutdown of server
+	// Duration == 0 flags no auto-shutdown of the server
 	if s.Duration == 0 {
+		logrus.Debug("APIServer.Shutdown ignored as Duration == 0")
 		return nil
 	}
+	logrus.Debugf("APIServer.Shutdown called %v, conn %d/%d", time.Now(), s.ActiveConnections, s.TotalConnections)
 
-	// We're still in the sliding service window
-	if s.Timer.Stop() {
-		s.Timer.Reset(s.Duration)
-		return nil
-	}
+	// Gracefully shutdown server
+	ctx, cancel := context.WithTimeout(context.Background(), s.Duration)
+	defer cancel()
 
-	// We've been idle for the service window, really shutdown
 	go func() {
-		err := s.Server.Shutdown(s.Context)
+		err := s.Server.Shutdown(ctx)
 		if err != nil && err != context.Canceled {
 			logrus.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
 		}
 	}()
-
-	// Wait for graceful shutdown vs. just killing connections and dropping data
-	<-s.Context.Done()
 	return nil
 }
 

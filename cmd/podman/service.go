@@ -17,6 +17,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	api "github.com/containers/libpod/pkg/api/server"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/systemd"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/containers/libpod/version"
@@ -50,21 +51,52 @@ func init() {
 	serviceCommand.SetHelpTemplate(HelpTemplate())
 	serviceCommand.SetUsageTemplate(UsageTemplate())
 	flags := serviceCommand.Flags()
-	flags.Int64VarP(&serviceCommand.Timeout, "timeout", "t", 1000, "Time until the service session expires in milliseconds.  Use 0 to disable the timeout")
+	flags.Int64VarP(&serviceCommand.Timeout, "timeout", "t", 5, "Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	flags.BoolVar(&serviceCommand.Varlink, "varlink", false, "Use legacy varlink service instead of REST")
 }
 
 func serviceCmd(c *cliconfig.ServiceValues) error {
-	// For V2, default to the REST socket
-	apiURI := adapter.DefaultAPIAddress
-	if c.Varlink {
-		apiURI = adapter.DefaultVarlinkAddress
+	apiURI, err := resolveApiURI(c)
+	if err != nil {
+		return err
 	}
 
-	if rootless.IsRootless() {
+	// Create a single runtime api consumption
+	runtime, err := libpodruntime.GetRuntimeDisableFDs(getContext(), &c.PodmanCommand)
+	if err != nil {
+		return errors.Wrapf(err, "error creating libpod runtime")
+	}
+	defer func() {
+		if err := runtime.Shutdown(false); err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to shutdown libpod runtime: %v", err)
+		}
+	}()
+
+	timeout := time.Duration(c.Timeout) * time.Second
+	if c.Varlink {
+		return runVarlink(runtime, apiURI, timeout, c)
+	}
+	return runREST(runtime, apiURI, timeout)
+}
+
+func resolveApiURI(c *cliconfig.ServiceValues) (string, error) {
+	var apiURI string
+
+	// When determining _*THE*_ listening endpoint --
+	// 1) User input wins always
+	// 2) systemd socket activation
+	// 3) rootless honors XDG_RUNTIME_DIR
+	// 4) if varlink -- adapter.DefaultVarlinkAddress
+	// 5) lastly adapter.DefaultAPIAddress
+
+	if len(c.InputArgs) > 0 {
+		apiURI = c.InputArgs[0]
+	} else if ok := systemd.SocketActivated(); ok {
+		apiURI = ""
+	} else if rootless.IsRootless() {
 		xdg, err := util.GetRuntimeDir()
 		if err != nil {
-			return err
+			return "", err
 		}
 		socketName := "podman.sock"
 		if c.Varlink {
@@ -74,53 +106,59 @@ func serviceCmd(c *cliconfig.ServiceValues) error {
 		if _, err := os.Stat(filepath.Dir(socketDir)); err != nil {
 			if os.IsNotExist(err) {
 				if err := os.Mkdir(filepath.Dir(socketDir), 0755); err != nil {
-					return err
+					return "", err
 				}
 			} else {
-				return err
+				return "", err
 			}
 		}
-		apiURI = fmt.Sprintf("unix:%s", socketDir)
+		apiURI = "unix:" + socketDir
+	} else if c.Varlink {
+		apiURI = adapter.DefaultVarlinkAddress
+	} else {
+		// For V2, default to the REST socket
+		apiURI = adapter.DefaultAPIAddress
 	}
 
-	if len(c.InputArgs) > 0 {
-		apiURI = c.InputArgs[0]
+	if "" == apiURI {
+		logrus.Info("using systemd socket activation to determine API endpoint")
+	} else {
+		logrus.Infof("using API endpoint: %s", apiURI)
 	}
-
-	logrus.Infof("using API endpoint: %s", apiURI)
-
-	// Create a single runtime api consumption
-	runtime, err := libpodruntime.GetRuntimeDisableFDs(getContext(), &c.PodmanCommand)
-	if err != nil {
-		return errors.Wrapf(err, "error creating libpod runtime")
-	}
-	defer runtime.DeferredShutdown(false)
-
-	timeout := time.Duration(c.Timeout) * time.Millisecond
-	if c.Varlink {
-		return runVarlink(runtime, apiURI, timeout, c)
-	}
-	return runREST(runtime, apiURI, timeout)
+	return apiURI, nil
 }
 
 func runREST(r *libpod.Runtime, uri string, timeout time.Duration) error {
 	logrus.Warn("This function is EXPERIMENTAL")
 	fmt.Println("This function is EXPERIMENTAL.")
-	fields := strings.Split(uri, ":")
-	if len(fields) == 1 {
-		return errors.Errorf("%s is an invalid socket destination", uri)
+
+	var listener *net.Listener
+	if uri != "" {
+		fields := strings.Split(uri, ":")
+		if len(fields) == 1 {
+			return errors.Errorf("%s is an invalid socket destination", uri)
+		}
+		address := strings.Join(fields[1:], ":")
+		l, err := net.Listen(fields[0], address)
+		if err != nil {
+			return errors.Wrapf(err, "unable to create socket %s", uri)
+		}
+		defer l.Close()
+		listener = &l
 	}
-	address := strings.Join(fields[1:], ":")
-	l, err := net.Listen(fields[0], address)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create socket %s", uri)
-	}
-	defer l.Close()
-	server, err := api.NewServerWithSettings(r, timeout, &l)
+	server, err := api.NewServerWithSettings(r, timeout, listener)
 	if err != nil {
 		return err
 	}
-	return server.Serve()
+	defer func() {
+		if err := server.Shutdown(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error when stopping service: %s", err)
+		}
+	}()
+
+	err = server.Serve()
+	logrus.Debugf("%d/%d Active connections/Total connections\n", server.ActiveConnections, server.TotalConnections)
+	return err
 }
 
 func runVarlink(r *libpod.Runtime, uri string, timeout time.Duration, c *cliconfig.ServiceValues) error {

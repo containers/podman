@@ -6,6 +6,6 @@ import (
 )
 
 func (s *APIServer) registerSystemHandlers(r *mux.Router) error {
-	r.Handle(VersionedPath("/system/df"), APIHandler(s.Context, generic.GetDiskUsage))
+	r.Handle(VersionedPath("/system/df"), s.APIHandler(generic.GetDiskUsage))
 	return nil
 }

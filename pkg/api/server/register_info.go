@@ -21,6 +21,6 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	//     description: to be determined
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.Handle(VersionedPath("/info"), APIHandler(s.Context, generic.GetInfo)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/info"), s.APIHandler(generic.GetInfo)).Methods(http.MethodGet)
 	return nil
 }

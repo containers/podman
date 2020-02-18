@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
+func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	// swagger:operation GET /events system getEvents
 	// ---
 	// tags:
@@ -32,6 +32,6 @@ func (s *APIServer) RegisterEventsHandlers(r *mux.Router) error {
 	//     description: returns a string of json data describing an event
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.Handle(VersionedPath("/events"), APIHandler(s.Context, handlers.GetEvents))
+	r.Handle(VersionedPath("/events"), s.APIHandler(handlers.GetEvents))
 	return nil
 }

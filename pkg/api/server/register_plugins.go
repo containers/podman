@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterPluginsHandlers(r *mux.Router) error {
-	r.Handle(VersionedPath("/plugins"), APIHandler(s.Context, handlers.UnsupportedHandler))
+func (s *APIServer) registerPluginsHandlers(r *mux.Router) error {
+	r.Handle(VersionedPath("/plugins"), s.APIHandler(handlers.UnsupportedHandler))
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func (s *APIServer) RegisterMonitorHandlers(r *mux.Router) error {
-	r.Handle(VersionedPath("/monitor"), APIHandler(s.Context, handlers.UnsupportedHandler))
+func (s *APIServer) registerMonitorHandlers(r *mux.Router) error {
+	r.Handle(VersionedPath("/monitor"), s.APIHandler(handlers.UnsupportedHandler))
 	return nil
 }
