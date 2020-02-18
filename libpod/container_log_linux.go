@@ -40,7 +40,7 @@ func (c *Container) readFromJournal(options *logs.LogOptions, logChannel chan *l
 	defaultTime := time.Time{}
 	if options.Since != defaultTime {
 		// coreos/go-systemd/sdjournal doesn't correctly handle requests for data in the future
-		// return nothing instead of fasely printing
+		// return nothing instead of falsely printing
 		if time.Now().Before(options.Since) {
 			return nil
 		}

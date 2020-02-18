@@ -11,7 +11,7 @@ podman\-logs - Display the logs of one or more containers
 ## DESCRIPTION
 The podman logs command batch-retrieves whatever logs are present for one or more containers at the time of execution.
 This does not guarantee execution order when combined with podman run (i.e. your run may not have generated
-any logs at the time you execute podman logs
+any logs at the time you execute podman logs).
 
 ## OPTIONS
 
