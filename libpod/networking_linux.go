@@ -335,10 +335,13 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 		return errors.Wrapf(err, "delete file %s", logPath)
 	}
 
-	ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
-	if err != nil {
-		return errors.Wrapf(err, "failed to create rootless port sync pipe")
+	if !ctr.config.PostConfigureNetNS {
+		ctr.rootlessPortSyncR, ctr.rootlessPortSyncW, err = os.Pipe()
+		if err != nil {
+			return errors.Wrapf(err, "failed to create rootless port sync pipe")
+		}
 	}
+
 	cfg := rootlessport.Config{
 		Mappings:  ctr.config.PortMappings,
 		NetNSPath: netnsPath,
@@ -355,6 +358,11 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 	cmd := exec.Command(fmt.Sprintf("/proc/%d/exe", os.Getpid()))
 	cmd.Args = []string{rootlessport.ReexecKey}
 	// Leak one end of the pipe in rootlessport process, the other will be sent to conmon
+
+	if ctr.rootlessPortSyncR != nil {
+		defer errorhandling.CloseQuiet(ctr.rootlessPortSyncR)
+	}
+
 	cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.rootlessPortSyncR, syncW)
 	cmd.Stdin = cfgR
 	// stdout is for human-readable error, stderr is for debug log
