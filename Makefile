@@ -151,7 +151,7 @@ endif
 lint: golangci-lint
 	@echo "Linting vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 ifeq ($(PRE_COMMIT),)
-	@echo "FATAL: pre-commit was not found, check https://pre-commit.com/ about installing it." >&2
+	@echo "FATAL: pre-commit was not found, make .install.pre-commit to installing it." >&2
 	@exit 2
 endif
 	$(PRE_COMMIT) run -a
@@ -561,6 +561,12 @@ endef
 .PHONY: .install.golangci-lint
 .install.golangci-lint: .gopathok
 	VERSION=1.18.0 GOBIN=$(GOBIN) sh ./hack/install_golangci.sh
+
+.PHONY: .install.pre-commit
+.install.pre-commit:
+	if [ -z "$(PRE_COMMIT)" ]; then \
+		python3 -m pip install --user pre-commit; \
+	fi
 
 .PHONY: .install.md2man
 .install.md2man: .gopathok
