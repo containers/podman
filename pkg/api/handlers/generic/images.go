@@ -106,14 +106,14 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		author    string
-		changes   string
-		comment   string
-		container string
+		Author    string `schema:"author"`
+		Changes   string `schema:"changes"`
+		Comment   string `schema:"comment"`
+		Container string `schema:"container"`
 		//fromSrc   string  # fromSrc is currently unused
-		pause bool
-		repo  string
-		tag   string
+		Pause bool   `schema:"pause"`
+		Repo  string `schema:"repo"`
+		Tag   string `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -145,22 +145,22 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(query.tag) > 0 {
-		tag = query.tag
+	if len(query.Tag) > 0 {
+		tag = query.Tag
 	}
-	options.Message = query.comment
-	options.Author = query.author
-	options.Pause = query.pause
-	options.Changes = strings.Fields(query.changes)
-	ctr, err := runtime.LookupContainer(query.container)
+	options.Message = query.Comment
+	options.Author = query.Author
+	options.Pause = query.Pause
+	options.Changes = strings.Fields(query.Changes)
+	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, err)
 		return
 	}
 
 	// I know mitr hates this ... but doing for now
-	if len(query.repo) > 1 {
-		destImage = fmt.Sprintf("%s:%s", query.repo, tag)
+	if len(query.Repo) > 1 {
+		destImage = fmt.Sprintf("%s:%s", query.Repo, tag)
 	}
 
 	commitImage, err := ctr.Commit(r.Context(), destImage, options)
@@ -179,8 +179,8 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		fromSrc string
-		changes []string
+		FromSrc string   `schema:"fromSrc"`
+		Changes []string `schema:"changes"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -190,7 +190,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// fromSrc – Source to import. The value may be a URL from which the image can be retrieved or - to read the image from the request body. This parameter may only be used when importing an image.
-	source := query.fromSrc
+	source := query.FromSrc
 	if source == "-" {
 		f, err := ioutil.TempFile("", "api_load.tar")
 		if err != nil {
@@ -202,7 +202,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
-	iid, err := runtime.Import(r.Context(), source, "", query.changes, "", false)
+	iid, err := runtime.Import(r.Context(), source, "", query.Changes, "", false)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import tarball"))
 		return
@@ -238,8 +238,8 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
-		fromImage string
-		tag       string
+		FromImage string `schema:"fromImage"`
+		Tag       string `schema:"tag"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -254,9 +254,9 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	   repo – Repository name given to an image when it is imported. The repo may include a tag. This parameter may only be used when importing an image.
 	   tag – Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
 	*/
-	fromImage := query.fromImage
-	if len(query.tag) < 1 {
-		fromImage = fmt.Sprintf("%s:%s", fromImage, query.tag)
+	fromImage := query.FromImage
+	if len(query.Tag) < 1 {
+		fromImage = fmt.Sprintf("%s:%s", fromImage, query.Tag)
 	}
 
 	// TODO
