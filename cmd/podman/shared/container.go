@@ -30,6 +30,7 @@ import (
 const (
 	cidTruncLength = 12
 	podTruncLength = 12
+	iidTruncLength = 12
 	cmdTruncLength = 17
 )
 
@@ -66,6 +67,7 @@ type BatchContainerStruct struct {
 type PsContainerOutput struct {
 	ID        string
 	Image     string
+	ImageID   string
 	Command   string
 	Created   string
 	Ports     string
@@ -203,7 +205,7 @@ func NewBatchContainer(r *libpod.Runtime, ctr *libpod.Container, opts PsOptions)
 		status = "Error"
 	}
 
-	_, imageName := ctr.Image()
+	imageID, imageName := ctr.Image()
 	cid := ctr.ID()
 	podID := ctr.PodID()
 	if !opts.NoTrunc {
@@ -214,6 +216,9 @@ func NewBatchContainer(r *libpod.Runtime, ctr *libpod.Container, opts PsOptions)
 		if len(command) > cmdTruncLength {
 			command = command[0:cmdTruncLength] + "..."
 		}
+		if len(imageID) > iidTruncLength {
+			imageID = imageID[0:iidTruncLength]
+		}
 	}
 
 	ports, err := ctr.PortMappings()
@@ -223,6 +228,7 @@ func NewBatchContainer(r *libpod.Runtime, ctr *libpod.Container, opts PsOptions)
 
 	pso.ID = cid
 	pso.Image = imageName
+	pso.ImageID = imageID
 	pso.Command = command
 	pso.Created = created
 	pso.Ports = portsToString(ports)

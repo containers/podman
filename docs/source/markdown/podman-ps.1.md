@@ -55,7 +55,8 @@ Valid placeholders for the Go template are listed below:
 | **Placeholder** | **Description**                                  |
 | --------------- | ------------------------------------------------ |
 | .ID             | Container ID                                     |
-| .Image          | Image ID/Name                                    |
+| .Image          | Image Name/ID                                    |
+| .ImageID        | Image ID                                         |
 | .Command        | Quoted command used                              |
 | .CreatedAt      | Creation time for container                      |
 | .RunningFor     | Time elapsed since container was started         |
