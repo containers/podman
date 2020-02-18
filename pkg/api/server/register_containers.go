@@ -10,7 +10,7 @@ import (
 )
 
 func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
-	// swagger:operation POST /containers/create compat containerCreate
+	// swagger:operation POST /containers/create compat createContainer
 	// ---
 	//   summary: Create a container
 	//   tags:
@@ -172,7 +172,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/json"), s.APIHandler(generic.GetContainer)).Methods(http.MethodGet)
-	// swagger:operation post /containers/{name}/kill compat killcontainer
+	// swagger:operation POST /containers/{name}/kill compat killContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -202,7 +202,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/kill"), s.APIHandler(generic.KillContainer)).Methods(http.MethodPost)
-	// swagger:operation GET /containers/{name}/logs compat LogsFromContainer
+	// swagger:operation GET /containers/{name}/logs compat logsFromContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -458,7 +458,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/wait"), s.APIHandler(generic.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/attach compat attach
+	// swagger:operation POST /containers/{name}/attach compat attachContainer
 	// ---
 	// tags:
 	//   - containers (compat)
@@ -513,7 +513,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/containers/{name}/attach"), s.APIHandler(handlers.AttachContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /containers/{name}/resize compat resize
+	// swagger:operation POST /containers/{name}/resize compat resizeContainer
 	// ---
 	// tags:
 	//  - containers (compat)
@@ -638,7 +638,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/prune"), s.APIHandler(handlers.PruneContainers)).Methods(http.MethodPost)
-	// swagger:operation GET /libpod/containers/showmounted libpod showMounterContainers
+	// swagger:operation GET /libpod/containers/showmounted libpod showMountedContainers
 	// ---
 	// tags:
 	//  - containers
@@ -744,8 +744,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/ConflictError"
 	//   500:
 	//     $ref: "#/responses/InternalError"
-	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), s.APIHandler(libpod.KillContainer)).Methods(http.MethodGet)
-	// swagger:operation GET /libpod/containers/{name}/mount libpod mountContainer
+	r.HandleFunc(VersionedPath("/libpod/containers/{name}/kill"), s.APIHandler(libpod.KillContainer)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/containers/{name}/mount libpod mountContainer
 	// ---
 	// tags:
 	//  - containers
@@ -1023,7 +1023,7 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.HandleFunc(VersionedPath("/libpod/containers/{name}/wait"), s.APIHandler(libpod.WaitContainer)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/containers/{name}/exists libpod containerExists
+	// swagger:operation GET /libpod/containers/{name}/exists libpod containerExists
 	// ---
 	// tags:
 	//  - containers
