@@ -338,7 +338,11 @@ func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *logs.LogOptions) er
 	if tailLen < 0 {
 		tailLen = 0
 	}
-	logChannel := make(chan *logs.LogLine, tailLen*len(c.InputArgs)+1)
+	numContainers := len(c.InputArgs)
+	if numContainers == 0 {
+		numContainers = 1
+	}
+	logChannel := make(chan *logs.LogLine, tailLen*numContainers+1)
 	containers, err := shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
 	if err != nil {
 		return err

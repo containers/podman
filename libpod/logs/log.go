@@ -2,13 +2,16 @@ package logs
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/containers/libpod/libpod/logs/reversereader"
 	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -74,42 +77,83 @@ func GetLogFile(path string, options *LogOptions) (*tail.Tail, []*LogLine, error
 
 func getTailLog(path string, tail int) ([]*LogLine, error) {
 	var (
-		tailLog     []*LogLine
-		nlls        []*LogLine
-		tailCounter int
-		partial     string
+		nlls       []*LogLine
+		nllCounter int
+		leftover   string
+		partial    string
+		tailLog    []*LogLine
 	)
-	content, err := ioutil.ReadFile(path)
+	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
-	splitContent := strings.Split(string(content), "\n")
-	// We read the content in reverse and add each nll until we have the same
-	// number of F type messages as the desired tail
-	for i := len(splitContent) - 1; i >= 0; i-- {
-		if len(splitContent[i]) == 0 {
-			continue
+	rr, err := reversereader.NewReverseReader(f)
+	if err != nil {
+		return nil, err
+	}
+
+	inputs := make(chan []string)
+	go func() {
+		for {
+			s, err := rr.Read()
+			if err != nil {
+				if errors.Cause(err) == io.EOF {
+					inputs <- []string{leftover}
+					close(inputs)
+					break
+				}
+				logrus.Error(err)
+				close(inputs)
+			}
+			line := strings.Split(s+leftover, "\n")
+			if len(line) > 1 {
+				inputs <- line[1:]
+			}
+			leftover = line[0]
 		}
-		nll, err := NewLogLine(splitContent[i])
-		if err != nil {
-			return nil, err
+	}()
+
+	for i := range inputs {
+		// the incoming array is FIFO; we want FIFO so
+		// reverse the slice read order
+		for j := len(i) - 1; j >= 0; j-- {
+			// lines that are "" are junk
+			if len(i[j]) < 1 {
+				continue
+			}
+			// read the content in reverse and add each nll until we have the same
+			// number of F type messages as the desired tail
+			nll, err := NewLogLine(i[j])
+			if err != nil {
+				return nil, err
+			}
+			nlls = append(nlls, nll)
+			if !nll.Partial() {
+				nllCounter++
+			}
 		}
-		nlls = append(nlls, nll)
-		if !nll.Partial() {
-			tailCounter++
-		}
-		if tailCounter == tail {
+		// if we have enough loglines, we can hangup
+		if nllCounter >= tail {
+			if err := f.Close(); err != nil {
+				logrus.Error(err)
+			}
 			break
 		}
 	}
-	// Now we iterate the results and assemble partial messages to become full messages
+
+	// re-assemble the log lines and trim (if needed) to the
+	// tail length
 	for _, nll := range nlls {
 		if nll.Partial() {
 			partial += nll.Msg
 		} else {
 			nll.Msg += partial
-			tailLog = append(tailLog, nll)
+			// prepend because we need to reverse the order again to FIFO
+			tailLog = append([]*LogLine{nll}, tailLog...)
 			partial = ""
+		}
+		if len(tailLog) == tail {
+			break
 		}
 	}
 	return tailLog, nil

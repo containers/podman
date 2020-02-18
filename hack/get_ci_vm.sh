@@ -97,7 +97,7 @@ keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
 for k,v in env.items():
     v=str(v)
     if "ENCRYPTED" not in v:
-        print "{0}=\"{1}\"".format(k, v),
+        print("{0}=\"{1}\"".format(k, v)),
     '
 }
 
