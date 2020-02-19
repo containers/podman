@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"reflect"
+	"syscall"
 	"time"
 
+	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
 )
@@ -17,6 +19,9 @@ func NewAPIDecoder() *schema.Decoder {
 	d.IgnoreUnknownKeys(true)
 	d.RegisterConverter(map[string][]string{}, convertUrlValuesString)
 	d.RegisterConverter(time.Time{}, convertTimeString)
+
+	var Signal syscall.Signal
+	d.RegisterConverter(Signal, convertSignal)
 	return d
 }
 
@@ -88,4 +93,12 @@ func convertTimeString(query string) reflect.Value {
 // isZero() can be used to determine if parsing failed.
 func ParseDateTime(query string) time.Time {
 	return convertTimeString(query).Interface().(time.Time)
+}
+
+func convertSignal(query string) reflect.Value {
+	signal, err := util.ParseSignal(query)
+	if err != nil {
+		logrus.Infof("convertSignal: Failed to parse %s: %s", query, err.Error())
+	}
+	return reflect.ValueOf(signal)
 }
