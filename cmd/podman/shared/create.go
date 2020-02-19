@@ -701,9 +701,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Sysctl:         sysctl,
 	}
 
-	if err := secConfig.SetLabelOpts(runtime, pid, ipc); err != nil {
-		return nil, err
-	}
 	if err := secConfig.SetSecurityOpts(runtime, c.StringArray("security-opt")); err != nil {
 		return nil, err
 	}

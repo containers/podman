@@ -2,7 +2,7 @@ package config
 
 import (
 	"bytes"
-	"io/ioutil"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -287,17 +287,15 @@ type DBConfig struct {
 }
 
 // readConfigFromFile reads the specified config file at `path` and attempts to
-// unmarshal its content into a Config.
-func readConfigFromFile(path string) (*Config, error) {
-	var config Config
-
-	configBytes, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
+// unmarshal its content into a Config. The config param specifies the previous
+// default config.  If the path, only specifies a few fields in the Toml file
+// the defaults from the config parameter will be used for all other fields.
+func readConfigFromFile(path string, config *Config) (*Config, error) {
 	logrus.Debugf("Reading configuration file %q", path)
-	err = toml.Unmarshal(configBytes, &config)
+	_, err := toml.DecodeFile(path, config)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode configuration %v: %v", path, err)
+	}
 
 	// For the sake of backwards compat we need to check if the config fields
 	// with *Set suffix are set in the config.  Note that the storage-related
@@ -313,7 +311,7 @@ func readConfigFromFile(path string) (*Config, error) {
 		config.TmpDirSet = true
 	}
 
-	return &config, err
+	return config, err
 }
 
 // Write decodes the config as TOML and writes it to the specified path.
@@ -439,15 +437,11 @@ func probeConmon(conmonBinary string) error {
 // with cgroupsv2. Other OCI runtimes are not yet supporting cgroupsv2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
-	config := &Config{} // start with an empty config
-
-	// First, try to read the user-specified config
-	if userConfigPath != "" {
-		var err error
-		config, err = readConfigFromFile(userConfigPath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
-		}
+	// Start with the default config and interatively merge fields in the system
+	// configs.
+	config, err := defaultConfigFromMemory()
+	if err != nil {
+		return nil, err
 	}
 
 	// Now, check if the user can access system configs and merge them if needed.
@@ -456,43 +450,44 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		return nil, errors.Wrapf(err, "error finding config on system")
 	}
 
-	migrated := false
 	for _, path := range configs {
-		systemConfig, err := readConfigFromFile(path)
+		config, err = readConfigFromFile(path, config)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading system config %q", path)
 		}
-		// Handle CGroups v2 configuration migration.
-		// Migrate only the first config, and do it before
-		// merging.
-		if !migrated {
-			if err := cgroupV2Check(path, systemConfig); err != nil {
-				return nil, errors.Wrapf(err, "error rewriting configuration file %s", userConfigPath)
+	}
+
+	// First, try to read the user-specified config
+	if userConfigPath != "" {
+		var err error
+		config, err = readConfigFromFile(userConfigPath, config)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
+		}
+	}
+
+	// Since runc does not currently support cgroupV2
+	// Change to default crun on first running of libpod.conf
+	// TODO Once runc has support for cgroups, this function should be removed.
+	if !config.CgroupCheck && rootless.IsRootless() {
+		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, err
+		}
+		if cgroupsV2 {
+			path, err := exec.LookPath("crun")
+			if err != nil {
+				// Can't find crun path so do nothing
+				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
+			} else {
+				config.CgroupCheck = true
+				config.OCIRuntime = path
 			}
-			migrated = true
 		}
-		// Merge the it into the config. Any unset field in config will be
-		// over-written by the systemConfig.
-		if err := config.mergeConfig(systemConfig); err != nil {
-			return nil, errors.Wrapf(err, "error merging system config")
-		}
-		logrus.Debugf("Merged system config %q: %v", path, config)
 	}
 
-	// Finally, create a default config from memory and forcefully merge it into
-	// the config. This way we try to make sure that all fields are properly set
-	// and that user AND system config can partially set.
-	defaultConfig, err := defaultConfigFromMemory()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error generating default config from memory")
-	}
-
-	// Check if we need to switch to cgroupfs and logger=file on rootless.
-	defaultConfig.checkCgroupsAndLogger()
-
-	if err := config.mergeConfig(defaultConfig); err != nil {
-		return nil, errors.Wrapf(err, "error merging default config from memory")
-	}
+	// If we need to, switch to cgroupfs and logger=file on rootless.
+	config.checkCgroupsAndLogger()
 
 	// Relative paths can cause nasty bugs, because core paths we use could
 	// shift between runs (or even parts of the program - the OCI runtime
@@ -532,11 +527,11 @@ func systemConfigs() ([]string, error) {
 	}
 
 	configs := []string{}
-	if _, err := os.Stat(_rootOverrideConfigPath); err == nil {
-		configs = append(configs, _rootOverrideConfigPath)
-	}
 	if _, err := os.Stat(_rootConfigPath); err == nil {
 		configs = append(configs, _rootConfigPath)
+	}
+	if _, err := os.Stat(_rootOverrideConfigPath); err == nil {
+		configs = append(configs, _rootOverrideConfigPath)
 	}
 	return configs, nil
 }
@@ -568,29 +563,56 @@ func (c *Config) checkCgroupsAndLogger() {
 	}
 }
 
-// Since runc does not currently support cgroupV2
-// Change to default crun on first running of libpod.conf
-// TODO Once runc has support for cgroups, this function should be removed.
-func cgroupV2Check(configPath string, tmpConfig *Config) error {
-	if !tmpConfig.CgroupCheck && rootless.IsRootless() {
-		logrus.Debugf("Rewriting %s for CGroup v2 upgrade", configPath)
-		cgroupsV2, err := cgroups.IsCgroup2UnifiedMode()
-		if err != nil {
-			return err
+// MergeDBConfig merges the configuration from the database.
+func (c *Config) MergeDBConfig(dbConfig *DBConfig) error {
+
+	if !c.StorageConfigRunRootSet && dbConfig.StorageTmp != "" {
+		if c.StorageConfig.RunRoot != dbConfig.StorageTmp &&
+			c.StorageConfig.RunRoot != "" {
+			logrus.Debugf("Overriding run root %q with %q from database",
+				c.StorageConfig.RunRoot, dbConfig.StorageTmp)
 		}
-		if cgroupsV2 {
-			path, err := exec.LookPath("crun")
-			if err != nil {
-				logrus.Warnf("Can not find crun package on the host, containers might fail to run on cgroup V2 systems without crun: %q", err)
-				// Can't find crun path so do nothing
-				return nil
-			}
-			tmpConfig.CgroupCheck = true
-			tmpConfig.OCIRuntime = path
-			if err := tmpConfig.Write(configPath); err != nil {
-				return err
-			}
+		c.StorageConfig.RunRoot = dbConfig.StorageTmp
+	}
+
+	if !c.StorageConfigGraphRootSet && dbConfig.StorageRoot != "" {
+		if c.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
+			c.StorageConfig.GraphRoot != "" {
+			logrus.Debugf("Overriding graph root %q with %q from database",
+				c.StorageConfig.GraphRoot, dbConfig.StorageRoot)
 		}
+		c.StorageConfig.GraphRoot = dbConfig.StorageRoot
+	}
+
+	if !c.StorageConfigGraphDriverNameSet && dbConfig.GraphDriver != "" {
+		if c.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
+			c.StorageConfig.GraphDriverName != "" {
+			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
+				c.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
+		}
+		c.StorageConfig.GraphDriverName = dbConfig.GraphDriver
+	}
+
+	if !c.StaticDirSet && dbConfig.LibpodRoot != "" {
+		if c.StaticDir != dbConfig.LibpodRoot && c.StaticDir != "" {
+			logrus.Debugf("Overriding static dir %q with %q from database", c.StaticDir, dbConfig.LibpodRoot)
+		}
+		c.StaticDir = dbConfig.LibpodRoot
+	}
+
+	if !c.TmpDirSet && dbConfig.LibpodTmp != "" {
+		if c.TmpDir != dbConfig.LibpodTmp && c.TmpDir != "" {
+			logrus.Debugf("Overriding tmp dir %q with %q from database", c.TmpDir, dbConfig.LibpodTmp)
+		}
+		c.TmpDir = dbConfig.LibpodTmp
+		c.EventsLogFilePath = filepath.Join(dbConfig.LibpodTmp, "events", "events.log")
+	}
+
+	if !c.VolumePathSet && dbConfig.VolumePath != "" {
+		if c.VolumePath != dbConfig.VolumePath && c.VolumePath != "" {
+			logrus.Debugf("Overriding volume path %q with %q from database", c.VolumePath, dbConfig.VolumePath)
+		}
+		c.VolumePath = dbConfig.VolumePath
 	}
 	return nil
 }

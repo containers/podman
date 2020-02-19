@@ -241,14 +241,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	// SECURITY OPTS
-	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
-
-	if !config.Security.Privileged {
-		g.SetProcessApparmorProfile(config.Security.ApparmorProfile)
-	}
-
-	blockAccessToKernelFilesystems(config, &g)
-
 	var runtimeConfig *libpodconfig.Config
 
 	if runtime != nil {
@@ -257,6 +249,26 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			return nil, err
 		}
 	}
+
+	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
+
+	if !config.Security.Privileged {
+		g.SetProcessApparmorProfile(config.Security.ApparmorProfile)
+	}
+
+	// Unless already set via the CLI, check if we need to disable process
+	// labels or set the defaults.
+	if len(config.Security.LabelOpts) == 0 && runtimeConfig != nil {
+		if !runtimeConfig.EnableLabeling {
+			// Disabled in the config.
+			config.Security.LabelOpts = append(config.Security.LabelOpts, "disable")
+		} else if err := config.Security.SetLabelOpts(runtime, &config.Pid, &config.Ipc); err != nil {
+			// Defaults!
+			return nil, err
+		}
+	}
+
+	blockAccessToKernelFilesystems(config, &g)
 
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit > 0 {
