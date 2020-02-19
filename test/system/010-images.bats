@@ -74,4 +74,40 @@ size       | [0-9]\\\+
     run_podman rm my-container
 }
 
+@test "podman images - filter" {
+    skip_if_remote "podman commit -q is broken in podman-remote"
+
+    run_podman inspect --format '{{.ID}}' $IMAGE
+    iid=$output
+
+    run_podman images --noheading --filter=after=$iid
+    is "$output" "" "baseline: empty results from filter (after)"
+
+    run_podman images --noheading --filter=before=$iid
+    is "$output" "" "baseline: empty results from filter (before)"
+
+    # Create a dummy container, then commit that as an image. We will
+    # now be able to use before/after/since queries
+    run_podman run --name mytinycontainer $IMAGE true
+    run_podman commit -q  mytinycontainer mynewimage
+    new_iid=$output
+
+    # (refactor common options for legibility)
+    opts='--noheading --no-trunc --format={{.ID}}--{{.Repository}}:{{.Tag}}'
+
+    run_podman images ${opts} --filter=after=$iid
+    is "$output" "sha256:$new_iid--localhost/mynewimage:latest" "filter: after"
+
+    # Same thing, with 'since' instead of 'after'
+    run_podman images ${opts} --filter=since=$iid
+    is "$output" "sha256:$new_iid--localhost/mynewimage:latest" "filter: since"
+
+    run_podman images ${opts} --filter=before=mynewimage
+    is "$output" "sha256:$iid--$IMAGE" "filter: before"
+
+    # Clean up
+    run_podman rmi mynewimage
+    run_podman rm  mytinycontainer
+}
+
 # vim: filetype=sh

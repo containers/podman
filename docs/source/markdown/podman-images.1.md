@@ -29,11 +29,11 @@ Filter output based on conditions provided
 
   Filters:
 
-  **after==TIMESTRING**
-    Filter on images created after the given time.Time.
+  **since=IMAGE**
+    Filter on images created after the given IMAGE (name or tag).
 
-  **before==TIMESTRING**
-    Filter on images created before the given time.Time.
+  **before=IMAGE**
+    Filter on images created before the given IMAGE (name or tag).
 
   **dangling=true|false**
     Show dangling images. Dangling images are a file system layer that was used in a previous build of an image and is no longer referenced by any active images. They are denoted with the <none> tag, consume disk space and serve no active purpose.

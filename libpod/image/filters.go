@@ -141,7 +141,7 @@ func (ir *Runtime) createFilterFuncs(filters []string, img *Image) ([]ResultFilt
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
 			}
 			filterFuncs = append(filterFuncs, CreatedBeforeFilter(before.Created()))
-		case "after":
+		case "since", "after":
 			after, err := ir.NewFromLocal(splitFilter[1])
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
