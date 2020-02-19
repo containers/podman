@@ -15,7 +15,7 @@ import (
 
 func KillContainer(w http.ResponseWriter, r *http.Request) (*libpod.Container, error) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	decoder := r.Context().Value("decorder").(*schema.Decoder)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
 		Signal syscall.Signal `schema:"signal"`
 	}{
