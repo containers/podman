@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
+	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/inspect"
 	ns "github.com/containers/libpod/pkg/namespaces"
@@ -473,19 +474,38 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	// ENVIRONMENT VARIABLES
-	env := EnvVariablesFromData(data)
+	var env map[string]string
+	if data != nil {
+		configEnv, err := envLib.ParseSlice(data.Config.Env)
+		if err != nil {
+			return nil, errors.Wrap(err, "error pasing image environment variables")
+		}
+		env = configEnv
+	}
 	if c.Bool("env-host") {
-		for _, e := range os.Environ() {
-			pair := strings.SplitN(e, "=", 2)
-			if _, ok := env[pair[0]]; !ok {
-				if len(pair) > 1 {
-					env[pair[0]] = pair[1]
-				}
+		osEnv, err := envLib.ParseSlice(os.Environ())
+		if err != nil {
+			return nil, errors.Wrap(err, "error parsing host environment variables")
+		}
+		env = envLib.Join(env, osEnv)
+	}
+	if c.IsSet("env-file") {
+		for _, f := range c.StringSlice("env-file") {
+			fileEnv, err := envLib.ParseFile(f)
+			if err != nil {
+				return nil, err
 			}
+			// File env is overridden by env.
+			env = envLib.Join(fileEnv, env)
 		}
 	}
-	if err := parse.ReadKVStrings(env, c.StringSlice("env-file"), c.StringArray("env")); err != nil {
-		return nil, errors.Wrapf(err, "unable to process environment variables")
+	cmdlineEnv := c.StringSlice("env")
+	if len(cmdlineEnv) > 0 {
+		parsedEnv, err := envLib.ParseSlice(cmdlineEnv)
+		if err != nil {
+			return nil, err
+		}
+		env = envLib.Join(env, parsedEnv)
 	}
 
 	// LABEL VARIABLES
@@ -820,28 +840,6 @@ func CreateContainerFromCreateConfig(r *libpod.Runtime, createConfig *cc.CreateC
 		return nil, err
 	}
 	return ctr, nil
-}
-
-var defaultEnvVariables = map[string]string{
-	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-	"TERM": "xterm",
-}
-
-// EnvVariablesFromData gets sets the default environment variables
-// for containers, and reads the variables from the image data, if present.
-func EnvVariablesFromData(data *inspect.ImageData) map[string]string {
-	env := defaultEnvVariables
-	if data != nil {
-		for _, e := range data.Config.Env {
-			split := strings.SplitN(e, "=", 2)
-			if len(split) > 1 {
-				env[split[0]] = split[1]
-			} else {
-				env[split[0]] = ""
-			}
-		}
-	}
-	return env
 }
 
 func makeHealthCheckFromCli(c *GenericCLIResults) (*manifest.Schema2HealthConfig, error) {
