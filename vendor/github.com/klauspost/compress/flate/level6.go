@@ -13,6 +13,9 @@ func (e *fastEncL6) Encode(dst *tokens, src []byte) {
 		inputMargin            = 12 - 1
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
+	if debugDecode && e.cur < 0 {
+		panic(fmt.Sprint("e.cur < 0: ", e.cur))
+	}
 
 	// Protect against e.cur wraparound.
 	for e.cur >= bufferReset {

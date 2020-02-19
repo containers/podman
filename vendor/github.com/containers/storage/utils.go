@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/BurntSushi/toml"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
@@ -82,9 +82,8 @@ func GetRootlessRuntimeDir(rootlessUID int) (string, error) {
 }
 
 func getRootlessRuntimeDir(rootlessUID int) (string, error) {
-	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-
-	if runtimeDir != "" {
+	runtimeDir, err := homedir.GetRuntimeDir()
+	if err == nil {
 		return runtimeDir, nil
 	}
 	tmpDir := fmt.Sprintf("/run/user/%d", rootlessUID)
@@ -98,8 +97,8 @@ func getRootlessRuntimeDir(rootlessUID int) (string, error) {
 	} else {
 		return tmpDir, nil
 	}
-	home, err := homeDir()
-	if err != nil {
+	home := homedir.Get()
+	if home == "" {
 		return "", errors.Wrapf(err, "neither XDG_RUNTIME_DIR nor HOME was set non-empty")
 	}
 	resolvedHome, err := filepath.EvalSymlinks(home)
@@ -117,20 +116,23 @@ func getRootlessDirInfo(rootlessUID int) (string, string, error) {
 		return "", "", err
 	}
 
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home, err := homeDir()
-		if err != nil {
-			return "", "", errors.Wrapf(err, "neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
+	dataDir, err := homedir.GetDataHome()
+	if err == nil {
+		return dataDir, rootlessRuntime, nil
 	}
+
+	home := homedir.Get()
+	if home == "" {
+		return "", "", errors.Wrapf(err, "neither XDG_DATA_HOME nor HOME was set non-empty")
+	}
+	// runc doesn't like symlinks in the rootfs path, and at least
+	// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
+	resolvedHome, err := filepath.EvalSymlinks(home)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "cannot resolve %s", home)
+	}
+	dataDir = filepath.Join(resolvedHome, ".local", "share")
+
 	return dataDir, rootlessRuntime, nil
 }
 
@@ -245,16 +247,4 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 		}
 	}
 	return storageOpts, nil
-}
-
-func homeDir() (string, error) {
-	home := os.Getenv("HOME")
-	if home == "" {
-		usr, err := user.Current()
-		if err != nil {
-			return "", errors.Wrapf(err, "neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-		}
-		home = usr.HomeDir
-	}
-	return home, nil
 }

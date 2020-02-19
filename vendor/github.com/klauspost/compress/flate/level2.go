@@ -1,5 +1,7 @@
 package flate
 
+import "fmt"
+
 // fastGen maintains the table for matches,
 // and the previous byte block for level 2.
 // This is the generic implementation.
@@ -15,6 +17,10 @@ func (e *fastEncL2) Encode(dst *tokens, src []byte) {
 		inputMargin            = 12 - 1
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
+
+	if debugDecode && e.cur < 0 {
+		panic(fmt.Sprint("e.cur < 0: ", e.cur))
+	}
 
 	// Protect against e.cur wraparound.
 	for e.cur >= bufferReset {
