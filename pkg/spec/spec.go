@@ -7,6 +7,7 @@ import (
 	libpodconfig "github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
 	"github.com/docker/go-units"
@@ -150,7 +151,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	for key, val := range config.Annotations {
 		g.AddAnnotation(key, val)
 	}
-	g.AddProcessEnv("container", "podman")
 
 	addedResources := false
 
@@ -280,6 +280,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
+	// Make sure to always set the default variables unless overridden in the
+	// config.
+	config.Env = env.Join(env.DefaultEnvVariables, config.Env)
 	for name, val := range config.Env {
 		g.AddProcessEnv(name, val)
 	}

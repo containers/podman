@@ -90,6 +90,8 @@ func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 		// all environment variables, even those sourced from files, but
 		// that would require a substantial rework.
 		if err := parseEnvFile(labels, file); err != nil {
+			// FIXME: parseEnvFile is using parseEnv, so we need to add extra
+			// logic for labels.
 			return nil, err
 		}
 	}
@@ -105,23 +107,6 @@ func GetAllLabels(labelFile, inputLabels []string) (map[string]string, error) {
 		labels[split[0]] = value
 	}
 	return labels, nil
-}
-
-// reads a file of line terminated key=value pairs, and overrides any keys
-// present in the file with additional pairs specified in the override parameter
-// for env-file and labels-file flags
-func ReadKVStrings(env map[string]string, files []string, override []string) error {
-	for _, ef := range files {
-		if err := parseEnvFile(env, ef); err != nil {
-			return err
-		}
-	}
-	for _, line := range override {
-		if err := parseEnv(env, line); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func parseEnv(env map[string]string, line string) error {

@@ -5,6 +5,7 @@ package libpod
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -24,7 +25,9 @@ import (
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
+	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/errorhandling"
+	"github.com/containers/libpod/pkg/inspect"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -1227,6 +1230,17 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	return nil
 }
 
+// getImageDataFromContainer returns the inspect image data of the container's
+// image.
+func getImageDataFromContainer(c *Container) (*inspect.ImageData, error) {
+	imageID, _ := c.Image()
+	localImage, err := c.runtime.ImageRuntime().NewFromLocal(imageID)
+	if err != nil {
+		return nil, err
+	}
+	return localImage.Inspect(context.Background())
+}
+
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible to close the returned *os.File if needed.
 func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, sessionID string) (*os.File, error) {
@@ -1242,14 +1256,6 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 	pspec.Terminal = false
 	if tty {
 		pspec.Terminal = true
-	}
-	if len(env) > 0 {
-		pspec.Env = append(pspec.Env, env...)
-	}
-
-	if cwd != "" {
-		pspec.Cwd = cwd
-
 	}
 
 	overrides := c.getUserOverrides()
@@ -1274,15 +1280,34 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 		pspec.User = processUser
 	}
 
-	hasHomeSet := false
-	for _, s := range pspec.Env {
-		if strings.HasPrefix(s, "HOME=") {
-			hasHomeSet = true
-			break
-		}
+	// We need to start with a fresh environment and should not inherit from the
+	// container's config (https://github.com/containers/libpod/issues/5255).
+	imageData, err := getImageDataFromContainer(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error retrieving image data")
 	}
-	if !hasHomeSet {
-		pspec.Env = append(pspec.Env, fmt.Sprintf("HOME=%s", execUser.Home))
+
+	pEnv := envLib.DefaultEnvVariables
+	configEnvMap, err := envLib.ParseSlice(imageData.Config.Env)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing image environment variables")
+	}
+	envMap, err := envLib.ParseSlice(env)
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing environment variables")
+	}
+	pEnv = envLib.Join(pEnv, configEnvMap)
+	pEnv = envLib.Join(pEnv, envMap)
+
+	if _, homeSet := pEnv["HOME"]; !homeSet {
+		pEnv["HOME"] = execUser.Home
+	}
+
+	pspec.Env = envLib.Slice(pEnv) // override with a fresh env
+
+	if cwd != "" {
+		pspec.Cwd = cwd
+
 	}
 
 	processJSON, err := json.Marshal(pspec)

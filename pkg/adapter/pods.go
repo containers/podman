@@ -21,6 +21,7 @@ import (
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
 	ann "github.com/containers/libpod/pkg/annotations"
+	envLib "github.com/containers/libpod/pkg/env"
 	ns "github.com/containers/libpod/pkg/namespaces"
 	createconfig "github.com/containers/libpod/pkg/spec"
 	"github.com/containers/libpod/pkg/util"
@@ -839,9 +840,6 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.User = userConfig
 	containerConfig.Security = securityConfig
 
-	// Set default environment variables and incorporate data from image, if necessary
-	envs := shared.EnvVariablesFromData(imageData)
-
 	annotations := make(map[string]string)
 	if infraID != "" {
 		annotations[ann.SandboxID] = infraID
@@ -850,6 +848,14 @@ func kubeContainerToCreateConfig(ctx context.Context, containerYAML v1.Container
 	containerConfig.Annotations = annotations
 
 	// Environment Variables
+	envs := map[string]string{}
+	if imageData != nil {
+		imageEnv, err := envLib.ParseSlice(imageData.Config.Env)
+		if err != nil {
+			return nil, errors.Wrap(err, "error parsing image environment variables")
+		}
+		envs = imageEnv
+	}
 	for _, e := range containerYAML.Env {
 		envs[e.Name] = e.Value
 	}

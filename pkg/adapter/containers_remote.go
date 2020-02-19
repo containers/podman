@@ -15,11 +15,11 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/shared/parse"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
+	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/docker/pkg/term"
@@ -1025,16 +1025,11 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 	)
 	// default invalid command exit code
 	// Validate given environment variables
-	env := map[string]string{}
-	if err := parse.ReadKVStrings(env, []string{}, cli.Env); err != nil {
-		return -1, errors.Wrapf(err, "Exec unable to process environment variables")
+	cliEnv, err := envLib.ParseSlice(cli.Env)
+	if err != nil {
+		return 0, errors.Wrap(err, "error parsing environment variables")
 	}
-
-	// Build env slice of key=value strings for Exec
-	envs := []string{}
-	for k, v := range env {
-		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
-	}
+	envs := envLib.Slice(cliEnv)
 
 	resize := make(chan remotecommand.TerminalSize, 5)
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
