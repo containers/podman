@@ -692,3 +692,59 @@ type SystemDfValues struct {
 type UntagValues struct {
 	PodmanCommand
 }
+
+type ManifestCreateValues struct {
+	PodmanCommand
+	All          bool
+	ArchOverride string
+	OsOverride   string
+}
+
+type ManifestAddValues struct {
+	PodmanCommand
+	All          bool
+	Annotations  []string
+	Arch         string
+	ArchOverride string
+	Features     []string
+	Os           string
+	OsFeatures   []string
+	OsOverride   string
+	OsVersion    string
+	Variant      string
+}
+
+type ManifestRemoveValues struct {
+	PodmanCommand
+}
+
+type ManifestAnnotateValues struct {
+	PodmanCommand
+	Annotations []string
+	Arch        string
+	Features    []string
+	Os          string
+	OsFeatures  []string
+	OsVersion   string
+	Variant     string
+}
+
+type ManifestInspectValues struct {
+	PodmanCommand
+}
+
+type ManifestPushValues struct {
+	PodmanCommand
+	All              bool
+	Authfile         string
+	CertDir          string
+	Creds            string
+	Digestfile       string
+	Format           string
+	Purge            bool
+	Quiet            bool
+	SignaturePolicy  string
+	SignBy           string
+	RemoveSignatures bool
+	TlsVerify        bool
+}
