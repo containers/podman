@@ -255,7 +255,7 @@ func CreateImageFromImage(w http.ResponseWriter, r *http.Request) {
 	   tag – Tag or digest. If empty when pulling an image, this causes all tags for the given image to be pulled.
 	*/
 	fromImage := query.FromImage
-	if len(query.Tag) < 1 {
+	if len(query.Tag) >= 1 {
 		fromImage = fmt.Sprintf("%s:%s", fromImage, query.Tag)
 	}
 
