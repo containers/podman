@@ -83,7 +83,8 @@ libpod to manage containers.
   containers and pods are visible.
 
 **label**="true|false"
-  Indicates whether the containers should use label separation.
+  Indicates whether the containers should use label separation by default.
+  Can be overridden via `--security-opt label=...` on the CLI.
 
 **num_locks**=""
   Number of locks available for containers and pods. Each created container or pod consumes one lock.
