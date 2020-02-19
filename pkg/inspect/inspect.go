@@ -6,7 +6,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/opencontainers/go-digest"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // ImageData holds the inspect information of an image
