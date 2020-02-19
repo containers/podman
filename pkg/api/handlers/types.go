@@ -151,6 +151,7 @@ type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
 }
 
+// swagger:model PodCreateConfig
 type PodCreateConfig struct {
 	Name         string   `json:"name"`
 	CGroupParent string   `json:"cgroup-parent"`
@@ -547,12 +548,4 @@ func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
 		ports[npUDP] = struct{}{}
 	}
 	return ports, nil
-}
-
-// ContainerCreateResponse is the response struct for creating a container
-type ContainerCreateResponse struct {
-	// ID of the container created
-	ID string `json:"id"`
-	// Warnings during container creation
-	Warnings []string `json:"Warnings"`
 }

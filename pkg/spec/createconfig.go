@@ -126,6 +126,7 @@ type SecurityConfig struct {
 }
 
 // CreateConfig is a pre OCI spec structure.  It represents user input from varlink or the CLI
+// swagger:model CreateConfig
 type CreateConfig struct {
 	Annotations       map[string]string
 	Args              []string
@@ -386,6 +387,6 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 
 // AddPrivilegedDevices iterates through host devices and adds all
 // host devices to the spec
-func (c *CreateConfig) AddPrivilegedDevices(g *generate.Generator) error {
-	return c.addPrivilegedDevices(g)
+func AddPrivilegedDevices(g *generate.Generator) error {
+	return addPrivilegedDevices(g)
 }

@@ -16,9 +16,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-const cpuPeriod = 100000
+const CpuPeriod = 100000
 
-func getAvailableGids() (int64, error) {
+func GetAvailableGids() (int64, error) {
 	idMap, err := user.ParseIDMapFile("/proc/self/gid_map")
 	if err != nil {
 		return 0, err
@@ -80,7 +80,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 	gid5Available := true
 	if isRootless {
-		nGids, err := getAvailableGids()
+		nGids, err := GetAvailableGids()
 		if err != nil {
 			return nil, err
 		}
@@ -197,8 +197,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		addedResources = true
 	}
 	if config.Resources.CPUs != 0 {
-		g.SetLinuxResourcesCPUPeriod(cpuPeriod)
-		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * cpuPeriod))
+		g.SetLinuxResourcesCPUPeriod(CpuPeriod)
+		g.SetLinuxResourcesCPUQuota(int64(config.Resources.CPUs * CpuPeriod))
 		addedResources = true
 	}
 	if config.Resources.CPURtRuntime != 0 {
@@ -223,12 +223,12 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		// If privileged, we need to add all the host devices to the
 		// spec.  We do not add the user provided ones because we are
 		// already adding them all.
-		if err := config.AddPrivilegedDevices(&g); err != nil {
+		if err := AddPrivilegedDevices(&g); err != nil {
 			return nil, err
 		}
 	} else {
 		for _, devicePath := range config.Devices {
-			if err := devicesFromPath(&g, devicePath); err != nil {
+			if err := DevicesFromPath(&g, devicePath); err != nil {
 				return nil, err
 			}
 		}
@@ -268,7 +268,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
-	blockAccessToKernelFilesystems(config, &g)
+	BlockAccessToKernelFilesystems(config.Security.Privileged, config.Pid.PidMode.IsHost(), &g)
 
 	// RESOURCES - PIDS
 	if config.Resources.PidsLimit > 0 {
@@ -332,9 +332,9 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	// BIND MOUNTS
-	configSpec.Mounts = supercedeUserMounts(userMounts, configSpec.Mounts)
+	configSpec.Mounts = SupercedeUserMounts(userMounts, configSpec.Mounts)
 	// Process mounts to ensure correct options
-	finalMounts, err := initFSMounts(configSpec.Mounts)
+	finalMounts, err := InitFSMounts(configSpec.Mounts)
 	if err != nil {
 		return nil, err
 	}
@@ -416,8 +416,8 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	return configSpec, nil
 }
 
-func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator) {
-	if !config.Security.Privileged {
+func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.Generator) {
+	if !privileged {
 		for _, mp := range []string{
 			"/proc/acpi",
 			"/proc/kcore",
@@ -433,7 +433,7 @@ func blockAccessToKernelFilesystems(config *CreateConfig, g *generate.Generator)
 			g.AddLinuxMaskedPaths(mp)
 		}
 
-		if config.Pid.PidMode.IsHost() && rootless.IsRootless() {
+		if pidModeIsHost && rootless.IsRootless() {
 			return
 		}
 
