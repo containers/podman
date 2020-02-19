@@ -1,5 +1,8 @@
 package homedir
 
+// Copyright 2013-2018 Docker, Inc.
+// NOTE: this package has originally been copied from github.com/docker/docker.
+
 import (
 	"os"
 )

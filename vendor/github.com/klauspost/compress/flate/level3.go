@@ -1,5 +1,7 @@
 package flate
 
+import "fmt"
+
 // fastEncL3
 type fastEncL3 struct {
 	fastGen
@@ -12,6 +14,10 @@ func (e *fastEncL3) Encode(dst *tokens, src []byte) {
 		inputMargin            = 8 - 1
 		minNonLiteralBlockSize = 1 + 1 + inputMargin
 	)
+
+	if debugDecode && e.cur < 0 {
+		panic(fmt.Sprint("e.cur < 0: ", e.cur))
+	}
 
 	// Protect against e.cur wraparound.
 	for e.cur >= bufferReset {

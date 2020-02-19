@@ -54,19 +54,19 @@ sources := $(wildcard *.go cmd/containers-storage/*.go drivers/*.go drivers/*/*.
 containers-storage: $(sources) ## build using gc on the host
 	$(GO_BUILD) -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
-layers_ffjson.go: layers.go
+layers_ffjson.go: $(FFJSON) layers.go
 	$(RM) $@
 	$(FFJSON) layers.go
 
-images_ffjson.go: images.go
+images_ffjson.go: $(FFJSON) images.go
 	$(RM) $@
 	$(FFJSON) images.go
 
-containers_ffjson.go: containers.go
+containers_ffjson.go: $(FFJSON) containers.go
 	$(RM) $@
 	$(FFJSON) containers.go
 
-pkg/archive/archive_ffjson.go: pkg/archive/archive.go
+pkg/archive/archive_ffjson.go: $(FFJSON) pkg/archive/archive.go
 	$(RM) $@
 	$(FFJSON) pkg/archive/archive.go
 
@@ -117,6 +117,9 @@ validate: ## validate DCO, gofmt, ./pkg/ isolation, golint,\ngo vet and vendor u
 
 install.tools:
 	make -C tests/tools
+
+$(FFJSON):
+	make -C tests/tools build/ffjson
 
 install.docs: docs
 	make -C docs install

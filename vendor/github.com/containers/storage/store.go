@@ -20,6 +20,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/parsers"
@@ -3275,9 +3276,9 @@ const defaultConfigFile = "/etc/containers/storage.conf"
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
 	if rootless {
-		home, err := homeDir()
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot determine users homedir")
+		home := homedir.Get()
+		if home == "" {
+			return "", errors.New("cannot determine user's homedir")
 		}
 		return filepath.Join(home, ".config/containers/storage.conf"), nil
 	}

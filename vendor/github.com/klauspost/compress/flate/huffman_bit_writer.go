@@ -177,6 +177,11 @@ func (w *huffmanBitWriter) flush() {
 		w.nbits = 0
 		return
 	}
+	if w.lastHeader > 0 {
+		// We owe an EOB
+		w.writeCode(w.literalEncoding.codes[endBlockMarker])
+		w.lastHeader = 0
+	}
 	n := w.nbytes
 	for w.nbits != 0 {
 		w.bytes[n] = byte(w.bits)
@@ -594,8 +599,8 @@ func (w *huffmanBitWriter) writeBlockDynamic(tokens *tokens, eof bool, input []b
 		tokens.AddEOB()
 	}
 
-	// We cannot reuse pure huffman table.
-	if w.lastHuffMan && w.lastHeader > 0 {
+	// We cannot reuse pure huffman table, and must mark as EOF.
+	if (w.lastHuffMan || eof) && w.lastHeader > 0 {
 		// We will not try to reuse.
 		w.writeCode(w.literalEncoding.codes[endBlockMarker])
 		w.lastHeader = 0
