@@ -8,7 +8,9 @@ import (
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/pkg/registries"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -51,10 +53,16 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments, logout takes at most 1 argument")
 	}
-	if len(args) == 0 && !c.All {
-		return errors.Errorf("registry must be given")
-	}
 	var server string
+	if len(args) == 0 && !c.All {
+		registriesFromFile, err := registries.GetRegistries()
+		if err != nil || len(registriesFromFile) == 0 {
+			return errors.Errorf("no registries found in registries.conf, a registry must be provided")
+		}
+
+		server = registriesFromFile[0]
+		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
+	}
 	if len(args) == 1 {
 		server = scrubServer(args[0])
 	}

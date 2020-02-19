@@ -12,6 +12,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/registries"
 	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -67,10 +68,19 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments, login takes only 1 argument")
 	}
+	var server string
 	if len(args) == 0 {
-		return errors.Errorf("please specify a registry to login to")
+		registriesFromFile, err := registries.GetRegistries()
+		if err != nil || len(registriesFromFile) == 0 {
+			return errors.Errorf("please specify a registry to login to")
+		}
+
+		server = registriesFromFile[0]
+		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
+
+	} else {
+		server = registryFromFullName(scrubServer(args[0]))
 	}
-	server := registryFromFullName(scrubServer(args[0]))
 
 	sc := image.GetSystemContext("", c.Authfile, false)
 	if c.Flag("tls-verify").Changed {
