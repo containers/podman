@@ -119,7 +119,7 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, found := r.URL.Query()["filters"]; found {
+	if len(query.Filters) > 0 {
 		utils.Error(w, "filters are not implemented yet", http.StatusInternalServerError, define.ErrNotImplemented)
 		return
 	}
