@@ -82,6 +82,10 @@ func loginCmd(c *cliconfig.LoginValues) error {
 		server = registryFromFullName(scrubServer(args[0]))
 	}
 
+	if c.Flag("password").Changed {
+		fmt.Fprintf(os.Stderr, "WARNING! Using --password via the cli is insecure. Please consider using --password-stdin\n")
+	}
+
 	sc := image.GetSystemContext("", c.Authfile, false)
 	if c.Flag("tls-verify").Changed {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
