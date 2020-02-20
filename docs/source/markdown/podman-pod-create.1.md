@@ -15,50 +15,82 @@ containers added to it. The pod id is printed to STDOUT. You can then use
 
 ## OPTIONS
 
+**--add-host**=_host_:_ip_
+
+Add a host to the /etc/hosts file shared between all containers in the pod.
+
 **--cgroup-parent**=*path*
 
 Path to cgroups under which the cgroup for the pod will be created. If the path is not absolute, the path is considered to be relative to the cgroups path of the init process. Cgroups will be created if they do not already exist.
 
+**--dns**=*ipaddr*
+
+Set custom DNS servers in the /etc/resolv.conf file that will be shared between all containers in the pod. A special option, "none" is allowed which disables creation of /etc/resolv.conf for the pod.
+
+**--dns-opt**=*option*
+
+Set custom DNS options in the /etc/resolv.conf file that will be shared between all containers in the pod.
+
+**--dns-search**=*domain*
+
+Set custom DNS search domains in the /etc/resolv.conf file that will be shared between all containers in the pod.
+
 **--help**
 
-Print usage statement
+Print usage statement.
 
-**--infra**
+**--infra**=**true**|**false**
 
-Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true
+Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
 
 **--infra-command**=*command*
 
-The command that will be run to start the infra container. Default: "/pause"
+The command that will be run to start the infra container. Default: "/pause".
 
 **--infra-image**=*image*
 
-The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1"
+The image that will be created for the infra container. Default: "k8s.gcr.io/pause:3.1".
+
+**--ip**=*ipaddr*
+
+Set a static IP for the pod's shared network.
 
 **-l**, **--label**=*label*
 
-Add metadata to a pod (e.g., --label com.example.key=value)
+Add metadata to a pod (e.g., --label com.example.key=value).
 
 **--label-file**=*label*
 
-Read in a line delimited file of labels
+Read in a line delimited file of labels.
+
+**--mac-address**=*address*
+
+Set a static MAC address for the pod's shared network.
 
 **-n**, **--name**=*name*
 
-Assign a name to the pod
+Assign a name to the pod.
+
+**--network**=*mode*
+
+Set network mode for the pod. Supported values are *bridge* (the default), *host* (do not create a network namespace, all containers in the pod will use the host's network), or a comma-separated list of the names of CNI networks the pod should join.
+
+**--no-hosts**=**true**|**false**
+
+Disable creation of /etc/hosts for the pod.
 
 **--podidfile**=*podid*
 
-Write the pod ID to the file
+Write the pod ID to the file.
 
 **-p**, **--publish**=*port*
 
-Publish a port or range of ports from the pod to the host
+Publish a port or range of ports from the pod to the host.
 
 Format: `ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort`
 Both hostPort and containerPort can be specified as a range of ports.
 When specifying ranges for both, the number of container ports in the range must match the number of host ports in the range.
-Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`
+Use `podman port` to see the actual mapping: `podman port CONTAINER $CONTAINERPORT`.
 
 NOTE: This cannot be modified once the pod is created.
 

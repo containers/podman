@@ -16,6 +16,14 @@ import (
 // CreatePod ...
 func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
 	var options []libpod.PodCreateOption
+	if create.Infra {
+		options = append(options, libpod.WithInfraContainer())
+		nsOptions, err := shared.GetNamespaceOptions(create.Share)
+		if err != nil {
+			return err
+		}
+		options = append(options, nsOptions...)
+	}
 	if create.CgroupParent != "" {
 		options = append(options, libpod.WithPodCgroupParent(create.CgroupParent))
 	}
@@ -42,14 +50,6 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 		}
 		options = append(options, libpod.WithInfraContainerPorts(portBindings))
 
-	}
-	if create.Infra {
-		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(create.Share)
-		if err != nil {
-			return err
-		}
-		options = append(options, nsOptions...)
 	}
 	options = append(options, libpod.WithPodCgroups())
 

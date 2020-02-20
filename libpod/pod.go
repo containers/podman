@@ -99,6 +99,7 @@ type PodContainerInfo struct {
 // InfraContainerConfig is the configuration for the pod's infra container
 type InfraContainerConfig struct {
 	HasInfraContainer  bool                 `json:"makeInfraContainer"`
+	HostNetwork        bool                 `json:"infraHostNetwork,omitempty"`
 	PortBindings       []ocicni.PortMapping `json:"infraPortBindings"`
 	StaticIP           net.IP               `json:"staticIP,omitempty"`
 	StaticMAC          net.HardwareAddr     `json:"staticMAC,omitempty"`

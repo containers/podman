@@ -2897,13 +2897,21 @@ _podman_image_exists() {
 
 _podman_pod_create() {
   local options_with_args="
+      --add-host
       --cgroup-parent
+      --dns
+      --dns-opt
+      --dns-search
       --infra-command
       --infra-image
+      --ip
       --label-file
       --label
       -l
+      --mac-address
       --name
+      --network
+      --no-hosts
       --podidfile
       --publish
       -p

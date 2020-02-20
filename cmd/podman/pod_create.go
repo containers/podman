@@ -45,19 +45,7 @@ func init() {
 	podCreateCommand.SetUsageTemplate(UsageTemplate())
 	flags := podCreateCommand.Flags()
 	flags.SetInterspersed(false)
-	// When we are ready to add the network options to the create commmand, we need to uncomment
-	// the following
-
-	//flags.AddFlagSet(getNetFlags())
-
-	// Once this is uncommented, then the publish option below needs to be removed because it
-	// conflicts with the publish in getNetFlags.  Upon removal, the c.Publish will not work
-	// anymore and needs to be cleaned up. I suggest starting with removing the Publish attribute
-	// from PodCreateValues structure. Running make should then expose all areas that need to be
-	// addressed.  To get the value of publish (and other flags in getNetFlags, use the syntax:
-	// c.<type>("<flag_name") or c.Bool("publish")
-	// Remember to do this safely by checking len, etc.
-
+	flags.AddFlagSet(getNetFlags())
 	flags.StringVar(&podCreateCommand.CgroupParent, "cgroup-parent", "", "Set parent cgroup for the pod")
 	flags.BoolVar(&podCreateCommand.Infra, "infra", true, "Create an infra container associated with the pod to share namespaces with")
 	flags.StringVar(&podCreateCommand.InfraImage, "infra-image", define.DefaultInfraImage, "The image of the infra container to associate with the pod")
@@ -67,7 +55,6 @@ func init() {
 	flags.StringVarP(&podCreateCommand.Name, "name", "n", "", "Assign a name to the pod")
 	flags.StringVarP(&podCreateCommand.Hostname, "hostname", "", "", "Set a hostname to the pod")
 	flags.StringVar(&podCreateCommand.PodIDFile, "pod-id-file", "", "Write the pod ID to the file")
-	flags.StringSliceVarP(&podCreateCommand.Publish, "publish", "p", []string{}, "Publish a container's port, or a range of ports, to the host (default [])")
 	flags.StringVar(&podCreateCommand.Share, "share", shared.DefaultKernelNamespaces, "A comma delimited list of kernel namespaces the pod will share")
 
 }
@@ -83,7 +70,7 @@ func podCreateCmd(c *cliconfig.PodCreateValues) error {
 	}
 	defer runtime.DeferredShutdown(false)
 
-	if len(c.Publish) > 0 {
+	if len(c.StringSlice("publish")) > 0 {
 		if !c.Infra {
 			return errors.Errorf("you must have an infra container to publish port bindings to the host")
 		}
