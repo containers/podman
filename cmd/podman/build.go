@@ -84,7 +84,10 @@ func init() {
 	}
 
 	flag.DefValue = "true"
-	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+	fromAndBugFlags, err := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+	if err != nil {
+		logrus.Errorf("failed to setup podman build flags: %v", err)
+	}
 
 	flags.AddFlagSet(&budFlags)
 	flags.AddFlagSet(&fromAndBugFlags)

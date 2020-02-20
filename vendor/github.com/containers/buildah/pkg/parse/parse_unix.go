@@ -3,7 +3,6 @@
 package parse
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -11,20 +10,7 @@ import (
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	"github.com/pkg/errors"
-	"golang.org/x/sys/unix"
 )
-
-func getDefaultProcessLimits() []string {
-	rlim := unix.Rlimit{Cur: 1048576, Max: 1048576}
-	defaultLimits := []string{}
-	if err := unix.Setrlimit(unix.RLIMIT_NOFILE, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nofile=%d:%d", rlim.Cur, rlim.Max))
-	}
-	if err := unix.Setrlimit(unix.RLIMIT_NPROC, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", rlim.Cur, rlim.Max))
-	}
-	return defaultLimits
-}
 
 func DeviceFromPath(device string) ([]configs.Device, error) {
 	var devs []configs.Device
@@ -32,8 +18,8 @@ func DeviceFromPath(device string) ([]configs.Device, error) {
 	if err != nil {
 		return nil, err
 	}
-	if unshare.IsRootless() {
-		return nil, errors.Errorf("Renaming device %s to %s is not a supported in rootless containers", src, dst)
+	if unshare.IsRootless() && src != dst {
+		return nil, errors.Errorf("Renaming device %s to %s is not supported in rootless containers", src, dst)
 	}
 	srcInfo, err := os.Stat(src)
 	if err != nil {

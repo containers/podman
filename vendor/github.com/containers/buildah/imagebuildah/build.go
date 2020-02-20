@@ -13,11 +13,11 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/opencontainers/runc/libcontainer/configs"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/pkg/errors"
@@ -66,7 +66,7 @@ type BuildOptions struct {
 	// RuntimeArgs adds global arguments for the runtime.
 	RuntimeArgs []string
 	// TransientMounts is a list of mounts that won't be kept in the image.
-	TransientMounts []Mount
+	TransientMounts []string
 	// Compression specifies the type of compression which is applied to
 	// layer blobs.  The default is to not use compression, but
 	// archive.Gzip is recommended.
@@ -156,10 +156,16 @@ type BuildOptions struct {
 	ForceRmIntermediateCtrs bool
 	// BlobDirectory is a directory which we'll use for caching layer blobs.
 	BlobDirectory string
-	// Target the targeted FROM in the Dockerfile to build
+	// Target the targeted FROM in the Dockerfile to build.
 	Target string
-	// Devices are the additional devices to add to the containers
-	Devices []configs.Device
+	// Devices are the additional devices to add to the containers.
+	Devices []string
+	// SignBy is the fingerprint of a GPG key to use for signing images.
+	SignBy string
+	// Architecture specifies the target architecture of the image to be built.
+	Architecture string
+	// OS is the specifies the operating system of the image to be built.
+	OS string
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be
@@ -250,6 +256,11 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options BuildOpt
 		return "", nil, errors.Wrapf(err, "error creating build executor")
 	}
 	b := imagebuilder.NewBuilder(options.Args)
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		return "", nil, errors.Wrapf(err, "failed to get container config")
+	}
+	b.Env = append(defaultContainerConfig.GetDefaultEnv(), b.Env...)
 	stages, err := imagebuilder.NewStages(mainNode, b)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "error reading multiple stages")

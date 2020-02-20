@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
@@ -51,8 +52,6 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		err         error
 	)
 
-	defaultLimits := getDefaultProcessLimits()
-
 	memVal, _ := c.Flags().GetString("memory")
 	if memVal != "" {
 		memoryLimit, err = units.RAMInBytes(memVal)
@@ -79,24 +78,33 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	}
 
 	noDNS = false
-	dnsServers, _ := c.Flags().GetStringSlice("dns")
-	for _, server := range dnsServers {
-		if strings.ToLower(server) == "none" {
-			noDNS = true
+	dnsServers := []string{}
+	if c.Flag("dns").Changed {
+		dnsServers, _ = c.Flags().GetStringSlice("dns")
+		for _, server := range dnsServers {
+			if strings.ToLower(server) == "none" {
+				noDNS = true
+			}
+		}
+		if noDNS && len(dnsServers) > 1 {
+			return nil, errors.Errorf("invalid --dns, --dns=none may not be used with any other --dns options")
 		}
 	}
-	if noDNS && len(dnsServers) > 1 {
-		return nil, errors.Errorf("invalid --dns, --dns=none may not be used with any other --dns options")
+
+	dnsSearch := []string{}
+	if c.Flag("dns-search").Changed {
+		dnsSearch, _ = c.Flags().GetStringSlice("dns-search")
+		if noDNS && len(dnsSearch) > 0 {
+			return nil, errors.Errorf("invalid --dns-search, --dns-search may not be used with --dns=none")
+		}
 	}
 
-	dnsSearch, _ := c.Flags().GetStringSlice("dns-search")
-	if noDNS && len(dnsSearch) > 0 {
-		return nil, errors.Errorf("invalid --dns-search, --dns-search may not be used with --dns=none")
-	}
-
-	dnsOptions, _ := c.Flags().GetStringSlice("dns-option")
-	if noDNS && len(dnsOptions) > 0 {
-		return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
+	dnsOptions := []string{}
+	if c.Flag("dns-search").Changed {
+		dnsOptions, _ = c.Flags().GetStringSlice("dns-option")
+		if noDNS && len(dnsOptions) > 0 {
+			return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
+		}
 	}
 
 	if _, err := units.FromHumanSize(c.Flag("shm-size").Value.String()); err != nil {
@@ -110,7 +118,12 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	cpuQuota, _ := c.Flags().GetInt64("cpu-quota")
 	cpuShares, _ := c.Flags().GetUint64("cpu-shares")
 	httpProxy, _ := c.Flags().GetBool("http-proxy")
-	ulimit, _ := c.Flags().GetStringSlice("ulimit")
+
+	ulimit := []string{}
+	if c.Flag("ulimit").Changed {
+		ulimit, _ = c.Flags().GetStringSlice("ulimit")
+	}
+
 	commonOpts := &buildah.CommonBuildOptions{
 		AddHost:      addHost,
 		CgroupParent: c.Flag("cgroup-parent").Value.String(),
@@ -126,7 +139,7 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
 		ShmSize:      c.Flag("shm-size").Value.String(),
-		Ulimit:       append(defaultLimits, ulimit...),
+		Ulimit:       ulimit,
 		Volumes:      volumes,
 	}
 	securityOpts, _ := c.Flags().GetStringArray("security-opt")
@@ -600,6 +613,46 @@ func getAuthFile(authfile string) string {
 	return os.Getenv("REGISTRY_AUTH_FILE")
 }
 
+// PlatformFromOptions parses the operating system (os) and architecture (arch)
+// from the provided command line options.
+func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
+	os = runtime.GOOS
+	arch = runtime.GOARCH
+
+	if selectedOS, err := c.Flags().GetString("os"); err == nil && selectedOS != runtime.GOOS {
+		os = selectedOS
+	}
+	if selectedArch, err := c.Flags().GetString("arch"); err == nil && selectedArch != runtime.GOARCH {
+		arch = selectedArch
+	}
+
+	if pf, err := c.Flags().GetString("platform"); err == nil && pf != DefaultPlatform() {
+		selectedOS, selectedArch, err := parsePlatform(pf)
+		if err != nil {
+			return "", "", errors.Wrap(err, "unable to parse platform")
+		}
+		arch = selectedArch
+		os = selectedOS
+	}
+
+	return os, arch, nil
+}
+
+const platformSep = "/"
+
+// DefaultPlatform returns the standard platform for the current system
+func DefaultPlatform() string {
+	return runtime.GOOS + platformSep + runtime.GOARCH
+}
+
+func parsePlatform(platform string) (os, arch string, err error) {
+	split := strings.Split(platform, platformSep)
+	if len(split) != 2 {
+		return "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)
+	}
+	return split[0], split[1], nil
+}
+
 func parseCreds(creds string) (string, string) {
 	if creds == "" {
 		return "", ""
@@ -858,8 +911,7 @@ func defaultIsolation() (buildah.Isolation, error) {
 }
 
 // IsolationOption parses the --isolation flag.
-func IsolationOption(c *cobra.Command) (buildah.Isolation, error) {
-	isolation, _ := c.Flags().GetString("isolation")
+func IsolationOption(isolation string) (buildah.Isolation, error) {
 	if isolation != "" {
 		switch strings.ToLower(isolation) {
 		case "oci":
