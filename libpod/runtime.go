@@ -16,6 +16,7 @@ import (
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/pkg/firewall"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
@@ -43,6 +44,7 @@ type Runtime struct {
 	netPlugin         ocicni.CNIPlugin
 	conmonPath        string
 	imageRuntime      *image.Runtime
+	firewallBackend   firewall.FirewallBackend
 	lockManager       lock.Manager
 
 	// doRenumber indicates that the runtime should perform a lock renumber
@@ -446,6 +448,17 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (err error) {
 		}
 		runtime.netPlugin = netPlugin
 	}
+
+	// Set up a firewall backend
+	backendType := ""
+	if rootless.IsRootless() {
+		backendType = "none"
+	}
+	fwBackend, err := firewall.GetBackend(backendType)
+	if err != nil {
+		return err
+	}
+	runtime.firewallBackend = fwBackend
 
 	// We now need to see if the system has restarted
 	// We check for the presence of a file in our tmp directory to verify this

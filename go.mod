@@ -14,6 +14,7 @@ require (
 	github.com/containers/image/v5 v5.0.1-0.20200205124631-82291c45f2b0
 	github.com/containers/psgo v1.3.2
 	github.com/containers/storage v1.13.6
+	github.com/coreos/go-iptables v0.4.2
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/cri-o/ocicni v0.1.1-0.20190702175919-7762645d18ca
