@@ -12,13 +12,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/netns"
 	"github.com/containers/libpod/pkg/rootless"
@@ -556,37 +556,105 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) getContainerNetworkInfo(data *InspectContainerData) *InspectContainerData {
-	if c.state.NetNS != nil && len(c.state.NetworkStatus) > 0 {
-		// Report network settings from the first pod network
-		result := c.state.NetworkStatus[0]
-		// Go through our IP addresses
-		for _, ctrIP := range result.IPs {
-			ipWithMask := ctrIP.Address.String()
-			splitIP := strings.Split(ipWithMask, "/")
-			mask, _ := strconv.Atoi(splitIP[1])
-			if ctrIP.Version == "4" {
-				data.NetworkSettings.IPAddress = splitIP[0]
-				data.NetworkSettings.IPPrefixLen = mask
-				data.NetworkSettings.Gateway = ctrIP.Gateway.String()
-			} else {
-				data.NetworkSettings.GlobalIPv6Address = splitIP[0]
-				data.NetworkSettings.GlobalIPv6PrefixLen = mask
-				data.NetworkSettings.IPv6Gateway = ctrIP.Gateway.String()
-			}
+// Produce an InspectNetworkSettings containing information on the container
+// network.
+func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
+	settings := new(InspectNetworkSettings)
+	settings.Ports = []ocicni.PortMapping{}
+	if c.config.PortMappings != nil {
+		// TODO: This may not be safe.
+		settings.Ports = c.config.PortMappings
+	}
+
+	// We can't do more if the network is down.
+	if c.state.NetNS == nil {
+		return settings, nil
+	}
+
+	// Set network namespace path
+	settings.SandboxKey = c.state.NetNS.Path()
+
+	// If this is empty, we're probably slirp4netns
+	if len(c.state.NetworkStatus) == 0 {
+		return settings, nil
+	}
+
+	// If we have CNI networks - handle that here
+	if len(c.config.Networks) > 0 {
+		if len(c.config.Networks) != len(c.state.NetworkStatus) {
+			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(c.config.Networks), len(c.state.NetworkStatus))
 		}
 
-		// Set network namespace path
-		data.NetworkSettings.SandboxKey = c.state.NetNS.Path()
+		settings.Networks = make(map[string]*InspectAdditionalNetwork)
 
-		// Set MAC address of interface linked with network namespace path
-		for _, i := range result.Interfaces {
-			if i.Sandbox == data.NetworkSettings.SandboxKey {
-				data.NetworkSettings.MacAddress = i.Mac
+		// CNI results should be in the same order as the list of
+		// networks we pass into CNI.
+		for index, name := range c.config.Networks {
+			cniResult := c.state.NetworkStatus[index]
+			addedNet := new(InspectAdditionalNetwork)
+			addedNet.NetworkID = name
+
+			basicConfig, err := resultToBasicNetworkConfig(cniResult)
+			if err != nil {
+				return nil, err
 			}
+			addedNet.InspectBasicNetworkConfig = basicConfig
+
+			settings.Networks[name] = addedNet
+		}
+
+		return settings, nil
+	}
+
+	// If not joining networks, we should have at most 1 result
+	if len(c.state.NetworkStatus) > 1 {
+		return nil, errors.Wrapf(define.ErrInternal, "should have at most 1 CNI result if not joining networks, instead got %d", len(c.state.NetworkStatus))
+	}
+
+	if len(c.state.NetworkStatus) == 1 {
+		basicConfig, err := resultToBasicNetworkConfig(c.state.NetworkStatus[0])
+		if err != nil {
+			return nil, err
+		}
+
+		settings.InspectBasicNetworkConfig = basicConfig
+	}
+
+	return settings, nil
+}
+
+// resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
+// result
+func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkConfig, error) {
+	config := InspectBasicNetworkConfig{}
+
+	for _, ctrIP := range result.IPs {
+		size, _ := ctrIP.Address.Mask.Size()
+		switch {
+		case ctrIP.Version == "4" && config.IPAddress == "":
+			config.IPAddress = ctrIP.Address.IP.String()
+			config.IPPrefixLen = size
+			config.Gateway = ctrIP.Gateway.String()
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+				config.MacAddress = result.Interfaces[*ctrIP.Interface].Mac
+			}
+		case ctrIP.Version == "4" && config.IPAddress != "":
+			config.SecondaryIPAddresses = append(config.SecondaryIPAddresses, ctrIP.Address.String())
+			if ctrIP.Interface != nil && *ctrIP.Interface < len(result.Interfaces) && *ctrIP.Interface > 0 {
+				config.AdditionalMacAddresses = append(config.AdditionalMacAddresses, result.Interfaces[*ctrIP.Interface].Mac)
+			}
+		case ctrIP.Version == "6" && config.IPAddress == "":
+			config.GlobalIPv6Address = ctrIP.Address.IP.String()
+			config.GlobalIPv6PrefixLen = size
+			config.IPv6Gateway = ctrIP.Gateway.String()
+		case ctrIP.Version == "6" && config.IPAddress != "":
+			config.SecondaryIPv6Addresses = append(config.SecondaryIPv6Addresses, ctrIP.Address.String())
+		default:
+			return config, errors.Wrapf(define.ErrInternal, "unrecognized IP version %q", ctrIP.Version)
 		}
 	}
-	return data
+
+	return config, nil
 }
 
 type logrusDebugWriter struct {
