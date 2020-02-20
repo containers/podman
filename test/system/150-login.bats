@@ -108,8 +108,8 @@ function setup() {
 @test "podman login - basic test" {
     run_podman login --tls-verify=false \
                --username ${PODMAN_LOGIN_USER} \
-               --password ${PODMAN_LOGIN_PASS} \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+               --password-stdin \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
     is "$output" "Login Succeeded!" "output from podman login"
 
     # Now log out
@@ -123,8 +123,8 @@ function setup() {
 
     run_podman 125 login --tls-verify=false \
                --username ${PODMAN_LOGIN_USER} \
-               --password "x${PODMAN_LOGIN_PASS}" \
-               $registry
+               --password-stdin \
+               $registry <<< "x${PODMAN_LOGIN_PASS}"
     is "$output" \
        "Error: error logging into \"$registry\": invalid username/password" \
        'output from podman login'
