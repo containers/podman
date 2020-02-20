@@ -52,6 +52,11 @@ case "$SPECIALMODE" in
         make test-binaries
         make endpoint
         ;;
+    bindings)
+	make
+        make install PREFIX=/usr ETCDIR=/etc
+	cd pkg/bindings/test && ginkgo -r
+	;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc

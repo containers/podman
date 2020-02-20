@@ -25,7 +25,7 @@ func (a APIResponse) Process(unmarshalInto interface{}) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to process API response")
 	}
-	if a.IsSuccess() {
+	if a.IsSuccess() || a.IsRedirection() {
 		if unmarshalInto != nil {
 			return json.Unmarshal(data, unmarshalInto)
 		}
