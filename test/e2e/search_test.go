@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"text/template"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -165,8 +166,16 @@ registries = ['{{.Host}}:{{.Port}}']`
 	})
 
 	It("podman search v2 registry with empty query", func() {
-		search := podmanTest.Podman([]string{"search", "registry.fedoraproject.org/"})
-		search.WaitWithDefaultTimeout()
+		var search *PodmanSessionIntegration
+		for i := 0; i < 5; i++ {
+			search = podmanTest.Podman([]string{"search", "registry.fedoraproject.org/"})
+			search.WaitWithDefaultTimeout()
+			if search.ExitCode() == 0 {
+				break
+			}
+			fmt.Println("Search failed; sleeping & retrying...")
+			time.Sleep(2 * time.Second)
+		}
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(len(search.OutputToStringArray())).To(BeNumerically(">=", 1))
 	})
