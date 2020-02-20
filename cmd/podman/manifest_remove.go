@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/containers/buildah/manifests"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -61,15 +61,14 @@ func manifestRemoveCmd(c *cliconfig.ManifestRemoveValues) error {
 		return errors.New("At least two arguments are necessary: list and digest of instance to remove from list")
 	}
 
-	store, err := getStore(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 
-	systemContext, err := parse.SystemContextFromOptions(c.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
+	store := runtime.GetStore()
+	systemContext := runtime.SystemContext()
 
 	_, listImage, err := util.FindImage(store, "", systemContext, listImageSpec)
 	if err != nil {

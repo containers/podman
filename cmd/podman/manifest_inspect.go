@@ -5,12 +5,12 @@ import (
 	encjson "encoding/json"
 	"fmt"
 
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -40,7 +40,7 @@ func init() {
 }
 
 func manifestInspectCmd(c *cliconfig.ManifestInspectValues) error {
-	imageSpec := ""
+	var imageSpec string
 	args := c.InputArgs
 	switch len(args) {
 	case 0:
@@ -54,16 +54,14 @@ func manifestInspectCmd(c *cliconfig.ManifestInspectValues) error {
 		return errors.New("Only one argument is necessary for inspect: an image name")
 	}
 
-	store, err := getStore(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 
-	systemContext, err := parse.SystemContextFromOptions(c.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-
+	store := runtime.GetStore()
+	systemContext := runtime.SystemContext()
 	ref, _, err := util.FindImage(store, "", systemContext, imageSpec)
 	if err != nil {
 		if ref, err = alltransports.ParseImageName(imageSpec); err != nil {

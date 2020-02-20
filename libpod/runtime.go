@@ -775,3 +775,8 @@ func (r *Runtime) SystemContext() *types.SystemContext {
 func (r *Runtime) GetOCIRuntimePath() string {
 	return r.defaultOCIRuntime.Path()
 }
+
+// GetStore returns the storage Store.
+func (r *Runtime) GetStore() storage.Store {
+	return r.store
+}

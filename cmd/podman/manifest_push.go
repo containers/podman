@@ -7,12 +7,14 @@ import (
 
 	"github.com/containers/buildah/manifests"
 	buildahcli "github.com/containers/buildah/pkg/cli"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
+
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
+
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -84,15 +86,14 @@ func manifestPushCmd(c *cliconfig.ManifestPushValues) error {
 		return errors.New("Only two arguments are necessary to push: source and destination")
 	}
 
-	store, err := getStore(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 
-	systemContext, err := parse.SystemContextFromOptions(c.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
+	store := runtime.GetStore()
+	systemContext := runtime.SystemContext()
 
 	_, listImage, err := util.FindImage(store, "", systemContext, listImageSpec)
 	if err != nil {
@@ -128,8 +129,8 @@ func manifestPushCmd(c *cliconfig.ManifestPushValues) error {
 		SystemContext:      systemContext,
 		ImageListSelection: cp.CopySpecificImages,
 		Instances:          nil,
-		RemoveSignatures:   opts.removeSignatures,
-		SignBy:             opts.signBy,
+		RemoveSignatures:   c.RemoveSignatures,
+		SignBy:             c.SignBy,
 		ManifestType:       manifestType,
 	}
 	if c.All {

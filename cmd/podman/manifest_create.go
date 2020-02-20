@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/containers/buildah/manifests"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -50,25 +50,21 @@ func init() {
 }
 
 func manifestCreateCmd(c *cliconfig.ManifestCreateValues) error {
-	args := c.InputArgs
-	if len(args) == 0 {
+	if len(c.InputArgs) == 0 {
 		return errors.Errorf("At least a name must be specified for the list")
 	}
 
-	listImageSpec := args[0]
-	imageSpecs := args[1:]
-
-	store, err := getStore(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 
-	systemContext, err := parse.SystemContextFromOptions(c.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
-
+	store := runtime.GetStore()
+	systemContext := runtime.SystemContext()
 	list := manifests.Create()
+	listImageSpec := c.InputArgs[0]
+	imageSpecs := c.InputArgs[1:]
 
 	names, err := util.ExpandNames([]string{listImageSpec}, "", systemContext, store)
 	if err != nil {
@@ -91,5 +87,6 @@ func manifestCreateCmd(c *cliconfig.ManifestCreateValues) error {
 	if err == nil {
 		fmt.Printf("%s\n", imageID)
 	}
-	return err
+
+	return nil
 }

@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/manifests"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -19,7 +19,7 @@ var (
 	manifestAnnotateDescription = `adds or updates information about an entry in a manifest list or image index`
 	_manifestAnnotateCommand    = &cobra.Command{
 		Use:   "annotate [flags] [manifest] [tags]",
-		Short: "Add or update information about an entry in a manifest list or image index",
+		Short: "manifest annotate",
 		Long:  manifestAnnotateDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			manifestAnnotateCommand.InputArgs = args
@@ -71,15 +71,14 @@ func manifestAnnotateCmd(c *cliconfig.ManifestAnnotateValues) error {
 		return errors.New("At least two arguments are necessary: list and image to add to list")
 	}
 
-	store, err := getStore(c)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 
-	systemContext, err := parse.SystemContextFromOptions(c.Command)
-	if err != nil {
-		return errors.Wrapf(err, "error building system context")
-	}
+	store := runtime.GetStore()
+	systemContext := runtime.SystemContext()
 
 	_, listImage, err := util.FindImage(store, "", systemContext, listImageSpec)
 	if err != nil {
