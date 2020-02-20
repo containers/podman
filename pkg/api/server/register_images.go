@@ -822,7 +822,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//      $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/search"), s.APIHandler(handlers.SearchImages)).Methods(http.MethodGet)
-	// swagger:operation DELETE /libpod/images/{name} libpod libpodRemoveImage
+	// swagger:operation DELETE /libpod/images/{name:.*} libpod libpodRemoveImage
 	// ---
 	// tags:
 	//  - images
@@ -830,7 +830,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// description: Delete an image from local store
 	// parameters:
 	//  - in: path
-	//    name: name
+	//    name: name:.*
 	//    type: string
 	//    required: true
 	//    description: name or ID of image to delete
