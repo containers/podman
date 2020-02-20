@@ -13,7 +13,7 @@ import (
 
 func CreateWithSpec(ctx context.Context, s specgen.SpecGenerator) (utils.ContainerCreateResponse, error) {
 	var ccr utils.ContainerCreateResponse
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return ccr, err
 	}

@@ -16,7 +16,7 @@ func CreatePod() error {
 
 // Exists is a lightweight method to determine if a pod exists in local storage
 func Exists(ctx context.Context, nameOrID string) (bool, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -29,7 +29,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 
 // Inspect returns low-level information about the given pod.
 func Inspect(ctx context.Context, nameOrID string) (*libpod.PodInspect, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func Inspect(ctx context.Context, nameOrID string) (*libpod.PodInspect, error) {
 // Kill sends a SIGTERM to all the containers in a pod.  The optional signal parameter
 // can be used to override  SIGTERM.
 func Kill(ctx context.Context, nameOrID string, signal *string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -61,7 +61,7 @@ func Kill(ctx context.Context, nameOrID string, signal *string) error {
 
 // Pause pauses all running containers in a given pod.
 func Pause(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -74,7 +74,7 @@ func Pause(ctx context.Context, nameOrID string) error {
 
 // Prune removes all non-running pods in local storage.
 func Prune(ctx context.Context) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -91,7 +91,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*libpod.PodInspec
 	var (
 		inspect []*libpod.PodInspect
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func List(ctx context.Context, filters map[string][]string) ([]*libpod.PodInspec
 
 // Restart restarts all containers in a pod.
 func Restart(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func Restart(ctx context.Context, nameOrID string) error {
 // Remove deletes a Pod from from local storage. The optional force parameter denotes
 // that the Pod can be removed even if in a running state.
 func Remove(ctx context.Context, nameOrID string, force *bool) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) error {
 
 // Start starts all containers in a pod.
 func Start(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -162,7 +162,7 @@ func Stats() error {
 // Stop stops all containers in a Pod. The optional timeout parameter can be
 // used to override the timeout before the container is killed.
 func Stop(ctx context.Context, nameOrID string, timeout *int) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -184,7 +184,7 @@ func Top() error {
 
 // Unpause unpauses all paused containers in a Pod.
 func Unpause(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}

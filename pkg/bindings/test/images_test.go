@@ -38,7 +38,7 @@ var _ = Describe("Podman images", func() {
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
-		connText, err = bindings.NewConnection(bt.sock)
+		connText, err = bindings.NewConnection(context.Background(), bt.sock)
 		Expect(err).To(BeNil())
 	})
 

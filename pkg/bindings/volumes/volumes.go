@@ -16,7 +16,7 @@ func Create(ctx context.Context, config handlers.VolumeCreateConfig) (string, er
 	var (
 		volumeID string
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -32,7 +32,7 @@ func Inspect(ctx context.Context, nameOrID string) (*libpod.InspectVolumeData, e
 	var (
 		inspect libpod.InspectVolumeData
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func Prune(ctx context.Context) ([]string, error) {
 	var (
 		pruned []string
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func Prune(ctx context.Context) ([]string, error) {
 // Remove deletes the given volume from storage. The optional force parameter
 // is used to remove a volume even if it is being used by a container.
 func Remove(ctx context.Context, nameOrID string, force *bool) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}

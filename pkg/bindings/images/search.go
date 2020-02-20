@@ -16,7 +16,7 @@ func Search(ctx context.Context, term string, limit *int, filters map[string][]s
 	var (
 		searchResults []image.SearchResult
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 // RunHealthCheck executes the container's healthcheck and returns the health status of the
 // container.
 func RunHealthCheck(ctx context.Context, nameOrID string) (*libpod.HealthCheckStatus, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}

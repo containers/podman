@@ -16,7 +16,7 @@ import (
 // size information should also be included.  Finally, the sync bool synchronizes the OCI runtime and
 // container state.
 func List(ctx context.Context, filters map[string][]string, all *bool, last *int, pod, size, sync *bool) ([]lpapiv2.ListContainer, error) { // nolint:typecheck
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +59,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	var (
 		pruneResponse []string
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 // that the container should be removed forcibly (example, even it is running).  The volumes
 // bool dictates that a container's volumes should also be removed.
 func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
 // should be calculated.  Calculating the size of a container requires extra work from the filesystem and
 // is therefore slower.
 func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectContainerData, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectC
 // representation of a signal like 'SIGKILL'. The nameOrID can be a container name
 // or a partial/full ID
 func Kill(ctx context.Context, nameOrID string, signal string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -143,7 +143,7 @@ func Logs() {}
 // Pause pauses a given container.  The nameOrID can be a container name
 // or a partial/full ID.
 func Pause(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func Pause(ctx context.Context, nameOrID string) error {
 // or a partial/full ID.  The optional timeout specifies the number of seconds to wait
 // for the running container to stop before killing it.
 func Restart(ctx context.Context, nameOrID string, timeout *int) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func Restart(ctx context.Context, nameOrID string, timeout *int) error {
 // or a partial/full ID. The optional parameter for detach keys are to override the default
 // detach key sequence.
 func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func Top()   {}
 // Unpause resumes the given paused container.  The nameOrID can be a container name
 // or a partial/full ID.
 func Unpause(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func Unpause(ctx context.Context, nameOrID string) error {
 // or a partial/full ID.
 func Wait(ctx context.Context, nameOrID string) (int32, error) {
 	var exitCode int32
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return exitCode, err
 	}
@@ -228,7 +228,7 @@ func Wait(ctx context.Context, nameOrID string) (int32, error) {
 // exists in local storage.  The nameOrID can be a container name
 // or a partial/full ID.
 func Exists(ctx context.Context, nameOrID string) (bool, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -243,7 +243,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 // or a partial/full ID
 func Stop(ctx context.Context, nameOrID string, timeout *int) error {
 	params := make(map[string]string)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
