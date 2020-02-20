@@ -14,7 +14,7 @@ import (
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
 // boolean response.
 func Exists(ctx context.Context, nameOrID string) (bool, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -29,7 +29,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 // ways to alter the image query.
 func List(ctx context.Context, all *bool, filters map[string][]string) ([]*handlers.ImageSummary, error) {
 	var imageSummary []*handlers.ImageSummary
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func List(ctx context.Context, all *bool, filters map[string][]string) ([]*handl
 // Get performs an image inspect.  To have the on-disk size of the image calculated, you can
 // use the optional size parameter.
 func GetImage(ctx context.Context, nameOrID string, size *bool) (*inspect.ImageData, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func ImageTree(ctx context.Context, nameOrId string) error {
 // History returns the parent layers of an image.
 func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse, error) {
 	var history []*handlers.HistoryResponse
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +89,7 @@ func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse,
 }
 
 func Load(ctx context.Context, r io.Reader) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func Load(ctx context.Context, r io.Reader) error {
 // the image by removing all all containers, including those that are Running, first.
 func Remove(ctx context.Context, nameOrID string, force *bool) ([]map[string]string, error) {
 	var deletes []map[string]string
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]map[string]str
 // Export saves an image from local storage as a tarball or image archive.  The optional format
 // parameter is used to change the format of the output.
 func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, compress *bool) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	var (
 		deleted []string
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +170,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.
 func Tag(ctx context.Context, nameOrID, tag, repo string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}

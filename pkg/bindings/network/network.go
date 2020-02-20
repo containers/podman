@@ -10,7 +10,7 @@ import (
 
 func Create() {}
 func Inspect(ctx context.Context, nameOrID string) (map[string]interface{}, error) {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +23,7 @@ func Inspect(ctx context.Context, nameOrID string) (map[string]interface{}, erro
 }
 
 func Remove(ctx context.Context, nameOrID string) error {
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
@@ -38,7 +38,7 @@ func List(ctx context.Context) ([]*libcni.NetworkConfigList, error) {
 	var (
 		netList []*libcni.NetworkConfigList
 	)
-	conn, err := bindings.GetConnectionFromContext(ctx)
+	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}

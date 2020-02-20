@@ -114,7 +114,7 @@ func newBindingTest() *bindingTest {
 		runRoot:         filepath.Join(tmpPath, "run"),
 		artifactDirPath: "",
 		imageCacheDir:   "",
-		sock:            fmt.Sprintf("unix:%s", filepath.Join(tmpPath, "api.sock")),
+		sock:            fmt.Sprintf("unix://%s", filepath.Join(tmpPath, "api.sock")),
 		tempDirPath:     tmpPath,
 	}
 	return &b
