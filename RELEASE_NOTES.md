@@ -1,5 +1,54 @@
 # Release Notes
 
+## 1.8.1
+### Features
+- Many networking-related flags have been added to `podman pod create` to enable customization of pod networks, including `--add-host`, `--dns`, `--dns-opt`, `--dns-search`, `--ip`, `--mac-address`, `--network`, and `--no-hosts`
+- The `podman ps --format=json` command now includes the ID of the image containers were created with
+- The `podman create` and `podman run` commands now support the `--device-cgroup-rule` flag ([#4876](https://github.com/containers/libpod/issues/4876))
+- While the HTTP API remains in alpha, many fixes and additions have landed. These are documented in a separate subsection below
+
+### Bugfixes
+- Fixed CVE-2020-1726, a security issue where volumes manually populated before first being mounted into a container could have those contents overwritten on first being mounted into a container
+- Fixed a bug where Podman containers with user namespaces in CNI networks with the DNS plugin enabled would not have the DNS plugin's nameserver added to their `resolv.conf` ([#5256](https://github.com/containers/libpod/issues/5256))
+- Fixed a bug where trailing `/` characters in image volume definitions could cause them to not be overridden by a user-specified mount at the same location ([#5219](https://github.com/containers/libpod/issues/5219))
+- Fixed a bug where the `label` option in `libpod.conf`, used to disable SELinux by default, was not being respected ([#5087](https://github.com/containers/libpod/issues/5087))
+- Fixed a bug where the `podman login` and `podman logout` commands required the registry to log into be specified ([#5146](https://github.com/containers/libpod/issues/5146))
+- Fixed a bug where detached rootless Podman containers could not forward ports ([#5167](https://github.com/containers/libpod/issues/5167))
+- Fixed a bug where rootless Podman could fail to run if the pause process had died
+- Fixed a bug where Podman ignored labels that were specified with only a key and no value ([#3854](https://github.com/containers/libpod/issues/3854))
+- Fixed a bug where Podman would fail to create named volumes when the backing filesystem did not support SELinux labelling ([#5200](https://github.com/containers/libpod/issues/5200))
+- Fixed a bug where `--detach-keys=""` would not disable detaching from a container ([#5166](https://github.com/containers/libpod/issues/5166))
+- Fixed a bug where the `podman ps` command was too aggressive when filtering containers and would force `--all` on in too many situations
+- Fixed a bug where the `podman play kube` command was ignoring image configuration, including volumes, working directory, labels, and stop signal ([#5174](https://github.com/containers/libpod/issues/5174))
+- Fixed a bug where the `Created` and `CreatedTime` fields in `podman images --format=json` were misnamed, which also broke Go template output for those fields ([#5110](https://github.com/containers/libpod/issues/5110))
+- Fixed a bug where rootless Podman containers with ports forwarded could hang when started ([#5182](https://github.com/containers/libpod/issues/5182))
+- Fixed a bug where `podman pull` could fail to parse registry names including port numbers
+- Fixed a bug where Podman would incorrectly attempt to validate image OS and architecture when starting containers
+- Fixed a bug where Bash completion for `podman build -f` would not list available files that could be built ([#3878](https://github.com/containers/libpod/issues/3878))
+- Fixed a bug where `podman commit --change` would perform incorrect validation, resulting in valid changes being rejected ([#5148](https://github.com/containers/libpod/issues/5148))
+- Fixed a bug where `podman logs --tail` could take large amounts of memory when the log file for a container was large ([#5131](https://github.com/containers/libpod/issues/5131))
+- Fixed a bug where Podman would sometimes incorrectly generate firewall rules on systems using `firewalld`
+
+### HTTP API
+- Initial support for secure connections to servers via SSH tunneling has been added
+- Initial support for the libpod `create` and `logs` endpoints for containers has been added
+- Added a `/swagger/` endpoint to serve API documentation
+- The `json` endpoint for containers has received many fixes
+- Filtering images and containers has been greatly improved, with many bugs fixed and documentation improved
+- Image creation endpoints (commit, pull, etc) have seen many fixes
+- Server timeout has been fixed so that long operations will no longer trigger the timeout and shut the server down
+- The `stats` endpoint for containers has seen major fixes and now provides accurate output
+- Handling the HTTP 304 status code has been fixed for all endpoints
+- Many fixes have been made to API documentation to ensure it matches the code
+
+### Misc
+- Updated vendored Buildah to v1.14.1
+- Updated vendored containers/storage to v1.16.0
+- The `Created` field to `podman images --format=json` has been renamed to `CreatedSince` as part of the fix for ([#5110](https://github.com/containers/libpod/issues/5110)). Go templates using the old name should still work
+- The `CreatedTime` field to `podman images --format=json` has been renamed to `CreatedAt` as part of the fix for ([#5110](https://github.com/containers/libpod/issues/5110)). Go templates using the old name should still work
+- The `before` filter to `podman images` has been renamed to `since` for Docker compatibility. Using `before` will still work, but documentation has been changed to use the new `since` filter
+- Using the `--password` flag to `podman login` now warns that passwords are being passed in plaintext
+
 ## 1.8.0
 ### Features
 - The `podman system service` command has been added, providing a preview of Podman's new Docker-compatible API. This API is still very new, and not yet ready for production use, but is available for early testing
