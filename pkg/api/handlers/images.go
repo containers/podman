@@ -156,6 +156,7 @@ func SearchImages(w http.ResponseWriter, r *http.Request) {
 	results, err := image.SearchImages(query.Term, options)
 	if err != nil {
 		utils.BadRequest(w, "term", query.Term, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusOK, results)
 }
