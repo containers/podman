@@ -468,11 +468,26 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		return nil, err
 	}
 
+	var selinuxOpts v1.SELinuxOptions
+	opts := strings.SplitN(c.config.Spec.Annotations[InspectAnnotationLabel], ":", 2)
+	if len(opts) == 2 {
+		switch opts[0] {
+		case "type":
+			selinuxOpts.Type = opts[1]
+		case "level":
+			selinuxOpts.Level = opts[1]
+		}
+	}
+	if len(opts) == 1 {
+		if opts[0] == "disable" {
+			selinuxOpts.Type = "spc_t"
+		}
+	}
+
 	sc := v1.SecurityContext{
-		Capabilities: newCaps,
-		Privileged:   &priv,
-		// TODO How do we know if selinux were passed into podman
-		//SELinuxOptions:
+		Capabilities:   newCaps,
+		Privileged:     &priv,
+		SELinuxOptions: &selinuxOpts,
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
 		//RunAsNonRoot:             &nonRoot,
