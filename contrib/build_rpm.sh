@@ -48,7 +48,7 @@ fi
 
 # btrfs-progs-devel is not available in CentOS/RHEL-8
 if ! (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 8" ); then
-    PKGS+=(golang-github-cpuguy83-go-md2man \
+    PKGS+=(golang-github-cpuguy83-md2man \
         btrfs-progs-devel \
         )
 fi
