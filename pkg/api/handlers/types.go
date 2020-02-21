@@ -78,10 +78,6 @@ type Container struct {
 	docker.ContainerCreateConfig
 }
 
-type ContainerStats struct {
-	docker.ContainerStats
-}
-
 type Version struct {
 	docker.Version
 }
@@ -141,10 +137,6 @@ type VolumeCreateConfig struct {
 
 type IDResponse struct {
 	ID string `json:"id"`
-}
-
-type Stats struct {
-	docker.StatsJSON
 }
 
 type ContainerTopOKBody struct {
