@@ -1,3 +1,121 @@
+- Changelog for v1.8.1-rc1 (2020-02-21)
+  * Update release notes for v1.8.1
+  * disable generation of cni firewall plugin
+  * search endpoint failure correction
+  * Remove ImageVolumes from database
+  * Upgrade make package-install for fedora31
+  * Flake fix: race condition in same-IP test
+  * Add support for ssh:// and unix:// podman clients
+  * search test on fedora registry: retry 5 times
+  * Swagger: yet more fixes
+  * Login test: use --password-stdin
+  * implement reverse reader for log reads
+  * podman images: add --filter=since=XX
+  * populate resolv.conf with dnsname responses when in usernamespace
+  * Beautify podman bridge CNI config
+  * build(deps): bump github.com/spf13/cobra from 0.0.5 to 0.0.6
+  * Warn user about --password cli option in login
+  * build(deps): bump github.com/stretchr/testify from 1.5.0 to 1.5.1
+  * Swagger: fix one incorrect comment
+  * apiv2 container create using specgen
+  * Add test to validate the pod bindings api
+  * Update to the latest version of buildah
+  * New login and push tests
+  * Add network options to podman pod create
+  * Fixed syscall.Signal not convertable by decoder
+  * Fixed typo in KillContainer
+  * build(deps): bump github.com/containers/storage from 1.15.8 to 1.16.0
+  * build(deps): bump github.com/stretchr/testify from 1.4.0 to 1.5.0
+  * libpod.conf: clarify `label` description
+  * set process labels in pkg/spec
+  * libpod/config: use built-in TOML instead of manually merging
+  * Fixed CreateImageFromImage not respecting supplied Tag parameter
+  * Add installation of pre-commit to Makefile
+  * fix mandatory parameter in login/logout
+  * adds missing query struct tags and exports the fields
+  * Swagger: fix inconsistencies (try #2)
+  * Update mux rules to allow slashes in image names
+  * rootless: fix a regression when using -d
+  * Misc typo fixes
+  * Use cleaned destination path for indexing image volumes
+  * Add ability for pods to use the host network
+  * stats: Expose CPU usage in API
+  * rootless: check if the conmon process is valid
+  * apiv2: Fixup /containers/json filters documentation
+  * apiv2: Enable filtering images by ID
+  * Fix handler and systemd activation errors
+  * podman-ps: support image IDs
+  * Refactor image tree for API usage
+  * Update documentation of commit command to show image reference is optional
+  * Rework label parsing
+  * add caching for binding tests
+  * apiv2 libpod container logs
+  * add pkg/signal
+  * add pkg/capabilities
+  * build(deps): bump github.com/rootless-containers/rootlesskit
+  * Fix SELinux labels of volumes
+  * podman(1): fixes
+  * fix bug "" disable detach keys
+  * Fixed a bug about bash automatically complete
+  * Enhance fuse-overlayfs instructions.
+  * README: fix docs links
+  * Fix up play kube to use image data
+  * build(deps): bump k8s.io/api from 0.17.2 to 0.17.3
+  * Only set --all when a status filter is given to ps
+  * use quay.io/libpod/fedora-minimal for reliability
+  * filtering behavior correction
+  * support device-cgroup-rule
+  * rootlessport: drop Pdeathsig in favor of Kill
+  * rootlessport: fix potential hang
+  * add pkg/seccomp
+  * Do not copy up when volume is not empty
+  * api: pull: fix reference parsing
+  * cmd/podman/pull: refactor code
+  * stats: add SystemUsage
+  * build(deps): bump k8s.io/apimachinery from 0.17.2 to 0.17.3
+  * build(deps): bump github.com/gorilla/mux from 1.7.3 to 1.7.4
+  * HTTP 304 (NotModified) is not an error!
+  * API v2 tests: catch up to moving target
+  * api: fix the CPU stats reported
+  * apiv2 stream events
+  * Fix container filters
+  * API v2: pods: fix two incorrect return codes
+  * Rewire ListContainers for APIv2 libpod
+  * podman build -f completions
+  * swagger: fix /libpod/images/{import,load,pull}
+  * Make: s/uname -o/uname -s/
+  * container create: relax os/arch checks
+  * replace prow images test
+  * Remove incorrect validation of --change for commit
+  * [CI:DOCS] Update Code of Conduct to Containers variant
+  * Add test cases to validate remove and list images api.
+  * images --format compatible with docker
+  * bash-completions: Add missing subcommands in 'podman system'
+  * doc: Fix examples for 'podman system service'
+  * v2 api: /libpod/images/import
+  * v2 api: /libpod/images/load
+  * v2 api: /libpod/images/pull
+  * docs: add workaround for --device with rootless containers (II)
+  * Fix varlink code generation target.
+  * Modify Runtime.getImage to return a storage.Image
+  * Document an aspect of newFromStorage behavior
+  * Introduce a Runtime.newImage constructor
+  * Move Image.getLocalImage to Runtime.getLocalImage
+  * Remove the getLocalImage() call from Image.Size
+  * Use Runtime.NewFromLocal instead of open-coded copies
+  * Trivial simplification
+  * Create two separate newImage instances in Runtime.New
+  * Call NewImageRuntimeFromStore from NewImageRuntimeFromOptions
+  * Update readme to 1.8.0 release
+  * Refactor runtime functions to pass options structure
+  * build(deps): bump github.com/containers/image/v5 from 5.2.0 to 5.2.1
+  * LibpodAPI.BuildImage: don't require a name for the new image
+  * Bump to v1.8.1-dev
+  * Cirrus: Never run prune on other branches
+  * Add dockerfile to mirror fedora-minimal
+  * Add /swagger/ endpoint to serve swagger yaml to clients
+  * Add backend code for pod network options
+
 - Changelog for v1.8.0 (2020-02-06)
   * [CI:DOCS]update contrib systemd user
   * [CI:DOCS]fix systemd files for apiv2
