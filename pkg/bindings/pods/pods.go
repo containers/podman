@@ -3,6 +3,7 @@ package pods
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
@@ -48,9 +49,9 @@ func Kill(ctx context.Context, nameOrID string, signal *string) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if signal != nil {
-		params["signal"] = *signal
+		params.Set("signal", *signal)
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/kill", params, nameOrID)
 	if err != nil {
@@ -95,13 +96,13 @@ func List(ctx context.Context, filters map[string][]string) ([]*libpod.PodInspec
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if filters != nil {
 		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = stringFilter
+		params.Set("filters", stringFilter)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/json", params)
 	if err != nil {
@@ -130,9 +131,9 @@ func Remove(ctx context.Context, nameOrID string, force *bool) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if force != nil {
-		params["force"] = strconv.FormatBool(*force)
+		params.Set("force", strconv.FormatBool(*force))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/pods/%s", params, nameOrID)
 	if err != nil {
@@ -166,9 +167,9 @@ func Stop(ctx context.Context, nameOrID string, timeout *int) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if timeout != nil {
-		params["t"] = strconv.Itoa(*timeout)
+		params.Set("t", strconv.Itoa(*timeout))
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/pods/%s/stop", params, nameOrID)
 	if err != nil {

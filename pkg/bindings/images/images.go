@@ -2,8 +2,10 @@ package images
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/containers/libpod/pkg/api/handlers"
@@ -33,16 +35,16 @@ func List(ctx context.Context, all *bool, filters map[string][]string) ([]*handl
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if all != nil {
-		params["all"] = strconv.FormatBool(*all)
+		params.Set("all", strconv.FormatBool(*all))
 	}
 	if filters != nil {
 		strFilters, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = strFilters
+		params.Set("filters", strFilters)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/json", params)
 	if err != nil {
@@ -58,9 +60,9 @@ func GetImage(ctx context.Context, nameOrID string, size *bool) (*inspect.ImageD
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if size != nil {
-		params["size"] = strconv.FormatBool(*size)
+		params.Set("size", strconv.FormatBool(*size))
 	}
 	inspectedData := inspect.ImageData{}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/json", params, nameOrID)
@@ -88,15 +90,21 @@ func History(ctx context.Context, nameOrID string) ([]*handlers.HistoryResponse,
 	return history, response.Process(&history)
 }
 
-func Load(ctx context.Context, r io.Reader) error {
+func Load(ctx context.Context, r io.Reader, name *string) (string, error) {
+	var id handlers.IDResponse
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
-	// TODO this still needs error handling added
-	//_, err := http.Post(c.makeEndpoint("/images/loads"), "application/json", r) //nolint
-	_ = conn
-	return bindings.ErrNotImplemented
+	params := url.Values{}
+	if name != nil {
+		params.Set("reference", *name)
+	}
+	response, err := conn.DoRequest(r, http.MethodPost, "/images/load", params)
+	if err != nil {
+		return "", err
+	}
+	return id.ID, response.Process(&id)
 }
 
 // Remove deletes an image from local storage.  The optional force parameter will forcibly remove
@@ -107,9 +115,9 @@ func Remove(ctx context.Context, nameOrID string, force *bool) ([]map[string]str
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if force != nil {
-		params["force"] = strconv.FormatBool(*force)
+		params.Set("force", strconv.FormatBool(*force))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/images/%s", params, nameOrID)
 	if err != nil {
@@ -125,12 +133,12 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, c
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if format != nil {
-		params["format"] = *format
+		params.Set("format", *format)
 	}
 	if compress != nil {
-		params["compress"] = strconv.FormatBool(*compress)
+		params.Set("compress", strconv.FormatBool(*compress))
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/%s/get", params, nameOrID)
 	if err != nil {
@@ -153,13 +161,13 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if filters != nil {
 		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = stringFilter
+		params.Set("filters", stringFilter)
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/images/prune", params)
 	if err != nil {
@@ -174,9 +182,9 @@ func Tag(ctx context.Context, nameOrID, tag, repo string) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
-	params["tag"] = tag
-	params["repo"] = repo
+	params := url.Values{}
+	params.Set("tag", tag)
+	params.Set("repo", repo)
 	response, err := conn.DoRequest(nil, http.MethodPost, "/images/%s/tag", params, nameOrID)
 	if err != nil {
 		return err
@@ -185,3 +193,35 @@ func Tag(ctx context.Context, nameOrID, tag, repo string) error {
 }
 
 func Build(nameOrId string) {}
+
+// Imports adds the given image to the local image store.  This can be done by file and the given reader
+// or via the url parameter.  Additional metadata can be associated with the image by using the changes and
+// message parameters.  The image can also be tagged given a reference. One of url OR r must be provided.
+func Import(ctx context.Context, changes []string, message, reference, u *string, r io.Reader) (string, error) {
+	var id handlers.IDResponse
+	if r != nil && u != nil {
+		return "", errors.New("url and r parameters cannot be used together")
+	}
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return "", err
+	}
+	params := url.Values{}
+	for _, change := range changes {
+		params.Add("changes", change)
+	}
+	if message != nil {
+		params.Set("message", *message)
+	}
+	if reference != nil {
+		params.Set("reference", *reference)
+	}
+	if u != nil {
+		params.Set("url", *u)
+	}
+	response, err := conn.DoRequest(r, http.MethodPost, "/images/import", params)
+	if err != nil {
+		return "", err
+	}
+	return id.ID, response.Process(&id)
+}

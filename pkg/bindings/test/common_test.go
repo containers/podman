@@ -20,8 +20,17 @@ type testImage struct {
 }
 
 const (
+	devPodmanBinaryLocation     string = "../../../bin/podman"
 	defaultPodmanBinaryLocation string = "/usr/bin/podman"
 )
+
+func getPodmanBinary() string {
+	_, err := os.Stat(devPodmanBinaryLocation)
+	if os.IsNotExist(err) {
+		return defaultPodmanBinaryLocation
+	}
+	return devPodmanBinaryLocation
+}
 
 var (
 	ImageCacheDir = "/tmp/podman/imagecachedir"
@@ -50,7 +59,7 @@ type bindingTest struct {
 
 func (b *bindingTest) runPodman(command []string) *gexec.Session {
 	var cmd []string
-	podmanBinary := defaultPodmanBinaryLocation
+	podmanBinary := getPodmanBinary()
 	val, ok := os.LookupEnv("PODMAN_BINARY")
 	if ok {
 		podmanBinary = val
@@ -166,7 +175,7 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 // and add or append the alpine image to it
 func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) {
 	cmd := []string{"run", "-dt"}
-	if *insidePod && podName != nil {
+	if insidePod != nil && podName != nil {
 		pName := *podName
 		cmd = append(cmd, "--pod", pName)
 	} else if containerName != nil {

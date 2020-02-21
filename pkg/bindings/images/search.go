@@ -3,6 +3,7 @@ package images
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/containers/libpod/libpod/image"
@@ -20,17 +21,17 @@ func Search(ctx context.Context, term string, limit *int, filters map[string][]s
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
-	params["term"] = term
+	params := url.Values{}
+	params.Set("term", term)
 	if limit != nil {
-		params["limit"] = strconv.Itoa(*limit)
+		params.Set("limit", strconv.Itoa(*limit))
 	}
 	if filters != nil {
 		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = stringFilter
+		params.Set("filters", stringFilter)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/images/search", params)
 	if err != nil {

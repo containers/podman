@@ -3,6 +3,7 @@ package volumes
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
@@ -73,9 +74,9 @@ func Remove(ctx context.Context, nameOrID string, force *bool) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if force != nil {
-		params["force"] = strconv.FormatBool(*force)
+		params.Set("force", strconv.FormatBool(*force))
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/%s/prune", params, nameOrID)
 	if err != nil {
