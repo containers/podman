@@ -127,7 +127,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	options = append(options, r.WithPod(p))
-	options = append(options, WithRootFSFromImage(imgID, imgName, false))
+	options = append(options, WithRootFSFromImage(imgID, imgName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
 
