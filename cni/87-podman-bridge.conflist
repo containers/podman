@@ -27,10 +27,6 @@
       }
     },
     {
-      "type": "firewall",
-      "backend": "iptables"
-    },
-    {
       "type": "tuning"
     }
   ]

@@ -209,7 +209,6 @@ func (r *LocalRuntime) NetworkCreateBridge(cli *cliconfig.NetworkCreateValues) (
 	bridge := network.NewHostLocalBridge(bridgeDeviceName, isGateway, false, ipMasq, ipamConfig)
 	plugins = append(plugins, bridge)
 	plugins = append(plugins, network.NewPortMapPlugin())
-	plugins = append(plugins, network.NewFirewallPlugin())
 	// if we find the dnsname plugin, we add configuration for it
 	if network.HasDNSNamePlugin(runtimeConfig.CNIPluginDir) && !cli.DisableDNS {
 		// Note: in the future we might like to allow for dynamic domain names
