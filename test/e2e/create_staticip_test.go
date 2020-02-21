@@ -4,6 +4,7 @@ package integration
 
 import (
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -86,8 +87,23 @@ var _ = Describe("Podman create with --ip flag", func() {
 		result = podmanTest.Podman([]string{"start", "test1"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+
+		// race prevention: wait until IP address is assigned
+		for i := 0; i < 5; i++ {
+			result = podmanTest.Podman([]string{"inspect", "--format", "{{.NetworkSettings.IPAddress}}", "test1"})
+			result.WaitWithDefaultTimeout()
+			Expect(result.ExitCode()).To(Equal(0))
+			if result.OutputToString() != "" {
+				break
+			}
+			time.Sleep(1 * time.Second)
+		}
+		Expect(result.OutputToString()).To(Equal(ip))
+
+		// test1 container is running with the given IP.
 		result = podmanTest.Podman([]string{"start", "test2"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
+		Expect(result.ErrorToString()).To(ContainSubstring("requested IP address " + ip + " is not available"))
 	})
 })
