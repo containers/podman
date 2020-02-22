@@ -3,6 +3,8 @@ package test_bindings
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/libpod/pkg/bindings"
@@ -71,6 +73,14 @@ var _ = Describe("Podman images", func() {
 		// Inspect by long name
 		_, err = images.GetImage(connText, alpine.name, nil)
 		Expect(err).To(BeNil())
+		// TODO it looks like the images API alwaays returns size regardless
+		// of bool or not. What should we do ?
+		//Expect(data.Size).To(BeZero())
+
+		// Enabling the size parameter should result in size being populated
+		data, err = images.GetImage(connText, alpine.name, &trueFlag)
+		Expect(err).To(BeNil())
+		Expect(data.Size).To(BeNumerically(">", 0))
 	})
 
 	// Test to validate the remove image api
@@ -179,6 +189,108 @@ var _ = Describe("Podman images", func() {
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+	})
+
+	It("Image Exists", func() {
+		// exists on bogus image should be false, with no error
+		exists, err := images.Exists(connText, "foobar")
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+
+		// exists with shortname should be true
+		exists, err = images.Exists(connText, alpine.shortName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+
+		// exists with fqname should be true
+		exists, err = images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+	})
+
+	It("Load|Import Image", func() {
+		// load an image
+		_, err := images.Remove(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		exists, err := images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
+		defer f.Close()
+		Expect(err).To(BeNil())
+		names, err := images.Load(connText, f, nil)
+		Expect(err).To(BeNil())
+		Expect(names).To(Equal(alpine.name))
+		exists, err = images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+
+		// load with a repo name
+		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
+		Expect(err).To(BeNil())
+		_, err = images.Remove(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		exists, err = images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+		newName := "quay.io/newname:fizzle"
+		names, err = images.Load(connText, f, &newName)
+		Expect(err).To(BeNil())
+		Expect(names).To(Equal(alpine.name))
+		exists, err = images.Exists(connText, newName)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+
+		// load with a bad repo name should trigger a 500
+		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
+		Expect(err).To(BeNil())
+		_, err = images.Remove(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		exists, err = images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+		badName := "quay.io/newName:fizzle"
+		_, err = images.Load(connText, f, &badName)
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
+	})
+
+	It("Export Image", func() {
+		// Export an image
+		exportPath := filepath.Join(bt.tempDirPath, alpine.tarballName)
+		w, err := os.Create(filepath.Join(bt.tempDirPath, alpine.tarballName))
+		defer w.Close()
+		Expect(err).To(BeNil())
+		err = images.Export(connText, alpine.name, w, nil, nil)
+		Expect(err).To(BeNil())
+		_, err = os.Stat(exportPath)
+		Expect(err).To(BeNil())
+
+		// TODO how do we verify that a format change worked?
+	})
+
+	It("Import Image", func() {
+		// load an image
+		_, err = images.Remove(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		exists, err := images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeFalse())
+		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
+		defer f.Close()
+		Expect(err).To(BeNil())
+		changes := []string{"CMD /bin/foobar"}
+		testMessage := "test_import"
+		_, err = images.Import(connText, changes, &testMessage, &alpine.name, nil, f)
+		Expect(err).To(BeNil())
+		exists, err = images.Exists(connText, alpine.name)
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
+		data, err := images.GetImage(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		Expect(data.Comment).To(Equal(testMessage))
+
 	})
 
 })

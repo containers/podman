@@ -206,7 +206,7 @@ func unixClient(_url *url.URL) (*http.Client, error) {
 }
 
 // DoRequest assembles the http request and returns the response
-func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, queryParams map[string]string, pathValues ...string) (*APIResponse, error) {
+func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, queryParams url.Values, pathValues ...string) (*APIResponse, error) {
 	var (
 		err      error
 		response *http.Response
@@ -225,12 +225,7 @@ func (c *Connection) DoRequest(httpBody io.Reader, httpMethod, endpoint string, 
 		return nil, err
 	}
 	if len(queryParams) > 0 {
-		// if more desirable we could use url to form the encoded endpoint with params
-		r := req.URL.Query()
-		for k, v := range queryParams {
-			r.Add(k, v)
-		}
-		req.URL.RawQuery = r.Encode()
+		req.URL.RawQuery = queryParams.Encode()
 	}
 	// Give the Do three chances in the case of a comm/service hiccup
 	for i := 0; i < 3; i++ {

@@ -3,6 +3,7 @@ package containers
 import (
 	"context"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
@@ -21,28 +22,28 @@ func List(ctx context.Context, filters map[string][]string, all *bool, last *int
 		return nil, err
 	}
 	var containers []lpapiv2.ListContainer
-	params := make(map[string]string)
+	params := url.Values{}
 	if all != nil {
-		params["all"] = strconv.FormatBool(*all)
+		params.Set("all", strconv.FormatBool(*all))
 	}
 	if last != nil {
-		params["last"] = strconv.Itoa(*last)
+		params.Set("last", strconv.Itoa(*last))
 	}
 	if pod != nil {
-		params["pod"] = strconv.FormatBool(*pod)
+		params.Set("pod", strconv.FormatBool(*pod))
 	}
 	if size != nil {
-		params["size"] = strconv.FormatBool(*size)
+		params.Set("size", strconv.FormatBool(*size))
 	}
 	if sync != nil {
-		params["sync"] = strconv.FormatBool(*sync)
+		params.Set("sync", strconv.FormatBool(*sync))
 	}
 	if filters != nil {
 		filterString, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = filterString
+		params.Set("filters", filterString)
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/json", params)
 	if err != nil {
@@ -63,13 +64,13 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if filters != nil {
 		filterString, err := bindings.FiltersToString(filters)
 		if err != nil {
 			return nil, err
 		}
-		params["filters"] = filterString
+		params.Set("filters", filterString)
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/prune", params)
 	if err != nil {
@@ -86,12 +87,12 @@ func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if force != nil {
-		params["force"] = strconv.FormatBool(*force)
+		params.Set("force", strconv.FormatBool(*force))
 	}
 	if volumes != nil {
-		params["vols"] = strconv.FormatBool(*volumes)
+		params.Set("vols", strconv.FormatBool(*volumes))
 	}
 	response, err := conn.DoRequest(nil, http.MethodDelete, "/containers/%s", params, nameOrID)
 	if err != nil {
@@ -109,9 +110,9 @@ func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectC
 	if err != nil {
 		return nil, err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if size != nil {
-		params["size"] = strconv.FormatBool(*size)
+		params.Set("size", strconv.FormatBool(*size))
 	}
 	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/json", params, nameOrID)
 	if err != nil {
@@ -129,8 +130,8 @@ func Kill(ctx context.Context, nameOrID string, signal string) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
-	params["signal"] = signal
+	params := url.Values{}
+	params.Set("signal", signal)
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nameOrID)
 	if err != nil {
 		return err
@@ -162,9 +163,9 @@ func Restart(ctx context.Context, nameOrID string, timeout *int) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if timeout != nil {
-		params["t"] = strconv.Itoa(*timeout)
+		params.Set("t", strconv.Itoa(*timeout))
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/restart", params, nameOrID)
 	if err != nil {
@@ -181,9 +182,9 @@ func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
 	if err != nil {
 		return err
 	}
-	params := make(map[string]string)
+	params := url.Values{}
 	if detachKeys != nil {
-		params["detachKeys"] = *detachKeys
+		params.Set("detachKeys", *detachKeys)
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/start", params, nameOrID)
 	if err != nil {
@@ -242,13 +243,13 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 // Stop stops a running container.  The timeout is optional. The nameOrID can be a container name
 // or a partial/full ID
 func Stop(ctx context.Context, nameOrID string, timeout *int) error {
-	params := make(map[string]string)
+	params := url.Values{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
 	if timeout != nil {
-		params["t"] = strconv.Itoa(*timeout)
+		params.Set("t", strconv.Itoa(*timeout))
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nameOrID)
 	if err != nil {

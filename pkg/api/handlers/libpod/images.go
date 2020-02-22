@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -133,11 +134,16 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 
 	var libpodFilters = []string{}
 	if _, found := r.URL.Query()["filters"]; found {
-		all, err = strconv.ParseBool(query.Filters["all"][0])
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
+		dangling := query.Filters["all"]
+		if len(dangling) > 0 {
+			all, err = strconv.ParseBool(query.Filters["all"][0])
+			if err != nil {
+				utils.InternalServerError(w, err)
+				return
+			}
 		}
+		// dangling is special and not implemented in the libpod side of things
+		delete(query.Filters, "dangling")
 		for k, v := range query.Filters {
 			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
 		}
@@ -157,17 +163,12 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		Compress bool   `schema:"compress"`
 		Format   string `schema:"format"`
 	}{
-		// override any golang type defaults
+		Format: "docker-archive",
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-
-	if len(query.Format) < 1 {
-		utils.InternalServerError(w, errors.New("format parameter cannot be empty."))
 		return
 	}
 
@@ -186,6 +187,7 @@ func ExportImage(w http.ResponseWriter, r *http.Request) {
 		utils.ImageNotFound(w, name, err)
 		return
 	}
+
 	if err := newImage.Save(r.Context(), name, query.Format, tmpfile.Name(), []string{}, false, query.Compress); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
@@ -234,8 +236,20 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to load image"))
 		return
 	}
-
-	utils.WriteResponse(w, http.StatusOK, []handlers.LibpodImagesLoadReport{{ID: loadedImage}})
+	split := strings.Split(loadedImage, ",")
+	newImage, err := runtime.ImageRuntime().NewFromLocal(split[0])
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	// TODO this should go into libpod proper at some point.
+	if len(query.Reference) > 0 {
+		if err := newImage.TagImage(query.Reference); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+	}
+	utils.WriteResponse(w, http.StatusOK, handlers.LibpodImagesLoadReport{ID: loadedImage})
 }
 
 func ImagesImport(w http.ResponseWriter, r *http.Request) {
@@ -275,7 +289,6 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 		tmpfile.Close()
 		source = tmpfile.Name()
 	}
-
 	importedImage, err := runtime.Import(context.Background(), source, query.Reference, query.Changes, query.Message, true)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "unable to import image"))
