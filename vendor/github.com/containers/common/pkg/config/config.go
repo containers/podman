@@ -61,21 +61,17 @@ type Config struct {
 type ContainersConfig struct {
 
 	// Devices to add to all containers
-	AdditionalDevices []string `toml:"additional_devices"`
+	Devices []string `toml:"devices"`
 
 	// Volumes to add to all containers
-	AdditionalVolumes []string `toml:"additional_volumes"`
+	Volumes []string `toml:"volumes"`
 
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
 
 	// Annotation to add to all containers
-	AdditionalAnnotations []string `toml:"additional_annotations"`
-
-	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
-	// and "systemd".
-	CgroupManager string `toml:"cgroup_manager"`
+	Annotations []string `toml:"annotations"`
 
 	// Default way to create a cgroup namespace for the container
 	CgroupNS string `toml:"cgroupns"`
@@ -170,6 +166,10 @@ type ContainersConfig struct {
 
 // LibpodConfig contains configuration options used to set up a libpod runtime
 type LibpodConfig struct {
+	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
+	// and "systemd".
+	CgroupManager string `toml:"cgroup_manager"`
+
 	// NOTE: when changing this struct, make sure to update (*Config).Merge().
 
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
@@ -273,6 +273,10 @@ type LibpodConfig struct {
 	// StaticDir is the path to a persistent directory to store container
 	// files.
 	StaticDir string `toml:"static_dir"`
+
+	// StopTimeout is the number of seconds to wait for container to exit
+	// before sending kill signal.
+	StopTimeout uint `toml:"stop_timeout"`
 
 	// StorageConfig is the configuration used by containers/storage Not
 	// included in the on-disk config, use the dedicated containers/storage
@@ -455,7 +459,7 @@ func systemConfigs() ([]string, error) {
 // cgroup manager. In case the user session isn't available, we're switching the
 // cgroup manager to cgroupfs.  Note, this only applies to rootless.
 func (c *Config) checkCgroupsAndAdjustConfig() {
-	if !unshare.IsRootless() || c.Containers.CgroupManager != SystemdCgroupsManager {
+	if !unshare.IsRootless() || c.Libpod.CgroupManager != SystemdCgroupsManager {
 		return
 	}
 
@@ -471,7 +475,7 @@ func (c *Config) checkCgroupsAndAdjustConfig() {
 		logrus.Warningf("For using systemd, you may need to login using an user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", unshare.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
-		c.Containers.CgroupManager = CgroupfsCgroupsManager
+		c.Libpod.CgroupManager = CgroupfsCgroupsManager
 	}
 }
 
@@ -535,7 +539,7 @@ func (c *ContainersConfig) Validate() error {
 		}
 	}
 
-	for _, d := range c.AdditionalDevices {
+	for _, d := range c.Devices {
 		_, _, _, err := Device(d)
 		if err != nil {
 			return err

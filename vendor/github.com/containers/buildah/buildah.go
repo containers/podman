@@ -408,6 +408,11 @@ type BuilderOptions struct {
 	Devices []configs.Device
 	//DefaultEnv for containers
 	DefaultEnv []string
+	// MaxPullRetries is the maximum number of attempts we'll make to pull
+	// any one image from the external registry if the first attempt fails.
+	MaxPullRetries int
+	// PullRetryDelay is how long to wait before retrying a pull attempt.
+	PullRetryDelay time.Duration
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

@@ -8,7 +8,8 @@ require (
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.5
-	github.com/containers/buildah v1.14.1-0.20200219125159-7cd6f7d04842
+	github.com/containers/buildah v1.14.1-0.20200225113533-39bd7e0a7a73
+	github.com/containers/common v0.4.2 // indirect
 	github.com/containers/conmon v2.0.10+incompatible
 	github.com/containers/image/v5 v5.2.1
 	github.com/containers/psgo v1.4.0
@@ -32,7 +33,6 @@ require (
 	github.com/gorilla/schema v1.1.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/hpcloud/tail v1.0.0
-	github.com/ishidawataru/sctp v0.0.0-20191218070446-00ab2ac2db07 // indirect
 	github.com/json-iterator/go v1.1.9
 	github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 	github.com/onsi/ginkgo v1.12.0
@@ -54,9 +54,10 @@ require (
 	github.com/stretchr/testify v1.5.1
 	github.com/syndtr/gocapability v0.0.0-20180916011248-d98352740cb2
 	github.com/uber/jaeger-client-go v2.22.1+incompatible
+	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
-	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
+	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	gopkg.in/yaml.v2 v2.2.8

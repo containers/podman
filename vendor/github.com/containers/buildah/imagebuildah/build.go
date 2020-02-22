@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/buildah"
 	"github.com/containers/common/pkg/config"
@@ -166,6 +167,11 @@ type BuildOptions struct {
 	Architecture string
 	// OS is the specifies the operating system of the image to be built.
 	OS string
+	// MaxPullPushRetries is the maximum number of attempts we'll make to pull or push any one
+	// image from or to an external registry if the first attempt fails.
+	MaxPullPushRetries int
+	// PullPushRetryDelay is how long to wait before retrying a pull or push attempt.
+	PullPushRetryDelay time.Duration
 }
 
 // BuildDockerfiles parses a set of one or more Dockerfiles (which may be

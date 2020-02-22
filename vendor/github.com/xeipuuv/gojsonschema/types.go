@@ -25,6 +25,7 @@
 
 package gojsonschema
 
+// Type constants
 const (
 	TYPE_ARRAY   = `array`
 	TYPE_BOOLEAN = `boolean`
@@ -35,7 +36,10 @@ const (
 	TYPE_STRING  = `string`
 )
 
+// JSON_TYPES hosts the list of type that are supported in JSON
 var JSON_TYPES []string
+
+// SCHEMA_TYPES hosts the list of type that are supported in schemas
 var SCHEMA_TYPES []string
 
 func init() {

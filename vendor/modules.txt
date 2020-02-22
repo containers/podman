@@ -33,7 +33,7 @@ github.com/VividCortex/ewma
 github.com/acarl005/stripansi
 # github.com/beorn7/perks v1.0.1
 github.com/beorn7/perks/quantile
-# github.com/blang/semver v3.5.1+incompatible
+# github.com/blang/semver v3.1.0+incompatible
 github.com/blang/semver
 # github.com/buger/goterm v0.0.0-20181115115552-c206103e1f37
 github.com/buger/goterm
@@ -62,7 +62,7 @@ github.com/containernetworking/plugins/pkg/ns
 github.com/containernetworking/plugins/pkg/utils/hwaddr
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend
 github.com/containernetworking/plugins/plugins/ipam/host-local/backend/allocator
-# github.com/containers/buildah v1.14.1-0.20200219125159-7cd6f7d04842
+# github.com/containers/buildah v1.14.1-0.20200225113533-39bd7e0a7a73
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -77,7 +77,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.3.0
+# github.com/containers/common v0.4.2
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare
@@ -258,14 +258,14 @@ github.com/docker/go-units
 github.com/docker/libnetwork/resolvconf
 github.com/docker/libnetwork/resolvconf/dns
 github.com/docker/libnetwork/types
-# github.com/docker/spdystream v0.0.0-20181023171402-6480d4af844c
+# github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
 github.com/docker/spdystream
 github.com/docker/spdystream/spdy
 # github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
 # github.com/fsnotify/fsnotify v1.4.7
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.6.1
+# github.com/fsouza/go-dockerclient v1.6.3
 github.com/fsouza/go-dockerclient
 # github.com/fullsailor/pkcs7 v0.0.0-20190404230743-d7302db945fa
 github.com/fullsailor/pkcs7
@@ -335,7 +335,7 @@ github.com/mistifyio/go-zfs
 github.com/modern-go/concurrent
 # github.com/modern-go/reflect2 v1.0.1
 github.com/modern-go/reflect2
-# github.com/morikuni/aec v1.0.0
+# github.com/morikuni/aec v0.0.0-20170113033406-39771216ff4c
 github.com/morikuni/aec
 # github.com/mrunalp/fileutils v0.0.0-20171103030105-7d4729fb3618
 github.com/mrunalp/fileutils
@@ -497,7 +497,7 @@ github.com/uber/jaeger-client-go/thrift-gen/sampling
 github.com/uber/jaeger-client-go/thrift-gen/zipkincore
 github.com/uber/jaeger-client-go/transport
 github.com/uber/jaeger-client-go/utils
-# github.com/uber/jaeger-lib v0.0.0-20190122222657-d036253de8f5
+# github.com/uber/jaeger-lib v2.2.0+incompatible
 github.com/uber/jaeger-lib/metrics
 # github.com/ulikunitz/xz v0.5.6
 github.com/ulikunitz/xz
@@ -526,7 +526,7 @@ github.com/vishvananda/netns
 github.com/xeipuuv/gojsonpointer
 # github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
 github.com/xeipuuv/gojsonreference
-# github.com/xeipuuv/gojsonschema v1.1.0
+# github.com/xeipuuv/gojsonschema v0.0.0-20190816131739-be0936907f66
 github.com/xeipuuv/gojsonschema
 # go.opencensus.io v0.22.0
 go.opencensus.io
@@ -536,7 +536,8 @@ go.opencensus.io/trace/internal
 go.opencensus.io/trace/tracestate
 # go.uber.org/atomic v1.4.0
 go.uber.org/atomic
-# golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708
+# golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
+golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
 golang.org/x/crypto/curve25519
@@ -552,6 +553,7 @@ golang.org/x/crypto/openpgp/s2k
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/poly1305
 golang.org/x/crypto/ssh
+golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 golang.org/x/net/context
@@ -565,7 +567,7 @@ golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/socks
 golang.org/x/net/proxy
-# golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
+# golang.org/x/oauth2 v0.0.0-20190402181905-9f3314589c9a
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
@@ -596,12 +598,12 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0
+# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
 golang.org/x/time/rate
 # golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/appengine v1.6.1
+# google.golang.org/appengine v1.5.0
 google.golang.org/appengine/internal
 google.golang.org/appengine/internal/base
 google.golang.org/appengine/internal/datastore
@@ -609,7 +611,7 @@ google.golang.org/appengine/internal/log
 google.golang.org/appengine/internal/remote_api
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20190620144150-6af8c5fc6601
+# google.golang.org/genproto v0.0.0-20190425155659-357c62f0e4bb
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.24.0
 google.golang.org/grpc/codes
@@ -690,7 +692,7 @@ k8s.io/client-go/util/homedir
 k8s.io/client-go/util/keyutil
 # k8s.io/klog v1.0.0
 k8s.io/klog
-# k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a
+# k8s.io/utils v0.0.0-20190221042446-c2654d5206da
 k8s.io/utils/integer
 # sigs.k8s.io/yaml v1.1.0
 sigs.k8s.io/yaml

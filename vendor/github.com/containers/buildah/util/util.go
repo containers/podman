@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -207,6 +208,36 @@ func FindImage(store storage.Store, firstRegistry string, systemContext *types.S
 		return nil, nil, errors.Wrapf(err, "error locating image with name %q (%v)", image, names)
 	}
 	return ref, img, nil
+}
+
+// ResolveNameToReferences tries to create a list of possible references
+// (including their transports) from the provided image name.
+func ResolveNameToReferences(
+	store storage.Store,
+	systemContext *types.SystemContext,
+	image string,
+) (refs []types.ImageReference, err error) {
+	names, transport, _, err := ResolveName(image, "", systemContext, store)
+	if err != nil {
+		return nil, errors.Wrapf(err, "error parsing name %q", image)
+	}
+
+	if transport != DefaultTransport {
+		transport += ":"
+	}
+
+	for _, name := range names {
+		ref, err := alltransports.ParseImageName(transport + name)
+		if err != nil {
+			logrus.Debugf("error parsing reference to image %q: %v", name, err)
+			continue
+		}
+		refs = append(refs, ref)
+	}
+	if len(refs) == 0 {
+		return nil, errors.Errorf("error locating images with names %v", names)
+	}
+	return refs, nil
 }
 
 // AddImageNames adds the specified names to the specified image.

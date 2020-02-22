@@ -730,6 +730,15 @@ type Device struct {
 	CgroupPermissions string `json:"CgroupPermissions,omitempty" yaml:"CgroupPermissions,omitempty" toml:"CgroupPermissions,omitempty"`
 }
 
+// A list of requests for devices to be sent to device drivers
+type DeviceRequest struct {
+	Driver       string            `json:"Driver,omitempty" yaml:"Driver,omitempty" toml:"Driver,omitempty"`
+	Count        int               `json:"Count,omitempty" yaml:"Count,omitempty" toml:"Count,omitempty"`
+	DeviceIDs    []string          `json:"DeviceIDs,omitempty" yaml:"DeviceIDs,omitempty" toml:"DeviceIDs,omitempty"`
+	Capabilities [][]string        `json:"Capabilities,omitempty" yaml:"Capabilities,omitempty" toml:"Capabilities,omitempty"`
+	Options      map[string]string `json:"Options,omitempty" yaml:"Options,omitempty" toml:"Options,omitempty"`
+}
+
 // BlockWeight represents a relative device weight for an individual device inside
 // of a container
 type BlockWeight struct {
@@ -771,6 +780,7 @@ type HostConfig struct {
 	RestartPolicy        RestartPolicy          `json:"RestartPolicy,omitempty" yaml:"RestartPolicy,omitempty" toml:"RestartPolicy,omitempty"`
 	Devices              []Device               `json:"Devices,omitempty" yaml:"Devices,omitempty" toml:"Devices,omitempty"`
 	DeviceCgroupRules    []string               `json:"DeviceCgroupRules,omitempty" yaml:"DeviceCgroupRules,omitempty" toml:"DeviceCgroupRules,omitempty"`
+	DeviceRequests       []DeviceRequest        `json:"DeviceRequests,omitempty" yaml:"DeviceRequests,omitempty" toml:"DeviceRequests,omitempty"`
 	LogConfig            LogConfig              `json:"LogConfig,omitempty" yaml:"LogConfig,omitempty" toml:"LogConfig,omitempty"`
 	SecurityOpt          []string               `json:"SecurityOpt,omitempty" yaml:"SecurityOpt,omitempty" toml:"SecurityOpt,omitempty"`
 	CgroupnsMode         string                 `json:"CgroupnsMode,omitempty" yaml:"CgroupnsMode,omitempty" toml:"CgroupnsMode,omitempty"` // v1.40+

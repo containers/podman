@@ -69,6 +69,7 @@ var (
 		"CAP_MKNOD",
 		"CAP_NET_BIND_SERVICE",
 		"CAP_NET_RAW",
+		"CAP_SETFCAP",
 		"CAP_SETGID",
 		"CAP_SETPCAP",
 		"CAP_SETUID",
@@ -136,19 +137,18 @@ func DefaultConfig() (*Config, error) {
 
 	return &Config{
 		Containers: ContainersConfig{
-			AdditionalDevices:     []string{},
-			AdditionalVolumes:     []string{},
-			AdditionalAnnotations: []string{},
-			ApparmorProfile:       DefaultApparmorProfile,
-			CgroupManager:         SystemdCgroupsManager,
-			CgroupNS:              "private",
-			DefaultCapabilities:   DefaultCapabilities,
-			DefaultSysctls:        []string{},
-			DefaultUlimits:        getDefaultProcessLimits(),
-			DNSServers:            []string{},
-			DNSOptions:            []string{},
-			DNSSearches:           []string{},
-			EnableLabeling:        selinuxEnabled(),
+			Devices:             []string{},
+			Volumes:             []string{},
+			Annotations:         []string{},
+			ApparmorProfile:     DefaultApparmorProfile,
+			CgroupNS:            "private",
+			DefaultCapabilities: DefaultCapabilities,
+			DefaultSysctls:      []string{},
+			DefaultUlimits:      getDefaultProcessLimits(),
+			DNSServers:          []string{},
+			DNSOptions:          []string{},
+			DNSSearches:         []string{},
+			EnableLabeling:      selinuxEnabled(),
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
@@ -212,6 +212,8 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 	if onCgroupsv2, _ := isCgroup2UnifiedMode(); onCgroupsv2 {
 		c.OCIRuntime = "crun"
 	}
+	c.CgroupManager = SystemdCgroupsManager
+	c.StopTimeout = uint(10)
 
 	c.OCIRuntimes = map[string][]string{
 		"runc": {

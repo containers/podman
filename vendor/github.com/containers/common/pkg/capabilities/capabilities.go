@@ -18,6 +18,10 @@ var (
 
 	// ErrUnknownCapability is thrown when an unknown capability is processed.
 	ErrUnknownCapability = errors.New("unknown capability")
+
+	// ContainerImageLabels - label can indicate the required
+	// capabilities required by containers to run the container image.
+	ContainerImageLabels = []string{"io.containers.capabilities"}
 )
 
 // All is a special value used to add/drop all known capababilities.
@@ -47,6 +51,7 @@ func stringInSlice(s string, sl []string) bool {
 	}
 	return false
 }
+
 // AllCapabilities returns all known capabilities.
 func AllCapabilities() []string {
 	return capabilityList

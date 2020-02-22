@@ -621,6 +621,8 @@ func (s *StageExecutor) prepare(ctx context.Context, stage imagebuilder.Stage, f
 		Format:                s.executor.outputFormat,
 		Capabilities:          s.executor.capabilities,
 		Devices:               s.executor.devices,
+		MaxPullRetries:        s.executor.maxPullPushRetries,
+		PullRetryDelay:        s.executor.retryPullPushDelay,
 	}
 
 	// Check and see if the image is a pseudonym for the end result of a
@@ -1223,6 +1225,8 @@ func (s *StageExecutor) commit(ctx context.Context, ib *imagebuilder.Builder, cr
 		EmptyLayer:            emptyLayer,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignBy:                s.executor.signBy,
+		MaxRetries:            s.executor.maxPullPushRetries,
+		RetryDelay:            s.executor.retryPullPushDelay,
 	}
 	imgID, _, manifestDigest, err := s.builder.Commit(ctx, imageRef, options)
 	if err != nil {

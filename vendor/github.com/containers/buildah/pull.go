@@ -3,12 +3,11 @@ package buildah
 import (
 	"context"
 	"io"
-
 	"strings"
+	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/directory"
 	"github.com/containers/image/v5/docker"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
@@ -52,6 +51,11 @@ type PullOptions struct {
 	// RemoveSignatures causes any existing signatures for the image to be
 	// discarded when pulling it.
 	RemoveSignatures bool
+	// MaxRetries is the maximum number of attempts we'll make to pull any
+	// one image from the external registry if the first attempt fails.
+	MaxRetries int
+	// RetryDelay is how long to wait before retrying a pull attempt.
+	RetryDelay time.Duration
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -158,6 +162,8 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 		SystemContext:       systemContext,
 		BlobDirectory:       options.BlobDirectory,
 		ReportWriter:        options.ReportWriter,
+		MaxPullRetries:      options.MaxRetries,
+		PullRetryDelay:      options.RetryDelay,
 	}
 
 	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
@@ -264,7 +270,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, "")); err != nil {
+	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, ""), options.MaxRetries, options.RetryDelay); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}
