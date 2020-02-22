@@ -396,6 +396,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Assign a name to the container",
 	)
 	createFlags.Bool(
+		"no-healthcheck", false,
+		"Disable healthchecks on container",
+	)
+	createFlags.Bool(
 		"oom-kill-disable", false,
 		"Disable OOM Killer",
 	)

@@ -560,6 +560,10 @@ Valid _mode_ values are:
 
 Not implemented.
 
+**--no-healthcheck**=*true|false*
+
+Disable any defined healthchecks for container.
+
 **--no-hosts**=**true**|**false**
 
 Do not create _/etc/hosts_ for the container.
