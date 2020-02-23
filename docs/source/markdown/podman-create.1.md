@@ -201,13 +201,20 @@ it in the **libpod.conf** file: see **libpod.conf(5)** for more information.
 
 Specify the key sequence for detaching a container. Format is a single character `[a-Z]` or one or more `ctrl-<value>` characters where `<value>` is one of: `a-z`, `@`, `^`, `[`, `,` or `_`. Specifying "" will disable this feature. The default is *ctrl-p,ctrl-q*.
 
-**--device**=*device*
+**--device**=_host-device_[**:**_container-device_][**:**_permissions_]
 
-Add a host device to the container. The format is `<device-on-host>[:<device-on-container>][:<permissions>]` (e.g. --device=/dev/sdc:/dev/xvdc:rwm)
+Add a host device to the container. Optional *permissions* parameter
+can be used to specify device permissions, it is combination of
+**r** for read, **w** for write, and **m** for **mknod**(2).
 
-Note: if the user only has access rights via a group then accessing the device
-from inside a rootless container will fail. The `crun` runtime offers a
-workaround for this by adding the option `--annotation run.oci.keep_original_groups=1`.
+Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
+
+Note: if _host_device_ is a symbolic link then it will be resolved first.
+The container will only store the major and minor numbers of the host device.
+
+Note: if the user only has access rights via a group, accessing the device
+from inside a rootless container will fail. The **crun**(1) runtime offers a
+workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
 
 **--device-cgroup-rule**="type major:minor mode"
 

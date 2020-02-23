@@ -218,6 +218,9 @@ can be used to specify device permissions, it is combination of
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 
+Note: if _host_device_ is a symbolic link then it will be resolved first.
+The container will only store the major and minor numbers of the host device.
+
 Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **crun**(1) runtime offers a
 workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
