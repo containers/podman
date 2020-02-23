@@ -41,6 +41,26 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(session).To(ExitWithError())
 	})
 
+	It("podman disable healthcheck with --no-healthcheck on valid container", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", healthcheck})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc.ExitCode()).To(Equal(125))
+	})
+
+	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
+		SkipIfRemote()
+		session := podmanTest.Podman([]string{"run", "-dt", "--health-cmd", "none", "--name", "hc", healthcheck})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc.ExitCode()).To(Equal(125))
+	})
+
 	It("podman healthcheck on valid container", func() {
 		Skip("Extremely consistent flake - re-enable on debugging")
 		session := podmanTest.Podman([]string{"run", "-dt", "--name", "hc", healthcheck})

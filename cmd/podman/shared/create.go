@@ -120,12 +120,13 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			imageName = newImage.ID()
 		}
 
-		// if the user disabled the healthcheck with "none", we skip adding it
+		// if the user disabled the healthcheck with "none" or the no-healthcheck
+		// options is provided, we skip adding it
 		healthCheckCommandInput := c.String("healthcheck-command")
 
 		// the user didn't disable the healthcheck but did pass in a healthcheck command
 		// now we need to make a healthcheck from the commandline input
-		if healthCheckCommandInput != "none" {
+		if healthCheckCommandInput != "none" && !c.Bool("no-healthcheck") {
 			if len(healthCheckCommandInput) > 0 {
 				healthCheck, err = makeHealthCheckFromCli(c)
 				if err != nil {

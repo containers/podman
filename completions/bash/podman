@@ -1888,6 +1888,11 @@ _podman_container_run() {
 		--expose
 		--gidmap
 		--group-add
+		--health-cmd
+		--health-interval
+		--health-retries
+		--health-start-period
+		--health-timeout
 		--hostname -h
 		--http-proxy
 		--image-volume
@@ -1906,6 +1911,7 @@ _podman_container_run() {
 		--memory-reservation
 		--name
 		--network
+		--no-healthcheck
 		--no-hosts
 		--oom-score-adj
 		--pid

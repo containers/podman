@@ -564,6 +564,10 @@ Valid values are:
 
 Not implemented
 
+**--no-healthcheck**=*true|false*
+
+Disable any defined healthchecks for container.
+
 **--no-hosts**=*true|false*
 
 Do not create /etc/hosts for the container.
