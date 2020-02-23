@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +17,7 @@ var (
 	portDescription = `List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	_portCommand = &cobra.Command{
-		Use:   "port [flags] CONTAINER",
+		Use:   "port [flags] CONTAINER [PORT]",
 		Short: "List port mappings or a specific mapping for the container",
 		Long:  portDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -48,8 +49,8 @@ func init() {
 
 func portCmd(c *cliconfig.PortValues) error {
 	var (
-		userProto string
-		userPort  int
+		userPort nat.Port
+		err      error
 	)
 	args := c.InputArgs
 
@@ -70,24 +71,18 @@ func portCmd(c *cliconfig.PortValues) error {
 	if len(args) == 1 && c.Latest {
 		port = args[0]
 	}
-	if port != "" {
+	if len(port) > 0 {
 		fields := strings.Split(port, "/")
-		// User supplied at least port
-		var err error
-		// User supplied port and protocol
-		if len(fields) == 2 {
-			userProto = fields[1]
-		}
-		if len(fields) >= 1 {
-			p := fields[0]
-			userPort, err = strconv.Atoi(p)
-			if err != nil {
-				return errors.Wrapf(err, "unable to format port")
-			}
-		}
-		// Format is incorrect
 		if len(fields) > 2 || len(fields) < 1 {
 			return errors.Errorf("port formats are port/protocol. '%s' is invalid", port)
+		}
+		if len(fields) == 1 {
+			fields = append(fields, "tcp")
+		}
+
+		userPort, err = nat.NewPort(fields[1], fields[0])
+		if err != nil {
+			return err
 		}
 	}
 
@@ -96,7 +91,6 @@ func portCmd(c *cliconfig.PortValues) error {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.DeferredShutdown(false)
-
 	containers, err := runtime.Port(c)
 	if err != nil {
 		return err
@@ -122,17 +116,18 @@ func portCmd(c *cliconfig.PortValues) error {
 				fmt.Printf("%d/%s -> %s:%d\n", v.ContainerPort, v.Protocol, hostIP, v.HostPort)
 				continue
 			}
-			// We have a match on ports
-			if v.ContainerPort == int32(userPort) {
-				if userProto == "" || userProto == v.Protocol {
-					fmt.Printf("%s:%d\n", hostIP, v.HostPort)
-					found = true
-					break
-				}
+			containerPort, err := nat.NewPort(v.Protocol, strconv.Itoa(int(v.ContainerPort)))
+			if err != nil {
+				return err
+			}
+			if containerPort == userPort {
+				fmt.Printf("%s:%d\n", hostIP, v.HostPort)
+				found = true
+				break
 			}
 		}
 		if !found && port != "" {
-			return errors.Errorf("failed to find published port '%d'", userPort)
+			return errors.Errorf("failed to find published port %q", port)
 		}
 	}
 
