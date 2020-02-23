@@ -19,7 +19,7 @@ func CreateWithSpec(ctx context.Context, s specgen.SpecGenerator) (utils.Contain
 	}
 	specgenString, err := jsoniter.MarshalToString(s)
 	if err != nil {
-		return ccr, nil
+		return ccr, err
 	}
 	stringReader := strings.NewReader(specgenString)
 	response, err := conn.DoRequest(stringReader, http.MethodPost, "/containers/create", nil)

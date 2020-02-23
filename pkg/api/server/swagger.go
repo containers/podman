@@ -1,6 +1,7 @@
 package server
 
 import (
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 )
@@ -138,4 +139,20 @@ type ok struct {
 		// example: OK
 		ok string
 	}
+}
+
+// Volume create response
+// swagger:response VolumeCreateResponse
+type swagVolumeCreateResponse struct {
+	// in:body
+	Body struct {
+		libpod.VolumeConfig
+	}
+}
+
+// Volume list
+// swagger:response VolumeList
+type swagVolumeListResponse struct {
+	// in:body
+	Body []libpod.Volume
 }
