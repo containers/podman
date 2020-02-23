@@ -36,9 +36,6 @@ func (r *Runtime) RemoveVolume(ctx context.Context, v *Volume, force bool) error
 		}
 	}
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
 	return r.removeVolume(ctx, v, force)
 }
 

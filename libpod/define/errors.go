@@ -61,6 +61,11 @@ var (
 	// the user.
 	ErrDetach = utils.ErrDetach
 
+	// ErrWillDeadlock indicates that the requested operation will cause a
+	// deadlock. This is usually caused by upgrade issues, and is resolved
+	// by renumbering the locks.
+	ErrWillDeadlock = errors.New("deadlock due to lock mismatch")
+
 	// ErrNoCgroups indicates that the container does not have its own
 	// CGroup.
 	ErrNoCgroups = errors.New("this container does not have a cgroup")

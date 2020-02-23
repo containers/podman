@@ -124,6 +124,9 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error
 		return define.ErrVolumeRemoved
 	}
 
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
 	// Update volume status to pick up a potential removal from state
 	if err := v.update(); err != nil {
 		return err
