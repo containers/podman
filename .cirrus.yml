@@ -729,10 +729,6 @@ verify_test_built_images_task:
 
 docs_task:
 
-    # Only run this for PRs on mention, and after merge
-    only_if: >-
-        $CIRRUS_BRANCH != $DEST_BRANCH
-
     depends_on:
         - "gating"
 
