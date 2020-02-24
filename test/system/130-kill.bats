@@ -16,7 +16,8 @@ load helpers
         echo READY;
         while ! test -e /stop; do sleep 0.05; done;
         echo DONE"
-    cid="$output"
+    # Ignore output regarding pulling/processing container images
+    cid=$(echo "$output" | tail -1)
 
     # Run 'logs -f' on that container, but run it in the background with
     # redirection to a named pipe from which we (foreground job) read
