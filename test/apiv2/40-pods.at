@@ -3,18 +3,20 @@
 # test pod-related endpoints
 #
 
-# FIXME! Shouldn't /create give an actual pod ID?
-expected_id='machine.slice'
-if rootless; then
-    expected_id=/libpod_parent
-fi
-
 t GET  libpod/pods/json            200 null
-t POST libpod/pods/create name=foo 201 .id=$expected_id
+t POST libpod/pods/create name=foo 201 .id~[0-9a-f]\\{64\\}
+pod_id=$(jq -r .id <<<"$output")
 t GET  libpod/pods/foo/exists      204
+t GET  libpod/pods/$pod_id/exists  204
 t GET  libpod/pods/notfoo/exists   404
-t GET  libpod/pods/foo/json        200     .Config.name=foo     .Containers=null
-t GET  libpod/pods/json            200 .[0].Config.name=foo .[0].Containers=null
+t GET  libpod/pods/foo/json        200 \
+  .Config.name=foo  \
+  .Config.id=$pod_id \
+  .Containers=null
+t GET  libpod/pods/json            200 \
+  .[0].Config.name=foo \
+  .[0].Config.id=$pod_id \
+  .[0].Containers=null
 
 # Cannot create a dup pod with the same name
 t POST libpod/pods/create name=foo 409 .cause="pod already exists"
@@ -35,8 +37,10 @@ t POST libpod/pods/foo/restart '' 500 .cause="no such container"
 
 t POST libpod/pods/bar/restart '' 404
 
-#t POST libpod/pods/prune ''    200     # FIXME: unimplemented, returns 500
-#t POST libpod/pods/prune 'a=b' 400     # FIXME: unimplemented, returns 500
+# FIXME: I'm not sure what 'prune' is supposed to do; as of 20200224 it
+# just returns 200 (ok) with empty result list.
+#t POST libpod/pods/prune ''    200     # FIXME: 2020-02-24 returns 200 {}
+#t POST libpod/pods/prune 'a=b' 400     # FIXME: 2020-02-24 returns 200
 
 # Clean up; and try twice, making sure that the second time fails
 t DELETE libpod/pods/foo 204
