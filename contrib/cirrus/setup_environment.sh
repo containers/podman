@@ -72,6 +72,9 @@ case "$SPECIALMODE" in
     endpoint)
         remove_packaged_podman_files
         ;;
+    bindings)
+        remove_packaged_podman_files
+        ;;
     rootless)
         # Only do this once, even if ROOTLESS_USER (somehow) changes
         if ! grep -q 'ROOTLESS_USER' /etc/environment

@@ -12,6 +12,7 @@ make localunit
 
 case "$SPECIALMODE" in
     in_podman) ;&
+    bindings) ;&
     rootless) ;&
     none)
         make
