@@ -862,10 +862,14 @@ Sets the username or UID used and optionally the groupname or GID for the specif
 
 Without this argument the command will be run as root in the container.
 
-**--userns**=**host**|**keep-id**|**container:**_id_|**ns:**_namespace_
+**--userns**=**auto**|**host**|**keep-id**|**container:**_id_|**ns:**_namespace_
 
 Set the user namespace mode for the container.  It defaults to the **PODMAN_USERNS** environment variable.  An empty value means user namespaces are disabled.
 
+- **auto**: automatically create a namespace.  It is possible to specify other options to `auto`.  The supported options are
+  **size=SIZE** to specify an explicit size for the automatic user namespace.  e.g. `--userns=auto:size=8192`.  If `size` is not specified, `auto` will guess a size for the user namespace.
+  **uidmapping=HOST_UID:CONTAINER_UID:SIZE** to force a UID mapping to be present in the user namespace.
+  **gidmapping=HOST_UID:CONTAINER_UID:SIZE** to force a GID mapping to be present in the user namespace.
 - **host**: run in the user namespace of the caller. This is the default if no user namespace options are set. The processes running in the container will have the same privileges on the host as any other process launched by the calling user.
 - **keep-id**: creates a user namespace where the current rootless user's UID:GID are mapped to the same values in the container. This option is ignored for containers created by the root user.
 - **ns**: run the container in the given existing user namespace.

@@ -6,6 +6,7 @@ import (
 	"context"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/lookup"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -43,4 +44,8 @@ func (c *Container) copyOwnerAndPerms(source, dest string) error {
 
 func (c *Container) getOCICgroupPath() (string, error) {
 	return "", define.ErrNotImplemented
+}
+
+func (c *Container) getUserOverrides() *lookup.Overrides {
+	return nil
 }

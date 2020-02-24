@@ -396,6 +396,20 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 		}
 	}
 
+	if c.config.IDMappings.AutoUserNs {
+		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
+			return nil, err
+		}
+		g.ClearLinuxUIDMappings()
+		for _, uidmap := range c.config.IDMappings.UIDMap {
+			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
+		}
+		g.ClearLinuxGIDMappings()
+		for _, gidmap := range c.config.IDMappings.GIDMap {
+			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
+		}
+	}
+
 	g.SetRootPath(c.state.Mountpoint)
 	g.AddAnnotation(annotations.Created, c.config.CreatedTime.Format(time.RFC3339Nano))
 	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
