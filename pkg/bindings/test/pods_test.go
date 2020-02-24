@@ -13,7 +13,7 @@ import (
 	"github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("Podman images", func() {
+var _ = Describe("Podman pods", func() {
 	var (
 		bt       *bindingTest
 		s        *gexec.Session
@@ -120,6 +120,7 @@ var _ = Describe("Podman images", func() {
 		err = pods.Pause(connText, newpod)
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStatePaused))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStatePaused))
@@ -129,6 +130,7 @@ var _ = Describe("Podman images", func() {
 		err = pods.Unpause(connText, newpod)
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
@@ -159,6 +161,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 
 		response, err := pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
@@ -172,6 +175,7 @@ var _ = Describe("Podman images", func() {
 		err = pods.Stop(connText, newpod, nil)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
@@ -184,13 +188,66 @@ var _ = Describe("Podman images", func() {
 		err = pods.Restart(connText, newpod)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateRunning))
 		}
 	})
 
-	// Remove all stopped pods and their container to be implemented.
+	// Test to validate all the pods in the stopped/exited state are pruned sucessfully.
 	It("prune pod", func() {
+		// Add a new pod
+		var newpod2 string = "newpod2"
+		bt.Podcreate(&newpod2)
+		// No pods pruned since no pod in exited state
+		err = pods.Prune(connText)
+		Expect(err).To(BeNil())
+		podSummary, err := pods.List(connText, nil)
+		Expect(err).To(BeNil())
+		Expect(len(podSummary)).To(Equal(2))
+
+		// Prune only one pod which is in exited state.
+		// Start then stop a pod.
+		// pod moves to exited state one pod should be pruned now.
+		err = pods.Start(connText, newpod)
+		Expect(err).To(BeNil())
+		err = pods.Stop(connText, newpod, nil)
+		Expect(err).To(BeNil())
+		response, err := pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateExited))
+		err = pods.Prune(connText)
+		Expect(err).To(BeNil())
+		podSummary, err = pods.List(connText, nil)
+		Expect(err).To(BeNil())
+		Expect(len(podSummary)).To(Equal(1))
+
+		// Test prune all pods in exited state.
+		bt.Podcreate(&newpod)
+		err = pods.Start(connText, newpod)
+		Expect(err).To(BeNil())
+		err = pods.Start(connText, newpod2)
+		Expect(err).To(BeNil())
+		err = pods.Stop(connText, newpod, nil)
+		Expect(err).To(BeNil())
+		response, err = pods.Inspect(connText, newpod)
+		Expect(response.State.Status).To(Equal(define.PodStateExited))
+		for _, i := range response.Containers {
+			Expect(define.StringToContainerStatus(i.State)).
+				To(Equal(define.ContainerStateStopped))
+		}
+		err = pods.Stop(connText, newpod2, nil)
+		Expect(err).To(BeNil())
+		response, err = pods.Inspect(connText, newpod2)
+		Expect(response.State.Status).To(Equal(define.PodStateExited))
+		for _, i := range response.Containers {
+			Expect(define.StringToContainerStatus(i.State)).
+				To(Equal(define.ContainerStateStopped))
+		}
+		err = pods.Prune(connText)
+		Expect(err).To(BeNil())
+		podSummary, err = pods.List(connText, nil)
+		Expect(err).To(BeNil())
+		Expect(len(podSummary)).To(Equal(0))
 	})
 })
