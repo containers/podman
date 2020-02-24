@@ -292,5 +292,58 @@ var _ = Describe("Podman images", func() {
 		Expect(data.Comment).To(Equal(testMessage))
 
 	})
+	It("History Image", func() {
+		// a bogus name should return a 404
+		_, err := images.History(connText, "foobar")
+		Expect(err).To(Not(BeNil()))
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+
+		var foundID bool
+		data, err := images.GetImage(connText, alpine.name, nil)
+		Expect(err).To(BeNil())
+		history, err := images.History(connText, alpine.name)
+		Expect(err).To(BeNil())
+		for _, i := range history {
+			if i.ID == data.ID {
+				foundID = true
+				break
+			}
+		}
+		Expect(foundID).To(BeTrue())
+	})
+
+	It("Search for an image", func() {
+		imgs, err := images.Search(connText, "alpine", nil, nil)
+		Expect(err).To(BeNil())
+		Expect(len(imgs)).To(BeNumerically(">", 1))
+		var foundAlpine bool
+		for _, i := range imgs {
+			if i.Name == "docker.io/library/alpine" {
+				foundAlpine = true
+				break
+			}
+		}
+		Expect(foundAlpine).To(BeTrue())
+
+		// Search for alpine with a limit of 10
+		ten := 10
+		imgs, err = images.Search(connText, "docker.io/alpine", &ten, nil)
+		Expect(err).To(BeNil())
+		Expect(len(imgs)).To(BeNumerically("<=", 10))
+
+		// Search for alpine with stars greater than 100
+		filters := make(map[string][]string)
+		filters["stars"] = []string{"100"}
+		imgs, err = images.Search(connText, "docker.io/alpine", nil, filters)
+		Expect(err).To(BeNil())
+		for _, i := range imgs {
+			Expect(i.Stars).To(BeNumerically(">=", 100))
+		}
+
+		//	Search with a fqdn
+		imgs, err = images.Search(connText, "quay.io/libpod/alpine_nginx", nil, nil)
+		Expect(len(imgs)).To(BeNumerically(">=", 1))
+	})
 
 })
