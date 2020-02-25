@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -77,6 +79,9 @@ func rmCmd(c *cliconfig.RmValues) error {
 
 	if len(failures) > 0 {
 		for _, err := range failures {
+			if errors.Cause(err) == define.ErrWillDeadlock {
+				logrus.Errorf("Potential deadlock detected - please run 'podman system renumber' to resolve")
+			}
 			exitCode = setExitCode(err)
 		}
 	}

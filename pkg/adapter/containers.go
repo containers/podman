@@ -469,6 +469,10 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
+		if errors.Cause(err) == define.ErrWillDeadlock {
+			logrus.Debugf("Deadlock error: %v", err)
+			return define.ExitCode(err), errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+		}
 		return define.ExitCode(err), err
 	}
 
@@ -702,6 +706,11 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 				return exitCode, nil
 			}
 
+			if errors.Cause(err) == define.ErrWillDeadlock {
+				logrus.Debugf("Deadlock error: %v", err)
+				return define.ExitCode(err), errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+			}
+
 			if ctrRunning {
 				return 0, err
 			}
@@ -734,6 +743,10 @@ func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigP
 			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
 				if lastError != nil {
 					fmt.Fprintln(os.Stderr, lastError)
+				}
+				if errors.Cause(err) == define.ErrWillDeadlock {
+					lastError = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
+					continue
 				}
 				lastError = errors.Wrapf(err, "unable to start container %q", container)
 				continue

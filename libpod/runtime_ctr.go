@@ -412,6 +412,9 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		}
 
 		// Lock the pod while we're removing container
+		if pod.config.LockID == c.config.LockID {
+			return errors.Wrapf(define.ErrWillDeadlock, "container %s and pod %s share lock ID %d", c.ID(), pod.ID(), c.config.LockID)
+		}
 		pod.lock.Lock()
 		defer pod.lock.Unlock()
 		if err := pod.updatePod(); err != nil {
