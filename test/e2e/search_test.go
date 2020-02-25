@@ -5,15 +5,13 @@ package integration
 import (
 	"bytes"
 	"fmt"
+	. "github.com/containers/libpod/test/utils"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"text/template"
-	"time"
-
-	. "github.com/containers/libpod/test/utils"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 type endpoint struct {
@@ -165,21 +163,6 @@ registries = ['{{.Host}}:{{.Port}}']`
 		}
 	})
 
-	It("podman search v2 registry with empty query", func() {
-		var search *PodmanSessionIntegration
-		for i := 0; i < 5; i++ {
-			search = podmanTest.Podman([]string{"search", "registry.fedoraproject.org/"})
-			search.WaitWithDefaultTimeout()
-			if search.ExitCode() == 0 {
-				break
-			}
-			fmt.Println("Search failed; sleeping & retrying...")
-			time.Sleep(2 * time.Second)
-		}
-		Expect(search.ExitCode()).To(Equal(0))
-		Expect(len(search.OutputToStringArray())).To(BeNumerically(">=", 1))
-	})
-
 	It("podman search attempts HTTP if tls-verify flag is set false", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
@@ -234,6 +217,14 @@ registries = ['{{.Host}}:{{.Port}}']`
 
 		Expect(search.ExitCode()).To(Equal(0))
 		Expect(search.OutputToString()).ShouldNot(BeEmpty())
+
+		// podman search v2 registry with empty query
+		searchEmpty := podmanTest.PodmanNoCache([]string{"search", fmt.Sprintf("%s/", registryEndpoints[3].Address()), "--tls-verify=false"})
+		searchEmpty.WaitWithDefaultTimeout()
+		Expect(searchEmpty.ExitCode()).To(BeZero())
+		Expect(len(searchEmpty.OutputToStringArray())).To(BeNumerically(">=", 1))
+		match, _ := search.GrepString("my-alpine")
+		Expect(match).Should(BeTrue())
 	})
 
 	It("podman search attempts HTTP if registry is in registries.insecure and force secure is false", func() {

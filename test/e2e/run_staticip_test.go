@@ -3,7 +3,10 @@
 package integration
 
 import (
+	"fmt"
+	"net/http"
 	"os"
+	"time"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -65,9 +68,20 @@ var _ = Describe("Podman run with --ip flag", func() {
 
 	It("Podman run two containers with the same IP", func() {
 		ip := GetRandomIPAddress()
-		result := podmanTest.Podman([]string{"run", "-d", "--ip", ip, ALPINE, "sleep", "999"})
+		result := podmanTest.Podman([]string{"run", "-dt", "--ip", ip, nginx})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+		for i := 0; i < 10; i++ {
+			fmt.Println("Waiting for nginx", err)
+			time.Sleep(1 * time.Second)
+			response, err := http.Get(fmt.Sprintf("http://%s", ip))
+			if err != nil {
+				continue
+			}
+			if response.StatusCode == http.StatusOK {
+				break
+			}
+		}
 		result = podmanTest.Podman([]string{"run", "-ti", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).To(ExitWithError())
