@@ -510,7 +510,7 @@ func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []st
 			}
 		}
 	}
-	if !foundProcess {
+	if !foundProcess && pausePidPath != "" {
 		return BecomeRootInUserNS(pausePidPath)
 	}
 	if lastErr != nil {
