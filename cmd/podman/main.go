@@ -83,7 +83,7 @@ var rootCmd = &cobra.Command{
 
 var MainGlobalOpts cliconfig.MainFlags
 
-func init() {
+func initCobra() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.TraverseChildren = true
 	rootCmd.Version = version.Version
@@ -94,16 +94,20 @@ func init() {
 	rootCmd.AddCommand(getMainCommands()...)
 }
 
+func init() {
+	if err := libpod.SetXdgDirs(); err != nil {
+		logrus.Errorf(err.Error())
+		os.Exit(1)
+	}
+	initBuild()
+	initCobra()
+}
+
 func initConfig() {
 	//	we can do more stuff in here.
 }
 
 func before(cmd *cobra.Command, args []string) error {
-	if err := libpod.SetXdgDirs(); err != nil {
-		logrus.Errorf(err.Error())
-		os.Exit(1)
-	}
-
 	//	Set log level; if not log-level is provided, default to error
 	logLevel := MainGlobalOpts.LogLevel
 	if logLevel == "" {

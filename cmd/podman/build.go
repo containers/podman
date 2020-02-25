@@ -53,13 +53,12 @@ var (
 	}
 )
 
-func init() {
+func initBuild() {
 	buildCommand.Command = _buildCommand
 	buildCommand.SetHelpTemplate(HelpTemplate())
 	buildCommand.SetUsageTemplate(UsageTemplate())
 	flags := buildCommand.Flags()
 	flags.SetInterspersed(true)
-
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
 	flag := budFlags.Lookup("pull")
 	if err := flag.Value.Set("true"); err != nil {
