@@ -43,6 +43,11 @@
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
+%if 0%{?fedora}
+Epoch: 99
+%else
+Epoch: 0
+%endif
 Version: 1.8.1
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
