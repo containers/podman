@@ -143,7 +143,6 @@ func runREST(r *libpod.Runtime, uri string, timeout time.Duration) error {
 		if err != nil {
 			return errors.Wrapf(err, "unable to create socket %s", uri)
 		}
-		defer l.Close()
 		listener = &l
 	}
 	server, err := api.NewServerWithSettings(r, timeout, listener)

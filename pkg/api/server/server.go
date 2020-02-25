@@ -140,36 +140,31 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 func (s *APIServer) Serve() error {
 	// stalker to count the connections.  Should the timer expire it will shutdown the service.
 	go func() {
-		for {
-			select {
-			case delta := <-s.ConnectionCh:
-				// Always stop the current timer, things will change...
+		for delta := range s.ConnectionCh {
+			switch delta {
+			case EnterHandler:
 				s.Timer.Stop()
-				switch delta {
-				case EnterHandler:
-					s.ActiveConnections += 1
-					s.TotalConnections += 1
-				case ExitHandler:
-					s.ActiveConnections -= 1
-					if s.ActiveConnections == 0 {
-						// Server will be shutdown iff the timer expires before being reset or stopped
-						s.Timer = time.AfterFunc(s.Duration, func() {
-							if err := s.Shutdown(); err != nil {
-								logrus.Errorf("Failed to shutdown APIServer: %v", err)
-								os.Exit(1)
-							}
-						})
-					} else {
-						s.Timer.Reset(s.Duration)
-					}
-				case NOOPHandler:
-					// push the check out another duration...
+				s.ActiveConnections += 1
+				s.TotalConnections += 1
+			case ExitHandler:
+				s.Timer.Stop()
+				s.ActiveConnections -= 1
+				if s.ActiveConnections == 0 {
+					// Server will be shutdown iff the timer expires before being reset or stopped
+					s.Timer = time.AfterFunc(s.Duration, func() {
+						if err := s.Shutdown(); err != nil {
+							logrus.Errorf("Failed to shutdown APIServer: %v", err)
+							os.Exit(1)
+						}
+					})
+				} else {
 					s.Timer.Reset(s.Duration)
-				default:
-					logrus.Errorf("ConnectionCh received unsupported input %d", delta)
 				}
+			case NOOPHandler:
+				// push the check out another duration...
+				s.Timer.Reset(s.Duration)
 			default:
-				time.Sleep(1 * time.Second)
+				logrus.Errorf("ConnectionCh received unsupported input %d", delta)
 			}
 		}
 	}()
@@ -212,7 +207,7 @@ func (s *APIServer) Shutdown() error {
 
 	go func() {
 		err := s.Server.Shutdown(ctx)
-		if err != nil && err != context.Canceled {
+		if err != nil && err != context.Canceled && err != http.ErrServerClosed {
 			logrus.Errorf("Failed to cleanly shutdown APIServer: %s", err.Error())
 		}
 	}()
