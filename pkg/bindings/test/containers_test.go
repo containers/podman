@@ -235,7 +235,7 @@ var _ = Describe("Podman containers ", func() {
 		Expect(data.State.Status).To(Equal("exited"))
 	})
 
-	It("podman stop a running container by ID)", func() {
+	It("podman stop a running container by ID", func() {
 		// Stopping a running container by ID should work
 		var name = "top"
 		bt.RunTopContainer(&name, &falseFlag, nil)
