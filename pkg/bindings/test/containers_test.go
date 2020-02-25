@@ -312,4 +312,49 @@ var _ = Describe("Podman containers ", func() {
 		Expect(exitCode).To(BeNumerically("==", -1))
 	})
 
+	It("run  healthcheck", func() {
+		bt.runPodman([]string{"run", "-d", "--name", "hc", "--health-interval", "disable", "--health-retries", "2", "--health-cmd", "ls / || exit 1", alpine.name, "top"})
+
+		// bogus name should result in 404
+		_, err := containers.RunHealthCheck(bt.conn, "foobar")
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+
+		// a container that has no healthcheck should be a 409
+		var name = "top"
+		bt.RunTopContainer(&name, &falseFlag, nil)
+		_, err = containers.RunHealthCheck(bt.conn, name)
+		Expect(err).ToNot(BeNil())
+		code, _ = bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusConflict))
+
+		// TODO for the life of me, i cannot get this to work. maybe another set
+		// of eyes will
+		// successful healthcheck
+		//status := "healthy"
+		//for i:=0; i < 10; i++ {
+		//	result, err := containers.RunHealthCheck(connText, "hc")
+		//	Expect(err).To(BeNil())
+		//	if result.Status != "healthy" {
+		//		fmt.Println("Healthcheck container still starting, retrying in 1 second")
+		//		time.Sleep(1 * time.Second)
+		//		continue
+		//	}
+		//	status = result.Status
+		//	break
+		//}
+		//Expect(status).To(Equal("healthy"))
+
+		// TODO enable this when wait is working
+		// healthcheck on a stopped container should be a 409
+		//err = containers.Stop(connText, "hc", nil)
+		//Expect(err).To(BeNil())
+		//_, err = containers.Wait(connText, "hc")
+		//Expect(err).To(BeNil())
+		//_, err = containers.RunHealthCheck(connText, "hc")
+		//code, _ = bindings.CheckResponseCode(err)
+		//Expect(code).To(BeNumerically("==", http.StatusConflict))
+	})
+
 })

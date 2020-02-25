@@ -156,3 +156,12 @@ type swagVolumeListResponse struct {
 	// in:body
 	Body []libpod.Volume
 }
+
+// Healthcheck
+// swagger:response HealthcheckRun
+type swagHealthCheckRunResponse struct {
+	// in:body
+	Body struct {
+		libpod.HealthCheckResults
+	}
+}
