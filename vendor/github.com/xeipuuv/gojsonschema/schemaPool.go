@@ -150,12 +150,12 @@ func (p *schemaPool) GetDocument(reference gojsonreference.JsonReference) (*sche
 	}
 
 	// Create a deep copy, so we can remove the fragment part later on without altering the original
-	refToUrl, _ := gojsonreference.NewJsonReference(reference.String())
+	refToURL, _ := gojsonreference.NewJsonReference(reference.String())
 
 	// First check if the given fragment is a location independent identifier
 	// http://json-schema.org/latest/json-schema-core.html#rfc.section.8.2.3
 
-	if spd, ok = p.schemaPoolDocuments[refToUrl.String()]; ok {
+	if spd, ok = p.schemaPoolDocuments[refToURL.String()]; ok {
 		if internalLogEnabled {
 			internalLog(" From pool")
 		}
@@ -165,9 +165,9 @@ func (p *schemaPool) GetDocument(reference gojsonreference.JsonReference) (*sche
 	// If the given reference is not a location independent identifier,
 	// strip the fragment and look for a document with it's base URI
 
-	refToUrl.GetUrl().Fragment = ""
+	refToURL.GetUrl().Fragment = ""
 
-	if cachedSpd, ok := p.schemaPoolDocuments[refToUrl.String()]; ok {
+	if cachedSpd, ok := p.schemaPoolDocuments[refToURL.String()]; ok {
 		document, _, err := reference.GetPointer().Get(cachedSpd.Document)
 
 		if err != nil {
@@ -200,7 +200,7 @@ func (p *schemaPool) GetDocument(reference gojsonreference.JsonReference) (*sche
 	}
 
 	// add the whole document to the pool for potential re-use
-	p.parseReferences(document, refToUrl, true)
+	p.parseReferences(document, refToURL, true)
 
 	_, draft, _ = parseSchemaURL(document)
 

@@ -32,6 +32,7 @@ type JsonContext struct {
 	tail *JsonContext
 }
 
+// NewJsonContext creates a new JsonContext
 func NewJsonContext(head string, tail *JsonContext) *JsonContext {
 	return &JsonContext{head, tail}
 }

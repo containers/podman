@@ -165,3 +165,11 @@ func convertMounts(mounts []Mount) []specs.Mount {
 	}
 	return specmounts
 }
+
+func copyStringStringMap(m map[string]string) map[string]string {
+	n := map[string]string{}
+	for k, v := range m {
+		n[k] = v
+	}
+	return n
+}

@@ -27,14 +27,12 @@
 package gojsonschema
 
 import (
-	"errors"
+	"github.com/xeipuuv/gojsonreference"
 	"math/big"
 	"regexp"
-	"strings"
-
-	"github.com/xeipuuv/gojsonreference"
 )
 
+// Constants
 const (
 	KEY_SCHEMA                = "$schema"
 	KEY_ID                    = "id"
@@ -87,6 +85,9 @@ type subSchema struct {
 	description *string
 
 	property string
+
+	// Quick pass/fail for boolean schemas
+	pass *bool
 
 	// Types associated with the subSchema
 	types jsonSchemaType
@@ -145,112 +146,4 @@ type subSchema struct {
 	_if   *subSchema // if/else are golang keywords
 	_then *subSchema
 	_else *subSchema
-}
-
-func (s *subSchema) AddConst(i interface{}) error {
-
-	is, err := marshalWithoutNumber(i)
-	if err != nil {
-		return err
-	}
-	s._const = is
-	return nil
-}
-
-func (s *subSchema) AddEnum(i interface{}) error {
-
-	is, err := marshalWithoutNumber(i)
-	if err != nil {
-		return err
-	}
-
-	if isStringInSlice(s.enum, *is) {
-		return errors.New(formatErrorDescription(
-			Locale.KeyItemsMustBeUnique(),
-			ErrorDetails{"key": KEY_ENUM},
-		))
-	}
-
-	s.enum = append(s.enum, *is)
-
-	return nil
-}
-
-func (s *subSchema) ContainsEnum(i interface{}) (bool, error) {
-
-	is, err := marshalWithoutNumber(i)
-	if err != nil {
-		return false, err
-	}
-
-	return isStringInSlice(s.enum, *is), nil
-}
-
-func (s *subSchema) AddOneOf(subSchema *subSchema) {
-	s.oneOf = append(s.oneOf, subSchema)
-}
-
-func (s *subSchema) AddAllOf(subSchema *subSchema) {
-	s.allOf = append(s.allOf, subSchema)
-}
-
-func (s *subSchema) AddAnyOf(subSchema *subSchema) {
-	s.anyOf = append(s.anyOf, subSchema)
-}
-
-func (s *subSchema) SetNot(subSchema *subSchema) {
-	s.not = subSchema
-}
-
-func (s *subSchema) SetIf(subSchema *subSchema) {
-	s._if = subSchema
-}
-
-func (s *subSchema) SetThen(subSchema *subSchema) {
-	s._then = subSchema
-}
-
-func (s *subSchema) SetElse(subSchema *subSchema) {
-	s._else = subSchema
-}
-
-func (s *subSchema) AddRequired(value string) error {
-
-	if isStringInSlice(s.required, value) {
-		return errors.New(formatErrorDescription(
-			Locale.KeyItemsMustBeUnique(),
-			ErrorDetails{"key": KEY_REQUIRED},
-		))
-	}
-
-	s.required = append(s.required, value)
-
-	return nil
-}
-
-func (s *subSchema) AddItemsChild(child *subSchema) {
-	s.itemsChildren = append(s.itemsChildren, child)
-}
-
-func (s *subSchema) AddPropertiesChild(child *subSchema) {
-	s.propertiesChildren = append(s.propertiesChildren, child)
-}
-
-func (s *subSchema) PatternPropertiesString() string {
-
-	if s.patternProperties == nil || len(s.patternProperties) == 0 {
-		return STRING_UNDEFINED // should never happen
-	}
-
-	patternPropertiesKeySlice := []string{}
-	for pk := range s.patternProperties {
-		patternPropertiesKeySlice = append(patternPropertiesKeySlice, `"`+pk+`"`)
-	}
-
-	if len(patternPropertiesKeySlice) == 1 {
-		return patternPropertiesKeySlice[0]
-	}
-
-	return "[" + strings.Join(patternPropertiesKeySlice, ",") + "]"
-
 }

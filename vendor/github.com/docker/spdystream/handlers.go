@@ -30,7 +30,9 @@ func MirrorStreamHandler(stream *Stream) {
 	}()
 }
 
-// NoopStreamHandler does nothing when stream connects.
+// NoopStreamHandler does nothing when stream connects, most
+// likely used with RejectAuthHandler which will not allow any
+// streams to make it to the stream handler.
 func NoOpStreamHandler(stream *Stream) {
 	stream.SendReply(http.Header{}, false)
 }

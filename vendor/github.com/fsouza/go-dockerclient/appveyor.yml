@@ -7,8 +7,8 @@ environment:
   GOPROXY: https://proxy.golang.org
   GO111MODULE: on
   matrix:
-    - GOVERSION: "1.12.14"
-    - GOVERSION: "1.13.5"
+    - GOVERSION: "1.12.17"
+    - GOVERSION: "1.13.8"
     - GOVERSION: "1.14rc1"
 install:
   - choco install make

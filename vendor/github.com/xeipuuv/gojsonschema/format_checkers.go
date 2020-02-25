@@ -13,6 +13,7 @@ import (
 type (
 	// FormatChecker is the interface all formatters added to FormatCheckerChain must implement
 	FormatChecker interface {
+		// IsFormat checks if input has the correct format and type
 		IsFormat(input interface{}) bool
 	}
 
@@ -21,13 +22,13 @@ type (
 		formatters map[string]FormatChecker
 	}
 
-	// EmailFormatter verifies email address formats
+	// EmailFormatChecker verifies email address formats
 	EmailFormatChecker struct{}
 
-	// IPV4FormatChecker verifies IP addresses in the ipv4 format
+	// IPV4FormatChecker verifies IP addresses in the IPv4 format
 	IPV4FormatChecker struct{}
 
-	// IPV6FormatChecker verifies IP addresses in the ipv6 format
+	// IPV6FormatChecker verifies IP addresses in the IPv6 format
 	IPV6FormatChecker struct{}
 
 	// DateTimeFormatChecker verifies date/time formats per RFC3339 5.6
@@ -53,8 +54,29 @@ type (
 	// http://tools.ietf.org/html/rfc3339#section-5.6
 	DateTimeFormatChecker struct{}
 
+	// DateFormatChecker verifies date formats
+	//
+	// Valid format:
+	//		Full Date: YYYY-MM-DD
+	//
+	// 	Where
+	//		YYYY = 4DIGIT year
+	//		MM = 2DIGIT month ; 01-12
+	//		DD = 2DIGIT day-month ; 01-28, 01-29, 01-30, 01-31 based on month/year
 	DateFormatChecker struct{}
 
+	// TimeFormatChecker verifies time formats
+	//
+	// Valid formats:
+	// 		Partial Time: HH:MM:SS
+	// 		Full Time: HH:MM:SSZ-07:00
+	//
+	// 	Where
+	//		HH = 2DIGIT hour ; 00-23
+	//		MM = 2DIGIT ; 00-59
+	//		SS = 2DIGIT ; 00-58, 00-60 based on leap second rules
+	//		T = Literal
+	//		Z = Literal
 	TimeFormatChecker struct{}
 
 	// URIFormatChecker validates a URI with a valid Scheme per RFC3986
@@ -83,7 +105,7 @@ type (
 )
 
 var (
-	// Formatters holds the valid formatters, and is a public variable
+	// FormatCheckers holds the valid formatters, and is a public variable
 	// so library users can add custom formatters
 	FormatCheckers = FormatCheckerChain{
 		formatters: map[string]FormatChecker{
@@ -119,7 +141,7 @@ var (
 
 	rxRelJSONPointer = regexp.MustCompile("^(?:0|[1-9][0-9]*)(?:#|(?:/(?:[^~/]|~0|~1)*)*)$")
 
-	lock = new(sync.Mutex)
+	lock = new(sync.RWMutex)
 )
 
 // Add adds a FormatChecker to the FormatCheckerChain
@@ -143,9 +165,9 @@ func (c *FormatCheckerChain) Remove(name string) *FormatCheckerChain {
 
 // Has checks to see if the FormatCheckerChain holds a FormatChecker with the given name
 func (c *FormatCheckerChain) Has(name string) bool {
-	lock.Lock()
+	lock.RLock()
 	_, ok := c.formatters[name]
-	lock.Unlock()
+	lock.RUnlock()
 
 	return ok
 }
@@ -153,55 +175,57 @@ func (c *FormatCheckerChain) Has(name string) bool {
 // IsFormat will check an input against a FormatChecker with the given name
 // to see if it is the correct format
 func (c *FormatCheckerChain) IsFormat(name string, input interface{}) bool {
+	lock.RLock()
 	f, ok := c.formatters[name]
+	lock.RUnlock()
 
+	// If a format is unrecognized it should always pass validation
 	if !ok {
-		return false
+		return true
 	}
 
 	return f.IsFormat(input)
 }
 
+// IsFormat checks if input is a correctly formatted e-mail address
 func (f EmailFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
 	_, err := mail.ParseAddress(asString)
-
 	return err == nil
 }
 
-// Credit: https://github.com/asaskevich/govalidator
+// IsFormat checks if input is a correctly formatted IPv4-address
 func (f IPV4FormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
+	// Credit: https://github.com/asaskevich/govalidator
 	ip := net.ParseIP(asString)
 	return ip != nil && strings.Contains(asString, ".")
 }
 
-// Credit: https://github.com/asaskevich/govalidator
+// IsFormat checks if input is a correctly formatted IPv6=address
 func (f IPV6FormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
+	// Credit: https://github.com/asaskevich/govalidator
 	ip := net.ParseIP(asString)
 	return ip != nil && strings.Contains(asString, ":")
 }
 
+// IsFormat checks if input is a correctly formatted  date/time per RFC3339 5.6
 func (f DateTimeFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -222,18 +246,20 @@ func (f DateTimeFormatChecker) IsFormat(input interface{}) bool {
 	return false
 }
 
+// IsFormat checks if input is a correctly formatted  date (YYYY-MM-DD)
 func (f DateFormatChecker) IsFormat(input interface{}) bool {
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 	_, err := time.Parse("2006-01-02", asString)
 	return err == nil
 }
 
+// IsFormat checks if input correctly formatted time (HH:MM:SS or HH:MM:SSZ-07:00)
 func (f TimeFormatChecker) IsFormat(input interface{}) bool {
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -245,10 +271,10 @@ func (f TimeFormatChecker) IsFormat(input interface{}) bool {
 	return err == nil
 }
 
+// IsFormat checks if input is correctly formatted  URI with a valid Scheme per RFC3986
 func (f URIFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -261,10 +287,10 @@ func (f URIFormatChecker) IsFormat(input interface{}) bool {
 	return !strings.Contains(asString, `\`)
 }
 
+// IsFormat checks if input is a correctly formatted URI or relative-reference per RFC3986
 func (f URIReferenceFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -272,9 +298,10 @@ func (f URIReferenceFormatChecker) IsFormat(input interface{}) bool {
 	return err == nil && !strings.Contains(asString, `\`)
 }
 
+// IsFormat checks if input is a correctly formatted URI template per RFC6570
 func (f URITemplateFormatChecker) IsFormat(input interface{}) bool {
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -286,31 +313,30 @@ func (f URITemplateFormatChecker) IsFormat(input interface{}) bool {
 	return rxURITemplate.MatchString(u.Path)
 }
 
+// IsFormat checks if input is a correctly formatted hostname
 func (f HostnameFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
 	return rxHostname.MatchString(asString) && len(asString) < 256
 }
 
+// IsFormat checks if input is a correctly formatted UUID
 func (f UUIDFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
 	return rxUUID.MatchString(asString)
 }
 
-// IsFormat implements FormatChecker interface.
+// IsFormat checks if input is a correctly formatted regular expression
 func (f RegexFormatChecker) IsFormat(input interface{}) bool {
-
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
@@ -318,24 +344,23 @@ func (f RegexFormatChecker) IsFormat(input interface{}) bool {
 		return true
 	}
 	_, err := regexp.Compile(asString)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
+// IsFormat checks if input is a correctly formatted JSON Pointer per RFC6901
 func (f JSONPointerFormatChecker) IsFormat(input interface{}) bool {
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
 	return rxJSONPointer.MatchString(asString)
 }
 
+// IsFormat checks if input is a correctly formatted relative JSON Pointer
 func (f RelativeJSONPointerFormatChecker) IsFormat(input interface{}) bool {
 	asString, ok := input.(string)
-	if ok == false {
+	if !ok {
 		return false
 	}
 
