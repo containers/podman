@@ -32,6 +32,7 @@ case $1 in
     df) showrun df -lhTx tmpfs ;;
     ginkgo) showrun cat $CIRRUS_WORKING_DIR/test/e2e/ginkgo-node-*.log ;;
     journal) showrun journalctl -b ;;
+    podman) showrun podman system info ;;
     varlink)
        if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
        then

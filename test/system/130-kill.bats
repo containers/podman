@@ -8,8 +8,16 @@ load helpers
 @test "podman kill - test signal handling in containers" {
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    run_podman run -d $IMAGE sh -c "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done; echo READY; while ! test -e /stop; do sleep 0.05; done;echo DONE"
-    cid="$output"
+    # The --default-signal option not available in busybox implementation of 'env' in $IMAGE
+    # needed here to ensure handling of SIGINT inside container uses the default handler
+    _IMAGE=quay.io/libpod/fedora-minimal:latest
+    run_podman run -d $_IMAGE env --default-signal sh -c \
+        "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
+        echo READY;
+        while ! test -e /stop; do sleep 0.05; done;
+        echo DONE"
+    # Ignore output regarding pulling/processing container images
+    cid=$(echo "$output" | tail -1)
 
     # Run 'logs -f' on that container, but run it in the background with
     # redirection to a named pipe from which we (foreground job) read

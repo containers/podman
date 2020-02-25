@@ -15,100 +15,106 @@ install_ooe
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-ooe.sh sudo dnf update -y
+$BIGTO ooe.sh sudo dnf update -y
 
 echo "Enabling updates-testing repository"
-ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
-ooe.sh sudo dnf config-manager --set-enabled updates-testing
+$LILTO ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
+$LILTO ooe.sh sudo dnf config-manager --set-enabled updates-testing
 
-echo "Installing general build/test dependencies"
-ooe.sh sudo dnf install -y \
-    atomic-registries \
-    autoconf \
-    automake \
-    bash-completion \
-    bats \
-    bridge-utils \
-    btrfs-progs-devel \
-    bzip2 \
-    conmon \
-    container-selinux \
-    containernetworking-plugins \
-    containers-common \
-    criu \
-    device-mapper-devel \
-    emacs-nox \
-    file \
-    findutils \
-    fuse3 \
-    fuse3-devel \
-    gcc \
-    git \
-    glib2-devel \
-    glibc-static \
-    gnupg \
-    go-md2man \
-    golang \
-    golang-github-cpuguy83-go-md2man \
-    gpgme-devel \
-    iproute \
-    iptables \
-    jq \
-    libassuan-devel \
-    libcap-devel \
-    libmsi1 \
-    libnet \
-    libnet-devel \
-    libnl3-devel \
-    libseccomp \
-    libseccomp-devel \
-    libselinux-devel \
-    libtool \
-    libvarlink-util \
-    lsof \
-    make \
-    msitools \
-    nmap-ncat \
-    pandoc \
-    podman \
-    procps-ng \
-    protobuf \
-    protobuf-c \
-    protobuf-c-devel \
-    protobuf-compiler \
-    protobuf-devel \
-    protobuf-python \
-    python \
-    python2-future \
-    python3-dateutil \
-    python3-psutil \
-    python3-pytoml \
-    runc \
-    selinux-policy-devel \
-    slirp4netns \
-    unzip \
-    vim \
-    which \
-    xz \
+echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
+REMOVE_PACKAGES=()
+INSTALL_PACKAGES=(\
+    autoconf
+    automake
+    bash-completion
+    bats
+    bridge-utils
+    btrfs-progs-devel
+    bzip2
+    conmon
+    container-selinux
+    containernetworking-plugins
+    containers-common
+    criu
+    device-mapper-devel
+    dnsmasq
+    emacs-nox
+    file
+    findutils
+    fuse3
+    fuse3-devel
+    gcc
+    git
+    glib2-devel
+    glibc-static
+    gnupg
+    go-md2man
+    golang
+    gpgme-devel
+    iproute
+    iptables
+    jq
+    libassuan-devel
+    libcap-devel
+    libmsi1
+    libnet
+    libnet-devel
+    libnl3-devel
+    libseccomp
+    libseccomp-devel
+    libselinux-devel
+    libtool
+    libvarlink-util
+    lsof
+    make
+    msitools
+    nmap-ncat
+    pandoc
+    podman
+    procps-ng
+    protobuf
+    protobuf-c
+    protobuf-c-devel
+    protobuf-devel
+    protobuf-python
+    python
+    python3-dateutil
+    python3-psutil
+    python3-pytoml
+    selinux-policy-devel
+    skopeo
+    slirp4netns
+    unzip
+    vim
+    which
+    xz
     zip
+)
+case "$OS_RELEASE_VER" in
+    30)
+        INSTALL_PACKAGES+=(\
+            atomic-registries
+            golang-github-cpuguy83-go-md2man
+            python2-future
+            runc
+        )
+        ;;
+    31)
+        INSTALL_PACKAGES+=(crun)
+        REMOVE_PACKAGES+=(runc)
+        ;;
+    *)
+        bad_os_id_ver ;;
+esac
+$BIGTO ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
 
+[[ "${#REMOVE_PACKAGES[@]}" -eq "0" ]] || \
+    $LILTO ooe.sh sudo dnf erase -y ${REMOVE_PACKAGES[@]}
 
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish
 
-sudo /tmp/libpod/hack/install_catatonit.sh
-
-# Same script is used for several related contexts
-case "$PACKER_BUILDER_NAME" in
-    xfedora*)
-        echo "Configuring CGroups v2 enabled on next boot"
-        sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=1"
-        sudo dnf install -y crun
-        ;&  # continue to next matching item
-    *)
-        echo "Finalizing $PACKER_BUILDER_NAME VM image"
-        ;;
-esac
+ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
 
 rh_finalize
 

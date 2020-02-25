@@ -16,6 +16,16 @@ fi
 
 cd "$GOSRC"
 
+# Transition workaround: runc is still the default for upstream development
+handle_crun() {
+    # For systems with crun installed, assume CgroupsV2 and use it
+    if type -P crun &> /dev/null
+    then
+        warn "Replacing runc -> crun in libpod.conf"
+        sed -i -r -e 's/^runtime = "runc"/runtime = "crun"/' /usr/share/containers/libpod.conf
+    fi
+}
+
 case "$SPECIALMODE" in
     in_podman)
         ${CONTAINER_RUNTIME} run --rm --privileged --net=host \
@@ -36,32 +46,24 @@ case "$SPECIALMODE" in
                 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
                 -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/rootless_test.sh ${TESTSUITE}
         ;;
-    cgroupv2)
-        setenforce 0
-        dnf install -y crun
-        export OCI_RUNTIME=/usr/bin/crun
-        make
-        make install PREFIX=/usr ETCDIR=/etc
-        make install.config PREFIX=/usr
-        make test-binaries
-        make local${TESTSUITE}
-        ;;
     endpoint)
         make
         make install PREFIX=/usr ETCDIR=/etc
+        #handle_crun
         make test-binaries
         make endpoint
         ;;
     bindings)
-	make
+	    make
         make install PREFIX=/usr ETCDIR=/etc
-	cd pkg/bindings/test && ginkgo -r
+	    cd pkg/bindings/test && ginkgo -r
 	;;
     none)
         make
         make install PREFIX=/usr ETCDIR=/etc
         make install.config PREFIX=/usr
         make test-binaries
+        handle_crun
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then
             make remote${TESTSUITE} VARLINK_LOG=$VARLINK_LOG

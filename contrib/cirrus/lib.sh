@@ -7,10 +7,10 @@
 source /etc/environment  # not always loaded under all circumstances
 
 # Under some contexts these values are not set, make sure they are.
-USER="$(whoami)"
-HOME="$(getent passwd $USER | cut -d : -f 6)"
-[[ -n "$UID" ]] || UID=$(getent passwd $USER | cut -d : -f 3)
-GID=$(getent passwd $USER | cut -d : -f 4)
+export USER="$(whoami)"
+export HOME="$(getent passwd $USER | cut -d : -f 6)"
+[[ -n "$UID" ]] || export UID=$(getent passwd $USER | cut -d : -f 3)
+export GID=$(getent passwd $USER | cut -d : -f 4)
 
 # Essential default paths, many are overridden when executing under Cirrus-CI
 export GOPATH="${GOPATH:-/var/tmp/go}"
@@ -59,13 +59,13 @@ PACKER_VER="1.4.2"
 # CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
 
 # Base-images rarely change, define them here so they're out of the way.
-export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-30,xfedora-30,fedora-29}"
-# Google-maintained base-image names
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-31,fedora-30}"
+# Manually produced base-image names (see $SCRIPT_BASE/README.md)
 export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
 export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
 # Manually produced base-image names (see $SCRIPT_BASE/README.md)
-export FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
-export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-29-1-2-1541789245"
+export FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1578586410"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
 export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
 # IN_PODMAN container image
 IN_PODMAN_IMAGE="quay.io/libpod/in_podman:latest"
@@ -79,8 +79,8 @@ SUDOAPTADD="ooe.sh sudo -E add-apt-repository --yes"
 # Regex that finds enabled periodic apt configuration items
 PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
 # Short-cuts for retrying/timeout calls
-LILTO="timeout_attempt_delay_command 24s 5 30s"
-BIGTO="timeout_attempt_delay_command 300s 5 30s"
+LILTO="timeout_attempt_delay_command 120s 5 30s"
+BIGTO="timeout_attempt_delay_command 300s 5 60s"
 
 # Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
 ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
@@ -178,8 +178,7 @@ die() {
 }
 
 warn() {
-    echo ">>>>> ${2:-WARNING (but no message given!) in ${FUNCNAME[1]}()}" > /dev/stderr
-    echo ${1:-1} > /dev/stdout
+    echo ">>>>> ${1:-WARNING (but no message given!) in ${FUNCNAME[1]}()}" > /dev/stderr
 }
 
 bad_os_id_ver() {
@@ -456,7 +455,6 @@ _finalize() {
         echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
     fi
     echo "Re-initializing so next boot does 'first-boot' setup again."
-    sudo history -c
     cd /
     sudo rm -rf /var/lib/cloud/instanc*
     sudo rm -rf /root/.ssh/*

@@ -30,10 +30,9 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5642998972416000"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
+    _BUILT_IMAGE_SUFFIX: "libpod-5874660151656448"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
-    SPECIAL_FEDORA_CACHE_IMAGE_NAME: "xfedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
 
@@ -143,11 +142,16 @@ gating_task:
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
 
+
 # This task checks to make sure that we can still build an rpm from the
 # source code using contrib/rpm/podman.spec.in
 rpmbuild_task:
 
-    only_if: $CIRRUS_BRANCH != $DEST_BRANCH
+    only_if: >-
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*' &&
+        $CIRRUS_BRANCH != $DEST_BRANCH
+
     depends_on:
         - "gating"
     env:
@@ -246,12 +250,8 @@ build_each_commit_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -279,12 +279,8 @@ build_without_cgo_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
     gce_instance:
-        image_project: "libpod-218412"
-        zone: "us-central1-a"  # Required by Cirrus for the time being
         cpu: 8
         memory: "8Gb"
-        disk: 200
-        image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
     timeout_in: 30m
 
@@ -317,7 +313,6 @@ meta_task:
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${SPECIAL_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
@@ -377,8 +372,7 @@ testing_task:
 
     gce_instance:
         matrix:
-            # Images are generated separately, from build_images_task (below)
-            #image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
             # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
@@ -416,6 +410,7 @@ testing_task:
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
         varlink_script: '$SCRIPT_BASE/logcollector.sh varlink'
+        podman_system_info_script: '$SCRIPT_BASE/logcollector.sh podman'
 
 
 # This task executes tests under unique environments/conditions
@@ -466,9 +461,20 @@ special_testing_in_podman_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
+    gce_instance:
+        matrix:
+            # FIXME: Integration testing currently broken for F31 hosts
+            # Error: container_linux.go:345: starting container process caused "process_linux.go:281: applying cgroup configuration for process caused \"mountpoint for cgroup not found\"": OCI runtime error
+            # image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+
     env:
         ADD_SECOND_PARTITION: true
         SPECIALMODE: 'in_podman'  # See docs
+        # TODO: Support both runc and crun (cgroups v1 and v2 container images)
+        # matrix:
+        #   IN_PODMAN_IMAGE: "quay.io/libpod/in_podman:latest"
+        #   IN_PODMAN_IMAGE: "quay.io/libpod/in_podman_cgv2:latest"
 
     timeout_in: 60m
 
@@ -519,39 +525,6 @@ special_testing_cross_task:
         type: "application/octet-stream"
 
 
-special_testing_cgroupv2_task:
-
-    depends_on:
-        - "gating"
-        - "varlink_api"
-        - "vendor"
-
-    only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-
-    gce_instance:
-        image_name: "${SPECIAL_FEDORA_CACHE_IMAGE_NAME}"
-
-    env:
-        SPECIALMODE: 'cgroupv2'  # See docs
-        matrix:
-            TEST_REMOTE_CLIENT: true
-            TEST_REMOTE_CLIENT: false
-
-    timeout_in: 120m
-
-    networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
-    setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
-    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-
-    on_failure:
-        failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
-
-    always:
-        <<: *standardlogs
-
-
 special_testing_bindings_task:
 
     depends_on:
@@ -577,6 +550,7 @@ special_testing_bindings_task:
     always:
         <<: *standardlogs
 
+
 special_testing_endpoint_task:
 
     depends_on:
@@ -601,22 +575,6 @@ special_testing_endpoint_task:
 
     always:
         <<: *standardlogs
-
-
-test_building_snap_task:
-
-    depends_on:
-        - "gating"
-
-    only_if: >-
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-
-    container:
-        image: yakshaveinc/snapcraft:core18
-    snapcraft_script:
-        - 'apt-get -y update'
-        - 'cd contrib/snapcraft && snapcraft'
 
 
 # Test building of new cache-images for future PR testing, in this PR.
@@ -677,12 +635,13 @@ verify_test_built_images_task:
         matrix:
             # Required env. var. by check_image_script
             PACKER_BUILDER_NAME: "fedora-30"
-            #PACKER_BUILDER_NAME: "fedora-31"
-            PACKER_BUILDER_NAME: "xfedora-30"
+            PACKER_BUILDER_NAME: "fedora-31"
             PACKER_BUILDER_NAME: "ubuntu-18"
-            # TODO support $UBUNTU_CACHE_IMAGE_NAME: PACKER_BUILDER_NAME: "ubuntu-19"
+            # Multiple test failures on ${UBUNTU_CACHE_IMAGE_NAME}
+            # PACKER_BUILDER_NAME: "ubuntu-19"
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
+    installed_packages_script: '$SCRIPT_BASE/logcollector.sh packages'
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     # Verify expectations once per image
     check_image_script: >-
@@ -691,43 +650,59 @@ verify_test_built_images_task:
     # Note: A truncated form of normal testing. It only needs to confirm new images
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
-    integration_test_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}
+    integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-    system_test_script: >-
-        [[ "$PACKER_BUILDER_NAME" == "xfedora-30" ]] || \
-            $SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}
+    system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     always:
         <<: *standardlogs
 
-        #upload_snap_task:
-        #    only_if: >-
-        #        $CIRRUS_BRANCH != $DEST_BRANCH &&
-        #        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
-        #        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-        #
-        #    # Only when PR or branch is merged into master
-        #
-        #    depends_on:
-        #        - "test_building_snap"
-        #
-        #    container:
-        #        image: yakshaveinc/snapcraft:core18
-        #
-        #    env:
-        #        SNAPCRAFT_LOGIN: ENCRYPTED[d8e82eb31c6372fec07f405f413d57806026b1a9f8400033531ebcd54d6750a5e4a8b1f68e3ec65c98c65e0d9b2a6a75]
-        #    snapcraft_login_file:
-        #        path: /root/.snapcraft/login.cfg
-        #        variable_name: SNAPCRAFT_LOGIN
-        #    snapcraft_script:
-        #        - 'apt-get -y update'
-        #        - 'snapcraft login --with "/root/.snapcraft/login.cfg"'
-        #        - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
+
+#test_building_snap_task:
+#
+#    depends_on:
+#        - "gating"
+#
+#    only_if: >-
+#        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+#        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+#
+#    container:
+#        image: yakshaveinc/snapcraft:core18
+#    snapcraft_script:
+#        - 'apt-get -y update'
+#        - 'cd contrib/snapcraft && snapcraft'
+#
+#
+#upload_snap_task:
+#    only_if: >-
+#        $CIRRUS_BRANCH != $DEST_BRANCH &&
+#        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
+#        $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
+#
+#    # Only when PR or branch is merged into master
+#
+#    depends_on:
+#        - "test_building_snap"
+#
+#    container:
+#        image: yakshaveinc/snapcraft:core18
+#
+#    env:
+#        SNAPCRAFT_LOGIN: ENCRYPTED[d8e82eb31c6372fec07f405f413d57806026b1a9f8400033531ebcd54d6750a5e4a8b1f68e3ec65c98c65e0d9b2a6a75]
+#    snapcraft_login_file:
+#        path: /root/.snapcraft/login.cfg
+#        variable_name: SNAPCRAFT_LOGIN
+#    snapcraft_script:
+#        - 'apt-get -y update'
+#        - 'snapcraft login --with "/root/.snapcraft/login.cfg"'
+#        - 'cd contrib/snapcraft && snapcraft && snapcraft push *.snap --release edge'
 
 
 docs_task:
+
+    # Don't run this when building/testing new VM images
+    only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*'
 
     depends_on:
         - "gating"
@@ -757,12 +732,10 @@ success_task:
         - "rpmbuild"
         - "special_testing_rootless"
         - "special_testing_in_podman"
-        - "special_testing_cgroupv2"
         - "special_testing_cross"
         - "special_testing_endpoint"
         - "special_testing_bindings"
         - "test_build_cache_images"
-        - "test_building_snap"
         - "verify_test_built_images"
         - "docs"
 

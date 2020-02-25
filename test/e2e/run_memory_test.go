@@ -70,7 +70,11 @@ var _ = Describe("Podman run memory", func() {
 
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(session.OutputToString()).To(Equal("41943040"))
+		if cgroupsv2 {
+			Expect(session.OutputToString()).To(Equal("max"))
+		} else {
+			Expect(session.OutputToString()).To(Equal("41943040"))
+		}
 	})
 
 	It("podman run memory-swappiness test", func() {
