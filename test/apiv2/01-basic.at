@@ -47,4 +47,19 @@ t GET info 200           \
   .DefaultRuntime=runc   \
   .MemTotal~[0-9]\\+
 
+# Timing: make sure server stays responsive
+t0=$SECONDS
+for i in $(seq 1 10); do
+    # FIXME: someday: refactor t(), separate out the 'curl' logic so we
+    #        can call it directly. Then we won't get ten annoying 'ok' lines.
+    t GET info 200
+done
+t1=$SECONDS
+delta_t=$((t1 - t2))
+if [ $delta_t -le 5 ]; then
+    _show_ok 1 "Time for ten /info requests ($delta_t seconds) <= 5s"
+else
+    _show_ok 0 "Time for ten /info requests" "<= 5 seconds" "$delta_t seconds"
+fi
+
 # vim: filetype=sh
