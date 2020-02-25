@@ -46,8 +46,13 @@ if [[ $pkg_manager == *dnf ]]; then
         )
 fi
 
+# Package name on fedora 30 is golang-github-cpuguy83-go-md2man
+if (grep -i 'Fedora' /etc/redhat-release | grep " 30" ) ; then
+    PKGS+=(golang-github-cpuguy83-go-md2man \
+        btrfs-progs-devel \
+	)
 # btrfs-progs-devel is not available in CentOS/RHEL-8
-if ! (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 8" ); then
+elif ! (grep -i 'Red Hat\|CentOS' /etc/redhat-release | grep " 8" ) ; then
     PKGS+=(golang-github-cpuguy83-md2man \
         btrfs-progs-devel \
         )
