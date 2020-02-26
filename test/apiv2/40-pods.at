@@ -23,9 +23,10 @@ t POST libpod/pods/create name=foo 409 .cause="pod already exists"
 
 #t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
 
-if root; then
+if root || have_cgroupsv2; then
     t POST libpod/pods/foo/pause   '' 204
 else
+    # Rootless cgroupsv1 : unsupported
     t POST libpod/pods/foo/pause '' 500 \
       .cause="this container does not have a cgroup" \
       .message~".*pause pods containing rootless containers with cgroup V1"

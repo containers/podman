@@ -398,6 +398,7 @@ testing_task:
     unit_test_script: '$SCRIPT_BASE/unit_test.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
+    apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
     # For PRs this confirms uploading releases after merge, is functional.
     upload_release_archive_script: '$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}'
@@ -447,6 +448,7 @@ special_testing_rootless_task:
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
+    apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'

@@ -346,6 +346,14 @@ remotesystem:
 	fi;\
 	exit $$rc
 
+.PHONY: localapiv2
+localapiv2:
+	env PODMAN=./bin/podman ./test/apiv2/test-apiv2
+
+.PHONY: remoteapiv2
+remoteapiv2:
+	true
+
 .PHONY: system.test-binary
 system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
