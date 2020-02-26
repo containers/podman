@@ -165,7 +165,7 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 		}
 	}
 	info["GraphOptions"] = graphOptions
-	info["VolumePath"] = r.config.VolumePath
+	info["VolumePath"] = r.config.Libpod.VolumePath
 
 	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
 	if err != nil {

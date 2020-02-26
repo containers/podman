@@ -20,6 +20,7 @@ import (
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/buildah/pkg/secrets"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/annotations"
@@ -29,6 +30,7 @@ import (
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/resolvconf"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage/pkg/archive"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -92,7 +94,7 @@ func (c *Container) prepare() error {
 		}
 
 		// handle rootless network namespace setup
-		if c.state.NetNS != nil && c.config.NetMode == "slirp4netns" && !c.config.PostConfigureNetNS {
+		if c.state.NetNS != nil && c.config.NetMode.IsSlirp4netns() && !c.config.PostConfigureNetNS {
 			createNetNSErr = c.runtime.setupRootlessNetNS(c)
 		}
 	}()
@@ -1210,7 +1212,7 @@ func (c *Container) makeBindMounts() error {
 	}
 
 	// Add Secret Mounts
-	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
+	secretMounts := secrets.SecretMountsWithUIDGID(c.config.MountLabel, c.state.RunDir, c.runtime.config.Containers.DefaultMountsFile, c.state.RunDir, c.RootUID(), c.RootGID(), rootless.IsRootless(), false)
 	for _, mount := range secretMounts {
 		if _, ok := c.state.BindMounts[mount.Destination]; !ok {
 			c.state.BindMounts[mount.Destination] = mount.Source
@@ -1271,11 +1273,21 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
+	var dns []net.IP
+	for _, i := range c.runtime.config.Containers.DNSServers {
+		result := net.ParseIP(i)
+		if result == nil {
+			return "", errors.Wrapf(define.ErrInvalidArg, "invalid IP address %s", i)
+		}
+		dns = append(dns, result)
+	}
+	dnsServers := append(dns, c.config.DNSServer...)
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	switch {
-	case len(c.config.DNSServer) > 0:
+	case len(dnsServers) > 0:
+
 		// We store DNS servers as net.IP, so need to convert to string
-		for _, server := range c.config.DNSServer {
+		for _, server := range dnsServers {
 			nameservers = append(nameservers, server.String())
 		}
 	case len(cniNameServers) > 0:
@@ -1289,14 +1301,22 @@ func (c *Container) generateResolvConf() (string, error) {
 		}
 	}
 
-	search := resolvconf.GetSearchDomains(resolv.Content)
-	if len(c.config.DNSSearch) > 0 {
-		search = c.config.DNSSearch
+	var search []string
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
+		if !util.StringInSlice(".", c.config.DNSSearch) {
+			search = c.runtime.config.Containers.DNSSearches
+			search = append(search, c.config.DNSSearch...)
+		}
+	} else {
+		search = resolvconf.GetSearchDomains(resolv.Content)
 	}
 
-	options := resolvconf.GetOptions(resolv.Content)
-	if len(c.config.DNSOption) > 0 {
-		options = c.config.DNSOption
+	var options []string
+	if len(c.config.DNSOption) > 0 || len(c.runtime.config.Containers.DNSOptions) > 0 {
+		options = c.runtime.config.Containers.DNSOptions
+		options = append(options, c.config.DNSOption...)
+	} else {
+		options = resolvconf.GetOptions(resolv.Content)
 	}
 
 	destPath := filepath.Join(c.state.RunDir, "resolv.conf")
@@ -1449,14 +1469,14 @@ func (c *Container) getOCICgroupPath() (string, error) {
 	switch {
 	case (rootless.IsRootless() && !unified) || c.config.NoCgroups:
 		return "", nil
-	case c.runtime.config.CgroupManager == define.SystemdCgroupsManager:
+	case c.runtime.config.Libpod.CgroupManager == config.SystemdCgroupsManager:
 		// When runc is set to use Systemd as a cgroup manager, it
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
 		logrus.Debugf("Setting CGroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
-	case c.runtime.config.CgroupManager == define.CgroupfsCgroupsManager:
+	case c.runtime.config.Libpod.CgroupManager == config.CgroupfsCgroupsManager:
 		cgroupPath, err := c.CGroupPath()
 		if err != nil {
 			return "", err
@@ -1464,6 +1484,6 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		logrus.Debugf("Setting CGroup path for container %s to %s", c.ID(), cgroupPath)
 		return cgroupPath, nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager %s requested", c.runtime.config.Libpod.CgroupManager)
 	}
 }

@@ -30,7 +30,6 @@ import (
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -147,7 +146,6 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		err       error
 	)
 
-	systemContext := types.SystemContext{}
 	contextDir := config.ContextDir
 
 	newContextDir, err := ioutil.TempDir("", "buildTarball")
@@ -175,6 +173,8 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 			logrus.Errorf("unable to delete directory '%s': %q", newContextDir, err)
 		}
 	}()
+
+	systemContext := types.SystemContext{}
 	// All output (stdout, stderr) is captured in output as well
 	var output bytes.Buffer
 
@@ -192,40 +192,40 @@ func (i *LibpodAPI) BuildImage(call iopodman.VarlinkCall, config iopodman.BuildI
 		Volumes:      config.BuildOptions.Volume,
 	}
 
-	hostNetwork := buildah.NamespaceOption{
-		Name: string(specs.NetworkNamespace),
-		Host: true,
-	}
-
-	namespace = append(namespace, hostNetwork)
-
 	options := imagebuildah.BuildOptions{
-		CommonBuildOpts:         commonOpts,
+		AddCapabilities:         config.AddCapabilities,
 		AdditionalTags:          config.AdditionalTags,
 		Annotations:             config.Annotations,
+		Architecture:            config.Architecture,
 		Args:                    config.BuildArgs,
 		CNIConfigDir:            config.CniConfigDir,
 		CNIPluginPath:           config.CniPluginDir,
+		CommonBuildOpts:         commonOpts,
 		Compression:             stringCompressionToArchiveType(config.Compression),
 		ContextDirectory:        newContextDir,
 		DefaultMountsFilePath:   config.DefaultsMountFilePath,
+		Devices:                 config.Devices,
 		Err:                     &output,
 		ForceRmIntermediateCtrs: config.ForceRmIntermediateCtrs,
 		IIDFile:                 config.Iidfile,
 		Labels:                  config.Label,
 		Layers:                  config.Layers,
+		NamespaceOptions:        namespace,
 		NoCache:                 config.Nocache,
+		OS:                      config.Os,
 		Out:                     &output,
 		Output:                  config.Output,
-		NamespaceOptions:        namespace,
 		OutputFormat:            config.OutputFormat,
 		PullPolicy:              stringPullPolicyToType(config.PullPolicy),
 		Quiet:                   config.Quiet,
 		RemoveIntermediateCtrs:  config.RemoteIntermediateCtrs,
 		ReportWriter:            &output,
 		RuntimeArgs:             config.RuntimeArgs,
+		SignBy:                  config.SignBy,
 		Squash:                  config.Squash,
 		SystemContext:           &systemContext,
+		Target:                  config.Target,
+		TransientMounts:         config.TransientMounts,
 	}
 
 	if call.WantsMore() {
@@ -587,7 +587,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Containers.SignaturePolicyPath, "", false)
 	switch manifestType {
 	case "oci", "": // nolint
 		mimeType = buildah.OCIv1ImageManifest
@@ -597,7 +597,7 @@ func (i *LibpodAPI) Commit(call iopodman.VarlinkCall, name, imageName string, ch
 		return call.ReplyErrorOccurred(fmt.Sprintf("unrecognized image format %q", manifestType))
 	}
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.Containers.SignaturePolicyPath,
 		ReportWriter:          output,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

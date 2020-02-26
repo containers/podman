@@ -3,12 +3,12 @@ package createconfig
 import (
 	"strings"
 
+	cconfig "github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	libpodconfig "github.com/containers/libpod/libpod/config"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -78,6 +78,37 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			g.AddLinuxMaskedPaths("/sys/kernel")
 		}
 	}
+	var runtimeConfig *cconfig.Config
+
+	if runtime != nil {
+		runtimeConfig, err = runtime.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		g.Config.Process.Capabilities.Bounding = runtimeConfig.Containers.DefaultCapabilities
+		sysctls, err := util.ValidateSysctls(runtimeConfig.Containers.DefaultSysctls)
+		if err != nil {
+			return nil, err
+		}
+
+		for name, val := range config.Security.Sysctl {
+			sysctls[name] = val
+		}
+		config.Security.Sysctl = sysctls
+		if !util.StringInSlice("host", config.Resources.Ulimit) {
+			config.Resources.Ulimit = append(runtimeConfig.Containers.DefaultUlimits, config.Resources.Ulimit...)
+		}
+		if config.Resources.PidsLimit < 0 && !config.cgroupDisabled() {
+			config.Resources.PidsLimit = runtimeConfig.Containers.PidsLimit
+		}
+
+	} else {
+		g.Config.Process.Capabilities.Bounding = cconfig.DefaultCapabilities
+		if config.Resources.PidsLimit < 0 && !config.cgroupDisabled() {
+			config.Resources.PidsLimit = cconfig.DefaultPidsLimit
+		}
+	}
+
 	gid5Available := true
 	if isRootless {
 		nGids, err := GetAvailableGids()
@@ -240,16 +271,6 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		}
 	}
 
-	// SECURITY OPTS
-	var runtimeConfig *libpodconfig.Config
-
-	if runtime != nil {
-		runtimeConfig, err = runtime.GetConfig()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	g.SetProcessNoNewPrivileges(config.Security.NoNewPrivs)
 
 	if !config.Security.Privileged {
@@ -259,7 +280,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	// Unless already set via the CLI, check if we need to disable process
 	// labels or set the defaults.
 	if len(config.Security.LabelOpts) == 0 && runtimeConfig != nil {
-		if !runtimeConfig.EnableLabeling {
+		if !runtimeConfig.Containers.EnableLabeling {
 			// Disabled in the config.
 			config.Security.LabelOpts = append(config.Security.LabelOpts, "disable")
 		} else if err := config.Security.SetLabelOpts(runtime, &config.Pid, &config.Ipc); err != nil {
@@ -282,7 +303,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			if err != nil {
 				return nil, err
 			}
-			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.CgroupManager != define.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
+			if (!cgroup2 || (runtimeConfig != nil && runtimeConfig.Libpod.CgroupManager != cconfig.SystemdCgroupsManager)) && config.Resources.PidsLimit == sysinfo.GetDefaultPidsLimit() {
 				setPidLimit = false
 			}
 		}
@@ -359,7 +380,7 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 			configSpec.Linux.Resources = &spec.LinuxResources{}
 		}
 
-		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.CgroupManager == define.SystemdCgroupsManager)
+		canUseResources := cgroup2 && runtimeConfig != nil && (runtimeConfig.Libpod.CgroupManager == cconfig.SystemdCgroupsManager)
 
 		if addedResources && !canUseResources {
 			return nil, errors.New("invalid configuration, cannot specify resource limits without cgroups v2 and --cgroup-manager=systemd")
@@ -414,6 +435,10 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 	}
 
 	return configSpec, nil
+}
+
+func (config *CreateConfig) cgroupDisabled() bool {
+	return config.Cgroup.Cgroups == "disabled"
 }
 
 func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, g *generate.Generator) {

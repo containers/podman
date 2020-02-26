@@ -39,9 +39,10 @@ func init() {
 	flags.BoolVarP(&restartCommand.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartCommand.Running, "running", false, "Restart only running containers when --all is used")
-	flags.UintVarP(&restartCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&restartCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&restartCommand.Timeout, "time", "t", defaultContainerConfig.Libpod.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&restartCommand.Timeout, "timeout", defaultContainerConfig.Libpod.StopTimeout, "Seconds to wait for stop before killing the container")
 
+	markFlagHidden(flags, "timeout")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 

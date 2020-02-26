@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
@@ -60,7 +60,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		CPUCfsQuota:        sysInfo.CPUCfsQuota,
 		CPUSet:             sysInfo.Cpuset,
 		CPUShares:          sysInfo.CPUShares,
-		CgroupDriver:       configInfo.CgroupManager,
+		CgroupDriver:       configInfo.Libpod.CgroupManager,
 		ClusterAdvertise:   "",
 		ClusterStore:       "",
 		ContainerdCommit:   docker.Commit{},
@@ -69,7 +69,7 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 		ContainersRunning:  stateInfo[define.ContainerStateRunning],
 		ContainersStopped:  stateInfo[define.ContainerStateStopped] + stateInfo[define.ContainerStateExited],
 		Debug:              log.IsLevelEnabled(log.DebugLevel),
-		DefaultRuntime:     configInfo.OCIRuntime,
+		DefaultRuntime:     configInfo.Libpod.OCIRuntime,
 		DockerRootDir:      storeInfo["GraphRoot"].(string),
 		Driver:             storeInfo["GraphDriverName"].(string),
 		DriverStatus:       getGraphStatus(storeInfo),
@@ -152,7 +152,7 @@ func getSecOpts(sysInfo *sysinfo.SysInfo) []string {
 
 func getRuntimes(configInfo *config.Config) map[string]docker.Runtime {
 	var runtimes = map[string]docker.Runtime{}
-	for name, paths := range configInfo.OCIRuntimes {
+	for name, paths := range configInfo.Libpod.OCIRuntimes {
 		runtimes[name] = docker.Runtime{
 			Path: paths[0],
 			Args: nil,

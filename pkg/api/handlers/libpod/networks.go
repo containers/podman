@@ -18,7 +18,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	configDir := config.CNIConfigDir
+	configDir := config.Network.NetworkConfigDir
 	if len(configDir) < 1 {
 		configDir = network.CNIConfigDir
 	}

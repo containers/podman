@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	cfg "github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
@@ -380,11 +381,11 @@ func (r *LocalRuntime) selectDetachKeys(flagValue string) (string, error) {
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to retrieve runtime config")
 	}
-	if config.DetachKeys != "" {
-		return config.DetachKeys, nil
+	if config.Libpod.DetachKeys != "" {
+		return config.Libpod.DetachKeys, nil
 	}
 
-	return define.DefaultDetachKeys, nil
+	return cfg.DefaultDetachKeys, nil
 }
 
 // Run a libpod container
@@ -1338,9 +1339,9 @@ func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, co
 		return "", err
 	}
 
-	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image.GetSystemContext(rtc.Containers.SignaturePolicyPath, "", false)
 	coptions := buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.Containers.SignaturePolicyPath,
 		ReportWriter:          writer,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

@@ -205,23 +205,23 @@ func (c *CreateConfig) createExitCommand(runtime *libpod.Runtime) ([]string, err
 	}
 
 	command := []string{cmd,
-		"--root", config.StorageConfig.GraphRoot,
-		"--runroot", config.StorageConfig.RunRoot,
+		"--root", config.Libpod.StorageConfig.GraphRoot,
+		"--runroot", config.Libpod.StorageConfig.RunRoot,
 		"--log-level", logrus.GetLevel().String(),
-		"--cgroup-manager", config.CgroupManager,
-		"--tmpdir", config.TmpDir,
+		"--cgroup-manager", config.Libpod.CgroupManager,
+		"--tmpdir", config.Libpod.TmpDir,
 	}
-	if config.OCIRuntime != "" {
-		command = append(command, []string{"--runtime", config.OCIRuntime}...)
+	if config.Libpod.OCIRuntime != "" {
+		command = append(command, []string{"--runtime", config.Libpod.OCIRuntime}...)
 	}
-	if config.StorageConfig.GraphDriverName != "" {
-		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
+	if config.Libpod.StorageConfig.GraphDriverName != "" {
+		command = append(command, []string{"--storage-driver", config.Libpod.StorageConfig.GraphDriverName}...)
 	}
-	for _, opt := range config.StorageConfig.GraphDriverOptions {
+	for _, opt := range config.Libpod.StorageConfig.GraphDriverOptions {
 		command = append(command, []string{"--storage-opt", opt}...)
 	}
-	if config.EventsLogger != "" {
-		command = append(command, []string{"--events-backend", config.EventsLogger}...)
+	if config.Libpod.EventsLogger != "" {
+		command = append(command, []string{"--events-backend", config.Libpod.EventsLogger}...)
 	}
 
 	if c.Syslog {

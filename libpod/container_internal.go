@@ -601,14 +601,14 @@ func (c *Container) refresh() error {
 	c.state.RunDir = dir
 
 	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
-		info, err := os.Stat(c.runtime.config.TmpDir)
+		info, err := os.Stat(c.runtime.config.Libpod.TmpDir)
 		if err != nil {
-			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.TmpDir)
+			return errors.Wrapf(err, "cannot stat `%s`", c.runtime.config.Libpod.TmpDir)
 		}
-		if err := os.Chmod(c.runtime.config.TmpDir, info.Mode()|0111); err != nil {
-			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.TmpDir)
+		if err := os.Chmod(c.runtime.config.Libpod.TmpDir, info.Mode()|0111); err != nil {
+			return errors.Wrapf(err, "cannot chmod `%s`", c.runtime.config.Libpod.TmpDir)
 		}
-		root := filepath.Join(c.runtime.config.TmpDir, "containers-root", c.ID())
+		root := filepath.Join(c.runtime.config.Libpod.TmpDir, "containers-root", c.ID())
 		if err := os.MkdirAll(root, 0755); err != nil {
 			return errors.Wrapf(err, "error creating userNS tmpdir for container %s", c.ID())
 		}
@@ -925,7 +925,7 @@ func (c *Container) completeNetworkSetup() error {
 	if err := c.syncContainer(); err != nil {
 		return err
 	}
-	if c.config.NetMode == "slirp4netns" {
+	if c.config.NetMode.IsSlirp4netns() {
 		return c.runtime.setupRootlessNetNS(c)
 	}
 	if err := c.runtime.setupNetNS(c); err != nil {
@@ -1716,7 +1716,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (extensionStageHooks map[string][]spec.Hook, err error) {
 	allHooks := make(map[string][]spec.Hook)
-	if c.runtime.config.HooksDir == nil {
+	if c.runtime.config.Libpod.HooksDir == nil {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
@@ -1740,7 +1740,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (exten
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.HooksDir, []string{"precreate", "poststop"})
+		manager, err := hooks.New(ctx, c.runtime.config.Libpod.HooksDir, []string{"precreate", "poststop"})
 		if err != nil {
 			return nil, err
 		}

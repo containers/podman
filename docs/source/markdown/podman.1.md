@@ -39,10 +39,6 @@ Default libpod config file is /usr/share/containers/libpod.conf.  Override file 
 **--conmon**
 Path of the conmon binary (Default path is configured in `libpod.conf`)
 
-**--cpu-profile**=*path*
-
-Path to where the cpu performance results should be written
-
 **--events-backend**=*type*
 
 Backend to use for storing events. Allowed values are **file**, **journald**, and **none**.

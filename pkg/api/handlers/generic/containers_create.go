@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
@@ -46,7 +46,12 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "NewFromLocal()"))
 		return
 	}
-	cc, err := makeCreateConfig(input, newImage)
+	defaultContainerConfig, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "GetConfig()"))
+		return
+	}
+	cc, err := makeCreateConfig(defaultContainerConfig, input, newImage)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "makeCreatConfig()"))
 		return
@@ -55,7 +60,7 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	utils.CreateContainer(r.Context(), w, runtime, &cc)
 }
 
-func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
+func makeCreateConfig(defaultContainerConfig *config.Config, input handlers.CreateContainerConfig, newImage *image2.Image) (createconfig.CreateConfig, error) {
 	var (
 		err     error
 		init    bool
@@ -76,7 +81,7 @@ func makeCreateConfig(input handlers.CreateContainerConfig, newImage *image2.Ima
 		workDir = input.WorkingDir
 	}
 
-	stopTimeout := uint(define.CtrRemoveTimeout)
+	stopTimeout := defaultContainerConfig.Libpod.StopTimeout
 	if input.StopTimeout != nil {
 		stopTimeout = uint(*input.StopTimeout)
 	}

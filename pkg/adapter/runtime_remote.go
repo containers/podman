@@ -17,6 +17,7 @@ import (
 
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -113,15 +114,20 @@ func (r RemoteRuntime) DeferredShutdown(force bool) {
 	}
 }
 
-// RuntimeConfig is a bogus wrapper for compat with the libpod runtime
-type RuntimeConfig struct {
+// Containers is a bogus wrapper for compat with the libpod runtime
+type ContainersConfig struct {
 	// CGroupManager is the CGroup Manager to use
 	// Valid values are "cgroupfs" and "systemd"
 	CgroupManager string
 }
 
+// RuntimeConfig is a bogus wrapper for compat with the libpod runtime
+type RuntimeConfig struct {
+	Containers ContainersConfig
+}
+
 // Shutdown is a bogus wrapper for compat with the libpod runtime
-func (r *RemoteRuntime) GetConfig() (*RuntimeConfig, error) {
+func (r *RemoteRuntime) GetConfig() (*config.Config, error) {
 	return nil, nil
 }
 
@@ -526,32 +532,40 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 		Ulimit:       options.CommonBuildOpts.Ulimit,
 		Volume:       options.CommonBuildOpts.Volumes,
 	}
-
 	buildinfo := iopodman.BuildInfo{
-		AdditionalTags:        options.AdditionalTags,
-		Annotations:           options.Annotations,
-		BuildArgs:             options.Args,
-		BuildOptions:          buildOptions,
-		CniConfigDir:          options.CNIConfigDir,
-		CniPluginDir:          options.CNIPluginPath,
-		Compression:           string(options.Compression),
-		DefaultsMountFilePath: options.DefaultMountsFilePath,
-		Dockerfiles:           dockerfiles,
 		// Err: string(options.Err),
+		// Out:
+		// ReportWriter:
+		Architecture:            options.Architecture,
+		AddCapabilities:         options.AddCapabilities,
+		AdditionalTags:          options.AdditionalTags,
+		Annotations:             options.Annotations,
+		BuildArgs:               options.Args,
+		BuildOptions:            buildOptions,
+		CniConfigDir:            options.CNIConfigDir,
+		CniPluginDir:            options.CNIPluginPath,
+		Compression:             string(options.Compression),
+		Devices:                 options.Devices,
+		DefaultsMountFilePath:   options.DefaultMountsFilePath,
+		Dockerfiles:             dockerfiles,
+		DropCapabilities:        options.DropCapabilities,
 		ForceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
 		Iidfile:                 options.IIDFile,
 		Label:                   options.Labels,
 		Layers:                  options.Layers,
-		Nocache:                 options.NoCache,
-		// Out:
+		//		NamespaceOptions:        options.NamespaceOptions,
+		Nocache:                options.NoCache,
+		Os:                     options.OS,
 		Output:                 options.Output,
 		OutputFormat:           options.OutputFormat,
 		PullPolicy:             options.PullPolicy.String(),
 		Quiet:                  options.Quiet,
 		RemoteIntermediateCtrs: options.RemoveIntermediateCtrs,
-		// ReportWriter:
-		RuntimeArgs: options.RuntimeArgs,
-		Squash:      options.Squash,
+		RuntimeArgs:            options.RuntimeArgs,
+		SignBy:                 options.SignBy,
+		Squash:                 options.Squash,
+		Target:                 options.Target,
+		TransientMounts:        options.TransientMounts,
 	}
 	// tar the file
 	outputFile, err := ioutil.TempFile("", "varlink_tar_send")

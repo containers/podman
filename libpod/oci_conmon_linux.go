@@ -20,8 +20,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	conmonConfig "github.com/containers/conmon/runner/config"
-	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/errorhandling"
@@ -80,13 +80,13 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.name = name
 	runtime.conmonPath = conmonPath
 
-	runtime.conmonEnv = runtimeCfg.ConmonEnvVars
-	runtime.cgroupManager = runtimeCfg.CgroupManager
-	runtime.tmpDir = runtimeCfg.TmpDir
-	runtime.logSizeMax = runtimeCfg.MaxLogSize
-	runtime.noPivot = runtimeCfg.NoPivotRoot
-	runtime.reservePorts = runtimeCfg.EnablePortReservation
-	runtime.sdNotify = runtimeCfg.SDNotify
+	runtime.conmonEnv = runtimeCfg.Libpod.ConmonEnvVars
+	runtime.cgroupManager = runtimeCfg.Libpod.CgroupManager
+	runtime.tmpDir = runtimeCfg.Libpod.TmpDir
+	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
+	runtime.noPivot = runtimeCfg.Libpod.NoPivotRoot
+	runtime.reservePorts = runtimeCfg.Libpod.EnablePortReservation
+	runtime.sdNotify = runtimeCfg.Libpod.SDNotify
 
 	// TODO: probe OCI runtime for feature and enable automatically if
 	// available.
@@ -127,7 +127,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	runtime.socketsDir = filepath.Join(runtime.tmpDir, "socket")
 
-	if runtime.cgroupManager != define.CgroupfsCgroupsManager && runtime.cgroupManager != define.SystemdCgroupsManager {
+	if runtime.cgroupManager != config.CgroupfsCgroupsManager && runtime.cgroupManager != config.SystemdCgroupsManager {
 		return nil, errors.Wrapf(define.ErrInvalidArg, "invalid cgroup manager specified: %s", runtime.cgroupManager)
 	}
 
@@ -177,7 +177,7 @@ func hasCurrentUserMapped(ctr *Container) bool {
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (err error) {
 	if !hasCurrentUserMapped(ctr) {
-		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.VolumePath} {
+		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.Libpod.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.Libpod.VolumePath} {
 			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
 				return err
 			}
@@ -519,7 +519,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, httpConn net.Conn, httpBuf
 
 	logrus.Debugf("Successfully connected to container %s attach socket %s", ctr.ID(), socketPath)
 
-	detachString := define.DefaultDetachKeys
+	detachString := ctr.runtime.config.Libpod.DetachKeys
 	if detachKeys != nil {
 		detachString = *detachKeys
 	}
@@ -1329,7 +1329,7 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) ([]string, []*o
 func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, ociLogPath, logTag string) []string {
 	// set the conmon API version to be able to use the correct sync struct keys
 	args := []string{"--api-version", "1"}
-	if r.cgroupManager == define.SystemdCgroupsManager && !ctr.config.NoCgroups {
+	if r.cgroupManager == config.SystemdCgroupsManager && !ctr.config.NoCgroups {
 		args = append(args, "-s")
 	}
 	args = append(args, "-c", ctr.ID())
@@ -1447,7 +1447,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 
 	if mustCreateCgroup {
 		cgroupParent := ctr.CgroupParent()
-		if r.cgroupManager == define.SystemdCgroupsManager {
+		if r.cgroupManager == config.SystemdCgroupsManager {
 			unitName := createUnitName("libpod-conmon", ctr.ID())
 
 			realCgroupParent := cgroupParent

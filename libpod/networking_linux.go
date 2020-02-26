@@ -148,7 +148,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	logrus.Debugf("Made network namespace at %s for container %s", ctrNS.Path(), ctr.ID())
 
 	networkStatus := []*cnitypes.Result{}
-	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
+	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		networkStatus, err = r.configureNetNS(ctr, ctrNS)
 	}
 	return ctrNS, networkStatus, err
@@ -165,7 +165,7 @@ func checkSlirpFlags(path string) (bool, bool, bool, error) {
 
 // Configure the network namespace for a rootless container
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
-	path := r.config.NetworkCmdPath
+	path := r.config.Libpod.NetworkCmdPath
 
 	if path == "" {
 		var err error
@@ -184,7 +184,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	defer errorhandling.CloseQuiet(syncW)
 
 	havePortMapping := len(ctr.Config().PortMappings) > 0
-	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
+	logPath := filepath.Join(ctr.runtime.config.Libpod.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
 	dhp, mtu, sandbox, err := checkSlirpFlags(path)
@@ -323,7 +323,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 	defer errorhandling.CloseQuiet(syncR)
 	defer errorhandling.CloseQuiet(syncW)
 
-	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
+	logPath := filepath.Join(ctr.runtime.config.Libpod.TmpDir, fmt.Sprintf("rootlessport-%s.log", ctr.config.ID))
 	logFile, err := os.Create(logPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open rootlessport log file %s", logPath)
@@ -347,7 +347,7 @@ func (r *Runtime) setupRootlessPortMapping(ctr *Container, netnsPath string) (er
 		NetNSPath: netnsPath,
 		ExitFD:    3,
 		ReadyFD:   4,
-		TmpDir:    ctr.runtime.config.TmpDir,
+		TmpDir:    ctr.runtime.config.Libpod.TmpDir,
 	}
 	cfgJSON, err := json.Marshal(cfg)
 	if err != nil {
@@ -470,7 +470,7 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 	logrus.Debugf("Tearing down network namespace at %s for container %s", ctr.state.NetNS.Path(), ctr.ID())
 
 	// rootless containers do not use the CNI plugin
-	if !rootless.IsRootless() && ctr.config.NetMode != "slirp4netns" {
+	if !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
 		var requestedIP net.IP
 		if ctr.requestedIP != nil {
 			requestedIP = ctr.requestedIP

@@ -11,6 +11,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
@@ -1074,10 +1075,10 @@ func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:in
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
-	switch c.runtime.config.CgroupManager {
-	case define.CgroupfsCgroupsManager:
+	switch c.runtime.config.Libpod.CgroupManager {
+	case config.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case define.SystemdCgroupsManager:
+	case config.SystemdCgroupsManager:
 		if rootless.IsRootless() {
 			uid := rootless.GetRootlessUID()
 			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
@@ -1091,7 +1092,7 @@ func (c *Container) CGroupPath() (string, error) {
 		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
-		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.Libpod.CgroupManager)
 	}
 }
 

@@ -50,7 +50,7 @@ func getMissingRuntime(name string, r *Runtime) (OCIRuntime, error) {
 
 	newRuntime := new(MissingRuntime)
 	newRuntime.name = name
-	newRuntime.exitsDir = filepath.Join(r.config.TmpDir, "exits")
+	newRuntime.exitsDir = filepath.Join(r.config.Libpod.TmpDir, "exits")
 
 	missingRuntimes[name] = newRuntime
 

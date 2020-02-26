@@ -87,7 +87,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 		prevError = err
 	}
-	if err := os.RemoveAll(r.config.TmpDir); err != nil {
+	if err := os.RemoveAll(r.config.Libpod.TmpDir); err != nil {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
@@ -81,7 +82,10 @@ var rootCmd = &cobra.Command{
 	SilenceErrors:      true,
 }
 
-var MainGlobalOpts cliconfig.MainFlags
+var (
+	MainGlobalOpts         cliconfig.MainFlags
+	defaultContainerConfig = getDefaultContainerConfig()
+)
 
 func initCobra() {
 	cobra.OnInitialize(initConfig)
@@ -173,4 +177,13 @@ func main() {
 	// in a local environment.
 	CheckForRegistries()
 	os.Exit(exitCode)
+}
+
+func getDefaultContainerConfig() *config.Config {
+	defaultContainerConfig, err := config.Default()
+	if err != nil {
+		logrus.Error(err)
+		os.Exit(1)
+	}
+	return defaultContainerConfig
 }

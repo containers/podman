@@ -3,7 +3,8 @@
 package libpod
 
 import (
-	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/common/pkg/config"
+
 	"github.com/containers/libpod/libpod/define"
 )
 

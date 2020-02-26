@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
@@ -29,7 +28,7 @@ var (
 		},
 		Example: `podman stop ctrID
   podman stop --latest
-  podman stop --timeout 2 mywebserver 6e534f14da9d`,
+  podman stop --time 2 mywebserver 6e534f14da9d`,
 	}
 )
 
@@ -42,8 +41,9 @@ func init() {
 	flags.BoolVarP(&stopCommand.Ignore, "ignore", "i", false, "Ignore errors when a specified container is missing")
 	flags.StringArrayVarP(&stopCommand.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
 	flags.BoolVarP(&stopCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.UintVar(&stopCommand.Timeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVarP(&stopCommand.Timeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&stopCommand.Timeout, "time", "t", defaultContainerConfig.Libpod.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&stopCommand.Timeout, "timeout", defaultContainerConfig.Libpod.StopTimeout, "Seconds to wait for stop before killing the container")
+	markFlagHidden(flags, "timeout")
 	markFlagHiddenForRemoteClient("latest", flags)
 	markFlagHiddenForRemoteClient("cidfile", flags)
 	markFlagHiddenForRemoteClient("ignore", flags)

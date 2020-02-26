@@ -1,6 +1,6 @@
 package libpod
 
-import "github.com/containers/libpod/libpod/config"
+import "github.com/containers/common/pkg/config"
 
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.

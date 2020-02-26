@@ -8,10 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opentracing/opentracing-go"
@@ -58,7 +60,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 	// If the path to ConmonPidFile starts with the default value (RunRoot), then
 	// the user has not specified '--conmon-pidfile' during run or create (probably).
 	// In that case reset ConmonPidFile to be set to the default value later.
-	if strings.HasPrefix(ctr.config.ConmonPidFile, r.config.StorageConfig.RunRoot) {
+	if strings.HasPrefix(ctr.config.ConmonPidFile, r.config.Libpod.StorageConfig.RunRoot) {
 		ctr.config.ConmonPidFile = ""
 	}
 
@@ -75,7 +77,11 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	if config == nil {
 		ctr.config.ID = stringid.GenerateNonCryptoID()
-		ctr.config.ShmSize = define.DefaultShmSize
+		size, err := units.FromHumanSize(r.config.Containers.ShmSize)
+		if err != nil {
+			return nil, errors.Wrapf(err, "converting containers.conf ShmSize %s to an int", r.config.Containers.ShmSize)
+		}
+		ctr.config.ShmSize = size
 	} else {
 		// This is a restore from an imported checkpoint
 		ctr.restoreFromCheckpoint = true
@@ -100,14 +106,14 @@ func (r *Runtime) initContainerVariables(rSpec *spec.Spec, config *ContainerConf
 
 	ctr.state.BindMounts = make(map[string]string)
 
-	ctr.config.StopTimeout = define.CtrRemoveTimeout
+	ctr.config.StopTimeout = r.config.Libpod.StopTimeout
 
 	ctr.config.OCIRuntime = r.defaultOCIRuntime.Name()
 
 	// Set namespace based on current runtime namespace
 	// Do so before options run so they can override it
-	if r.config.Namespace != "" {
-		ctr.config.Namespace = r.config.Namespace
+	if r.config.Libpod.Namespace != "" {
+		ctr.config.Namespace = r.config.Libpod.Namespace
 	}
 
 	ctr.runtime = r
@@ -214,8 +220,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 	// Check CGroup parent sanity, and set it if it was not set.
 	// Only if we're actually configuring CGroups.
 	if !ctr.config.NoCgroups {
-		switch r.config.CgroupManager {
-		case define.CgroupfsCgroupsManager:
+		switch r.config.Libpod.CgroupManager {
+		case config.CgroupfsCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				if pod != nil && pod.config.UsePodCgroup {
 					podCgroup, err := pod.CgroupPath()
@@ -232,7 +238,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 			} else if strings.HasSuffix(path.Base(ctr.config.CgroupParent), ".slice") {
 				return nil, errors.Wrapf(define.ErrInvalidArg, "systemd slice received as cgroup parent when using cgroupfs")
 			}
-		case define.SystemdCgroupsManager:
+		case config.SystemdCgroupsManager:
 			if ctr.config.CgroupParent == "" {
 				switch {
 				case pod != nil && pod.config.UsePodCgroup:
@@ -250,7 +256,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 				return nil, errors.Wrapf(define.ErrInvalidArg, "did not receive systemd slice as cgroup parent when using systemd to manage cgroups")
 			}
 		default:
-			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.CgroupManager)
+			return nil, errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager: %s - cannot validate cgroup parent", r.config.Libpod.CgroupManager)
 		}
 	}
 
