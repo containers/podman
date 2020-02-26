@@ -276,7 +276,7 @@ func (s *SpecGenerator) utsConfigureGenerator(g *generate.Generator, runtime *li
 	if hostname == "" {
 		switch {
 		case s.UtsNS.IsContainer():
-			utsCtr, err := runtime.GetContainer(s.UtsNS.Value)
+			utsCtr, err := runtime.LookupContainer(s.UtsNS.Value)
 			if err != nil {
 				return errors.Wrapf(err, "unable to retrieve hostname from dependency container %s", s.UtsNS.Value)
 			}
