@@ -138,6 +138,7 @@ func before(cmd *cobra.Command, args []string) error {
 		logrus.Info("running as rootless")
 	}
 	setUMask()
+
 	return profileOn(cmd)
 }
 

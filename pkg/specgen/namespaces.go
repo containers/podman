@@ -70,9 +70,7 @@ func (n *Namespace) IsPrivate() bool {
 	return n.NSMode == Private
 }
 
-// validate perform simple validation on the namespace to make sure it is not
-// invalid from the get-go
-func (n *Namespace) validate() error {
+func validateNetNS(n *Namespace) error {
 	if n == nil {
 		return nil
 	}
@@ -81,6 +79,15 @@ func (n *Namespace) validate() error {
 		break
 	default:
 		return errors.Errorf("invalid network %q", n.NSMode)
+	}
+	return nil
+}
+
+// validate perform simple validation on the namespace to make sure it is not
+// invalid from the get-go
+func (n *Namespace) validate() error {
+	if n == nil {
+		return nil
 	}
 	// Path and From Container MUST have a string value set
 	if n.NSMode == Path || n.NSMode == FromContainer {

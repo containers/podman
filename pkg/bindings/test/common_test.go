@@ -1,6 +1,7 @@
 package test_bindings
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,6 +9,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	. "github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/bindings/containers"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega/gexec"
 	"github.com/pkg/errors"
@@ -55,6 +59,16 @@ type bindingTest struct {
 	tempDirPath     string
 	runRoot         string
 	crioRoot        string
+	conn            context.Context
+}
+
+func (b *bindingTest) NewConnection() error {
+	connText, err := NewConnection(context.Background(), b.sock)
+	if err != nil {
+		return err
+	}
+	b.conn = connText
+	return nil
 }
 
 func (b *bindingTest) runPodman(command []string) *gexec.Session {
@@ -173,17 +187,27 @@ func (b *bindingTest) restoreImageFromCache(i testImage) {
 
 // Run a container within or without a pod
 // and add or append the alpine image to it
-func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) {
-	cmd := []string{"run", "-dt"}
-	if insidePod != nil && podName != nil {
-		pName := *podName
-		cmd = append(cmd, "--pod", pName)
-	} else if containerName != nil {
-		cName := *containerName
-		cmd = append(cmd, "--name", cName)
+func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, podName *string) (string, error) {
+	s := specgen.NewSpecGenerator(alpine.name)
+	s.Terminal = false
+	s.Command = []string{"top"}
+	if containerName != nil {
+		s.Name = *containerName
 	}
-	cmd = append(cmd, alpine.name, "top")
-	b.runPodman(cmd).Wait(45)
+	if insidePod != nil && podName != nil {
+		s.Pod = *podName
+	}
+	ctr, err := containers.CreateWithSpec(b.conn, s)
+	if err != nil {
+		return "", nil
+	}
+	err = containers.Start(b.conn, ctr.ID, nil)
+	if err != nil {
+		return "", err
+	}
+	waiting := "running"
+	_, err = containers.Wait(b.conn, ctr.ID, &waiting)
+	return ctr.ID, err
 }
 
 // This method creates a pod with the given pod name.

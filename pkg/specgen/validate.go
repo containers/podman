@@ -138,7 +138,7 @@ func (s *SpecGenerator) validate(rt *libpod.Runtime) error {
 	if err := s.IpcNS.validate(); err != nil {
 		return err
 	}
-	if err := s.NetNS.validate(); err != nil {
+	if err := validateNetNS(&s.NetNS); err != nil {
 		return err
 	}
 	if err := s.PidNS.validate(); err != nil {

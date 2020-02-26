@@ -72,7 +72,6 @@ func UnpauseContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// the api does not error if the Container is already paused, so just into it
 	if err := con.Unpause(); err != nil {
 		utils.InternalServerError(w, err)
 		return
