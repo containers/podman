@@ -29,9 +29,8 @@ env:
     ####
     #### Cache-image names to test with
     ###
-    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-4844850202017792"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-28-libpod-4844850202017792"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-4844850202017792"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-29-libpod-6310930547998720"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-libpod-6310930547998720"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -86,9 +85,12 @@ gating_task:
         GOPATH: "/go"
         GOSRC: "/go/src/github.com/containers/libpod"
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:v1.4.2-stable"
         cpu: 4
         memory: 12
 
@@ -132,6 +134,9 @@ vendor_task:
     depends_on:
         - "gating"
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
         GOPATH: "/go"
@@ -139,7 +144,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:v1.4.2-stable"
         cpu: 4
         memory: 12
 
@@ -163,6 +168,9 @@ varlink_api_task:
     depends_on:
         - "gating"
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     env:
         CIRRUS_WORKING_DIR: "/usr/src/libpod"
         GOPATH: "/go"
@@ -172,7 +180,7 @@ varlink_api_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:v1.4.2-stable"
         cpu: 4
         memory: 12
 
@@ -197,6 +205,9 @@ build_each_commit_task:
     only_if: $CIRRUS_BRANCH != 'v1.4.2-stable' &&
              $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     gce_instance:
         image_project: "libpod-218412"
         zone: "us-central1-a"  # Required by Cirrus for the time being
@@ -216,7 +227,7 @@ build_each_commit_task:
         failed_master_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_master_failure.sh'
 
 
-# Update metadata on VM images referenced by this repository state
+# CRITICAL: Update metadata on VM images referenced by this repository state
 meta_task:
 
     depends_on:
@@ -226,7 +237,7 @@ meta_task:
         - "build_each_commit"
 
     container:
-        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
+        image: "quay.io/libpod/imgts:v1.4.2-stable"  # see contrib/imgts
         cpu: 1
         memory: 1
 
@@ -234,7 +245,6 @@ meta_task:
         # Space-separated list of images used by this repository state
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
-            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
             ${UBUNTU_CACHE_IMAGE_NAME}
             ${IMAGE_BUILDER_CACHE_IMAGE_NAME}
         BUILDID: "${CIRRUS_BUILD_ID}"
@@ -265,10 +275,12 @@ testing_task:
         matrix:
             # Images are generated separately, from build_images_task (below)
             image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            #image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
             image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         matrix:
@@ -301,6 +313,9 @@ special_testing_rootless_task:
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     env:
         SPECIALMODE: 'rootless'  # See docs
 
@@ -330,6 +345,9 @@ special_testing_in_podman_task:
         - "build_each_commit"
 
     only_if: $CIRRUS_CHANGE_MESSAGE !=~ '.*\*\*\*\s*CIRRUS:\s*TEST\s*IMAGES\s*\*\*\*.*'
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         SPECIALMODE: 'in_podman'  # See docs
@@ -371,6 +389,9 @@ test_build_cache_images_task:
             - compute
             - devstorage.full_control
 
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
+
     environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_vm_images_script: '$SCRIPT_BASE/build_vm_images.sh |& ${TIMESTAMP}'
 
@@ -394,6 +415,9 @@ verify_test_built_images_task:
             #image_name: "fedora-28${BUILT_IMAGE_SUFFIX}"
             image_name: "fedora-29${BUILT_IMAGE_SUFFIX}"
             image_name: "ubuntu-18${BUILT_IMAGE_SUFFIX}"
+
+    # TODO: Making this task not-required given the age of this branch
+    allow_failures: $CI == $CI
 
     env:
         matrix:
@@ -426,7 +450,6 @@ build_cache_images_task:
     depends_on:
         - "gating"
         - "testing"
-        - "rootless_testing"
 
     # VMs created by packer are not cleaned up by cirrus
     auto_cancellation: $CI != "true"
@@ -485,7 +508,7 @@ success_task:
         GOSRC: "/go/src/github.com/containers/libpod"
 
     container:
-        image: "quay.io/libpod/gate:latest"
+        image: "quay.io/libpod/gate:v1.4.2-stable"
         cpu: 1
         memory: 1
 
