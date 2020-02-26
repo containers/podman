@@ -146,6 +146,17 @@ var _ = Describe("Podman run networking", func() {
 		Expect(match).Should(BeTrue())
 	})
 
+	It("podman run --net container: and --uts container:", func() {
+		ctrName := "ctrToJoin"
+		ctr1 := podmanTest.RunTopContainer(ctrName)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1.ExitCode()).To(Equal(0))
+
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--net=container:" + ctrName, "--uts=container:" + ctrName, ALPINE, "true"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run --net container: copies hosts and resolv", func() {
 		SkipIfRootless()
 		ctrName := "ctr1"
