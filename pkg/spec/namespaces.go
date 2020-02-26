@@ -422,7 +422,7 @@ func (c *UtsConfig) ConfigureGenerator(g *generate.Generator, net *NetworkConfig
 	if hostname == "" {
 		switch {
 		case utsCtrID != "":
-			utsCtr, err := runtime.GetContainer(utsCtrID)
+			utsCtr, err := runtime.LookupContainer(utsCtrID)
 			if err != nil {
 				return errors.Wrapf(err, "unable to retrieve hostname from dependency container %s", utsCtrID)
 			}
