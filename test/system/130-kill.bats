@@ -6,12 +6,23 @@
 load helpers
 
 @test "podman kill - test signal handling in containers" {
+    # podman-remote and crun interact poorly in f31: crun seems to gobble up
+    # some signals.
+    # Workaround: run 'env --default-signal sh' instead of just 'sh' in
+    # the container. Since env on our regular alpine image doesn't support
+    # that flag, we need to pull fedora-minimal. See:
+    #    https://github.com/containers/libpod/issues/5004
+    # FIXME: remove this kludge once we get rid of podman-remote
+    local _image=$IMAGE
+    local _sh_cmd="sh"
+    if is_remote; then
+        _image=quay.io/libpod/fedora-minimal:latest
+        _sh_cmd="env --default-signal sh"
+    fi
+
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    # The --default-signal option not available in busybox implementation of 'env' in $IMAGE
-    # needed here to ensure handling of SIGINT inside container uses the default handler
-    _IMAGE=quay.io/libpod/fedora-minimal:latest
-    run_podman run -d $_IMAGE env --default-signal sh -c \
+    run_podman run -d $_image $_sh_cmd -c \
         "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
         echo READY;
         while ! test -e /stop; do sleep 0.05; done;
@@ -70,6 +81,10 @@ load helpers
     run_podman wait $cid
     run_podman rm $cid
     wait $podman_log_pid
+
+    if [[ $_image != $IMAGE ]]; then
+        run_podman rmi $_image
+    fi
 }
 
 @test "podman kill - rejects invalid args" {
