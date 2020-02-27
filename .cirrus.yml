@@ -30,7 +30,7 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    _BUILT_IMAGE_SUFFIX: "libpod-5874660151656448"
+    _BUILT_IMAGE_SUFFIX: "libpod-5940307564953600"
     FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
