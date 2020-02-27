@@ -270,11 +270,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 		}
 	}()
 
-	// if the user is empty, we should inherit the user that the container is currently running with
-	if user == "" {
-		user = c.config.User
-	}
-
 	opts := new(ExecOptions)
 	opts.Cmd = cmd
 	opts.CapAdd = capList
