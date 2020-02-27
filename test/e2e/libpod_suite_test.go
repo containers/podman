@@ -122,6 +122,8 @@ func populateCache(podman *PodmanTestIntegration) {
 	for _, image := range CACHE_IMAGES {
 		podman.RestoreArtifactToCache(image)
 	}
+	// logformatter uses this to recognize the first test
+	fmt.Printf("-----------------------------\n")
 }
 
 func removeCache() {
