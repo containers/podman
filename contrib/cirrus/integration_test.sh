@@ -16,16 +16,6 @@ fi
 
 cd "$GOSRC"
 
-# Transition workaround: runc is still the default for upstream development
-handle_crun() {
-    # For systems with crun installed, assume CgroupsV2 and use it
-    if type -P crun &> /dev/null
-    then
-        warn "Replacing runc -> crun in libpod.conf"
-        sed -i -r -e 's/^runtime = "runc"/runtime = "crun"/' /usr/share/containers/libpod.conf
-    fi
-}
-
 case "$SPECIALMODE" in
     in_podman)
         ${CONTAINER_RUNTIME} run --rm --privileged --net=host \
@@ -49,7 +39,6 @@ case "$SPECIALMODE" in
     endpoint)
         make
         make install PREFIX=/usr ETCDIR=/etc
-        #handle_crun
         make test-binaries
         make endpoint
         ;;
@@ -63,7 +52,6 @@ case "$SPECIALMODE" in
         make install PREFIX=/usr ETCDIR=/etc
         make install.config PREFIX=/usr
         make test-binaries
-        handle_crun
         if [[ "$TEST_REMOTE_CLIENT" == "true" ]]
         then
             make remote${TESTSUITE} VARLINK_LOG=$VARLINK_LOG
