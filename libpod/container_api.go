@@ -9,9 +9,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/capabilities"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"

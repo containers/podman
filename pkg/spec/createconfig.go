@@ -112,6 +112,7 @@ type NetworkConfig struct {
 type SecurityConfig struct {
 	CapAdd                  []string // cap-add
 	CapDrop                 []string // cap-drop
+	CapRequired             []string // cap-required
 	LabelOpts               []string //SecurityOpts
 	NoNewPrivs              bool     //SecurityOpts
 	ApparmorProfile         string   //SecurityOpts
