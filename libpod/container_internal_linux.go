@@ -329,7 +329,10 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// Add addition groups if c.config.GroupAdd is not empty
 	if len(c.config.Groups) > 0 {
-		gids, _ := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, nil)
+		gids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s", c.ID())
+		}
 		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
 		}
