@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/buildah"
 	buildahdocker "github.com/containers/buildah/docker"
+	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker/reference"
@@ -1248,9 +1249,22 @@ func (s *StageExecutor) EnsureContainerPath(path string) error {
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring container path %q", path)
 	}
-	_, err = os.Lstat(targetPath)
+
+	_, err = os.Stat(targetPath)
 	if err != nil && os.IsNotExist(err) {
 		err = os.MkdirAll(targetPath, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "error creating directory path %q", targetPath)
+		}
+		// get the uid and gid so that we can set the correct permissions on the
+		// working directory
+		uid, gid, _, err := chrootuser.GetUser(s.mountPoint, s.builder.User())
+		if err != nil {
+			return errors.Wrapf(err, "error getting uid and gid for user %q", s.builder.User())
+		}
+		if err = os.Chown(targetPath, int(uid), int(gid)); err != nil {
+			return errors.Wrapf(err, "error setting ownership on %q", targetPath)
+		}
 	}
 	if err != nil {
 		return errors.Wrapf(err, "error ensuring container path %q", path)
