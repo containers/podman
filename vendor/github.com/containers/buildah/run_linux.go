@@ -678,6 +678,11 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	runtime := options.Runtime
 	if runtime == "" {
 		runtime = util.Runtime()
+
+		localRuntime := util.FindLocalRuntime(runtime)
+		if localRuntime != "" {
+			runtime = localRuntime
+		}
 	}
 
 	// Default to just passing down our stdio.

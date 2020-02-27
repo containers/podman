@@ -10,6 +10,7 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
@@ -432,3 +433,33 @@ var (
 	isUnified     bool
 	isUnifiedErr  error
 )
+
+// fileExistsAndNotADir - Check to see if a file exists
+// and that it is not a directory.
+func fileExistsAndNotADir(path string) bool {
+	file, err := os.Stat(path)
+
+	if file == nil || err != nil || os.IsNotExist(err) {
+		return false
+	}
+	return !file.IsDir()
+}
+
+// FindLocalRuntime find the local runtime of the
+// system searching through the config file for
+// possible locations.
+func FindLocalRuntime(runtime string) string {
+	var localRuntime string
+	conf, err := config.Default()
+	if err != nil {
+		logrus.Debugf("Error loading container config when searching for local runtime.")
+		return localRuntime
+	}
+	for _, val := range conf.Libpod.OCIRuntimes[runtime] {
+		if fileExistsAndNotADir(val) {
+			localRuntime = val
+			break
+		}
+	}
+	return localRuntime
+}
