@@ -210,15 +210,20 @@ func Unpause(ctx context.Context, nameOrID string) error {
 	return response.Process(nil)
 }
 
-// Wait blocks until the given container exits and returns its exit code. The nameOrID can be a container name
-// or a partial/full ID.
-func Wait(ctx context.Context, nameOrID string) (int32, error) {
+// Wait blocks until the given container reaches a condition. If not provided, the condition will
+// default to stopped.  If the condition is stopped, an exit code for the container will be provided. The
+// nameOrID can be a container name or a partial/full ID.
+func Wait(ctx context.Context, nameOrID string, condition *string) (int32, error) {
 	var exitCode int32
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return exitCode, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "containers/%s/wait", nil, nameOrID)
+	params := url.Values{}
+	if condition != nil {
+		params.Set("condition", *condition)
+	}
+	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nameOrID)
 	if err != nil {
 		return exitCode, err
 	}

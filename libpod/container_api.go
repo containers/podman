@@ -629,6 +629,26 @@ func (c *Container) WaitWithInterval(waitTimeout time.Duration) (int32, error) {
 	}
 }
 
+func (c *Container) WaitForConditionWithInterval(waitTimeout time.Duration, condition define.ContainerStatus) (int32, error) {
+	if !c.valid {
+		return -1, define.ErrCtrRemoved
+	}
+	if condition == define.ContainerStateStopped || condition == define.ContainerStateExited {
+		return c.WaitWithInterval(waitTimeout)
+	}
+	for {
+		state, err := c.State()
+		if err != nil {
+			return -1, err
+		}
+		if state == condition {
+			break
+		}
+		time.Sleep(waitTimeout)
+	}
+	return -1, nil
+}
+
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
 func (c *Container) Cleanup(ctx context.Context) error {

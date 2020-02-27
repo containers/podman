@@ -6,7 +6,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -30,12 +29,10 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	muxVars := mux.Vars(r)
-
 	// Detach keys: explicitly set to "" is very different from unset
 	// TODO: Our format for parsing these may be different from Docker.
 	var detachKeys *string
-	if _, found := muxVars["detachKeys"]; found {
+	if _, found := r.URL.Query()["detachKeys"]; found {
 		detachKeys = &query.DetachKeys
 	}
 
@@ -44,15 +41,15 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	streams.Stderr = true
 	streams.Stdin = true
 	useStreams := false
-	if _, found := muxVars["stdin"]; found {
+	if _, found := r.URL.Query()["stdin"]; found {
 		streams.Stdin = query.Stdin
 		useStreams = true
 	}
-	if _, found := muxVars["stdout"]; found {
+	if _, found := r.URL.Query()["stdout"]; found {
 		streams.Stdout = query.Stdout
 		useStreams = true
 	}
-	if _, found := muxVars["stderr"]; found {
+	if _, found := r.URL.Query()["stderr"]; found {
 		streams.Stderr = query.Stderr
 		useStreams = true
 	}
@@ -72,7 +69,7 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// We only support stream=true or unset
-	if _, found := muxVars["stream"]; found && query.Stream {
+	if _, found := r.URL.Query()["stream"]; found && query.Stream {
 		utils.Error(w, "Unsupported parameter", http.StatusBadRequest, errors.Errorf("the stream parameter to attach is not presently supported"))
 		return
 	}

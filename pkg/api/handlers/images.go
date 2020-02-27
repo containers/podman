@@ -11,7 +11,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -87,8 +86,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	muxVars := mux.Vars(r)
-	if _, found := muxVars["noprune"]; found {
+	if _, found := r.URL.Query()["noprune"]; found {
 		if query.noPrune {
 			utils.UnSupportedParameter("noprune")
 		}

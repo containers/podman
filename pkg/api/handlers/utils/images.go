@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 )
 
@@ -28,7 +27,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 		return nil, err
 	}
 	var filters = []string{}
-	if _, found := mux.Vars(r)["digests"]; found && query.Digests {
+	if _, found := r.URL.Query()["digests"]; found && query.Digests {
 		UnSupportedParameter("digests")
 	}
 

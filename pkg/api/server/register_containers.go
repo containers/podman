@@ -436,8 +436,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//   - containers (compat)
-	// summary: Wait on a container to exit
-	// description: Block until a container stops, then returns the exit code.
+	// summary: Wait on a container
+	// description: Block until a container stops or given condition is met.
 	// parameters:
 	//  - in: path
 	//    name: name
@@ -447,7 +447,14 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: condition
 	//    type: string
-	//    description: not supported
+	//    description: |
+	//      wait until container is to a given condition. default is stopped. valid conditions are:
+	//        - configured
+	//        - created
+	//        - exited
+	//        - paused
+	//        - running
+	//        - stopped
 	// produces:
 	// - application/json
 	// responses:
@@ -1030,18 +1037,30 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - containers
-	// summary: Wait on a container to exit
+	// summary: Wait on a container
+	// description: Wait on a container to met a given condition
 	// parameters:
 	//  - in: path
 	//    name: name
 	//    type: string
 	//    required: true
 	//    description: the name or ID of the container
+	//  - in: query
+	//    name: condition
+	//    type: string
+	//    description: |
+	//      wait until container is to a given condition. default is stopped. valid conditions are:
+	//        - configured
+	//        - created
+	//        - exited
+	//        - paused
+	//        - running
+	//        - stopped
 	// produces:
 	// - application/json
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: "#/responses/ContainerWaitResponse"
 	//   404:
 	//     $ref: "#/responses/NoSuchContainer"
 	//   500:

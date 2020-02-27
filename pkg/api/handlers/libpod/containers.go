@@ -178,7 +178,6 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	exitCode, err := utils.WaitContainer(w, r)
 	if err != nil {
-		utils.InternalServerError(w, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, strconv.Itoa(int(exitCode)))

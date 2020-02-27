@@ -250,4 +250,61 @@ var _ = Describe("Podman containers ", func() {
 		Expect(data.State.Status).To(Equal("exited"))
 	})
 
+	It("podman wait no condition", func() {
+		var (
+			name           = "top"
+			exitCode int32 = -1
+		)
+		_, err := containers.Wait(connText, "foobar", nil)
+		Expect(err).ToNot(BeNil())
+		code, _ := bindings.CheckResponseCode(err)
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+
+		errChan := make(chan error)
+		bt.RunTopContainer(&name, nil, nil)
+		go func() {
+			exitCode, err = containers.Wait(connText, name, nil)
+			errChan <- err
+			close(errChan)
+		}()
+		err = containers.Stop(connText, name, nil)
+		Expect(err).To(BeNil())
+		wait := <-errChan
+		Expect(wait).To(BeNil())
+		Expect(exitCode).To(BeNumerically("==", 143))
+	})
+
+	It("podman wait to pause|unpause condition", func() {
+		var (
+			name           = "top"
+			exitCode int32 = -1
+			pause          = "paused"
+			unpause        = "running"
+		)
+		errChan := make(chan error)
+		bt.RunTopContainer(&name, nil, nil)
+		go func() {
+			exitCode, err = containers.Wait(connText, name, &pause)
+			errChan <- err
+			close(errChan)
+		}()
+		err := containers.Pause(connText, name)
+		Expect(err).To(BeNil())
+		wait := <-errChan
+		Expect(wait).To(BeNil())
+		Expect(exitCode).To(BeNumerically("==", -1))
+
+		errChan = make(chan error)
+		go func() {
+			exitCode, err = containers.Wait(connText, name, &unpause)
+			errChan <- err
+			close(errChan)
+		}()
+		err = containers.Unpause(connText, name)
+		Expect(err).To(BeNil())
+		unPausewait := <-errChan
+		Expect(unPausewait).To(BeNil())
+		Expect(exitCode).To(BeNumerically("==", -1))
+	})
+
 })
