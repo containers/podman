@@ -110,7 +110,6 @@ func NewPortMapPlugin() PortMapConfig {
 func NewFirewallPlugin() FirewallConfig {
 	return FirewallConfig{
 		PluginType: "firewall",
-		Backend:    "iptables",
 	}
 }
 
