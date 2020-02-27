@@ -31,8 +31,7 @@
             }
 	},
 	{
-            "type": "firewall",
-	    "backend": "iptables"
+            "type": "firewall"
 	}
     ]
 }
