@@ -6,6 +6,7 @@
 - The `podman ps --format=json` command now includes the ID of the image containers were created with
 - The `podman create` and `podman run` commands now support the `--device-cgroup-rule` flag ([#4876](https://github.com/containers/libpod/issues/4876))
 - While the HTTP API remains in alpha, many fixes and additions have landed. These are documented in a separate subsection below
+- The `podman create` and `podman run` commands now feature a `--no-healthcheck` flag to disable healthchecks for a container ([#5299](https://github.com/containers/libpod/issues/5299))
 
 ### Bugfixes
 - Fixed CVE-2020-1726, a security issue where volumes manually populated before first being mounted into a container could have those contents overwritten on first being mounted into a container
@@ -28,6 +29,10 @@
 - Fixed a bug where `podman commit --change` would perform incorrect validation, resulting in valid changes being rejected ([#5148](https://github.com/containers/libpod/issues/5148))
 - Fixed a bug where `podman logs --tail` could take large amounts of memory when the log file for a container was large ([#5131](https://github.com/containers/libpod/issues/5131))
 - Fixed a bug where Podman would sometimes incorrectly generate firewall rules on systems using `firewalld`
+- Fixed a bug where the `podman inspect` command would not display network information for containers properly if a container joined multiple CNI networks ([#4907](https://github.com/containers/libpod/issues/4907))
+- Fixed a bug where the `--uts` flag to `podman create` and `podman run` would only allow specifying containers by full ID ([#5289](https://github.com/containers/libpod/issues/5289))
+- Fixed a bug where rootless Podman could segfault when passed a large number of file descriptors
+- Fixed a bug where the `podman port` command was incorrectly interpreting additional arguments as container names, instead of port numbers
 
 ### HTTP API
 - Initial support for secure connections to servers via SSH tunneling has been added
@@ -48,6 +53,7 @@
 - The `CreatedTime` field to `podman images --format=json` has been renamed to `CreatedAt` as part of the fix for ([#5110](https://github.com/containers/libpod/issues/5110)). Go templates using the old name should still work
 - The `before` filter to `podman images` has been renamed to `since` for Docker compatibility. Using `before` will still work, but documentation has been changed to use the new `since` filter
 - Using the `--password` flag to `podman login` now warns that passwords are being passed in plaintext
+- Some common cases where Podman would deadlock have been fixed to warn the user that `podman system renumber` must be run to resolve the deadlock
 
 ## 1.8.0
 ### Features
