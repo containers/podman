@@ -5,27 +5,33 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Create creates a volume given its configuration.
-func Create(ctx context.Context, config handlers.VolumeCreateConfig) (string, error) {
-	// TODO This is incomplete.  The config needs to be sent via the body
+func Create(ctx context.Context, config handlers.VolumeCreateConfig) (*libpod.VolumeConfig, error) {
 	var (
-		volumeID string
+		v libpod.VolumeConfig
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/create", nil)
+	createString, err := jsoniter.MarshalToString(config)
 	if err != nil {
-		return volumeID, err
+		return nil, err
 	}
-	return volumeID, response.Process(&volumeID)
+	stringReader := strings.NewReader(createString)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/volumes/create", nil)
+	if err != nil {
+		return nil, err
+	}
+	return &v, response.Process(&v)
 }
 
 // Inspect returns low-level information about a volume.
@@ -37,18 +43,36 @@ func Inspect(ctx context.Context, nameOrID string) (*libpod.InspectVolumeData, e
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/%s/json", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/%s/json", nil, nameOrID)
 	if err != nil {
 		return &inspect, err
 	}
 	return &inspect, response.Process(&inspect)
 }
 
-func List() error {
-	// TODO
-	// The API side of things for this one does a lot in main and therefore
-	// is not implemented yet.
-	return bindings.ErrNotImplemented // nolint:typecheck
+// List returns the configurations for existing volumes in the form of a slice.  Optionally, filters
+// can be used to refine the list of volumes.
+func List(ctx context.Context, filters map[string][]string) ([]*libpod.VolumeConfig, error) {
+	var (
+		vols []*libpod.VolumeConfig
+	)
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+	if len(filters) > 0 {
+		strFilters, err := bindings.FiltersToString(filters)
+		if err != nil {
+			return nil, err
+		}
+		params.Set("filters", strFilters)
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/volumes/json", params)
+	if err != nil {
+		return vols, err
+	}
+	return vols, response.Process(&vols)
 }
 
 // Prune removes unused volumes from the local filesystem.
@@ -78,7 +102,7 @@ func Remove(ctx context.Context, nameOrID string, force *bool) error {
 	if force != nil {
 		params.Set("force", strconv.FormatBool(*force))
 	}
-	response, err := conn.DoRequest(nil, http.MethodPost, "/volumes/%s/prune", params, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodDelete, "/volumes/%s", params, nameOrID)
 	if err != nil {
 		return err
 	}
