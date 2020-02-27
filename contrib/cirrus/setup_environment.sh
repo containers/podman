@@ -46,7 +46,8 @@ case "${OS_RELEASE_ID}" in
         # All SELinux distros need this for systemd-in-a-container
         setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
-            bash "$SCRIPT_BASE/add_second_partition.sh"; fi
+            bash "$SCRIPT_BASE/add_second_partition.sh"
+        fi
 
         if [[ "$OS_RELEASE_VER" == "31" ]]; then
             warn "Switching io schedular to deadline to avoid RHBZ 1767539"
