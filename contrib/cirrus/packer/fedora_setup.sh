@@ -8,7 +8,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var SCRIPT_BASE PACKER_BUILDER_NAME GOSRC
+req_env_var SCRIPT_BASE PACKER_BUILDER_NAME GOSRC FEDORA_BASE_IMAGE OS_RELEASE_ID OS_RELEASE_VER
 
 install_ooe
 
@@ -17,9 +17,14 @@ trap "sudo rm -rf $GOPATH" EXIT
 
 $BIGTO ooe.sh sudo dnf update -y
 
-echo "Enabling updates-testing repository"
-$LILTO ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
-$LILTO ooe.sh sudo dnf config-manager --set-enabled updates-testing
+# Do not enable update-stesting on the previous Fedora release
+if [[ "$FEDORA_BASE_IMAGE" =~ "${OS_RELEASE_ID}-cloud-base-${OS_RELEASE_VER}" ]]; then
+    warn "Enabling updates-testing repository for image based on $FEDORA_BASE_IMAGE"
+    $LILTO ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
+    $LILTO ooe.sh sudo dnf config-manager --set-enabled updates-testing
+else
+    warn "NOT enabling updates-testing repository for image based on $PRIOR_FEDORA_BASE_IMAGE"
+fi
 
 echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 REMOVE_PACKAGES=()
@@ -98,6 +103,7 @@ case "$OS_RELEASE_VER" in
             python2-future
             runc
         )
+        REMOVE_PACKAGES+=(crun)
         ;;
     31)
         INSTALL_PACKAGES+=(crun)
