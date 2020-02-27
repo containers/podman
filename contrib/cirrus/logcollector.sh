@@ -56,6 +56,7 @@ case $1 in
         )
         case $OS_RELEASE_ID in
             fedora*)
+                cat /etc/fedora-release
                 PKG_LST_CMD='rpm -q --qf=%{N}-%{V}-%{R}-%{ARCH}\n'
                 PKG_NAMES+=(\
                     container-selinux \
@@ -64,6 +65,7 @@ case $1 in
                 )
                 ;;
             ubuntu*)
+                cat /etc/issue
                 PKG_LST_CMD='dpkg-query --show --showformat=${Package}-${Version}-${Architecture}\n'
                 PKG_NAMES+=(\
                     cri-o-runc \
@@ -71,6 +73,8 @@ case $1 in
                 ;;
             *) bad_os_id_ver ;;
         esac
+        echo "Kernel: " $(uname -r)
+        echo "Cgroups: " $(stat -f -c %T /sys/fs/cgroup)
         # Any not-present packages will be listed as such
         $PKG_LST_CMD ${PKG_NAMES[@]} | sort -u
         ;;
