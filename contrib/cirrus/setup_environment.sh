@@ -6,15 +6,19 @@ source $(dirname $0)/lib.sh
 
 req_env_var USER HOME GOSRC SCRIPT_BASE SETUP_MARKER_FILEPATH
 
-show_env_vars
-
 # Ensure this script only executes successfully once and always logs ending timestamp
-[[ ! -e "$SETUP_MARKER_FILEPATH" ]] || exit 0
+if [[ -e "$SETUP_MARKER_FILEPATH" ]]; then
+    show_env_vars
+    exit 0
+fi
+
 exithandler() {
     RET=$?
     echo "."
     echo "$(basename $0) exit status: $RET"
     [[ "$RET" -eq "0" ]] && date +%s >> "$SETUP_MARKER_FILEPATH"
+    show_env_vars
+    [ "$RET" -eq "0" ]] || warn "Non-zero exit caused by error ABOVE env. var. display."
 }
 trap exithandler EXIT
 
