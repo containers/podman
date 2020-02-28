@@ -352,6 +352,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		ContextDirectory:        contextDir,
 		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
 		Err:                     stderr,
+		In:                      os.Stdin,
 		ForceRmIntermediateCtrs: c.ForceRm,
 		IIDFile:                 c.Iidfile,
 		Labels:                  c.Label,
