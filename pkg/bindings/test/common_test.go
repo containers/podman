@@ -240,3 +240,7 @@ func createCache() {
 	}
 	b.cleanup()
 }
+
+func isStopped(state string) bool {
+	return state == "exited" || state == "stopped"
+}
