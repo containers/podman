@@ -1,3 +1,44 @@
+- Changelog for v1.8.1-rc2 (2020-02-27)
+  * Update release notes for v1.8.1-rc2
+  * Vendor in latest containers/buildah
+  * kill test: clean up warnings; document better
+  * curb flakes in integration tests
+  * spec: allow container alias name in lookup
+  * add epoch for specfile
+  * fix trivial typo
+  * Add support for multiple CNI networks in podman inspect
+  * Remove 1 sec delay
+  * Temp. skip "remove pause by id" bindings test
+  * Fix kill test obtaining CID
+  * System Tests: Force default signal handlers
+  * Fix cgroupsv2 run test, unexpected output
+  * Cirrus: SELinux Enforcing for F31 w/ CGv2
+  * Cirrus: collect podman system info
+  * Cirrus: F31: Force systemd cgroup mgr
+  * Cirrus: Temp. disable F31 p-in-p testing
+  * Cirrus: Handle runc->crun when both are possible
+  * Cirrus: Use deadline elevator in F31
+  * Cirrus: Support testing with F31
+  * rootless: become root only if the pause file is specified
+  * rootless: fix segfault when open fd >= FD_SETSIZE
+  * apiv2 tests: add more pod tests, timing check
+  * Update vendor of buildah and containers/common
+  * build: move initialization after SetXdgDirs
+  * utils: relax check for directory to use
+  * add apiv2 tests for podman pause and stop
+  * always run the docs task on post-merge
+  * Fixed build_rpm.sh script for Fedora 30
+  * Add basic deadlock detection for container start/remove
+  * Friendly amendment: tests, and a help message
+  * fix port list by container with port
+  * more image binding tests
+  * docs: symlink to host device is resolved
+  * Add --no-healthcheck command to create/run
+  * enable ci on go binding tests
+  * add more image tests for go bindings
+  * Bump to v1.8.1-dev
+  * build(deps): bump github.com/opencontainers/selinux from 1.3.1 to 1.3.2
+
 - Changelog for v1.8.1-rc1 (2020-02-21)
   * Update release notes for v1.8.1
   * disable generation of cni firewall plugin
