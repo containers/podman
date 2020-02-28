@@ -96,7 +96,7 @@ env=yaml.load(open(".cirrus.yml"), Loader=yaml.SafeLoader)["env"]
 keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
 for k,v in env.items():
     v=str(v)
-    if "ENCRYPTED" not in v:
+    if "ENCRYPTED" not in v and "ADD_SECOND_PARTITION" not in v:
         print("{0}=\"{1}\"".format(k, v)),
     '
 }
@@ -181,7 +181,7 @@ parse_args(){
     [[ -z "$ROOTLESS_USER" ]] || \
         ENVS="$ENVS ROOTLESS_USER=$ROOTLESS_USER"
 
-    SETUP_CMD="env $ENVS $GOSRC/contrib/cirrus/setup_environment.sh"
+    SETUP_CMD="env $ENVS ADD_SECOND_PARTITIO=True $GOSRC/contrib/cirrus/setup_environment.sh"
     VMNAME="${VMNAME:-${USER}-${IMAGE_NAME}}"
 
     CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $IBI_ARGS $VMNAME"

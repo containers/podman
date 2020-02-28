@@ -232,7 +232,7 @@ var _ = Describe("Podman containers ", func() {
 		// Ensure container is stopped
 		data, err := containers.Inspect(connText, name, nil)
 		Expect(err).To(BeNil())
-		Expect(data.State.Status).To(Equal("exited"))
+		Expect(isStopped(data.State.Status)).To(BeTrue())
 	})
 
 	It("podman stop a running container by ID", func() {
@@ -247,7 +247,7 @@ var _ = Describe("Podman containers ", func() {
 		// Ensure container is stopped
 		data, err = containers.Inspect(connText, name, nil)
 		Expect(err).To(BeNil())
-		Expect(data.State.Status).To(Equal("exited"))
+		Expect(isStopped(data.State.Status)).To(BeTrue())
 	})
 
 })

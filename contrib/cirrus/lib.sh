@@ -88,6 +88,7 @@ ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.
 SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
 
 SPECIALMODE="${SPECIALMODE:-none}"
+MOD_LIBPOD_CONF="${MOD_LIBPOD_CONF:false}"
 TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
@@ -105,6 +106,8 @@ OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
 OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
 # Combined to ease soe usage
 OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
+# Type of filesystem used for cgroups
+CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
 
 # Installed into cache-images, supports overrides
 # by user-data in case of breakage or for debugging.
