@@ -1252,18 +1252,35 @@ func prepareProcessExec(c *Container, cmd, env []string, tty bool, cwd, user, se
 
 	}
 
+	var addGroups []string
+	var sgids []uint32
+
+	// if the user is empty, we should inherit the user that the container is currently running with
+	if user == "" {
+		user = c.config.User
+		addGroups = c.config.Groups
+	}
+
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, user, overrides)
 	if err != nil {
 		return nil, err
 	}
 
+	if len(addGroups) > 0 {
+		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error looking up supplemental groups for container %s exec session %s", c.ID(), sessionID)
+		}
+	}
+
 	// If user was set, look it up in the container to get a UID to use on
 	// the host
-	if user != "" {
-		sgids := make([]uint32, 0, len(execUser.Sgids))
-		for _, sgid := range execUser.Sgids {
-			sgids = append(sgids, uint32(sgid))
+	if user != "" || len(sgids) > 0 {
+		if user != "" {
+			for _, sgid := range execUser.Sgids {
+				sgids = append(sgids, uint32(sgid))
+			}
 		}
 		processUser := spec.User{
 			UID:            uint32(execUser.Uid),
