@@ -133,7 +133,12 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 	return r.setupContainer(ctx, ctr)
 }
 
-func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Container, err error) {
+func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, err error) {
+	// Validate the container
+	if err := ctr.validate(); err != nil {
+		return nil, err
+	}
+
 	// Allocate a lock for the container
 	lock, err := r.lockManager.AllocateLock()
 	if err != nil {
@@ -188,27 +193,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (c *Contai
 		}
 
 		ctr.config.Name = name
-	}
-
-	// If CGroups are disabled, we MUST create a PID namespace.
-	// Otherwise, the OCI runtime won't be able to stop our container.
-	if ctr.config.NoCgroups {
-		if ctr.config.Spec.Linux == nil {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "must provide Linux namespace configuration in OCI spec when using NoCgroups")
-		}
-		foundPid := false
-		for _, ns := range ctr.config.Spec.Linux.Namespaces {
-			if ns.Type == spec.PIDNamespace {
-				foundPid = true
-				if ns.Path != "" {
-					return nil, errors.Wrapf(define.ErrInvalidArg, "containers not creating CGroups must create a private PID namespace - cannot use another")
-				}
-				break
-			}
-		}
-		if !foundPid {
-			return nil, errors.Wrapf(define.ErrInvalidArg, "containers not creating CGroups must create a private PID namespace")
-		}
 	}
 
 	// Check CGroup parent sanity, and set it if it was not set.
