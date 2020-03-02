@@ -121,8 +121,8 @@ func (r *MissingRuntime) AttachResize(ctr *Container, newSize remotecommand.Term
 }
 
 // ExecContainer is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
-	return -1, nil, r.printError()
+func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (chan DataAndErr, chan error, error) {
+	return nil, nil, r.printError()
 }
 
 // ExecStopContainer is not available as the runtime is missing.

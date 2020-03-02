@@ -282,7 +282,16 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	opts.Resize = resize
 	opts.DetachKeys = detachKeys
 
-	pid, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
+	pid := 0
+	pipeDataChan, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
+	// if pipeDataChan isn't nil, we should set the err
+	if pipeDataChan != nil {
+		pidData := <-pipeDataChan
+		if pidData.err != nil {
+			err = pidData.err
+		}
+		pid = pidData.data
+	}
 	if err != nil {
 		ec := define.ExecErrorCodeGeneric
 		// Conmon will pass a non-zero exit code from the runtime as a pid here.
@@ -318,18 +327,18 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 
 	lastErr := <-attachChan
 
-	exitCode, err := c.readExecExitCode(sessionID)
-	if err != nil {
+	exitCodeData := <-pipeDataChan
+	if exitCodeData.err != nil {
 		if lastErr != nil {
 			logrus.Errorf(lastErr.Error())
 		}
-		lastErr = err
+		lastErr = exitCodeData.err
 	}
-	if exitCode != 0 {
+	if exitCodeData.data != 0 {
 		if lastErr != nil {
 			logrus.Errorf(lastErr.Error())
 		}
-		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCode)
+		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCodeData.data)
 	}
 
 	// Lock again
@@ -340,7 +349,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	// Sync the container again to pick up changes in state
 	if err := c.syncContainer(); err != nil {
 		logrus.Errorf("error syncing container %s state to remove exec session %s", c.ID(), sessionID)
-		return exitCode, lastErr
+		return exitCodeData.data, lastErr
 	}
 
 	// Remove the exec session from state
@@ -348,7 +357,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	if err := c.save(); err != nil {
 		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
 	}
-	return exitCode, lastErr
+	return exitCodeData.data, lastErr
 }
 
 // AttachStreams contains streams that will be attached to the container

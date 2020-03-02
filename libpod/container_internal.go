@@ -206,28 +206,6 @@ func (c *Container) execOCILog(sessionID string) string {
 	return filepath.Join(c.execBundlePath(sessionID), "oci-log")
 }
 
-// readExecExitCode reads the exit file for an exec session and returns
-// the exit code
-func (c *Container) readExecExitCode(sessionID string) (int, error) {
-	exitFile := filepath.Join(c.execExitFileDir(sessionID), c.ID())
-	chWait := make(chan error)
-	defer close(chWait)
-
-	_, err := WaitForFile(exitFile, chWait, time.Second*5)
-	if err != nil {
-		return -1, err
-	}
-	ec, err := ioutil.ReadFile(exitFile)
-	if err != nil {
-		return -1, err
-	}
-	ecInt, err := strconv.Atoi(string(ec))
-	if err != nil {
-		return -1, err
-	}
-	return ecInt, nil
-}
-
 // Wait for the container's exit file to appear.
 // When it does, update our state based on it.
 func (c *Container) waitForExitFileAndSync() error {

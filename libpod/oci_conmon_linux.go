@@ -595,31 +595,29 @@ func (r *ConmonOCIRuntime) AttachResize(ctr *Container, newSize remotecommand.Te
 
 // ExecContainer executes a command in a running container
 // TODO: Split into Create/Start/Attach/Wait
-func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions) (int, chan error, error) {
+func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options *ExecOptions) (chan DataAndErr, chan error, error) {
 	if options == nil {
-		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide an ExecOptions struct to ExecContainer")
 	}
 	if len(options.Cmd) == 0 {
-		return -1, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
+		return nil, nil, errors.Wrapf(define.ErrInvalidArg, "must provide a command to execute")
 	}
 
 	if sessionID == "" {
-		return -1, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
+		return nil, nil, errors.Wrapf(define.ErrEmptyID, "must provide a session ID for exec")
 	}
 
 	// create sync pipe to receive the pid
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
 	}
-
-	defer errorhandling.CloseQuiet(parentSyncPipe)
 
 	// create start pipe to set the cgroup before running
 	// attachToExec is responsible for closing parentStartPipe
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
 	}
 
 	// We want to make sure we close the parent{Start,Attach}Pipes if we fail
@@ -638,7 +636,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	// attachToExec is responsible for closing parentAttachPipe
 	parentAttachPipe, childAttachPipe, err := newPipe()
 	if err != nil {
-		return -1, nil, errors.Wrapf(err, "error creating socket pair")
+		return nil, nil, errors.Wrapf(err, "error creating socket pair")
 	}
 
 	defer func() {
@@ -658,7 +656,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	runtimeDir, err := util.GetRuntimeDir()
 	if err != nil {
-		return -1, nil, err
+		return nil, nil, err
 	}
 
 	finalEnv := make([]string, 0, len(options.Env))
@@ -668,7 +666,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	processFile, err := prepareProcessExec(c, options.Cmd, finalEnv, options.Terminal, options.Cwd, options.User, sessionID)
 	if err != nil {
-		return -1, nil, err
+		return nil, nil, err
 	}
 
 	var ociLog string
@@ -717,7 +715,7 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 
 	conmonEnv, extraFiles, err := r.configureConmonEnv(runtimeDir)
 	if err != nil {
-		return -1, nil, err
+		return nil, nil, err
 	}
 
 	if options.PreserveFDs > 0 {
@@ -748,10 +746,10 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	childrenClosed = true
 
 	if err != nil {
-		return -1, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
+		return nil, nil, errors.Wrapf(err, "cannot start container %s", c.ID())
 	}
 	if err := r.moveConmonToCgroupAndSignal(c, execCmd, parentStartPipe); err != nil {
-		return -1, nil, err
+		return nil, nil, err
 	}
 
 	if options.PreserveFDs > 0 {
@@ -774,9 +772,16 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	}()
 	attachToExecCalled = true
 
-	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
+	dataChan := make(chan DataAndErr)
+	go func() {
+		// read the exec pid
+		dataChan <- readConmonPipeData(parentSyncPipe, ociLog)
+		// read the exec exit code
+		dataChan <- readConmonPipeData(parentSyncPipe, ociLog)
+		errorhandling.CloseQuiet(parentSyncPipe)
+	}()
 
-	return pid, attachChan, err
+	return dataChan, attachChan, err
 }
 
 // ExecStopContainer stops a given exec session in a running container.
@@ -1206,14 +1211,14 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return err
 	}
 
-	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
-	if err != nil {
+	pipeData := readConmonPipeData(parentSyncPipe, ociLog)
+	if pipeData.err != nil {
 		if err2 := r.DeleteContainer(ctr); err2 != nil {
 			logrus.Errorf("Error removing container %s from runtime after creation failed", ctr.ID())
 		}
-		return err
+		return pipeData.err
 	}
-	ctr.state.PID = pid
+	ctr.state.PID = pipeData.data
 
 	conmonPID, err := readConmonPidFile(ctr.config.ConmonPidFile)
 	if err != nil {
@@ -1525,7 +1530,7 @@ func readConmonPidFile(pidFile string) (int, error) {
 }
 
 // readConmonPipeData attempts to read a syncInfo struct from the pipe
-func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
+func readConmonPipeData(pipe *os.File, ociLog string) DataAndErr {
 	// syncInfo is used to return data from monitor process to daemon
 	type syncInfo struct {
 		Data    int    `json:"data"`
@@ -1561,11 +1566,17 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
-						return -1, getOCIRuntimeError(ociErr.Msg)
+						return DataAndErr{
+							data: -1,
+							err:  getOCIRuntimeError(ociErr.Msg),
+						}
 					}
 				}
 			}
-			return -1, errors.Wrapf(ss.err, "container create failed (no logs from conmon)")
+			return DataAndErr{
+				data: -1,
+				err:  errors.Wrapf(ss.err, "container create failed (no logs from conmon)"),
+			}
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
 		if ss.si.Data < 0 {
@@ -1574,21 +1585,36 @@ func readConmonPipeData(pipe *os.File, ociLog string) (int, error) {
 				if err == nil {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
-						return ss.si.Data, getOCIRuntimeError(ociErr.Msg)
+						return DataAndErr{
+							data: ss.si.Data,
+							err:  getOCIRuntimeError(ociErr.Msg),
+						}
 					}
 				}
 			}
 			// If we failed to parse the JSON errors, then print the output as it is
 			if ss.si.Message != "" {
-				return ss.si.Data, getOCIRuntimeError(ss.si.Message)
+				return DataAndErr{
+					data: ss.si.Data,
+					err:  getOCIRuntimeError(ss.si.Message),
+				}
 			}
-			return ss.si.Data, errors.Wrapf(define.ErrInternal, "container create failed")
+			return DataAndErr{
+				data: ss.si.Data,
+				err:  errors.Wrapf(define.ErrInternal, "container create failed"),
+			}
 		}
 		data = ss.si.Data
 	case <-time.After(define.ContainerCreateTimeout):
-		return -1, errors.Wrapf(define.ErrInternal, "container creation timeout")
+		return DataAndErr{
+			data: -1,
+			err:  errors.Wrapf(define.ErrInternal, "container creation timeout"),
+		}
 	}
-	return data, nil
+	return DataAndErr{
+		data: data,
+		err:  nil,
+	}
 }
 
 // writeConmonPipeData writes nonse data to a pipe
