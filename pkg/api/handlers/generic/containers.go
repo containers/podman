@@ -14,7 +14,6 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -71,7 +70,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	if _, found := mux.Vars(r)["limit"]; found {
+	if _, found := r.URL.Query()["limit"]; found {
 		last := query.Limit
 		if len(containers) > last {
 			containers = containers[len(containers)-last:]
@@ -136,7 +135,7 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) {
 	// /{version}/containers/(name)/wait
 	exitCode, err := utils.WaitContainer(w, r)
 	if err != nil {
-		msg = err.Error()
+		return
 	}
 	utils.WriteResponse(w, http.StatusOK, handlers.ContainerWaitOKBody{
 		StatusCode: int(exitCode),
@@ -191,7 +190,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var since time.Time
-	if _, found := mux.Vars(r)["since"]; found {
+	if _, found := r.URL.Query()["since"]; found {
 		since, err = util.ParseInputTime(query.Since)
 		if err != nil {
 			utils.BadRequest(w, "since", query.Since, err)
@@ -200,7 +199,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var until time.Time
-	if _, found := mux.Vars(r)["until"]; found {
+	if _, found := r.URL.Query()["until"]; found {
 		since, err = util.ParseInputTime(query.Until)
 		if err != nil {
 			utils.BadRequest(w, "until", query.Until, err)
@@ -233,7 +232,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 	var builder strings.Builder
 	for ok := true; ok; ok = query.Follow {
 		for line := range logChannel {
-			if _, found := mux.Vars(r)["until"]; found {
+			if _, found := r.URL.Query()["until"]; found {
 				if line.Time.After(until) {
 					break
 				}

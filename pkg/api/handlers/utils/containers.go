@@ -78,9 +78,12 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request, force, vols bool) {
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
+	var (
+		err      error
+		interval time.Duration
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	// /{version}/containers/(name)/restart
 	query := struct {
 		Interval  string `schema:"interval"`
 		Condition string `schema:"condition"`
@@ -91,25 +94,34 @@ func WaitContainer(w http.ResponseWriter, r *http.Request) (int32, error) {
 		Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return 0, err
 	}
-
-	if len(query.Condition) > 0 {
-		UnSupportedParameter("condition")
+	if _, found := r.URL.Query()["interval"]; found {
+		interval, err = time.ParseDuration(query.Interval)
+		if err != nil {
+			InternalServerError(w, err)
+			return 0, err
+		}
+	} else {
+		interval, err = time.ParseDuration("250ms")
+		if err != nil {
+			InternalServerError(w, err)
+			return 0, err
+		}
 	}
-
+	condition := define.ContainerStateStopped
+	if _, found := r.URL.Query()["condition"]; found {
+		condition, err = define.StringToContainerStatus(query.Condition)
+		if err != nil {
+			InternalServerError(w, err)
+			return 0, err
+		}
+	}
 	name := GetName(r)
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		ContainerNotFound(w, name, err)
 		return 0, err
 	}
-	if len(query.Interval) > 0 {
-		d, err := time.ParseDuration(query.Interval)
-		if err != nil {
-			Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse %s for interval", query.Interval))
-		}
-		return con.WaitWithInterval(d)
-	}
-	return con.Wait()
+	return con.WaitForConditionWithInterval(interval, condition)
 }
 
 // GenerateFilterFuncsFromMap is used to generate un-executed functions that can be used to filter

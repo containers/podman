@@ -17,7 +17,6 @@ import (
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/gorilla/mux"
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
@@ -114,24 +113,24 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		tag = tokens[1]
 	}
 
-	if t, found := mux.Vars(r)["target"]; found {
-		name = t
+	if _, found := r.URL.Query()["target"]; found {
+		name = query.Target
 	}
 
 	var buildArgs = map[string]string{}
-	if a, found := mux.Vars(r)["buildargs"]; found {
-		if err := json.Unmarshal([]byte(a), &buildArgs); err != nil {
-			utils.BadRequest(w, "buildargs", a, err)
+	if _, found := r.URL.Query()["buildargs"]; found {
+		if err := json.Unmarshal([]byte(query.BuildArgs), &buildArgs); err != nil {
+			utils.BadRequest(w, "buildargs", query.BuildArgs, err)
 			return
 		}
 	}
 
 	// convert label formats
 	var labels = []string{}
-	if l, found := mux.Vars(r)["labels"]; found {
+	if _, found := r.URL.Query()["labels"]; found {
 		var m = map[string]string{}
-		if err := json.Unmarshal([]byte(l), &m); err != nil {
-			utils.BadRequest(w, "labels", l, err)
+		if err := json.Unmarshal([]byte(query.Labels), &m); err != nil {
+			utils.BadRequest(w, "labels", query.Labels, err)
 			return
 		}
 
@@ -141,7 +140,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	pullPolicy := buildah.PullIfMissing
-	if _, found := mux.Vars(r)["pull"]; found {
+	if _, found := r.URL.Query()["pull"]; found {
 		if query.Pull {
 			pullPolicy = buildah.PullAlways
 		}

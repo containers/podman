@@ -8,7 +8,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -179,7 +178,7 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 	}
 
 	timeout := con.StopTimeout()
-	if _, found := mux.Vars(r)["t"]; found {
+	if _, found := r.URL.Query()["t"]; found {
 		timeout = uint(query.Timeout)
 	}
 

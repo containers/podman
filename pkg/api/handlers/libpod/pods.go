@@ -13,7 +13,6 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
@@ -353,7 +352,7 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 		signal  = "SIGKILL"
 	)
 	query := struct {
-		signal string `schema:"signal"`
+		Signal string `schema:"signal"`
 	}{
 		// override any golang type defaults
 	}
@@ -362,9 +361,8 @@ func PodKill(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	muxVars := mux.Vars(r)
-	if _, found := muxVars["signal"]; found {
-		signal = query.signal
+	if _, found := r.URL.Query()["signal"]; found {
+		signal = query.Signal
 	}
 
 	sig, err := util.ParseSignal(signal)
