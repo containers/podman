@@ -286,7 +286,7 @@ Podman to run the container with just these capabilties. Podman launches the
 container with just the specified capabilties, as long as this list of
 capabilities is a subset of the default list.
 
-If the specified capabilities are not in the default set, the container will
+If the specified capabilities are not in the default set, Podman will
 print an error message and will run the container with the default capabilities.
 
 **--layers**
