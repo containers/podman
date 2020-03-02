@@ -599,13 +599,6 @@ func WithRootFSFromImage(imageID string, imageName string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if ctr.config.RootfsImageID != "" || ctr.config.RootfsImageName != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "container already configured with root filesystem")
-		}
-		if ctr.config.Rootfs != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
-		}
-
 		ctr.config.RootfsImageID = imageID
 		ctr.config.RootfsImageName = imageName
 
@@ -815,10 +808,6 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 			return err
 		}
 
-		if ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot join another container's net ns as we are making a new net ns")
-		}
-
 		ctr.config.NetNsCtr = nsCtr.ID()
 
 		return nil
@@ -837,10 +826,6 @@ func WithPIDNSFrom(nsCtr *Container) CtrCreateOption {
 
 		if err := checkDependencyContainer(nsCtr, ctr); err != nil {
 			return err
-		}
-
-		if ctr.config.NoCgroups {
-			return errors.Wrapf(define.ErrInvalidArg, "container has disabled creation of CGroups, which is incompatible with sharing a PID namespace")
 		}
 
 		ctr.config.PIDNsCtr = nsCtr.ID()
@@ -921,16 +906,8 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 		deps := make([]string, 0, len(ctrs))
 
 		for _, dep := range ctrs {
-			if !dep.valid {
-				return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", dep.ID())
-			}
-
-			if dep.ID() == ctr.ID() {
-				return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
-			}
-
-			if ctr.config.Pod != "" && dep.config.Pod != ctr.config.Pod {
-				return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, dep.ID())
+			if err := checkDependencyContainer(dep, ctr); err != nil {
+				return err
 			}
 
 			deps = append(deps, dep.ID())
@@ -950,20 +927,6 @@ func WithNetNS(portMappings []ocicni.PortMapping, postConfigureNetNS bool, netmo
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if rootless.IsRootless() {
-			if len(networks) > 0 {
-				return errors.Wrapf(define.ErrInvalidArg, "cannot use CNI networks with rootless containers")
-			}
-		}
-
-		if len(networks) > 1 && (ctr.config.StaticIP != nil || ctr.config.StaticMAC != nil) {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot join more than one CNI network if configuring a static IP or MAC address")
-		}
-
-		if ctr.config.NetNsCtr != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "container is already set to join another container's net ns, cannot create a new net ns")
 		}
 
 		ctr.config.PostConfigureNetNS = postConfigureNetNS
@@ -988,14 +951,6 @@ func WithStaticIP(ip net.IP) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if !ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if the container is not creating a network namespace")
-		}
-
-		if len(ctr.config.Networks) > 1 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static IP if joining more than 1 CNI network")
-		}
-
 		ctr.config.StaticIP = ip
 
 		return nil
@@ -1011,14 +966,6 @@ func WithStaticMAC(mac net.HardwareAddr) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if !ctr.config.CreateNetNS {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if the container is not creating a network namespace")
-		}
-
-		if len(ctr.config.Networks) > 1 {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set a static MAC if joining more than 1 CNI network")
 		}
 
 		ctr.config.StaticMAC = mac
@@ -1114,10 +1061,6 @@ func WithCgroupParent(parent string) CtrCreateOption {
 			return errors.Wrapf(define.ErrInvalidArg, "cgroup parent cannot be empty")
 		}
 
-		if ctr.config.NoCgroups {
-			return errors.Wrapf(define.ErrInvalidArg, "CgroupParent conflicts with NoCgroups")
-		}
-
 		ctr.config.CgroupParent = parent
 
 		return nil
@@ -1130,9 +1073,6 @@ func WithDNSSearch(searchDomains []string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS search domains if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSSearch = searchDomains
 		return nil
 	}
@@ -1143,9 +1083,6 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS servers if container will not create /etc/resolv.conf")
 		}
 		var dns []net.IP
 		for _, i := range dnsServers {
@@ -1166,9 +1103,6 @@ func WithDNSOption(dnsOptions []string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if ctr.config.UseImageResolvConf {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add DNS options if container will not create /etc/resolv.conf")
-		}
 		ctr.config.DNSOption = dnsOptions
 		return nil
 	}
@@ -1179,10 +1113,6 @@ func WithHosts(hosts []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if ctr.config.UseImageHosts {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot add hosts if container will not create /etc/hosts")
 		}
 
 		ctr.config.HostAdd = hosts
@@ -1282,9 +1212,6 @@ func WithRootFS(rootfs string) CtrCreateOption {
 		if _, err := os.Stat(rootfs); err != nil {
 			return errors.Wrapf(err, "error checking path %q", rootfs)
 		}
-		if ctr.config.RootfsImageID != "" {
-			return errors.Wrapf(define.ErrInvalidArg, "cannot set both an image ID and a rootfs for a container")
-		}
 		ctr.config.Rootfs = rootfs
 		return nil
 	}
@@ -1314,12 +1241,6 @@ func WithUseImageResolvConf() CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
-		if len(ctr.config.DNSServer) != 0 ||
-			len(ctr.config.DNSSearch) != 0 ||
-			len(ctr.config.DNSOption) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "not creating resolv.conf conflicts with DNS options")
-		}
-
 		ctr.config.UseImageResolvConf = true
 
 		return nil
@@ -1332,10 +1253,6 @@ func WithUseImageHosts() CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
-		}
-
-		if len(ctr.config.HostAdd) != 0 {
-			return errors.Wrapf(define.ErrInvalidArg, "not creating /etc/hosts conflicts with adding to the hosts file")
 		}
 
 		ctr.config.UseImageHosts = true
