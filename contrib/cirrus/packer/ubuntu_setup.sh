@@ -40,9 +40,9 @@ fi
 echo "Configuring/Instaling deps from Open build server"
 VERSION_ID=$(source /etc/os-release; echo $VERSION_ID)
 echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/xUbuntu_$VERSION_ID/ /" \
-    > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-curl -L -o /tmp/Release.key "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_${VERSION_ID}/Release.key"
-apt-key add - < /tmp/Release.key
+    | ooe.sh sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+ooe.sh curl -L -o /tmp/Release.key "https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/xUbuntu_${VERSION_ID}/Release.key"
+ooe.sh sudo apt-key add - < /tmp/Release.key
 
 INSTALL_PACKAGES=(\
     apparmor
@@ -51,14 +51,15 @@ INSTALL_PACKAGES=(\
     automake
     bash-completion
     bison
-    btrfs-tools
     build-essential
+    bzip2
+    conmon
     containernetworking-plugins
     containers-common
+    coreutils
     cri-o-runc
     criu
     curl
-    conmon
     dnsmasq
     e2fslibs-dev
     emacs-nox
@@ -66,6 +67,7 @@ INSTALL_PACKAGES=(\
     gawk
     gcc
     gettext
+    git
     go-md2man
     golang
     iproute2
@@ -84,17 +86,19 @@ INSTALL_PACKAGES=(\
     libnet1
     libnet1-dev
     libnl-3-dev
-    libvarlink
     libprotobuf-c-dev
     libprotobuf-dev
     libseccomp-dev
     libseccomp2
+    libselinux-dev
     libsystemd-dev
     libtool
     libudev-dev
+    libvarlink
     lsof
     make
     netcat
+    openssl
     pkg-config
     podman
     protobuf-c-compiler
@@ -107,19 +111,26 @@ INSTALL_PACKAGES=(\
     python3-psutil
     python3-pytoml
     python3-setuptools
+    rsync
+    runc
+    scons
     skopeo
     slirp4netns
     socat
     unzip
     vim
+    wget
     xz-utils
+    yum-utils
     zip
+    zlib1g-dev
 )
 
 if [[ "$OS_RELEASE_VER" -ge "19" ]]
 then
     INSTALL_PACKAGES+=(\
         bats
+        btrfs-progs
         fuse3
         libbtrfs-dev
         libfuse3-dev
@@ -130,7 +141,10 @@ else
     BATS_URL='http://launchpadlibrarian.net/438140887/bats_1.1.0+git104-g1c83a1b-1_all.deb'
     curl -L -O "$BATS_URL"
     cd -
-    INSTALL_PACKAGES+=(/tmp/$(basename $BATS_URL))
+    INSTALL_PACKAGES+=(\
+        /tmp/$(basename $BATS_URL)
+        btrfs-tools
+    )
 
     echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
     SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
@@ -150,6 +164,13 @@ ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
 
 # Ensure there are no disruptive periodic services enabled by default in image
 systemd_banish
+
+CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
+if sudo dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
+then
+    echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
+    sudo ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
+fi
 
 ubuntu_finalize
 

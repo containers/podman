@@ -39,23 +39,8 @@ done
 cd "${GOSRC}/"
 case "${OS_RELEASE_ID}" in
     ubuntu)
-        CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
-        if dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
-        then
-            echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
-            ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
-        fi
         ;;
     fedora)
-	# This is temporary and should be removed once conmon is in stable
-	# and the images can be rebuilt properly.
-	if [[ "$OS_RELEASE_VER" -eq "30" ]]; then
-		dnf -y install https://kojipkgs.fedoraproject.org//packages/conmon/2.0.13/1.fc30/x86_64/conmon-2.0.13-1.fc30.x86_64.rpm
-	else
-		dnf -y install https://kojipkgs.fedoraproject.org//packages/conmon/2.0.13/1.fc31/x86_64/conmon-2.0.13-1.fc31.x86_64.rpm
-	fi
-	# End of temporary patch
-
         # All SELinux distros need this for systemd-in-a-container
         setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
@@ -66,6 +51,10 @@ case "${OS_RELEASE_ID}" in
         warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
         echo "mq-deadline" > /sys/block/sda/queue/scheduler
         cat /sys/block/sda/queue/scheduler
+
+        if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
+            bash "$SCRIPT_BASE/add_second_partition.sh"
+        fi
 
         warn "Forcing systemd cgroup manager"
         X=$(echo "export CGROUP_MANAGER=systemd" | \

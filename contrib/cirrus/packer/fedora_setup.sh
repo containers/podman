@@ -26,7 +26,6 @@ else
     warn "NOT enabling updates-testing repository for image based on $PRIOR_FEDORA_BASE_IMAGE"
 fi
 
-echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 REMOVE_PACKAGES=()
 INSTALL_PACKAGES=(\
     autoconf
@@ -74,6 +73,7 @@ INSTALL_PACKAGES=(\
     make
     msitools
     nmap-ncat
+    ostree-devel
     pandoc
     podman
     procps-ng
@@ -86,11 +86,15 @@ INSTALL_PACKAGES=(\
     python3-dateutil
     python3-psutil
     python3-pytoml
+    rsync
+    runc
     selinux-policy-devel
     skopeo
+    skopeo-containers
     slirp4netns
     unzip
     vim
+    wget
     which
     xz
     zip
@@ -112,15 +116,20 @@ case "$OS_RELEASE_VER" in
     *)
         bad_os_id_ver ;;
 esac
+
+echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 $BIGTO ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
 
 [[ "${#REMOVE_PACKAGES[@]}" -eq "0" ]] || \
     $LILTO ooe.sh sudo dnf erase -y ${REMOVE_PACKAGES[@]}
 
-# Ensure there are no disruptive periodic services enabled by default in image
-systemd_banish
+echo "Enabling cgroup management from containers"
+ooe.sh sudo setsebool container_manage_cgroup true
 
 ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
+
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
 
 rh_finalize
 
