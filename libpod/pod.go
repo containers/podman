@@ -88,6 +88,7 @@ type PodInspect struct {
 type PodInspectState struct {
 	CgroupPath       string `json:"cgroupPath"`
 	InfraContainerID string `json:"infraContainerID"`
+	Status           string `json:"status"`
 }
 
 // PodContainerInfo keeps information on a container in a pod

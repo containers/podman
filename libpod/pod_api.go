@@ -407,7 +407,10 @@ func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 	if err != nil {
 		return nil, err
 	}
+	return containerStatusFromContainers(allCtrs)
+}
 
+func containerStatusFromContainers(allCtrs []*Container) (map[string]define.ContainerStatus, error) {
 	// We need to lock all the containers
 	for _, ctr := range allCtrs {
 		ctr.lock.Lock()
@@ -443,6 +446,14 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	if err != nil {
 		return &PodInspect{}, err
 	}
+	ctrStatuses, err := containerStatusFromContainers(containers)
+	if err != nil {
+		return nil, err
+	}
+	status, err := CreatePodStatusResults(ctrStatuses)
+	if err != nil {
+		return nil, err
+	}
 	for _, c := range containers {
 		containerStatus := "unknown"
 		// Ignoring possible errors here because we don't want this to be
@@ -468,6 +479,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		State: &PodInspectState{
 			CgroupPath:       p.state.CgroupPath,
 			InfraContainerID: infraContainerID,
+			Status:           status,
 		},
 		Containers: podContainers,
 	}
