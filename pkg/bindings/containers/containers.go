@@ -233,7 +233,7 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	response, err := conn.DoRequest(nil, http.MethodGet, "containers/%s/exists", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/exists", nil, nameOrID)
 	if err != nil {
 		return false, err
 	}
