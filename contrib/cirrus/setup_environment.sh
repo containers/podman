@@ -18,7 +18,7 @@ exithandler() {
     echo "$(basename $0) exit status: $RET"
     [[ "$RET" -eq "0" ]] && date +%s >> "$SETUP_MARKER_FILEPATH"
     show_env_vars
-    [ "$RET" -eq "0" ]] || warn "Non-zero exit caused by error ABOVE env. var. display."
+    [[ "$RET" -eq "0" ]] || warn "Non-zero exit caused by error ABOVE env. var. display."
 }
 trap exithandler EXIT
 
