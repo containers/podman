@@ -290,6 +290,12 @@ function rootless() {
     test "$ROOTLESS" = "true"
 }
 
+# True if cgroups v2 are enabled
+function have_cgroupsv2() {
+    cgroup_type=$(stat -f -c %T /sys/fs/cgroup)
+    test "$cgroup_type" = "cgroup2fs"
+}
+
 # END   infrastructure code
 ###############################################################################
 # BEGIN sanity checks

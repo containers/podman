@@ -41,10 +41,16 @@ t GET    libpod/containers/create  405
 #
 # system info
 #
+# Some day perhaps it will always be runc; for now, cgroupsv2 requires crun
+#
 # FIXME: run 'podman info --format=json', and compare select fields
-t GET info 200           \
-  .OSType=linux          \
-  .DefaultRuntime=runc   \
+runtime=runc
+if have_cgroupsv2; then
+    runtime=crun
+fi
+t GET info 200                \
+  .OSType=linux               \
+  .DefaultRuntime~.*$runtime  \
   .MemTotal~[0-9]\\+
 
 # Timing: make sure server stays responsive
