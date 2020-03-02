@@ -25,7 +25,7 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/create"), s.APIHandler(libpod.CreateVolume)).Methods(http.MethodPost)
-	// swagger:operation POST /libpod/volumes/json volumes listVolumes
+	// swagger:operation GET /libpod/volumes/json volumes listVolumes
 	// ---
 	// summary: List volumes
 	// description: Returns a list of networks
