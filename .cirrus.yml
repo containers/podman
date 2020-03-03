@@ -396,8 +396,12 @@ testing_task:
     env:
         ADD_SECOND_PARTITION: 'true'
         matrix:
-            TEST_REMOTE_CLIENT: 'true'
-            TEST_REMOTE_CLIENT: 'false'
+            - name: remote
+              env:
+                  TEST_REMOTE_CLIENT: 'true'
+            - name: local
+              env:
+                  TEST_REMOTE_CLIENT: 'false'
 
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
@@ -448,8 +452,12 @@ special_testing_rootless_task:
         ADD_SECOND_PARTITION: 'true'
         SPECIALMODE: 'rootless'  # See docs
         matrix:
-            TEST_REMOTE_CLIENT: 'true'
-            TEST_REMOTE_CLIENT: 'false'
+            - name: remote
+              env:
+                  TEST_REMOTE_CLIENT: 'true'
+            - name: local
+              env:
+                  TEST_REMOTE_CLIENT: 'false'
 
     timeout_in: 60m
 
@@ -649,8 +657,12 @@ verify_test_built_images_task:
     env:
         ADD_SECOND_PARTITION: 'true'
         matrix:
-            TEST_REMOTE_CLIENT: 'true'
-            TEST_REMOTE_CLIENT: 'false'
+            - name: remote
+              env:
+                  TEST_REMOTE_CLIENT: 'true'
+            - name: local
+              env:
+                  TEST_REMOTE_CLIENT: 'false'
         matrix:
             # Required env. var. by check_image_script
             PACKER_BUILDER_NAME: "fedora-30"
