@@ -297,7 +297,9 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 		// Conmon will pass a non-zero exit code from the runtime as a pid here.
 		// we differentiate a pid with an exit code by sending it as negative, so reverse
 		// that change and return the exit code the runtime failed with.
-		if pid < 0 {
+		// Make sure the value is not ErrorConmonRead, as that is a podman set bogus value
+		// and not sent by conmon (and thus has no special meaning)
+		if pid < 0 && pid != define.ErrorConmonRead {
 			ec = -1 * pid
 		}
 		return ec, err
