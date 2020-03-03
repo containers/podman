@@ -477,7 +477,9 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	//
 	// Precedence order (higher index wins):
 	//  1) env-host, 2) image data, 3) env-file, 4) env
-	var env map[string]string
+	env := map[string]string{
+		"container": "podman",
+	}
 
 	// Start with env-host
 	if c.Bool("env-host") {
@@ -485,7 +487,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, errors.Wrap(err, "error parsing host environment variables")
 		}
-		env = osEnv
+		env = envLib.Join(env, osEnv)
 	}
 
 	// Image data overrides any previous variables

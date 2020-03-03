@@ -12,11 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DefaultEnvVariables set $PATH, $TERM and $container.
+// DefaultEnvVariables sets $PATH and $TERM.
 var DefaultEnvVariables = map[string]string{
-	"PATH":      "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-	"TERM":      "xterm",
-	"container": "podman",
+	"PATH": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+	"TERM": "xterm",
 }
 
 const whiteSpaces = " \t"
