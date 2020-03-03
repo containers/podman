@@ -19,13 +19,13 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
@@ -987,9 +987,20 @@ func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecVal
 
 	// Validate given environment variables
 	env := map[string]string{}
-	if err := parse.ReadKVStrings(env, cli.EnvFile, cli.Env); err != nil {
-		return ec, errors.Wrapf(err, "unable to process environment variables")
+	if len(cli.EnvFile) > 0 {
+		for _, f := range cli.EnvFile {
+			fileEnv, err := envLib.ParseFile(f)
+			if err != nil {
+				return ec, err
+			}
+			env = envLib.Join(env, fileEnv)
+		}
 	}
+	cliEnv, err := envLib.ParseSlice(cli.Env)
+	if err != nil {
+		return ec, errors.Wrap(err, "error parsing environment variables")
+	}
+	env = envLib.Join(env, cliEnv)
 
 	streams := new(libpod.AttachStreams)
 	streams.OutputStream = os.Stdout
