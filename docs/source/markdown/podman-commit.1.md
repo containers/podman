@@ -60,8 +60,9 @@ Suppress output
 
 ## EXAMPLES
 
+### Create image from container with entrypoint and label
 ```
-$ podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change LABEL=blue=image reverent_golick image-committed
+$ podman commit --change CMD=/bin/bash --change ENTRYPOINT=/bin/sh --change "LABEL blue=image" reverent_golick image-committed
 Getting image source signatures
 Copying blob sha256:b41deda5a2feb1f03a5c1bb38c598cbc12c9ccd675f438edc6acd815f7585b86
  25.80 MB / 25.80 MB [======================================================] 0s
@@ -72,24 +73,35 @@ Storing signatures
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
+### Create image from container with commit message
 ```
-$ podman commit -q --message "committing container to image" reverent_golick image-committed
-e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
+$ podman commit -q --message "committing container to image"
+reverent_golick image-committed
+e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8 ```
 ```
 
+### Create image from container with author
 ```
 $ podman commit -q --author "firstName lastName" reverent_golick image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
+### Pause a running container while creating the image
 ```
-$ podman commit -q --pause=false containerID image-committed
+$ podman commit -q --pause=true containerID image-committed
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
 ```
 
+### Create an image from a container with a default image tag
 ```
 $ podman commit containerID
 e3ce4d93051ceea088d1c242624d659be32cf1667ef62f1d16d6b60193e2c7a8
+```
+
+### Create an image from container with default required capabilities are SETUID and SETGID
+```
+$ podman commit -q --change LABEL=io.containers.capabilities=setuid,setgid epic_nobel privimage
+400d31a3f36dca751435e80a0e16da4859beb51ff84670ce6bdc5edb30b94066
 ```
 
 ## SEE ALSO

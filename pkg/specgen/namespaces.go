@@ -3,9 +3,9 @@ package specgen
 import (
 	"os"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
-	"github.com/containers/libpod/pkg/capabilities"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"

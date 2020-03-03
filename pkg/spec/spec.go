@@ -3,6 +3,7 @@ package createconfig
 import (
 	"strings"
 
+	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/libpod/libpod"
 	libpodconfig "github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
@@ -10,6 +11,7 @@ import (
 	"github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/sysinfo"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runc/libcontainer/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -329,6 +331,18 @@ func (config *CreateConfig) createConfigToOCISpec(runtime *libpod.Runtime, userM
 		return nil, err
 	}
 	configSpec := g.Config
+
+	// If the container image specifies an label with a
+	// capabilities.ContainerImageLabel then split the comma separated list
+	// of capabilities and record them.  This list indicates the only
+	// capabilities, required to run the container.
+	var capRequired []string
+	for key, val := range config.Labels {
+		if util.StringInSlice(key, capabilities.ContainerImageLabels) {
+			capRequired = strings.Split(val, ",")
+		}
+	}
+	config.Security.CapRequired = capRequired
 
 	if err := config.Security.ConfigureGenerator(&g, &config.User); err != nil {
 		return nil, err
