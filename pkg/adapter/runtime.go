@@ -93,6 +93,23 @@ func (r *LocalRuntime) GetFilteredImages(filters []string, rwOnly bool) ([]*Cont
 	return r.ImagestoContainerImages(images, rwOnly)
 }
 
+func (r *LocalRuntime) GetFilteredPods(filters []string) ([]*Pod, error) {
+	pods, err := r.GetPodsWithFilters(filters)
+	if err != nil {
+		return nil, err
+	}
+	return r.PodstoLibpodPods(pods)
+}
+
+func (r *LocalRuntime) PodstoLibpodPods(pod []*libpod.Pod) ([]*Pod, error) {
+	var pods []*Pod
+	for _, i := range pod {
+
+		pods = append(pods, &Pod{i})
+	}
+	return pods, nil
+}
+
 // GetImages returns a slice of images in containerimages
 func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
 	return r.getImages(false)

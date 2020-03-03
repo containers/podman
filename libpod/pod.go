@@ -2,10 +2,13 @@ package libpod
 
 import (
 	"net"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/pkg/errors"
 )
@@ -303,4 +306,123 @@ func (p *Pod) GetPodStats(previousContainerStats map[string]*ContainerStats) (ma
 		}
 	}
 	return newContainerStats, nil
+}
+
+func (r *Runtime) GetPodsWithFilters(filters []string) ([]*Pod, error) {
+	var filterFuncs []PodFilter
+	for _, f := range filters {
+		filterSplit := strings.Split(f, "=")
+		if len(filterSplit) < 2 {
+			return nil, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
+		}
+		generatedFunc, err := r.GeneratePodFilterFuncs(filterSplit[0], filterSplit[1])
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid filter")
+		}
+		filterFuncs = append(filterFuncs, generatedFunc)
+	}
+
+	var pods []*Pod
+	// c.Latest flag still needs to be addressed,
+	// get latest pod case still needs to be handled
+	pods, err := r.GetAllPods()
+	if err != nil {
+		return nil, err
+	}
+
+	podsFiltered := make([]*Pod, 0, len(pods))
+	for _, pod := range pods {
+		include := true
+		for _, filter := range filterFuncs {
+			include = include && filter(pod)
+		}
+
+		if include {
+			podsFiltered = append(podsFiltered, pod)
+		}
+	}
+
+	return podsFiltered, nil
+}
+
+func (r *Runtime) GeneratePodFilterFuncs(filter, filterValue string) (func(pod *Pod) bool, error) {
+	switch filter {
+	case "ctr-ids":
+		return func(p *Pod) bool {
+			ctrIds, err := p.AllContainersByID()
+			if err != nil {
+				return false
+			}
+			return util.StringInSlice(filterValue, ctrIds)
+		}, nil
+	case "ctr-names":
+		return func(p *Pod) bool {
+			ctrs, err := p.AllContainers()
+			if err != nil {
+				return false
+			}
+			for _, ctr := range ctrs {
+				if filterValue == ctr.Name() {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "ctr-number":
+		return func(p *Pod) bool {
+			ctrIds, err := p.AllContainersByID()
+			if err != nil {
+				return false
+			}
+
+			fVint, err2 := strconv.Atoi(filterValue)
+			if err2 != nil {
+				return false
+			}
+			return len(ctrIds) == fVint
+		}, nil
+	case "ctr-status":
+		if !util.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
+			return nil, errors.Errorf("%s is not a valid status", filterValue)
+		}
+		return func(p *Pod) bool {
+			ctr_statuses, err := p.Status()
+			if err != nil {
+				return false
+			}
+			for _, ctr_status := range ctr_statuses {
+				state := ctr_status.String()
+				if ctr_status == define.ContainerStateConfigured {
+					state = "created"
+				}
+				if state == filterValue {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "id":
+		return func(p *Pod) bool {
+			return strings.Contains(p.ID(), filterValue)
+		}, nil
+	case "name":
+		return func(p *Pod) bool {
+			return strings.Contains(p.Name(), filterValue)
+		}, nil
+	case "status":
+		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created"}) {
+			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
+		}
+		return func(p *Pod) bool {
+			status, err := p.GetPodStatus()
+			if err != nil {
+				return false
+			}
+			if strings.ToLower(status) == filterValue {
+				return true
+			}
+			return false
+		}, nil
+	}
+	return nil, errors.Errorf("%s is an invalid filter", filter)
 }

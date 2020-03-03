@@ -78,14 +78,42 @@ var _ = Describe("Podman pods", func() {
 		Expect(StringInSlice(newpod, names)).To(BeTrue())
 		Expect(StringInSlice("newpod2", names)).To(BeTrue())
 
-		// TODO not working  Because: code to list based on filter
-		// "not yet implemented",
-		// Validate list pod with filters
-		//filters := make(map[string][]string)
-		//filters["name"] = []string{newpod}
-		//filteredPods, err := pods.List(connText, filters)
-		//Expect(err).To(BeNil())
-		//Expect(len(filteredPods)).To(BeNumerically("==", 1))
+		// Validate list pod with status filter
+		filters := make(map[string][]string)
+		filters["name"] = []string{newpod2}
+		filteredPods, err := pods.List(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(filteredPods)).To(BeNumerically("==", 1))
+		names = names[:0]
+		for _, i := range filteredPods {
+			names = append(names, i.Config.Name)
+		}
+		Expect(StringInSlice("newpod2", names)).To(BeTrue())
+
+		// Validate list pod with id filter
+		filters = make(map[string][]string)
+		response, err := pods.Inspect(connText, newpod)
+		id := response.Config.ID
+		filters["id"] = []string{id}
+		filteredPods, err = pods.List(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(filteredPods)).To(BeNumerically("==", 1))
+		names = names[:0]
+		for _, i := range filteredPods {
+			names = append(names, i.Config.Name)
+		}
+		Expect(StringInSlice("newpod", names)).To(BeTrue())
+
+		// Using multiple filters
+		filters["name"] = []string{newpod}
+		filteredPods, err = pods.List(connText, filters)
+		Expect(err).To(BeNil())
+		Expect(len(filteredPods)).To(BeNumerically("==", 1))
+		names = names[:0]
+		for _, i := range filteredPods {
+			names = append(names, i.Config.Name)
+		}
+		Expect(StringInSlice("newpod", names)).To(BeTrue())
 	})
 
 	// The test validates if the exists responds

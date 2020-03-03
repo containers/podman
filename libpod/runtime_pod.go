@@ -108,12 +108,10 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 		for _, filter := range filters {
 			include = include && filter(pod)
 		}
-
 		if include {
 			podsFiltered = append(podsFiltered, pod)
 		}
 	}
-
 	return podsFiltered, nil
 }
 

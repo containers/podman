@@ -103,7 +103,6 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 
 func Pods(w http.ResponseWriter, r *http.Request) {
 	var (
-		runtime        = r.Context().Value("runtime").(*libpod.Runtime)
 		podInspectData []*libpod.PodInspect
 	)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
@@ -118,12 +117,8 @@ func Pods(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(query.Filters) > 0 {
-		utils.Error(w, "filters are not implemented yet", http.StatusInternalServerError, define.ErrNotImplemented)
-		return
-	}
+	pods, err := utils.GetPods(w, r)
 
-	pods, err := runtime.GetAllPods()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return

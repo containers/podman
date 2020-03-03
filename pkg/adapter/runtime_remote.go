@@ -761,6 +761,11 @@ func (r *LocalRuntime) Volumes(ctx context.Context) ([]*Volume, error) {
 	return varlinkVolumeToVolume(r, reply), nil
 }
 
+// Temporary for CI build fix still working on varlinkapi flow
+func (r *LocalRuntime) GetFilteredPods(filters []string) ([]*Pod, error) {
+	//filteredPods, err := iopodman.GetFilteredPods(filters)
+	return nil, nil
+}
 func varlinkVolumeToVolume(r *LocalRuntime, volumes []iopodman.Volume) []*Volume {
 	var vols []*Volume
 	for _, v := range volumes {

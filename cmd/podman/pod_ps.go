@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -29,7 +27,7 @@ const (
 	NUM_CTR_INFO = 10
 )
 
-type PodFilter func(*adapter.Pod) bool
+// type PodFilter func(*adapter.Pod) bool
 
 var (
 	bc_opts shared.PsOptions
@@ -173,50 +171,14 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 	}
 
 	opts.Format = genPodPsFormat(c)
-
-	var filterFuncs []PodFilter
+	var filteredPods []*adapter.Pod
 	if c.Filter != "" {
-		filters := strings.Split(c.Filter, ",")
-		for _, f := range filters {
-			filterSplit := strings.Split(f, "=")
-			if len(filterSplit) < 2 {
-				return errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
-			}
-			generatedFunc, err := generatePodFilterFuncs(filterSplit[0], filterSplit[1])
-			if err != nil {
-				return errors.Wrapf(err, "invalid filter")
-			}
-			filterFuncs = append(filterFuncs, generatedFunc)
-		}
-	}
-
-	var pods []*adapter.Pod
-	if c.Latest {
-		pod, err := runtime.GetLatestPod()
+		filteredPods, err = runtime.GetFilteredPods(strings.Split(c.Filter, ","))
 		if err != nil {
-			return err
-		}
-		pods = append(pods, pod)
-	} else {
-		pods, err = runtime.GetAllPods()
-		if err != nil {
-			return err
+			return errors.Wrapf(err, "Error ")
 		}
 	}
-
-	podsFiltered := make([]*adapter.Pod, 0, len(pods))
-	for _, pod := range pods {
-		include := true
-		for _, filter := range filterFuncs {
-			include = include && filter(pod)
-		}
-
-		if include {
-			podsFiltered = append(podsFiltered, pod)
-		}
-	}
-
-	return generatePodPsOutput(podsFiltered, opts)
+	return generatePodPsOutput(filteredPods, opts)
 }
 
 // podPsCheckFlagsPassed checks if mutually exclusive flags are passed together
@@ -233,88 +195,6 @@ func podPsCheckFlagsPassed(c *cliconfig.PodPsValues) error {
 		return errors.Errorf("quiet and format with Go template are mutually exclusive")
 	}
 	return nil
-}
-
-func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) bool, error) {
-	switch filter {
-	case "ctr-ids":
-		return func(p *adapter.Pod) bool {
-			ctrIds, err := p.AllContainersByID()
-			if err != nil {
-				return false
-			}
-			return util.StringInSlice(filterValue, ctrIds)
-		}, nil
-	case "ctr-names":
-		return func(p *adapter.Pod) bool {
-			ctrs, err := p.AllContainers()
-			if err != nil {
-				return false
-			}
-			for _, ctr := range ctrs {
-				if filterValue == ctr.Name() {
-					return true
-				}
-			}
-			return false
-		}, nil
-	case "ctr-number":
-		return func(p *adapter.Pod) bool {
-			ctrIds, err := p.AllContainersByID()
-			if err != nil {
-				return false
-			}
-
-			fVint, err2 := strconv.Atoi(filterValue)
-			if err2 != nil {
-				return false
-			}
-			return len(ctrIds) == fVint
-		}, nil
-	case "ctr-status":
-		if !util.StringInSlice(filterValue, []string{"created", "restarting", "running", "paused", "exited", "unknown"}) {
-			return nil, errors.Errorf("%s is not a valid status", filterValue)
-		}
-		return func(p *adapter.Pod) bool {
-			ctr_statuses, err := p.Status()
-			if err != nil {
-				return false
-			}
-			for _, ctr_status := range ctr_statuses {
-				state := ctr_status.String()
-				if ctr_status == define.ContainerStateConfigured {
-					state = "created"
-				}
-				if state == filterValue {
-					return true
-				}
-			}
-			return false
-		}, nil
-	case "id":
-		return func(p *adapter.Pod) bool {
-			return strings.Contains(p.ID(), filterValue)
-		}, nil
-	case "name":
-		return func(p *adapter.Pod) bool {
-			return strings.Contains(p.Name(), filterValue)
-		}, nil
-	case "status":
-		if !util.StringInSlice(filterValue, []string{"stopped", "running", "paused", "exited", "dead", "created"}) {
-			return nil, errors.Errorf("%s is not a valid pod status", filterValue)
-		}
-		return func(p *adapter.Pod) bool {
-			status, err := p.GetPodStatus()
-			if err != nil {
-				return false
-			}
-			if strings.ToLower(status) == filterValue {
-				return true
-			}
-			return false
-		}, nil
-	}
-	return nil, errors.Errorf("%s is an invalid filter", filter)
 }
 
 // generate the template based on conditions given
