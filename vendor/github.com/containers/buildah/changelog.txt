@@ -1,3 +1,58 @@
+- Changelog for v1.14.1 (2020-02-27)
+  * Search for local runtime per values in containers.conf
+  * Set correct ownership on working directory
+  * BATS : in teardown, umount stale mounts
+  * Bump github.com/spf13/cobra from 0.0.5 to 0.0.6
+  * Bump github.com/fsouza/go-dockerclient from 1.6.1 to 1.6.3
+  * Bump github.com/stretchr/testify from 1.4.0 to 1.5.1
+  * Replace unix with syscall to allow vendoring into libpod
+  * Update to containers/common v0.4.1
+  * Improve remote manifest retrieval
+  * Fix minor spelling errors in containertools README
+  * Clear the right variable in buildahimage
+  * Correct a couple of incorrect format specifiers
+  * Update to containers/common v0.3.0
+  * manifest push --format: force an image type, not a list type
+  * run: adjust the order in which elements are added to $PATH
+  * getDateAndDigestAndSize(): handle creation time not being set
+  * Bump github.com/containers/common from 0.2.0 to 0.2.1
+  * include installation steps for CentOS 8 and Stream
+  * include installation steps for CentOS7 and forks
+  * Adjust Ubuntu install info to also work on Pop!_OS
+  * Make the commit id clear like Docker
+  * Show error on copied file above context directory in build
+  * Bump github.com/containers/image/v5 from 5.2.0 to 5.2.1
+  * pull/from/commit/push: retry on most failures
+  * Makefile: fix install.cni.sudo
+  * Repair buildah so it can use containers.conf on the server side
+  * Bump github.com/mattn/go-shellwords from 1.0.9 to 1.0.10
+  * Bump github.com/fsouza/go-dockerclient from 1.6.0 to 1.6.1
+  * Fixing formatting & build instructions
+  * Add Code of Conduct
+  * Bors: Fix no. req. github reviews
+  * Cirrus+Bors: Simplify temp branch skipping
+  * Bors-ng: Add documentation and status-icon
+  * Bump github.com/onsi/ginkgo from 1.11.0 to 1.12.0
+  * fix XDG_RUNTIME_DIR for authfile
+  * Cirrus: Disable F29 testing
+  * Cirrus: Add jq package
+  * Cirrus: Fix lint + validation using wrong epoch
+  * Stop using fedorproject registry
+  * Bors: Workaround ineffective required statuses
+  * Bors: Enable app + Disable Travis
+  * Cirrus: Add standardized log-collection
+  * Cirrus: Improve automated lint + validation
+  * Allow passing options to golangci-lint
+  * Cirrus: Fixes from review feedback
+  * Cirrus: Temporarily ignore VM testing failures
+  * Cirrus: Migrate off papr + implement VM testing
+  * Cirrus: Update packages + fixes for get_ci_vm.sh
+  * Show validation command-line
+  * Skip overlay test w/ vfs driver
+  * use alpine, not centos, for various tests
+  * Flake handling: cache and prefetch images
+  * Bump to v1.15.0-dev
+
 - Changelog for v1.14.0 (2020-02-05)
   * bump github.com/mtrmac/gpgme
   * Update containers/common to v0.1.4
