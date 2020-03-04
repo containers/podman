@@ -62,7 +62,8 @@ func Join(base map[string]string, override map[string]string) map[string]string 
 
 // ParseFile parses the specified path for environment variables and returns them
 // as a map.
-func ParseFile(path string) (env map[string]string, err error) {
+func ParseFile(path string) (_ map[string]string, err error) {
+	env := make(map[string]string)
 	defer func() {
 		if err != nil {
 			err = errors.Wrapf(err, "error parsing env file %q", path)
