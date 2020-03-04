@@ -689,6 +689,11 @@ Note that the container will not be removed when it could not be created or
 started successfully. This allows the user to inspect the container after
 failure.
 
+**--rmi**=*true|false*
+
+After exit of the container, remove the image unless another
+container is using it. The default is *false*.
+
 **--rootfs**
 
 If specified, the first argument refers to an exploded container on the file system.

@@ -22,6 +22,14 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
+**--rm**
+
+After cleanup, remove the container entirely.
+
+**--rmi**
+
+After cleanup, remove the image entirely.
+
 ## EXAMPLE
 
 `podman container cleanup mywebserver`

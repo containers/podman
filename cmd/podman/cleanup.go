@@ -44,6 +44,7 @@ func init() {
 	flags.BoolVarP(&cleanupCommand.All, "all", "a", false, "Cleans up all containers")
 	flags.BoolVarP(&cleanupCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&cleanupCommand.Remove, "rm", false, "After cleanup, remove the container entirely")
+	flags.BoolVar(&cleanupCommand.RemoveImage, "rmi", false, "After cleanup, remove the image entirely")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 

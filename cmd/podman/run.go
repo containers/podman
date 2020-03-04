@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +39,7 @@ func init() {
 	flags.SetInterspersed(false)
 	flags.SetNormalizeFunc(aliasFlags)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
+	flags.Bool("rmi", false, "Remove container image unless used by other containers")
 	flags.AddFlagSet(getNetFlags())
 	getCreateFlags(&runCommand.PodmanCommand)
 	markFlagHiddenForRemoteClient("authfile", flags)
@@ -64,5 +66,13 @@ func runCmd(c *cliconfig.RunValues) error {
 	defer runtime.DeferredShutdown(false)
 
 	exitCode, err = runtime.Run(getContext(), c, exitCode)
+	if c.Bool("rmi") {
+		imageName := c.InputArgs[0]
+		if newImage, newImageErr := runtime.NewImageFromLocal(imageName); newImageErr != nil {
+			logrus.Errorf("%s", errors.Wrapf(newImageErr, "failed creating image object"))
+		} else if _, errImage := runtime.RemoveImage(getContext(), newImage, false); errImage != nil {
+			logrus.Errorf("%s", errors.Wrapf(errImage, "failed removing image"))
+		}
+	}
 	return err
 }
