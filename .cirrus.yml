@@ -366,8 +366,8 @@ image_prune_task:
 
 
 # This task does the unit and integration testing for every platform
-testing_task:
-
+task:
+    alias: testing
     depends_on:
         - "gating"
         - "vendor"
@@ -379,14 +379,21 @@ testing_task:
     only_if: >-
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
-
-    gce_instance:
-        matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
-            # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+    
+    matrix:
+        - name: Testing Fedora
+          gce_instance:
+              image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        - name: Testing Prior Fedora
+          gce_instance:
+              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
+        #- name: Testing Ubuntu
+        #  gce_instance:
+        #      image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+        - name: Testing Prior Ubuntu
+          gce_instance:
+              image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
