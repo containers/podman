@@ -484,6 +484,9 @@ func (w *huffmanBitWriter) writeDynamicHeader(numLiterals int, numOffsets int, n
 	}
 }
 
+// writeStoredHeader will write a stored header.
+// If the stored block is only used for EOF,
+// it is replaced with a fixed huffman block.
 func (w *huffmanBitWriter) writeStoredHeader(length int, isEof bool) {
 	if w.err != nil {
 		return
@@ -493,6 +496,16 @@ func (w *huffmanBitWriter) writeStoredHeader(length int, isEof bool) {
 		w.writeCode(w.literalEncoding.codes[endBlockMarker])
 		w.lastHeader = 0
 	}
+
+	// To write EOF, use a fixed encoding block. 10 bits instead of 5 bytes.
+	if length == 0 && isEof {
+		w.writeFixedHeader(isEof)
+		// EOB: 7 bits, value: 0
+		w.writeBits(0, 7)
+		w.flush()
+		return
+	}
+
 	var flag int32
 	if isEof {
 		flag = 1

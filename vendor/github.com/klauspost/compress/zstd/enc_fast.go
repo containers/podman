@@ -5,6 +5,7 @@
 package zstd
 
 import (
+	"fmt"
 	"math/bits"
 
 	"github.com/klauspost/compress/zstd/internal/xxhash"
@@ -74,7 +75,7 @@ func (e *fastEncoder) Encode(blk *blockEnc, src []byte) {
 	)
 
 	// Protect against e.cur wraparound.
-	for e.cur > (1<<30)+e.maxMatchOff {
+	for e.cur >= bufferReset {
 		if len(e.hist) == 0 {
 			for i := range e.table[:] {
 				e.table[i] = tableEntry{}
@@ -94,6 +95,7 @@ func (e *fastEncoder) Encode(blk *blockEnc, src []byte) {
 			e.table[i].offset = v
 		}
 		e.cur = e.maxMatchOff
+		break
 	}
 
 	s := e.addBlock(src)
@@ -151,7 +153,7 @@ encodeLoop:
 		canRepeat := len(blk.sequences) > 2
 
 		for {
-			if debug && canRepeat && offset1 == 0 {
+			if debugAsserts && canRepeat && offset1 == 0 {
 				panic("offset0 was 0")
 			}
 
@@ -212,10 +214,10 @@ encodeLoop:
 			if coffset0 < e.maxMatchOff && uint32(cv) == candidate.val {
 				// found a regular match
 				t = candidate.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
 				break
@@ -225,13 +227,13 @@ encodeLoop:
 				// found a regular match
 				t = candidate2.offset - e.cur
 				s++
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
-				if debug && t < 0 {
+				if debugAsserts && t < 0 {
 					panic("t<0")
 				}
 				break
@@ -246,11 +248,11 @@ encodeLoop:
 		offset2 = offset1
 		offset1 = s - t
 
-		if debug && s <= t {
-			panic("s <= t")
+		if debugAsserts && s <= t {
+			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
-		if debug && canRepeat && int(offset1) > len(src) {
+		if debugAsserts && canRepeat && int(offset1) > len(src) {
 			panic("invalid offset")
 		}
 
@@ -343,7 +345,7 @@ func (e *fastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 		}
 	}
 	// Protect against e.cur wraparound.
-	if e.cur > (1<<30)+e.maxMatchOff {
+	if e.cur >= bufferReset {
 		for i := range e.table[:] {
 			e.table[i] = tableEntry{}
 		}
@@ -456,10 +458,10 @@ encodeLoop:
 			if coffset0 < e.maxMatchOff && uint32(cv) == candidate.val {
 				// found a regular match
 				t = candidate.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
 				break
@@ -469,13 +471,13 @@ encodeLoop:
 				// found a regular match
 				t = candidate2.offset - e.cur
 				s++
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
-				if debug && t < 0 {
+				if debugAsserts && t < 0 {
 					panic("t<0")
 				}
 				break
@@ -490,8 +492,8 @@ encodeLoop:
 		offset2 = offset1
 		offset1 = s - t
 
-		if debug && s <= t {
-			panic("s <= t")
+		if debugAsserts && s <= t {
+			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
 		// Extend the 4-byte match as long as possible.
@@ -570,6 +572,9 @@ encodeLoop:
 }
 
 func (e *fastEncoder) addBlock(src []byte) int32 {
+	if debugAsserts && e.cur > bufferReset {
+		panic(fmt.Sprintf("ecur (%d) > buffer reset (%d)", e.cur, bufferReset))
+	}
 	// check if we have space already
 	if len(e.hist)+len(src) > cap(e.hist) {
 		if cap(e.hist) == 0 {
@@ -608,15 +613,18 @@ func (e *fastEncoder) matchlenNoHist(s, t int32, src []byte) int32 {
 }
 
 func (e *fastEncoder) matchlen(s, t int32, src []byte) int32 {
-	if debug {
+	if debugAsserts {
 		if s < 0 {
-			panic("s<0")
+			err := fmt.Sprintf("s (%d) < 0", s)
+			panic(err)
 		}
 		if t < 0 {
-			panic("t<0")
+			err := fmt.Sprintf("s (%d) < 0", s)
+			panic(err)
 		}
 		if s-t > e.maxMatchOff {
-			panic(s - t)
+			err := fmt.Sprintf("s (%d) - t (%d) > maxMatchOff (%d)", s, t, e.maxMatchOff)
+			panic(err)
 		}
 	}
 	s1 := int(s) + maxMatchLength - 4
@@ -650,7 +658,10 @@ func (e *fastEncoder) Reset() {
 		}
 		e.hist = make([]byte, 0, l)
 	}
-	// We offset current position so everything will be out of reach
-	e.cur += e.maxMatchOff + int32(len(e.hist))
+	// We offset current position so everything will be out of reach.
+	// If above reset line, history will be purged.
+	if e.cur < bufferReset {
+		e.cur += e.maxMatchOff + int32(len(e.hist))
+	}
 	e.hist = e.hist[:0]
 }

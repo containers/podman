@@ -156,7 +156,7 @@ func (e *Encoder) Write(p []byte) (n int, err error) {
 		if err != nil {
 			return n, err
 		}
-		if debug && len(s.filling) > 0 {
+		if debugAsserts && len(s.filling) > 0 {
 			panic(len(s.filling))
 		}
 	}

@@ -262,7 +262,7 @@ func (t *tokens) EstimatedBits() int {
 // AddMatch adds a match to the tokens.
 // This function is very sensitive to inlining and right on the border.
 func (t *tokens) AddMatch(xlength uint32, xoffset uint32) {
-	if debugDecode {
+	if debugDeflate {
 		if xlength >= maxMatchLength+baseMatchLength {
 			panic(fmt.Errorf("invalid length: %v", xlength))
 		}
@@ -281,7 +281,7 @@ func (t *tokens) AddMatch(xlength uint32, xoffset uint32) {
 // AddMatchLong adds a match to the tokens, potentially longer than max match length.
 // Length should NOT have the base subtracted, only offset should.
 func (t *tokens) AddMatchLong(xlength int32, xoffset uint32) {
-	if debugDecode {
+	if debugDeflate {
 		if xoffset >= maxMatchOffset+baseMatchOffset {
 			panic(fmt.Errorf("invalid offset: %v", xoffset))
 		}

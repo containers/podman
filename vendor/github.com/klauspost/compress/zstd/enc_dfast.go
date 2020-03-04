@@ -4,6 +4,8 @@
 
 package zstd
 
+import "fmt"
+
 const (
 	dFastLongTableBits = 17                      // Bits used in the long match table
 	dFastLongTableSize = 1 << dFastLongTableBits // Size of the table
@@ -29,7 +31,7 @@ func (e *doubleFastEncoder) Encode(blk *blockEnc, src []byte) {
 	)
 
 	// Protect against e.cur wraparound.
-	for e.cur > (1<<30)+e.maxMatchOff {
+	for e.cur >= bufferReset {
 		if len(e.hist) == 0 {
 			for i := range e.table[:] {
 				e.table[i] = tableEntry{}
@@ -61,6 +63,7 @@ func (e *doubleFastEncoder) Encode(blk *blockEnc, src []byte) {
 			e.longTable[i].offset = v
 		}
 		e.cur = e.maxMatchOff
+		break
 	}
 
 	s := e.addBlock(src)
@@ -110,7 +113,7 @@ encodeLoop:
 		canRepeat := len(blk.sequences) > 2
 
 		for {
-			if debug && canRepeat && offset1 == 0 {
+			if debugAsserts && canRepeat && offset1 == 0 {
 				panic("offset0 was 0")
 			}
 
@@ -229,10 +232,10 @@ encodeLoop:
 				// Reference encoder checks all 8 bytes, we only check 4,
 				// but the likelihood of both the first 4 bytes and the hash matching should be enough.
 				t = candidateL.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
 				if debugMatches {
@@ -266,13 +269,13 @@ encodeLoop:
 				}
 
 				t = candidateS.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
-				if debug && t < 0 {
+				if debugAsserts && t < 0 {
 					panic("t<0")
 				}
 				if debugMatches {
@@ -294,11 +297,11 @@ encodeLoop:
 		offset2 = offset1
 		offset1 = s - t
 
-		if debug && s <= t {
-			panic("s <= t")
+		if debugAsserts && s <= t {
+			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
-		if debug && canRepeat && int(offset1) > len(src) {
+		if debugAsserts && canRepeat && int(offset1) > len(src) {
 			panic("invalid offset")
 		}
 
@@ -424,7 +427,7 @@ func (e *doubleFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 	)
 
 	// Protect against e.cur wraparound.
-	if e.cur > (1<<30)+e.maxMatchOff {
+	if e.cur >= bufferReset {
 		for i := range e.table[:] {
 			e.table[i] = tableEntry{}
 		}
@@ -545,10 +548,10 @@ encodeLoop:
 				// Reference encoder checks all 8 bytes, we only check 4,
 				// but the likelihood of both the first 4 bytes and the hash matching should be enough.
 				t = candidateL.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
 				if debugMatches {
@@ -582,13 +585,13 @@ encodeLoop:
 				}
 
 				t = candidateS.offset - e.cur
-				if debug && s <= t {
-					panic("s <= t")
+				if debugAsserts && s <= t {
+					panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 				}
-				if debug && s-t > e.maxMatchOff {
+				if debugAsserts && s-t > e.maxMatchOff {
 					panic("s - t >e.maxMatchOff")
 				}
-				if debug && t < 0 {
+				if debugAsserts && t < 0 {
 					panic("t<0")
 				}
 				if debugMatches {
@@ -610,8 +613,8 @@ encodeLoop:
 		offset2 = offset1
 		offset1 = s - t
 
-		if debug && s <= t {
-			panic("s <= t")
+		if debugAsserts && s <= t {
+			panic(fmt.Sprintf("s (%d) <= t (%d)", s, t))
 		}
 
 		// Extend the 4-byte match as long as possible.

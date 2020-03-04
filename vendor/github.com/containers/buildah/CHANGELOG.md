@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.14.2 (2020-03-03)
+    Add Buildah pull request template
+    Bump to containers/storage v1.16.1
+    run_linux: fix tight loop if file is not pollable
+    Bump github.com/opencontainers/selinux from 1.3.2 to 1.3.3
+    Bump github.com/containers/common from 0.4.1 to 0.4.2
+    Bump back to v1.15.0-dev
+    Add Containerfile to build a versioned stable image on quay.io
+
 ## v1.14.1 (2020-02-27)
     Search for local runtime per values in containers.conf
     Set correct ownership on working directory

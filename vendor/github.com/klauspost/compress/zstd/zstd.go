@@ -6,11 +6,20 @@ package zstd
 import (
 	"errors"
 	"log"
+	"math"
 	"math/bits"
 )
 
+// enable debug printing
 const debug = false
+
+// Enable extra assertions.
+const debugAsserts = debug || false
+
+// print sequence details
 const debugSequences = false
+
+// print detailed matching information
 const debugMatches = false
 
 // force encoder to use predefined tables.
@@ -18,6 +27,9 @@ const forcePreDef = false
 
 // zstdMinMatch is the minimum zstd match length.
 const zstdMinMatch = 3
+
+// Reset the buffer offset when reaching this.
+const bufferReset = math.MaxInt32 - MaxWindowSize
 
 var (
 	// ErrReservedBlockType is returned when a reserved block type is found.

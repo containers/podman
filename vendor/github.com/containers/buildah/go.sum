@@ -101,6 +101,8 @@ github.com/containers/common v0.4.0 h1:LpX2J19cZKSpn4PBtbLX/tTk3JzTtaqRWbaEoX5YG
 github.com/containers/common v0.4.0/go.mod h1:AiPCv0ZcBOVshnup/X6MuaqkySZQZ3iBWfInjJFIl40=
 github.com/containers/common v0.4.1 h1:Uu7f2ZDM/5xsqOkZwIEVKSjUI3YxKjvNIY5x57kjaKo=
 github.com/containers/common v0.4.1/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
+github.com/containers/common v0.4.2 h1:O5d1gj/xdpQdZi0MEivRQ/7AeRaVeHdbSP/bvShw458=
+github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/conmon v2.0.10+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v4 v4.0.1 h1:idNGHChj0Pyv3vLrxul2oSVMZLeFqpoq3CjLeVgapSQ=
 github.com/containers/image/v4 v4.0.1/go.mod h1:0ASJH1YgJiX/eqFZObqepgsvIA4XjCgpyfwn9pDGafA=
@@ -145,6 +147,8 @@ github.com/containers/storage v1.15.8 h1:ef7OfUMTpyq0PIVAhV7qfufEI92gAldk25nItri
 github.com/containers/storage v1.15.8/go.mod h1:zhvjIIl/fR6wt/lgqQAC+xanHQ+8gUQ0GBVeXYN81qI=
 github.com/containers/storage v1.16.0 h1:sD+s7BmiNBh61CuHN3j8PXGCwMtV9zPVJETAlshIf3w=
 github.com/containers/storage v1.16.0/go.mod h1:nqN09JSi1/RSI1UAUwDYXPRiGSlq5FPbNkN/xb0TfG0=
+github.com/containers/storage v1.16.1 h1:gVLVqbqaoyopLJbcQ9PQdsnm8SzVy6Vw24fofwMgkE0=
+github.com/containers/storage v1.16.1/go.mod h1:toFp72SLn/iyJ6YbrnrZ0bW63aH2Qw3dA8JVwL4ADPo=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
@@ -363,6 +367,8 @@ github.com/klauspost/compress v1.9.8 h1:VMAMUUOh+gaxKTMk+zqbjsSjsIcUcL/LF4o63i82
 github.com/klauspost/compress v1.9.8/go.mod h1:RyIbtBH6LamlWaDj8nUwkbUhJ87Yi3uG0guNDohfE1A=
 github.com/klauspost/compress v1.10.0 h1:92XGj1AcYzA6UrVdd4qIIBrT8OroryvRvdmg/IfmC7Y=
 github.com/klauspost/compress v1.10.0/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
+github.com/klauspost/compress v1.10.2 h1:Znfn6hXZAHaLPNnlqUYRrBSReFHYybslgv4PTiyz6P0=
+github.com/klauspost/compress v1.10.2/go.mod h1:aoV0uJVorq1K+umq18yTdKaF57EivdYsUV+/s2qKfXs=
 github.com/klauspost/cpuid v1.2.1 h1:vJi+O/nMdFt0vqm8NZBI6wzALWdA2X+egi0ogNyrC/w=
 github.com/klauspost/cpuid v1.2.1/go.mod h1:Pj4uuM528wm8OyEC2QMXAi2YiTZ96dNQPGgoMS4s3ek=
 github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM=
@@ -487,6 +493,8 @@ github.com/opencontainers/selinux v1.3.1 h1:dn2Rc3wTEvTB6iVqoFrKKeMb0uZ38ZheeyMu
 github.com/opencontainers/selinux v1.3.1/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.3.2 h1:DR4lL9SYVjgcTZKEZIncvDU06fKSc/eygjmNGOA3E1s=
 github.com/opencontainers/selinux v1.3.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
+github.com/opencontainers/selinux v1.3.3 h1:RX0wAeqtvVSYQcr017X3pFXPkLEtB6V4NjRD7gVQgg4=
+github.com/opencontainers/selinux v1.3.3/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316 h1:enQG2QUGwug4fR1yM6hL0Fjzx6Km/exZY6RbSPwMu3o=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316/go.mod h1:dv+J0b/HWai0QnMVb37/H0v36klkLBi2TNpPeWDxX10=
 github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible h1:s55wx8JIG/CKnewev892HifTBrtKzMdvgB3rm4rxC2s=

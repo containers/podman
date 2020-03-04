@@ -35,16 +35,16 @@ func newFastEnc(level int) fastEnc {
 }
 
 const (
-	tableBits       = 16             // Bits used in the table
+	tableBits       = 15             // Bits used in the table
 	tableSize       = 1 << tableBits // Size of the table
 	tableShift      = 32 - tableBits // Right-shift to get the tableBits most significant bits of a uint32.
 	baseMatchOffset = 1              // The smallest match offset
 	baseMatchLength = 3              // The smallest match length per the RFC section 3.2.5
 	maxMatchOffset  = 1 << 15        // The largest match offset
 
-	bTableBits   = 18                                               // Bits used in the big tables
+	bTableBits   = 17                                               // Bits used in the big tables
 	bTableSize   = 1 << bTableBits                                  // Size of the table
-	allocHistory = maxStoreBlockSize * 20                           // Size to preallocate for history.
+	allocHistory = maxStoreBlockSize * 10                           // Size to preallocate for history.
 	bufferReset  = (1 << 31) - allocHistory - maxStoreBlockSize - 1 // Reset the buffer offset when reaching this.
 )
 
@@ -92,7 +92,6 @@ func hash(u uint32) uint32 {
 }
 
 type tableEntry struct {
-	val    uint32
 	offset int32
 }
 
