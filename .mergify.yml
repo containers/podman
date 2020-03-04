@@ -1,0 +1,11 @@
+---
+
+# Format Ref: https://doc.mergify.io/configuration.html
+pull_request_rules:
+    - name: 'After Cirrus-CI Fails'
+      conditions:
+          - '- status-failure ~= cirrus-ci/.*'
+      actions:
+          review:
+              type: 'REQUEST_CHANGES'
+              message: '[Mergify](mergify.io) ***review*** comment message text'
