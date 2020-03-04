@@ -33,11 +33,16 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
+    FEDORA_NAME: "fedora-31"
+    PRIOR_FEDORA_NAME: "fedora-30"
+    UBUNTU_NAME: "ubuntu-19"
+    PRIOR_UBUNTU_NAME: "ubuntu-18"
+
     _BUILT_IMAGE_SUFFIX: "libpod-5940307564953600"
-    FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
-    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
-    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
+    FEDORA_CACHE_IMAGE_NAME: "${FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "${PRIOR_FEDORA_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "${UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "${PRIOR_UBUNTU_NAME}-${_BUILT_IMAGE_SUFFIX}"
 
     ####
     #### Variables for composing new cache-images (used in PR testing) from
@@ -367,7 +372,7 @@ image_prune_task:
 
 # This task does the unit and integration testing for every platform
 testing_task:
-
+    alias: "testing"
     depends_on:
         - "gating"
         - "vendor"
@@ -380,13 +385,18 @@ testing_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-    gce_instance:
-        matrix:
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
-            # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
+    matrix:
+        - name: "testing ${FEDORA_NAME}"
+          gce_instance:
+              image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        - name: "testing ${PRIOR_FEDORA_NAME}"
+          gce_instance:
+              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        # Multiple test failures on Ubuntu 19 - Fixes TBD in future PR
+        # TODO: image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
+        - name: "testing ${PRIOR_UBUNTU_NAME}"
+          gce_instance:
+              image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"
 
     timeout_in: 120m
 
@@ -472,7 +482,7 @@ special_testing_rootless_task:
 
 
 special_testing_in_podman_task:
-
+    alias: "special_testing_in_podman"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -484,12 +494,13 @@ special_testing_in_podman_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-    gce_instance:
-        matrix:
-            # FIXME: Integration testing currently broken for F31 hosts
-            # Error: container_linux.go:345: starting container process caused "process_linux.go:281: applying cgroup configuration for process caused \"mountpoint for cgroup not found\"": OCI runtime error
-            # image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+    matrix:
+        # FIXME: Integration testing currently broken for F31 hosts
+        # Error: container_linux.go:345: starting container process caused "process_linux.go:281: applying cgroup configuration for process caused \"mountpoint for cgroup not found\"": OCI runtime error
+        # image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+        - name: "special_testing_in_podman ${PRIOR_FEDORA_NAME}"
+          gce_instance:
+              image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
 
     env:
         ADD_SECOND_PARTITION: 'true'
@@ -514,7 +525,7 @@ special_testing_in_podman_task:
 
 
 special_testing_cross_task:
-
+    alias: "special_testing_cross"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -524,10 +535,13 @@ special_testing_cross_task:
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:IMG.*' &&
         $CIRRUS_CHANGE_MESSAGE !=~ '.*CI:DOCS.*'
 
-    env:
-        matrix:
-            CROSS_PLATFORM: 'windows'
-            CROSS_PLATFORM: 'darwin'
+    matrix:
+        - name: 'cross-platform: windows'
+          env:
+              CROSS_PLATFORM: 'windows'
+        - name: 'cross-platform: darwin'
+          env:
+              CROSS_PLATFORM: 'darwin'
 
     timeout_in: 20m
 
