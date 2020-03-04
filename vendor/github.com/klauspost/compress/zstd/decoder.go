@@ -315,7 +315,7 @@ func (d *Decoder) DecodeAll(input, dst []byte) ([]byte, error) {
 			if size > 1<<20 {
 				size = 1 << 20
 			}
-			dst = make([]byte, 0, frame.WindowSize)
+			dst = make([]byte, 0, size)
 		}
 
 		dst, err = frame.runDecoder(dst, block)

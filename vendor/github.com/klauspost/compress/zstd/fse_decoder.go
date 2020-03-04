@@ -118,7 +118,7 @@ func (s *fseDecoder) readNCount(b *byteReader, maxSymbol uint16) error {
 
 		if int32(bitStream)&(threshold-1) < max {
 			count = int32(bitStream) & (threshold - 1)
-			if debug && nbBits < 1 {
+			if debugAsserts && nbBits < 1 {
 				panic("nbBits underflow")
 			}
 			bitCount += nbBits - 1
