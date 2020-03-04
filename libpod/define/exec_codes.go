@@ -1,6 +1,7 @@
 package define
 
 import (
+	"math"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -17,6 +18,11 @@ const (
 	ExecErrorCodeCannotInvoke = 126
 	// ExecErrorCodeNotFound is the error code to return when a command cannot be found
 	ExecErrorCodeNotFound = 127
+	// ErrorConmonRead is a bogus value that can neither be a valid PID or exit code. It is
+	// used because conmon will send a negative value when sending a PID back over a pipe FD
+	// to signify something went wrong in the runtime. We need to differentiate between that
+	// value and a failure on the podman side of reading that value. Thus, we use ErrorConmonRead
+	ErrorConmonRead = math.MinInt32 - 1
 )
 
 // TranslateExecErrorToExitCode takes an error and checks whether it
