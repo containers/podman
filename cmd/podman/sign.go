@@ -35,8 +35,8 @@ var (
 			signCommand.Remote = remoteclient
 			return signCmd(&signCommand)
 		},
-		Example: `podman sign --sign-by mykey imageID
-  podman sign --sign-by mykey --directory ./mykeydir imageID`,
+		Example: `podman image sign --sign-by mykey imageID
+  podman image sign --sign-by mykey --directory ./mykeydir imageID`,
 	}
 )
 
