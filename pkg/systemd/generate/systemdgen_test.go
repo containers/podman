@@ -40,6 +40,8 @@ func TestCreateContainerSystemdUnit(t *testing.T) {
 [Unit]
 Description=Podman container-639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 
 [Service]
 Restart=always
@@ -58,6 +60,8 @@ WantedBy=multi-user.target`
 [Unit]
 Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 
 [Service]
 Restart=always
@@ -76,6 +80,8 @@ WantedBy=multi-user.target`
 [Unit]
 Description=Podman container-foobar.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 RefuseManualStart=yes
 RefuseManualStop=yes
 BindsTo=a.service b.service c.service pod.service
@@ -98,6 +104,8 @@ WantedBy=multi-user.target`
 [Unit]
 Description=Podman pod-123abc.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
@@ -118,6 +126,8 @@ WantedBy=multi-user.target`
 [Unit]
 Description=Podman jadda-jadda.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 
 [Service]
 Restart=always

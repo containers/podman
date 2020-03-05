@@ -80,6 +80,8 @@ const containerTemplate = `# {{.ServiceName}}.service
 [Unit]
 Description=Podman {{.ServiceName}}.service
 Documentation=man:podman-generate-systemd(1)
+Wants=network.target
+After=network-online.target
 {{- if .BoundToServices}}
 RefuseManualStart=yes
 RefuseManualStop=yes
