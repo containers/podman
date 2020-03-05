@@ -1203,6 +1203,13 @@ func runCopyStdio(stdio *sync.WaitGroup, copyPipes bool, stdioPipe [][]int, copy
 	runCopyStdioPassData(copyPipes, stdioPipe, finishCopy, relayMap, relayBuffer, readDesc, writeDesc)
 }
 
+func canRetry(err error) bool {
+	if errno, isErrno := err.(syscall.Errno); isErrno {
+		return errno == syscall.EINTR || errno == syscall.EAGAIN
+	}
+	return false
+}
+
 func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, relayMap map[int]int, relayBuffer map[int]*bytes.Buffer, readDesc map[int]string, writeDesc map[int]string) {
 	closeStdin := false
 
@@ -1250,7 +1257,7 @@ func runCopyStdioPassData(copyPipes bool, stdioPipe [][]int, finishCopy []int, r
 				// If it's zero-length on our stdin and we're
 				// using pipes, it's an EOF, so close the stdin
 				// pipe's writing end.
-				if n == 0 && copyPipes && int(pollFd.Fd) == unix.Stdin {
+				if n == 0 && !canRetry(err) && int(pollFd.Fd) == unix.Stdin {
 					removes[int(pollFd.Fd)] = struct{}{}
 				} else if n > 0 {
 					// Buffer the data in case we get blocked on where they need to go.

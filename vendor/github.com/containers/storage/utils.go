@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -146,6 +148,7 @@ func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
 	}
 	opts.RunRoot = rootlessRuntime
 	opts.GraphRoot = filepath.Join(dataDir, "containers", "storage")
+	opts.RootlessStoragePath = opts.GraphRoot
 	if path, err := exec.LookPath("fuse-overlayfs"); err == nil {
 		opts.GraphDriverName = "overlay"
 		opts.GraphDriverOptions = []string{fmt.Sprintf("overlay.mount_program=%s", path)}
@@ -161,6 +164,7 @@ func getTomlStorage(storeOptions *StoreOptions) *tomlConfig {
 	config.Storage.Driver = storeOptions.GraphDriverName
 	config.Storage.RunRoot = storeOptions.RunRoot
 	config.Storage.GraphRoot = storeOptions.GraphRoot
+	config.Storage.RootlessStoragePath = storeOptions.RootlessStoragePath
 	for _, i := range storeOptions.GraphDriverOptions {
 		s := strings.Split(i, "=")
 		if s[0] == "overlay.mount_program" {
@@ -227,6 +231,19 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 			if storageOpts.GraphRoot == "" {
 				storageOpts.GraphRoot = defaultRootlessGraphRoot
 			}
+			if storageOpts.RootlessStoragePath != "" {
+				if err = validRootlessStoragePathFormat(storageOpts.RootlessStoragePath); err != nil {
+					return storageOpts, err
+				}
+				rootlessStoragePath := strings.Replace(storageOpts.RootlessStoragePath, "$HOME", homedir.Get(), -1)
+				rootlessStoragePath = strings.Replace(rootlessStoragePath, "$UID", strconv.Itoa(rootlessUID), -1)
+				usr, err := user.LookupId(strconv.Itoa(rootlessUID))
+				if err != nil {
+					return storageOpts, err
+				}
+				rootlessStoragePath = strings.Replace(rootlessStoragePath, "$USER", usr.Username, -1)
+				storageOpts.GraphRoot = rootlessStoragePath
+			}
 		} else {
 			if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
 				return storageOpts, errors.Wrapf(err, "cannot make directory %s", filepath.Dir(storageConf))
@@ -247,4 +264,22 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 		}
 	}
 	return storageOpts, nil
+}
+
+// validRootlessStoragePathFormat checks if the environments contained in the path are accepted
+func validRootlessStoragePathFormat(path string) error {
+	if !strings.Contains(path, "$") {
+		return nil
+	}
+
+	splitPaths := strings.SplitAfter(path, "$")
+	validEnv := regexp.MustCompile(`^(HOME|USER|UID)([^a-zA-Z]|$)`).MatchString
+	if len(splitPaths) > 1 {
+		for _, p := range splitPaths[1:] {
+			if !validEnv(p) {
+				return errors.Errorf("Unrecognized environment variable")
+			}
+		}
+	}
+	return nil
 }

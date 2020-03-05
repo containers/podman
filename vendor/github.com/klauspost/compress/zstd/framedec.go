@@ -50,7 +50,7 @@ type frameDec struct {
 const (
 	// The minimum Window_Size is 1 KB.
 	MinWindowSize = 1 << 10
-	MaxWindowSize = 1 << 30
+	MaxWindowSize = 1 << 29
 )
 
 var (

@@ -806,7 +806,7 @@ func (b *blockEnc) genCodes() {
 		mlH[v]++
 		if v > mlMax {
 			mlMax = v
-			if debug && mlMax > maxMatchLengthSymbol {
+			if debugAsserts && mlMax > maxMatchLengthSymbol {
 				panic(fmt.Errorf("mlMax > maxMatchLengthSymbol (%d), matchlen: %d", mlMax, seq.matchLen))
 			}
 		}
@@ -821,13 +821,13 @@ func (b *blockEnc) genCodes() {
 		}
 		return int(max)
 	}
-	if mlMax > maxMatchLengthSymbol {
+	if debugAsserts && mlMax > maxMatchLengthSymbol {
 		panic(fmt.Errorf("mlMax > maxMatchLengthSymbol (%d)", mlMax))
 	}
-	if ofMax > maxOffsetBits {
+	if debugAsserts && ofMax > maxOffsetBits {
 		panic(fmt.Errorf("ofMax > maxOffsetBits (%d)", ofMax))
 	}
-	if llMax > maxLiteralLengthSymbol {
+	if debugAsserts && llMax > maxLiteralLengthSymbol {
 		panic(fmt.Errorf("llMax > maxLiteralLengthSymbol (%d)", llMax))
 	}
 

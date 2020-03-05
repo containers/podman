@@ -19,7 +19,7 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    _BUILT_IMAGE_SUFFIX: "libpod-6228273469587456"
+    _BUILT_IMAGE_SUFFIX: "libpod-5874660151656448"
     FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
     UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
@@ -50,31 +50,50 @@ gce_instance:
     disk: 200
     image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
+
 testing_task:
+
     depends_on:
         - lint
+
+    # Not all $TEST_DRIVER combinations are valid for all OS types.
+    # Note: Nested-variable resolution happens at runtime, not eval. time.
+    # Use verbose logic for ease of reading/maintaining.
+    only_if: >-
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "vfs" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "aufs" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "overlay" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "fuse-overlay" ) ||
+        ( $VM_IMAGE =~ '.*FEDORA.*' && $TEST_DRIVER != "aufs" )
+
+    allow_failures: $TEST_DRIVER == "devicemapper"
+
+    env:
+        matrix:
+            VM_IMAGE: "${FEDORA_CACHE_IMAGE_NAME}"
+            VM_IMAGE: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
+            # VM_IMAGE: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"  # No fuse3 support
+        matrix:  # See ./contrib/cirrus/build_and_test.sh
+            TEST_DRIVER: "vfs"
+            TEST_DRIVER: "aufs"
+            TEST_DRIVER: "overlay"
+            TEST_DRIVER: "fuse-overlay"
+            TEST_DRIVER: "devicemapper"
+            TEST_DRIVER: "fuse-overlay-whiteout"
+
     gce_instance:  # Only need to specify differences from defaults (above)
-        matrix:  # Duplicate this task for each matrix product.
-            image_name: "${FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            image_name: "${UBUNTU_CACHE_IMAGE_NAME}"
-            # image_name: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"  # No fuse3 support
+        image_name: "${VM_IMAGE}"
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_and_test_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/build_and_test.sh |& ${_TIMESTAMP}'
 
-    # Log collection when job was successful
-    df_script: '${_DFCMD} || true'
-    rh_audit_log_script: '${_RAUDITCMD} || true'
-    ubuntu_audit_log_script: '${_UAUDITCMD} || true'
-    journal_log_script: '${_JOURNALCMD} || true'
-
-    on_failure:  # Script names must be different from above
-        failure_df_script: '${_DFCMD} || true'
-        failure_rh_audit_log_script: '${_RAUDITCMD} || true'
-        failure_ubuntu_audit_log_script: '${_UAUDITCMD} || true'
-        failure_journal_log_script: '${_JOURNALCMD} || true'
+    always:
+        df_script: '${_DFCMD} || true'
+        rh_audit_log_script: '${_RAUDITCMD} || true'
+        ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+        journal_log_script: '${_JOURNALCMD} || true'
 
 lint_task:
     env:
@@ -94,7 +113,7 @@ lint_task:
 meta_task:
 
     container:
-        image: "quay.io/libpod/imgts:latest"  # see contrib/imgts
+        image: "quay.io/libpod/imgts:master"
         cpu: 1
         memory: 1
 
