@@ -57,6 +57,10 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}{
 		// override any golang type defaults
 	}
+
+	// Default Size to false
+	query.Size = false
+
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
@@ -85,7 +89,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	var list = make([]*handlers.Container, len(containers))
 	for i, ctnr := range containers {
-		api, err := handlers.LibpodToContainer(ctnr, infoData)
+		api, err := handlers.LibpodToContainer(ctnr, infoData, query.Size)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
