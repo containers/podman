@@ -33,31 +33,36 @@ RUN dnf -y install \
       zip \
       && dnf clean all
 
-ENV GOPATH="/go" \
-    PATH="/go/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin" \
+ENV GOPATH="/var/tmp/go" \
+    GOBIN="/var/tmp/go/bin" \
+    PATH="/var/tmp/go/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin" \
     SRCPATH="/usr/src/libpod" \
-    GOSRC="/go/src/github.com/containers/libpod"
+    GOSRC="/var/tmp/go/src/github.com/containers/libpod"
 
-# Only needed for installing build-time dependencies
+# Only needed for installing build-time dependencies, then will be removed
 COPY / $GOSRC
-
-WORKDIR $GOSRC
 
 # Install dependencies
 RUN set -x && \
+    mkdir -p "$GOBIN" && \
+    mkdir -p /etc/cni/net.d && \
+    mkdir -p /etc/containers && \
     install -D -m 755 $GOSRC/contrib/gate/entrypoint.sh /usr/local/bin/ && \
-    python3 -m pip install pre-commit && \
-    rm -rf "$GOSRC"
+    python3 -m pip install pre-commit
 
 # Install cni config
-#RUN make install.cni
-RUN mkdir -p /etc/cni/net.d/
 COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
-
 # Make sure we have some policy for pulling images
-RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
+WORKDIR "$GOSRC"
+RUN make install.tools && \
+    cd / && \
+    rm -rf "$GOSRC" && \
+    mkdir -p "$GOSRC"
 VOLUME ["/usr/src/libpod"]
+# This entrypoint will synchronize the above volume ($SRCPATH) to $GOSRC before
+# executing make.  This ensures the original source remains prestine and is never
+# modified by any lint/validation checks.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
