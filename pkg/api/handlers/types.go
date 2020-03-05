@@ -355,11 +355,17 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 		sizeRootFs int64
 		sizeRW     int64
 		state      define.ContainerStatus
+		stateStr   string
 	)
 
 	if state, err = l.State(); err != nil {
 		return nil, err
 	}
+	stateStr = state.String()
+	if stateStr == "configured" {
+		stateStr = "created"
+	}
+
 	if sizeRW, err = l.RWSize(); err != nil {
 		return nil, err
 	}
@@ -378,7 +384,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 		SizeRw:     sizeRW,
 		SizeRootFs: sizeRootFs,
 		Labels:     l.Labels(),
-		State:      string(state),
+		State:      stateStr,
 		Status:     "",
 		HostConfig: struct {
 			NetworkMode string `json:",omitempty"`
