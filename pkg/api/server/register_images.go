@@ -48,7 +48,11 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/create"), s.APIHandler(generic.CreateImageFromImage)).Methods(http.MethodPost).Queries("fromImage", "{fromImage}")
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/create", s.APIHandler(generic.CreateImageFromImage)).Methods(http.MethodPost).Queries("fromImage", "{fromImage}")
 	r.Handle(VersionedPath("/images/create"), s.APIHandler(generic.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/create", s.APIHandler(generic.CreateImageFromSrc)).Methods(http.MethodPost).Queries("fromSrc", "{fromSrc}")
 	// swagger:operation GET /images/json compat listImages
 	// ---
 	// tags:
@@ -84,6 +88,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/json"), s.APIHandler(generic.GetImages)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/json", s.APIHandler(generic.GetImages)).Methods(http.MethodGet)
 	// swagger:operation POST /images/load compat importImage
 	// ---
 	// tags:
@@ -108,6 +114,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/load"), s.APIHandler(generic.LoadImages)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/load", s.APIHandler(generic.LoadImages)).Methods(http.MethodPost)
 	// swagger:operation POST /images/prune compat pruneImages
 	// ---
 	// tags:
@@ -133,6 +141,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/prune"), s.APIHandler(generic.PruneImages)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/prune", s.APIHandler(generic.PruneImages)).Methods(http.MethodPost)
 	// swagger:operation GET /images/search compat searchImages
 	// ---
 	// tags:
@@ -166,6 +176,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/search"), s.APIHandler(handlers.SearchImages)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/search", s.APIHandler(handlers.SearchImages)).Methods(http.MethodGet)
 	// swagger:operation DELETE /images/{name:.*} compat removeImage
 	// ---
 	// tags:
@@ -198,6 +210,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:.*}"), s.APIHandler(handlers.RemoveImage)).Methods(http.MethodDelete)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}", s.APIHandler(handlers.RemoveImage)).Methods(http.MethodDelete)
 	// swagger:operation GET /images/{name:.*}/get compat exportImage
 	// ---
 	// tags:
@@ -221,6 +235,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:.*}/get"), s.APIHandler(generic.ExportImage)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}/get", s.APIHandler(generic.ExportImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{name:.*}/history compat imageHistory
 	// ---
 	// tags:
@@ -243,6 +259,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/{name:.*}/history"), s.APIHandler(handlers.HistoryImage)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}/history", s.APIHandler(handlers.HistoryImage)).Methods(http.MethodGet)
 	// swagger:operation GET /images/{name:.*}/json compat inspectImage
 	// ---
 	// tags:
@@ -265,6 +283,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/images/{name:.*}/json"), s.APIHandler(generic.GetImage)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}/json", s.APIHandler(generic.GetImage)).Methods(http.MethodGet)
 	// swagger:operation POST /images/{name:.*}/tag compat tagImage
 	// ---
 	// tags:
@@ -299,6 +319,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/images/{name:.*}/tag"), s.APIHandler(handlers.TagImage)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/images/{name:.*}/tag", s.APIHandler(handlers.TagImage)).Methods(http.MethodPost)
 	// swagger:operation POST /commit compat commitContainer
 	// ---
 	// tags:
@@ -344,6 +366,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/commit"), s.APIHandler(generic.CommitContainer)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/commit", s.APIHandler(generic.CommitContainer)).Methods(http.MethodPost)
 
 	// swagger:operation POST /build compat buildImage
 	// ---
@@ -554,6 +578,8 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/build"), s.APIHandler(handlers.BuildImage)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/build", s.APIHandler(handlers.BuildImage)).Methods(http.MethodPost)
 	/*
 		libpod endpoints
 	*/
