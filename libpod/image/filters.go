@@ -3,13 +3,13 @@ package image
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/libpod/pkg/inspect"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 

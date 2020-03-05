@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"io"
 	osexec "os/exec"
 	"time"
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultPostKillTimeout is the recommended default post-kill timeout.

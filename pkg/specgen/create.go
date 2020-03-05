@@ -2,12 +2,13 @@ package specgen
 
 import (
 	"context"
+	"os"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 // MakeContainer creates a container based on the SpecGenerator

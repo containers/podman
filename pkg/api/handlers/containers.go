@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 )
