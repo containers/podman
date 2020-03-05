@@ -96,11 +96,11 @@ Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ 
 [Service]
 Restart={{.RestartPolicy}}
 {{- if .New}}
-ExecStartPre=/usr/bin/rm -f /%t/%n-pid /%t/%n-cid
+ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart={{.RunCommand}}
-ExecStop={{.Executable}} stop --ignore --cidfile /%t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
-ExecStopPost={{.Executable}} rm --ignore -f --cidfile /%t/%n-cid
-PIDFile=/%t/%n-pid
+ExecStop={{.Executable}} stop --ignore --cidfile %t/%n-cid {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}}
+ExecStopPost={{.Executable}} rm --ignore -f --cidfile %t/%n-cid
+PIDFile=%t/%n-pid
 {{- else}}
 ExecStart={{.Executable}} start {{.ContainerName}}
 ExecStop={{.Executable}} stop {{if (ge .StopTimeout 0)}}-t {{.StopTimeout}}{{end}} {{.ContainerName}}
@@ -160,8 +160,8 @@ func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, erro
 		command := []string{
 			info.Executable,
 			"run",
-			"--conmon-pidfile", "/%t/%n-pid",
-			"--cidfile", "/%t/%n-cid",
+			"--conmon-pidfile", "%t/%n-pid",
+			"--cidfile", "%t/%n-cid",
 			"--cgroups=no-conmon",
 		}
 		command = append(command, info.CreateCommand[index:]...)
