@@ -161,7 +161,7 @@ golang API and can be installed independently from Buildah.
 
 A major difference between Podman and Buildah is their concept of a container.  Podman
 allows users to create "traditional containers" where the intent of these containers is
-to be long lived.  While Buildah containers are really just created to allow content
+to be long lived, while Buildah containers are really just created to allow content
 to be added back to the container image.  An easy way to think of it is the
 `buildah run` command emulates the RUN command in a Dockerfile while the `podman run`
 command emulates the `docker run` command in functionality.  Because of this and their underlying

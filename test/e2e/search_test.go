@@ -174,7 +174,7 @@ registries = ['{{.Host}}:{{.Port}}']`
 			"-p", fmt.Sprintf("%s:5000", registryEndpoints[0].Port),
 			registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		fakereg.WaitWithDefaultTimeout()
-		Expect(fakereg.ExitCode()).To(Equal(0))
+		Expect(fakereg.ExitCode()).To(Equal(1))
 
 		if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
 			Skip("Can not start docker registry.")

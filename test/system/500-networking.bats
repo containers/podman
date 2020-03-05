@@ -49,7 +49,7 @@ load helpers
     run_podman port myweb 80
     is "$output" "0.0.0.0:$HOST_PORT"  "port <cid> 80"
     run_podman port myweb 80/tcp
-    is "$output" "0.0.0.0:$HOST_PORT"  "port <cid> 80/tcp"
+    is "$output" "0.0.0.0:$HOST_PORT"  "port <cid> 88/tcp"
 
     run_podman 125 port myweb 99/tcp
     is "$output" 'Error: failed to find published port "99/tcp"'
