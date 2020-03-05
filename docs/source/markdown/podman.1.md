@@ -104,11 +104,11 @@ specify additional options via the `--storage-opt` flag.
 
 Storage driver option, Default storage driver options are configured in /etc/containers/storage.conf (`$HOME/.config/containers/storage.conf` in rootless mode). The `STORAGE_OPTS` environment variable overrides the default. The --storage-opt specified options overrides all.
 
-**--syslog**
+**--syslog**=*true|false*
 
-Output logging information to syslog as well as the console.
+Output logging information to syslog as well as the console (default *false*).
 
-On remote clients, logging is directed to the file $HOME/.config/containers/podman.log
+On remote clients, logging is directed to the file $HOME/.config/containers/podman.log.
 
 **--tmpdir**
 
