@@ -128,10 +128,10 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 	privCapRequired := []string{}
 
 	if !c.Privileged && len(c.CapRequired) > 0 {
-		// Pass CapRequired in CapAdd field to normalize capabilties names
+		// Pass CapRequired in CapAdd field to normalize capabilities names
 		capRequired, err := capabilities.MergeCapabilities(nil, c.CapRequired, nil)
 		if err != nil {
-			logrus.Errorf("capabilties requested by user or image are not valid: %q", strings.Join(c.CapRequired, ","))
+			logrus.Errorf("capabilities requested by user or image are not valid: %q", strings.Join(c.CapRequired, ","))
 		} else {
 			// Verify all capRequiered are in the defaultCapList
 			for _, cap := range capRequired {
@@ -143,7 +143,7 @@ func (c *SecurityConfig) ConfigureGenerator(g *generate.Generator, user *UserCon
 		if len(privCapRequired) == 0 {
 			defaultCaplist = capRequired
 		} else {
-			logrus.Errorf("capabilties requested by user or image are not allowed by default: %q", strings.Join(privCapRequired, ","))
+			logrus.Errorf("capabilities requested by user or image are not allowed by default: %q", strings.Join(privCapRequired, ","))
 		}
 	}
 	configSpec.Process.Capabilities.Bounding = defaultCaplist
