@@ -8,7 +8,7 @@ require (
 	github.com/checkpoint-restore/go-criu v0.0.0-20190109184317-bdb7599cd87b
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
 	github.com/containernetworking/plugins v0.8.5
-	github.com/containers/buildah v1.14.1
+	github.com/containers/buildah v1.14.2
 	github.com/containers/common v0.4.2
 	github.com/containers/conmon v2.0.10+incompatible
 	github.com/containers/image/v5 v5.2.1
