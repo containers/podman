@@ -403,13 +403,8 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData, sz bool)
 }
 
 func LibpodToContainerJSON(l *libpod.Container, sz bool) (*docker.ContainerJSON, error) {
-	var (
-		sizeRootFs int64
-		sizeRW     int64
-	)
-
 	_, imageName := l.Image()
-	inspect, err := l.Inspect(true)
+	inspect, err := l.Inspect(sz)
 	if err != nil {
 		return nil, err
 	}
@@ -444,18 +439,6 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*docker.ContainerJSON,
 		return nil, err
 	}
 
-	if sz {
-		if sizeRW, err = l.RWSize(); err != nil {
-			return nil, err
-		}
-		if sizeRootFs, err = l.RootFsSize(); err != nil {
-			return nil, err
-		}
-	} else {
-		sizeRW = 0
-		sizeRootFs = 0
-	}
-
 	cb := docker.ContainerJSONBase{
 		ID:              l.ID(),
 		Created:         l.CreatedTime().String(),
@@ -478,8 +461,8 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*docker.ContainerJSON,
 		ExecIDs:         inspect.ExecIDs,
 		HostConfig:      &hc,
 		GraphDriver:     graphDriver,
-		SizeRw:          &sizeRW,
-		SizeRootFs:      &sizeRootFs,
+		SizeRw:          inspect.SizeRw,
+		SizeRootFs:      &inspect.SizeRootFs,
 	}
 
 	stopTimeout := int(l.StopTimeout())
