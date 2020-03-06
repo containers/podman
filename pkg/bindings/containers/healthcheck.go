@@ -2,10 +2,10 @@ package containers
 
 import (
 	"context"
-	"github.com/containers/libpod/pkg/bindings"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/bindings"
 )
 
 // RunHealthCheck executes the container's healthcheck and returns the health status of the

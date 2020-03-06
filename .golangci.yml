@@ -24,7 +24,6 @@ linters:
     - goconst
     - gocyclo
     - golint
-    - goimports
     - gosec
     - lll
     - maligned

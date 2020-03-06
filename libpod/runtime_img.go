@@ -21,7 +21,7 @@ import (
 	"github.com/containers/image/v5/directory"
 	dockerarchive "github.com/containers/image/v5/docker/archive"
 	ociarchive "github.com/containers/image/v5/oci/archive"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API

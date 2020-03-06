@@ -4,6 +4,7 @@ package main
 
 import (
 	"errors"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
