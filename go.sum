@@ -66,6 +66,8 @@ github.com/containerd/typeurl v0.0.0-20180627222232-a93fcdb778cd/go.mod h1:Cm3kw
 github.com/containernetworking/cni v0.7.1/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784 h1:rqUVLD8I859xRgUx/WMC3v7QAFqbLKZbs+0kqYboRJc=
 github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
+github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921 h1:eUMd8hlGasYcg1tBqETZtxaW3a7EIxqY7Z1g65gcKQg=
+github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921/go.mod h1:LGwApLUm2FpoOfxTDEeq8T9ipbpZ61X79hmU3w8FmsY=
 github.com/containernetworking/plugins v0.8.5 h1:pCvEMrFf7yzJI8+/D/7jkvE96KD52b7/Eu+jpahihy8=
 github.com/containernetworking/plugins v0.8.5/go.mod h1:UZ2539umj8djuRQmBxuazHeJbYrLV8BSBejkk+she6o=
 github.com/containers/buildah v1.13.1 h1:EdhllQxXmOZ56mGFf68AkrpIj9XtEkkGq0WaPWFuGM0=

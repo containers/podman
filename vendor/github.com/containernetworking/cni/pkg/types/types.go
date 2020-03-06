@@ -100,9 +100,6 @@ type Result interface {
 
 	// Prints the result in JSON format to provided writer
 	PrintTo(writer io.Writer) error
-
-	// Returns a JSON string representation of the result
-	String() string
 }
 
 func PrintResult(result Result, version string) error {
