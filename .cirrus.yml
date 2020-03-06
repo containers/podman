@@ -446,7 +446,7 @@ testing_task:
 
 # This task executes tests under unique environments/conditions
 special_testing_rootless_task:
-
+    alias: 'rootless'
     depends_on:
         - "gating"
         - "varlink_api"
@@ -485,7 +485,7 @@ special_testing_rootless_task:
 
 
 special_testing_in_podman_task:
-    alias: "special_testing_in_podman"
+    alias: "in-podman"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -528,7 +528,7 @@ special_testing_in_podman_task:
 
 
 special_testing_cross_task:
-    alias: "special_testing_cross"
+    alias: "cross"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -567,7 +567,7 @@ special_testing_cross_task:
 
 
 special_testing_bindings_task:
-
+    alias: "bindings"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -593,7 +593,7 @@ special_testing_bindings_task:
 
 
 special_testing_endpoint_task:
-
+    alias: "endpoint"
     depends_on:
         - "gating"
         - "varlink_api"
@@ -775,11 +775,11 @@ success_task:
         - "image_prune"
         - "testing"
         - "rpmbuild"
-        - "special_testing_rootless"
-        - "special_testing_in_podman"
-        - "special_testing_cross"
-        - "special_testing_endpoint"
-        - "special_testing_bindings"
+        - "rootless"
+        - "in-podman"
+        - "cross"
+        - "endpoint"
+        - "bindings"
         - "test_build_cache_images"
         - "verify_test_built_images"
         - "docs"
