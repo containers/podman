@@ -16,6 +16,14 @@ func (s *APIServer) registerSwarmHandlers(r *mux.Router) error {
 	r.PathPrefix("/v{version:[0-9.]+}/services/").HandlerFunc(noSwarm)
 	r.PathPrefix("/v{version:[0-9.]+}/swarm/").HandlerFunc(noSwarm)
 	r.PathPrefix("/v{version:[0-9.]+}/tasks/").HandlerFunc(noSwarm)
+
+	// Added non version path to URI to support docker non versioned paths
+	r.PathPrefix("/configs/").HandlerFunc(noSwarm)
+	r.PathPrefix("/nodes/").HandlerFunc(noSwarm)
+	r.PathPrefix("/secrets/").HandlerFunc(noSwarm)
+	r.PathPrefix("/services/").HandlerFunc(noSwarm)
+	r.PathPrefix("/swarm/").HandlerFunc(noSwarm)
+	r.PathPrefix("/tasks/").HandlerFunc(noSwarm)
 	return nil
 }
 

@@ -35,5 +35,7 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	//   500:
 	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/events"), s.APIHandler(handlers.GetEvents)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/events", s.APIHandler(handlers.GetEvents)).Methods(http.MethodGet)
 	return nil
 }

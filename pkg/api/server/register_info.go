@@ -22,5 +22,7 @@ func (s *APIServer) registerInfoHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/info"), s.APIHandler(generic.GetInfo)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/info", s.APIHandler(generic.GetInfo)).Methods(http.MethodGet)
 	return nil
 }

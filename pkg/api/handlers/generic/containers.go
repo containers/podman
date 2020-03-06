@@ -57,6 +57,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 	}{
 		// override any golang type defaults
 	}
+
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
@@ -85,7 +86,7 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 	var list = make([]*handlers.Container, len(containers))
 	for i, ctnr := range containers {
-		api, err := handlers.LibpodToContainer(ctnr, infoData)
+		api, err := handlers.LibpodToContainer(ctnr, infoData, query.Size)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -97,6 +98,17 @@ func ListContainers(w http.ResponseWriter, r *http.Request) {
 
 func GetContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Size bool `schema:"size"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
 
 	name := utils.GetName(r)
 	ctnr, err := runtime.LookupContainer(name)
@@ -104,7 +116,7 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	api, err := handlers.LibpodToContainerJSON(ctnr)
+	api, err := handlers.LibpodToContainerJSON(ctnr, query.Size)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

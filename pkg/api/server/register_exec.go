@@ -75,6 +75,8 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/containers/{name}/create"), s.APIHandler(handlers.CreateExec)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/containers/{name}/create", s.APIHandler(handlers.CreateExec)).Methods(http.MethodPost)
 	// swagger:operation POST /exec/{id}/start compat startExec
 	// ---
 	// tags:
@@ -111,6 +113,8 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/exec/{id}/start"), s.APIHandler(handlers.StartExec)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/exec/{id}/start", s.APIHandler(handlers.StartExec)).Methods(http.MethodPost)
 	// swagger:operation POST /exec/{id}/resize compat resizeExec
 	// ---
 	// tags:
@@ -142,6 +146,8 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/exec/{id}/resize"), s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/exec/{id}/resize", s.APIHandler(handlers.ResizeExec)).Methods(http.MethodPost)
 	// swagger:operation GET /exec/{id}/json compat inspectExec
 	// ---
 	// tags:
@@ -164,6 +170,8 @@ func (s *APIServer) registerExecHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/InternalError"
 	r.Handle(VersionedPath("/exec/{id}/json"), s.APIHandler(handlers.InspectExec)).Methods(http.MethodGet)
+	// Added non version path to URI to support docker non versioned paths
+	r.Handle("/exec/{id}/json", s.APIHandler(handlers.InspectExec)).Methods(http.MethodGet)
 
 	/*
 		libpod api follows

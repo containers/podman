@@ -347,7 +347,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 
 }
 
-func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Container, error) {
+func LibpodToContainer(l *libpod.Container, infoData []define.InfoData, sz bool) (*Container, error) {
 	imageId, imageName := l.Image()
 
 	var (
@@ -360,11 +360,18 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	if state, err = l.State(); err != nil {
 		return nil, err
 	}
-	if sizeRW, err = l.RWSize(); err != nil {
-		return nil, err
+	stateStr := state.String()
+	if stateStr == "configured" {
+		stateStr = "created"
 	}
-	if sizeRootFs, err = l.RootFsSize(); err != nil {
-		return nil, err
+
+	if sz {
+		if sizeRW, err = l.RWSize(); err != nil {
+			return nil, err
+		}
+		if sizeRootFs, err = l.RootFsSize(); err != nil {
+			return nil, err
+		}
 	}
 
 	return &Container{docker.Container{
@@ -378,7 +385,7 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 		SizeRw:     sizeRW,
 		SizeRootFs: sizeRootFs,
 		Labels:     l.Labels(),
-		State:      string(state),
+		State:      stateStr,
 		Status:     "",
 		HostConfig: struct {
 			NetworkMode string `json:",omitempty"`
@@ -391,9 +398,9 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData) (*Contai
 	}, nil
 }
 
-func LibpodToContainerJSON(l *libpod.Container) (*docker.ContainerJSON, error) {
+func LibpodToContainerJSON(l *libpod.Container, sz bool) (*docker.ContainerJSON, error) {
 	_, imageName := l.Image()
-	inspect, err := l.Inspect(true)
+	inspect, err := l.Inspect(sz)
 	if err != nil {
 		return nil, err
 	}
