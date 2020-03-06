@@ -4,9 +4,11 @@
 ### Features
 - Many networking-related flags have been added to `podman pod create` to enable customization of pod networks, including `--add-host`, `--dns`, `--dns-opt`, `--dns-search`, `--ip`, `--mac-address`, `--network`, and `--no-hosts`
 - The `podman ps --format=json` command now includes the ID of the image containers were created with
+- The `podman run` and `podman create` commands now feature an `--rmi` flag to remove the image the container was using after it exits (if no other containers are using said image) ([#4628](https://github.com/containers/libpod/issues/4628))
 - The `podman create` and `podman run` commands now support the `--device-cgroup-rule` flag ([#4876](https://github.com/containers/libpod/issues/4876))
 - While the HTTP API remains in alpha, many fixes and additions have landed. These are documented in a separate subsection below
 - The `podman create` and `podman run` commands now feature a `--no-healthcheck` flag to disable healthchecks for a container ([#5299](https://github.com/containers/libpod/issues/5299))
+- Containers now recognize the `io.containers.capabilities` label, which specifies a list of capabilities required by the image to run. These capabilities will be used as long as they are more restrictive than the default capabilities used
 
 ### Bugfixes
 - Fixed CVE-2020-1726, a security issue where volumes manually populated before first being mounted into a container could have those contents overwritten on first being mounted into a container
@@ -33,6 +35,8 @@
 - Fixed a bug where the `--uts` flag to `podman create` and `podman run` would only allow specifying containers by full ID ([#5289](https://github.com/containers/libpod/issues/5289))
 - Fixed a bug where rootless Podman could segfault when passed a large number of file descriptors
 - Fixed a bug where the `podman port` command was incorrectly interpreting additional arguments as container names, instead of port numbers
+- Fixed a bug where units created by `podman generate systemd` did not depend on network targets, and so could start before the system network was ready ([#4130](https://github.com/containers/libpod/issues/4130))
+- Fixed a bug where exec sessions in containers which did not specify a user would not inherit supplemental groups added to the container via `--group-add`
 
 ### HTTP API
 - Initial support for secure connections to servers via SSH tunneling has been added
@@ -47,7 +51,7 @@
 - Many fixes have been made to API documentation to ensure it matches the code
 
 ### Misc
-- Updated vendored Buildah to v1.14.1
+- Updated vendored Buildah to v1.14.2
 - Updated vendored containers/storage to v1.16.0
 - The `Created` field to `podman images --format=json` has been renamed to `CreatedSince` as part of the fix for ([#5110](https://github.com/containers/libpod/issues/5110)). Go templates using the old name should still work
 - The `CreatedTime` field to `podman images --format=json` has been renamed to `CreatedAt` as part of the fix for ([#5110](https://github.com/containers/libpod/issues/5110)). Go templates using the old name should still work
