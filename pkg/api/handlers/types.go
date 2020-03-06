@@ -355,13 +355,12 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData, sz bool)
 		sizeRootFs int64
 		sizeRW     int64
 		state      define.ContainerStatus
-		stateStr   string
 	)
 
 	if state, err = l.State(); err != nil {
 		return nil, err
 	}
-	stateStr = state.String()
+	stateStr := state.String()
 	if stateStr == "configured" {
 		stateStr = "created"
 	}
@@ -373,9 +372,6 @@ func LibpodToContainer(l *libpod.Container, infoData []define.InfoData, sz bool)
 		if sizeRootFs, err = l.RootFsSize(); err != nil {
 			return nil, err
 		}
-	} else {
-		sizeRW = 0
-		sizeRootFs = 0
 	}
 
 	return &Container{docker.Container{
