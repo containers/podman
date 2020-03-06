@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
@@ -75,7 +76,7 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
 			return errors.Errorf("cannot read from terminal. Use command-line redirection or the --input flag.")
 		}
-		outFile, err := ioutil.TempFile("/var/tmp", "podman")
+		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
 		if err != nil {
 			return errors.Errorf("error creating file %v", err)
 		}
