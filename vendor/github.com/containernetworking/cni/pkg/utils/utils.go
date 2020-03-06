@@ -15,14 +15,22 @@
 package utils
 
 import (
+	"bytes"
+	"fmt"
 	"regexp"
+	"unicode"
 
 	"github.com/containernetworking/cni/pkg/types"
 )
 
-// cniValidNameChars is the regexp used to validate valid characters in
-// containerID and networkName
-const cniValidNameChars = `[a-zA-Z0-9][a-zA-Z0-9_.\-]`
+const (
+	// cniValidNameChars is the regexp used to validate valid characters in
+	// containerID and networkName
+	cniValidNameChars = `[a-zA-Z0-9][a-zA-Z0-9_.\-]`
+
+	// maxInterfaceNameLength is the length max of a valid interface name
+	maxInterfaceNameLength = 15
+)
 
 var cniReg = regexp.MustCompile(`^` + cniValidNameChars + `*$`)
 
@@ -47,5 +55,30 @@ func ValidateNetworkName(networkName string) *types.Error {
 	if !cniReg.MatchString(networkName) {
 		return types.NewError(types.ErrInvalidNetworkConfig, "invalid characters found in network name", networkName)
 	}
+	return nil
+}
+
+// ValidateInterfaceName will validate the interface name based on the three rules below
+// 1. The name must not be empty
+// 2. The name must be less than 16 characters
+// 3. The name must not be "." or ".."
+// 3. The name must not contain / or : or any whitespace characters
+// ref to https://github.com/torvalds/linux/blob/master/net/core/dev.c#L1024
+func ValidateInterfaceName(ifName string) *types.Error {
+	if len(ifName) == 0 {
+		return types.NewError(types.ErrInvalidEnvironmentVariables, "interface name is empty", "")
+	}
+	if len(ifName) > maxInterfaceNameLength {
+		return types.NewError(types.ErrInvalidEnvironmentVariables, "interface name is too long", fmt.Sprintf("interface name should be less than %d characters", maxInterfaceNameLength+1))
+	}
+	if ifName == "." || ifName == ".." {
+		return types.NewError(types.ErrInvalidEnvironmentVariables, "interface name is . or ..", "")
+	}
+	for _, r := range bytes.Runes([]byte(ifName)) {
+		if r == '/' || r == ':' || unicode.IsSpace(r) {
+			return types.NewError(types.ErrInvalidEnvironmentVariables, "interface name contains / or : or whitespace characters", "")
+		}
+	}
+
 	return nil
 }

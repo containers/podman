@@ -117,10 +117,10 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS ns.NetNS) ([]*cnitypes.Re
 
 	networkStatus := make([]*cnitypes.Result, 0)
 	for idx, r := range results {
-		logrus.Debugf("[%d] CNI result: %v", idx, r.Result.String())
+		logrus.Debugf("[%d] CNI result: %v", idx, r.Result)
 		resultCurrent, err := cnitypes.GetResult(r.Result)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result.String(), err)
+			return nil, errors.Wrapf(err, "error parsing CNI plugin result %q: %v", r.Result, err)
 		}
 		networkStatus = append(networkStatus, resultCurrent)
 	}

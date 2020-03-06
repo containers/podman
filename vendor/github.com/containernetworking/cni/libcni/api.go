@@ -409,6 +409,9 @@ func (c *CNIConfig) addNetwork(ctx context.Context, name, cniVersion string, net
 	if err := utils.ValidateNetworkName(name); err != nil {
 		return nil, err
 	}
+	if err := utils.ValidateInterfaceName(rt.IfName); err != nil {
+		return nil, err
+	}
 
 	newConf, err := buildOneConfig(name, cniVersion, net, prevResult, rt)
 	if err != nil {
@@ -628,6 +631,9 @@ func (c *CNIConfig) validatePlugin(ctx context.Context, pluginName, expectedVers
 	pluginPath, err := c.exec.FindInPath(pluginName, c.Path)
 	if err != nil {
 		return err
+	}
+	if expectedVersion == "" {
+		expectedVersion = "0.1.0"
 	}
 
 	vi, err := invoke.GetVersionInfo(ctx, pluginPath, c.exec)
