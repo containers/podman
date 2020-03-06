@@ -1,3 +1,56 @@
+- Changelog for v1.8.1-rc3 (2020-03-06)
+  * Update release notes for v1.8.1-RC3
+  * Part 2: try to clean up the long image instance names
+  * WIP: Try renaming long cirrus job names
+  * vendor: update github.com/containernetworking/cni to v0.7.2-0.20200304161608-4fae32b84921
+  * Removed extraneous comments and defaults plus amended variable declaration
+  * Removed the unnecessary code
+  * Implemented size parameter on GetContainer
+  * Implement size parameter on ListContainers
+  * Map configured status to created to match docker API states
+  * Fix to remove null entry from end of images json
+  * Register handlers without version to align with docker API
+  * golangci: enable goimports
+  * generate systemd: remove leading slashes
+  * exec: fix error code when conmon fails
+  * Vendor buildah 1.14.2
+  * env: don't set "container" env
+  * Fix podman image sign help output
+  * avoid adding to nil map
+  * Exec: use ErrorConmonRead
+  * exec: get the exit code from sync pipe instead of file
+  * generate systemd: add network dependencies
+  * Bump to Buildah v1.14.1
+  * APIv2 tests: add tests for stop
+  * Add the rmi flag to podman-run to delete container image
+  * consolidate env handling into pkg/env
+  * CI: format cirrus logs
+  * Update docs/source/markdown/podman-build.1.md
+  * Allow devs to set labels in container images for default capabilities.
+  * CI: add API v2 tests
+  * more swagger fixes
+  * Bump github.com/opencontainers/selinux from 1.3.2 to 1.3.3
+  * Add validate() for containers
+  * Cirrus: Fix gate image & false-positive exits
+  * Update pod bindings and Add test to validate prune pod apiv2 binding.
+  * Fix wrong condition in bindings test
+  * Ensure that exec sessions inherit supplemental groups
+  * Cirrus: Update VM images
+  * Cirrus: Force runc use in F30
+  * rework apiv2 wait endpoint|binding
+  * build: specify input fd to buildah
+  * Cirrus: Remove unnecessary handle_crun workaround
+  * Cirrus: Print env. vars at end of setup.
+  * Cirrus: Fix not growing Fedora root
+  * network create should use firewall plugin
+  * add firewall plugin (no backend) to default cni config
+  * binding tests for volumes
+  * Bump to v1.8.1-dev
+  * container Exists: fix URL
+  * CI: package_versions: include hostinfo, kernel
+  * Review comments
+  * [WIP] Add cmd flag to show container name in log
+
 - Changelog for v1.8.1-rc2 (2020-02-27)
   * Update release notes for v1.8.1-rc2
   * Vendor in latest containers/buildah
