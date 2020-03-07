@@ -929,7 +929,7 @@ func (c *Container) completeNetworkSetup() error {
 		return err
 	}
 	for _, line := range strings.Split(string(b), "\n") {
-		// only keep things that dont start with nameserver from the old
+		// only keep things that don't start with nameserver from the old
 		// resolv.conf file
 		if !strings.HasPrefix(line, "nameserver") {
 			outResolvConf = append([]string{line}, outResolvConf...)

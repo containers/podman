@@ -140,7 +140,7 @@ var _ = Describe("Podman images", func() {
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		// Validates if the image is tagged sucessfully.
+		// Validates if the image is tagged successfully.
 		err = images.Tag(bt.conn, alpine.shortName, "demo", alpine.shortName)
 		Expect(err).To(BeNil())
 

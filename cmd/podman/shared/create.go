@@ -494,7 +494,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if data != nil {
 		configEnv, err := envLib.ParseSlice(data.Config.Env)
 		if err != nil {
-			return nil, errors.Wrap(err, "error pasing image environment variables")
+			return nil, errors.Wrap(err, "error passing image environment variables")
 		}
 		env = envLib.Join(env, configEnv)
 	}

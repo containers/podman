@@ -90,7 +90,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	//FIXME/TODO to do this exacty correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
+	//FIXME/TODO to do this exactly correct, pruneimages needs to return idrs and space-reclaimed, then we are golden
 	ipr := types.ImagesPruneReport{
 		ImagesDeleted:  idr,
 		SpaceReclaimed: 1, // TODO we cannot supply this right now

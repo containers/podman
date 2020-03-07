@@ -115,7 +115,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 
 		// Binding needs to be modified to inspect the pod state.
-		// Since we dont have a pod state we inspect the states of the containers within the pod.
+		// Since we don't have a pod state we inspect the states of the containers within the pod.
 		// Pause a valid container
 		err = pods.Pause(bt.conn, newpod)
 		Expect(err).To(BeNil())
@@ -195,7 +195,7 @@ var _ = Describe("Podman pods", func() {
 		}
 	})
 
-	// Test to validate all the pods in the stopped/exited state are pruned sucessfully.
+	// Test to validate all the pods in the stopped/exited state are pruned successfully.
 	It("prune pod", func() {
 		// Add a new pod
 		var newpod2 string = "newpod2"
