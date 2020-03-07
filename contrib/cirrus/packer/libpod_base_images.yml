@@ -12,7 +12,7 @@ variables:
     # Required for output from qemu builders
     TTYDEV:
 
-    # Ubuntu releases are mearly copied to this project for control purposes
+    # Ubuntu releases are merely copied to this project for control purposes
     UBUNTU_BASE_IMAGE:
     PRIOR_UBUNTU_BASE_IMAGE:
 

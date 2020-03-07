@@ -670,8 +670,8 @@ type InspectAdditionalNetwork struct {
 	// DriverOpts is presently unused and maintained exclusively for
 	// compatibility.
 	DriverOpts map[string]string `json:"DriverOpts"`
-	// IPAMConfig is presently unused and maintained exlusively for
-	// compabitility.
+	// IPAMConfig is presently unused and maintained exclusively for
+	// compatibility.
 	IPAMConfig map[string]string `json:"IPAMConfig"`
 	// Links is presently unused and maintained exclusively for
 	// compatibility.

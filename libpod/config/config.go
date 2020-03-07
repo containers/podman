@@ -437,7 +437,7 @@ func probeConmon(conmonBinary string) error {
 // with cgroupsv2. Other OCI runtimes are not yet supporting cgroupsv2. This
 // might change in the future.
 func NewConfig(userConfigPath string) (*Config, error) {
-	// Start with the default config and interatively merge fields in the system
+	// Start with the default config and iteratively merge fields in the system
 	// configs.
 	config, err := defaultConfigFromMemory()
 	if err != nil {

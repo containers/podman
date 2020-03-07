@@ -18,4 +18,4 @@ tags:
     - name: images (compat)
       description: Actions related to images for the compatibility endpoints
     - name: system (compat)
-      description: Actions related to Podman and compatiblity engines
+      description: Actions related to Podman and compatibility engines

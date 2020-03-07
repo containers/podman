@@ -412,7 +412,7 @@ func (c *Container) Attach(streams *AttachStreams, keys string, resize <-chan re
 // HTTPAttach forwards an attach session over a hijacked HTTP session.
 // HTTPAttach will consume and close the included httpCon, which is expected to
 // be sourced from a hijacked HTTP connection.
-// The cancel channel is optional, and can be used to asyncronously cancel the
+// The cancel channel is optional, and can be used to asynchronously cancel the
 // attach session.
 // The streams variable is only supported if the container was not a terminal,
 // and allows specifying which of the container's standard streams will be

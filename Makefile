@@ -394,7 +394,7 @@ man-page-check:
 
 .PHONY: codespell
 codespell:
-	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked
+	codespell -S bin,vendor,.git,go.sum,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist -w
 
 # When publishing releases include critical build-time details
 .PHONY: release.txt
