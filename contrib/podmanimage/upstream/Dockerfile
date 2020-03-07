@@ -19,16 +19,16 @@ ENV GOPATH=/root/podman
 # that are needed for building but not running Podman
 RUN useradd build; yum -y update; yum -y reinstall shadow-utils; yum -y install --exclude container-selinux \
      --enablerepo=updates-testing \
-     atomic-registries \
      btrfs-progs-devel \
      containernetworking-cni \
+     conmon \
      device-mapper-devel \
      git \
      glib2-devel \
      glibc-devel \
      glibc-static \
      go \
-     golang-github-cpuguy83-go-md2man \
+     golang-github-cpuguy83-md2man \
      gpgme-devel \
      iptables \
      libassuan-devel \

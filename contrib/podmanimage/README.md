@@ -10,10 +10,10 @@ the images live are public and can be pulled without credentials.  These contain
 resulting containers can run safely with privileges within the container.  The container images are built
 using the latest Fedora and then Podman is installed into them:
 
-  * quay.io/podman/stable - This image is built using the latest stable version of Podman in a Fedora based container.  Built with podman/stable/Dockerfile.
-  * quay.io/podman/upstream - This image is built using the latest code found in this GitHub repository.  When someone creates a commit and pushes it, the image is created.  Due to that the image changes frequently and is not guaranteed to be stable.  Built with podmanimage/upstream/Dockerfile.
-  * quay.io/podman/testing - This image is built using the latest version of Podman that is or was in updates testing for Fedora.  At times this may be the same as the stable image.  This container image will primarily be used by the development teams for verification testing when a new package is created.  Built with podmanimage/testing/Dockerfile.
-
+  * quay.io/podman/stable - This image is built using the latest stable version of Podman in a Fedora based container.  Built with [podmanimage/stable/Dockerfile](stable/Dockerfile).
+  * quay.io/podman/upstream - This image is built using the latest code found in this GitHub repository.  When someone creates a commit and pushes it, the image is created.  Due to that the image changes frequently and is not guaranteed to be stable.  Built with [podmanimage/upstream/Dockerfile](upstream/Dockerfile).
+  * quay.io/podman/testing - This image is built using the latest version of Podman that is or was in updates testing for Fedora.  At times this may be the same as the stable image.  This container image will primarily be used by the development teams for verification testing when a new package is created.  Built with [podmanimage/testing/Dockerfile](testing/Dockerfile).
+  * quay.io/podman/stable:version - This image is built manually using a Fedora based container.  An RPM is first pulled from the [Fedora Updates System](https://bodhi.fedoraproject.org/) and the image is built from there.  For more details, see the Containerfile used to build it, [podmanimage/stable/manual/Containerfile](stable/manual/Containerfile).
 ## Sample Usage
 
 
