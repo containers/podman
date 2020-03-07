@@ -1,7 +1,6 @@
 package test_bindings
 
 import (
-	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -18,7 +17,6 @@ var _ = Describe("Podman containers ", func() {
 	var (
 		bt        *bindingTest
 		s         *gexec.Session
-		connText  context.Context
 		err       error
 		falseFlag bool = false
 		trueFlag  bool = true
@@ -29,18 +27,18 @@ var _ = Describe("Podman containers ", func() {
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
-		connText, err = bindings.NewConnection(context.Background(), bt.sock)
+		err := bt.NewConnection()
 		Expect(err).To(BeNil())
 	})
 
 	AfterEach(func() {
 		s.Kill()
-		bt.cleanup()
+		//bt.cleanup()
 	})
 
 	It("podman pause a bogus container", func() {
 		// Pausing bogus container should return 404
-		err = containers.Pause(connText, "foobar")
+		err = containers.Pause(bt.conn, "foobar")
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -48,7 +46,7 @@ var _ = Describe("Podman containers ", func() {
 
 	It("podman unpause a bogus container", func() {
 		// Unpausing bogus container should return 404
-		err = containers.Unpause(connText, "foobar")
+		err = containers.Unpause(bt.conn, "foobar")
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -57,12 +55,13 @@ var _ = Describe("Podman containers ", func() {
 	It("podman pause a running container by name", func() {
 		// Pausing by name should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Pause(connText, name)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
+		Expect(err).To(BeNil())
+		err = containers.Pause(bt.conn, name)
 		Expect(err).To(BeNil())
 
 		// Ensure container is paused
-		data, err := containers.Inspect(connText, name, nil)
+		data, err := containers.Inspect(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		Expect(data.State.Status).To(Equal("paused"))
 	})
@@ -70,54 +69,60 @@ var _ = Describe("Podman containers ", func() {
 	It("podman pause a running container by id", func() {
 		// Pausing by id should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).To(BeNil())
 
 		// Ensure container is paused
-		data, err = containers.Inspect(connText, data.ID, nil)
+		data, err := containers.Inspect(bt.conn, cid, nil)
+		Expect(err).To(BeNil())
 		Expect(data.State.Status).To(Equal("paused"))
 	})
 
 	It("podman unpause a running container by name", func() {
 		// Unpausing by name should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Pause(connText, name)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Unpause(connText, name)
+		err = containers.Pause(bt.conn, name)
+		Expect(err).To(BeNil())
+		err = containers.Unpause(bt.conn, name)
 		Expect(err).To(BeNil())
 
 		// Ensure container is unpaused
-		data, err := containers.Inspect(connText, name, nil)
+		data, err := containers.Inspect(bt.conn, name, nil)
+		Expect(err).To(BeNil())
 		Expect(data.State.Status).To(Equal("running"))
 	})
 
 	It("podman unpause a running container by ID", func() {
 		// Unpausing by ID should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		// Pause by name
-		err := containers.Pause(connText, name)
-		data, err := containers.Inspect(connText, name, nil)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Unpause(connText, data.ID)
+		// Pause by name
+		err = containers.Pause(bt.conn, name)
+		//paused := "paused"
+		//_, err = containers.Wait(bt.conn, cid, &paused)
+		//Expect(err).To(BeNil())
+		err = containers.Unpause(bt.conn, name)
 		Expect(err).To(BeNil())
 
 		// Ensure container is unpaused
-		data, err = containers.Inspect(connText, name, nil)
+		data, err := containers.Inspect(bt.conn, name, nil)
+		Expect(err).To(BeNil())
 		Expect(data.State.Status).To(Equal("running"))
 	})
 
 	It("podman pause a paused container by name", func() {
 		// Pausing a paused container by name should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Pause(connText, name)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, name)
+		err = containers.Pause(bt.conn, name)
+		Expect(err).To(BeNil())
+		err = containers.Pause(bt.conn, name)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -126,12 +131,11 @@ var _ = Describe("Podman containers ", func() {
 	It("podman pause a paused container by id", func() {
 		// Pausing a paused container by id should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -140,10 +144,11 @@ var _ = Describe("Podman containers ", func() {
 	It("podman pause a stopped container by name", func() {
 		// Pausing a stopped container by name should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Stop(connText, name, nil)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, name)
+		err = containers.Stop(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+		err = containers.Pause(bt.conn, name)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -152,11 +157,11 @@ var _ = Describe("Podman containers ", func() {
 	It("podman pause a stopped container by id", func() {
 		// Pausing a stopped container by id should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
-		err = containers.Stop(connText, data.ID, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Stop(bt.conn, cid, nil)
+		Expect(err).To(BeNil())
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -165,12 +170,11 @@ var _ = Describe("Podman containers ", func() {
 	It("podman remove a paused container by id without force", func() {
 		// Removing a paused container without force should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).To(BeNil())
-		err = containers.Remove(connText, data.ID, &falseFlag, &falseFlag)
+		err = containers.Remove(bt.conn, cid, &falseFlag, &falseFlag)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -187,22 +191,22 @@ var _ = Describe("Podman containers ", func() {
 
 		// Removing a paused container with force should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).To(BeNil())
-		err = containers.Remove(connText, data.ID, &trueFlag, &falseFlag)
+		err = containers.Remove(bt.conn, cid, &trueFlag, &falseFlag)
 		Expect(err).To(BeNil())
 	})
 
 	It("podman stop a paused container by name", func() {
 		// Stopping a paused container by name should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Pause(connText, name)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Stop(connText, name, nil)
+		err = containers.Pause(bt.conn, name)
+		Expect(err).To(BeNil())
+		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -211,12 +215,11 @@ var _ = Describe("Podman containers ", func() {
 	It("podman stop a paused container by id", func() {
 		// Stopping a paused container by id should fail
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Pause(connText, data.ID)
+		err = containers.Pause(bt.conn, cid)
 		Expect(err).To(BeNil())
-		err = containers.Stop(connText, data.ID, nil)
+		err = containers.Stop(bt.conn, cid, nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -225,12 +228,13 @@ var _ = Describe("Podman containers ", func() {
 	It("podman stop a running container by name", func() {
 		// Stopping a running container by name should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		err := containers.Stop(connText, name, nil)
+		_, err := bt.RunTopContainer(&name, &falseFlag, nil)
+		Expect(err).To(BeNil())
+		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is stopped
-		data, err := containers.Inspect(connText, name, nil)
+		data, err := containers.Inspect(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		Expect(isStopped(data.State.Status)).To(BeTrue())
 	})
@@ -238,14 +242,13 @@ var _ = Describe("Podman containers ", func() {
 	It("podman stop a running container by ID", func() {
 		// Stopping a running container by ID should work
 		var name = "top"
-		bt.RunTopContainer(&name, &falseFlag, nil)
-		data, err := containers.Inspect(connText, name, nil)
+		cid, err := bt.RunTopContainer(&name, &falseFlag, nil)
 		Expect(err).To(BeNil())
-		err = containers.Stop(connText, data.ID, nil)
+		err = containers.Stop(bt.conn, cid, nil)
 		Expect(err).To(BeNil())
 
 		// Ensure container is stopped
-		data, err = containers.Inspect(connText, name, nil)
+		data, err := containers.Inspect(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		Expect(isStopped(data.State.Status)).To(BeTrue())
 	})
@@ -255,19 +258,20 @@ var _ = Describe("Podman containers ", func() {
 			name           = "top"
 			exitCode int32 = -1
 		)
-		_, err := containers.Wait(connText, "foobar", nil)
+		_, err := containers.Wait(bt.conn, "foobar", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		errChan := make(chan error)
-		bt.RunTopContainer(&name, nil, nil)
+		_, err = bt.RunTopContainer(&name, nil, nil)
+		Expect(err).To(BeNil())
 		go func() {
-			exitCode, err = containers.Wait(connText, name, nil)
+			exitCode, err = containers.Wait(bt.conn, name, nil)
 			errChan <- err
 			close(errChan)
 		}()
-		err = containers.Stop(connText, name, nil)
+		err = containers.Stop(bt.conn, name, nil)
 		Expect(err).To(BeNil())
 		wait := <-errChan
 		Expect(wait).To(BeNil())
@@ -282,13 +286,14 @@ var _ = Describe("Podman containers ", func() {
 			unpause        = "running"
 		)
 		errChan := make(chan error)
-		bt.RunTopContainer(&name, nil, nil)
+		_, err := bt.RunTopContainer(&name, nil, nil)
+		Expect(err).To(BeNil())
 		go func() {
-			exitCode, err = containers.Wait(connText, name, &pause)
+			exitCode, err = containers.Wait(bt.conn, name, &pause)
 			errChan <- err
 			close(errChan)
 		}()
-		err := containers.Pause(connText, name)
+		err = containers.Pause(bt.conn, name)
 		Expect(err).To(BeNil())
 		wait := <-errChan
 		Expect(wait).To(BeNil())
@@ -296,11 +301,11 @@ var _ = Describe("Podman containers ", func() {
 
 		errChan = make(chan error)
 		go func() {
-			exitCode, err = containers.Wait(connText, name, &unpause)
+			exitCode, err = containers.Wait(bt.conn, name, &unpause)
 			errChan <- err
 			close(errChan)
 		}()
-		err = containers.Unpause(connText, name)
+		err = containers.Unpause(bt.conn, name)
 		Expect(err).To(BeNil())
 		unPausewait := <-errChan
 		Expect(unPausewait).To(BeNil())

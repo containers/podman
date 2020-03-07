@@ -968,6 +968,50 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/tag"), s.APIHandler(handlers.TagImage)).Methods(http.MethodPost)
-
+	// swagger:operation POST /commit libpod libpodCommitContainer
+	// ---
+	// tags:
+	//  - containers
+	// summary: Commit
+	// description: Create a new image from a container
+	// parameters:
+	//  - in: query
+	//    name: container
+	//    type: string
+	//    description: the name or ID of a container
+	//  - in: query
+	//    name: repo
+	//    type: string
+	//    description: the repository name for the created image
+	//  - in: query
+	//    name: tag
+	//    type: string
+	//    description: tag name for the created image
+	//  - in: query
+	//    name: comment
+	//    type: string
+	//    description: commit message
+	//  - in: query
+	//    name: author
+	//    type: string
+	//    description: author of the image
+	//  - in: query
+	//    name: pause
+	//    type: boolean
+	//    description: pause the container before committing it
+	//  - in: query
+	//    name: changes
+	//    type: string
+	//    description: instructions to apply while committing in Dockerfile format
+	// produces:
+	// - application/json
+	// responses:
+	//   201:
+	//     description: no error
+	//   404:
+	//     $ref: '#/responses/NoSuchImage'
+	//   500:
+	//     $ref: '#/responses/InternalError'
+	r.Handle(VersionedPath("/commit"), s.APIHandler(generic.CommitContainer)).Methods(http.MethodPost)
 	return nil
 }

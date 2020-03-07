@@ -13,7 +13,6 @@ import (
 
 // MakeContainer creates a container based on the SpecGenerator
 func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, error) {
-	var pod *libpod.Pod
 	if err := s.validate(rt); err != nil {
 		return nil, errors.Wrap(err, "invalid config provided")
 	}
@@ -22,7 +21,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 		return nil, err
 	}
 
-	options, err := s.createContainerOptions(rt, pod)
+	options, err := s.createContainerOptions(rt)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +45,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 	return rt.NewContainer(context.Background(), runtimeSpec, options...)
 }
 
-func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime, pod *libpod.Pod) ([]libpod.CtrCreateOption, error) {
+func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime) ([]libpod.CtrCreateOption, error) {
 	var options []libpod.CtrCreateOption
 	var err error
 
@@ -61,6 +60,10 @@ func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime, pod *libpod.P
 		options = append(options, libpod.WithName(s.Name))
 	}
 	if s.Pod != "" {
+		pod, err := rt.LookupPod(s.Pod)
+		if err != nil {
+			return nil, err
+		}
 		logrus.Debugf("adding container to pod %s", s.Pod)
 		options = append(options, rt.WithPod(pod))
 	}
@@ -116,7 +119,6 @@ func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime, pod *libpod.P
 	}
 	options = append(options, namespaceOptions...)
 
-	// TODO NetworkNS still needs to be done!
 	if len(s.ConmonPidFile) > 0 {
 		options = append(options, libpod.WithConmonPidFile(s.ConmonPidFile))
 	}

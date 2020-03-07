@@ -1,7 +1,6 @@
 package test_bindings
 
 import (
-	"context"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -22,7 +21,6 @@ var _ = Describe("Podman images", func() {
 		//podmanTest *PodmanTestIntegration
 		bt        *bindingTest
 		s         *gexec.Session
-		connText  context.Context
 		err       error
 		falseFlag bool = false
 		trueFlag  bool = true
@@ -40,7 +38,7 @@ var _ = Describe("Podman images", func() {
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
-		connText, err = bindings.NewConnection(context.Background(), bt.sock)
+		err := bt.NewConnection()
 		Expect(err).To(BeNil())
 	})
 
@@ -53,32 +51,32 @@ var _ = Describe("Podman images", func() {
 	})
 	It("inspect image", func() {
 		// Inspect invalid image be 404
-		_, err = images.GetImage(connText, "foobar5000", nil)
+		_, err = images.GetImage(bt.conn, "foobar5000", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Inspect by short name
-		data, err := images.GetImage(connText, alpine.shortName, nil)
+		data, err := images.GetImage(bt.conn, alpine.shortName, nil)
 		Expect(err).To(BeNil())
 
 		// Inspect with full ID
-		_, err = images.GetImage(connText, data.ID, nil)
+		_, err = images.GetImage(bt.conn, data.ID, nil)
 		Expect(err).To(BeNil())
 
 		// Inspect with partial ID
-		_, err = images.GetImage(connText, data.ID[0:12], nil)
+		_, err = images.GetImage(bt.conn, data.ID[0:12], nil)
 		Expect(err).To(BeNil())
 
 		// Inspect by long name
-		_, err = images.GetImage(connText, alpine.name, nil)
+		_, err = images.GetImage(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		// TODO it looks like the images API alwaays returns size regardless
 		// of bool or not. What should we do ?
 		//Expect(data.Size).To(BeZero())
 
 		// Enabling the size parameter should result in size being populated
-		data, err = images.GetImage(connText, alpine.name, &trueFlag)
+		data, err = images.GetImage(bt.conn, alpine.name, &trueFlag)
 		Expect(err).To(BeNil())
 		Expect(data.Size).To(BeNumerically(">", 0))
 	})
@@ -86,49 +84,50 @@ var _ = Describe("Podman images", func() {
 	// Test to validate the remove image api
 	It("remove image", func() {
 		// Remove invalid image should be a 404
-		_, err = images.Remove(connText, "foobar5000", &falseFlag)
+		_, err = images.Remove(bt.conn, "foobar5000", &falseFlag)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Remove an image by name, validate image is removed and error is nil
-		inspectData, err := images.GetImage(connText, busybox.shortName, nil)
+		inspectData, err := images.GetImage(bt.conn, busybox.shortName, nil)
 		Expect(err).To(BeNil())
-		response, err := images.Remove(connText, busybox.shortName, nil)
+		response, err := images.Remove(bt.conn, busybox.shortName, nil)
 		Expect(err).To(BeNil())
 		Expect(inspectData.ID).To(Equal(response[0]["Deleted"]))
-		inspectData, err = images.GetImage(connText, busybox.shortName, nil)
+		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Start a container with alpine image
 		var top string = "top"
-		bt.RunTopContainer(&top, &falseFlag, nil)
+		_, err = bt.RunTopContainer(&top, &falseFlag, nil)
+		Expect(err).To(BeNil())
 		// we should now have a container called "top" running
-		containerResponse, err := containers.Inspect(connText, "top", &falseFlag)
+		containerResponse, err := containers.Inspect(bt.conn, "top", &falseFlag)
 		Expect(err).To(BeNil())
 		Expect(containerResponse.Name).To(Equal("top"))
 
 		// try to remove the image "alpine". This should fail since we are not force
 		// deleting hence image cannot be deleted until the container is deleted.
-		response, err = images.Remove(connText, alpine.shortName, &falseFlag)
+		response, err = images.Remove(bt.conn, alpine.shortName, &falseFlag)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
 		// Removing the image "alpine" where force = true
-		response, err = images.Remove(connText, alpine.shortName, &trueFlag)
+		response, err = images.Remove(bt.conn, alpine.shortName, &trueFlag)
 		Expect(err).To(BeNil())
 
 		// Checking if both the images are gone as well as the container is deleted
-		inspectData, err = images.GetImage(connText, busybox.shortName, nil)
+		inspectData, err = images.GetImage(bt.conn, busybox.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		inspectData, err = images.GetImage(connText, alpine.shortName, nil)
+		inspectData, err = images.GetImage(bt.conn, alpine.shortName, nil)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		_, err = containers.Inspect(connText, "top", &falseFlag)
+		_, err = containers.Inspect(bt.conn, "top", &falseFlag)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
@@ -136,17 +135,17 @@ var _ = Describe("Podman images", func() {
 	// Tests to validate the image tag command.
 	It("tag image", func() {
 		// Validates if invalid image name is given a bad response is encountered.
-		err = images.Tag(connText, "dummy", "demo", alpine.shortName)
+		err = images.Tag(bt.conn, "dummy", "demo", alpine.shortName)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Validates if the image is tagged sucessfully.
-		err = images.Tag(connText, alpine.shortName, "demo", alpine.shortName)
+		err = images.Tag(bt.conn, alpine.shortName, "demo", alpine.shortName)
 		Expect(err).To(BeNil())
 
 		//Validates if name updates when the image is retagged.
-		_, err := images.GetImage(connText, "alpine:demo", nil)
+		_, err := images.GetImage(bt.conn, "alpine:demo", nil)
 		Expect(err).To(BeNil())
 
 	})
@@ -154,7 +153,7 @@ var _ = Describe("Podman images", func() {
 	// Test to validate the List images command.
 	It("List image", func() {
 		// Array to hold the list of images returned
-		imageSummary, err := images.List(connText, nil, nil)
+		imageSummary, err := images.List(bt.conn, nil, nil)
 		// There Should be no errors in the response.
 		Expect(err).To(BeNil())
 		// Since in the begin context two images are created the
@@ -164,7 +163,7 @@ var _ = Describe("Podman images", func() {
 		// Adding one more image. There Should be no errors in the response.
 		// And the count should be three now.
 		bt.Pull("busybox:glibc")
-		imageSummary, err = images.List(connText, nil, nil)
+		imageSummary, err = images.List(bt.conn, nil, nil)
 		Expect(err).To(BeNil())
 		Expect(len(imageSummary)).To(Equal(3))
 
@@ -179,13 +178,13 @@ var _ = Describe("Podman images", func() {
 		// List  images with a filter
 		filters := make(map[string][]string)
 		filters["reference"] = []string{alpine.name}
-		filteredImages, err := images.List(connText, &falseFlag, filters)
+		filteredImages, err := images.List(bt.conn, &falseFlag, filters)
 		Expect(err).To(BeNil())
 		Expect(len(filteredImages)).To(BeNumerically("==", 1))
 
 		// List  images with a bad filter
 		filters["name"] = []string{alpine.name}
-		_, err = images.List(connText, &falseFlag, filters)
+		_, err = images.List(bt.conn, &falseFlag, filters)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -193,64 +192,64 @@ var _ = Describe("Podman images", func() {
 
 	It("Image Exists", func() {
 		// exists on bogus image should be false, with no error
-		exists, err := images.Exists(connText, "foobar")
+		exists, err := images.Exists(bt.conn, "foobar")
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 
 		// exists with shortname should be true
-		exists, err = images.Exists(connText, alpine.shortName)
+		exists, err = images.Exists(bt.conn, alpine.shortName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
 		// exists with fqname should be true
-		exists, err = images.Exists(connText, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 	})
 
 	It("Load|Import Image", func() {
 		// load an image
-		_, err := images.Remove(connText, alpine.name, nil)
+		_, err := images.Remove(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		exists, err := images.Exists(connText, alpine.name)
+		exists, err := images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		defer f.Close()
 		Expect(err).To(BeNil())
-		names, err := images.Load(connText, f, nil)
+		names, err := images.Load(bt.conn, f, nil)
 		Expect(err).To(BeNil())
 		Expect(names).To(Equal(alpine.name))
-		exists, err = images.Exists(connText, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
 		// load with a repo name
 		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		Expect(err).To(BeNil())
-		_, err = images.Remove(connText, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		exists, err = images.Exists(connText, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		newName := "quay.io/newname:fizzle"
-		names, err = images.Load(connText, f, &newName)
+		names, err = images.Load(bt.conn, f, &newName)
 		Expect(err).To(BeNil())
 		Expect(names).To(Equal(alpine.name))
-		exists, err = images.Exists(connText, newName)
+		exists, err = images.Exists(bt.conn, newName)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
 
 		// load with a bad repo name should trigger a 500
 		f, err = os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
 		Expect(err).To(BeNil())
-		_, err = images.Remove(connText, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		exists, err = images.Exists(connText, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		badName := "quay.io/newName:fizzle"
-		_, err = images.Load(connText, f, &badName)
+		_, err = images.Load(bt.conn, f, &badName)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
@@ -262,7 +261,7 @@ var _ = Describe("Podman images", func() {
 		w, err := os.Create(filepath.Join(bt.tempDirPath, alpine.tarballName))
 		defer w.Close()
 		Expect(err).To(BeNil())
-		err = images.Export(connText, alpine.name, w, nil, nil)
+		err = images.Export(bt.conn, alpine.name, w, nil, nil)
 		Expect(err).To(BeNil())
 		_, err = os.Stat(exportPath)
 		Expect(err).To(BeNil())
@@ -272,9 +271,9 @@ var _ = Describe("Podman images", func() {
 
 	It("Import Image", func() {
 		// load an image
-		_, err = images.Remove(connText, alpine.name, nil)
+		_, err = images.Remove(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		exists, err := images.Exists(connText, alpine.name)
+		exists, err := images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeFalse())
 		f, err := os.Open(filepath.Join(ImageCacheDir, alpine.tarballName))
@@ -282,27 +281,27 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		changes := []string{"CMD /bin/foobar"}
 		testMessage := "test_import"
-		_, err = images.Import(connText, changes, &testMessage, &alpine.name, nil, f)
+		_, err = images.Import(bt.conn, changes, &testMessage, &alpine.name, nil, f)
 		Expect(err).To(BeNil())
-		exists, err = images.Exists(connText, alpine.name)
+		exists, err = images.Exists(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		Expect(exists).To(BeTrue())
-		data, err := images.GetImage(connText, alpine.name, nil)
+		data, err := images.GetImage(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
 		Expect(data.Comment).To(Equal(testMessage))
 
 	})
 	It("History Image", func() {
 		// a bogus name should return a 404
-		_, err := images.History(connText, "foobar")
+		_, err := images.History(bt.conn, "foobar")
 		Expect(err).To(Not(BeNil()))
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		var foundID bool
-		data, err := images.GetImage(connText, alpine.name, nil)
+		data, err := images.GetImage(bt.conn, alpine.name, nil)
 		Expect(err).To(BeNil())
-		history, err := images.History(connText, alpine.name)
+		history, err := images.History(bt.conn, alpine.name)
 		Expect(err).To(BeNil())
 		for _, i := range history {
 			if i.ID == data.ID {
@@ -314,7 +313,7 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("Search for an image", func() {
-		imgs, err := images.Search(connText, "alpine", nil, nil)
+		imgs, err := images.Search(bt.conn, "alpine", nil, nil)
 		Expect(err).To(BeNil())
 		Expect(len(imgs)).To(BeNumerically(">", 1))
 		var foundAlpine bool
@@ -328,21 +327,21 @@ var _ = Describe("Podman images", func() {
 
 		// Search for alpine with a limit of 10
 		ten := 10
-		imgs, err = images.Search(connText, "docker.io/alpine", &ten, nil)
+		imgs, err = images.Search(bt.conn, "docker.io/alpine", &ten, nil)
 		Expect(err).To(BeNil())
 		Expect(len(imgs)).To(BeNumerically("<=", 10))
 
 		// Search for alpine with stars greater than 100
 		filters := make(map[string][]string)
 		filters["stars"] = []string{"100"}
-		imgs, err = images.Search(connText, "docker.io/alpine", nil, filters)
+		imgs, err = images.Search(bt.conn, "docker.io/alpine", nil, filters)
 		Expect(err).To(BeNil())
 		for _, i := range imgs {
 			Expect(i.Stars).To(BeNumerically(">=", 100))
 		}
 
 		//	Search with a fqdn
-		imgs, err = images.Search(connText, "quay.io/libpod/alpine_nginx", nil, nil)
+		imgs, err = images.Search(bt.conn, "quay.io/libpod/alpine_nginx", nil, nil)
 		Expect(len(imgs)).To(BeNumerically(">=", 1))
 	})
 

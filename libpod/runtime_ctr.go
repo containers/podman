@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -438,8 +439,15 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force bool,
 		if err := c.ociRuntime.KillContainer(c, 9, false); err != nil {
 			return err
 		}
-		if err := c.unpause(); err != nil {
+		isV2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
 			return err
+		}
+		// cgroups v1 and v2 handle signals on paused processes differently
+		if !isV2 {
+			if err := c.unpause(); err != nil {
+				return err
+			}
 		}
 		// Need to update container state to make sure we know it's stopped
 		if err := c.waitForExitFileAndSync(); err != nil {
