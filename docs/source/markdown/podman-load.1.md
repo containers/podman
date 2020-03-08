@@ -30,6 +30,8 @@ Read from archive file, default is STDIN.
 
 The remote client requires the use of this option.
 
+NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of container images. Podman defaults to use `/var/tmp`.
+
 **--quiet**, **-q**
 
 Suppress the progress output

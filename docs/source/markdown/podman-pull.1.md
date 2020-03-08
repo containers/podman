@@ -156,6 +156,8 @@ Storing signatures
 
 	registries.conf is the configuration file which specifies which container registries should be consulted when completing image names which do not include a registry or domain portion.
 
+NOTE: Use the environment variable `TMPDIR` to change the temporary storage location of downloaded container images. Podman defaults to use `/var/tmp`.
+
 ## SEE ALSO
 podman(1), podman-push(1), podman-login(1), containers-registries.conf(5)
 

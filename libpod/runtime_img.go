@@ -209,11 +209,11 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 }
 
 // donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
+// and temporarily saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func downloadFromURL(source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)
 
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
 	}
@@ -234,9 +234,9 @@ func downloadFromURL(source string) (string, error) {
 }
 
 // DownloadFromFile reads all of the content from the reader and temporarily
-// saves in it /var/tmp/importxyz, which is deleted after the image is imported
+// saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func DownloadFromFile(reader *os.File) (string, error) {
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
 	}

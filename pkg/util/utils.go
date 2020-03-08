@@ -600,3 +600,12 @@ func HomeDir() (string, error) {
 	}
 	return home, nil
 }
+
+func Tmpdir() string {
+	tmpdir := os.Getenv("TMPDIR")
+	if tmpdir == "" {
+		tmpdir = "/var/tmp"
+	}
+
+	return tmpdir
+}
