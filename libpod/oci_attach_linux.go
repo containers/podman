@@ -119,8 +119,8 @@ func (c *Container) attachToExec(streams *AttachStreams, keys string, resize <-c
 	socketPath := buildSocketPath(sockPath)
 
 	// 2: read from attachFd that the parent process has set up the console socket
-	if pipeData := readConmonPipeData(attachFd, ""); pipeData.err != nil {
-		return pipeData.err
+	if _, err := readConmonPipeData(attachFd, ""); err != nil {
+		return err
 	}
 
 	// 2: then attach

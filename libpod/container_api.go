@@ -282,24 +282,13 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	opts.Resize = resize
 	opts.DetachKeys = detachKeys
 
-	pid := 0
-	pipeDataChan, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
-	// if pipeDataChan isn't nil, we should set the err
-	if pipeDataChan != nil {
-		pidData := <-pipeDataChan
-		if pidData.err != nil {
-			err = pidData.err
-		}
-		pid = pidData.data
-	}
+	pid, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts)
 	if err != nil {
 		ec := define.ExecErrorCodeGeneric
 		// Conmon will pass a non-zero exit code from the runtime as a pid here.
 		// we differentiate a pid with an exit code by sending it as negative, so reverse
 		// that change and return the exit code the runtime failed with.
-		// Make sure the value is not ErrorConmonRead, as that is a podman set bogus value
-		// and not sent by conmon (and thus has no special meaning)
-		if pid < 0 && pid != define.ErrorConmonRead {
+		if pid < 0 {
 			ec = -1 * pid
 		}
 		return ec, err
@@ -329,24 +318,18 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 
 	lastErr := <-attachChan
 
-	exitCodeData := <-pipeDataChan
-	if exitCodeData.err != nil {
+	exitCode, err := c.readExecExitCode(sessionID)
+	if err != nil {
 		if lastErr != nil {
 			logrus.Errorf(lastErr.Error())
 		}
-		lastErr = exitCodeData.err
+		lastErr = err
 	}
-	if exitCodeData.data != 0 {
+	if exitCode != 0 {
 		if lastErr != nil {
 			logrus.Errorf(lastErr.Error())
 		}
-		// ErrorConmonRead is a bogus value set by podman to indicate reading a value from
-		// conmon failed. Since it is specifically not a valid exit code, we should set
-		// a generic error here
-		if exitCodeData.data == define.ErrorConmonRead {
-			exitCodeData.data = define.ExecErrorCodeGeneric
-		}
-		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCodeData.data)
+		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCode)
 	}
 
 	// Lock again
@@ -357,7 +340,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	// Sync the container again to pick up changes in state
 	if err := c.syncContainer(); err != nil {
 		logrus.Errorf("error syncing container %s state to remove exec session %s", c.ID(), sessionID)
-		return exitCodeData.data, lastErr
+		return exitCode, lastErr
 	}
 
 	// Remove the exec session from state
@@ -365,7 +348,7 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 	if err := c.save(); err != nil {
 		logrus.Errorf("Error removing exec session %s from container %s state: %v", sessionID, c.ID(), err)
 	}
-	return exitCodeData.data, lastErr
+	return exitCode, lastErr
 }
 
 // AttachStreams contains streams that will be attached to the container

@@ -70,7 +70,7 @@ type OCIRuntime interface {
 	// ExecContainer executes a command in a running container.
 	// Returns an int (exit code), error channel (errors from attach), and
 	// error (errors that occurred attempting to start the exec session).
-	ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (chan DataAndErr, chan error, error)
+	ExecContainer(ctr *Container, sessionID string, options *ExecOptions) (int, chan error, error)
 	// ExecStopContainer stops a given exec session in a running container.
 	// SIGTERM with be sent initially, then SIGKILL after the given timeout.
 	// If timeout is 0, SIGKILL will be sent immediately, and SIGTERM will
@@ -158,11 +158,4 @@ type HTTPAttachStreams struct {
 	Stdin  bool
 	Stdout bool
 	Stderr bool
-}
-
-// DataAndErr is a generic structure for passing around an int and an error
-// it is especially useful for getting information from conmon
-type DataAndErr struct {
-	data int
-	err  error
 }
