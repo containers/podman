@@ -13,7 +13,7 @@ The alternative OCI runtime support for cgroup V2 can  be turned on at the comma
 ```
 sudo podman --runtime /usr/bin/crun
 ```
-or by changing the value for the "Default OCI runtime" in the libpod.conf file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
+or by changing the value for the "Default OCI runtime" in the `libpod.conf` file either at the system level or at the [user level](#user-configuration-files) from `runtime = "runc"` to `runtime = "crun"`.
 
 ## Administrator Actions
 
@@ -27,7 +27,7 @@ For building Podman, please see the [installation instructions](https://github.c
 
 ### Install slirp4netns
 
-The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package provides user-mode networking for unprivileged network namespaces and must be installed on the machine in order for Podman to run in a rootless environment.  The package is available on most Linux distributions via their package distribution software such as yum, dnf, apt, zypper, etc.  If the package is not available, you can build and install slirp4netns from [GitHub](https://github.com/rootless-containers/slirp4netns).
+The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package provides user-mode networking for unprivileged network namespaces and must be installed on the machine in order for Podman to run in a rootless environment.  The package is available on most Linux distributions via their package distribution software such as `yum`, `dnf`, `apt`, `zypper`, etc.  If the package is not available, you can build and install slirp4netns from [GitHub](https://github.com/rootless-containers/slirp4netns).
 
 ### Ensure fuse-overlayfs is installed
 
@@ -58,9 +58,9 @@ The number of user namespaces that are allowed on the system is specified in the
 
 ### /etc/subuid and /etc/subgid configuration
 
-Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid files.  The `shadows-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
+Rootless podman requires the user running it to have a range of UIDs listed in `/etc/subuid` and `/etc/subgid` files.  The `shadows-utils` or `newuid` package provides these files on different distributions and  they must be installed on the system.  These files will need someone with root privileges on the system to add or update the entries within them.  The following is a summarization from the [How does rootless Podman work?](https://opensource.com/article/19/2/how-does-rootless-podman-work) article by Dan Walsh on [opensource.com](https://opensource.com)
 
-Update the /etc/subuid and /etc/subgid with fields for each user that will be allowed to create containers that look like the following.  Note that the values for each user must be unique and without any overlap.  If there is an overlap, there is a potential for a user to use another’s namespace and they could corrupt it.
+Update the `/etc/subuid` and `/etc/subgid` files with fields for each user that will be allowed to create containers that look like the following.  Note that the values for each user must be unique and without any overlap.  If there is an overlap, there is a potential for a user to use another’s namespace and they could corrupt it.
 
 ```
 cat /etc/subuid
@@ -68,17 +68,17 @@ johndoe:100000:65536
 test:165536:65536
 ```
 
-The format of this file is USERNAME:UID:RANGE
+The format of this file is `USERNAME:UID:RANGE`
 
-* username as listed in /etc/passwd or getpwent.
-* The initial uid allocated for the user.
+* username as listed in `/etc/passwd` or `getpwent`.
+* The initial UID allocated for the user.
 * The size of the range of UIDs allocated for the user.
 
-This means the user johndoe is allocated UIDS 100000-165535 as well as their standard UID in the /etc/passwd file.  NOTE: this is not currently supported with network installs.  These files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
+This means the user johndoe is allocated UIDs 100000-165535 as well as their standard UID in the `/etc/passwd` file.  NOTE: this is not currently supported with network installs.  These files must be available locally to the host machine.  It is not possible to configure this with LDAP or Active Directory.
 
-If you update either the /etc/subuid or the /etc/subgid file, you need to stop all the running containers owned by the user and kill the pause process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the pause process.
+If you update either the `/etc/subuid` or the `/etc/subgid` file, you need to stop all the running containers owned by the user and kill the `pause` process that is running on the system for that user.  This can be done automatically by using the [`podman system migrate`](https://github.com/containers/libpod/blob/master/docs/podman-system-migrate.1.md) command which will stop all the containers for the user and will kill the `pause` process.
 
-Rather than updating the files directly, the usermod program can be used to assign UIDs and GIDs to a user.
+Rather than updating the files directly, the `usermod` program can be used to assign UIDs and GIDs to a user:
 
 ```
 usermod --add-subuids 200000-201000 --add-subgids 200000-201000 johndoe
@@ -132,11 +132,11 @@ Group=nginx
 WantedBy=multi-user.target
 ```
 
-This example unit will launch a nginx container using the existing user nginx with id 1001, serving static content from /home/nginx/html and limited to 200MB of RAM.
+This example unit will launch an `nginx` container, using the existing user `nginx` with UID 1001, serving static content from `/home/nginx/html`, and limits it to 200MB of RAM.
 
-You can use all the usual systemd flags to control the process, including capabilities and cgroup directives to limit memory or CPU.
+You can use all the usual [systemd.unit](https://www.freedesktop.org/software/systemd/man/systemd.unit.html) configuration to control the process, including capabilities and `cgroup` directives to limit memory or CPU.
 
-See #3866 for more details.
+See [#3866](https://github.com/containers/libpod/issues/3866) for more details.
 
 ## More information
 
