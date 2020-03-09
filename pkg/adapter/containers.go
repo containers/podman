@@ -1057,7 +1057,8 @@ func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, filters []stri
 		if c.PodID() != "" {
 			return false
 		}
-		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited ||
+			state == define.ContainerStateCreated || state == define.ContainerStateConfigured {
 			return true
 		}
 		return false

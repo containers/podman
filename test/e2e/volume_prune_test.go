@@ -89,7 +89,7 @@ var _ = Describe("Podman volume prune", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		Expect(len(session.OutputToStringArray())).To(Equal(2))
+		Expect(len(session.OutputToStringArray())).To(Equal(0))
 
 		podmanTest.Cleanup()
 	})

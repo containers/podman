@@ -59,6 +59,34 @@ var _ = Describe("Podman prune", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
 	})
 
+	It("podman container prune after create containers", func() {
+		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(Equal(0))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+	})
+
+	It("podman container prune after create & init containers", func() {
+		create := podmanTest.Podman([]string{"create", "--name", "test", BB})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		init := podmanTest.Podman([]string{"init", "test"})
+		init.WaitWithDefaultTimeout()
+		Expect(init.ExitCode()).To(Equal(0))
+
+		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(Equal(0))
+
+		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+	})
+
 	It("podman image prune none images", func() {
 		SkipIfRemote()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
