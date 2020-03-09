@@ -340,12 +340,6 @@ func (c *Container) Exec(tty, privileged bool, env map[string]string, cmd []stri
 		if lastErr != nil {
 			logrus.Errorf(lastErr.Error())
 		}
-		// ErrorConmonRead is a bogus value set by podman to indicate reading a value from
-		// conmon failed. Since it is specifically not a valid exit code, we should set
-		// a generic error here
-		if exitCodeData.data == define.ErrorConmonRead {
-			exitCodeData.data = define.ExecErrorCodeGeneric
-		}
 		lastErr = errors.Wrapf(define.ErrOCIRuntime, "non zero exit code: %d", exitCodeData.data)
 	}
 
