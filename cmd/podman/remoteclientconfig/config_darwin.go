@@ -3,7 +3,7 @@ package remoteclientconfig
 import (
 	"path/filepath"
 
-	"github.com/docker/docker/pkg/homedir"
+	"github.com/containers/storage/pkg/homedir"
 )
 
 func getConfigFilePath() string {
