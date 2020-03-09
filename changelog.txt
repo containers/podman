@@ -1,3 +1,20 @@
+- Changelog for v1.8.1-rc4 (2020-03-09)
+  * Revert "exec: get the exit code from sync pipe instead of file"
+  * Revert "Exec: use ErrorConmonRead"
+  * Revert "exec: fix error code when conmon fails"
+  * rootles tutorial: remove systemd unit example
+  * generate systemd: add `default.target` to INSTALL
+  * Bump github.com/containers/storage from 1.16.1 to 1.16.2
+  * use storage/pkg/ioutils
+  * use storage/pkg/homedir
+  * Fix spelling mistakes in code found by codespell
+  * add default network for apiv2 create
+  * Bump to v1.8.1-dev
+  * Allow users to set TMPDIR environment
+  * Fix upstream dockerfile and add 'by hand' ctrfile
+  * Cirrus: Fix fedora-minimal mirroring
+  * fix security-opt generate kube
+
 - Changelog for v1.8.1-rc3 (2020-03-06)
   * Update release notes for v1.8.1-RC3
   * Part 2: try to clean up the long image instance names
