@@ -120,6 +120,8 @@ esac
 echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
 $BIGTO ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
 
+install_buildah_packages
+
 [[ "${#REMOVE_PACKAGES[@]}" -eq "0" ]] || \
     $LILTO ooe.sh sudo dnf erase -y ${REMOVE_PACKAGES[@]}
 

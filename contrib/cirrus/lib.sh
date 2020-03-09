@@ -34,6 +34,7 @@ PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
 # Important filepaths
 SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
 AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
+BUILDAH_PACKAGES_FILEPATH="./contrib/cirrus/packages.sh"  # in buildah repo.
 
 # Log remote-client system test varlink output here
 export VARLINK_LOG=/var/tmp/varlink.log
@@ -446,6 +447,26 @@ $PRIOR_FEDORA_BASE_IMAGE
 
 systemd_banish() {
     $GOSRC/$PACKER_BASE/systemd_banish.sh
+}
+
+install_buildah_packages() {
+    git clone https://github.com/containers/buildah.git /tmp/buildah
+    if [[ -r "$BUILDAH_PACKAGES_FILEPATH" ]]; then
+        source "$BUILDAH_PACKAGES_FILEPATH"
+        req_env_var UBUNTU_BUILDAH_PACKAGES FEDORA_BUILDAH_PACKAGES OS_RELEASE_ID
+        case "$OS_RELEASE_ID" in
+            fedora)
+                $BIGTO ooe.sh sudo dnf install -y ${FEDORA_BUILDAH_PACKAGES[@]}
+                ;;
+            ubuntu)
+                $LILTO $SUDOAPTGET update
+                $BIGTO $SUDOAPTGET install ${UBUNTU_BUILDAH_PACKAGES[@]}
+                ;;
+            *) bad_os_id_ver ;;
+        esac
+    else
+        warn "Could not find $BUILDAH_PACKAGES_FILEPATH in buildah repository root."
+    fi
 }
 
 _finalize() {

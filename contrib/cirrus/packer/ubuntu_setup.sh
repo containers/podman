@@ -158,6 +158,8 @@ echo "Installing general testing and system dependencies"
 $LILTO $SUDOAPTGET update
 $BIGTO $SUDOAPTGET install ${INSTALL_PACKAGES[@]}
 
+install_buildah_packages
+
 echo "Installing cataonit and libseccomp.sudo"
 ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
 ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
