@@ -110,7 +110,7 @@ KillMode=none
 Type=forking
 
 [Install]
-WantedBy=multi-user.target`
+WantedBy=multi-user.target default.target`
 
 // Options include different options to control the unit file generation.
 type Options struct {
