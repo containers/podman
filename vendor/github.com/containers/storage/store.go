@@ -2320,24 +2320,53 @@ func (s *store) DeleteContainer(id string) error {
 
 	if rcstore.Exists(id) {
 		if container, err := rcstore.Get(id); err == nil {
+			errChan := make(chan error)
+			var wg sync.WaitGroup
+
 			if rlstore.Exists(container.LayerID) {
-				if err = rlstore.Delete(container.LayerID); err != nil {
-					return err
-				}
+				wg.Add(1)
+				go func() {
+					errChan <- rlstore.Delete(container.LayerID)
+					wg.Done()
+				}()
 			}
-			if err = rcstore.Delete(id); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- rcstore.Delete(id)
+				wg.Done()
+			}()
+
 			middleDir := s.graphDriverName + "-containers"
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(gcpath); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(gcpath)
+				wg.Done()
+			}()
+
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(rcpath); err != nil {
-				return err
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(rcpath)
+				wg.Done()
+			}()
+
+			go func() {
+				wg.Wait()
+				close(errChan)
+			}()
+
+			for {
+				select {
+				case err, ok := <-errChan:
+					if !ok {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+				}
 			}
-			return nil
 		}
 	}
 	return ErrNotAContainer
