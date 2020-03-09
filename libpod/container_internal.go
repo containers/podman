@@ -470,9 +470,9 @@ func (c *Container) teardownStorage() error {
 	return nil
 }
 
-// Reset resets state fields to default values
-// It is performed before a refresh and clears the state after a reboot
-// It does not save the results - assumes the database will do that for us
+// Reset resets state fields to default values.
+// It is performed before a refresh and clears the state after a reboot.
+// It does not save the results - assumes the database will do that for us.
 func resetState(state *ContainerState) error {
 	state.PID = 0
 	state.ConmonPID = 0
@@ -483,7 +483,6 @@ func resetState(state *ContainerState) error {
 	}
 	state.ExecSessions = make(map[string]*ExecSession)
 	state.LegacyExecSessions = nil
-	state.NetworkStatus = nil
 	state.BindMounts = make(map[string]string)
 	state.StoppedByUser = false
 	state.RestartPolicyMatch = false
@@ -539,6 +538,18 @@ func (c *Container) refresh() error {
 	}
 	c.lock = lock
 
+	// Try to delete any lingering IP allocations.
+	// If this fails, just log and ignore.
+	// I'm a little concerned that this is so far down in refresh() and we
+	// could fail before getting to it - but the worst that would happen is
+	// that Inspect() would return info on IPs we no longer own.
+	if len(c.state.NetworkStatus) > 0 {
+		if err := c.removeIPv4Allocations(); err != nil {
+			logrus.Errorf("Error removing IP allocations for container %s: %v", c.ID(), err)
+		}
+	}
+	c.state.NetworkStatus = nil
+
 	if err := c.save(); err != nil {
 		return errors.Wrapf(err, "error refreshing state for container %s", c.ID())
 	}
@@ -548,11 +559,58 @@ func (c *Container) refresh() error {
 		return err
 	}
 
-	if rootless.IsRootless() {
+	return nil
+}
+
+// Try and remove IP address allocations. Presently IPv4 only.
+// Should be safe as rootless because NetworkStatus should only be populated if
+// CNI is running.
+func (c *Container) removeIPv4Allocations() error {
+	cniNetworksDir, err := getCNINetworksDir()
+	if err != nil {
+		return err
+	}
+
+	if len(c.state.NetworkStatus) == 0 {
 		return nil
 	}
 
-	return c.refreshCNI()
+	cniDefaultNetwork := ""
+	if c.runtime.netPlugin != nil {
+		cniDefaultNetwork = c.runtime.netPlugin.GetDefaultNetworkName()
+	}
+
+	switch {
+	case len(c.config.Networks) > 0 && len(c.config.Networks) != len(c.state.NetworkStatus):
+		return errors.Wrapf(define.ErrInternal, "network mismatch: asked to join %d CNI networks but got %d CNI results", len(c.config.Networks), len(c.state.NetworkStatus))
+	case len(c.config.Networks) == 0 && len(c.state.NetworkStatus) != 1:
+		return errors.Wrapf(define.ErrInternal, "network mismatch: did not specify CNI networks but joined more than one (%d)", len(c.state.NetworkStatus))
+	case len(c.config.Networks) == 0 && cniDefaultNetwork == "":
+		return errors.Wrapf(define.ErrInternal, "could not retrieve name of CNI default network")
+	}
+
+	for index, result := range c.state.NetworkStatus {
+		for _, ctrIP := range result.IPs {
+			if ctrIP.Version != "4" {
+				continue
+			}
+			candidate := ""
+			if len(c.config.Networks) > 0 {
+				// CNI returns networks in order we passed them.
+				// So our index into results should be our index
+				// into networks.
+				candidate = filepath.Join(cniNetworksDir, c.config.Networks[index], ctrIP.Address.IP.String())
+			} else {
+				candidate = filepath.Join(cniNetworksDir, cniDefaultNetwork, ctrIP.Address.IP.String())
+			}
+			logrus.Debugf("Going to try removing IP address reservation file %q for container %s", candidate, c.ID())
+			if err := os.Remove(candidate); err != nil && !os.IsNotExist(err) {
+				return errors.Wrapf(err, "error removing CNI IP reservation file %q for container %s", candidate, c.ID())
+			}
+		}
+	}
+
+	return nil
 }
 
 // Remove conmon attach socket and terminal resize FIFO

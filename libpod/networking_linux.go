@@ -657,6 +657,13 @@ func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkCon
 	return config, nil
 }
 
+// This is a horrible hack, necessary because CNI does not properly clean up
+// after itself on an unclean reboot. Return what we're pretty sure is the path
+// to CNI's internal files (it's not really exposed to us).
+func getCNINetworksDir() (string, error) {
+	return "/var/lib/cni/networks", nil
+}
+
 type logrusDebugWriter struct {
 	prefix string
 }
