@@ -1557,7 +1557,7 @@ func readConmonPipeData(pipe *os.File, ociLog string) DataAndErr {
 		ch <- syncStruct{si: si}
 	}()
 
-	data := define.ErrorConmonRead
+	data := -1
 	select {
 	case ss := <-ch:
 		if ss.err != nil {
@@ -1567,14 +1567,14 @@ func readConmonPipeData(pipe *os.File, ociLog string) DataAndErr {
 					var ociErr ociError
 					if err := json.Unmarshal(ociLogData, &ociErr); err == nil {
 						return DataAndErr{
-							data: data,
+							data: -1,
 							err:  getOCIRuntimeError(ociErr.Msg),
 						}
 					}
 				}
 			}
 			return DataAndErr{
-				data: data,
+				data: -1,
 				err:  errors.Wrapf(ss.err, "container create failed (no logs from conmon)"),
 			}
 		}
@@ -1607,7 +1607,7 @@ func readConmonPipeData(pipe *os.File, ociLog string) DataAndErr {
 		data = ss.si.Data
 	case <-time.After(define.ContainerCreateTimeout):
 		return DataAndErr{
-			data: data,
+			data: -1,
 			err:  errors.Wrapf(define.ErrInternal, "container creation timeout"),
 		}
 	}
