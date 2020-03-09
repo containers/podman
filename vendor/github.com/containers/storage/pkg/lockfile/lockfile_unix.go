@@ -206,10 +206,6 @@ func (l *lockfile) Touch() error {
 	if n != len(id) {
 		return unix.ENOSPC
 	}
-	err = unix.Fsync(int(l.fd))
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
