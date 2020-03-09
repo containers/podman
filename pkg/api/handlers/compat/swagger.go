@@ -1,4 +1,4 @@
-package generic
+package compat
 
 import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"

@@ -1,4 +1,4 @@
-package generic
+package compat
 
 import (
 	"encoding/json"
@@ -198,7 +198,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		source = f.Name()
-		if err := handlers.SaveFromBody(f, r); err != nil {
+		if err := SaveFromBody(f, r); err != nil {
 			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		}
 	}
@@ -286,7 +286,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	// 404 no such
 	// 500 internal
 	name := utils.GetName(r)
-	newImage, err := handlers.GetImage(r, name)
+	newImage, err := utils.GetImage(r, name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return
@@ -344,7 +344,7 @@ func LoadImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to create tempfile"))
 		return
 	}
-	if err := handlers.SaveFromBody(f, r); err != nil {
+	if err := SaveFromBody(f, r); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "failed to write temporary file"))
 		return
 	}

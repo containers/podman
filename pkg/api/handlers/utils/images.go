@@ -43,3 +43,8 @@ func GetImages(w http.ResponseWriter, r *http.Request) ([]*image.Image, error) {
 	}
 
 }
+
+func GetImage(r *http.Request, name string) (*image.Image, error) {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	return runtime.ImageRuntime().NewFromLocal(name)
+}
