@@ -144,6 +144,7 @@ type CreateConfig struct {
 	InitPath          string //init-path
 	Image             string
 	ImageID           string
+	RawImageName      string
 	BuiltinImgVolumes map[string]struct{} // volumes defined in the image config
 	ImageVolumeType   string              // how to handle the image volume, either bind, tmpfs, or ignore
 	Interactive       bool                //interactive
@@ -348,7 +349,7 @@ func (c *CreateConfig) getContainerCreateOptions(runtime *libpod.Runtime, pod *l
 	options = append(options, nsOpts...)
 
 	// Gather up the options for NewContainer which consist of With... funcs
-	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image))
+	options = append(options, libpod.WithRootFSFromImage(c.ImageID, c.Image, c.RawImageName))
 	options = append(options, libpod.WithConmonPidFile(c.ConmonPidFile))
 	options = append(options, libpod.WithLabels(c.Labels))
 	options = append(options, libpod.WithShmSize(c.Resources.ShmSize))

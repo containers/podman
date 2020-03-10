@@ -36,7 +36,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 		return nil, err
 	}
 
-	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image))
+	options = append(options, libpod.WithRootFSFromImage(newImage.ID(), s.Image, s.RawImageName))
 
 	runtimeSpec, err := s.toOCISpec(rt, newImage)
 	if err != nil {

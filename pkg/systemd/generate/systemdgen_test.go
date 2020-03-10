@@ -44,6 +44,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
 ExecStop=/usr/bin/podman stop -t 10 639c53578af4d84b8800b4635fa4e680ee80fd67e0e6a2d4eea48d1e3230f401
@@ -64,6 +65,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
@@ -88,6 +90,7 @@ BindsTo=a.service b.service c.service pod.service
 After=a.service b.service c.service pod.service
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start foobar
 ExecStop=/usr/bin/podman stop -t 10 foobar
@@ -110,6 +113,7 @@ Requires=container-1.service container-2.service
 Before=container-1.service container-2.service
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStart=/usr/bin/podman start jadda-jadda-infra
 ExecStop=/usr/bin/podman stop -t 10 jadda-jadda-infra
@@ -130,6 +134,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
@@ -152,6 +157,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon --detach --name jadda-jadda --hostname hello-world awesome-image:latest command arg1 ... argN
@@ -174,6 +180,7 @@ Wants=network.target
 After=network-online.target
 
 [Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
 Restart=always
 ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
 ExecStart=/usr/bin/podman run --conmon-pidfile %t/%n-pid --cidfile %t/%n-cid --cgroups=no-conmon -d awesome-image:latest

@@ -18,6 +18,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
 	ann "github.com/containers/libpod/pkg/annotations"
+	"github.com/containers/libpod/pkg/autoupdate"
 	envLib "github.com/containers/libpod/pkg/env"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/inspect"
@@ -25,6 +26,7 @@ import (
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/seccomp"
 	cc "github.com/containers/libpod/pkg/spec"
+	systemdGen "github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
@@ -69,6 +71,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	imageName := ""
+	rawImageName := ""
 	var imageData *inspect.ImageData = nil
 
 	// Set the storage if there is no rootfs specified
@@ -78,9 +81,8 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			writer = os.Stderr
 		}
 
-		name := ""
 		if len(c.InputArgs) != 0 {
-			name = c.InputArgs[0]
+			rawImageName = c.InputArgs[0]
 		} else {
 			return nil, nil, errors.Errorf("error, image name not provided")
 		}
@@ -97,7 +99,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			ArchitectureChoice: overrideArch,
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, name, rtc.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
+		newImage, err := runtime.ImageRuntime().New(ctx, rawImageName, rtc.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -174,9 +176,30 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
-	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, imageData)
+	createConfig, err := ParseCreateOpts(ctx, c, runtime, imageName, rawImageName, imageData)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	// (VR): Ideally we perform the checks _before_ pulling the image but that
+	// would require some bigger code refactoring of `ParseCreateOpts` and the
+	// logic here.  But as the creation code will be consolidated in the future
+	// and given auto updates are experimental, we can live with that for now.
+	// In the end, the user may only need to correct the policy or the raw image
+	// name.
+	autoUpdatePolicy, autoUpdatePolicySpecified := createConfig.Labels[autoupdate.Label]
+	if autoUpdatePolicySpecified {
+		if _, err := autoupdate.LookupPolicy(autoUpdatePolicy); err != nil {
+			return nil, nil, err
+		}
+		// Now we need to make sure we're having a fully-qualified image reference.
+		if rootfs != "" {
+			return nil, nil, errors.Errorf("auto updates do not work with --rootfs")
+		}
+		// Make sure the input image is a docker.
+		if err := autoupdate.ValidateImageReference(rawImageName); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Because parseCreateOpts does derive anything from the image, we add health check
@@ -270,7 +293,7 @@ func configurePod(c *GenericCLIResults, runtime *libpod.Runtime, namespaces map[
 
 // Parses CLI options related to container creation into a config which can be
 // parsed into an OCI runtime spec
-func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime, imageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
+func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.Runtime, imageName string, rawImageName string, data *inspect.ImageData) (*cc.CreateConfig, error) {
 	var (
 		inputCommand, command                                    []string
 		memoryLimit, memoryReservation, memorySwap, memoryKernel int64
@@ -481,12 +504,15 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		"container": "podman",
 	}
 
+	// First transform the os env into a map. We need it for the labels later in
+	// any case.
+	osEnv, err := envLib.ParseSlice(os.Environ())
+	if err != nil {
+		return nil, errors.Wrap(err, "error parsing host environment variables")
+	}
+
 	// Start with env-host
 	if c.Bool("env-host") {
-		osEnv, err := envLib.ParseSlice(os.Environ())
-		if err != nil {
-			return nil, errors.Wrap(err, "error parsing host environment variables")
-		}
 		env = envLib.Join(env, osEnv)
 	}
 
@@ -532,6 +558,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 				labels[key] = val
 			}
 		}
+	}
+
+	if systemdUnit, exists := osEnv[systemdGen.EnvVariable]; exists {
+		labels[systemdGen.EnvVariable] = systemdUnit
 	}
 
 	// ANNOTATIONS
@@ -764,11 +794,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Entrypoint:        entrypoint,
 		Env:               env,
 		// ExposedPorts:   ports,
-		Init:        c.Bool("init"),
-		InitPath:    c.String("init-path"),
-		Image:       imageName,
-		ImageID:     imageID,
-		Interactive: c.Bool("interactive"),
+		Init:         c.Bool("init"),
+		InitPath:     c.String("init-path"),
+		Image:        imageName,
+		RawImageName: rawImageName,
+		ImageID:      imageID,
+		Interactive:  c.Bool("interactive"),
 		// IP6Address:     c.String("ipv6"), // Not implemented yet - needs CNI support for static v6
 		Labels: labels,
 		// LinkLocalIP:    c.StringSlice("link-local-ip"), // Not implemented yet

@@ -23,7 +23,7 @@ const (
 	IDTruncLength = 12
 )
 
-func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID string, config *v1.ImageConfig) (*Container, error) {
+func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, rawImageName, imgID string, config *v1.ImageConfig) (*Container, error) {
 
 	// Set up generator for infra container defaults
 	g, err := generate.New("linux")
@@ -127,7 +127,7 @@ func (r *Runtime) makeInfraContainer(ctx context.Context, p *Pod, imgName, imgID
 
 	containerName := p.ID()[:IDTruncLength] + "-infra"
 	options = append(options, r.WithPod(p))
-	options = append(options, WithRootFSFromImage(imgID, imgName))
+	options = append(options, WithRootFSFromImage(imgID, imgName, rawImageName))
 	options = append(options, WithName(containerName))
 	options = append(options, withIsInfra())
 
@@ -154,5 +154,5 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 	imageName := newImage.Names()[0]
 	imageID := data.ID
 
-	return r.makeInfraContainer(ctx, p, imageName, imageID, data.Config)
+	return r.makeInfraContainer(ctx, p, imageName, r.config.InfraImage, imageID, data.Config)
 }

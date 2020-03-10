@@ -49,6 +49,12 @@ for md in $(ls -1 *-*.1.md | grep -v remote);do
 
     # podman.1.md has a two-column table; podman-*.1.md all have three.
     parent=$(echo $md | sed -e 's/^\(.*\)-.*$/\1.1.md/')
+    if [[ $parent =~ "podman-auto" ]]; then
+        # podman-auto-update.1.md is special cased as it's structure differs
+        # from that of other man pages where main and sub-commands split by
+        # dashes.
+        parent="podman.1.md"
+    fi
     x=3
     if expr -- "$parent" : ".*-" >/dev/null; then
         x=4
@@ -90,6 +96,12 @@ for md in *.1.md;do
     # Get the command name, and confirm that it matches the md file name.
     cmd=$(echo "$synopsis" | sed -e 's/\(.*\)\*\*.*/\1/' | tr -d \*)
     md_nodash=$(basename "$md" .1.md | tr '-' ' ')
+    if [[ $md_nodash = 'podman auto update' ]]; then
+        # podman-auto-update.1.md is special cased as it's structure differs
+        # from that of other man pages where main and sub-commands split by
+        # dashes.
+        md_nodash='podman auto-update'
+    fi
     if [ "$cmd" != "$md_nodash" -a "$cmd" != "podman-remote" ]; then
         echo
         printf "Inconsistent program name in SYNOPSIS in %s:\n" $md

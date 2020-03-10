@@ -54,6 +54,10 @@ type AttachValues struct {
 	SigProxy   bool
 }
 
+type AutoUpdateValues struct {
+	PodmanCommand
+}
+
 type ImagesValues struct {
 	PodmanCommand
 	All       bool
@@ -470,10 +474,11 @@ type RefreshValues struct {
 
 type RestartValues struct {
 	PodmanCommand
-	All     bool
-	Latest  bool
-	Running bool
-	Timeout uint
+	All        bool
+	AutoUpdate bool
+	Latest     bool
+	Running    bool
+	Timeout    uint
 }
 
 type RestoreValues struct {

@@ -3334,6 +3334,7 @@ _podman_podman() {
      "
      commands="
     attach
+    auto-update
     build
     commit
     container

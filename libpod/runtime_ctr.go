@@ -131,6 +131,7 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 			return nil, errors.Wrapf(err, "error running container create option")
 		}
 	}
+
 	return r.setupContainer(ctx, ctr)
 }
 
