@@ -5,8 +5,8 @@ package utils
 import (
 	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	systemdDbus "github.com/coreos/go-systemd/dbus"
-	"github.com/godbus/dbus"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/godbus/dbus/v5"
 )
 
 // RunUnderSystemdScope adds the specified pid to a systemd scope

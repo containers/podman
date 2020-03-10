@@ -184,13 +184,12 @@ github.com/containers/storage/pkg/tarlog
 github.com/containers/storage/pkg/truncindex
 # github.com/coreos/go-iptables v0.4.5
 github.com/coreos/go-iptables/iptables
-# github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
-github.com/coreos/go-systemd/activation
-github.com/coreos/go-systemd/dbus
-github.com/coreos/go-systemd/journal
-github.com/coreos/go-systemd/sdjournal
-# github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
-github.com/coreos/pkg/dlopen
+# github.com/coreos/go-systemd/v22 v22.0.0
+github.com/coreos/go-systemd/v22/activation
+github.com/coreos/go-systemd/v22/dbus
+github.com/coreos/go-systemd/v22/internal/dlopen
+github.com/coreos/go-systemd/v22/journal
+github.com/coreos/go-systemd/v22/sdjournal
 # github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyphar/filepath-securejoin v0.2.2
@@ -271,8 +270,8 @@ github.com/fsouza/go-dockerclient
 github.com/fullsailor/pkcs7
 # github.com/ghodss/yaml v1.0.0
 github.com/ghodss/yaml
-# github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
-github.com/godbus/dbus
+# github.com/godbus/dbus/v5 v5.0.3
+github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.2.2-0.20190723190241-65acae22fc9d
 github.com/gogo/protobuf/gogoproto
 github.com/gogo/protobuf/proto

@@ -87,6 +87,7 @@ func setDest(dest, src reflect.Value) error {
 	}
 	if isVariant(src.Type()) && !isVariant(dest.Type()) {
 		src = getVariantValue(src)
+		return store(dest, src)
 	}
 	if !src.Type().ConvertibleTo(dest.Type()) {
 		return fmt.Errorf(

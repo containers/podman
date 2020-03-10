@@ -30,7 +30,7 @@ import (
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/coreos/go-systemd/activation"
+	"github.com/coreos/go-systemd/v22/activation"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"

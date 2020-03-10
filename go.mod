@@ -15,7 +15,7 @@ require (
 	github.com/containers/image/v5 v5.2.1
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.16.2
-	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
+	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2
 	github.com/davecgh/go-spew v1.1.1
@@ -27,7 +27,7 @@ require (
 	github.com/etcd-io/bbolt v1.3.3
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
-	github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e
+	github.com/godbus/dbus/v5 v5.0.3
 	github.com/google/shlex v0.0.0-20181106134648-c34317bd91bf
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
@@ -62,7 +62,6 @@ require (
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
 	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
 	gopkg.in/yaml.v2 v2.2.8
-	gotest.tools/v3 v3.0.2 // indirect
 	k8s.io/api v0.17.3
 	k8s.io/apimachinery v0.17.3
 	k8s.io/client-go v0.0.0-20190620085101-78d2af792bab

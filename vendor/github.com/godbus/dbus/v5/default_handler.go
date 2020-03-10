@@ -47,7 +47,7 @@ func (h *defaultHandler) introspectPath(path ObjectPath) string {
 	subpath := make(map[string]struct{})
 	var xml bytes.Buffer
 	xml.WriteString("<node>")
-	for obj, _ := range h.objects {
+	for obj := range h.objects {
 		p := string(path)
 		if p != "/" {
 			p += "/"
@@ -57,7 +57,7 @@ func (h *defaultHandler) introspectPath(path ObjectPath) string {
 			subpath[node_name] = struct{}{}
 		}
 	}
-	for s, _ := range subpath {
+	for s := range subpath {
 		xml.WriteString("\n\t<node name=\"" + s + "\"/>")
 	}
 	xml.WriteString("\n</node>")
@@ -234,88 +234,95 @@ func (obj *exportedIntf) isFallbackInterface() bool {
 //
 // Deprecated: this is the default value, don't use it, it will be unexported.
 func NewDefaultSignalHandler() *defaultSignalHandler {
-	return &defaultSignalHandler{
-		closeChan: make(chan struct{}),
-	}
-}
-
-func isDefaultSignalHandler(handler SignalHandler) bool {
-	_, ok := handler.(*defaultSignalHandler)
-	return ok
+	return &defaultSignalHandler{}
 }
 
 type defaultSignalHandler struct {
-	sync.RWMutex
-	closed    bool
-	signals   []chan<- *Signal
-	closeChan chan struct{}
+	mu      sync.RWMutex
+	closed  bool
+	signals []*signalChannelData
 }
 
 func (sh *defaultSignalHandler) DeliverSignal(intf, name string, signal *Signal) {
-	sh.RLock()
-	defer sh.RUnlock()
+	sh.mu.RLock()
+	defer sh.mu.RUnlock()
 	if sh.closed {
 		return
 	}
-	for _, ch := range sh.signals {
-		select {
-		case ch <- signal:
-		case <-sh.closeChan:
-			return
-		default:
-			go func(ch chan<- *Signal) {
-				select {
-				case ch <- signal:
-				case <-sh.closeChan:
-					return
-				}
-			}(ch)
-		}
+	for _, scd := range sh.signals {
+		scd.deliver(signal)
 	}
-}
-
-func (sh *defaultSignalHandler) Init() error {
-	sh.Lock()
-	sh.signals = make([]chan<- *Signal, 0)
-	sh.closeChan = make(chan struct{})
-	sh.Unlock()
-	return nil
 }
 
 func (sh *defaultSignalHandler) Terminate() {
-	sh.Lock()
-	if !sh.closed {
-		close(sh.closeChan)
-	}
-	sh.closed = true
-	for _, ch := range sh.signals {
-		close(ch)
-	}
-	sh.signals = nil
-	sh.Unlock()
-}
-
-func (sh *defaultSignalHandler) addSignal(ch chan<- *Signal) {
-	sh.Lock()
-	defer sh.Unlock()
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
 	if sh.closed {
 		return
 	}
-	sh.signals = append(sh.signals, ch)
 
+	for _, scd := range sh.signals {
+		scd.close()
+		close(scd.ch)
+	}
+	sh.closed = true
+	sh.signals = nil
 }
 
-func (sh *defaultSignalHandler) removeSignal(ch chan<- *Signal) {
-	sh.Lock()
-	defer sh.Unlock()
+func (sh *defaultSignalHandler) AddSignal(ch chan<- *Signal) {
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
+	if sh.closed {
+		return
+	}
+	sh.signals = append(sh.signals, &signalChannelData{
+		ch:   ch,
+		done: make(chan struct{}),
+	})
+}
+
+func (sh *defaultSignalHandler) RemoveSignal(ch chan<- *Signal) {
+	sh.mu.Lock()
+	defer sh.mu.Unlock()
 	if sh.closed {
 		return
 	}
 	for i := len(sh.signals) - 1; i >= 0; i-- {
-		if ch == sh.signals[i] {
+		if ch == sh.signals[i].ch {
+			sh.signals[i].close()
 			copy(sh.signals[i:], sh.signals[i+1:])
 			sh.signals[len(sh.signals)-1] = nil
 			sh.signals = sh.signals[:len(sh.signals)-1]
 		}
 	}
+}
+
+type signalChannelData struct {
+	wg   sync.WaitGroup
+	ch   chan<- *Signal
+	done chan struct{}
+}
+
+func (scd *signalChannelData) deliver(signal *Signal) {
+	select {
+	case scd.ch <- signal:
+	case <-scd.done:
+		return
+	default:
+		scd.wg.Add(1)
+		go scd.deferredDeliver(signal)
+	}
+}
+
+func (scd *signalChannelData) deferredDeliver(signal *Signal) {
+	select {
+	case scd.ch <- signal:
+	case <-scd.done:
+	}
+	scd.wg.Done()
+}
+
+func (scd *signalChannelData) close() {
+	close(scd.done)
+	scd.wg.Wait() // wait until all spawned goroutines return
 }

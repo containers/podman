@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod/logs"
-	journal "github.com/coreos/go-systemd/sdjournal"
+	journal "github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

@@ -77,6 +77,14 @@ type SignalHandler interface {
 	DeliverSignal(iface, name string, signal *Signal)
 }
 
+// SignalRegistrar manages signal delivery channels.
+//
+// This is an optional set of methods for `SignalHandler`.
+type SignalRegistrar interface {
+	AddSignal(ch chan<- *Signal)
+	RemoveSignal(ch chan<- *Signal)
+}
+
 // A DBusError is used to convert a generic object to a D-Bus error.
 //
 // Any custom error mechanism may implement this interface to provide
