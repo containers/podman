@@ -107,7 +107,7 @@ gating_task:
         # The entrypoint.sh script ensures a prestine copy of $SRCPATH is
         # available at $GOSRC before executing make instructions.
         image: "quay.io/libpod/gate:master"
-        cpu: 4
+        cpu: 8
         memory: 12
 
     timeout_in: 20m
@@ -138,6 +138,7 @@ gating_task:
         # N/B: need 'clean' so some committed files are re-generated.
         - '/usr/local/bin/entrypoint.sh clean podman-remote |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh clean podman BUILDTAGS="exclude_graphdriver_devicemapper selinux seccomp" |& ${TIMESTAMP}'
+        - '/usr/local/bin/entrypoint.sh local-cross |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh podman-remote-darwin |& ${TIMESTAMP}'
         - '/usr/local/bin/entrypoint.sh podman-remote-windows |& ${TIMESTAMP}'
 
