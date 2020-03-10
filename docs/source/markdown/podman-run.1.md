@@ -225,6 +225,10 @@ Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **crun**(1) runtime offers a
 workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
 
+**--device-cgroup-rule**=rule
+
+Add a rule to the cgroup allowed devices list
+
 **--device-read-bps**=_path_:_rate_
 
 Limit read rate (in bytes per second) from a device (e.g. **--device-read-bps=/dev/sda:1mb**).
@@ -253,9 +257,9 @@ is the case the **--dns** flags is necessary for every run.
 The special value **none** can be specified to disable creation of _/etc/resolv.conf_ in the container by Podman.
 The _/etc/resolv.conf_ file in the image will be used without changes.
 
-**--dns-option**=*option*
+**--dns-opt**=*option*
 
-Set custom DNS options. Invalid if using **--dns-option** with **--network** that is set to **none** or **container:**_id_.
+Set custom DNS options. Invalid if using **--dns-opt** with **--network** that is set to **none** or **container:**_id_.
 
 **--dns-search**=*domain*
 
@@ -342,7 +346,7 @@ value can be expressed in a time format such as **1m22s**.  The default value is
 
 Print usage statement
 
-**--hostname**=*name*
+**-h**, **--hostname**=*name*
 
 Container host name
 
@@ -547,7 +551,7 @@ This works for both background and foreground containers.
 
 **--network**, **--net**=*mode*
 
-Set the network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
+Set the network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to **none** or **container:**_id_.
 
 Valid _mode_ values are:
 

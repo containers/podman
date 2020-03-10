@@ -21,7 +21,7 @@ returned.
 
 ## OPTIONS
 
-**--all**, **a**
+**--all**, **-a**
 
 Mount all containers.
 

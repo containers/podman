@@ -42,7 +42,7 @@ func init() {
 	podTopCommand.SetHelpTemplate(HelpTemplate())
 	podTopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podTopCommand.Flags()
-	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")
+	flags.BoolVarP(&podTopCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&podTopCommand.ListDescriptors, "list-descriptors", false, "")
 	markFlagHidden(flags, "list-descriptors")
 }

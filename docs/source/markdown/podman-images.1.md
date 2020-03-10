@@ -72,7 +72,7 @@ Display the history of image names.  If an image gets re-tagged or untagged, the
 
 Omit the table headings from the listing of images.
 
-**--no-trunc**, **--notruncate**
+**--no-trunc**
 
 Do not truncate output.
 

@@ -38,7 +38,7 @@ Includes the container IDs in the container info field
 
 Includes the container statuses in the container info field
 
-**--latest**,**-l**
+**--latest**, **-l**
 
 Show the latest pod created (all states)
 
@@ -47,6 +47,10 @@ The latest option is not supported on the remote client.
 **--no-trunc**
 
 Display the extended information
+
+**--ns**
+
+Display namespace information of the pod
 
 **--quiet**, **-q**
 

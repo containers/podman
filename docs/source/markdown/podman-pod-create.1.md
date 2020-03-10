@@ -39,6 +39,10 @@ Set custom DNS search domains in the /etc/resolv.conf file that will be shared b
 
 Print usage statement.
 
+**--hostname**=name
+
+Set a hostname to the pod
+
 **--infra**=**true**|**false**
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.
@@ -79,7 +83,7 @@ Set network mode for the pod. Supported values are *bridge* (the default), *host
 
 Disable creation of /etc/hosts for the pod.
 
-**--podidfile**=*podid*
+**--pod-id-file**=*path*
 
 Write the pod ID to the file.
 

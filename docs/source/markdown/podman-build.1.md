@@ -37,6 +37,10 @@ Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can b
 
 Note: this information is not present in Docker image formats, so it is discarded when writing images in Docker formats.
 
+**--arch**=*arch*
+
+Set the ARCH of the image to the provided value instead of the architecture of the host.
+
 **--authfile**=*path*
 
 Path of the authentication file. Default is ${XDG\_RUNTIME\_DIR}/containers/auth.json, which is set using `podman login`.
@@ -187,7 +191,7 @@ Note: if the user only has access rights via a group, accessing the device
 from inside a rootless container will fail. The **crun**(1) runtime offers a
 workaround for this by adding the option **--annotation run.oci.keep_original_groups=1**.
 
-**--disable-compression, -D**
+**--disable-compression**, **-D**
 
 Don't compress filesystem layers when building the image unless it is required
 by the location where the image is being written.  This is the default setting,
@@ -247,6 +251,10 @@ environment variable.  `export BUILDAH_FORMAT=docker`
 **-h**, **--help**
 
 Print usage statement
+
+**--http-proxy**
+
+Pass through HTTP Proxy environment variables.
 
 **--iidfile**=*ImageIDfile*
 
@@ -340,6 +348,10 @@ another process.
 
 Do not use existing cached images for the container build. Build from the start with a new set of cached layers.
 
+**--os**=*string*
+
+Set the OS to the provided value instead of the current operating system of the host.
+
 **--pid**=*pid*
 
 Sets the configuration for PID namespaces when handling `RUN` instructions.
@@ -428,6 +440,10 @@ Security Options
 Size of `/dev/shm`. The format is `<number><unit>`. `number` must be greater than `0`.
 Unit is optional and can be `b` (bytes), `k` (kilobytes), `m`(megabytes), or `g` (gigabytes).
 If you omit the unit, the system uses bytes. If you omit the size entirely, the system uses `64m`.
+
+**--sign-by**=*fingerprint*
+
+Sign the image using a GPG key with the specified FINGERPRINT.
 
 **--squash**
 

@@ -23,7 +23,7 @@ Specify the volume driver name (default local).
 
 Print usage statement
 
-**-l**, **-label**=*label*
+**-l**, **--label**=*label*
 
 Set metadata for a volume (e.g., --label mykey=value).
 

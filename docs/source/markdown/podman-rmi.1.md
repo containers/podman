@@ -13,7 +13,7 @@ Removes one or more locally stored images.
 
 ## OPTIONS
 
-**-all**, **-a**
+**--all**, **-a**
 
 Remove all images in the local storage.
 

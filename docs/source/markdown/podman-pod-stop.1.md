@@ -27,7 +27,7 @@ Instead of providing the pod name or ID, stop the last created pod.
 
 The latest option is not supported on the remote client.
 
-**--timeout**, **--time**, **-t**=*time*
+**--timeout**, **-t**=*time*
 
 Timeout to wait before forcibly stopping the containers in the pod.
 

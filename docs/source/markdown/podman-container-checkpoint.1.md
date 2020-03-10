@@ -38,7 +38,7 @@ image contains established TCP connections, this options is required during
 restore. Defaults to not checkpointing containers with established TCP
 connections.
 
-**--export, -e**
+**--export**, **-e**
 
 Export the checkpoint to a tar.gz file. The exported checkpoint can be used
 to import the container on another system and thus enabling container live

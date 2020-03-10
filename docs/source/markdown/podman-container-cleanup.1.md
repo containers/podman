@@ -12,7 +12,7 @@ Sometimes container's mount points and network stacks can remain if the podman c
 
 ## OPTIONS
 
-**--all**, **a**
+**--all**, **-a**
 
 Cleanup all containers.
 

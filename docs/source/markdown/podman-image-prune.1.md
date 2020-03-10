@@ -16,6 +16,14 @@ does not have any containers based on it.
 
 Remove dangling images and images that have no associated containers.
 
+**--filter**=*filters*
+
+Provide filter values.
+
+**--force**, **-f**
+
+Do not provide an interactive prompt for container removal.
+
 **--help**, **-h**
 
 Print usage statement
