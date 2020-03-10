@@ -195,6 +195,34 @@ var _ = Describe("Podman generate systemd", func() {
 		Expect(found).To(BeTrue())
 	})
 
+	It("podman generate systemd --new without explicit detaching param", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("--cgroups=no-conmon -d")
+		Expect(found).To(BeTrue())
+	})
+
+	It("podman generate systemd --new with explicit detaching param in middle", func() {
+		n := podmanTest.Podman([]string{"create", "--name", "foo", "-d", "alpine", "top"})
+		n.WaitWithDefaultTimeout()
+		Expect(n.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"generate", "systemd", "--timeout", "42", "--name", "--new", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		// Grepping the output (in addition to unit tests)
+		found, _ := session.GrepString("--name foo -d alpine top")
+		Expect(found).To(BeTrue())
+	})
+
 	It("podman generate systemd --new pod", func() {
 		n := podmanTest.Podman([]string{"pod", "create", "--name", "foo"})
 		n.WaitWithDefaultTimeout()
