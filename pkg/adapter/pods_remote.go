@@ -10,7 +10,7 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/varlinkapi"
@@ -206,6 +206,11 @@ func (r *LocalRuntime) GetAllPods() ([]*Pod, error) {
 		pods = append(pods, pod)
 	}
 	return pods, nil
+}
+
+// This is a empty implementation stating remoteclient not yet implemented
+func (r *LocalRuntime) GetPodsWithFilters(filters string) ([]*Pod, error) {
+	return nil, define.ErrNotImplemented
 }
 
 // GetPodsByStatus returns a slice of pods filtered by a libpod status

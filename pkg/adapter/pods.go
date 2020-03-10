@@ -122,19 +122,31 @@ func (r *LocalRuntime) GetLatestPod() (*Pod, error) {
 	return &pod, err
 }
 
+// GetPodsWithFilters gets the filtered list of pods based on the filter parameters provided.
+func (r *LocalRuntime) GetPodsWithFilters(filters string) ([]*Pod, error) {
+	pods, err := shared.GetPodsWithFilters(r.Runtime, filters)
+	if err != nil {
+		return nil, err
+	}
+	return r.podstoAdapterPods(pods)
+}
+
+func (r *LocalRuntime) podstoAdapterPods(pod []*libpod.Pod) ([]*Pod, error) {
+	var pods []*Pod
+	for _, i := range pod {
+
+		pods = append(pods, &Pod{i})
+	}
+	return pods, nil
+}
+
 // GetAllPods gets all pods and wraps it in an adapter pod
 func (r *LocalRuntime) GetAllPods() ([]*Pod, error) {
-	var pods []*Pod
 	allPods, err := r.Runtime.GetAllPods()
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range allPods {
-		pod := Pod{}
-		pod.Pod = p
-		pods = append(pods, &pod)
-	}
-	return pods, nil
+	return r.podstoAdapterPods(allPods)
 }
 
 // LookupPod gets a pod by name or id and wraps it in an adapter pod

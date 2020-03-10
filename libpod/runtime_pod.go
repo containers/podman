@@ -90,18 +90,10 @@ func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
 // output. Multiple filters are handled by ANDing their output, so only pods
 // matching all filters are returned
 func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
-	r.lock.RLock()
-	defer r.lock.RUnlock()
-
-	if !r.valid {
-		return nil, define.ErrRuntimeStopped
-	}
-
-	pods, err := r.state.AllPods()
+	pods, err := r.GetAllPods()
 	if err != nil {
 		return nil, err
 	}
-
 	podsFiltered := make([]*Pod, 0, len(pods))
 	for _, pod := range pods {
 		include := true
