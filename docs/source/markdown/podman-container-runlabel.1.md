@@ -85,10 +85,6 @@ created from this image.
 
 Set rootfs
 
-**--set**=*NAME*=*VALUE*
-
-Set name & value
-
 **--storage**
 Use storage
 
