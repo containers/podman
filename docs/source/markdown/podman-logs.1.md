@@ -30,6 +30,10 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
+**-n**, **--names**
+
+Output the container name in the log
+
 **--since**=*TIMESTAMP*
 
 Show logs since TIMESTAMP. The --since option can be Unix timestamps, date formatted timestamps, or Go duration

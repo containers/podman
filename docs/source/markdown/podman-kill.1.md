@@ -23,7 +23,7 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
-**--signal**, **s**
+**--signal**, **-s**
 
 Signal to send to the container. For more information on Linux signals, refer to *man signal(7)*.
 

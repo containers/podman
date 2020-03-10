@@ -251,9 +251,9 @@ is the case the **--dns** flags is necessary for every run.
 The special value **none** can be specified to disable creation of **/etc/resolv.conf** in the container by Podman.
 The **/etc/resolv.conf** file in the image will be used without changes.
 
-**--dns-option**=*option*
+**--dns-opt**=*option*
 
-Set custom DNS options. Invalid if using **--dns-option** and **--network** that is set to 'none' or 'container:<name|id>'.
+Set custom DNS options. Invalid if using **--dns-opt** and **--network** that is set to 'none' or 'container:<name|id>'.
 
 **--dns-search**=*domain*
 
@@ -334,7 +334,7 @@ The initialization time needed for a container to bootstrap. The value can be ex
 The maximum time allowed to complete the healthcheck before an interval is considered failed.  Like start-period, the
 value can be expressed in a time format such as `1m22s`.  The default value is `30s`.
 
-**--hostname**=*name*
+**-h**, **--hostname**=*name*
 
 Container host name
 
@@ -381,7 +381,7 @@ Run an init inside the container that forwards signals and reaps processes.
 
 Path to the container-init binary.
 
-**--interactive**, **i**=*true|false*
+**--interactive**, **-i**=*true|false*
 
 Keep STDIN open even if not attached. The default is *false*.
 
@@ -548,7 +548,7 @@ This works for both background and foreground containers.
 
 **--network**, **--net**="*bridge*"
 
-Set the Network mode for the container. Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
+Set the Network mode for the container. Invalid if using **--dns**, **--dns-opt**, or **--dns-search** with **--network** that is set to 'none' or 'container:<name|id>'.
 
 Valid values are:
 
