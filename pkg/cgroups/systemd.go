@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	systemdDbus "github.com/coreos/go-systemd/dbus"
-	"github.com/godbus/dbus"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/godbus/dbus/v5"
 )
 
 func systemdCreate(path string, c *systemdDbus.Conn) error {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"io"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 )
@@ -31,6 +30,12 @@ var ErrClosed = errors.New("dbus: connection closed by user")
 type Conn struct {
 	transport
 
+	ctx       context.Context
+	cancelCtx context.CancelFunc
+
+	closeOnce sync.Once
+	closeErr  error
+
 	busObj BusObject
 	unixFD bool
 	uuid   string
@@ -38,6 +43,8 @@ type Conn struct {
 	handler       Handler
 	signalHandler SignalHandler
 	serialGen     SerialGenerator
+	inInt         Interceptor
+	outInt        Interceptor
 
 	names      *nameTracker
 	calls      *callTracker
@@ -190,6 +197,33 @@ func WithSerialGenerator(gen SerialGenerator) ConnOption {
 	}
 }
 
+// Interceptor intercepts incoming and outgoing messages.
+type Interceptor func(msg *Message)
+
+// WithIncomingInterceptor sets the given interceptor for incoming messages.
+func WithIncomingInterceptor(interceptor Interceptor) ConnOption {
+	return func(conn *Conn) error {
+		conn.inInt = interceptor
+		return nil
+	}
+}
+
+// WithOutgoingInterceptor sets the given interceptor for outgoing messages.
+func WithOutgoingInterceptor(interceptor Interceptor) ConnOption {
+	return func(conn *Conn) error {
+		conn.outInt = interceptor
+		return nil
+	}
+}
+
+// WithContext overrides  the default context for the connection.
+func WithContext(ctx context.Context) ConnOption {
+	return func(conn *Conn) error {
+		conn.ctx = ctx
+		return nil
+	}
+}
+
 // NewConn creates a new private *Conn from an already established connection.
 func NewConn(conn io.ReadWriteCloser, opts ...ConnOption) (*Conn, error) {
 	return newConn(genericTransport{conn}, opts...)
@@ -211,6 +245,15 @@ func newConn(tr transport, opts ...ConnOption) (*Conn, error) {
 			return nil, err
 		}
 	}
+	if conn.ctx == nil {
+		conn.ctx = context.Background()
+	}
+	conn.ctx, conn.cancelCtx = context.WithCancel(conn.ctx)
+	go func() {
+		<-conn.ctx.Done()
+		conn.Close()
+	}()
+
 	conn.calls = newCallTracker()
 	if conn.handler == nil {
 		conn.handler = NewDefaultHandler()
@@ -237,27 +280,38 @@ func (conn *Conn) BusObject() BusObject {
 // and the channels passed to Eavesdrop and Signal are closed. This method must
 // not be called on shared connections.
 func (conn *Conn) Close() error {
-	conn.outHandler.close()
-	if term, ok := conn.signalHandler.(Terminator); ok {
-		term.Terminate()
-	}
+	conn.closeOnce.Do(func() {
+		conn.outHandler.close()
+		if term, ok := conn.signalHandler.(Terminator); ok {
+			term.Terminate()
+		}
 
-	if term, ok := conn.handler.(Terminator); ok {
-		term.Terminate()
-	}
+		if term, ok := conn.handler.(Terminator); ok {
+			term.Terminate()
+		}
 
-	conn.eavesdroppedLck.Lock()
-	if conn.eavesdropped != nil {
-		close(conn.eavesdropped)
-	}
-	conn.eavesdroppedLck.Unlock()
+		conn.eavesdroppedLck.Lock()
+		if conn.eavesdropped != nil {
+			close(conn.eavesdropped)
+		}
+		conn.eavesdroppedLck.Unlock()
 
-	return conn.transport.Close()
+		conn.cancelCtx()
+
+		conn.closeErr = conn.transport.Close()
+	})
+	return conn.closeErr
+}
+
+// Context returns the context associated with the connection.  The
+// context will be cancelled when the connection is closed.
+func (conn *Conn) Context() context.Context {
+	return conn.ctx
 }
 
 // Eavesdrop causes conn to send all incoming messages to the given channel
 // without further processing. Method replies, errors and signals will not be
-// sent to the appropiate channels and method calls will not be handled. If nil
+// sent to the appropriate channels and method calls will not be handled. If nil
 // is passed, the normal behaviour is restored.
 //
 // The caller has to make sure that ch is sufficiently buffered;
@@ -294,7 +348,7 @@ func (conn *Conn) inWorker() {
 		msg, err := conn.ReadMessage()
 		if err != nil {
 			if _, ok := err.(InvalidMessageError); !ok {
-				// Some read error occured (usually EOF); we can't really do
+				// Some read error occurred (usually EOF); we can't really do
 				// anything but to shut down all stuff and returns errors to all
 				// pending replies.
 				conn.Close()
@@ -322,6 +376,10 @@ func (conn *Conn) inWorker() {
 			// Eavesdropped a message, but no channel for it is registered.
 			// Ignore it.
 			continue
+		}
+
+		if conn.inInt != nil {
+			conn.inInt(msg)
 		}
 		switch msg.Type {
 		case TypeError:
@@ -383,11 +441,10 @@ func (conn *Conn) Object(dest string, path ObjectPath) BusObject {
 	return &Object{conn, dest, path}
 }
 
-func (conn *Conn) sendMessage(msg *Message) {
-	conn.sendMessageAndIfClosed(msg, func() {})
-}
-
 func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) {
+	if conn.outInt != nil {
+		conn.outInt(msg)
+	}
 	err := conn.outHandler.sendAndIfClosed(msg, ifClosed)
 	conn.calls.handleSendError(msg, err)
 	if err != nil {
@@ -483,7 +540,7 @@ func (conn *Conn) sendError(err error, dest string, serial uint32) {
 	if len(e.Body) > 0 {
 		msg.Headers[FieldSignature] = MakeVariant(SignatureOf(e.Body...))
 	}
-	conn.sendMessage(msg)
+	conn.sendMessageAndIfClosed(msg, nil)
 }
 
 // sendReply creates a method reply message corresponding to the parameters and
@@ -501,33 +558,54 @@ func (conn *Conn) sendReply(dest string, serial uint32, values ...interface{}) {
 	if len(values) > 0 {
 		msg.Headers[FieldSignature] = MakeVariant(SignatureOf(values...))
 	}
-	conn.sendMessage(msg)
+	conn.sendMessageAndIfClosed(msg, nil)
 }
 
-func (conn *Conn) defaultSignalAction(fn func(h *defaultSignalHandler, ch chan<- *Signal), ch chan<- *Signal) {
-	if !isDefaultSignalHandler(conn.signalHandler) {
-		return
-	}
-	handler := conn.signalHandler.(*defaultSignalHandler)
-	fn(handler, ch)
+// AddMatchSignal registers the given match rule to receive broadcast
+// signals based on their contents.
+func (conn *Conn) AddMatchSignal(options ...MatchOption) error {
+	options = append([]MatchOption{withMatchType("signal")}, options...)
+	return conn.busObj.Call(
+		"org.freedesktop.DBus.AddMatch", 0,
+		formatMatchOptions(options),
+	).Store()
+}
+
+// RemoveMatchSignal removes the first rule that matches previously registered with AddMatchSignal.
+func (conn *Conn) RemoveMatchSignal(options ...MatchOption) error {
+	options = append([]MatchOption{withMatchType("signal")}, options...)
+	return conn.busObj.Call(
+		"org.freedesktop.DBus.RemoveMatch", 0,
+		formatMatchOptions(options),
+	).Store()
 }
 
 // Signal registers the given channel to be passed all received signal messages.
-// The caller has to make sure that ch is sufficiently buffered; if a message
-// arrives when a write to c is not possible, it is discarded.
 //
 // Multiple of these channels can be registered at the same time.
 //
 // These channels are "overwritten" by Eavesdrop; i.e., if there currently is a
 // channel for eavesdropped messages, this channel receives all signals, and
 // none of the channels passed to Signal will receive any signals.
+//
+// Panics if the signal handler is not a `SignalRegistrar`.
 func (conn *Conn) Signal(ch chan<- *Signal) {
-	conn.defaultSignalAction((*defaultSignalHandler).addSignal, ch)
+	handler, ok := conn.signalHandler.(SignalRegistrar)
+	if !ok {
+		panic("cannot use this method with a non SignalRegistrar handler")
+	}
+	handler.AddSignal(ch)
 }
 
 // RemoveSignal removes the given channel from the list of the registered channels.
+//
+// Panics if the signal handler is not a `SignalRegistrar`.
 func (conn *Conn) RemoveSignal(ch chan<- *Signal) {
-	conn.defaultSignalAction((*defaultSignalHandler).removeSignal, ch)
+	handler, ok := conn.signalHandler.(SignalRegistrar)
+	if !ok {
+		panic("cannot use this method with a non SignalRegistrar handler")
+	}
+	handler.RemoveSignal(ch)
 }
 
 // SupportsUnixFDs returns whether the underlying transport supports passing of
@@ -614,18 +692,6 @@ func getTransport(address string) (transport, error) {
 	return nil, err
 }
 
-// dereferenceAll returns a slice that, assuming that vs is a slice of pointers
-// of arbitrary types, containes the values that are obtained from dereferencing
-// all elements in vs.
-func dereferenceAll(vs []interface{}) []interface{} {
-	for i := range vs {
-		v := reflect.ValueOf(vs[i])
-		v = v.Elem()
-		vs[i] = v.Interface()
-	}
-	return vs
-}
-
 // getKey gets a key from a the list of keys. Returns "" on error / not found...
 func getKey(s, key string) string {
 	for _, keyEqualsValue := range strings.Split(s, ",") {
@@ -650,7 +716,9 @@ func (h *outputHandler) sendAndIfClosed(msg *Message, ifClosed func()) error {
 	h.closed.lck.RLock()
 	defer h.closed.lck.RUnlock()
 	if h.closed.isClosed {
-		ifClosed()
+		if ifClosed != nil {
+			ifClosed()
+		}
 		return nil
 	}
 	h.sendLck.Lock()
@@ -801,7 +869,6 @@ func (tracker *callTracker) finalize(sn uint32) {
 		delete(tracker.calls, sn)
 		c.ContextCancel()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeWithBody(sn uint32, body []interface{}) {
@@ -815,7 +882,6 @@ func (tracker *callTracker) finalizeWithBody(sn uint32, body []interface{}) {
 		c.Body = body
 		c.done()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeWithError(sn uint32, err error) {
@@ -829,7 +895,6 @@ func (tracker *callTracker) finalizeWithError(sn uint32, err error) {
 		c.Err = err
 		c.done()
 	}
-	return
 }
 
 func (tracker *callTracker) finalizeAllWithError(err error) {

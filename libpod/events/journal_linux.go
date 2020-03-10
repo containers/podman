@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/coreos/go-systemd/journal"
-	"github.com/coreos/go-systemd/sdjournal"
+	"github.com/coreos/go-systemd/v22/journal"
+	"github.com/coreos/go-systemd/v22/sdjournal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

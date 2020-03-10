@@ -61,7 +61,7 @@ Handling Unix file descriptors deserves special mention. To use them, you should
 first check that they are supported on a connection by calling SupportsUnixFDs.
 If it returns true, all method of Connection will translate messages containing
 UnixFD's to messages that are accompanied by the given file descriptors with the
-UnixFD values being substituted by the correct indices. Similarily, the indices
+UnixFD values being substituted by the correct indices. Similarly, the indices
 of incoming messages are automatically resolved. It shouldn't be necessary to use
 UnixFDIndex.
 

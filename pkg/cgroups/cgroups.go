@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
-	systemdDbus "github.com/coreos/go-systemd/dbus"
-	"github.com/godbus/dbus"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/godbus/dbus/v5"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

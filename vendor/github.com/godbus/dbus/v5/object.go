@@ -38,41 +38,16 @@ func (o *Object) CallWithContext(ctx context.Context, method string, flags Flags
 	return <-o.createCall(ctx, method, flags, make(chan *Call, 1), args...).Done
 }
 
-// MatchOption specifies option for dbus routing match rule. Options can be constructed with WithMatch* helpers.
-// For full list of available options consult
-// https://dbus.freedesktop.org/doc/dbus-specification.html#message-bus-routing-match-rules
-type MatchOption struct {
-	key   string
-	value string
-}
-
-// WithMatchOption creates match option with given key and value
-func WithMatchOption(key, value string) MatchOption {
-	return MatchOption{key, value}
-}
-
-// WithMatchObjectPath creates match option that filters events based on given path
-func WithMatchObjectPath(path ObjectPath) MatchOption {
-	return MatchOption{"path", string(path)}
-}
-
-func formatMatchOptions(options []MatchOption) string {
-	items := make([]string, 0, len(options))
-	for _, option := range options {
-		items = append(items, option.key+"='"+option.value+"'")
-	}
-
-	return strings.Join(items, ",")
-}
-
 // AddMatchSignal subscribes BusObject to signals from specified interface,
 // method (member). Additional filter rules can be added via WithMatch* option constructors.
 // Note: To filter events by object path you have to specify this path via an option.
+//
+// Deprecated: use (*Conn) AddMatchSignal instead.
 func (o *Object) AddMatchSignal(iface, member string, options ...MatchOption) *Call {
 	base := []MatchOption{
-		{"type", "signal"},
-		{"interface", iface},
-		{"member", member},
+		withMatchType("signal"),
+		WithMatchInterface(iface),
+		WithMatchMember(member),
 	}
 
 	options = append(base, options...)
@@ -85,11 +60,13 @@ func (o *Object) AddMatchSignal(iface, member string, options ...MatchOption) *C
 
 // RemoveMatchSignal unsubscribes BusObject from signals from specified interface,
 // method (member). Additional filter rules can be added via WithMatch* option constructors
+//
+// Deprecated: use (*Conn) RemoveMatchSignal instead.
 func (o *Object) RemoveMatchSignal(iface, member string, options ...MatchOption) *Call {
 	base := []MatchOption{
-		{"type", "signal"},
-		{"interface", iface},
-		{"member", member},
+		withMatchType("signal"),
+		WithMatchInterface(iface),
+		WithMatchMember(member),
 	}
 
 	options = append(base, options...)

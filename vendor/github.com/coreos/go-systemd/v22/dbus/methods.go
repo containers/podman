@@ -20,7 +20,7 @@ import (
 	"path"
 	"strconv"
 
-	"github.com/godbus/dbus"
+	"github.com/godbus/dbus/v5"
 )
 
 func (c *Conn) jobComplete(signal *dbus.Signal) {

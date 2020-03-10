@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/coreos/go-systemd/dbus"
-	godbus "github.com/godbus/dbus"
+	"github.com/coreos/go-systemd/v22/dbus"
+	godbus "github.com/godbus/dbus/v5"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
