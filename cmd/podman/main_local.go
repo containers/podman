@@ -71,6 +71,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&MainGlobalOpts.TmpDir, "tmpdir", "", "Path to the tmp directory for libpod state content.\n\nNote: use the environment variable 'TMPDIR' to change the temporary storage location for container images, '/var/tmp'.\n")
 	rootCmd.PersistentFlags().BoolVar(&MainGlobalOpts.Trace, "trace", false, "Enable opentracing output (default false)")
+	markFlagHidden(rootCmd.PersistentFlags(), "trace")
 }
 
 func setSyslog() error {
