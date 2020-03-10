@@ -1,4 +1,4 @@
-package generic
+package compat
 
 import (
 	"encoding/binary"
@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
@@ -34,12 +36,26 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	if query.Link {
+
+	if query.Link && !utils.IsLibpodRequest(r) {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			utils.ErrLinkNotSupport)
 		return
 	}
-	utils.RemoveContainer(w, r, query.Force, query.Vols)
+
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	name := utils.GetName(r)
+	con, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+
+	if err := runtime.RemoveContainer(r.Context(), con, query.Force, query.Vols); err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func ListContainers(w http.ResponseWriter, r *http.Request) {
@@ -126,17 +142,50 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 
 func KillContainer(w http.ResponseWriter, r *http.Request) {
 	// /{version}/containers/(name)/kill
-	con, err := utils.KillContainer(w, r)
-	if err != nil {
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Signal syscall.Signal `schema:"signal"`
+	}{
+		Signal: syscall.SIGKILL,
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	// the kill behavior for docker differs from podman in that they appear to wait
-	// for the Container to croak so the exit code is accurate immediately after the
-	// kill is sent.  libpod does not.  but we can add a wait here only for the docker
-	// side of things and mimic that behavior
-	if _, err = con.Wait(); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", con.ID()))
+	name := utils.GetName(r)
+	con, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
 		return
+	}
+
+	state, err := con.State()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	// If the Container is stopped already, send a 409
+	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+		utils.Error(w, fmt.Sprintf("Container %s is not running", name), http.StatusConflict, errors.New(fmt.Sprintf("Cannot kill Container %s, it is not running", name)))
+		return
+	}
+
+	err = con.Kill(uint(query.Signal))
+	if err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
+	}
+
+	if utils.IsLibpodRequest(r) {
+		// the kill behavior for docker differs from podman in that they appear to wait
+		// for the Container to croak so the exit code is accurate immediately after the
+		// kill is sent.  libpod does not.  but we can add a wait here only for the docker
+		// side of things and mimic that behavior
+		if _, err = con.Wait(); err != nil {
+			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "failed to wait for Container %s", con.ID()))
+			return
+		}
 	}
 	// Success
 	utils.WriteResponse(w, http.StatusNoContent, "")

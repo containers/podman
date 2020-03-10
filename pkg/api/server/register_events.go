@@ -3,7 +3,7 @@ package server
 import (
 	"net/http"
 
-	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/compat"
 	"github.com/gorilla/mux"
 )
 
@@ -34,8 +34,8 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	//     description: returns a string of json data describing an event
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.Handle(VersionedPath("/events"), s.APIHandler(handlers.GetEvents)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/events"), s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
 	// Added non version path to URI to support docker non versioned paths
-	r.Handle("/events", s.APIHandler(handlers.GetEvents)).Methods(http.MethodGet)
+	r.Handle("/events", s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
 	return nil
 }

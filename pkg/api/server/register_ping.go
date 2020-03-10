@@ -3,14 +3,14 @@ package server
 import (
 	"net/http"
 
-	"github.com/containers/libpod/pkg/api/handlers"
+	"github.com/containers/libpod/pkg/api/handlers/compat"
 	"github.com/gorilla/mux"
 )
 
 func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 
-	r.Handle("/_ping", s.APIHandler(handlers.Ping)).Methods(http.MethodGet)
-	r.Handle("/_ping", s.APIHandler(handlers.Ping)).Methods(http.MethodHead)
+	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet)
+	r.Handle("/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodHead)
 
 	// swagger:operation GET /libpod/_ping libpod libpodPingGet
 	// ---
@@ -61,7 +61,7 @@ func (s *APIServer) registerPingHandlers(r *mux.Router) error {
 	//               determine if talking to Podman engine or another engine
 	//     500:
 	//       $ref: "#/responses/InternalError"
-	r.Handle("/libpod/_ping", s.APIHandler(handlers.Ping)).Methods(http.MethodGet)
-	r.Handle("/libpod/_ping", s.APIHandler(handlers.Ping)).Methods(http.MethodHead)
+	r.Handle("/libpod/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodGet)
+	r.Handle("/libpod/_ping", s.APIHandler(compat.Ping)).Methods(http.MethodHead)
 	return nil
 }

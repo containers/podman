@@ -1,4 +1,4 @@
-package generic
+package compat
 
 import (
 	"time"

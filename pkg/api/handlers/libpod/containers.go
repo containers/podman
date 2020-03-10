@@ -10,16 +10,11 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-func StopContainer(w http.ResponseWriter, r *http.Request) {
-	handlers.StopContainer(w, r)
-}
 
 func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
@@ -32,22 +27,6 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
-func RemoveContainer(w http.ResponseWriter, r *http.Request) {
-	decoder := r.Context().Value("decoder").(*schema.Decoder)
-	query := struct {
-		Force bool `schema:"force"`
-		Vols  bool `schema:"v"`
-	}{
-		// override any golang type defaults
-	}
-
-	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
-		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
-			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
-		return
-	}
-	utils.RemoveContainer(w, r, query.Force, query.Vols)
-}
 func ListContainers(w http.ResponseWriter, r *http.Request) {
 	var (
 		filterFuncs []libpod.ContainerFilter
@@ -163,16 +142,6 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, data)
-}
-
-func KillContainer(w http.ResponseWriter, r *http.Request) {
-	// /{version}/containers/(name)/kill
-	_, err := utils.KillContainer(w, r)
-	if err != nil {
-		return
-	}
-	// Success
-	utils.WriteResponse(w, http.StatusNoContent, "")
 }
 
 func WaitContainer(w http.ResponseWriter, r *http.Request) {

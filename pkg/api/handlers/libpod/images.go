@@ -79,7 +79,7 @@ func ImageTree(w http.ResponseWriter, r *http.Request) {
 
 func GetImage(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
-	newImage, err := handlers.GetImage(r, name)
+	newImage, err := utils.GetImage(r, name)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusNotFound, errors.Wrapf(err, "Failed to find image %s", name))
 		return

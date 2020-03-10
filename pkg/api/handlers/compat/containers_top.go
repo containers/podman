@@ -1,10 +1,11 @@
-package handlers
+package compat
 
 import (
 	"net/http"
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -42,7 +43,7 @@ func TopContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var body = ContainerTopOKBody{}
+	var body = handlers.ContainerTopOKBody{}
 	if len(output) > 0 {
 		body.Titles = strings.Split(output[0], "\t")
 		for _, line := range output[1:] {

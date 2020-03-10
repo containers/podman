@@ -1,12 +1,15 @@
-package handlers
+package compat
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 
+	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -15,13 +18,16 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	var (
 		fromStart   bool
 		eventsError error
+		decoder     = r.Context().Value("decoder").(*schema.Decoder)
+		runtime     = r.Context().Value("runtime").(*libpod.Runtime)
 	)
+
 	query := struct {
 		Since   string              `schema:"since"`
 		Until   string              `schema:"until"`
 		Filters map[string][]string `schema:"filters"`
 	}{}
-	if err := decodeQuery(r, &query); err != nil {
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Failed to parse parameters", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 	}
 
@@ -38,19 +44,20 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	eventChannel := make(chan *events.Event)
 	go func() {
 		readOpts := events.ReadOptions{FromStart: fromStart, Stream: true, Filters: libpodFilters, EventChannel: eventChannel, Since: query.Since, Until: query.Until}
-		eventsError = getRuntime(r).Events(readOpts)
+		eventsError = runtime.Events(readOpts)
 	}()
 	if eventsError != nil {
 		utils.InternalServerError(w, eventsError)
 		return
 	}
+
+	coder := json.NewEncoder(w)
+	coder.SetEscapeHTML(true)
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	for event := range eventChannel {
-		e := EventToApiEvent(event)
-		//utils.WriteJSON(w, http.StatusOK, e)
-		coder := json.NewEncoder(w)
-		coder.SetEscapeHTML(true)
+		e := handlers.EventToApiEvent(event)
 		if err := coder.Encode(e); err != nil {
 			logrus.Errorf("unable to write json: %q", err)
 		}

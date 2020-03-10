@@ -1,4 +1,4 @@
-package handlers
+package compat
 
 import (
 	"bytes"
@@ -15,12 +15,15 @@ import (
 
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/gorilla/schema"
 )
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
-	authConfigs := map[string]AuthConfig{}
+	authConfigs := map[string]handlers.AuthConfig{}
 	if hdr, found := r.Header["X-Registry-Config"]; found && len(hdr) > 0 {
 		authConfigsJSON := base64.NewDecoder(base64.URLEncoding, strings.NewReader(hdr[0]))
 		if json.NewDecoder(authConfigsJSON).Decode(&authConfigs) != nil {
@@ -96,8 +99,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Outputs:     "",
 		Registry:    "docker.io",
 	}
-
-	if err := decodeQuery(r, &query); err != nil {
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest, err)
 		return
 	}
@@ -219,7 +222,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Devices:                 nil,
 	}
 
-	id, _, err := getRuntime(r).Build(r.Context(), buildOptions, query.Dockerfile)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	id, _, err := runtime.Build(r.Context(), buildOptions, query.Dockerfile)
 	if err != nil {
 		utils.InternalServerError(w, err)
 	}

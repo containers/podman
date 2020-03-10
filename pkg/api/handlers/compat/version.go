@@ -1,4 +1,4 @@
-package handlers
+package compat
 
 import (
 	"fmt"
@@ -8,14 +8,10 @@ import (
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	docker "github.com/docker/docker/api/types"
 	"github.com/pkg/errors"
-)
-
-const (
-	DefaultApiVersion = "1.40" // See https://docs.docker.com/engine/api/v1.40/
-	MinimalApiVersion = "1.24"
 )
 
 func VersionHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,19 +36,19 @@ func VersionHandler(w http.ResponseWriter, r *http.Request) {
 		Name:    "Podman Engine",
 		Version: versionInfo.Version,
 		Details: map[string]string{
-			"APIVersion":    DefaultApiVersion,
+			"APIVersion":    handlers.DefaultApiVersion,
 			"Arch":          goRuntime.GOARCH,
 			"BuildTime":     time.Unix(versionInfo.Built, 0).Format(time.RFC3339),
 			"Experimental":  "true",
 			"GitCommit":     versionInfo.GitCommit,
 			"GoVersion":     versionInfo.GoVersion,
 			"KernelVersion": hostInfo["kernel"].(string),
-			"MinAPIVersion": MinimalApiVersion,
+			"MinAPIVersion": handlers.MinimalApiVersion,
 			"Os":            goRuntime.GOOS,
 		},
 	}}
 
-	utils.WriteResponse(w, http.StatusOK, Version{Version: docker.Version{
+	utils.WriteResponse(w, http.StatusOK, handlers.Version{Version: docker.Version{
 		Platform: struct {
 			Name string
 		}{
