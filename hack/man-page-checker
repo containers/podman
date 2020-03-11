@@ -1,16 +1,6 @@
 #!/bin/bash
 #
-# man-page-name-checker - validate and cross-reference man page names
-#
-# FIXME as of 2019-03-20 there are still four files with inconsistent names:
-#
-#    podman-logs.1.md         NAME= podman-container-logs
-#    podman-info.1.md         NAME= podman-system-info
-#    podman-rm.1.md           NAME= podman-container-rm
-#    podman-rmi.1.md          NAME= podman-image-rm
-#
-# If those four get renamed (with suitable symlink fixes), this script
-# can be enabled in CI to prevent future inconsistencies.
+# man-page-checker - validate and cross-reference man page names
 #
 
 die() {
