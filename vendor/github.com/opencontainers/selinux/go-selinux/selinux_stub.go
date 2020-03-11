@@ -1,4 +1,4 @@
-// +build !selinux
+// +build !selinux !linux
 
 package selinux
 
@@ -33,6 +33,11 @@ func SetDisabled() {
 // GetEnabled returns whether selinux is currently enabled.
 func GetEnabled() bool {
 	return false
+}
+
+// ClassIndex returns the int index for an object class in the loaded policy, or -1 and an error
+func ClassIndex(class string) (int, error) {
+	return -1, nil
 }
 
 // SetFileLabel sets the SELinux label for this path or returns an error.
@@ -85,6 +90,13 @@ the function then returns the context that the kernel will use.  This function
 can be used to see if two contexts are equivalent
 */
 func CanonicalizeContext(val string) (string, error) {
+	return "", nil
+}
+
+/*
+ComputeCreateContext requests the type transition from source to target for class  from the kernel.
+*/
+func ComputeCreateContext(source string, target string, class string) (string, error) {
 	return "", nil
 }
 

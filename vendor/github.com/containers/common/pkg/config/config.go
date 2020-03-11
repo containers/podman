@@ -12,7 +12,6 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/unshare"
-	"github.com/containers/storage"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/pkg/errors"
@@ -44,6 +43,18 @@ const (
 	SQLiteStateStore RuntimeStateStore = iota
 	// BoltDBStateStore is a state backed by a BoltDB database
 	BoltDBStateStore RuntimeStateStore = iota
+)
+
+// PullPolicy whether to pull new image
+type PullPolicy int
+
+const (
+	// PullImageAlways always try to pull new image when create or run
+	PullImageAlways PullPolicy = iota
+	// PullImageMissing pulls image if it is not locally
+	PullImageMissing
+	// PullImageNever will never pull new image
+	PullImageNever
 )
 
 // Config contains configuration options for container tools
@@ -166,6 +177,10 @@ type ContainersConfig struct {
 
 // LibpodConfig contains configuration options used to set up a libpod runtime
 type LibpodConfig struct {
+	// CgroupCheck indicates the configuration has been rewritten after an
+	// upgrade to Fedora 31 to change the default OCI runtime for cgroupsv2.
+	CgroupCheck bool `toml:"cgroup_check,omitempty"`
+
 	// CGroupManager is the CGroup Manager to use Valid values are "cgroupfs"
 	// and "systemd".
 	CgroupManager string `toml:"cgroup_manager"`
@@ -244,6 +259,15 @@ type LibpodConfig struct {
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes"`
 
+	// PullPolicy determines whether to pull image before creating or running a container
+	// default is "missing"
+	PullPolicy string `toml:"pull_policy"`
+	// RuntimePath is the path to OCI runtime binary for launching containers.
+	// The first path pointing to a valid file will be used This is used only
+	// when there are no OCIRuntime/OCIRuntimes defined.  It is used only to be
+	// backward compatible with older versions of Podman.
+	RuntimePath []string `toml:"runtime_path,omitempty"`
+
 	// RuntimeSupportsJSON is the list of the OCI runtimes that support
 	// --format=json.
 	RuntimeSupportsJSON []string `toml:"runtime_supports_json"`
@@ -277,11 +301,6 @@ type LibpodConfig struct {
 	// StopTimeout is the number of seconds to wait for container to exit
 	// before sending kill signal.
 	StopTimeout uint `toml:"stop_timeout"`
-
-	// StorageConfig is the configuration used by containers/storage Not
-	// included in the on-disk config, use the dedicated containers/storage
-	// configuration file instead.
-	StorageConfig storage.StoreOptions `toml:"-"`
 
 	// TmpDir is the path to a temporary directory to store per-boot container
 	// files. Must be stored in a tmpfs.
@@ -364,16 +383,9 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		return nil, err
 	}
 
-	// If the caller specified a config path to use, then we read this
-	// rather then using the system defaults.
-	if userConfigPath != "" {
-		var err error
-		// readConfigFromFile reads in container config in the specified
-		// file and then merge changes with the current default.
-		config, err = readConfigFromFile(userConfigPath, config)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
-		}
+	// read libpod.conf and convert the config to *Config
+	if err = newLibpodConfig(config); err != nil && !os.IsNotExist(err) {
+		logrus.Errorf("error reading libpod.conf: %v", err)
 	}
 
 	// Now, gather the system configs and merge them as needed.
@@ -392,7 +404,18 @@ func NewConfig(userConfigPath string) (*Config, error) {
 		logrus.Debugf("Merged system config %q: %v", path, config)
 	}
 
-	config.checkCgroupsAndAdjustConfig()
+	// If the caller specified a config path to use, then we read it to
+	// override the system defaults.
+	if userConfigPath != "" {
+		var err error
+		// readConfigFromFile reads in container config in the specified
+		// file and then merge changes with the current default.
+		config, err = readConfigFromFile(userConfigPath, config)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading user config %q", userConfigPath)
+		}
+		logrus.Debugf("Merged user config %q: %v", userConfigPath, config)
+	}
 	config.addCAPPrefix()
 
 	if err := config.Validate(); err != nil {
@@ -455,10 +478,10 @@ func systemConfigs() ([]string, error) {
 	return configs, nil
 }
 
-// checkCgroupsAndAdjustConfig checks if we're running rootless with the systemd
+// CheckCgroupsAndAdjustConfig checks if we're running rootless with the systemd
 // cgroup manager. In case the user session isn't available, we're switching the
 // cgroup manager to cgroupfs.  Note, this only applies to rootless.
-func (c *Config) checkCgroupsAndAdjustConfig() {
+func (c *Config) CheckCgroupsAndAdjustConfig() {
 	if !unshare.IsRootless() || c.Libpod.CgroupManager != SystemdCgroupsManager {
 		return
 	}
@@ -495,11 +518,19 @@ func (c *Config) addCAPPrefix() {
 func (c *Config) Validate() error {
 
 	if err := c.Containers.Validate(); err != nil {
-		return errors.Wrapf(err, "containers config")
+		return errors.Wrapf(err, " error validating containers config")
 	}
 
 	if !c.Containers.EnableLabeling {
 		selinux.SetDisabled()
+	}
+
+	if err := c.Libpod.Validate(); err != nil {
+		return errors.Wrapf(err, "error validating libpod configs")
+	}
+
+	if err := c.Network.Validate(); err != nil {
+		return errors.Wrapf(err, "error validating network configs")
 	}
 
 	return nil
@@ -520,6 +551,13 @@ func (c *LibpodConfig) Validate() error {
 	}
 	if !filepath.IsAbs(c.VolumePath) {
 		return fmt.Errorf("volume path must be an absolute path - instead got %q", c.VolumePath)
+	}
+
+	// Check if the pullPolicy from containers.conf is valid
+	// if it is invalid returns the error
+	pullPolicy := strings.ToLower(c.PullPolicy)
+	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
+		return errors.Wrapf(err, "invalid pull type from containers.conf %q", c.PullPolicy)
 	}
 	return nil
 }
@@ -583,6 +621,23 @@ func (c *NetworkConfig) Validate() error {
 	return errors.Errorf("invalid cni_plugin_dirs: %s", strings.Join(c.CNIPluginDirs, ","))
 }
 
+// ValidatePullPolicy check if the pullPolicy from CLI is valid and returns the valid enum type
+// if the value from CLI or containers.conf is invalid returns the error
+func ValidatePullPolicy(pullPolicy string) (PullPolicy, error) {
+	switch pullPolicy {
+	case "always":
+		return PullImageAlways, nil
+	case "missing":
+		return PullImageMissing, nil
+	case "never":
+		return PullImageNever, nil
+	case "":
+		return PullImageMissing, nil
+	default:
+		return PullImageMissing, errors.Errorf("invalid pull policy %q", pullPolicy)
+	}
+}
+
 // DBConfig is a set of Libpod runtime configuration settings that are saved in
 // a State when it is first created, and can subsequently be retrieved.
 type DBConfig struct {
@@ -592,60 +647,6 @@ type DBConfig struct {
 	StorageTmp  string
 	GraphDriver string
 	VolumePath  string
-}
-
-// MergeDBConfig merges the configuration from the database.
-func (c *Config) MergeDBConfig(dbConfig *DBConfig) error {
-
-	if !c.Libpod.StorageConfigRunRootSet && dbConfig.StorageTmp != "" {
-		if c.Libpod.StorageConfig.RunRoot != dbConfig.StorageTmp &&
-			c.Libpod.StorageConfig.RunRoot != "" {
-			logrus.Debugf("Overriding run root %q with %q from database",
-				c.Libpod.StorageConfig.RunRoot, dbConfig.StorageTmp)
-		}
-		c.Libpod.StorageConfig.RunRoot = dbConfig.StorageTmp
-	}
-
-	if !c.Libpod.StorageConfigGraphRootSet && dbConfig.StorageRoot != "" {
-		if c.Libpod.StorageConfig.GraphRoot != dbConfig.StorageRoot &&
-			c.Libpod.StorageConfig.GraphRoot != "" {
-			logrus.Debugf("Overriding graph root %q with %q from database",
-				c.Libpod.StorageConfig.GraphRoot, dbConfig.StorageRoot)
-		}
-		c.Libpod.StorageConfig.GraphRoot = dbConfig.StorageRoot
-	}
-
-	if !c.Libpod.StorageConfigGraphDriverNameSet && dbConfig.GraphDriver != "" {
-		if c.Libpod.StorageConfig.GraphDriverName != dbConfig.GraphDriver &&
-			c.Libpod.StorageConfig.GraphDriverName != "" {
-			logrus.Errorf("User-selected graph driver %q overwritten by graph driver %q from database - delete libpod local files to resolve",
-				c.Libpod.StorageConfig.GraphDriverName, dbConfig.GraphDriver)
-		}
-		c.Libpod.StorageConfig.GraphDriverName = dbConfig.GraphDriver
-	}
-
-	if !c.Libpod.StaticDirSet && dbConfig.LibpodRoot != "" {
-		if c.Libpod.StaticDir != dbConfig.LibpodRoot && c.Libpod.StaticDir != "" {
-			logrus.Debugf("Overriding static dir %q with %q from database", c.Libpod.StaticDir, dbConfig.LibpodRoot)
-		}
-		c.Libpod.StaticDir = dbConfig.LibpodRoot
-	}
-
-	if !c.Libpod.TmpDirSet && dbConfig.LibpodTmp != "" {
-		if c.Libpod.TmpDir != dbConfig.LibpodTmp && c.Libpod.TmpDir != "" {
-			logrus.Debugf("Overriding tmp dir %q with %q from database", c.Libpod.TmpDir, dbConfig.LibpodTmp)
-		}
-		c.Libpod.TmpDir = dbConfig.LibpodTmp
-		c.Libpod.EventsLogFilePath = filepath.Join(dbConfig.LibpodTmp, "events", "events.log")
-	}
-
-	if !c.Libpod.VolumePathSet && dbConfig.VolumePath != "" {
-		if c.Libpod.VolumePath != dbConfig.VolumePath && c.Libpod.VolumePath != "" {
-			logrus.Debugf("Overriding volume path %q with %q from database", c.Libpod.VolumePath, dbConfig.VolumePath)
-		}
-		c.Libpod.VolumePath = dbConfig.VolumePath
-	}
-	return nil
 }
 
 // FindConmon iterates over (*Config).ConmonPath and returns the path

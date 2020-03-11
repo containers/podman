@@ -1,5 +1,3 @@
-// +build linux
-
 package mount
 
 import (
@@ -7,25 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"strings"
-)
 
-const (
-	/* 36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
-	   (1)(2)(3)   (4)   (5)      (6)      (7)   (8) (9)   (10)         (11)
-
-	   (1) mount ID:  unique identifier of the mount (may be reused after umount)
-	   (2) parent ID:  ID of parent (or of self for the top of the mount tree)
-	   (3) major:minor:  value of st_dev for files on filesystem
-	   (4) root:  root of the mount within the filesystem
-	   (5) mount point:  mount point relative to the process's root
-	   (6) mount options:  per mount options
-	   (7) optional fields:  zero or more fields of the form "tag[:value]"
-	   (8) separator:  marks the end of the optional fields
-	   (9) filesystem type:  name of filesystem of the form "type[.subtype]"
-	   (10) mount source:  filesystem specific information or "none"
-	   (11) super options:  per super block options*/
-	mountinfoFormat = "%d %d %d:%d %s %s %s %s"
+	"github.com/pkg/errors"
 )
 
 // Parse /proc/self/mountinfo because comparing Dev and ino does not work from
@@ -41,43 +24,85 @@ func parseMountTable() ([]*Info, error) {
 }
 
 func parseInfoFile(r io.Reader) ([]*Info, error) {
-	var (
-		s   = bufio.NewScanner(r)
-		out = []*Info{}
-	)
+	s := bufio.NewScanner(r)
+	out := []*Info{}
 
 	for s.Scan() {
-		if err := s.Err(); err != nil {
-			return nil, err
+		/*
+		   36 35 98:0 /mnt1 /mnt2 rw,noatime master:1 - ext3 /dev/root rw,errors=continue
+		   (0)(1)(2)   (3)   (4)      (5)      (6)   (7) (8)   (9)        (10)
+
+		   (0) mount ID:  unique identifier of the mount (may be reused after umount)
+		   (1) parent ID:  ID of parent (or of self for the top of the mount tree)
+		   (2) major:minor:  value of st_dev for files on filesystem
+		   (3) root:  root of the mount within the filesystem
+		   (4) mount point:  mount point relative to the process's root
+		   (5) mount options:  per mount options
+		   (6) optional fields:  zero or more fields of the form "tag[:value]"
+		   (7) separator:  marks the end of the optional fields
+		   (8) filesystem type:  name of filesystem of the form "type[.subtype]"
+		   (9) mount source:  filesystem specific information or "none"
+		   (10) super options:  per super block options
+		*/
+		text := s.Text()
+		fields := strings.Split(text, " ")
+		numFields := len(fields)
+		if numFields < 10 {
+			// should be at least 10 fields
+			return nil, errors.Errorf("Parsing %q failed: not enough fields (%d)", text, numFields)
 		}
 
-		var (
-			p              = &Info{}
-			text           = s.Text()
-			optionalFields string
-		)
-
-		if _, err := fmt.Sscanf(text, mountinfoFormat,
-			&p.ID, &p.Parent, &p.Major, &p.Minor,
-			&p.Root, &p.Mountpoint, &p.Opts, &optionalFields); err != nil {
-			return nil, fmt.Errorf("Scanning '%s' failed: %s", text, err)
+		p := &Info{}
+		// ignore any number parsing errors, there should not be any
+		p.ID, _ = strconv.Atoi(fields[0])
+		p.Parent, _ = strconv.Atoi(fields[1])
+		mm := strings.Split(fields[2], ":")
+		if len(mm) != 2 {
+			return nil, fmt.Errorf("Parsing %q failed: unexpected minor:major pair %s", text, mm)
 		}
-		// Safe as mountinfo encodes mountpoints with spaces as \040.
-		index := strings.Index(text, " - ")
-		postSeparatorFields := strings.Fields(text[index+3:])
-		if len(postSeparatorFields) < 3 {
-			return nil, fmt.Errorf("Error found less than 3 fields post '-' in %q", text)
+		p.Major, _ = strconv.Atoi(mm[0])
+		p.Minor, _ = strconv.Atoi(mm[1])
+		p.Root = fields[3]
+		p.Mountpoint = fields[4]
+		p.Opts = fields[5]
+
+		// one or more optional fields, when a separator (-)
+		i := 6
+		for ; i < numFields && fields[i] != "-"; i++ {
+			switch i {
+			case 6:
+				p.Optional = string(fields[6])
+			default:
+				/* NOTE there might be more optional fields before the separator,
+				   such as fields[7] or fields[8], although as of Linux kernel 5.5
+				   the only known ones are mount propagation flags in fields[6].
+				   The correct behavior is to ignore any unknown optional fields.
+				*/
+			}
+		}
+		if i == numFields {
+			return nil, fmt.Errorf("Parsing %q failed: missing - separator", text)
 		}
 
-		if optionalFields != "-" {
-			p.Optional = optionalFields
+		// There should be 3 fields after the separator...
+		if i+4 > numFields {
+			return nil, fmt.Errorf("Parsing %q failed: not enough fields after a - separator", text)
 		}
+		// ... but in Linux <= 3.9 mounting a cifs with spaces in a share name
+		// (like "//serv/My Documents") _may_ end up having a space in the last field
+		// of mountinfo (like "unc=//serv/My Documents"). Since kernel 3.10-rc1, cifs
+		// option unc= is ignored,  so a space should not appear. In here we ignore
+		// those "extra" fields caused by extra spaces.
+		p.Fstype = fields[i+1]
+		p.Source = fields[i+2]
+		p.VfsOpts = fields[i+3]
 
-		p.Fstype = postSeparatorFields[0]
-		p.Source = postSeparatorFields[1]
-		p.VfsOpts = strings.Join(postSeparatorFields[2:], " ")
 		out = append(out, p)
 	}
+	if err := s.Err(); err != nil {
+		return nil, err
+	}
+
 	return out, nil
 }
 
