@@ -172,7 +172,6 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
 		return
 	}
-	allContainersStopped := true
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
@@ -180,26 +179,12 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO we need to implement a pod.State/Status in libpod internal so libpod api
-	// users don't have to run through all containers.
-	podContainers, err := pod.AllContainers()
+	status, err := pod.GetPodStatus()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-
-	for _, con := range podContainers {
-		containerState, err := con.State()
-		if err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-			return
-		}
-		if containerState == define.ContainerStateRunning {
-			allContainersStopped = false
-			break
-		}
-	}
-	if allContainersStopped {
+	if status != define.PodStateRunning {
 		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
@@ -218,34 +203,18 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 
 func PodStart(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
-	allContainersRunning := true
 	name := utils.GetName(r)
 	pod, err := runtime.LookupPod(name)
 	if err != nil {
 		utils.PodNotFound(w, name, err)
 		return
 	}
-
-	// TODO we need to implement a pod.State/Status in libpod internal so libpod api
-	// users don't have to run through all containers.
-	podContainers, err := pod.AllContainers()
+	status, err := pod.GetPodStatus()
 	if err != nil {
 		utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
 		return
 	}
-
-	for _, con := range podContainers {
-		containerState, err := con.State()
-		if err != nil {
-			utils.Error(w, "Something went wrong", http.StatusInternalServerError, err)
-			return
-		}
-		if containerState != define.ContainerStateRunning {
-			allContainersRunning = false
-			break
-		}
-	}
-	if allContainersRunning {
+	if status == define.PodStateRunning {
 		utils.WriteResponse(w, http.StatusNotModified, "")
 		return
 	}
