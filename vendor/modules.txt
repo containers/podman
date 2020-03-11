@@ -77,7 +77,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.4.2
+# github.com/containers/common v0.4.3
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare

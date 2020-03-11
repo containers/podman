@@ -98,6 +98,8 @@ const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 2048
+	// DefaultPullPolicy pulls the image if it does not exist locally
+	DefaultPullPolicy = "missing"
 	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
@@ -249,6 +251,7 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
+	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",
