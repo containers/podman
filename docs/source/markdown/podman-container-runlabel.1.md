@@ -81,13 +81,6 @@ Suppress output information when pulling images
 If a container exists of the default or given name, as needed it will be stopped, deleted and a new container will be
 created from this image.
 
-**--rootfs**=*ROOTFS*
-
-Set rootfs
-
-**--storage**
-Use storage
-
 **--tls-verify**
 
 Require HTTPS and verify certificates when contacting registries (default: true). If explicitly set to true,
