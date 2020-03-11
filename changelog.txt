@@ -1,3 +1,16 @@
+- Changelog for v1.8.1 (2020-03-11)
+  * man pages: fix inconsistencies
+  * Update release notes for v1.8.1 final release
+  * build for amd64|arm|ppc64le
+  * update systemd & dbus dependencies
+  * Refactor handler packages
+  * Remove nonexistent --set arg from runlabel documentation
+  * hide --trace flag
+  * podman --help: mention defaults of bools
+  * docs: clarify that --syslog expects an argument
+  * Bump to v1.8.1-dev
+  * commands: rename file and add likns to readthedocs
+
 - Changelog for v1.8.1-rc4 (2020-03-09)
   * Revert "exec: get the exit code from sync pipe instead of file"
   * Revert "Exec: use ErrorConmonRead"
