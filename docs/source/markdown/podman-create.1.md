@@ -94,14 +94,6 @@ Write the container ID to the file
 
 Write the pid of the `conmon` process to a file. `conmon` runs in a separate process than Podman, so this is necessary when using systemd to restart Podman containers.
 
-**--cpu-count**=*limit*
-
-Limit the number of CPUs available for execution by the container.
-
-On Windows Server containers, this is approximated as a percentage of total CPU usage.
-
-On Windows Server containers, the processor resource controls are mutually exclusive, the order of precedence is CPUCount first, then CPUShares, and CPUPercent last.
-
 **--cpu-period**=*limit*
 
 Limit the CPU CFS (Completely Fair Scheduler) period

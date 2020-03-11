@@ -49,7 +49,7 @@ func init() {
 	flags.StringVar(&runlabelCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVar(&runlabelCommand.Display, "display", false, "Preview the command that the label would run")
 	flags.BoolVar(&runlabelCommand.Replace, "replace", false, "Replace existing container with a new one from the image")
-	flags.StringVar(&runlabelCommand.Name, "name", "", "Assign a name to the container")
+	flags.StringVarP(&runlabelCommand.Name, "name", "n", "", "Assign a name to the container")
 
 	flags.StringVar(&runlabelCommand.Opt1, "opt1", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt2, "opt2", "", "Optional parameter to pass for install")
