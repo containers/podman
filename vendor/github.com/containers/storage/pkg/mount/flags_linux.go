@@ -82,4 +82,6 @@ const (
 	// it possible for the kernel to default to relatime or noatime but still
 	// allow userspace to override it.
 	STRICTATIME = unix.MS_STRICTATIME
+
+	mntDetach = unix.MNT_DETACH
 )
