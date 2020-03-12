@@ -167,8 +167,7 @@ func (l *LogLine) String(options *LogOptions) string {
 	var out string
 	if options.Multi {
 		if options.UseName {
-			cname := l.CName
-			out = fmt.Sprintf("%s ", cname)
+			out = l.CName + " "
 		} else {
 			cid := l.CID
 			if len(cid) > 12 {
