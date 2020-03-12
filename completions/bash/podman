@@ -1247,6 +1247,7 @@ _podman_commit() {
 	-c
 	--message
 	-m
+	--iidfile
      "
     local boolean_options="
 	--help

@@ -38,6 +38,10 @@ Can be set multiple times
 Set the format of the image manifest and metadata.  The currently supported formats are _oci_ and _docker_.  If
 not specifically set, the default format used is _oci_.
 
+**--iidfile**=*ImageIDfile*
+
+Write the image ID to the file.
+
 **--include-volumes**
 
 Include in the committed image any volumes added to the container by the `--volume` or `--mount` options to the `podman create` and `podman run` commands.

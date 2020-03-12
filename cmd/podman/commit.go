@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -41,6 +42,7 @@ func init() {
 	flags := commitCommand.Flags()
 	flags.StringArrayVarP(&commitCommand.Change, "change", "c", []string{}, fmt.Sprintf("Apply the following possible instructions to the created image (default []): %s", strings.Join(ChangeCmds, " | ")))
 	flags.StringVarP(&commitCommand.Format, "format", "f", "oci", "`Format` of the image manifest and metadata")
+	flags.StringVarP(&commitCommand.ImageIDFile, "iidfile", "", "", "`file` to write the image ID to")
 	flags.StringVarP(&commitCommand.Message, "message", "m", "", "Set commit message for imported image")
 	flags.StringVarP(&commitCommand.Author, "author", "a", "", "Set the author for the image committed")
 	flags.BoolVarP(&commitCommand.Pause, "pause", "p", false, "Pause container during commit")
@@ -69,6 +71,11 @@ func commitCmd(c *cliconfig.CommitValues) error {
 	iid, err := runtime.Commit(getContext(), c, container, reference)
 	if err != nil {
 		return err
+	}
+	if c.ImageIDFile != "" {
+		if err = ioutil.WriteFile(c.ImageIDFile, []byte(iid), 0644); err != nil {
+			return errors.Wrapf(err, "failed to write image ID to file %q", c.ImageIDFile)
+		}
 	}
 	fmt.Println(iid)
 	return nil
