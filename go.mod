@@ -14,7 +14,7 @@ require (
 	github.com/containers/conmon v2.0.10+incompatible
 	github.com/containers/image/v5 v5.2.1
 	github.com/containers/psgo v1.4.0
-	github.com/containers/storage v1.16.2
+	github.com/containers/storage v1.16.3
 	github.com/coreos/go-systemd/v22 v22.0.0
 	github.com/cri-o/ocicni v0.1.1-0.20190920040751-deac903fd99b
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -43,7 +43,7 @@ require (
 	github.com/opencontainers/runc v1.0.0-rc9
 	github.com/opencontainers/runtime-spec v0.1.2-0.20190618234442-a950415649c7
 	github.com/opencontainers/runtime-tools v0.9.0
-	github.com/opencontainers/selinux v1.3.3
+	github.com/opencontainers/selinux v1.4.0
 	github.com/opentracing/opentracing-go v1.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
