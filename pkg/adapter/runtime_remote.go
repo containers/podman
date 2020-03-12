@@ -201,8 +201,11 @@ func (r *LocalRuntime) GetRWImages() ([]*ContainerImage, error) {
 }
 
 func (r *LocalRuntime) GetFilteredImages(filters []string, rwOnly bool) ([]*ContainerImage, error) {
+	if len(filters) > 0 {
+		return nil, errors.Wrap(define.ErrNotImplemented, "filtering images is not supported on the remote client")
+	}
 	var newImages []*ContainerImage
-	images, err := iopodman.ListImagesWithFilters().Call(r.Conn, filters)
+	images, err := iopodman.ListImages().Call(r.Conn)
 	if err != nil {
 		return nil, err
 	}

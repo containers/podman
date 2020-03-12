@@ -155,7 +155,7 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		return errors.New("can not specify an image and a filter")
 	}
 	filters := c.Filter
-	if len(filters) < 1 {
+	if len(filters) < 1 && len(image) > 0 {
 		filters = append(filters, fmt.Sprintf("reference=%s", image))
 	}
 
