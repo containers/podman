@@ -404,9 +404,10 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
-# github.com/opencontainers/selinux v1.3.3
+# github.com/opencontainers/selinux v1.4.0
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
+github.com/opencontainers/selinux/pkg/pwalk
 # github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
 github.com/openshift/api/config/v1
 # github.com/openshift/imagebuilder v1.1.1
