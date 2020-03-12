@@ -916,12 +916,7 @@ func (i *Image) imageInspectInfo(ctx context.Context) (*types.ImageInspectInfo, 
 	return i.inspectInfo, nil
 }
 
-// Inspect returns an image's inspect data
-func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
-	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
-	span.SetTag("type", "image")
-	defer span.Finish()
-
+func (i *Image) inspect(ctx context.Context, calculateSize bool) (*inspect.ImageData, error) {
 	ociv1Img, err := i.ociv1Image(ctx)
 	if err != nil {
 		ociv1Img = &ociv1.Image{}
@@ -936,8 +931,10 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 	}
 
 	size := int64(-1)
-	if usize, err := i.Size(ctx); err == nil {
-		size = int64(*usize)
+	if calculateSize {
+		if usize, err := i.Size(ctx); err == nil {
+			size = int64(*usize)
+		}
 	}
 
 	repoTags, err := i.RepoTags()
@@ -1000,6 +997,26 @@ func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
 		}
 	}
 	return data, nil
+}
+
+// Inspect returns an image's inspect data
+func (i *Image) Inspect(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspect")
+
+	span.SetTag("type", "image")
+	defer span.Finish()
+
+	return i.inspect(ctx, true)
+}
+
+// InspectNoSize returns an image's inspect data without calculating the size for the image
+func (i *Image) InspectNoSize(ctx context.Context) (*inspect.ImageData, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "imageInspectNoSize")
+
+	span.SetTag("type", "image")
+	defer span.Finish()
+
+	return i.inspect(ctx, false)
 }
 
 // Import imports and image into the store and returns an image

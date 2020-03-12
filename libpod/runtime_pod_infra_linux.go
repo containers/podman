@@ -147,7 +147,7 @@ func (r *Runtime) createInfraContainer(ctx context.Context, p *Pod) (*Container,
 		return nil, err
 	}
 
-	data, err := newImage.Inspect(ctx)
+	data, err := newImage.InspectNoSize(ctx)
 	if err != nil {
 		return nil, err
 	}
