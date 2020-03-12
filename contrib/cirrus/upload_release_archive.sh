@@ -19,35 +19,18 @@ then
     BUCKET="libpod-pr-releases"
 elif [[ -n "$CIRRUS_BRANCH" ]]
 then
-    # Only release binaries for tagged commit ranges, unless working on docs
-    if is_release || [[ $CIRRUS_TASK_NAME =~ "docs" ]]
+    # Only release binaries for docs
+    if [[ $CIRRUS_TASK_NAME =~ "docs" ]]
     then
         PR_OR_BRANCH="$CIRRUS_BRANCH"
         BUCKET="libpod-$CIRRUS_BRANCH-releases"
     else
-        warn "" "Skipping release processing: Commit range|CIRRUS_TAG is development tagged."
+        warn "" "Skipping release processing for non-docs task."
         exit 0
     fi
 else
     die 1 "Expecting either \$CIRRUS_PR or \$CIRRUS_BRANCH to be non-empty."
 fi
-
-echo "Parsing actual_release.txt contents: $(< actual_release.txt)"
-cd $GOSRC
-RELEASETXT=$(<actual_release.txt)  # see build_release.sh
-[[ -n "$RELEASETXT" ]] || \
-    die 3 "Could not obtain metadata from actual_release.txt"
-RELEASE_INFO=$(echo "$RELEASETXT" | grep -m 1 'X-RELEASE-INFO:' | sed -r -e 's/X-RELEASE-INFO:\s*(.+)/\1/')
-if [[ "$?" -ne "0" ]] || [[ -z "$RELEASE_INFO" ]]
-then
-    die 4 "Metadata is empty or invalid: '$RELEASETXT'"
-fi
-# Format specified in Makefile
-# e.g. libpod v1.3.1-166-g60df124e fedora 29 amd64
-# or   libpod-remote v1.3.1-166-g60df124e windows - amd64
-FIELDS="RELEASE_BASENAME RELEASE_VERSION RELEASE_DIST RELEASE_DIST_VER RELEASE_ARCH"
-read $FIELDS <<< $RELEASE_INFO
-req_env_var $FIELDS
 
 # Functional local podman required for uploading
 echo "Verifying a local, functional podman, building one if necessary."
@@ -64,7 +47,7 @@ echo "$RELEASE_GCPJSON" > "$TMPF"
 unset RELEASE_GCPJSON
 
 cd $GOSRC
-for filename in $(ls -1 *.tar.gz *.zip *.msi $SWAGGER_FILEPATH)
+for filename in $(ls -1 $SWAGGER_FILEPATH)
 do
     unset EXT
     EXT=$(echo "$filename" | sed -r -e 's/.+\.(.+$)/\1/g')
@@ -85,19 +68,7 @@ do
         # For doc. ref. this must always be a static filename, e.g. swagger-latest-master.yaml
         ALSO_FILENAME="swagger-latest-${PR_OR_BRANCH}.yaml"
     else
-        # Form the generic "latest" file for this branch or pr
-        TO_PREFIX="${RELEASE_BASENAME}-latest-${PR_OR_BRANCH}-${RELEASE_DIST}"
-        # Form the fully-versioned filename for historical sake
-        ALSO_PREFIX="${RELEASE_BASENAME}-${RELEASE_VERSION}-${PR_OR_BRANCH}-${RELEASE_DIST}"
-        TO_SUFFIX="${RELEASE_ARCH}.${EXT}"
-        if [[ "$RELEASE_DIST" == "windows" ]] || [[ "$RELEASE_DIST" == "darwin" ]]
-        then
-            TO_FILENAME="${TO_PREFIX}-${TO_SUFFIX}"
-            ALSO_FILENAME="${ALSO_PREFIX}-${TO_SUFFIX}"
-        else
-            TO_FILENAME="${TO_PREFIX}-${RELEASE_DIST_VER}-${TO_SUFFIX}"
-            ALSO_FILENAME="${ALSO_PREFIX}-${TO_SUFFIX}"
-        fi
+        die "Uploading non-docs files has been disabled"
     fi
 
     [[ "$OS_RELEASE_ID" == "ubuntu" ]] || \

@@ -420,9 +420,6 @@ testing_task:
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} integration_test'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} system_test'
     apiv2_test_script: '$SCRIPT_BASE/apiv2_test.sh |& ${TIMESTAMP} | ${LOGFORMAT} apiv2_test'
-    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-    # For PRs this confirms uploading releases after merge, is functional.
-    upload_release_archive_script: '$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}'
 
     # When examining a particular run, provide convenient access to release files.
     tar_artifacts:
@@ -552,7 +549,6 @@ special_testing_cross_task:
     networking_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/networking.sh'
     setup_environment_script: '$SCRIPT_BASE/setup_environment.sh |& ${TIMESTAMP}'
     build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
-    upload_release_archive_script: '$SCRIPT_BASE/upload_release_archive.sh |& ${TIMESTAMP}'
 
     on_failure:
         failed_branch_script: '$CIRRUS_WORKING_DIR/$SCRIPT_BASE/notice_branch_failure.sh'
@@ -697,7 +693,6 @@ verify_test_built_images_task:
     # "probably" work.  A full round of testing will happen again after $*_CACHE_IMAGE_NAME
     # are updated in this or another PR (w/o '***CIRRUS: TEST IMAGES***').
     integration_test_script: '$SCRIPT_BASE/integration_test.sh |& ${TIMESTAMP}'
-    build_release_script: '$SCRIPT_BASE/build_release.sh |& ${TIMESTAMP}'
     system_test_script: '$SCRIPT_BASE/system_test.sh |& ${TIMESTAMP}'
 
     always:
