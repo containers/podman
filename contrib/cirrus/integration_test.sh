@@ -14,6 +14,15 @@ if [[ -z $TESTSUITE ]]; then
     die 1 "Script name is not of the form xxxx_test.sh"
 fi
 
+# pretend like we've had this conmon all along
+cd "$GOSRC"
+cd ..
+rm -rf conmon || true
+git clone https://github.com/haircommander/conmon.git
+cd conmon
+git checkout quit-loop-after-output
+make && make install PREFIX=/usr
+
 cd "$GOSRC"
 
 case "$SPECIALMODE" in
