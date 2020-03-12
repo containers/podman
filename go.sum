@@ -71,6 +71,8 @@ github.com/containers/common v0.4.2 h1:O5d1gj/xdpQdZi0MEivRQ/7AeRaVeHdbSP/bvShw4
 github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/conmon v2.0.10+incompatible h1:EiwL41r5vx8SxG+dyUmbJ3baV9GUWjijPOdCkzM6gWU=
 github.com/containers/conmon v2.0.10+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
+github.com/containers/conmon v2.0.11+incompatible h1:6GsjGxxobNEQrVsxRrosI33Vm8nS1Gk4n5Tp1B1yETE=
+github.com/containers/conmon v2.0.11+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.2.1 h1:rQR6QSUneWBoW1bTFpP9EJJTevQFv27YsKYQVJIzg+s=
 github.com/containers/image/v5 v5.2.1/go.mod h1:TfhmLwH+v1/HBVPIWH7diLs8XwcOkP3c7t7JFgqaUEc=
 github.com/containers/libtrust v0.0.0-20190913040956-14b96171aa3b h1:Q8ePgVfHDplZ7U33NwHZkrVELsZP5fYj9pM5WBZB2GE=
