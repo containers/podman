@@ -10,7 +10,7 @@ require (
 	github.com/containernetworking/cni v0.7.2-0.20200304161608-4fae32b84921
 	github.com/containernetworking/plugins v0.8.5
 	github.com/containers/buildah v1.14.2
-	github.com/containers/common v0.4.2
+	github.com/containers/common v0.4.4
 	github.com/containers/conmon v2.0.10+incompatible
 	github.com/containers/image/v5 v5.2.1
 	github.com/containers/psgo v1.4.0

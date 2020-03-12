@@ -69,6 +69,8 @@ github.com/containers/buildah v1.14.2 h1:rzrOVqWL3C3xA3MBmkDgWntRsBgkI3FGKODluBO
 github.com/containers/buildah v1.14.2/go.mod h1:HZ6MuZfHYq6ZMeoV9o3k9GwoCk1p3RWZOYbBXZtR7wE=
 github.com/containers/common v0.4.2 h1:O5d1gj/xdpQdZi0MEivRQ/7AeRaVeHdbSP/bvShw458=
 github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
+github.com/containers/common v0.4.4 h1:oXQUPDQOIQ+XmQ2cWyLCs2TctDfISykAr1gEa3CNwlQ=
+github.com/containers/common v0.4.4/go.mod h1:vMkHkvczHslJbUj8xasSQmdNrLUgZYuUxVNGJDfjRIQ=
 github.com/containers/conmon v2.0.10+incompatible h1:EiwL41r5vx8SxG+dyUmbJ3baV9GUWjijPOdCkzM6gWU=
 github.com/containers/conmon v2.0.10+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v5 v5.2.1 h1:rQR6QSUneWBoW1bTFpP9EJJTevQFv27YsKYQVJIzg+s=
