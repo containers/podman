@@ -101,7 +101,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		if err != nil {
 			return nil, nil, err
 		}
-		imageData, err = newImage.Inspect(ctx)
+		imageData, err = newImage.InspectNoSize(ctx)
 		if err != nil {
 			return nil, nil, err
 		}
