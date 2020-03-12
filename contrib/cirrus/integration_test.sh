@@ -45,7 +45,7 @@ case "$SPECIALMODE" in
     bindings)
 	    make
         make install PREFIX=/usr ETCDIR=/etc
-	    cd pkg/bindings/test && ginkgo -r
+	    cd pkg/bindings/test && ginkgo -trace -noColor -debug  -r
 	;;
     none)
         make
