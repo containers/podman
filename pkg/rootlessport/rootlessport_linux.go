@@ -160,6 +160,13 @@ func parent() error {
 		return err
 	}
 
+	childErrCh := make(chan error)
+	go func() {
+		err := cmd.Wait()
+		childErrCh <- err
+		close(childErrCh)
+	}()
+
 	defer func() {
 		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
 			logrus.WithError(err).Warn("kill child process")
@@ -174,6 +181,10 @@ outer:
 		case <-initComplete:
 			logrus.Infof("initComplete is closed; parent and child established the communication channel")
 			break outer
+		case err := <-childErrCh:
+			if err != nil {
+				return err
+			}
 		case err := <-errCh:
 			if err != nil {
 				return err
