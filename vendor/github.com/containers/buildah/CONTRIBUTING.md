@@ -178,7 +178,7 @@ that has been setup.
 
 #### Buildah Mailing List
 
-You can join the Buildah mailing list by sending an email to `buildah-join@lists.buildah.io` with the word `subscribe` in the subject.  You can also go to this [page](https://lists.podman.io/admin/lists/buildah.lists.buildah.io/), then scroll down to the bottom of the page and enter your email and optionally name, then click on the "Subscribe" buton.
+You can join the Buildah mailing list by sending an email to `buildah-join@lists.buildah.io` with the word `subscribe` in the subject.  You can also go to this [page](https://lists.podman.io/admin/lists/buildah.lists.buildah.io/), then scroll down to the bottom of the page and enter your email and optionally name, then click on the "Subscribe" button.
 
 #### GitHub
 You can also use the github

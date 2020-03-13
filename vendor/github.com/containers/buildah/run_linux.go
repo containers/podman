@@ -702,7 +702,9 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 		return 1, errors.Wrapf(err, "error creating pipe for notifying to stop stdio")
 	}
 	finishedCopy := make(chan struct{})
+	var pargs []string
 	if spec.Process != nil {
+		pargs = spec.Process.Args
 		if spec.Process.Terminal {
 			copyConsole = true
 			// Create a listening socket for accepting the container's terminal's PTY master.
@@ -773,7 +775,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	logrus.Debugf("Running %q", create.Args)
 	err = create.Run()
 	if err != nil {
-		return 1, errors.Wrapf(err, "error creating container for %v: %s", spec.Process.Args, runCollectOutput(errorFds, closeBeforeReadingErrorFds))
+		return 1, errors.Wrapf(err, "error creating container for %v: %s", pargs, runCollectOutput(errorFds, closeBeforeReadingErrorFds))
 	}
 	defer func() {
 		err2 := del.Run()
@@ -808,7 +810,7 @@ func runUsingRuntime(isolation Isolation, options RunOptions, configureNetwork b
 	}()
 
 	if configureNetwork {
-		teardown, err := runConfigureNetwork(isolation, options, configureNetworks, pid, containerName, spec.Process.Args)
+		teardown, err := runConfigureNetwork(isolation, options, configureNetworks, pid, containerName, pargs)
 		if teardown != nil {
 			defer teardown()
 		}
@@ -1042,6 +1044,9 @@ func runConfigureNetwork(isolation Isolation, options RunOptions, configureNetwo
 			} else {
 				logrus.Debugf("configuration in %q has name %q, skipping it", file, nc.Network.Name)
 			}
+			continue
+		}
+		if nc.Network == nil {
 			continue
 		}
 		cl, err := libcni.ConfListFromConf(nc)
@@ -1450,8 +1455,13 @@ func runUsingRuntimeMain() {
 	if err := setChildProcess(); err != nil {
 		os.Exit(1)
 	}
+	var ospec *specs.Spec
+	if options.Spec != nil {
+		ospec = options.Spec
+	}
+
 	// Run the container, start to finish.
-	status, err := runUsingRuntime(options.Isolation, options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, options.Spec, options.BundlePath, options.ContainerName)
+	status, err := runUsingRuntime(options.Isolation, options.Options, options.ConfigureNetwork, options.ConfigureNetworks, options.MoreCreateArgs, ospec, options.BundlePath, options.ContainerName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)

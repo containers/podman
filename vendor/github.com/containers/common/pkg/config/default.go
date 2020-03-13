@@ -98,6 +98,8 @@ const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container
 	DefaultPidsLimit = 2048
+	// DefaultPullPolicy pulls the image if it does not exist locally
+	DefaultPullPolicy = "missing"
 	// DefaultRootlessSignaturePolicyPath is the default value for the
 	// rootless policy.json file.
 	DefaultRootlessSignaturePolicyPath = ".config/containers/policy.json"
@@ -116,7 +118,7 @@ const (
 // DefaultConfig defines the default values from containers.conf
 func DefaultConfig() (*Config, error) {
 
-	defaultLibpodConfig, err := defaultConfigFromMemory()
+	defaultEngineConfig, err := defaultConfigFromMemory()
 	if err != nil {
 		return nil, err
 	}
@@ -175,14 +177,14 @@ func DefaultConfig() (*Config, error) {
 			NetworkConfigDir: cniConfigDir,
 			CNIPluginDirs:    cniBinDir,
 		},
-		Libpod: *defaultLibpodConfig,
+		Engine: *defaultEngineConfig,
 	}, nil
 }
 
-// defaultConfigFromMemory returns a default libpod configuration. Note that the
+// defaultConfigFromMemory returns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
-func defaultConfigFromMemory() (*LibpodConfig, error) {
-	c := new(LibpodConfig)
+func defaultConfigFromMemory() (*EngineConfig, error) {
+	c := new(EngineConfig)
 	tmp, err := defaultTmpDir()
 	if err != nil {
 		return nil, err
@@ -201,7 +203,6 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 	}
 	c.StaticDir = filepath.Join(storeOpts.GraphRoot, "libpod")
 	c.VolumePath = filepath.Join(storeOpts.GraphRoot, "volumes")
-	c.StorageConfig = storeOpts
 
 	c.HooksDir = DefaultHooksDirs
 	c.ImageDefaultTransport = _defaultTransport
@@ -249,6 +250,7 @@ func defaultConfigFromMemory() (*LibpodConfig, error) {
 		"/usr/local/sbin/conmon",
 		"/run/current-system/sw/bin/conmon",
 	}
+	c.PullPolicy = DefaultPullPolicy
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",

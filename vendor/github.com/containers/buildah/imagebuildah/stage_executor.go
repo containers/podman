@@ -238,7 +238,13 @@ func (s *StageExecutor) volumeCacheRestore() error {
 			if err := os.Chmod(archivedPath, st.Mode()); err != nil {
 				return errors.Wrapf(err, "error restoring permissions on %q", archivedPath)
 			}
-			if err := os.Chown(archivedPath, 0, 0); err != nil {
+			uid := 0
+			gid := 0
+			if st.Sys() != nil {
+				uid = util.UID(st)
+				gid = util.GID(st)
+			}
+			if err := os.Chown(archivedPath, uid, gid); err != nil {
 				return errors.Wrapf(err, "error setting ownership on %q", archivedPath)
 			}
 			if err := os.Chtimes(archivedPath, st.ModTime(), st.ModTime()); err != nil {

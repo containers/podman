@@ -1,6 +1,7 @@
 package util
 
 import (
+	"os"
 	"syscall"
 
 	"golang.org/x/sys/unix"
@@ -17,4 +18,12 @@ func IsCgroup2UnifiedMode() (bool, error) {
 		}
 	})
 	return isUnified, isUnifiedErr
+}
+
+func UID(st os.FileInfo) int {
+	return int(st.Sys().(*syscall.Stat_t).Uid)
+}
+
+func GID(st os.FileInfo) int {
+	return int(st.Sys().(*syscall.Stat_t).Gid)
 }

@@ -216,8 +216,13 @@ func Pull(ctx context.Context, imageName string, options PullOptions) (imageID s
 	} else {
 		imageID = img.ID
 	}
+	if errs == nil {
+		err = nil
+	} else {
+		err = errs.ErrorOrNil()
+	}
 
-	return imageID, errs.ErrorOrNil()
+	return imageID, err
 }
 
 func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {

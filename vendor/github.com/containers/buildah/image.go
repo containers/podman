@@ -627,7 +627,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 			logrus.Debugf("error checking for layer %q in %q: %v", blob.Digest.String(), path, err)
 		}
 	}
-	if err != nil {
+	if err != nil || layerFile == nil {
 		logrus.Debugf("error reading layer %q: %v", blob.Digest.String(), err)
 		return nil, -1, errors.Wrapf(err, "error opening file %q to buffer layer blob", filepath.Join(i.path, blob.Digest.String()))
 	}
