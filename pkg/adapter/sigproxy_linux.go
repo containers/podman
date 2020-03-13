@@ -20,7 +20,10 @@ func ProxySignals(ctr *libpod.Container) {
 		for s := range sigBuffer {
 			// Ignore SIGCHLD and SIGPIPE - these are mostly likely
 			// intended for the podman command itself.
-			if s == syscall.SIGCHLD || s == syscall.SIGPIPE {
+			// SIGURG was added because of golang 1.14 and its preemptive changes
+			// causing more signals to "show up".
+			// https://github.com/containers/libpod/issues/5483
+			if s == syscall.SIGCHLD || s == syscall.SIGPIPE || s == syscall.SIGURG {
 				continue
 			}
 
