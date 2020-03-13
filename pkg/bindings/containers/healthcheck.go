@@ -10,15 +10,15 @@ import (
 
 // RunHealthCheck executes the container's healthcheck and returns the health status of the
 // container.
-func RunHealthCheck(ctx context.Context, nameOrID string) (*libpod.HealthCheckStatus, error) {
+func RunHealthCheck(ctx context.Context, nameOrID string) (*libpod.HealthCheckResults, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var (
-		status libpod.HealthCheckStatus
+		status libpod.HealthCheckResults
 	)
-	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/runhealthcheck", nil, nameOrID)
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/healthcheck", nil, nameOrID)
 	if err != nil {
 		return nil, err
 	}
