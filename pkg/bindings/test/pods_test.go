@@ -14,11 +14,10 @@ import (
 
 var _ = Describe("Podman pods", func() {
 	var (
-		bt       *bindingTest
-		s        *gexec.Session
-		newpod   string
-		err      error
-		trueFlag bool = true
+		bt     *bindingTest
+		s      *gexec.Session
+		newpod string
+		err    error
 	)
 
 	BeforeEach(func() {
@@ -57,7 +56,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(1))
 		// Adding an alpine container to the existing pod
-		_, err = bt.RunTopContainer(nil, &trueFlag, &newpod)
+		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 		podSummary, err = pods.List(bt.conn, nil)
 		// Verify no errors.
@@ -111,7 +110,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Adding an alpine container to the existing pod
-		_, err = bt.RunTopContainer(nil, &trueFlag, &newpod)
+		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 
 		// Binding needs to be modified to inspect the pod state.

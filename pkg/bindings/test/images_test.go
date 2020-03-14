@@ -19,11 +19,9 @@ var _ = Describe("Podman images", func() {
 		//tempdir    string
 		//err        error
 		//podmanTest *PodmanTestIntegration
-		bt        *bindingTest
-		s         *gexec.Session
-		err       error
-		falseFlag bool = false
-		trueFlag  bool = true
+		bt  *bindingTest
+		s   *gexec.Session
+		err error
 	)
 
 	BeforeEach(func() {
@@ -76,7 +74,7 @@ var _ = Describe("Podman images", func() {
 		//Expect(data.Size).To(BeZero())
 
 		// Enabling the size parameter should result in size being populated
-		data, err = images.GetImage(bt.conn, alpine.name, &trueFlag)
+		data, err = images.GetImage(bt.conn, alpine.name, &bindings.PTrue)
 		Expect(err).To(BeNil())
 		Expect(data.Size).To(BeNumerically(">", 0))
 	})
@@ -84,7 +82,7 @@ var _ = Describe("Podman images", func() {
 	// Test to validate the remove image api
 	It("remove image", func() {
 		// Remove invalid image should be a 404
-		_, err = images.Remove(bt.conn, "foobar5000", &falseFlag)
+		_, err = images.Remove(bt.conn, "foobar5000", &bindings.PFalse)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -101,21 +99,21 @@ var _ = Describe("Podman images", func() {
 
 		// Start a container with alpine image
 		var top string = "top"
-		_, err = bt.RunTopContainer(&top, &falseFlag, nil)
+		_, err = bt.RunTopContainer(&top, &bindings.PFalse, nil)
 		Expect(err).To(BeNil())
 		// we should now have a container called "top" running
-		containerResponse, err := containers.Inspect(bt.conn, "top", &falseFlag)
+		containerResponse, err := containers.Inspect(bt.conn, "top", &bindings.PFalse)
 		Expect(err).To(BeNil())
 		Expect(containerResponse.Name).To(Equal("top"))
 
 		// try to remove the image "alpine". This should fail since we are not force
 		// deleting hence image cannot be deleted until the container is deleted.
-		response, err = images.Remove(bt.conn, alpine.shortName, &falseFlag)
+		response, err = images.Remove(bt.conn, alpine.shortName, &bindings.PFalse)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))
 
 		// Removing the image "alpine" where force = true
-		response, err = images.Remove(bt.conn, alpine.shortName, &trueFlag)
+		response, err = images.Remove(bt.conn, alpine.shortName, &bindings.PTrue)
 		Expect(err).To(BeNil())
 
 		// Checking if both the images are gone as well as the container is deleted
@@ -127,7 +125,7 @@ var _ = Describe("Podman images", func() {
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
-		_, err = containers.Inspect(bt.conn, "top", &falseFlag)
+		_, err = containers.Inspect(bt.conn, "top", &bindings.PFalse)
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 	})
@@ -178,13 +176,13 @@ var _ = Describe("Podman images", func() {
 		// List  images with a filter
 		filters := make(map[string][]string)
 		filters["reference"] = []string{alpine.name}
-		filteredImages, err := images.List(bt.conn, &falseFlag, filters)
+		filteredImages, err := images.List(bt.conn, &bindings.PFalse, filters)
 		Expect(err).To(BeNil())
 		Expect(len(filteredImages)).To(BeNumerically("==", 1))
 
 		// List  images with a bad filter
 		filters["name"] = []string{alpine.name}
-		_, err = images.List(bt.conn, &falseFlag, filters)
+		_, err = images.List(bt.conn, &bindings.PFalse, filters)
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusInternalServerError))

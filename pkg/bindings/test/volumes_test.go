@@ -25,7 +25,6 @@ var _ = Describe("Podman volumes", func() {
 		s        *gexec.Session
 		connText context.Context
 		err      error
-		trueFlag = true
 	)
 
 	BeforeEach(func() {
@@ -107,7 +106,7 @@ var _ = Describe("Podman volumes", func() {
 		zero := 0
 		err = containers.Stop(connText, "vtest", &zero)
 		Expect(err).To(BeNil())
-		err = volumes.Remove(connText, vol.Name, &trueFlag)
+		err = volumes.Remove(connText, vol.Name, &bindings.PTrue)
 		Expect(err).To(BeNil())
 	})
 

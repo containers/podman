@@ -7,3 +7,12 @@
 // is established, users can then manage the Podman container runtime.
 
 package bindings
+
+var (
+	// PTrue is a convenience variable that can be used in bindings where
+	// a pointer to a bool (optional parameter) is required.
+	PTrue bool = true
+	// PFalse is a convenience variable that can be used in bindings where
+	// a pointer to a bool (optional parameter) is required.
+	PFalse bool = false
+)

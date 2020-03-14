@@ -326,7 +326,6 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 				builder.WriteRune(' ')
 			}
 			builder.WriteString(line.Msg)
-
 			// Build header and output entry
 			binary.BigEndian.PutUint32(header[4:], uint32(len(header)+builder.Len()))
 			if _, err := w.Write(header[:]); err != nil {
@@ -335,7 +334,6 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 			if _, err := fmt.Fprint(w, builder.String()); err != nil {
 				log.Errorf("unable to write builder string: %q", err)
 			}
-
 			if flusher, ok := w.(http.Flusher); ok {
 				flusher.Flush()
 			}
