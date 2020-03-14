@@ -262,7 +262,7 @@ github.com/docker/spdystream
 github.com/docker/spdystream/spdy
 # github.com/etcd-io/bbolt v1.3.3
 github.com/etcd-io/bbolt
-# github.com/fsnotify/fsnotify v1.4.7
+# github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.3
 github.com/fsouza/go-dockerclient
