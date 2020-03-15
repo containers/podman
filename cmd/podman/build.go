@@ -342,6 +342,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	}
 
 	options := imagebuildah.BuildOptions{
+		Architecture:            c.Arch,
 		CommonBuildOpts:         &buildOpts,
 		AdditionalTags:          tags,
 		Annotations:             c.Annotation,
@@ -359,6 +360,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		Layers:                  layers,
 		NamespaceOptions:        nsValues,
 		NoCache:                 c.NoCache,
+		OS:                      c.OS,
 		Out:                     stdout,
 		Output:                  output,
 		OutputFormat:            format,

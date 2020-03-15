@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	. "github.com/containers/libpod/test/utils"
@@ -42,6 +43,15 @@ var _ = Describe("Podman build", func() {
 		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+
+		iid := session.OutputToStringArray()[len(session.OutputToStringArray())-1]
+
+		// Verify that OS and Arch are being set
+		inspect := podmanTest.PodmanNoCache([]string{"inspect", iid})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectImageJSON()
+		Expect(data[0].Os).To(Equal(runtime.GOOS))
+		Expect(data[0].Architecture).To(Equal(runtime.GOARCH))
 
 		session = podmanTest.PodmanNoCache([]string{"rmi", "alpine"})
 		session.WaitWithDefaultTimeout()
