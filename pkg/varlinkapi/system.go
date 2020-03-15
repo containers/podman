@@ -44,28 +44,26 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
-	host := info[0].Data
 	distribution := iopodman.InfoDistribution{
-		Distribution: host["Distribution"].(map[string]interface{})["distribution"].(string),
-		Version:      host["Distribution"].(map[string]interface{})["version"].(string),
+		Distribution: info.Host.Distribution.Distribution,
+		Version:      info.Host.Distribution.Version,
 	}
 	infoHost := iopodman.InfoHost{
-		Buildah_version: host["BuildahVersion"].(string),
+		Buildah_version: info.Host.BuildahVersion,
 		Distribution:    distribution,
-		Mem_free:        host["MemFree"].(int64),
-		Mem_total:       host["MemTotal"].(int64),
-		Swap_free:       host["SwapFree"].(int64),
-		Swap_total:      host["SwapTotal"].(int64),
-		Arch:            host["arch"].(string),
-		Cpus:            int64(host["cpus"].(int)),
-		Hostname:        host["hostname"].(string),
-		Kernel:          host["kernel"].(string),
-		Os:              host["os"].(string),
-		Uptime:          host["uptime"].(string),
-		Eventlogger:     host["eventlogger"].(string),
+		Mem_free:        info.Host.MemFree,
+		Mem_total:       info.Host.MemTotal,
+		Swap_free:       info.Host.SwapFree,
+		Swap_total:      info.Host.SwapTotal,
+		Arch:            info.Host.Arch,
+		Cpus:            int64(info.Host.CPUs),
+		Hostname:        info.Host.Hostname,
+		Kernel:          info.Host.Kernel,
+		Os:              info.Host.OS,
+		Uptime:          info.Host.Uptime,
+		Eventlogger:     info.Host.EventLogger,
 	}
 	podmanInfo.Host = infoHost
-	store := info[1].Data
 	pmaninfo := iopodman.InfoPodmanBinary{
 		Compiler:       goruntime.Compiler,
 		Go_version:     goruntime.Version(),
@@ -74,36 +72,33 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 	}
 
 	graphStatus := iopodman.InfoGraphStatus{
-		Backing_filesystem:  store["GraphStatus"].(map[string]string)["Backing Filesystem"],
-		Native_overlay_diff: store["GraphStatus"].(map[string]string)["Native Overlay Diff"],
-		Supports_d_type:     store["GraphStatus"].(map[string]string)["Supports d_type"],
+		Backing_filesystem:  info.Store.GraphStatus["Backing Filesystem"],
+		Native_overlay_diff: info.Store.GraphStatus["Native Overlay Diff"],
+		Supports_d_type:     info.Store.GraphStatus["Supports d_type"],
 	}
 	infoStore := iopodman.InfoStore{
-		Graph_driver_name:    store["GraphDriverName"].(string),
-		Containers:           int64(store["ContainerStore"].(map[string]interface{})["number"].(int)),
-		Images:               int64(store["ImageStore"].(map[string]interface{})["number"].(int)),
-		Run_root:             store["RunRoot"].(string),
-		Graph_root:           store["GraphRoot"].(string),
-		Graph_driver_options: fmt.Sprintf("%v", store["GraphOptions"]),
+		Graph_driver_name:    info.Store.GraphDriverName,
+		Containers:           int64(info.Store.ContainerStore.Number),
+		Images:               int64(info.Store.ImageStore.Number),
+		Run_root:             info.Store.RunRoot,
+		Graph_root:           info.Store.GraphRoot,
+		Graph_driver_options: fmt.Sprintf("%v", info.Store.GraphOptions),
 		Graph_status:         graphStatus,
 	}
 
 	// Registry information if any is stored as the second list item
-	if len(info) > 2 {
-		for key, val := range info[2].Data {
-			if key == "search" {
-				podmanInfo.Registries.Search = val.([]string)
-				continue
-			}
-			regData := val.(sysregistriesv2.Registry)
-			if regData.Insecure {
-				podmanInfo.Registries.Insecure = append(podmanInfo.Registries.Insecure, key)
-			}
-			if regData.Blocked {
-				podmanInfo.Registries.Blocked = append(podmanInfo.Registries.Blocked, key)
-			}
+	for key, val := range info.Registries {
+		if key == "search" {
+			podmanInfo.Registries.Search = val.([]string)
+			continue
 		}
-
+		regData := val.(sysregistriesv2.Registry)
+		if regData.Insecure {
+			podmanInfo.Registries.Insecure = append(podmanInfo.Registries.Insecure, key)
+		}
+		if regData.Blocked {
+			podmanInfo.Registries.Blocked = append(podmanInfo.Registries.Blocked, key)
+		}
 	}
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo

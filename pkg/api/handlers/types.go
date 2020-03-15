@@ -353,7 +353,7 @@ func ImageDataToImageInspect(ctx context.Context, l *libpodImage.Image) (*ImageI
 
 }
 
-func LibpodToContainer(l *libpod.Container, infoData []define.InfoData, sz bool) (*Container, error) {
+func LibpodToContainer(l *libpod.Container, sz bool) (*Container, error) {
 	imageId, imageName := l.Image()
 
 	var (

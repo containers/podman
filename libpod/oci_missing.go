@@ -195,15 +195,14 @@ func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
 }
 
 // RuntimeInfo returns information on the missing runtime
-func (r *MissingRuntime) RuntimeInfo() (map[string]interface{}, error) {
-	info := make(map[string]interface{})
-	info["OCIRuntime"] = map[string]interface{}{
-		"name":    r.name,
-		"path":    "missing",
-		"package": "missing",
-		"version": "missing",
+func (r *MissingRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
+	ocirt := define.OCIRuntimeInfo{
+		Name:    r.name,
+		Path:    "missing",
+		Package: "missing",
+		Version: "missing",
 	}
-	return info, nil
+	return nil, &ocirt, nil
 }
 
 // Return an error indicating the runtime is missing

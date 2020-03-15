@@ -9,16 +9,14 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/containers/common/pkg/config"
 	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
-
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/cgroups"
-	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
@@ -675,40 +673,8 @@ func (r *Runtime) refresh(alivePath string) error {
 }
 
 // Info returns the store and host information
-func (r *Runtime) Info() ([]define.InfoData, error) {
-	info := []define.InfoData{}
-	// get host information
-	hostInfo, err := r.hostInfo()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting host info")
-	}
-	info = append(info, define.InfoData{Type: "host", Data: hostInfo})
-
-	// get store information
-	storeInfo, err := r.storeInfo()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting store info")
-	}
-	info = append(info, define.InfoData{Type: "store", Data: storeInfo})
-
-	registries := make(map[string]interface{})
-	data, err := sysreg.GetRegistriesData()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
-	}
-	for _, reg := range data {
-		registries[reg.Prefix] = reg
-	}
-	regs, err := sysreg.GetRegistries()
-	if err != nil {
-		return nil, errors.Wrapf(err, "error getting registries")
-	}
-	if len(regs) > 0 {
-		registries["search"] = regs
-	}
-
-	info = append(info, define.InfoData{Type: "registries", Data: registries})
-	return info, nil
+func (r *Runtime) Info() (*define.Info, error) {
+	return r.info()
 }
 
 // generateName generates a unique name for a container or pod.

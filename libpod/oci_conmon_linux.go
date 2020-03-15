@@ -999,32 +999,30 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 }
 
 // RuntimeInfo provides information on the runtime.
-func (r *ConmonOCIRuntime) RuntimeInfo() (map[string]interface{}, error) {
+func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	runtimePackage := packageVersion(r.path)
 	conmonPackage := packageVersion(r.conmonPath)
 	runtimeVersion, err := r.getOCIRuntimeVersion()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting version of OCI runtime %s", r.name)
+		return nil, nil, errors.Wrapf(err, "error getting version of OCI runtime %s", r.name)
 	}
 	conmonVersion, err := r.getConmonVersion()
 	if err != nil {
-		return nil, errors.Wrapf(err, "error getting conmon version")
+		return nil, nil, errors.Wrapf(err, "error getting conmon version")
 	}
 
-	info := make(map[string]interface{})
-	info["Conmon"] = map[string]interface{}{
-		"path":    r.conmonPath,
-		"package": conmonPackage,
-		"version": conmonVersion,
+	conmon := define.ConmonInfo{
+		Package: conmonPackage,
+		Path:    r.conmonPath,
+		Version: conmonVersion,
 	}
-	info["OCIRuntime"] = map[string]interface{}{
-		"name":    r.name,
-		"path":    r.path,
-		"package": runtimePackage,
-		"version": runtimeVersion,
+	ocirt := define.OCIRuntimeInfo{
+		Name:    r.name,
+		Path:    r.path,
+		Package: runtimePackage,
+		Version: runtimeVersion,
 	}
-
-	return info, nil
+	return &conmon, &ocirt, nil
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x

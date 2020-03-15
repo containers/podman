@@ -70,10 +70,10 @@ EOF
     chmod 755 $PODMAN_TMPDIR $test_script
 
     # get podman image and container storage directories
-    run_podman info --format '{{.store.GraphRoot}}'
+    run_podman info --format '{{.Store.GraphRoot}}'
     is "$output" "/var/lib/containers/storage" "GraphRoot in expected place"
     GRAPH_ROOT="$output"
-    run_podman info --format '{{.store.RunRoot}}'
+    run_podman info --format '{{.Store.RunRoot}}'
     is "$output" "/var/run/containers/storage" "RunRoot in expected place"
     RUN_ROOT="$output"
 

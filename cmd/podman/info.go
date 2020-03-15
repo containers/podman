@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"html/template"
+	"os"
 	rt "runtime"
 	"strings"
 
@@ -11,7 +13,6 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -49,42 +50,32 @@ func init() {
 }
 
 func infoCmd(c *cliconfig.InfoValues) error {
-	info := map[string]interface{}{}
-	remoteClientInfo := map[string]interface{}{}
-
 	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
 	defer runtime.DeferredShutdown(false)
 
-	infoArr, err := runtime.Info()
+	i, err := runtime.Info()
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}
 
+	info := infoWithExtra{Info: i}
 	if runtime.Remote {
 		endpoint, err := runtime.RemoteEndpoint()
 		if err != nil {
-			logrus.Errorf("Failed to obtain server connection: %s", err.Error())
-		} else {
-			remoteClientInfo["Connection"] = endpoint.Connection
-			remoteClientInfo["Connection Type"] = endpoint.Type.String()
+			return err
 		}
-
-		remoteClientInfo["RemoteAPI Version"] = version.RemoteAPIVersion
-		remoteClientInfo["Podman Version"] = version.Version
-		remoteClientInfo["OS Arch"] = fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH)
-		infoArr = append(infoArr, define.InfoData{Type: "client", Data: remoteClientInfo})
+		info.Remote = getRemote(endpoint)
 	}
 
 	if !runtime.Remote && c.Debug {
-		debugInfo := debugInfo(c)
-		infoArr = append(infoArr, define.InfoData{Type: "debug", Data: debugInfo})
-	}
-
-	for _, currInfo := range infoArr {
-		info[currInfo.Type] = currInfo.Data
+		d, err := getDebug()
+		if err != nil {
+			return err
+		}
+		info.Debug = d
 	}
 
 	var out formats.Writer
@@ -98,19 +89,58 @@ func infoCmd(c *cliconfig.InfoValues) error {
 	case "":
 		out = formats.YAMLStruct{Output: info}
 	default:
-		out = formats.StdoutTemplate{Output: info, Template: infoOutputFormat}
+		tmpl, err := template.New("info").Parse(c.Format)
+		if err != nil {
+			return err
+		}
+		err = tmpl.Execute(os.Stdout, info)
+		return err
 	}
 
 	return out.Out()
 }
 
 // top-level "debug" info
-func debugInfo(c *cliconfig.InfoValues) map[string]interface{} {
-	info := map[string]interface{}{}
-	info["compiler"] = rt.Compiler
-	info["go version"] = rt.Version()
-	info["podman version"] = version.Version
-	version, _ := define.GetVersion()
-	info["git commit"] = version.GitCommit
-	return info
+func getDebug() (*debugInfo, error) {
+	v, err := define.GetVersion()
+	if err != nil {
+		return nil, err
+	}
+	return &debugInfo{
+		Compiler:      rt.Compiler,
+		GoVersion:     rt.Version(),
+		PodmanVersion: v.Version,
+		GitCommit:     v.GitCommit,
+	}, nil
+}
+
+func getRemote(endpoint *adapter.Endpoint) *remoteInfo {
+	return &remoteInfo{
+		Connection:       endpoint.Connection,
+		ConnectionType:   endpoint.Type.String(),
+		RemoteAPIVersion: string(version.RemoteAPIVersion),
+		PodmanVersion:    version.Version,
+		OSArch:           fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH),
+	}
+}
+
+type infoWithExtra struct {
+	*define.Info
+	Remote *remoteInfo `json:"remote,omitempty"`
+	Debug  *debugInfo  `json:"debug,omitempty"`
+}
+
+type remoteInfo struct {
+	Connection       string `json:"connection"`
+	ConnectionType   string `json:"connectionType"`
+	RemoteAPIVersion string `json:"remoteAPIVersion"`
+	PodmanVersion    string `json:"podmanVersion"`
+	OSArch           string `json:"OSArch"`
+}
+
+type debugInfo struct {
+	Compiler      string `json:"compiler"`
+	GoVersion     string `json:"goVersion"`
+	PodmanVersion string `json:"podmanVersion"`
+	GitCommit     string `json:"gitCommit"`
 }

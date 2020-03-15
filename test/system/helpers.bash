@@ -391,7 +391,7 @@ function random_string() {
 # Return exec_pid hash files if exists, otherwise, return nothing
 #
 function find_exec_pid_files() {
-    run_podman info --format '{{.store.RunRoot}}'
+    run_podman info --format '{{.Store.RunRoot}}'
     local storage_path="$output"
     if [ -d $storage_path ]; then
         find $storage_path -type f -iname 'exec_pid_*'
