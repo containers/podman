@@ -44,7 +44,7 @@ type ListVolumesOptions struct {
 //
 // See https://goo.gl/3wgTsd for more details.
 func (c *Client) ListVolumes(opts ListVolumesOptions) ([]Volume, error) {
-	resp, err := c.do("GET", "/volumes?"+queryString(opts), doOptions{
+	resp, err := c.do(http.MethodGet, "/volumes?"+queryString(opts), doOptions{
 		context: opts.Context,
 	})
 	if err != nil {
@@ -85,7 +85,7 @@ type CreateVolumeOptions struct {
 //
 // See https://goo.gl/qEhmEC for more details.
 func (c *Client) CreateVolume(opts CreateVolumeOptions) (*Volume, error) {
-	resp, err := c.do("POST", "/volumes/create", doOptions{
+	resp, err := c.do(http.MethodPost, "/volumes/create", doOptions{
 		data:    opts,
 		context: opts.Context,
 	})
@@ -104,7 +104,7 @@ func (c *Client) CreateVolume(opts CreateVolumeOptions) (*Volume, error) {
 //
 // See https://goo.gl/GMjsMc for more details.
 func (c *Client) InspectVolume(name string) (*Volume, error) {
-	resp, err := c.do("GET", "/volumes/"+name, doOptions{})
+	resp, err := c.do(http.MethodGet, "/volumes/"+name, doOptions{})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, ErrNoSuchVolume
@@ -142,7 +142,7 @@ type RemoveVolumeOptions struct {
 // See https://goo.gl/nvd6qj for more details.
 func (c *Client) RemoveVolumeWithOptions(opts RemoveVolumeOptions) error {
 	path := "/volumes/" + opts.Name
-	resp, err := c.do("DELETE", path+"?"+queryString(opts), doOptions{context: opts.Context})
+	resp, err := c.do(http.MethodDelete, path+"?"+queryString(opts), doOptions{context: opts.Context})
 	if err != nil {
 		if e, ok := err.(*Error); ok {
 			if e.Status == http.StatusNotFound {
@@ -179,7 +179,7 @@ type PruneVolumesResults struct {
 // See https://goo.gl/f9XDem for more details.
 func (c *Client) PruneVolumes(opts PruneVolumesOptions) (*PruneVolumesResults, error) {
 	path := "/volumes/prune?" + queryString(opts)
-	resp, err := c.do("POST", path, doOptions{context: opts.Context})
+	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
 	if err != nil {
 		return nil, err
 	}

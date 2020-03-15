@@ -8,6 +8,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"net/http"
 	"strings"
 
 	"github.com/docker/docker/api/types/swarm"
@@ -17,12 +18,12 @@ import (
 //
 // See https://goo.gl/mU7yje for more details.
 func (c *Client) Version() (*Env, error) {
-	return c.VersionWithContext(nil)
+	return c.VersionWithContext(context.TODO())
 }
 
 // VersionWithContext returns version information about the docker server.
 func (c *Client) VersionWithContext(ctx context.Context) (*Env, error) {
-	resp, err := c.do("GET", "/version", doOptions{context: ctx})
+	resp, err := c.do(http.MethodGet, "/version", doOptions{context: ctx})
 	if err != nil {
 		return nil, err
 	}
@@ -37,6 +38,7 @@ func (c *Client) VersionWithContext(ctx context.Context) (*Env, error) {
 // DockerInfo contains information about the Docker server
 //
 // See https://goo.gl/bHUoz9 for more details.
+//nolint:golint
 type DockerInfo struct {
 	ID                 string
 	Containers         int
@@ -48,19 +50,6 @@ type DockerInfo struct {
 	DriverStatus       [][2]string
 	SystemStatus       [][2]string
 	Plugins            PluginsInfo
-	MemoryLimit        bool
-	SwapLimit          bool
-	KernelMemory       bool
-	CPUCfsPeriod       bool `json:"CpuCfsPeriod"`
-	CPUCfsQuota        bool `json:"CpuCfsQuota"`
-	CPUShares          bool
-	CPUSet             bool
-	IPv4Forwarding     bool
-	BridgeNfIptables   bool
-	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
-	Debug              bool
-	OomKillDisable     bool
-	ExperimentalBuild  bool
 	NFd                int
 	NGoroutines        int
 	SystemTime         string
@@ -85,12 +74,34 @@ type DockerInfo struct {
 	Labels             []string
 	ServerVersion      string
 	ClusterStore       string
+	Runtimes           map[string]Runtime
 	ClusterAdvertise   string
 	Isolation          string
 	InitBinary         string
 	DefaultRuntime     string
-	LiveRestoreEnabled bool
 	Swarm              swarm.Info
+	LiveRestoreEnabled bool
+	MemoryLimit        bool
+	SwapLimit          bool
+	KernelMemory       bool
+	CPUCfsPeriod       bool `json:"CpuCfsPeriod"`
+	CPUCfsQuota        bool `json:"CpuCfsQuota"`
+	CPUShares          bool
+	CPUSet             bool
+	IPv4Forwarding     bool
+	BridgeNfIptables   bool
+	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
+	Debug              bool
+	OomKillDisable     bool
+	ExperimentalBuild  bool
+}
+
+// Runtime describes an OCI runtime
+//
+// for more information, see: https://dockr.ly/2NKM8qq
+type Runtime struct {
+	Path string
+	Args []string `json:"runtimeArgs"`
 }
 
 // PluginsInfo is a struct with the plugins registered with the docker daemon
@@ -153,7 +164,7 @@ type IndexInfo struct {
 //
 // See https://goo.gl/ElTHi2 for more details.
 func (c *Client) Info() (*DockerInfo, error) {
-	resp, err := c.do("GET", "/info", doOptions{})
+	resp, err := c.do(http.MethodGet, "/info", doOptions{})
 	if err != nil {
 		return nil, err
 	}

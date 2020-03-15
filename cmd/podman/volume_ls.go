@@ -72,11 +72,11 @@ func init() {
 }
 
 func volumeLsCmd(c *cliconfig.VolumeLsValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	opts := volumeLsOptions{
 		Quiet: c.Quiet,
@@ -134,14 +134,14 @@ func genVolLsFormat(c *cliconfig.VolumeLsValues) string {
 }
 
 // Convert output to genericParams for printing
-func volLsToGeneric(templParams []volumeLsTemplateParams, JSONParams []volumeLsJSONParams) (genericParams []interface{}) {
+func volLsToGeneric(templParams []volumeLsTemplateParams, jsonParams []volumeLsJSONParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return
@@ -238,7 +238,7 @@ func generateVolLsOutput(volumes []*adapter.Volume, opts volumeLsOptions) error 
 		}
 		out = formats.StdoutTemplateArray{Output: volLsToGeneric(lsOutput, []volumeLsJSONParams{}), Template: opts.Format, Fields: lsOutput[0].volHeaderMap()}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // generateVolumeFilterFuncs returns the true if the volume matches the filter set, otherwise it returns false.

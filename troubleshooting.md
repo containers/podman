@@ -142,15 +142,15 @@ If you are using a useradd command within a Dockerfile with a large UID/GID, it 
 
 #### Solution
 
-If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--log-no-init` parameter to change it to: `RUN useradd --log-no-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
+If the entry in the Dockerfile looked like: RUN useradd -u 99999000 -g users newuser then add the `--no-log-init` parameter to change it to: `RUN useradd --no-log-init -u 99999000 -g users newuser`. This option tells useradd to stop creating the lastlog file.
 
 ### 7) Permission denied when running Podman commands
 
-When rootless podman attempts to execute a container on a non exec home directory a permission error will be raised.
+When rootless Podman attempts to execute a container on a non exec home directory a permission error will be raised.
 
 #### Symptom
 
-If you are running podman or buildah on a home directory that is mounted noexec,
+If you are running Podman or buildah on a home directory that is mounted noexec,
 then they will fail. With a message like:
 
 ```
@@ -194,11 +194,11 @@ processes to write to the cgroup file system. Turn on this boolean, on SELinux s
 
 ### 9) Newuidmap missing when running rootless Podman commands
 
-Rootless podman requires the newuidmap and newgidmap programs to be installed.
+Rootless Podman requires the newuidmap and newgidmap programs to be installed.
 
 #### Symptom
 
-If you are running podman or buildah as a not root user, you get an error complaining about
+If you are running Podman or buildah as a not root user, you get an error complaining about
 a missing newuidmap executable.
 
 ```
@@ -212,7 +212,7 @@ Install a version of shadow-utils that includes these executables.  Note RHEL7 a
 
 ### 10) rootless setup user: invalid argument
 
-Rootless podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
+Rootless Podman requires the user running it to have a range of UIDs listed in /etc/subuid and /etc/subgid.
 
 #### Symptom
 
@@ -247,6 +247,11 @@ would potentially allow one user to attack another user.
 
 You could also use the usermod program to assign UIDs to a user.
 
+If you update either the /etc/subuid or /etc/subgid file, you need to
+stop all running containers and kill the pause process.  This is done
+automatically by the `system migrate` command, which can also be used
+to stop all the containers and kill the pause process.
+
 ```
 usermod --add-subuids 200000-201000 --add-subgids 200000-201000 johndoe
 grep johndoe /etc/subuid /etc/subgid
@@ -257,7 +262,7 @@ grep johndoe /etc/subuid /etc/subgid
 ### 11) Changing the location of the Graphroot leads to permission denied
 
 When I change the graphroot storage location in storage.conf, the next time I
-run podman I get an error like:
+run Podman I get an error like:
 
 ```
 # podman run -p 5000:5000 -it centos bash
@@ -293,7 +298,33 @@ tells SELinux to apply the labels to the actual content.
 Now all new content created in these directories will automatically be created
 with the correct label.
 
-### 12) Running Podman inside a container causes container crashes and inconsistent states
+### 12) Anonymous image pull fails with 'invalid username/password'
+
+Pulling an anonymous image that doesn't require authentication can result in an
+`invalid username/password` error.
+
+#### Symptom
+
+If you pull an anonymous image, one that should not require credentials, you can receive
+and `invalid username/password` error if you have credentials established in the
+authentication file for the target container registry that are no longer valid.
+
+```
+podman run -it --rm docker://docker.io/library/alpine:latest ls
+Trying to pull docker://docker.io/library/alpine:latest...ERRO[0000] Error pulling image ref //alpine:latest: Error determining manifest MIME type for docker://alpine:latest: unable to retrieve auth token: invalid username/password
+Failed
+Error: unable to pull docker://docker.io/library/alpine:latest: unable to pull image: Error determining manifest MIME type for docker://alpine:latest: unable to retrieve auth token: invalid username/password
+```
+
+This can happen if the authentication file is modified 'by hand' or if the credentials
+are established locally and then the password is updated later in the container registry.
+
+#### Solution
+
+Depending upon which container tool was used to establish the credentials, use `podman logout`
+or `docker logout` to remove the credentials from the authentication file.
+
+### 13) Running Podman inside a container causes container crashes and inconsistent states
 
 Running Podman in a container and forwarding some, but not all, of the required host directories can cause inconsistent container behavior.
 
@@ -310,3 +341,147 @@ Not doing this will cause Podman in the container to detect that temporary files
 This can cause Podman to reset container states and lose track of running containers.
 
 For running containers on the host from inside a container, we also recommend the [Podman remote client](remote_client.md), which only requires a single socket to be mounted into the container.
+
+### 14) Rootless 'podman build' fails EPERM on NFS:
+
+NFS enforces file creation on different UIDs on the server side and does not understand user namespace, which rootless Podman requires.
+When a container root process like YUM attempts to create a file owned by a different UID, NFS Server denies the creation.
+NFS is also a problem for the file locks when the storage is on it.  Other distributed file systems (for example: Lustre, Spectrum Scale, the General Parallel File System (GPFS)) are also not supported when running in rootless mode as these file systems do not understand user namespace.
+
+#### Symptom
+```console
+$ podman build .
+ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+```
+
+#### Solution
+Choose one of the following:
+  * Setup containers/storage in a different directory, not on an NFS share.
+    * Create a directory on a local file system.
+    * Edit `~/.config/containers/libpod.conf` and point the `volume_path` option to that local directory.
+  * Otherwise just run Podman as root, via `sudo podman`
+
+### 15) Rootless 'podman build' fails when using OverlayFS:
+
+The Overlay file system (OverlayFS) requires the ability to call the `mknod` command when creating whiteout files
+when extracting an image.  However, a rootless user does not have the privileges to use `mknod` in this capacity.
+
+#### Symptom
+```console
+podman build --storage-driver overlay .
+STEP 1: FROM docker.io/ubuntu:xenial
+Getting image source signatures
+Copying blob edf72af6d627 done
+Copying blob 3e4f86211d23 done
+Copying blob 8d3eac894db4 done
+Copying blob f7277927d38a done
+Copying config 5e13f8dd4c done
+Writing manifest to image destination
+Storing signatures
+Error: error creating build container: Error committing the finished image: error adding layer with blob "sha256:8d3eac894db4dc4154377ad28643dfe6625ff0e54bcfa63e0d04921f1a8ef7f8": Error processing tar file(exit status 1): operation not permitted
+$ podman build .
+ERRO[0014] Error while applying layer: ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+error creating build container: Error committing the finished image: error adding layer with blob "sha256:a02a4930cb5d36f3290eb84f4bfa30668ef2e9fe3a1fb73ec015fc58b9958b17": ApplyLayer exit status 1 stdout:  stderr: open /root/.bash_logout: permission denied
+```
+
+#### Solution
+Choose one of the following:
+  * Complete the build operation as a privileged user.
+  * Install and configure fuse-overlayfs.
+    * Install the fuse-overlayfs package for your Linux Distribution.
+    * Add `mount_program = "/usr/bin/fuse-overlayfs` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
+
+### 16) rhel7-init based images don't work with cgroups v2
+
+The systemd version shipped in rhel7-init doesn't have support for cgroups v2.  You'll need at least systemd 230.
+
+#### Symptom
+```console
+
+sh# podman run --name test -d registry.access.redhat.com/rhel7-init:latest && sleep 10 && podman exec test systemctl status
+c8567461948439bce72fad3076a91ececfb7b14d469bfa5fbc32c6403185beff
+Failed to get D-Bus connection: Operation not permitted
+Error: non zero exit code: 1: OCI runtime error
+```
+
+#### Solution
+You'll need to either:
+
+* configure the host to use cgroups v1
+* update the image to use an updated version of systemd.
+
+### 17) rootless containers exit once the user session exits
+
+You need to set lingering mode through loginctl to prevent user processes to be killed once
+the user session completed.
+
+#### Symptom
+
+Once the user logs out all the containers exit.
+
+#### Solution
+You'll need to either:
+
+* loginctl enable-linger $UID
+
+or as root if your user has not enough privileges.
+
+* sudo loginctl enable-linger $UID
+
+### 18) `podman run` fails with "bpf create: permission denied error"
+
+The Kernel Lockdown patches deny eBPF programs when Secure Boot is enabled in the BIOS. [Matthew Garrett's post](https://mjg59.dreamwidth.org/50577.html) describes the relationship between Lockdown and Secure Boot and [Jan-Philip Gehrcke's](https://gehrcke.de/2019/09/running-an-ebpf-program-may-require-lifting-the-kernel-lockdown/) connects this with eBPF. [RH bug 1768125](https://bugzilla.redhat.com/show_bug.cgi?id=1768125) contains some additional details.
+
+#### Symptom
+
+Attempts to run podman result in
+
+```Error: bpf create : Operation not permitted: OCI runtime permission denied error```
+
+#### Solution
+
+One workaround is to disable Secure Boot in your BIOS.
+
+### 19) error creating libpod runtime: there might not be enough IDs available in the namespace
+
+Unable to pull images
+
+#### Symptom
+
+```console
+$ podman unshare cat /proc/self/uid_map
+         0       1000          1
+```
+
+#### Solution
+
+```console
+$ podman system migrate
+```
+
+Original command now returns
+
+```
+$ podman unshare cat /proc/self/uid_map
+         0       1000          1
+         1     100000      65536
+```
+
+Reference [subuid](http://man7.org/linux/man-pages/man5/subuid.5.html) and [subgid](http://man7.org/linux/man-pages/man5/subgid.5.html) man pages for more detail.
+
+### 20) Passed-in device can't be accessed in rootless container
+
+As a non-root user you have group access rights to a device that you want to
+pass into a rootless container with `--device=...`.
+
+#### Symptom
+
+Any access inside the container is rejected with "Permission denied".
+
+#### Solution
+
+The runtime uses `setgroups(2)` hence the process looses all additional groups
+the non-root user has. If you use the `crun` runtime, 0.10.4 or newer,
+then you can enable a workaround by adding `--annotation io.crun.keep_original_groups=1`
+to the `podman` command line.

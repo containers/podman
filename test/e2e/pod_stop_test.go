@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -24,7 +22,7 @@ var _ = Describe("Podman pod stop", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -38,6 +36,46 @@ var _ = Describe("Podman pod stop", func() {
 		session := podmanTest.Podman([]string{"pod", "stop", "123"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman pod stop --ignore bogus pod", func() {
+		SkipIfRemote()
+
+		session := podmanTest.Podman([]string{"pod", "stop", "--ignore", "123"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman stop bogus pod and a running pod", func() {
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "stop", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman stop --ignore bogus pod and a running pod", func() {
+		SkipIfRemote()
+
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "stop", "--ignore", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "stop", "--ignore", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman pod stop single empty pod", func() {

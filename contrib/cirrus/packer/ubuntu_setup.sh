@@ -6,73 +6,98 @@
 set -e
 
 # Load in library (copied by packer, before this script was run)
-source /tmp/libpod/$SCRIPT_BASE/lib.sh
+source $GOSRC/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-SCRIPT_BASE $SCRIPT_BASE
-CNI_COMMIT $CNI_COMMIT
-CRIO_COMMIT $CRIO_COMMIT
-CRIU_COMMIT $CRIU_COMMIT
-RUNC_COMMIT $RUNC_COMMIT
-"
+req_env_var SCRIPT_BASE
 
 install_ooe
 
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-# Avoid getting stuck waiting for user input
-export DEBIAN_FRONTEND=noninteractive
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
 
-# Try twice as workaround for minor networking problems
-echo "Updating system and installing package dependencies"
-ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
-ooe.sh sudo -E apt-get -qq upgrade || sudo -E apt-get -qq upgrade
-ooe.sh sudo -E apt-get -qq install software-properties-common
+# Stop disruption upon boot ASAP after booting
+echo "Disabling all packaging activity on boot"
+# Don't let sed process sed's temporary files
+_FILEPATHS=$(sudo ls -1 /etc/apt/apt.conf.d)
+for filename in $_FILEPATHS; do \
+    echo "Checking/Patching $filename"
+    sudo sed -i -r -e "s/$PERIODIC_APT_RE/"'\10"\;/' "/etc/apt/apt.conf.d/$filename"; done
 
-# Required to have Go 1.11 on Ubuntu 18.0.4
-ooe.sh sudo -E add-apt-repository --yes ppa:longsleep/golang-backports
-ooe.sh sudo -E apt-get -qq update || sudo -E apt-get -qq update
+echo "Updating/configuring package repositories."
+$BIGTO $SUDOAPTGET update
 
-ooe.sh sudo -E apt-get -qq install \
+echo "Upgrading all packages"
+$BIGTO $SUDOAPTGET upgrade
+
+echo "Adding PPAs"
+$LILTO $SUDOAPTGET install software-properties-common
+$LILTO $SUDOAPTADD ppa:projectatomic/ppa
+$LILTO $SUDOAPTADD ppa:criu/ppa
+if [[ "$OS_RELEASE_VER" -eq "18" ]]
+then
+    $LILTO $SUDOAPTADD ppa:longsleep/golang-backports
+fi
+
+$LILTO $SUDOAPTGET update
+
+echo "Installing general testing and system dependencies"
+$BIGTO $SUDOAPTGET install \
     apparmor \
+    aufs-tools \
     autoconf \
     automake \
+    bash-completion \
     bats \
     bison \
     btrfs-tools \
     build-essential \
+    containernetworking-plugins \
+    containers-common \
+    cri-o-runc \
+    criu \
     curl \
+    conmon \
+    dnsmasq \
     e2fslibs-dev \
     emacs-nox \
+    file \
     gawk \
+    gcc \
     gettext \
     go-md2man \
     golang \
-    iproute \
+    iproute2 \
     iptables \
+    jq \
     libaio-dev \
     libapparmor-dev \
     libcap-dev \
     libdevmapper-dev \
     libdevmapper1.02.1 \
     libfuse-dev \
+    libfuse2 \
     libglib2.0-dev \
     libgpgme11-dev \
     liblzma-dev \
     libnet1 \
     libnet1-dev \
     libnl-3-dev \
-    libostree-dev \
-    libprotobuf-c0-dev \
+    libvarlink \
+    libprotobuf-c-dev \
     libprotobuf-dev \
     libseccomp-dev \
     libseccomp2 \
+    libsystemd-dev \
     libtool \
     libudev-dev \
     lsof \
+    make \
     netcat \
     pkg-config \
+    podman \
     protobuf-c-compiler \
     protobuf-compiler \
     python-future \
@@ -83,33 +108,31 @@ ooe.sh sudo -E apt-get -qq install \
     python3-psutil \
     python3-pytoml \
     python3-setuptools \
+    skopeo \
+    slirp4netns \
     socat \
     unzip \
     vim \
-    xz-utils
+    xz-utils \
+    zip
 
-echo "Fixing Ubuntu kernel not enabling swap accounting by default"
-SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
-ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
-ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
-ooe.sh sudo update-grub
+if [[ "$OS_RELEASE_VER" -ge "19" ]]
+then
+    echo "Installing Ubuntu > 18 packages"
+    $LILTO $SUDOAPTGET install fuse3 libfuse3-dev libbtrfs-dev
+fi
 
-install_runc
+if [[ "$OS_RELEASE_VER" -eq "18" ]]
+then
+    echo "Forced Ubuntu 18 kernel to enable cgroup swap accounting."
+    SEDCMD='s/^GRUB_CMDLINE_LINUX="(.*)"/GRUB_CMDLINE_LINUX="\1 cgroup_enable=memory swapaccount=1"/g'
+    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub.d/*
+    ooe.sh sudo sed -re "$SEDCMD" -i /etc/default/grub
+    ooe.sh sudo update-grub
+fi
 
-install_conmon
-
-install_criu
-
-install_cni_plugins
-
-install_buildah
-
-install_packer_copied_files
-
-install_varlink
-
-sudo curl https://raw.githubusercontent.com/projectatomic/registries/master/registries.fedora\
-          -o /etc/containers/registries.conf
+ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
+ooe.sh sudo make -C /tmp/libpod install.libseccomp.sudo
 
 ubuntu_finalize
 

@@ -1,12 +1,13 @@
 package libpod
 
 import (
-	"fmt"
 	"math/rand"
+	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/lookup"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -14,8 +15,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
+	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -131,27 +131,44 @@ func (p *Pod) podWithContainers(containers []*Container, ports []v1.ContainerPor
 	var (
 		podContainers []v1.Container
 	)
+	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
-			result, err := containerToV1Container(ctr)
+			ctr, volumes, err := containerToV1Container(ctr)
 			if err != nil {
 				return nil, err
 			}
+
+			// Since port bindings for the pod are handled by the
+			// infra container, wipe them here.
+			ctr.Ports = nil
+
 			// We add the original port declarations from the libpod infra container
 			// to the first kubernetes container description because otherwise we loose
 			// the original container/port bindings.
 			if first && len(ports) > 0 {
-				result.Ports = ports
+				ctr.Ports = ports
 				first = false
 			}
-			podContainers = append(podContainers, result)
+			podContainers = append(podContainers, ctr)
+			// Deduplicate volumes, so if containers in the pod share a volume, it's only
+			// listed in the volumes section once
+			for _, vol := range volumes {
+				vol := vol
+				deDupPodVolumes[vol.Name] = &vol
+			}
 		}
 	}
-	return addContainersToPodObject(podContainers, p.Name()), nil
+	podVolumes := make([]v1.Volume, 0, len(deDupPodVolumes))
+	for _, vol := range deDupPodVolumes {
+		podVolumes = append(podVolumes, *vol)
+	}
+
+	return addContainersAndVolumesToPodObject(podContainers, podVolumes, p.Name()), nil
 }
 
-func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod {
+func addContainersAndVolumesToPodObject(containers []v1.Container, volumes []v1.Volume, podName string) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -162,7 +179,7 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 	labels["app"] = removeUnderscores(podName)
 	om := v12.ObjectMeta{
 		// The name of the pod is container_name-libpod
-		Name:   fmt.Sprintf("%s", removeUnderscores(podName)),
+		Name:   removeUnderscores(podName),
 		Labels: labels,
 		// CreationTimestamp seems to be required, so adding it; in doing so, the timestamp
 		// will reflect time this is run (not container create time) because the conversion
@@ -171,6 +188,7 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 	}
 	ps := v1.PodSpec{
 		Containers: containers,
+		Volumes:    volumes,
 	}
 	p := v1.Pod{
 		TypeMeta:   tm,
@@ -184,57 +202,58 @@ func addContainersToPodObject(containers []v1.Container, podName string) *v1.Pod
 // for a single container.  we "insert" that container description in a pod.
 func simplePodWithV1Container(ctr *Container) (*v1.Pod, error) {
 	var containers []v1.Container
-	result, err := containerToV1Container(ctr)
+	kubeCtr, kubeVols, err := containerToV1Container(ctr)
 	if err != nil {
 		return nil, err
 	}
-	containers = append(containers, result)
-	return addContainersToPodObject(containers, ctr.Name()), nil
+	containers = append(containers, kubeCtr)
+	return addContainersAndVolumesToPodObject(containers, kubeVols, ctr.Name()), nil
 
 }
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(c *Container) (v1.Container, error) {
+func containerToV1Container(c *Container) (v1.Container, []v1.Volume, error) {
 	kubeContainer := v1.Container{}
+	kubeVolumes := []v1.Volume{}
 	kubeSec, err := generateKubeSecurityContext(c)
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 
 	if len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		devices, err := generateKubeVolumeDeviceFromLinuxDevice(c.Spec().Linux.Devices)
 		if err != nil {
-			return kubeContainer, err
+			return kubeContainer, kubeVolumes, err
 		}
 		kubeContainer.VolumeDevices = devices
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "linux devices")
+		return kubeContainer, kubeVolumes, errors.Wrapf(define.ErrNotImplemented, "linux devices")
 	}
 
 	if len(c.config.UserVolumes) > 0 {
 		// TODO When we until we can resolve what the volume name should be, this is disabled
 		// Volume names need to be coordinated "globally" in the kube files.
-		volumes, err := libpodMountsToKubeVolumeMounts(c)
+		volumeMounts, volumes, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
-			return kubeContainer, err
+			return kubeContainer, kubeVolumes, err
 		}
-		kubeContainer.VolumeMounts = volumes
-		return kubeContainer, errors.Wrapf(ErrNotImplemented, "volume names")
+		kubeContainer.VolumeMounts = volumeMounts
+		kubeVolumes = append(kubeVolumes, volumes...)
 	}
 
 	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, kubeVolumes, err
 	}
 
 	portmappings, err := c.PortMappings()
 	if err != nil {
-		return kubeContainer, err
+		return kubeContainer, kubeVolumes, err
 	}
 	ports, err := ocicniPortMappingToContainerPort(portmappings)
 	if err != nil {
-		return kubeContainer, nil
+		return kubeContainer, kubeVolumes, err
 	}
 
 	containerCommands := c.Command()
@@ -258,7 +277,7 @@ func containerToV1Container(c *Container) (v1.Container, error) {
 	kubeContainer.StdinOnce = false
 	kubeContainer.TTY = c.config.Spec.Process.Terminal
 
-	return kubeContainer, nil
+	return kubeContainer, kubeVolumes, nil
 }
 
 // ocicniPortMappingToContainerPort takes an ocicni portmapping and converts
@@ -291,65 +310,96 @@ func ocicniPortMappingToContainerPort(portMappings []ocicni.PortMapping) ([]v1.C
 func libpodEnvVarsToKubeEnvVars(envs []string) ([]v1.EnvVar, error) {
 	var envVars []v1.EnvVar
 	for _, e := range envs {
-		splitE := strings.SplitN(e, "=", 2)
-		if len(splitE) != 2 {
+		split := strings.SplitN(e, "=", 2)
+		if len(split) != 2 {
 			return envVars, errors.Errorf("environment variable %s is malformed; should be key=value", e)
 		}
 		ev := v1.EnvVar{
-			Name:  splitE[0],
-			Value: splitE[1],
+			Name:  split[0],
+			Value: split[1],
 		}
 		envVars = append(envVars, ev)
 	}
 	return envVars, nil
 }
 
-// Is this worth it?
-func libpodMaxAndMinToResourceList(c *Container) (v1.ResourceList, v1.ResourceList) { //nolint
-	// It does not appear we can properly calculate CPU resources from the information
-	// we know in libpod.  Libpod knows CPUs by time, shares, etc.
-
-	// We also only know about a memory limit; no memory minimum
-	maxResources := make(map[v1.ResourceName]resource.Quantity)
-	minResources := make(map[v1.ResourceName]resource.Quantity)
-	config := c.Config()
-	maxMem := config.Spec.Linux.Resources.Memory.Limit
-
-	_ = maxMem
-
-	return maxResources, minResources
-}
-
-func generateKubeVolumeMount(hostSourcePath string, mounts []specs.Mount) (v1.VolumeMount, error) {
-	vm := v1.VolumeMount{}
-	for _, m := range mounts {
-		if m.Source == hostSourcePath {
-			// TODO Name is not provided and is required by Kube; therefore, this is disabled earlier
-			//vm.Name =
-			vm.MountPath = m.Source
-			vm.SubPath = m.Destination
-			if util.StringInSlice("ro", m.Options) {
-				vm.ReadOnly = true
-			}
-			return vm, nil
-		}
-	}
-	return vm, errors.New("unable to find mount source")
-}
-
 // libpodMountsToKubeVolumeMounts converts the containers mounts to a struct kube understands
-func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, error) {
-	// At this point, I dont think we can distinguish between the default
-	// volume mounts and user added ones.  For now, we pass them all.
+func libpodMountsToKubeVolumeMounts(c *Container) ([]v1.VolumeMount, []v1.Volume, error) {
 	var vms []v1.VolumeMount
-	for _, hostSourcePath := range c.config.UserVolumes {
-		vm, err := generateKubeVolumeMount(hostSourcePath, c.config.Spec.Mounts)
+	var vos []v1.Volume
+
+	// TjDO when named volumes are supported in play kube, also parse named volumes here
+	_, mounts := c.sortUserVolumes(c.config.Spec)
+	for _, m := range mounts {
+		vm, vo, err := generateKubeVolumeMount(m)
 		if err != nil {
-			return vms, err
+			return vms, vos, err
 		}
 		vms = append(vms, vm)
+		vos = append(vos, vo)
 	}
-	return vms, nil
+	return vms, vos, nil
+}
+
+// generateKubeVolumeMount takes a user specified mount and returns
+// a kubernetes VolumeMount (to be added to the container) and a kubernetes Volume
+// (to be added to the pod)
+func generateKubeVolumeMount(m specs.Mount) (v1.VolumeMount, v1.Volume, error) {
+	vm := v1.VolumeMount{}
+	vo := v1.Volume{}
+
+	name, err := convertVolumePathToName(m.Source)
+	if err != nil {
+		return vm, vo, err
+	}
+	vm.Name = name
+	vm.MountPath = m.Destination
+	if util.StringInSlice("ro", m.Options) {
+		vm.ReadOnly = true
+	}
+
+	vo.Name = name
+	vo.HostPath = &v1.HostPathVolumeSource{}
+	vo.HostPath.Path = m.Source
+	isDir, err := isHostPathDirectory(m.Source)
+	// neither a directory or a file lives here, default to creating a directory
+	// TODO should this be an error instead?
+	var hostPathType v1.HostPathType
+	switch {
+	case err != nil:
+		hostPathType = v1.HostPathDirectoryOrCreate
+	case isDir:
+		hostPathType = v1.HostPathDirectory
+	default:
+		hostPathType = v1.HostPathFile
+	}
+	vo.HostPath.Type = &hostPathType
+
+	return vm, vo, nil
+}
+
+func isHostPathDirectory(hostPathSource string) (bool, error) {
+	info, err := os.Stat(hostPathSource)
+	if err != nil {
+		return false, err
+	}
+	return info.Mode().IsDir(), nil
+}
+
+func convertVolumePathToName(hostSourcePath string) (string, error) {
+	if len(hostSourcePath) == 0 {
+		return "", errors.Errorf("hostSourcePath must be specified to generate volume name")
+	}
+	if len(hostSourcePath) == 1 {
+		if hostSourcePath != "/" {
+			return "", errors.Errorf("hostSourcePath malformatted: %s", hostSourcePath)
+		}
+		// add special case name
+		return "root", nil
+	}
+	// First, trim trailing slashes, then replace slashes with dashes.
+	// Thus, /mnt/data/ will become mnt-data
+	return strings.Replace(strings.Trim(hostSourcePath, "/"), "/", "-", -1), nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
@@ -357,20 +407,26 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 		drop []v1.Capability
 		add  []v1.Capability
 	)
+	dedupDrop := make(map[string]bool)
+	dedupAdd := make(map[string]bool)
 	// Find caps in the defaultCaps but not in the container's
 	// those indicate a dropped cap
 	for _, capability := range defaultCaps {
 		if !util.StringInSlice(capability, containerCaps) {
-			cap := v1.Capability(capability)
-			drop = append(drop, cap)
+			if _, ok := dedupDrop[capability]; !ok {
+				drop = append(drop, v1.Capability(capability))
+				dedupDrop[capability] = true
+			}
 		}
 	}
 	// Find caps in the container but not in the defaults; those indicate
 	// an added cap
 	for _, capability := range containerCaps {
 		if !util.StringInSlice(capability, defaultCaps) {
-			cap := v1.Capability(capability)
-			add = append(add, cap)
+			if _, ok := dedupAdd[capability]; !ok {
+				add = append(add, v1.Capability(capability))
+				dedupAdd[capability] = true
+			}
 		}
 	}
 
@@ -412,11 +468,26 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		return nil, err
 	}
 
+	var selinuxOpts v1.SELinuxOptions
+	opts := strings.SplitN(c.config.Spec.Annotations[InspectAnnotationLabel], ":", 2)
+	if len(opts) == 2 {
+		switch opts[0] {
+		case "type":
+			selinuxOpts.Type = opts[1]
+		case "level":
+			selinuxOpts.Level = opts[1]
+		}
+	}
+	if len(opts) == 1 {
+		if opts[0] == "disable" {
+			selinuxOpts.Type = "spc_t"
+		}
+	}
+
 	sc := v1.SecurityContext{
-		Capabilities: newCaps,
-		Privileged:   &priv,
-		// TODO How do we know if selinux were passed into podman
-		//SELinuxOptions:
+		Capabilities:   newCaps,
+		Privileged:     &priv,
+		SELinuxOptions: &selinuxOpts,
 		// RunAsNonRoot is an optional parameter; our first implementations should be root only; however
 		// I'm leaving this as a bread-crumb for later
 		//RunAsNonRoot:             &nonRoot,
@@ -432,13 +503,16 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, error) {
 		if err := c.syncContainer(); err != nil {
 			return nil, errors.Wrapf(err, "unable to sync container during YAML generation")
 		}
+
 		logrus.Debugf("Looking in container for user: %s", c.User())
-		u, err := lookup.GetUser(c.state.Mountpoint, c.User())
+		execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.User(), nil)
 		if err != nil {
 			return nil, err
 		}
-		user := int64(u.Uid)
-		sc.RunAsUser = &user
+		uid := int64(execUser.Uid)
+		gid := int64(execUser.Gid)
+		sc.RunAsUser = &uid
+		sc.RunAsGroup = &gid
 	}
 	return &sc, nil
 }

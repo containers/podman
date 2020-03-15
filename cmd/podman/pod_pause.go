@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
@@ -25,7 +26,7 @@ var (
 			return podPauseCmd(&podPauseCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod pause podID1 podID2
   podman pod pause --latest
@@ -45,18 +46,18 @@ func init() {
 
 func podPauseCmd(c *cliconfig.PodPauseValues) error {
 	var lastError error
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	pauseIDs, conErrors, pauseErrors := runtime.PausePods(c)
 
 	for _, p := range pauseIDs {
 		fmt.Println(p)
 	}
-	if conErrors != nil && len(conErrors) > 0 {
+	if len(conErrors) > 0 {
 		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)

@@ -11,7 +11,7 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/go-units"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	STOPPED      = "Stopped"
+	STOPPED      = "Stopped" //nolint
 	RUNNING      = "Running"
 	PAUSED       = "Paused"
 	EXITED       = "Exited"
@@ -36,9 +36,9 @@ var (
 )
 
 type podPsCtrInfo struct {
-	Name   string `"json:name,omitempty"`
-	Id     string `"json:id,omitempty"`
-	Status string `"json:status,omitempty"`
+	Name   string `json:"name,omitempty"`
+	Id     string `json:"id,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
 type podPsOptions struct {
@@ -157,11 +157,11 @@ func podPsCmd(c *cliconfig.PodPsValues) error {
 		return errors.Wrapf(err, "error with flags passed")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	opts := podPsOptions{
 		NoTrunc:            c.NoTrunc,
@@ -282,7 +282,7 @@ func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) 
 			}
 			for _, ctr_status := range ctr_statuses {
 				state := ctr_status.String()
-				if ctr_status == libpod.ContainerStateConfigured {
+				if ctr_status == define.ContainerStateConfigured {
 					state = "created"
 				}
 				if state == filterValue {
@@ -320,13 +320,14 @@ func generatePodFilterFuncs(filter, filterValue string) (func(pod *adapter.Pod) 
 // generate the template based on conditions given
 func genPodPsFormat(c *cliconfig.PodPsValues) string {
 	format := ""
-	if c.Format != "" {
+	switch {
+	case c.Format != "":
 		// "\t" from the command line is not being recognized as a tab
 		// replacing the string "\t" to a tab character if the user passes in "\t"
 		format = strings.Replace(c.Format, `\t`, "\t", -1)
-	} else if c.Quiet {
+	case c.Quiet:
 		format = formats.IDString
-	} else {
+	default:
 		format = "table {{.ID}}\t{{.Name}}\t{{.Status}}\t{{.Created}}"
 		if c.Bool("namespace") {
 			format += "\t{{.Cgroup}}\t{{.Namespaces}}"
@@ -341,14 +342,14 @@ func genPodPsFormat(c *cliconfig.PodPsValues) string {
 	return format
 }
 
-func podPsToGeneric(templParams []podPsTemplateParams, JSONParams []podPsJSONParams) (genericParams []interface{}) {
+func podPsToGeneric(templParams []podPsTemplateParams, jsonParams []podPsJSONParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return
@@ -504,15 +505,15 @@ func getAndSortPodJSONParams(pods []*adapter.Pod, opts podPsOptions) ([]podPsJSO
 			}
 			var status string
 			switch batchInfo.ConState {
-			case libpod.ContainerStateExited:
+			case define.ContainerStateExited:
 				fallthrough
-			case libpod.ContainerStateStopped:
+			case define.ContainerStateStopped:
 				status = EXITED
-			case libpod.ContainerStateRunning:
+			case define.ContainerStateRunning:
 				status = RUNNING
-			case libpod.ContainerStatePaused:
+			case define.ContainerStatePaused:
 				status = PAUSED
-			case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
+			case define.ContainerStateCreated, define.ContainerStateConfigured:
 				status = CREATED
 			default:
 				status = ERROR
@@ -552,9 +553,6 @@ func generatePodPsOutput(pods []*adapter.Pod, opts podPsOptions) error {
 
 	switch opts.Format {
 	case formats.JSONString:
-		if err != nil {
-			return errors.Wrapf(err, "unable to create JSON for output")
-		}
 		out = formats.JSONStructArray{Output: podPsToGeneric([]podPsTemplateParams{}, psOutput)}
 	default:
 		psOutput, err := getPodTemplateOutput(psOutput, opts)
@@ -564,5 +562,5 @@ func generatePodPsOutput(pods []*adapter.Pod, opts podPsOptions) error {
 		out = formats.StdoutTemplateArray{Output: podPsToGeneric(psOutput, []podPsJSONParams{}), Template: opts.Format, Fields: psOutput[0].podHeaderMap()}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }

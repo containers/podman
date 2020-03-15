@@ -65,7 +65,7 @@ func (w *atomicFileWriter) Close() (retErr error) {
 			os.Remove(w.f.Name())
 		}
 	}()
-	if err := w.f.Sync(); err != nil {
+	if err := fdatasync(w.f); err != nil {
 		w.f.Close()
 		return err
 	}
@@ -126,7 +126,7 @@ type syncFileCloser struct {
 }
 
 func (w syncFileCloser) Close() error {
-	err := w.File.Sync()
+	err := fdatasync(w.File)
 	if err1 := w.File.Close(); err == nil {
 		err = err1
 	}

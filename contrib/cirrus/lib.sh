@@ -3,130 +3,189 @@
 # Library of common, shared utility functions.  This file is intended
 # to be sourced by other scripts, not called directly.
 
+# Global details persist here
+source /etc/environment  # not always loaded under all circumstances
+
 # Under some contexts these values are not set, make sure they are.
 export USER="$(whoami)"
 export HOME="$(getent passwd $USER | cut -d : -f 6)"
+[[ -n "$UID" ]] || export UID=$(getent passwd $USER | cut -d : -f 3)
+export GID=$(getent passwd $USER | cut -d : -f 4)
 
-# These are normally set by cirrus, but can't be for VMs setup by hack/get_ci_vm.sh
-# Pick some reasonable defaults
-ENVLIB=${ENVLIB:-.bash_profile}
-CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-/var/tmp/go/src/github.com/containers/libpod}"
-GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
+# Essential default paths, many are overridden when executing under Cirrus-CI
+export GOPATH="${GOPATH:-/var/tmp/go}"
+if type -P go &> /dev/null
+then
+    # required for go 1.12+
+    export GOCACHE="${GOCACHE:-$HOME/.cache/go-build}"
+    # called processes like `make` and other tools need these vars.
+    eval "export $(go env)"
+
+    # Ensure compiled tooling is reachable
+    export PATH="$PATH:$GOPATH/bin"
+fi
+CIRRUS_WORKING_DIR="${CIRRUS_WORKING_DIR:-$GOPATH/src/github.com/containers/libpod}"
+export GOSRC="${GOSRC:-$CIRRUS_WORKING_DIR}"
+export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"
+export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+# Saves typing / in case location ever moves
 SCRIPT_BASE=${SCRIPT_BASE:-./contrib/cirrus}
 PACKER_BASE=${PACKER_BASE:-./contrib/cirrus/packer}
-CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-DEADBEEF}  # a human
-CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-HEAD}
-CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-FETCH_HEAD}
-TIMESTAMPS_FILEPATH="${TIMESTAMPS_FILEPATH:-/var/tmp/timestamps}"
+# Important filepaths
+SETUP_MARKER_FILEPATH="${SETUP_MARKER_FILEPATH:-/var/tmp/.setup_environment_sh_complete}"
+AUTHOR_NICKS_FILEPATH="${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/git_authors_to_irc_nicks.csv"
+
+# Log remote-client system test varlink output here
+export VARLINK_LOG=/var/tmp/varlink.log
+
+cd $GOSRC
+if type -P git &> /dev/null && [[ -d "$GOSRC/.git" ]]
+then
+    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-$(git show-ref --hash=8 HEAD || date +%s)}
+else # pick something unique and obviously not from Cirrus
+    CIRRUS_CHANGE_IN_REPO=${CIRRUS_CHANGE_IN_REPO:-unknown_$(date +%s)}
+fi
+
+# Defaults when not running under CI
+export CI="${CI:-false}"
+CIRRUS_CI="${CIRRUS_CI:-false}"
+DEST_BRANCH="${DEST_BRANCH:-master}"
+CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
+CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-libpod}
+CIRRUS_BASE_SHA=${CIRRUS_BASE_SHA:-unknown$(date +%s)}  # difficult to reliably discover
+CIRRUS_BUILD_ID=${CIRRUS_BUILD_ID:-$RANDOM$(date +%s)}  # must be short and unique
+# Vars. for image-building
+PACKER_VER="1.4.2"
+# CSV of cache-image names to build (see $PACKER_BASE/libpod_images.json)
+
+# Base-images rarely change, define them here so they're out of the way.
+export PACKER_BUILDS="${PACKER_BUILDS:-ubuntu-18,ubuntu-19,fedora-31,fedora-30}"
+# Manually produced base-image names (see $SCRIPT_BASE/README.md)
+export UBUNTU_BASE_IMAGE="ubuntu-1904-disco-v20190724"
+export PRIOR_UBUNTU_BASE_IMAGE="ubuntu-1804-bionic-v20190722a"
+# Manually produced base-image names (see $SCRIPT_BASE/README.md)
+export FEDORA_BASE_IMAGE="fedora-cloud-base-31-1-9-1578586410"
+export PRIOR_FEDORA_BASE_IMAGE="fedora-cloud-base-30-1-2-1578586410"
+export BUILT_IMAGE_SUFFIX="${BUILT_IMAGE_SUFFIX:--$CIRRUS_REPO_NAME-${CIRRUS_BUILD_ID}}"
+# IN_PODMAN container image
+IN_PODMAN_IMAGE="quay.io/libpod/in_podman:$DEST_BRANCH"
+# Image for uploading releases
+UPLDREL_IMAGE="quay.io/libpod/upldrel:master"
+
+# Avoid getting stuck waiting for user input
+export DEBIAN_FRONTEND="noninteractive"
+SUDOAPTGET="ooe.sh sudo -E apt-get -qq --yes"
+SUDOAPTADD="ooe.sh sudo -E add-apt-repository --yes"
+# Regex that finds enabled periodic apt configuration items
+PERIODIC_APT_RE='^(APT::Periodic::.+")1"\;'
+# Short-cuts for retrying/timeout calls
+LILTO="timeout_attempt_delay_command 120s 5 30s"
+BIGTO="timeout_attempt_delay_command 300s 5 60s"
+
+# Safe env. vars. to transfer from root -> $ROOTLESS_USER  (go env handled separately)
+ROOTLESS_ENV_RE='(CIRRUS_.+)|(ROOTLESS_.+)|(.+_IMAGE.*)|(.+_BASE)|(.*DIRPATH)|(.*FILEPATH)|(SOURCE.*)|(DEPEND.*)|(.+_DEPS_.+)|(OS_REL.*)|(.+_ENV_RE)|(TRAVIS)|(CI.+)|(TEST_REMOTE.*)'
+# Unsafe env. vars for display
+SECRET_ENV_RE='(IRCID)|(ACCOUNT)|(GC[EP]..+)|(SSH)'
+
 SPECIALMODE="${SPECIALMODE:-none}"
+MOD_LIBPOD_CONF="${MOD_LIBPOD_CONF:false}"
+TEST_REMOTE_CLIENT="${TEST_REMOTE_CLIENT:-false}"
 export CONTAINER_RUNTIME=${CONTAINER_RUNTIME:-podman}
 
-if ! [[ "$PATH" =~ "/usr/local/bin" ]]
+# When running as root, this may be empty or not, as a user, it MUST be set.
+if [[ "$USER" == "root" ]]
 then
-    export PATH="$PATH:/usr/local/bin"
+    ROOTLESS_USER="${ROOTLESS_USER:-}"
+else
+    ROOTLESS_USER="${ROOTLESS_USER:-$USER}"
 fi
 
-# In ci/testing environment, ensure variables are always loaded
-if [[ -r "$HOME/$ENVLIB" ]] && [[ -n "$CI" ]]
-then
-    # Make sure this is always loaded
-    source "$HOME/$ENVLIB"
-fi
+# GCE image-name compatible string representation of distribution name
+OS_RELEASE_ID="$(source /etc/os-release; echo $ID)"
+# GCE image-name compatible string representation of distribution _major_ version
+OS_RELEASE_VER="$(source /etc/os-release; echo $VERSION_ID | cut -d '.' -f 1)"
+# Combined to ease soe usage
+OS_REL_VER="${OS_RELEASE_ID}-${OS_RELEASE_VER}"
+# Type of filesystem used for cgroups
+CG_FS_TYPE="$(stat -f -c %T /sys/fs/cgroup)"
 
-# Pass in a line delimited list of, space delimited name/value pairs
-# exit non-zero with helpful error message if any value is empty
+# Installed into cache-images, supports overrides
+# by user-data in case of breakage or for debugging.
+CUSTOM_CLOUD_CONFIG_DEFAULTS="$GOSRC/$PACKER_BASE/cloud-init/$OS_RELEASE_ID/cloud.cfg.d"
+# Pass in a list of one or more envariable names; exit non-zero with
+# helpful error message if any value is empty
 req_env_var() {
-    echo "$1" | while read NAME VALUE
-    do
-        if [[ -n "$NAME" ]] && [[ -z "$VALUE" ]]
-        then
-            echo "Required env. var. \$$NAME is not set"
-            exit 9
+    # Provide context. If invoked from function use its name; else script name
+    local caller=${FUNCNAME[1]}
+    if [[ -n "$caller" ]]; then
+        # Indicate that it's a function name
+        caller="$caller()"
+    else
+        # Not called from a function: use script name
+        caller=$(basename $0)
+    fi
+
+    # Usage check
+    [[ -n "$1" ]] || die 1 "FATAL: req_env_var: invoked without arguments"
+
+    # Each input arg is an envariable name, e.g. HOME PATH etc. Expand each.
+    # If any is empty, bail out and explain why.
+    for i; do
+        if [[ -z "${!i}" ]]; then
+            die 9 "FATAL: $caller requires \$$i to be non-empty"
         fi
     done
 }
 
-# Some env. vars may contain secrets.  Display values for known "safe"
-# and useful variables.
-# ref: https://cirrus-ci.org/guide/writing-tasks/#environment-variables
-show_env_vars() {
-    # This is almost always multi-line, print it separately
-    echo "export CIRRUS_CHANGE_MESSAGE=$CIRRUS_CHANGE_MESSAGE"
-    echo "
-BUILDTAGS $BUILDTAGS
-BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
-ROOTLESS_USER $ROOTLESS_USER
-CI $CI
-CIRRUS_CI $CIRRUS_CI
-CI_NODE_INDEX $CI_NODE_INDEX
-CI_NODE_TOTAL $CI_NODE_TOTAL
-CONTINUOUS_INTEGRATION $CONTINUOUS_INTEGRATION
-CIRRUS_BASE_BRANCH $CIRRUS_BASE_BRANCH
-CIRRUS_BASE_SHA $CIRRUS_BASE_SHA
-CIRRUS_BRANCH $CIRRUS_BRANCH
-CIRRUS_BUILD_ID $CIRRUS_BUILD_ID
-CIRRUS_CHANGE_IN_REPO $CIRRUS_CHANGE_IN_REPO
-CIRRUS_CLONE_DEPTH $CIRRUS_CLONE_DEPTH
-CIRRUS_DEFAULT_BRANCH $CIRRUS_DEFAULT_BRANCH
-CIRRUS_PR $CIRRUS_PR
-CIRRUS_TAG $CIRRUS_TAG
-CIRRUS_OS $CIRRUS_OS
-OS $OS
-CIRRUS_TASK_NAME $CIRRUS_TASK_NAME
-CIRRUS_TASK_ID $CIRRUS_TASK_ID
-CIRRUS_REPO_NAME $CIRRUS_REPO_NAME
-CIRRUS_REPO_OWNER $CIRRUS_REPO_OWNER
-CIRRUS_REPO_FULL_NAME $CIRRUS_REPO_FULL_NAME
-CIRRUS_REPO_CLONE_URL $CIRRUS_REPO_CLONE_URL
-CIRRUS_SHELL $CIRRUS_SHELL
-CIRRUS_USER_COLLABORATOR $CIRRUS_USER_COLLABORATOR
-CIRRUS_USER_PERMISSION $CIRRUS_USER_PERMISSION
-CIRRUS_WORKING_DIR $CIRRUS_WORKING_DIR
-CIRRUS_HTTP_CACHE_HOST $CIRRUS_HTTP_CACHE_HOST
-SPECIALMODE $SPECIALMODE
-$(go env)
-PACKER_BUILDS $PACKER_BUILDS
-    " | while read NAME VALUE
-    do
-        [[ -z "$NAME" ]] || echo "export $NAME=\"$VALUE\""
-    done
-    echo ""
-    echo "##### $(go version) #####"
-    echo ""
+item_test() {
+    ITEM="$1"
+    shift
+    TEST_ARGS="$@"
+    req_env_var ITEM TEST_ARGS
+
+    if ERR=$(test "$@" 2>&1)
+    then
+        echo "ok $ITEM"
+        return 0
+    else
+        RET=$?
+        echo -n "not ok $ITEM: $TEST_ARGS"
+        if [[ -z "$ERR" ]]
+        then
+            echo ""
+        else  # test command itself failed
+            echo -n ":"  # space follows :'s in $ERR
+            echo "$ERR" | cut -d : -f 4-  # omit filename, line number, and command
+        fi
+        return $RET
+    fi
 }
 
-# Unset environment variables not needed for testing purposes
-clean_env() {
-    req_env_var "
-        UNSET_ENV_VARS $UNSET_ENV_VARS
-    "
-    echo "Unsetting $(echo $UNSET_ENV_VARS | wc -w) environment variables"
-    unset -v UNSET_ENV_VARS $UNSET_ENV_VARS || true  # don't fail on read-only
+show_env_vars() {
+    echo "Showing selection of environment variable definitions:"
+    _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
+        egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
+        sort -u)
+    for _env_var_name in $_ENV_VAR_NAMES
+    do
+        # Supports older BASH versions
+        printf "    ${_env_var_name}=%q\n" "$(printenv $_env_var_name)"
+    done
 }
 
 die() {
-    req_env_var "
-        1 $1
-        2 $2
-    "
-    echo "$2"
-    exit $1
+    echo "************************************************"
+    echo ">>>>> ${2:-FATAL ERROR (but no message given!) in ${FUNCNAME[1]}()}"
+    echo "************************************************"
+    exit ${1:-1}
 }
 
-# Return a GCE image-name compatible string representation of distribution name
-os_release_id() {
-    eval "$(egrep -m 1 '^ID=' /etc/os-release | tr -d \' | tr -d \")"
-    echo "$ID"
-}
-
-# Return a GCE image-name compatible string representation of distribution major version
-os_release_ver() {
-    eval "$(egrep -m 1 '^VERSION_ID=' /etc/os-release | tr -d \' | tr -d \")"
-    echo "$VERSION_ID" | cut -d '.' -f 1
+warn() {
+    echo ">>>>> ${1:-WARNING (but no message given!) in ${FUNCNAME[1]}()}" > /dev/stderr
 }
 
 bad_os_id_ver() {
-    echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $ARGS"
+    echo "Unknown/Unsupported distro. $OS_RELEASE_ID and/or version $OS_RELEASE_VER for $(basename $0)"
     exit 42
 }
 
@@ -134,11 +193,38 @@ stub() {
     echo "STUB: Pretending to do $1"
 }
 
+timeout_attempt_delay_command() {
+    TIMEOUT=$1
+    ATTEMPTS=$2
+    DELAY=$3
+    shift 3
+    STDOUTERR=$(mktemp -p '' $(basename $0)_XXXXX)
+    req_env_var ATTEMPTS DELAY
+    echo "Retrying $ATTEMPTS times with a $DELAY delay, and $TIMEOUT timeout for command: $@"
+    for (( COUNT=1 ; COUNT <= $ATTEMPTS ; COUNT++ ))
+    do
+        echo "##### (attempt #$COUNT)" &>> "$STDOUTERR"
+        if timeout --foreground $TIMEOUT "$@" &>> "$STDOUTERR"
+        then
+            echo "##### (success after #$COUNT attempts)" &>> "$STDOUTERR"
+            break
+        else
+            echo "##### (failed with exit: $?)" &>> "$STDOUTERR"
+            sleep $DELAY
+        fi
+    done
+    cat "$STDOUTERR"
+    rm -f "$STDOUTERR"
+    if (( COUNT > $ATTEMPTS ))
+    then
+        echo "##### (exceeded $ATTEMPTS attempts)"
+        exit 125
+    fi
+}
+
 ircmsg() {
-    req_env_var "
-        CIRRUS_TASK_ID $CIRRUS_TASK_ID
-        @ $@
-    "
+    req_env_var CIRRUS_TASK_ID IRCID
+    [[ -n "$*" ]] || die 9 "ircmsg() invoked without message text argument"
     # Sometimes setup_environment.sh didn't run
     SCRIPT="$(dirname $0)/podbot.py"
     NICK="podbot_$CIRRUS_TASK_ID"
@@ -149,23 +235,58 @@ ircmsg() {
     set -e
 }
 
-record_timestamp() {
-    set +x  # sometimes it's turned on
-    req_env_var "TIMESTAMPS_FILEPATH $TIMESTAMPS_FILEPATH"
-    echo "."  # cirrus webui strips blank-lines
-    STAMPMSG="The $1 time at the tone will be:"
-    echo -e "$STAMPMSG\t$(date --iso-8601=seconds)" | \
-        tee -a $TIMESTAMPS_FILEPATH
-    echo -e "BLEEEEEEEEEEP!\n."
+# This covers all possible human & CI workflow parallel & serial combinations
+# where at least one caller must definitively discover if within a commit range
+# there is at least one release tag not having any '-' characters (return 0)
+# or otherwise (return non-0).
+is_release() {
+    unset RELVER
+    local ret
+    req_env_var CIRRUS_CHANGE_IN_REPO
+    if [[ -n "$CIRRUS_TAG" ]]; then
+        RELVER="$CIRRUS_TAG"
+    elif [[ ! "$CIRRUS_BASE_SHA" =~ "unknown" ]]
+    then
+        # Normally not possible for this to be empty, except when unittesting.
+        req_env_var CIRRUS_BASE_SHA
+        local range="${CIRRUS_BASE_SHA}..${CIRRUS_CHANGE_IN_REPO}"
+        if echo "${range}$CIRRUS_TAG" | grep -iq 'unknown'; then
+            die 11 "is_release() unusable range ${range} or tag $CIRRUS_TAG"
+        fi
+
+        if type -P git &> /dev/null
+        then
+            git fetch --all --tags &> /dev/null|| \
+                die 12 "is_release() failed to fetch tags"
+            RELVER=$(git log --pretty='format:%d' $range | \
+                     grep '(tag:' | sed -r -e 's/\s+[(]tag:\s+(v[0-9].*)[)]/\1/' | \
+                     sort -uV | tail -1)
+            ret=$?
+        else
+            warn -1 "Git command not found while checking for release"
+            ret="-1"
+        fi
+        [[ "$ret" -eq "0" ]] || \
+            die 13 "is_release() failed to parse tags"
+    else  # Not testing a PR, but neither CIRRUS_BASE_SHA or CIRRUS_TAG are set
+        return 1
+    fi
+    if [[ -n "$RELVER" ]]; then
+        echo "Found \$RELVER $RELVER"
+        if echo "$RELVER" | grep -q '-'; then
+            return 2  # development tag
+        else
+            return 0
+        fi
+    else
+        return 1  # not a release
+    fi
 }
 
 setup_rootless() {
-    req_env_var "
-        ROOTLESS_USER $ROOTLESS_USER
-        GOSRC $GOSRC
-        ENVLIB $ENVLIB
-    "
+    req_env_var ROOTLESS_USER GOSRC SECRET_ENV_RE ROOTLESS_ENV_RE
 
+    # Only do this once
     if passwd --status $ROOTLESS_USER
     then
         echo "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
@@ -173,13 +294,7 @@ setup_rootless() {
         return 0
     fi
 
-    # Only do this once
     cd $GOSRC
-    make install.catatonit
-    go get github.com/onsi/ginkgo/ginkgo
-    go get github.com/onsi/gomega/...
-    dnf -y update runc
-
     # Guarantee independence from specific values
     ROOTLESS_UID=$[RANDOM+1000]
     ROOTLESS_GID=$[RANDOM+1000]
@@ -189,7 +304,8 @@ setup_rootless() {
     chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOSRC"
 
     echo "creating ssh keypair for $USER"
-    ssh-keygen -P "" -f $HOME/.ssh/id_rsa
+    [[ -r "$HOME/.ssh/id_rsa" ]] || \
+        ssh-keygen -P "" -f "$HOME/.ssh/id_rsa"
 
     echo "Allowing ssh key for $ROOTLESS_USER"
     (umask 077 && mkdir "/home/$ROOTLESS_USER/.ssh")
@@ -204,26 +320,45 @@ setup_rootless() {
         echo "${ROOTLESS_USER}:$[ROOTLESS_UID * 100]:65536" | \
             tee -a /etc/subuid >> /etc/subgid
 
-    echo "Setting permissions on automation files"
-    chmod 666 "$TIMESTAMPS_FILEPATH"
+    # Env. vars set by Cirrus and setup_environment.sh must be explicitly
+    # transferred to the test-user.
+    echo "Configuring rootless user's environment variables:"
+    echo "# Added by $GOSRC/$SCRIPT_PATH/lib.sh setup_rootless()"
+    _ENV_VAR_NAMES=$(awk 'BEGIN{for(v in ENVIRON) print v}' | \
+        egrep -v "(^PATH$)|(^BASH_FUNC)|(^[[:punct:][:space:]]+)|$SECRET_ENV_RE" | \
+        egrep "$ROOTLESS_ENV_RE" | \
+        sort -u)
+    for _env_var_name in $_ENV_VAR_NAMES
+    do
+        # Works with older versions of bash
+        printf "${_env_var_name}=%q\n" "$(printenv $_env_var_name)" >> "/home/$ROOTLESS_USER/.bashrc"
+    done
 
-    echo "Copying $HOME/$ENVLIB"
-    install -o $ROOTLESS_USER -g $ROOTLESS_USER -m 0700 \
-        "$HOME/$ENVLIB" "/home/$ROOTLESS_USER/$ENVLIB"
-
-    echo "Configuring user's go environment variables"
-    su --login --command 'go env' $ROOTLESS_USER | \
-        while read envline
-        do
-            X=$(echo "export $envline" | tee -a "/home/$ROOTLESS_USER/$ENVLIB") && echo "$X"
-        done
+    echo "Ensure the systems ssh process is up and running within 5 minutes"
+    systemctl start sshd
+    NOW=$(date +%s)
+    TIMEOUT=$(date --date '+5 minutes' +%s)
+    while [[ "$(date +%s)" -lt "$TIMEOUT" ]]
+    do
+        if timeout --foreground -k 1s 1s \
+            ssh $ROOTLESS_USER@localhost \
+            -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o CheckHostIP=no \
+            true
+        then
+            break
+        else
+            sleep 2s
+        fi
+    done
+    [[ "$(date +%s)" -lt "$TIMEOUT" ]] || \
+        die 11 "Timeout exceeded waiting for localhost ssh capability"
 }
 
 # Helper/wrapper script to only show stderr/stdout on non-zero exit
 install_ooe() {
-    req_env_var "SCRIPT_BASE $SCRIPT_BASE"
+    req_env_var SCRIPT_BASE
     echo "Installing script to mask stdout/stderr unless non-zero exit."
-    sudo install -D -m 755 "/tmp/libpod/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
+    sudo install -D -m 755 "$GOSRC/$SCRIPT_BASE/ooe.sh" /usr/local/bin/ooe.sh
 }
 
 # Grab a newer version of git from software collections
@@ -240,206 +375,116 @@ EOF
     sudo chmod 755 /usr/bin/git
 }
 
-install_cni_plugins() {
-    echo "Installing CNI Plugins from commit $CNI_COMMIT"
-    req_env_var "
-        GOPATH $GOPATH
-        CNI_COMMIT $CNI_COMMIT
-    "
-    DEST="$GOPATH/src/github.com/containernetworking/plugins"
-    rm -rf "$DEST"
-    ooe.sh git clone "https://github.com/containernetworking/plugins.git" "$DEST"
-    cd "$DEST"
-    ooe.sh git checkout -q "$CNI_COMMIT"
-    ooe.sh ./build.sh
-    sudo mkdir -p /usr/libexec/cni
-    sudo cp bin/* /usr/libexec/cni
+install_test_configs() {
+    echo "Installing cni config, policy and registry config"
+    req_env_var GOSRC SCRIPT_BASE
+    cd $GOSRC
+    install -v -D -m 644 ./cni/87-podman-bridge.conflist /etc/cni/net.d/
+    # This config must always sort last in the list of networks (podman picks first one
+    # as the default).  This config prevents allocation of network address space used
+    # by default in google cloud.  https://cloud.google.com/vpc/docs/vpc#ip-ranges
+    install -v -D -m 644 $SCRIPT_BASE/99-do-not-use-google-subnets.conflist /etc/cni/net.d/
+    install -v -D -m 644 ./test/policy.json /etc/containers/
+    install -v -D -m 644 ./test/registries.conf /etc/containers/
 }
 
-install_runc_from_git(){
-    wd=$(pwd)
-    DEST="$GOPATH/src/github.com/opencontainers/runc"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/opencontainers/runc.git "$DEST"
-    cd "$DEST"
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$RUNC_COMMIT"
-    ooe.sh make static BUILDTAGS="seccomp apparmor selinux"
-    sudo install -m 755 runc /usr/bin/runc
-    cd $wd
-}
+# Remove all files (except conmon, for now) provided by the distro version of podman.
+# Except conmon, for now as it's expected to eventually be  packaged separately.
+# All VM cache-images used for testing include the distro podman because (1) it's
+# required for podman-in-podman testing and (2) it somewhat simplifies the task
+# of pulling in necessary prerequisites packages as the set can change over time.
+# For general CI testing however, calling this function makes sure the system
+# can only run the compiled source version.
+remove_packaged_podman_files() {
+    echo "Removing packaged podman files to prevent conflicts with source build and testing."
+    req_env_var OS_RELEASE_ID
 
-install_runc(){
-    OS_RELEASE_ID=$(os_release_id)
-    echo "Installing RunC from commit $RUNC_COMMIT"
-    echo "Platform is $OS_RELEASE_ID"
-    req_env_var "
-        GOPATH $GOPATH
-        RUNC_COMMIT $RUNC_COMMIT
-        OS_RELEASE_ID $OS_RELEASE_ID
-    "
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
-        echo "Running make install.libseccomp.sudo for ubuntu"
-        if ! [[ -d "/tmp/libpod" ]]
-        then
-            echo "Expecting a copy of libpod repository in /tmp/libpod"
-            exit 5
-        fi
-        mkdir -p "$GOPATH/src/github.com/containers/"
-        # Symlinks don't work with Go
-        cp -a /tmp/libpod "$GOPATH/src/github.com/containers/"
-        cd "$GOPATH/src/github.com/containers/libpod"
-        ooe.sh sudo make install.libseccomp.sudo
-    fi
-    install_runc_from_git
-}
+    # If any binaries are resident they could cause unexpected pollution
+    for unit in io.podman.service io.podman.socket
+    do
+        for state in enabled active
+        do
+            if systemctl --quiet is-$state $unit
+            then
+                echo "Warning: $unit found $state prior to packaged-file removal"
+                systemctl --quiet disable $unit || true
+                systemctl --quiet stop $unit || true
+            fi
+        done
+    done
 
-install_buildah() {
-    echo "Installing buildah from latest upstream master"
-    req_env_var "GOPATH $GOPATH"
-    DEST="$GOPATH/src/github.com/containers/buildah"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/containers/buildah "$DEST"
-    cd "$DEST"
-    ooe.sh make
-    ooe.sh sudo make install
-}
-
-# Requires $GOPATH and $CRIO_COMMIT to be set
-install_conmon(){
-    echo "Installing conmon from commit $CRIO_COMMIT"
-    req_env_var "
-        GOPATH $GOPATH
-        CRIO_COMMIT $CRIO_COMMIT
-    "
-    DEST="$GOPATH/src/github.com/kubernetes-sigs/cri-o.git"
-    rm -rf "$DEST"
-    ooe.sh git clone https://github.com/kubernetes-sigs/cri-o.git "$DEST"
-    cd "$DEST"
-    ooe.sh git fetch origin --tags
-    ooe.sh git checkout -q "$CRIO_COMMIT"
-    ooe.sh make
-    sudo install -D -m 755 bin/conmon /usr/libexec/podman/conmon
-}
-
-install_criu(){
-    OS_RELEASE_ID=$(os_release_id)
-    OS_RELEASE_VER=$(os_release_ver)
-    echo "Installing CRIU"
-    echo "Installing CRIU from commit $CRIU_COMMIT"
-    echo "Platform is $OS_RELEASE_ID"
-    req_env_var "
-    CRIU_COMMIT $CRIU_COMMIT
-    "
-
-    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]; then
-        ooe.sh sudo -E add-apt-repository -y ppa:criu/ppa
-        ooe.sh sudo -E apt-get -qq -y update
-        ooe.sh sudo -E apt-get -qq -y install criu
-    elif [[ ( "$OS_RELEASE_ID" =~ "centos" || "$OS_RELEASE_ID" =~ "rhel" ) && "$OS_RELEASE_VER" =~ "7"* ]]; then
-        echo "Configuring Repositories for latest CRIU"
-        ooe.sh sudo tee /etc/yum.repos.d/adrian-criu-el7.repo <<EOF
-[adrian-criu-el7]
-name=Copr repo for criu-el7 owned by adrian
-baseurl=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/epel-7-$basearch/
-type=rpm-md
-skip_if_unavailable=True
-gpgcheck=1
-gpgkey=https://copr-be.cloud.fedoraproject.org/results/adrian/criu-el7/pubkey.gpg
-repo_gpgcheck=0
-enabled=1
-enabled_metadata=1
-EOF
-        ooe.sh sudo yum -y install criu
-    elif [[ "$OS_RELEASE_ID" =~ "fedora" ]]; then
-        echo "Using CRIU from distribution"
+    if [[ "$OS_RELEASE_ID" =~ "ubuntu" ]]
+    then
+        LISTING_CMD="sudo -E dpkg-query -L podman"
     else
-        DEST="/tmp/criu"
-        rm -rf "$DEST"
-        ooe.sh git clone https://github.com/checkpoint-restore/criu.git "$DEST"
-        cd $DEST
-        ooe.sh git fetch origin --tags
-        ooe.sh git checkout -q "$CRIU_COMMIT"
-        ooe.sh make
-        sudo install -D -m 755  criu/criu /usr/sbin/
+        LISTING_CMD='sudo rpm -ql podman'
     fi
+
+    # yum/dnf/dpkg may list system directories, only remove files
+    $LISTING_CMD | while read fullpath
+    do
+        # Sub-directories may contain unrelated/valuable stuff
+        if [[ -d "$fullpath" ]]; then continue; fi
+        ooe.sh sudo rm -vf "$fullpath"
+    done
+
+    # Be super extra sure and careful vs performant and completely safe
+    sync && echo 3 > /proc/sys/vm/drop_caches
 }
 
-install_packer_copied_files(){
-    # Install cni config, policy and registry config
-    sudo install -D -m 755 /tmp/libpod/cni/87-podman-bridge.conflist \
-                           /etc/cni/net.d/87-podman-bridge.conflist
-    sudo install -D -m 755 /tmp/libpod/test/policy.json \
-                           /etc/containers/policy.json
-    sudo install -D -m 755 /tmp/libpod/test/redhat_sigstore.yaml \
-                           /etc/containers/registries.d/registry.access.redhat.com.yaml
+canonicalize_image_names() {
+    req_env_var IMGNAMES
+    echo "Adding all current base images to \$IMGNAMES for timestamp update"
+    export IMGNAMES="\
+$IMGNAMES
+$UBUNTU_BASE_IMAGE
+$PRIOR_UBUNTU_BASE_IMAGE
+$FEDORA_BASE_IMAGE
+$PRIOR_FEDORA_BASE_IMAGE
+"
 }
 
-install_varlink() {
-    echo "Installing varlink from the cheese-factory"
-    ooe.sh sudo -H pip3 install varlink
+systemd_banish() {
+    $GOSRC/$PACKER_BASE/systemd_banish.sh
 }
 
-_finalize(){
+_finalize() {
     set +e  # Don't fail at the very end
-    set +e  # make errors non-fatal
-    echo "Removing leftover giblets from cloud-init"
+    if [[ -d "$CUSTOM_CLOUD_CONFIG_DEFAULTS" ]]
+    then
+        echo "Installing custom cloud-init defaults"
+        sudo cp -v "$CUSTOM_CLOUD_CONFIG_DEFAULTS"/* /etc/cloud/cloud.cfg.d/
+    else
+        echo "Could not find any files in $CUSTOM_CLOUD_CONFIG_DEFAULTS"
+    fi
+    echo "Re-initializing so next boot does 'first-boot' setup again."
     cd /
-    sudo rm -rf /var/lib/cloud/instance?
+    sudo rm -rf /var/lib/cloud/instanc*
     sudo rm -rf /root/.ssh/*
+    sudo rm -rf /etc/ssh/*key*
+    sudo rm -rf /etc/ssh/moduli
     sudo rm -rf /home/*
     sudo rm -rf /tmp/*
     sudo rm -rf /tmp/.??*
-    sync
+    sudo sync
     sudo fstrim -av
 }
 
-rh_finalize(){
+rh_finalize() {
     set +e  # Don't fail at the very end
-    # Allow root ssh-logins
-    if [[ -r /etc/cloud/cloud.cfg ]]
-    then
-        sudo sed -re 's/^disable_root:.*/disable_root: 0/g' -i /etc/cloud/cloud.cfg
-    fi
     echo "Resetting to fresh-state for usage as cloud-image."
     PKG=$(type -P dnf || type -P yum || echo "")
-    [[ -z "$PKG" ]] || sudo $PKG clean all  # not on atomic
+    sudo $PKG clean all
     sudo rm -rf /var/cache/{yum,dnf}
     sudo rm -f /etc/udev/rules.d/*-persistent-*.rules
     sudo touch /.unconfigured  # force firstboot to run
     _finalize
 }
 
-ubuntu_finalize(){
+ubuntu_finalize() {
     set +e  # Don't fail at the very end
     echo "Resetting to fresh-state for usage as cloud-image."
+    $LILTO $SUDOAPTGET autoremove
     sudo rm -rf /var/cache/apt
     _finalize
-}
-
-rhel_exit_handler() {
-    set +ex
-    req_env_var "
-        GOPATH $GOPATH
-        RHSMCMD $RHSMCMD
-    "
-    cd /
-    sudo rm -rf "$RHSMCMD"
-    sudo rm -rf "$GOPATH"
-    sudo subscription-manager remove --all
-    sudo subscription-manager unregister
-    sudo subscription-manager clean
-}
-
-rhsm_enable() {
-    req_env_var "
-        RHSM_COMMAND $RHSM_COMMAND
-    "
-    export GOPATH="$(mktemp -d)"
-    export RHSMCMD="$(mktemp)"
-    trap "rhel_exit_handler" EXIT
-    # Avoid logging sensitive details
-    echo "$RHSM_COMMAND" > "$RHSMCMD"
-    ooe.sh sudo bash "$RHSMCMD"
-    sudo rm -rf "$RHSMCMD"
 }

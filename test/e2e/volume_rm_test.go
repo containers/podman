@@ -22,7 +22,7 @@ var _ = Describe("Podman volume rm", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -56,7 +56,7 @@ var _ = Describe("Podman volume rm", func() {
 
 		session = podmanTest.Podman([]string{"volume", "rm", "myvol"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring(cid))
 
 		session = podmanTest.Podman([]string{"volume", "rm", "-f", "myvol"})
@@ -88,5 +88,39 @@ var _ = Describe("Podman volume rm", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("podman volume rm by partial name", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(0))
+	})
+
+	It("podman volume rm by nonunique partial name", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "myvol1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "create", "myvol2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{"volume", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray()) >= 2).To(BeTrue())
 	})
 })

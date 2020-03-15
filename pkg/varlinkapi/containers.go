@@ -9,17 +9,24 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
-	cc "github.com/containers/libpod/pkg/spec"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 // ListContainers ...
@@ -64,32 +71,34 @@ func (i *LibpodAPI) Ps(call iopodman.VarlinkCall, opts iopodman.PsOpts) error {
 
 	for _, ctr := range psContainerOutputs {
 		container := iopodman.PsContainer{
-			Id:         ctr.ID,
-			Image:      ctr.Image,
-			Command:    ctr.Command,
-			Created:    ctr.Created,
-			Ports:      ctr.Ports,
-			Names:      ctr.Names,
-			IsInfra:    ctr.IsInfra,
-			Status:     ctr.Status,
-			State:      ctr.State.String(),
-			PidNum:     int64(ctr.Pid),
-			RootFsSize: ctr.Size.RootFsSize,
-			RwSize:     ctr.Size.RwSize,
-			Pod:        ctr.Pod,
-			CreatedAt:  ctr.CreatedAt.Format(time.RFC3339Nano),
-			ExitedAt:   ctr.ExitedAt.Format(time.RFC3339Nano),
-			StartedAt:  ctr.StartedAt.Format(time.RFC3339Nano),
-			Labels:     ctr.Labels,
-			NsPid:      ctr.PID,
-			Cgroup:     ctr.Cgroup,
-			Ipc:        ctr.Cgroup,
-			Mnt:        ctr.MNT,
-			Net:        ctr.NET,
-			PidNs:      ctr.PIDNS,
-			User:       ctr.User,
-			Uts:        ctr.UTS,
-			Mounts:     ctr.Mounts,
+			Id:        ctr.ID,
+			Image:     ctr.Image,
+			Command:   ctr.Command,
+			Created:   ctr.Created,
+			Ports:     ctr.Ports,
+			Names:     ctr.Names,
+			IsInfra:   ctr.IsInfra,
+			Status:    ctr.Status,
+			State:     ctr.State.String(),
+			PidNum:    int64(ctr.Pid),
+			Pod:       ctr.Pod,
+			CreatedAt: ctr.CreatedAt.Format(time.RFC3339Nano),
+			ExitedAt:  ctr.ExitedAt.Format(time.RFC3339Nano),
+			StartedAt: ctr.StartedAt.Format(time.RFC3339Nano),
+			Labels:    ctr.Labels,
+			NsPid:     ctr.PID,
+			Cgroup:    ctr.Cgroup,
+			Ipc:       ctr.Cgroup,
+			Mnt:       ctr.MNT,
+			Net:       ctr.NET,
+			PidNs:     ctr.PIDNS,
+			User:      ctr.User,
+			Uts:       ctr.UTS,
+			Mounts:    ctr.Mounts,
+		}
+		if ctr.Size != nil {
+			container.RootFsSize = ctr.Size.RootFsSize
+			container.RwSize = ctr.Size.RwSize
 		}
 		containers = append(containers, container)
 	}
@@ -119,6 +128,9 @@ func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, lates
 
 	ctrs, err := shortcuts.GetContainersByContext(all, latest, input, i.Runtime)
 	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			return call.ReplyContainerNotFound("", err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 
@@ -128,22 +140,44 @@ func (i *LibpodAPI) GetContainersByContext(call iopodman.VarlinkCall, all, lates
 	return call.ReplyGetContainersByContext(ids)
 }
 
+// GetContainersByStatus returns a slice of containers filtered by a libpod status
+func (i *LibpodAPI) GetContainersByStatus(call iopodman.VarlinkCall, statuses []string) error {
+	var (
+		filterFuncs []libpod.ContainerFilter
+		containers  []iopodman.Container
+	)
+	for _, status := range statuses {
+		lpstatus, err := define.StringToContainerStatus(status)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == lpstatus
+		})
+	}
+	filteredContainers, err := i.Runtime.GetContainers(filterFuncs...)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	opts := shared.PsOptions{Size: true, Namespace: true}
+	for _, ctr := range filteredContainers {
+		batchInfo, err := shared.BatchContainerOp(ctr, opts)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		containers = append(containers, makeListContainer(ctr.ID(), batchInfo))
+	}
+	return call.ReplyGetContainersByStatus(containers)
+}
+
 // InspectContainer ...
 func (i *LibpodAPI) InspectContainer(call iopodman.VarlinkCall, name string) error {
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	inspectInfo, err := ctr.Inspect(true)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-	artifact, err := getArtifact(ctr)
-	if err != nil {
-		return call.ReplyErrorOccurred(err.Error())
-	}
-
-	data, err := shared.GetCtrInspectInfo(ctr.Config(), inspectInfo, artifact)
+	data, err := ctr.Inspect(true)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
@@ -164,7 +198,7 @@ func (i *LibpodAPI) ListContainerProcesses(call iopodman.VarlinkCall, name strin
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	if containerState != libpod.ContainerStateRunning {
+	if containerState != define.ContainerStateRunning {
 		return call.ReplyErrorOccurred(fmt.Sprintf("container %s is not running", name))
 	}
 	var psArgs []string
@@ -195,7 +229,7 @@ func (i *LibpodAPI) GetContainerLogs(call iopodman.VarlinkCall, name string) err
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	if _, err := os.Stat(logPath); err != nil {
-		if containerState == libpod.ContainerStateConfigured {
+		if containerState == define.ContainerStateConfigured {
 			return call.ReplyGetContainerLogs(logs)
 		}
 	}
@@ -225,7 +259,7 @@ func (i *LibpodAPI) GetContainerLogs(call iopodman.VarlinkCall, name string) err
 				if err != nil {
 					return call.ReplyErrorOccurred(err.Error())
 				}
-				if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+				if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
 					return call.ReplyErrorOccurred(fmt.Sprintf("%s is no longer running", ctr.ID()))
 				}
 
@@ -286,13 +320,22 @@ func (i *LibpodAPI) ExportContainer(call iopodman.VarlinkCall, name, outPath str
 
 // GetContainerStats ...
 func (i *LibpodAPI) GetContainerStats(call iopodman.VarlinkCall, name string) error {
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		if !cgroupv2 {
+			return call.ReplyErrRequiresCgroupsV2ForRootless("rootless containers cannot report container stats")
+		}
+	}
 	ctr, err := i.Runtime.LookupContainer(name)
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	containerStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 	if err != nil {
-		if errors.Cause(err) == libpod.ErrCtrStateInvalid {
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
 			return call.ReplyNoContainerRunning()
 		}
 		return call.ReplyErrorOccurred(err.Error())
@@ -325,13 +368,32 @@ func (i *LibpodAPI) StartContainer(call iopodman.VarlinkCall, name string) error
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	if state == libpod.ContainerStateRunning || state == libpod.ContainerStatePaused {
+	if state == define.ContainerStateRunning || state == define.ContainerStatePaused {
 		return call.ReplyErrorOccurred("container is already running or paused")
 	}
-	if err := ctr.Start(getContext(), false); err != nil {
+	recursive := false
+	if ctr.PodID() != "" {
+		recursive = true
+	}
+	if err := ctr.Start(getContext(), recursive); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyStartContainer(ctr.ID())
+}
+
+// InitContainer initializes the container given by Varlink.
+func (i *LibpodAPI) InitContainer(call iopodman.VarlinkCall, name string) error {
+	ctr, err := i.Runtime.LookupContainer(name)
+	if err != nil {
+		return call.ReplyContainerNotFound(name, err.Error())
+	}
+	if err := ctr.Init(getContext()); err != nil {
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyInitContainer(ctr.ID())
 }
 
 // StopContainer ...
@@ -340,7 +402,13 @@ func (i *LibpodAPI) StopContainer(call iopodman.VarlinkCall, name string, timeou
 	if err != nil {
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
-	if err := ctr.StopWithTimeout(uint(timeout)); err != nil && err != libpod.ErrCtrStopped {
+	if err := ctr.StopWithTimeout(uint(timeout)); err != nil {
+		if errors.Cause(err) == define.ErrCtrStopped {
+			return call.ReplyErrCtrStopped(ctr.ID())
+		}
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyStopContainer(ctr.ID())
@@ -361,7 +429,7 @@ func (i *LibpodAPI) RestartContainer(call iopodman.VarlinkCall, name string, tim
 // ContainerExists looks in local storage for the existence of a container
 func (i *LibpodAPI) ContainerExists(call iopodman.VarlinkCall, name string) error {
 	_, err := i.Runtime.LookupContainer(name)
-	if errors.Cause(err) == libpod.ErrNoSuchCtr {
+	if errors.Cause(err) == define.ErrNoSuchCtr {
 		return call.ReplyContainerExists(1)
 	}
 	if err != nil {
@@ -432,10 +500,25 @@ func (i *LibpodAPI) RemoveContainer(call iopodman.VarlinkCall, name string, forc
 		return call.ReplyContainerNotFound(name, err.Error())
 	}
 	if err := i.Runtime.RemoveContainer(ctx, ctr, force, removeVolumes); err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			return call.ReplyContainerExists(1)
+		}
+		if errors.Cause(err) == define.ErrCtrStateInvalid {
+			return call.ReplyInvalidState(ctr.ID(), err.Error())
+		}
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyRemoveContainer(ctr.ID())
+}
 
+// EvictContainer ...
+func (i *LibpodAPI) EvictContainer(call iopodman.VarlinkCall, name string, removeVolumes bool) error {
+	ctx := getContext()
+	id, err := i.Runtime.EvictContainer(ctx, name, removeVolumes)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyEvictContainer(id)
 }
 
 // DeleteStoppedContainers ...
@@ -451,7 +534,7 @@ func (i *LibpodAPI) DeleteStoppedContainers(call iopodman.VarlinkCall) error {
 		if err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
-		if state != libpod.ContainerStateRunning {
+		if state != define.ContainerStateRunning {
 			if err := i.Runtime.RemoveContainer(ctx, ctr, false, false); err != nil {
 				return call.ReplyErrorOccurred(err.Error())
 			}
@@ -475,15 +558,20 @@ func (i *LibpodAPI) GetAttachSockets(call iopodman.VarlinkCall, name string) err
 
 	// If the container hasn't been run, we need to run init
 	// so the conmon sockets get created.
-	if status == libpod.ContainerStateConfigured || status == libpod.ContainerStateStopped {
+	if status == define.ContainerStateConfigured || status == define.ContainerStateStopped {
 		if err := ctr.Init(getContext()); err != nil {
 			return call.ReplyErrorOccurred(err.Error())
 		}
 	}
 
+	sockPath, err := ctr.AttachSocketPath()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+
 	s := iopodman.Sockets{
 		Container_id:   ctr.ID(),
-		Io_socket:      ctr.AttachSocketPath(),
+		Io_socket:      sockPath,
 		Control_socket: ctr.ControlSocketPath(),
 	}
 	return call.ReplyGetAttachSockets(s)
@@ -524,18 +612,6 @@ func (i *LibpodAPI) ContainerRestore(call iopodman.VarlinkCall, name string, kee
 		return call.ReplyErrorOccurred(err.Error())
 	}
 	return call.ReplyContainerRestore(ctr.ID())
-}
-
-func getArtifact(ctr *libpod.Container) (*cc.CreateConfig, error) {
-	var createArtifact cc.CreateConfig
-	artifact, err := ctr.GetArtifact("create-config")
-	if err != nil {
-		return nil, err
-	}
-	if err := json.Unmarshal(artifact, &createArtifact); err != nil {
-		return nil, err
-	}
-	return &createArtifact, nil
 }
 
 // ContainerConfig returns just the container.config struct
@@ -660,10 +736,10 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	options := libpod.LogOptions{
+	options := logs.LogOptions{
 		Follow:     follow,
 		Since:      sinceTime,
-		Tail:       uint64(tail),
+		Tail:       tail,
 		Timestamps: timestamps,
 	}
 
@@ -671,7 +747,11 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	if len(names) > 1 {
 		options.Multi = true
 	}
-	logChannel := make(chan *libpod.LogLine, int(tail)*len(names)+1)
+	tailLen := int(tail)
+	if tailLen < 0 {
+		tailLen = 0
+	}
+	logChannel := make(chan *logs.LogLine, tailLen*len(names)+1)
 	containers, err := shortcuts.GetContainersByContext(false, latest, names, i.Runtime)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
@@ -693,7 +773,7 @@ func (i *LibpodAPI) GetContainersLogs(call iopodman.VarlinkCall, names []string,
 	return call.ReplyGetContainersLogs(iopodman.LogLine{})
 }
 
-func newPodmanLogLine(line *libpod.LogLine) iopodman.LogLine {
+func newPodmanLogLine(line *logs.LogLine) iopodman.LogLine {
 	return iopodman.LogLine{
 		Device:       line.Device,
 		ParseLogType: line.ParseLogType,
@@ -701,4 +781,130 @@ func newPodmanLogLine(line *libpod.LogLine) iopodman.LogLine {
 		Msg:          line.Msg,
 		Cid:          line.CID,
 	}
+}
+
+// Top displays information about a container's running processes
+func (i *LibpodAPI) Top(call iopodman.VarlinkCall, nameOrID string, descriptors []string) error {
+	ctr, err := i.Runtime.LookupContainer(nameOrID)
+	if err != nil {
+		return call.ReplyContainerNotFound(ctr.ID(), err.Error())
+	}
+	topInfo, err := ctr.Top(descriptors)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyTop(topInfo)
+}
+
+// ExecContainer is the varlink endpoint to execute a command in a container
+func (i *LibpodAPI) ExecContainer(call iopodman.VarlinkCall, opts iopodman.ExecOpts) error {
+	if !call.WantsUpgrade() {
+		return call.ReplyErrorOccurred("client must use upgraded connection to exec")
+	}
+
+	ctr, err := i.Runtime.LookupContainer(opts.Name)
+	if err != nil {
+		return call.ReplyContainerNotFound(opts.Name, err.Error())
+	}
+
+	state, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(
+			fmt.Sprintf("exec failed to obtain container %s state: %s", ctr.ID(), err.Error()))
+	}
+
+	if state != define.ContainerStateRunning {
+		return call.ReplyErrorOccurred(
+			fmt.Sprintf("exec requires a running container, %s is %s", ctr.ID(), state.String()))
+	}
+
+	// ACK the client upgrade request
+	call.ReplyExecContainer()
+
+	envs := make(map[string]string)
+	if opts.Env != nil {
+		// HACK: The Varlink API uses the old []string format for env,
+		// storage as "k=v". Split on the = and turn into the new map
+		// format.
+		for _, env := range *opts.Env {
+			splitEnv := strings.SplitN(env, "=", 2)
+			if len(splitEnv) == 1 {
+				logrus.Errorf("Got badly-formatted environment variable %q in exec", env)
+				continue
+			}
+			envs[splitEnv[0]] = splitEnv[1]
+		}
+	}
+
+	var user string
+	if opts.User != nil {
+		user = *opts.User
+	}
+
+	var workDir string
+	if opts.Workdir != nil {
+		workDir = *opts.Workdir
+	}
+
+	var detachKeys string
+	if opts.DetachKeys != nil {
+		detachKeys = *opts.DetachKeys
+	}
+
+	resizeChan := make(chan remotecommand.TerminalSize)
+
+	reader, writer, _, pipeWriter, streams := setupStreams(call)
+
+	type ExitCodeError struct {
+		ExitCode uint32
+		Error    error
+	}
+	ecErrChan := make(chan ExitCodeError, 1)
+
+	go func() {
+		if err := virtwriter.Reader(reader, nil, nil, pipeWriter, resizeChan, nil); err != nil {
+			ecErrChan <- ExitCodeError{
+				define.ExecErrorCodeGeneric,
+				err,
+			}
+		}
+	}()
+
+	go func() {
+		ec, err := ctr.Exec(opts.Tty, opts.Privileged, envs, opts.Cmd, user, workDir, streams, 0, resizeChan, detachKeys)
+		if err != nil {
+			logrus.Errorf(err.Error())
+		}
+		ecErrChan <- ExitCodeError{
+			uint32(ec),
+			err,
+		}
+	}()
+
+	ecErr := <-ecErrChan
+
+	exitCode := define.TranslateExecErrorToExitCode(int(ecErr.ExitCode), ecErr.Error)
+
+	if err = virtwriter.HangUp(writer, uint32(exitCode)); err != nil {
+		logrus.Errorf("ExecContainer failed to HANG-UP on %s: %s", ctr.ID(), err.Error())
+	}
+
+	if err := call.Writer.Flush(); err != nil {
+		logrus.Errorf("Exec Container err: %s", err.Error())
+	}
+
+	return ecErr.Error
+}
+
+//HealthCheckRun executes defined container's healthcheck command and returns the container's health status.
+func (i *LibpodAPI) HealthCheckRun(call iopodman.VarlinkCall, nameOrID string) error {
+	hcStatus, err := i.Runtime.HealthCheck(nameOrID)
+	if err != nil && hcStatus != libpod.HealthCheckFailure {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	status := libpod.HealthCheckUnhealthy
+	if hcStatus == libpod.HealthCheckSuccess {
+		status = libpod.HealthCheckHealthy
+	}
+	return call.ReplyHealthCheckRun(status)
 }

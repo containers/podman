@@ -2,25 +2,23 @@ package buildah
 
 import (
 	"context"
-	"fmt"
 	"io"
-
 	"strings"
+	"time"
 
 	"github.com/containers/buildah/pkg/blobcache"
 	"github.com/containers/buildah/util"
-	cp "github.com/containers/image/copy"
-	"github.com/containers/image/directory"
-	"github.com/containers/image/docker"
-	dockerarchive "github.com/containers/image/docker/archive"
-	"github.com/containers/image/docker/reference"
-	tarfile "github.com/containers/image/docker/tarfile"
-	ociarchive "github.com/containers/image/oci/archive"
-	oci "github.com/containers/image/oci/layout"
-	"github.com/containers/image/signature"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/docker"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	"github.com/containers/image/v5/docker/reference"
+	tarfile "github.com/containers/image/v5/docker/tarfile"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	oci "github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/signature"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/pkg/errors"
@@ -50,6 +48,14 @@ type PullOptions struct {
 	// AllTags is a boolean value that determines if all tagged images
 	// will be downloaded from the repository. The default is false.
 	AllTags bool
+	// RemoveSignatures causes any existing signatures for the image to be
+	// discarded when pulling it.
+	RemoveSignatures bool
+	// MaxRetries is the maximum number of attempts we'll make to pull any
+	// one image from the external registry if the first attempt fails.
+	MaxRetries int
+	// RetryDelay is how long to wait before retrying a pull attempt.
+	RetryDelay time.Duration
 }
 
 func localImageNameForReference(ctx context.Context, store storage.Store, srcRef types.ImageReference) (string, error) {
@@ -64,6 +70,7 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		if err != nil {
 			return "", errors.Wrapf(err, "error opening tarfile %q as a source image", file)
 		}
+		defer tarSource.Close()
 		manifest, err := tarSource.LoadTarManifest()
 		if err != nil {
 			return "", errors.Errorf("error retrieving manifest.json from tarfile %q: %v", file, err)
@@ -103,19 +110,11 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 		}
 	case directory.Transport.Name():
 		// supports pull from a directory
-		name = srcRef.StringWithinTransport()
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(srcRef.StringWithinTransport())
 	case oci.Transport.Name():
 		// supports pull from a directory
 		split := strings.SplitN(srcRef.StringWithinTransport(), ":", 2)
-		name = split[0]
-		// remove leading "/"
-		if name[:1] == "/" {
-			name = name[1:]
-		}
+		name = toLocalImageName(split[0])
 	default:
 		ref := srcRef.DockerReference()
 		if ref == nil {
@@ -152,8 +151,9 @@ func localImageNameForReference(ctx context.Context, store storage.Store, srcRef
 	return name, nil
 }
 
-// Pull copies the contents of the image from somewhere else to local storage.
-func Pull(ctx context.Context, imageName string, options PullOptions) error {
+// Pull copies the contents of the image from somewhere else to local storage.  Returns the
+// ID of the local image or an error.
+func Pull(ctx context.Context, imageName string, options PullOptions) (imageID string, err error) {
 	systemContext := getSystemContext(options.Store, options.SystemContext, options.SignaturePolicyPath)
 
 	boptions := BuilderOptions{
@@ -162,27 +162,29 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 		SystemContext:       systemContext,
 		BlobDirectory:       options.BlobDirectory,
 		ReportWriter:        options.ReportWriter,
+		MaxPullRetries:      options.MaxRetries,
+		PullRetryDelay:      options.RetryDelay,
 	}
 
 	storageRef, transport, img, err := resolveImage(ctx, systemContext, options.Store, boptions)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var errs *multierror.Error
 	if options.AllTags {
 		if transport != util.DefaultTransport {
-			return errors.New("Non-docker transport is not supported, for --all-tags pulling")
+			return "", errors.New("Non-docker transport is not supported, for --all-tags pulling")
 		}
 
 		repo := reference.TrimNamed(storageRef.DockerReference())
 		dockerRef, err := docker.NewReference(reference.TagNameOnly(storageRef.DockerReference()))
 		if err != nil {
-			return errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
+			return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", storageRef.DockerReference().String())
 		}
 		tags, err := docker.GetRepositoryTags(ctx, systemContext, dockerRef)
 		if err != nil {
-			return errors.Wrapf(err, "error getting repository tags")
+			return "", errors.Wrapf(err, "error getting repository tags")
 		}
 		for _, tag := range tags {
 			tagged, err := reference.WithTag(repo, tag)
@@ -192,10 +194,12 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 			}
 			taggedRef, err := docker.NewReference(tagged)
 			if err != nil {
-				return errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
+				return "", errors.Wrapf(err, "internal error creating docker.Transport reference for %s", tagged.String())
 			}
 			if options.ReportWriter != nil {
-				options.ReportWriter.Write([]byte("Pulling " + tagged.String() + "\n"))
+				if _, err := options.ReportWriter.Write([]byte("Pulling " + tagged.String() + "\n")); err != nil {
+					return "", errors.Wrapf(err, "error writing pull report")
+				}
 			}
 			ref, err := pullImage(ctx, options.Store, taggedRef, options, systemContext)
 			if err != nil {
@@ -207,13 +211,13 @@ func Pull(ctx context.Context, imageName string, options PullOptions) error {
 				errs = multierror.Append(errs, err)
 				continue
 			}
-			fmt.Printf("%s\n", taggedImg.ID)
+			imageID = taggedImg.ID
 		}
 	} else {
-		fmt.Printf("%s\n", img.ID)
+		imageID = img.ID
 	}
 
-	return errs.ErrorOrNil()
+	return imageID, errs.ErrorOrNil()
 }
 
 func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageReference, options PullOptions, sc *types.SystemContext) (types.ImageReference, error) {
@@ -223,6 +227,9 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}
 	if blocked {
 		return nil, errors.Errorf("pull access to registry for %q is blocked by configuration", transports.ImageName(srcRef))
+	}
+	if err := checkRegistrySourcesAllows("pull from", srcRef); err != nil {
+		return nil, err
 	}
 
 	destName, err := localImageNameForReference(ctx, store, srcRef)
@@ -263,7 +270,7 @@ func pullImage(ctx context.Context, store storage.Store, srcRef types.ImageRefer
 	}()
 
 	logrus.Debugf("copying %q to %q", transports.ImageName(srcRef), destName)
-	if _, err := cp.Image(ctx, policyContext, maybeCachedDestRef, srcRef, getCopyOptions(store, options.ReportWriter, srcRef, sc, maybeCachedDestRef, nil, "")); err != nil {
+	if _, err := retryCopyImage(ctx, policyContext, maybeCachedDestRef, srcRef, srcRef, "pull", getCopyOptions(store, options.ReportWriter, sc, nil, "", options.RemoveSignatures, ""), options.MaxRetries, options.RetryDelay); err != nil {
 		logrus.Debugf("error copying src image [%q] to dest image [%q] err: %v", transports.ImageName(srcRef), destName, err)
 		return nil, err
 	}
@@ -284,4 +291,9 @@ func getImageDigest(ctx context.Context, src types.ImageReference, sc *types.Sys
 		return "", errors.Wrapf(err, "error getting config info from image %q", transports.ImageName(src))
 	}
 	return "@" + digest.Hex(), nil
+}
+
+// toLocalImageName converts an image name into a 'localhost/' prefixed one
+func toLocalImageName(imageName string) string {
+	return "localhost/" + strings.TrimLeft(imageName, "/")
 }

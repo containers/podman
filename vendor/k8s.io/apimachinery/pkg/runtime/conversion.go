@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Defines conversions between generic types and structs to map query strings
+// Package runtime defines conversions between generic types and structs to map query strings
 // to struct objects.
 package runtime
 
@@ -27,7 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 )
 
-// DefaultFieldSelectorConversion auto-accepts metav1 values for name and namespace.
+// DefaultMetaV1FieldSelectorConversion auto-accepts metav1 values for name and namespace.
 // A cluster scoped resource specifying namespace empty works fine and specifying a particular
 // namespace will return no results, as expected.
 func DefaultMetaV1FieldSelectorConversion(label, value string) (string, string, error) {
@@ -61,19 +61,21 @@ var DefaultStringConversions = []interface{}{
 	Convert_Slice_string_To_int64,
 }
 
-func Convert_Slice_string_To_string(input *[]string, out *string, s conversion.Scope) error {
-	if len(*input) == 0 {
+func Convert_Slice_string_To_string(in *[]string, out *string, s conversion.Scope) error {
+	if len(*in) == 0 {
 		*out = ""
+		return nil
 	}
-	*out = (*input)[0]
+	*out = (*in)[0]
 	return nil
 }
 
-func Convert_Slice_string_To_int(input *[]string, out *int, s conversion.Scope) error {
-	if len(*input) == 0 {
+func Convert_Slice_string_To_int(in *[]string, out *int, s conversion.Scope) error {
+	if len(*in) == 0 {
 		*out = 0
+		return nil
 	}
-	str := (*input)[0]
+	str := (*in)[0]
 	i, err := strconv.Atoi(str)
 	if err != nil {
 		return err
@@ -82,16 +84,17 @@ func Convert_Slice_string_To_int(input *[]string, out *int, s conversion.Scope) 
 	return nil
 }
 
-// Conver_Slice_string_To_bool will convert a string parameter to boolean.
-// Only the absence of a value, a value of "false", or a value of "0" resolve to false.
+// Convert_Slice_string_To_bool will convert a string parameter to boolean.
+// Only the absence of a value (i.e. zero-length slice), a value of "false", or a
+// value of "0" resolve to false.
 // Any other value (including empty string) resolves to true.
-func Convert_Slice_string_To_bool(input *[]string, out *bool, s conversion.Scope) error {
-	if len(*input) == 0 {
+func Convert_Slice_string_To_bool(in *[]string, out *bool, s conversion.Scope) error {
+	if len(*in) == 0 {
 		*out = false
 		return nil
 	}
-	switch strings.ToLower((*input)[0]) {
-	case "false", "0":
+	switch {
+	case (*in)[0] == "0", strings.EqualFold((*in)[0], "false"):
 		*out = false
 	default:
 		*out = true
@@ -99,15 +102,79 @@ func Convert_Slice_string_To_bool(input *[]string, out *bool, s conversion.Scope
 	return nil
 }
 
-func Convert_Slice_string_To_int64(input *[]string, out *int64, s conversion.Scope) error {
-	if len(*input) == 0 {
-		*out = 0
+// Convert_Slice_string_To_bool will convert a string parameter to boolean.
+// Only the absence of a value (i.e. zero-length slice), a value of "false", or a
+// value of "0" resolve to false.
+// Any other value (including empty string) resolves to true.
+func Convert_Slice_string_To_Pointer_bool(in *[]string, out **bool, s conversion.Scope) error {
+	if len(*in) == 0 {
+		boolVar := false
+		*out = &boolVar
+		return nil
 	}
-	str := (*input)[0]
-	i, err := strconv.ParseInt(str, 10, 64)
+	switch {
+	case (*in)[0] == "0", strings.EqualFold((*in)[0], "false"):
+		boolVar := false
+		*out = &boolVar
+	default:
+		boolVar := true
+		*out = &boolVar
+	}
+	return nil
+}
+
+func string_to_int64(in string) (int64, error) {
+	return strconv.ParseInt(in, 10, 64)
+}
+
+func Convert_string_To_int64(in *string, out *int64, s conversion.Scope) error {
+	if in == nil {
+		*out = 0
+		return nil
+	}
+	i, err := string_to_int64(*in)
 	if err != nil {
 		return err
 	}
 	*out = i
+	return nil
+}
+
+func Convert_Slice_string_To_int64(in *[]string, out *int64, s conversion.Scope) error {
+	if len(*in) == 0 {
+		*out = 0
+		return nil
+	}
+	i, err := string_to_int64((*in)[0])
+	if err != nil {
+		return err
+	}
+	*out = i
+	return nil
+}
+
+func Convert_string_To_Pointer_int64(in *string, out **int64, s conversion.Scope) error {
+	if in == nil {
+		*out = nil
+		return nil
+	}
+	i, err := string_to_int64(*in)
+	if err != nil {
+		return err
+	}
+	*out = &i
+	return nil
+}
+
+func Convert_Slice_string_To_Pointer_int64(in *[]string, out **int64, s conversion.Scope) error {
+	if len(*in) == 0 {
+		*out = nil
+		return nil
+	}
+	i, err := string_to_int64((*in)[0])
+	if err != nil {
+		return err
+	}
+	*out = &i
 	return nil
 }

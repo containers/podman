@@ -13,7 +13,10 @@ import (
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -52,9 +55,14 @@ func init() {
 }
 
 func podStatsCmd(c *cliconfig.PodStatsValues) error {
-
-	if os.Geteuid() != 0 {
-		return errors.New("stats is not supported in rootless mode")
+	if rootless.IsRootless() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if !unified {
+			return errors.New("stats is not supported in rootless mode without cgroups v2")
+		}
 	}
 
 	format := c.Format
@@ -73,16 +81,13 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
-	} else if ctr == 0 {
-		// If user didn't specify, imply --all
-		all = true
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	times := -1
 	if c.NoStream {
@@ -92,24 +97,6 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 	pods, err := runtime.GetStatPods(c)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get a list of pods")
-	}
-	// First we need to get an initial pass of pod/ctr stats (these are not printed)
-	var podStats []*adapter.PodContainerStats
-	for _, p := range pods {
-		cons, err := p.AllContainersByID()
-		if err != nil {
-			return err
-		}
-		emptyStats := make(map[string]*libpod.ContainerStats)
-		// Iterate the pods container ids and make blank stats for them
-		for _, c := range cons {
-			emptyStats[c] = &libpod.ContainerStats{}
-		}
-		ps := adapter.PodContainerStats{
-			Pod:            p,
-			ContainerStats: emptyStats,
-		}
-		podStats = append(podStats, &ps)
 	}
 
 	// Create empty container stat results for our first pass
@@ -137,10 +124,8 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		for i := 0; i < t.NumField(); i++ {
 			value := strings.ToUpper(splitCamelCase(t.Field(i).Name))
 			switch value {
-			case "CPU":
-				value = value + " %"
-			case "MEM":
-				value = value + " %"
+			case "CPU", "MEM":
+				value += " %"
 			case "MEM USAGE":
 				value = "MEM USAGE / LIMIT"
 			}
@@ -153,7 +138,7 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 		for _, p := range pods {
 			prevStat := getPreviousPodContainerStats(p.ID(), previousPodStats)
 			newPodStats, err := p.GetPodStats(prevStat)
-			if errors.Cause(err) == libpod.ErrNoSuchPod {
+			if errors.Cause(err) == define.ErrNoSuchPod {
 				continue
 			}
 			if err != nil {
@@ -172,16 +157,16 @@ func podStatsCmd(c *cliconfig.PodStatsValues) error {
 			tm.Flush()
 		}
 		if strings.ToLower(format) == formats.JSONString {
-			outputJson(newStats)
+			if err := outputJson(newStats); err != nil {
+				return err
+			}
 
 		} else {
 			results := podContainerStatsToPodStatOut(newStats)
 			if len(format) == 0 {
 				outputToStdOut(results)
-			} else {
-				if err := printPSFormat(c.Format, results, headerNames); err != nil {
-					return err
-				}
+			} else if err := printPSFormat(c.Format, results, headerNames); err != nil {
+				return err
 			}
 		}
 		time.Sleep(time.Second)
@@ -270,7 +255,7 @@ func printPSFormat(format string, stats []*podStatOut, headerNames map[string]st
 
 func outputToStdOut(stats []*podStatOut) {
 	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	outFormat := ("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n")
+	outFormat := "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n"
 	fmt.Fprintf(w, outFormat, "POD", "CID", "NAME", "CPU %", "MEM USAGE/ LIMIT", "MEM %", "NET IO", "BLOCK IO", "PIDS")
 	for _, i := range stats {
 		if len(stats) == 0 {
@@ -298,18 +283,4 @@ func outputJson(stats []*adapter.PodContainerStats) error {
 	}
 	fmt.Println(string(b))
 	return nil
-}
-
-func getPodsByList(podList []string, r *libpod.Runtime) ([]*libpod.Pod, error) {
-	var (
-		pods []*libpod.Pod
-	)
-	for _, p := range podList {
-		pod, err := r.LookupPod(p)
-		if err != nil {
-			return nil, err
-		}
-		pods = append(pods, pod)
-	}
-	return pods, nil
 }

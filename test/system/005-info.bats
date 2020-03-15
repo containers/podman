@@ -3,7 +3,7 @@
 load helpers
 
 @test "podman info - basic test" {
-    skip_if_remote
+    skip_if_remote "capitalization inconsistencies"
 
     run_podman info
 
@@ -11,10 +11,10 @@ load helpers
 BuildahVersion: *[0-9.]\\\+
 Conmon:\\\s\\\+package:
 Distribution:
-OCIRuntime:\\\s\\\+package:
+OCIRuntime:\\\s\\\+name:
 os:
 rootless:
-insecure registries:
+registries:
 store:
 GraphDriverName:
 GraphRoot:
@@ -28,18 +28,16 @@ RunRoot:
 }
 
 @test "podman info - json" {
-    skip_if_remote
+    skip_if_remote "capitalization inconsistencies"
 
     run_podman info --format=json
 
     expr_nvr="[a-z0-9-]\\\+-[a-z0-9.]\\\+-[a-z0-9]\\\+\."
-    expr_path="/[a-z0-9\\\/.]\\\+\\\$"
+    expr_path="/[a-z0-9\\\/.-]\\\+\\\$"
 
     tests="
 host.BuildahVersion       | [0-9.]
-host.Conmon.package       | $expr_nvr
 host.Conmon.path          | $expr_path
-host.OCIRuntime.package   | $expr_nvr
 host.OCIRuntime.path      | $expr_path
 store.ConfigFile          | $expr_path
 store.GraphDriverName     | [a-z0-9]\\\+\\\$

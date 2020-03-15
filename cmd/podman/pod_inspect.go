@@ -49,11 +49,11 @@ func podInspectCmd(c *cliconfig.PodInspectValues) error {
 		return errors.Errorf("you must provide the name or id of a pod")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Latest {
 		pod, err = runtime.GetLatestPod()

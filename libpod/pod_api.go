@@ -3,7 +3,10 @@ package libpod
 import (
 	"context"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +30,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -36,7 +39,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
@@ -47,7 +50,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
 	}
 
 	// Traverse the graph beginning at nodes with no dependencies
@@ -56,7 +59,7 @@ func (p *Pod) Start(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error starting some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error starting some containers")
 	}
 	defer p.newPodEvent(events.Start)
 	return nil, nil
@@ -88,7 +91,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -112,7 +115,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -136,7 +139,7 @@ func (p *Pod) StopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error stopping some containers")
 	}
 	defer p.newPodEvent(events.Stop)
 	return nil, nil
@@ -159,7 +162,17 @@ func (p *Pod) Pause() (map[string]error, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
+	}
+
+	if rootless.IsRootless() {
+		cgroupv2, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to determine cgroupversion")
+		}
+		if !cgroupv2 {
+			return nil, errors.Wrap(define.ErrNoCgroups, "can not pause pods containing rootless containers with cgroup V1")
+		}
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -180,7 +193,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -195,7 +208,7 @@ func (p *Pod) Pause() (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error pausing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error pausing some containers")
 	}
 	defer p.newPodEvent(events.Pause)
 	return nil, nil
@@ -218,7 +231,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -239,7 +252,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 		}
 
 		// Ignore containers that are not paused
-		if ctr.state.State != ContainerStatePaused {
+		if ctr.state.State != define.ContainerStatePaused {
 			ctr.lock.Unlock()
 			continue
 		}
@@ -254,7 +267,7 @@ func (p *Pod) Unpause() (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error unpausing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error unpausing some containers")
 	}
 
 	defer p.newPodEvent(events.Unpause)
@@ -279,7 +292,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -288,7 +301,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	// Build a dependency graph of containers in the pod
-	graph, err := buildContainerGraph(allCtrs)
+	graph, err := BuildContainerGraph(allCtrs)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error generating dependency graph for pod %s", p.ID())
 	}
@@ -299,7 +312,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	// If there are no containers without dependencies, we can't start
 	// Error out
 	if len(graph.noDepNodes) == 0 {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no containers in pod %s have no dependencies, cannot start pod", p.ID())
 	}
 
 	// Traverse the graph beginning at nodes with no dependencies
@@ -308,7 +321,7 @@ func (p *Pod) Restart(ctx context.Context) (map[string]error, error) {
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error stopping some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error stopping some containers")
 	}
 	p.newPodEvent(events.Stop)
 	p.newPodEvent(events.Start)
@@ -331,7 +344,7 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
@@ -352,22 +365,29 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 		}
 
 		// Ignore containers that are not running
-		if ctr.state.State != ContainerStateRunning {
+		if ctr.state.State != define.ContainerStateRunning {
 			ctr.lock.Unlock()
 			continue
 		}
 
-		if err := ctr.runtime.ociRuntime.killContainer(ctr, signal); err != nil {
+		if err := ctr.ociRuntime.KillContainer(ctr, signal, false); err != nil {
 			ctr.lock.Unlock()
 			ctrErrors[ctr.ID()] = err
 			continue
 		}
 
 		logrus.Debugf("Killed container %s with signal %d", ctr.ID(), signal)
+
+		ctr.state.StoppedByUser = true
+		if err := ctr.save(); err != nil {
+			ctrErrors[ctr.ID()] = err
+		}
+
+		ctr.lock.Unlock()
 	}
 
 	if len(ctrErrors) > 0 {
-		return ctrErrors, errors.Wrapf(ErrCtrExists, "error killing some containers")
+		return ctrErrors, errors.Wrapf(define.ErrCtrExists, "error killing some containers")
 	}
 	defer p.newPodEvent(events.Kill)
 	return nil, nil
@@ -375,19 +395,22 @@ func (p *Pod) Kill(signal uint) (map[string]error, error) {
 
 // Status gets the status of all containers in the pod
 // Returns a map of Container ID to Container Status
-func (p *Pod) Status() (map[string]ContainerStatus, error) {
+func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 
 	if !p.valid {
-		return nil, ErrPodRemoved
+		return nil, define.ErrPodRemoved
 	}
 
 	allCtrs, err := p.runtime.state.PodContainers(p)
 	if err != nil {
 		return nil, err
 	}
+	return containerStatusFromContainers(allCtrs)
+}
 
+func containerStatusFromContainers(allCtrs []*Container) (map[string]define.ContainerStatus, error) {
 	// We need to lock all the containers
 	for _, ctr := range allCtrs {
 		ctr.lock.Lock()
@@ -395,7 +418,7 @@ func (p *Pod) Status() (map[string]ContainerStatus, error) {
 	}
 
 	// Now that all containers are locked, get their status
-	status := make(map[string]ContainerStatus, len(allCtrs))
+	status := make(map[string]define.ContainerStatus, len(allCtrs))
 	for _, ctr := range allCtrs {
 		if err := ctr.syncContainer(); err != nil {
 			return nil, err
@@ -423,9 +446,17 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 	if err != nil {
 		return &PodInspect{}, err
 	}
+	ctrStatuses, err := containerStatusFromContainers(containers)
+	if err != nil {
+		return nil, err
+	}
+	status, err := CreatePodStatusResults(ctrStatuses)
+	if err != nil {
+		return nil, err
+	}
 	for _, c := range containers {
 		containerStatus := "unknown"
-		// Ignoring possible errors here because we dont want this to be
+		// Ignoring possible errors here because we don't want this to be
 		// catastrophic in nature
 		containerState, err := c.State()
 		if err == nil {
@@ -448,6 +479,7 @@ func (p *Pod) Inspect() (*PodInspect, error) {
 		State: &PodInspectState{
 			CgroupPath:       p.state.CgroupPath,
 			InfraContainerID: infraContainerID,
+			Status:           status,
 		},
 		Containers: podContainers,
 	}

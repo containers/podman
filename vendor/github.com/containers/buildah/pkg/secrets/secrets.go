@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/buildah/pkg/umask"
 	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -28,20 +29,22 @@ var (
 
 // secretData stores the name of the file and the content read from it
 type secretData struct {
-	name string
-	data []byte
+	name    string
+	data    []byte
+	mode    os.FileMode
+	dirMode os.FileMode
 }
 
 // saveTo saves secret data to given directory
 func (s secretData) saveTo(dir string) error {
 	path := filepath.Join(dir, s.name)
-	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil && !os.IsExist(err) {
+	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil && !os.IsExist(err) {
 		return err
 	}
-	return ioutil.WriteFile(path, s.data, 0700)
+	return ioutil.WriteFile(path, s.data, s.mode)
 }
 
-func readAll(root, prefix string) ([]secretData, error) {
+func readAll(root, prefix string, parentMode os.FileMode) ([]secretData, error) {
 	path := filepath.Join(root, prefix)
 
 	data := []secretData{}
@@ -56,7 +59,7 @@ func readAll(root, prefix string) ([]secretData, error) {
 	}
 
 	for _, f := range files {
-		fileData, err := readFile(root, filepath.Join(prefix, f.Name()))
+		fileData, err := readFileOrDir(root, filepath.Join(prefix, f.Name()), parentMode)
 		if err != nil {
 			// If the file did not exist, might be a dangling symlink
 			// Ignore the error
@@ -71,7 +74,7 @@ func readAll(root, prefix string) ([]secretData, error) {
 	return data, nil
 }
 
-func readFile(root, name string) ([]secretData, error) {
+func readFileOrDir(root, name string, parentMode os.FileMode) ([]secretData, error) {
 	path := filepath.Join(root, name)
 
 	s, err := os.Stat(path)
@@ -80,7 +83,7 @@ func readFile(root, name string) ([]secretData, error) {
 	}
 
 	if s.IsDir() {
-		dirData, err := readAll(root, name)
+		dirData, err := readAll(root, name, s.Mode())
 		if err != nil {
 			return nil, err
 		}
@@ -90,12 +93,17 @@ func readFile(root, name string) ([]secretData, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []secretData{{name: name, data: bytes}}, nil
+	return []secretData{{
+		name:    name,
+		data:    bytes,
+		mode:    s.Mode(),
+		dirMode: parentMode,
+	}}, nil
 }
 
-func getHostSecretData(hostDir string) ([]secretData, error) {
+func getHostSecretData(hostDir string, mode os.FileMode) ([]secretData, error) {
 	var allSecrets []secretData
-	hostSecrets, err := readAll(hostDir, "")
+	hostSecrets, err := readAll(hostDir, "", mode)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read secrets from %q", hostDir)
 	}
@@ -117,7 +125,12 @@ func getMounts(filePath string) []string {
 	}
 	var mounts []string
 	for scanner.Scan() {
-		mounts = append(mounts, scanner.Text())
+		if strings.HasPrefix(strings.TrimSpace(scanner.Text()), "/") {
+			mounts = append(mounts, scanner.Text())
+		} else {
+			logrus.Debugf("skipping unrecognized mount in %v: %q",
+				filePath, scanner.Text())
+		}
 	}
 	return mounts
 }
@@ -125,19 +138,31 @@ func getMounts(filePath string) []string {
 // getHostAndCtrDir separates the host:container paths
 func getMountsMap(path string) (string, string, error) {
 	arr := strings.SplitN(path, ":", 2)
-	if len(arr) == 2 {
+	switch len(arr) {
+	case 1:
+		return arr[0], arr[0], nil
+	case 2:
 		return arr[0], arr[1], nil
 	}
-	return "", "", errors.Errorf("unable to get host and container dir")
+	return "", "", errors.Errorf("unable to get host and container dir from path: %s", path)
 }
 
 // SecretMounts copies, adds, and mounts the secrets to the container root filesystem
-func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless bool) []rspec.Mount {
-	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless)
+// Deprecated, Please use SecretMountWithUIDGID
+func SecretMounts(mountLabel, containerWorkingDir, mountFile string, rootless, disableFips bool) []rspec.Mount {
+	return SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, containerWorkingDir, 0, 0, rootless, disableFips)
 }
 
-// SecretMountsWithUIDGID specifies the uid/gid of the owner
-func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPrefix string, uid, gid int, rootless bool) []rspec.Mount {
+// SecretMountsWithUIDGID copies, adds, and mounts the secrets to the container root filesystem
+// mountLabel: MAC/SELinux label for container content
+// containerWorkingDir: Private data for storing secrets on the host mounted in container.
+// mountFile: Additional mount points required for the container.
+// mountPoint: Container image mountpoint
+// uid: to assign to content created for secrets
+// gid: to assign to content created for secrets
+// rootless: indicates whether container is running in rootless mode
+// disableFips: indicates whether system should ignore fips mode
+func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
 	var (
 		secretMounts []rspec.Mount
 		mountFiles   []string
@@ -155,19 +180,23 @@ func SecretMountsWithUIDGID(mountLabel, containerWorkingDir, mountFile, mountPre
 	}
 	for _, file := range mountFiles {
 		if _, err := os.Stat(file); err == nil {
-			mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, mountPrefix, uid, gid)
+			mounts, err := addSecretsFromMountsFile(file, mountLabel, containerWorkingDir, uid, gid)
 			if err != nil {
-				logrus.Warnf("error mounting secrets, skipping: %v", err)
+				logrus.Warnf("error mounting secrets, skipping entry in %s: %v", file, err)
 			}
 			secretMounts = mounts
 			break
 		}
 	}
 
+	// Only add FIPS secret mount if disableFips=false
+	if disableFips {
+		return secretMounts
+	}
 	// Add FIPS mode secret if /etc/system-fips exists on the host
 	_, err := os.Stat("/etc/system-fips")
 	if err == nil {
-		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPrefix, mountLabel, uid, gid); err != nil {
+		if err := addFIPSModeSecret(&secretMounts, containerWorkingDir, mountPoint, mountLabel, uid, gid); err != nil {
 			logrus.Errorf("error adding FIPS mode secret to container: %v", err)
 		}
 	} else if os.IsNotExist(err) {
@@ -186,62 +215,87 @@ func rchown(chowndir string, uid, gid int) error {
 
 // addSecretsFromMountsFile copies the contents of host directory to container directory
 // and returns a list of mounts
-func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPrefix string, uid, gid int) ([]rspec.Mount, error) {
+func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir string, uid, gid int) ([]rspec.Mount, error) {
 	var mounts []rspec.Mount
 	defaultMountsPaths := getMounts(filePath)
 	for _, path := range defaultMountsPaths {
-		hostDir, ctrDir, err := getMountsMap(path)
+		hostDirOrFile, ctrDirOrFile, err := getMountsMap(path)
 		if err != nil {
 			return nil, err
 		}
-		// skip if the hostDir path doesn't exist
-		if _, err = os.Stat(hostDir); err != nil {
+		// skip if the hostDirOrFile path doesn't exist
+		fileInfo, err := os.Stat(hostDirOrFile)
+		if err != nil {
 			if os.IsNotExist(err) {
-				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDir, filePath)
+				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
 				continue
 			}
-			return nil, errors.Wrapf(err, "failed to stat %q", hostDir)
+			return nil, errors.Wrapf(err, "failed to stat %q", hostDirOrFile)
 		}
 
-		ctrDirOnHost := filepath.Join(containerWorkingDir, ctrDir)
+		ctrDirOrFileOnHost := filepath.Join(containerWorkingDir, ctrDirOrFile)
 
-		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOnHost
-		_, err = os.Stat(ctrDirOnHost)
+		// In the event of a restart, don't want to copy secrets over again as they already would exist in ctrDirOrFileOnHost
+		_, err = os.Stat(ctrDirOrFileOnHost)
 		if os.IsNotExist(err) {
-			if err = os.MkdirAll(ctrDirOnHost, 0755); err != nil {
-				return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOnHost)
-			}
-			hostDir, err = resolveSymbolicLink(hostDir)
+
+			hostDirOrFile, err = resolveSymbolicLink(hostDirOrFile)
 			if err != nil {
 				return nil, err
 			}
 
-			data, err := getHostSecretData(hostDir)
-			if err != nil {
-				return nil, errors.Wrapf(err, "getting host secret data failed")
-			}
-			for _, s := range data {
-				if err := s.saveTo(ctrDirOnHost); err != nil {
-					return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOnHost)
+			// Don't let the umask have any influence on the file and directory creation
+			oldUmask := umask.SetUmask(0)
+			defer umask.SetUmask(oldUmask)
+
+			switch mode := fileInfo.Mode(); {
+			case mode.IsDir():
+				if err = os.MkdirAll(ctrDirOrFileOnHost, mode.Perm()); err != nil {
+					return nil, errors.Wrapf(err, "making container directory %q failed", ctrDirOrFileOnHost)
 				}
+				data, err := getHostSecretData(hostDirOrFile, mode.Perm())
+				if err != nil {
+					return nil, errors.Wrapf(err, "getting host secret data failed")
+				}
+				for _, s := range data {
+					if err := s.saveTo(ctrDirOrFileOnHost); err != nil {
+						return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOrFileOnHost)
+					}
+				}
+			case mode.IsRegular():
+				data, err := readFileOrDir("", hostDirOrFile, mode.Perm())
+				if err != nil {
+					return nil, errors.Wrapf(err, "error reading file %q", hostDirOrFile)
+
+				}
+				for _, s := range data {
+					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
+						return nil, err
+					}
+					if err := ioutil.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
+						return nil, errors.Wrapf(err, "error saving data to container filesystem on host %q", ctrDirOrFileOnHost)
+					}
+				}
+			default:
+				return nil, errors.Errorf("unsupported file type for: %q", hostDirOrFile)
 			}
 
-			err = label.Relabel(ctrDirOnHost, mountLabel, false)
+			err = label.Relabel(ctrDirOrFileOnHost, mountLabel, false)
 			if err != nil {
 				return nil, errors.Wrap(err, "error applying correct labels")
 			}
 			if uid != 0 || gid != 0 {
-				if err := rchown(ctrDirOnHost, uid, gid); err != nil {
+				if err := rchown(ctrDirOrFileOnHost, uid, gid); err != nil {
 					return nil, err
 				}
 			}
 		} else if err != nil {
-			return nil, errors.Wrapf(err, "error getting status of %q", ctrDirOnHost)
+			return nil, errors.Wrapf(err, "error getting status of %q", ctrDirOrFileOnHost)
 		}
 
 		m := rspec.Mount{
-			Source:      filepath.Join(mountPrefix, ctrDir),
-			Destination: ctrDir,
+			Source:      ctrDirOrFileOnHost,
+			Destination: ctrDirOrFile,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
 		}
@@ -255,15 +309,15 @@ func addSecretsFromMountsFile(filePath, mountLabel, containerWorkingDir, mountPr
 // root filesystem if /etc/system-fips exists on hosts.
 // This enables the container to be FIPS compliant and run openssl in
 // FIPS mode as the host is also in FIPS mode.
-func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, mountLabel string, uid, gid int) error {
+func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, mountLabel string, uid, gid int) error {
 	secretsDir := "/run/secrets"
 	ctrDirOnHost := filepath.Join(containerWorkingDir, secretsDir)
 	if _, err := os.Stat(ctrDirOnHost); os.IsNotExist(err) {
 		if err = idtools.MkdirAllAs(ctrDirOnHost, 0755, uid, gid); err != nil {
-			return errors.Wrapf(err, "making container directory on host failed")
+			return errors.Wrapf(err, "making container directory %q on host failed", ctrDirOnHost)
 		}
 		if err = label.Relabel(ctrDirOnHost, mountLabel, false); err != nil {
-			return errors.Wrap(err, "error applying correct labels")
+			return errors.Wrapf(err, "error applying correct labels on %q", ctrDirOnHost)
 		}
 	}
 	fipsFile := filepath.Join(ctrDirOnHost, "system-fips")
@@ -278,7 +332,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, 
 
 	if !mountExists(*mounts, secretsDir) {
 		m := rspec.Mount{
-			Source:      filepath.Join(mountPrefix, secretsDir),
+			Source:      ctrDirOnHost,
 			Destination: secretsDir,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
@@ -286,6 +340,25 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPrefix, 
 		*mounts = append(*mounts, m)
 	}
 
+	srcBackendDir := "/usr/share/crypto-policies/back-ends/FIPS"
+	destDir := "/etc/crypto-policies/back-ends"
+	srcOnHost := filepath.Join(mountPoint, srcBackendDir)
+	if _, err := os.Stat(srcOnHost); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to stat FIPS Backend directory %q", ctrDirOnHost)
+	}
+
+	if !mountExists(*mounts, destDir) {
+		m := rspec.Mount{
+			Source:      srcOnHost,
+			Destination: destDir,
+			Type:        "bind",
+			Options:     []string{"bind", "rprivate"},
+		}
+		*mounts = append(*mounts, m)
+	}
 	return nil
 }
 

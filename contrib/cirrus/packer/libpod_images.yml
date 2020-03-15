@@ -2,54 +2,40 @@
 
 # All of these are required
 variables:
-    # Names of GCE Base images to start from, in .cirrus.yml
-    RHEL_BASE_IMAGE: '{{env `RHEL_BASE_IMAGE`}}'
-    CENTOS_BASE_IMAGE: '{{env `CENTOS_BASE_IMAGE`}}'
-    UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
-    FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
-    PRIOR_FEDORA_BASE_IMAGE: '{{env `PRIOR_FEDORA_BASE_IMAGE`}}'
-    FAH_BASE_IMAGE: '{{env `FAH_BASE_IMAGE`}}'
-
-    # libpod dependencies to build and install into images
-    FEDORA_CNI_COMMIT: "{{env `FEDORA_CNI_COMMIT`}}"
-    CNI_COMMIT: "{{env `CNI_COMMIT`}}"
-    CRIO_COMMIT: "{{env `CRIO_COMMIT`}}"
-    CRIU_COMMIT: "{{env `CRIU_COMMIT`}}"
-    RUNC_COMMIT: "{{env `RUNC_COMMIT`}}"
-
     BUILT_IMAGE_SUFFIX: '{{env `BUILT_IMAGE_SUFFIX`}}'
     GOSRC: '{{env `GOSRC`}}'
     PACKER_BASE: '{{env `PACKER_BASE`}}'
     SCRIPT_BASE: '{{env `SCRIPT_BASE`}}'
 
+    # Base-image names are required.  Using image family-names breaks parallelism
+    UBUNTU_BASE_IMAGE: '{{env `UBUNTU_BASE_IMAGE`}}'
+    PRIOR_UBUNTU_BASE_IMAGE: '{{env `PRIOR_UBUNTU_BASE_IMAGE`}}'
+    FEDORA_BASE_IMAGE: '{{env `FEDORA_BASE_IMAGE`}}'
+    PRIOR_FEDORA_BASE_IMAGE: '{{env `PRIOR_FEDORA_BASE_IMAGE`}}'
+
     # Protected credentials, decrypted by Cirrus at runtime
     GCE_SSH_USERNAME: '{{env `GCE_SSH_USERNAME`}}'
     GCP_PROJECT_ID: '{{env `GCP_PROJECT_ID`}}'
-    RHSM_COMMAND: '{{env `RHSM_COMMAND`}}'
     SERVICE_ACCOUNT: '{{env `SERVICE_ACCOUNT`}}'
     GOOGLE_APPLICATION_CREDENTIALS: '{{env `GOOGLE_APPLICATION_CREDENTIALS`}}'
-
-    # Used to separate images produced during PR testing from those
-    # produced from post-merge testing.  Must be empty for PR testing.
-    POST_MERGE_BUCKET_SUFFIX: ''
 
 # Don't leak sensitive values in error messages / output
 sensitive-variables:
     - 'GCE_SSH_USERNAME'
     - 'GCP_PROJECT_ID'
-    - 'RHSM_COMMAND'
     - 'SERVICE_ACCOUNT'
 
 # What images to produce in which cloud
 builders:
     #  v----- is a YAML anchor, allows referencing this object by name (below)
     - &gce_hosted_image
-      name: 'ubuntu-18'
+      name: 'ubuntu-19'
       type: 'googlecompute'
       image_name: '{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}'
-      image_family: '{{build_name}}-libpod'
-      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
-      disk_size: 20
+      image_family: '{{build_name}}-cache'
+      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'  # precedence over family
+      source_image_family: 'ubuntu-base'  # for ref. only
+      disk_size: 20  # REQUIRED: Runtime allocation > this value
       project_id: '{{user `GCP_PROJECT_ID`}}'
       service_account_email: '{{user `SERVICE_ACCOUNT`}}'
       communicator: 'ssh'
@@ -60,24 +46,19 @@ builders:
 
     #      v----- is a YAML alias, allows partial re-use of the anchor object
     - <<: *gce_hosted_image
-      name: 'rhel-7'
-      source_image: '{{user `RHEL_BASE_IMAGE`}}'
+      name: 'ubuntu-18'
+      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
+      source_image_family: 'prior-ubuntu-base'
 
     - <<: *gce_hosted_image
-      name: 'centos-7'
-      source_image: '{{user `CENTOS_BASE_IMAGE`}}'
-
-    - <<: *gce_hosted_image
-      name: 'fedora-29'
+      name: 'fedora-31'
       source_image: '{{user `FEDORA_BASE_IMAGE`}}'
+      source_image_family: 'fedora-base'
 
     - <<: *gce_hosted_image
-      name: 'fedora-28'
+      name: 'fedora-30'
       source_image: '{{user `PRIOR_FEDORA_BASE_IMAGE`}}'
-
-    - <<: *gce_hosted_image
-      name: 'fah-29'
-      source_image: '{{user `FAH_BASE_IMAGE`}}'
+      source_image_family: 'prior-fedora-base'
 
 # The brains of the operation, making actual modifications to the base-image.
 provisioners:
@@ -88,18 +69,9 @@ provisioners:
     - type: 'shell'
       script: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{split build_name "-" 0}}_setup.sh'
       environment_vars:
+          - 'PACKER_BUILDER_NAME={{build_name}}'
           - 'GOSRC=/tmp/libpod'
-          - 'CNI_COMMIT={{user `CNI_COMMIT`}}'
-          - 'FEDORA_CNI_COMMIT={{user `FEDORA_CNI_COMMIT`}}'
-          - 'CRIO_COMMIT={{user `CRIO_COMMIT`}}'
-          - 'CRIU_COMMIT={{user `CRIU_COMMIT`}}'
-          - 'RUNC_COMMIT={{user `RUNC_COMMIT`}}'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
-          - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
 
 post-processors:
-    # Store VM disk in GCP storage, where it will expire based on a defined
-    # lifecycle. This prevents GCE from filling with disused images.
-    - - type: 'googlecompute-export'
-        paths: ['gs://packer-import{{user `POST_MERGE_BUCKET_SUFFIX`}}/{{build_name}}{{user `BUILT_IMAGE_SUFFIX`}}.tar.gz']
-      - type: 'manifest'  # writes packer-manifest.json
+    - type: 'manifest'  # writes packer-manifest.json

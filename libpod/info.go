@@ -6,24 +6,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/libpod/utils"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
-
-// InfoData holds the info type, i.e store, host etc and the data for each type
-type InfoData struct {
-	Type string
-	Data map[string]interface{}
-}
 
 // top-level "host" info
 func (r *Runtime) hostInfo() (map[string]interface{}, error) {
@@ -33,6 +29,15 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["arch"] = runtime.GOARCH
 	info["cpus"] = runtime.NumCPU()
 	info["rootless"] = rootless.IsRootless()
+	unified, err := cgroups.IsCgroup2UnifiedMode()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error reading cgroups mode")
+	}
+	cgroupVersion := "v1"
+	if unified {
+		cgroupVersion = "v2"
+	}
+	info["CgroupVersion"] = cgroupVersion
 	mi, err := system.ReadMemInfo()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading memory info")
@@ -42,30 +47,52 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 	info["MemFree"] = mi.MemFree
 	info["SwapTotal"] = mi.SwapTotal
 	info["SwapFree"] = mi.SwapFree
-	conmonVersion, _ := r.GetConmonVersion()
-	ociruntimeVersion, _ := r.GetOCIRuntimeVersion()
 	hostDistributionInfo := r.GetHostDistributionInfo()
-	info["Conmon"] = map[string]interface{}{
-		"path":    r.conmonPath,
-		"package": r.ociRuntime.conmonPackage(),
-		"version": conmonVersion,
-	}
-	info["OCIRuntime"] = map[string]interface{}{
-		"path":    r.ociRuntime.path,
-		"package": r.ociRuntime.pathPackage(),
-		"version": ociruntimeVersion,
+	if rootless.IsRootless() {
+		if path, err := exec.LookPath("slirp4netns"); err == nil {
+			logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
+			version, err := programVersion(path)
+			if err != nil {
+				logrus.Warnf("Failed to retrieve program version for %s: %v", path, err)
+			}
+			program := map[string]interface{}{}
+			program["Executable"] = path
+			program["Version"] = version
+			program["Package"] = packageVersion(path)
+			info["slirp4netns"] = program
+		}
+		uidmappings, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading uid mappings")
+		}
+		gidmappings, err := rootless.ReadMappingsProc("/proc/self/gid_map")
+		if err != nil {
+			return nil, errors.Wrapf(err, "error reading gid mappings")
+		}
+		idmappings := make(map[string]interface{})
+		idmappings["uidmap"] = uidmappings
+		idmappings["gidmap"] = gidmappings
+		info["IDMappings"] = idmappings
 	}
 	info["Distribution"] = map[string]interface{}{
 		"distribution": hostDistributionInfo["Distribution"],
 		"version":      hostDistributionInfo["Version"],
 	}
-
 	info["BuildahVersion"] = buildah.Version
 	kv, err := readKernelVersion()
 	if err != nil {
 		return nil, errors.Wrapf(err, "error reading kernel version")
 	}
 	info["kernel"] = kv
+
+	runtimeInfo, err := r.defaultOCIRuntime.RuntimeInfo()
+	if err != nil {
+		logrus.Errorf("Error getting info on OCI runtime %s: %v", r.defaultOCIRuntime.Name(), err)
+	} else {
+		for k, v := range runtimeInfo {
+			info[k] = v
+		}
+	}
 
 	up, err := readUptime()
 	if err != nil {
@@ -108,6 +135,7 @@ func (r *Runtime) hostInfo() (map[string]interface{}, error) {
 		return nil, errors.Wrapf(err, "error getting hostname")
 	}
 	info["hostname"] = host
+	info["eventlogger"] = r.eventer.String()
 
 	return info, nil
 }
@@ -119,7 +147,24 @@ func (r *Runtime) storeInfo() (map[string]interface{}, error) {
 	info["GraphRoot"] = r.store.GraphRoot()
 	info["RunRoot"] = r.store.RunRoot()
 	info["GraphDriverName"] = r.store.GraphDriverName()
-	info["GraphOptions"] = r.store.GraphOptions()
+	graphOptions := map[string]interface{}{}
+	for _, o := range r.store.GraphOptions() {
+		split := strings.SplitN(o, "=", 2)
+		if strings.HasSuffix(split[0], "mount_program") {
+			version, err := programVersion(split[1])
+			if err != nil {
+				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
+			}
+			program := map[string]interface{}{}
+			program["Executable"] = split[1]
+			program["Version"] = version
+			program["Package"] = packageVersion(split[1])
+			graphOptions[split[0]] = program
+		} else {
+			graphOptions[split[0]] = split[1]
+		}
+	}
+	info["GraphOptions"] = graphOptions
 	info["VolumePath"] = r.config.VolumePath
 
 	configFile, err := storage.DefaultConfigFile(rootless.IsRootless())
@@ -177,29 +222,6 @@ func readUptime() (string, error) {
 		return "", fmt.Errorf("invalid uptime")
 	}
 	return string(f[0]), nil
-}
-
-// GetConmonVersion returns a string representation of the conmon version
-func (r *Runtime) GetConmonVersion() (string, error) {
-	output, err := utils.ExecCmd(r.conmonPath, "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
-}
-
-// GetOCIRuntimePath returns the path to the OCI Runtime Path the runtime is using
-func (r *Runtime) GetOCIRuntimePath() string {
-	return r.ociRuntimePath.Paths[0]
-}
-
-// GetOCIRuntimeVersion returns a string representation of the oci runtimes version
-func (r *Runtime) GetOCIRuntimeVersion() (string, error) {
-	output, err := utils.ExecCmd(r.ociRuntimePath.Paths[0], "--version")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(output, "\n"), nil
 }
 
 // GetHostDistributionInfo returns a map containing the host's distribution and version

@@ -28,7 +28,7 @@ var (
 			return umountCmd(&umountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman umount ctrID
   podman umount ctrID1 ctrID2 ctrID3
@@ -48,11 +48,11 @@ func init() {
 }
 
 func umountCmd(c *cliconfig.UmountValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.UmountRootFilesystems(getContext(), c)
 	if err != nil {

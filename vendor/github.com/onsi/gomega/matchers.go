@@ -269,6 +269,22 @@ func ContainElement(element interface{}) types.GomegaMatcher {
 	}
 }
 
+//BeElementOf succeeds if actual is contained in the passed in elements.
+//BeElementOf() always uses Equal() to perform the match.
+//When the passed in elements are comprised of a single element that is either an Array or Slice, BeElementOf() behaves
+//as the reverse of ContainElement() that operates with Equal() to perform the match.
+//    Expect(2).Should(BeElementOf([]int{1, 2}))
+//    Expect(2).Should(BeElementOf([2]int{1, 2}))
+//Otherwise, BeElementOf() provides a syntactic sugar for Or(Equal(_), Equal(_), ...):
+//    Expect(2).Should(BeElementOf(1, 2))
+//
+//Actual must be typed.
+func BeElementOf(elements ...interface{}) types.GomegaMatcher {
+	return &matchers.BeElementOfMatcher{
+		Elements: elements,
+	}
+}
+
 //ConsistOf succeeds if actual contains precisely the elements passed into the matcher.  The ordering of the elements does not matter.
 //By default ConsistOf() uses Equal() to match the elements, however custom matchers can be passed in instead.  Here are some examples:
 //
@@ -286,6 +302,20 @@ func ContainElement(element interface{}) types.GomegaMatcher {
 //Note that Go's type system does not allow you to write this as ConsistOf([]string{"FooBar", "Foo"}...) as []string and []interface{} are different types - hence the need for this special rule.
 func ConsistOf(elements ...interface{}) types.GomegaMatcher {
 	return &matchers.ConsistOfMatcher{
+		Elements: elements,
+	}
+}
+
+//ContainElements succeeds if actual contains the passed in elements. The ordering of the elements does not matter.
+//By default ContainElements() uses Equal() to match the elements, however custom matchers can be passed in instead. Here are some examples:
+//
+//    Expect([]string{"Foo", "FooBar"}).Should(ContainElements("FooBar"))
+//    Expect([]string{"Foo", "FooBar"}).Should(ContainElements(ContainSubstring("Bar"), "Foo"))
+//
+//Actual must be an array, slice or map.
+//For maps, ContainElements searches through the map's values.
+func ContainElements(elements ...interface{}) types.GomegaMatcher {
+	return &matchers.ContainElementsMatcher{
 		Elements: elements,
 	}
 }

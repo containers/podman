@@ -10,6 +10,7 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
@@ -40,8 +41,11 @@ func init() {
 	flags := loadCommand.Flags()
 	flags.StringVarP(&loadCommand.Input, "input", "i", "", "Read from specified archive file (default: stdin)")
 	flags.BoolVarP(&loadCommand.Quiet, "quiet", "q", false, "Suppress the output")
-	flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
-
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&loadCommand.SignaturePolicy, "signature-policy", "", "Pathname of signature policy file (not usually used)")
+		markFlagHidden(flags, "signature-policy")
+	}
 }
 
 // loadCmd gets the image/file to be loaded from the command line
@@ -58,11 +62,11 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		return errors.New("too many arguments. Requires exactly 1")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if len(c.Input) > 0 {
 		if err := parse.ValidateFileName(c.Input); err != nil {
@@ -72,7 +76,7 @@ func loadCmd(c *cliconfig.LoadValues) error {
 		if terminal.IsTerminal(int(os.Stdin.Fd())) {
 			return errors.Errorf("cannot read from terminal. Use command-line redirection or the --input flag.")
 		}
-		outFile, err := ioutil.TempFile("/var/tmp", "podman")
+		outFile, err := ioutil.TempFile(util.Tmpdir(), "podman")
 		if err != nil {
 			return errors.Errorf("error creating file %v", err)
 		}

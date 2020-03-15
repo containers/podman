@@ -1,0 +1,61 @@
+package mpb
+
+import (
+	"io"
+	"strings"
+	"unicode/utf8"
+
+	"github.com/vbauerster/mpb/v4/decor"
+)
+
+// SpinnerAlignment enum.
+type SpinnerAlignment int
+
+// SpinnerAlignment kinds.
+const (
+	SpinnerOnLeft SpinnerAlignment = iota
+	SpinnerOnMiddle
+	SpinnerOnRight
+)
+
+// DefaultSpinnerStyle is applied when bar constructed with *Progress.AddSpinner method.
+var DefaultSpinnerStyle = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
+
+type spinnerFiller struct {
+	frames    []string
+	count     uint
+	alignment SpinnerAlignment
+}
+
+// NewSpinnerFiller constucts mpb.Filler, to be used with *Progress.Add method.
+func NewSpinnerFiller(style []string, alignment SpinnerAlignment) Filler {
+	if len(style) == 0 {
+		style = DefaultSpinnerStyle
+	}
+	filler := &spinnerFiller{
+		frames:    style,
+		alignment: alignment,
+	}
+	return filler
+}
+
+func (s *spinnerFiller) Fill(w io.Writer, width int, stat *decor.Statistics) {
+
+	frame := s.frames[s.count%uint(len(s.frames))]
+	frameWidth := utf8.RuneCountInString(frame)
+
+	if width < frameWidth {
+		return
+	}
+
+	switch rest := width - frameWidth; s.alignment {
+	case SpinnerOnLeft:
+		io.WriteString(w, frame+strings.Repeat(" ", rest))
+	case SpinnerOnMiddle:
+		str := strings.Repeat(" ", rest/2) + frame + strings.Repeat(" ", rest/2+rest%2)
+		io.WriteString(w, str)
+	case SpinnerOnRight:
+		io.WriteString(w, strings.Repeat(" ", rest)+frame)
+	}
+	s.count++
+}

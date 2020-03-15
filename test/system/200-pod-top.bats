@@ -3,7 +3,7 @@
 load helpers
 
 @test "podman pod top - containers in different PID namespaces" {
-    skip "this test is not reliable. Reenable once pod-top is fixed."
+    skip_if_remote "podman-pod does not work with podman-remote"
 
     # With infra=false, we don't get a /pause container (we also
     # don't pull k8s.gcr.io/pause )
@@ -28,9 +28,6 @@ load helpers
 
     # By default (podman pod create w/ default --infra) there should be
     # a /pause container.
-    # FIXME: sometimes there is, sometimes there isn't. If anyone ever
-    # actually figures this out, please either reenable this line or
-    # remove it entirely.
     if [ -z "$no_infra" ]; then
         is "$output" ".*0 \+1 \+0 \+[0-9. ?s]\+/pause" "there is a /pause container"
     fi

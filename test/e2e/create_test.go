@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -26,7 +24,7 @@ var _ = Describe("Podman create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -219,5 +217,129 @@ var _ = Describe("Podman create", func() {
 		check.WaitWithDefaultTimeout()
 		match, _ := check.GrepString("foobar")
 		Expect(match).To(BeTrue())
+	})
+
+	It("podman run entrypoint and cmd test", func() {
+		name := "test101"
+		create := podmanTest.Podman([]string{"create", "--name", name, redis})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(Equal(0))
+
+		ctrJSON := podmanTest.InspectContainer(name)
+		Expect(len(ctrJSON)).To(Equal(1))
+		Expect(len(ctrJSON[0].Config.Cmd)).To(Equal(1))
+		Expect(ctrJSON[0].Config.Cmd[0]).To(Equal("redis-server"))
+		Expect(ctrJSON[0].Config.Entrypoint).To(Equal("docker-entrypoint.sh"))
+	})
+
+	It("podman create --pull", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull", "never", "--name=foo", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.PodmanNoCache([]string{"create", "--pull", "always", "--name=foo", "nginx"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman create using image list by tag", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINELISTTAG})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.Image}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTTAG))
+	})
+
+	It("podman create using image list by digest", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINELISTDIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.Image}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINELISTDIGEST))
+	})
+
+	It("podman create using image list instance by digest", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.Image}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+	})
+
+	It("podman create using cross-arch image list instance by digest", func() {
+		session := podmanTest.PodmanNoCache([]string{"create", "--pull=always", "--override-arch=arm64", "--name=foo", ALPINEARM64DIGEST})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.Image}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64DIGEST))
+	})
+
+	It("podman create --authfile with nonexist authfile", func() {
+		SkipIfRemote()
+		session := podmanTest.PodmanNoCache([]string{"create", "--authfile", "/tmp/nonexist", "--name=foo", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(Not(Equal(0)))
+	})
+
+	It("podman create with unset label", func() {
+		// Alpine is assumed to have no labels here, which seems safe
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--label", "TESTKEY1=", "--label", "TESTKEY2", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		_, ok1 := data[0].Config.Labels["TESTKEY1"]
+		Expect(ok1).To(BeTrue())
+		_, ok2 := data[0].Config.Labels["TESTKEY2"]
+		Expect(ok2).To(BeTrue())
+	})
+
+	It("podman create with set label", func() {
+		// Alpine is assumed to have no labels here, which seems safe
+		ctrName := "testctr"
+		session := podmanTest.Podman([]string{"create", "--label", "TESTKEY1=value1", "--label", "TESTKEY2=bar", "--name", ctrName, ALPINE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", ctrName})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectContainerToJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Labels)).To(Equal(2))
+		val1, ok1 := data[0].Config.Labels["TESTKEY1"]
+		Expect(ok1).To(BeTrue())
+		Expect(val1).To(Equal("value1"))
+		val2, ok2 := data[0].Config.Labels["TESTKEY2"]
+		Expect(ok2).To(BeTrue())
+		Expect(val2).To(Equal("bar"))
 	})
 })

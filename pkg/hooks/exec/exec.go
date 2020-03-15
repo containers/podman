@@ -11,6 +11,7 @@ import (
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // DefaultPostKillTimeout is the recommended default post-kill timeout.
@@ -54,7 +55,9 @@ func Run(ctx context.Context, hook *rspec.Hook, state []byte, stdout io.Writer, 
 	case err = <-exit:
 		return err, err
 	case <-ctx.Done():
-		cmd.Process.Kill()
+		if err := cmd.Process.Kill(); err != nil {
+			logrus.Errorf("failed to kill pid %v", cmd.Process)
+		}
 		timer := time.NewTimer(postKillTimeout)
 		defer timer.Stop()
 		select {

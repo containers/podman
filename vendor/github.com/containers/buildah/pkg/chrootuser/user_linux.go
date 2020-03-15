@@ -84,6 +84,7 @@ type lookupPasswdEntry struct {
 	name string
 	uid  uint64
 	gid  uint64
+	home string
 }
 type lookupGroupEntry struct {
 	name string
@@ -135,6 +136,7 @@ func parseNextPasswd(rc *bufio.Reader) *lookupPasswdEntry {
 		name: fields[0],
 		uid:  uid,
 		gid:  gid,
+		home: fields[5],
 	}
 }
 
@@ -290,4 +292,30 @@ func lookupUIDInContainer(rootdir string, uid uint64) (string, uint64, error) {
 	}
 
 	return "", 0, user.UnknownUserError(fmt.Sprintf("error looking up uid %q", uid))
+}
+
+func lookupHomedirInContainer(rootdir string, uid uint64) (string, error) {
+	cmd, f, err := openChrootedFile(rootdir, "/etc/passwd")
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		_ = cmd.Wait()
+	}()
+	rc := bufio.NewReader(f)
+	defer f.Close()
+
+	lookupUser.Lock()
+	defer lookupUser.Unlock()
+
+	pwd := parseNextPasswd(rc)
+	for pwd != nil {
+		if pwd.uid != uid {
+			pwd = parseNextPasswd(rc)
+			continue
+		}
+		return pwd.home, nil
+	}
+
+	return "", user.UnknownUserError(fmt.Sprintf("error looking up uid %q for homedir", uid))
 }

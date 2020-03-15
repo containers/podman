@@ -18,8 +18,9 @@ import (
 	"github.com/BurntSushi/toml"
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/config"
+	cfg "github.com/containers/storage/pkg/config"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/parsers"
@@ -138,6 +139,9 @@ type StoreOptions struct {
 	// GraphRoot is the filesystem path under which we will store the
 	// contents of layers, images, and containers.
 	GraphRoot string `json:"root,omitempty"`
+	// RootlessStoragePath is the storage path for rootless users
+	// default $HOME/.local/share/containers/storage
+	RootlessStoragePath string `toml:"rootless_storage_path"`
 	// GraphDriverName is the underlying storage driver that we'll be
 	// using.  It only needs to be specified the first time a Store is
 	// initialized for a given RunRoot and GraphRoot.
@@ -460,6 +464,9 @@ type Store interface {
 	// Version returns version information, in the form of key-value pairs, from
 	// the storage package.
 	Version() ([][2]string, error)
+
+	// GetDigestLock returns digest-specific Locker.
+	GetDigestLock(digest.Digest) (Locker, error)
 }
 
 // IDMappingOptions are used for specifying how ID mapping should be set up for
@@ -529,6 +536,7 @@ type store struct {
 	imageStore      ImageStore
 	roImageStores   []ROImageStore
 	containerStore  ContainerStore
+	digestLockRoot  string
 }
 
 // GetStore attempts to find an already-created Store object matching the
@@ -663,15 +671,6 @@ func (s *store) load() error {
 	s.graphDriverName = driver.String()
 	driverPrefix := s.graphDriverName + "-"
 
-	rls, err := s.LayerStore()
-	if err != nil {
-		return err
-	}
-	s.layerStore = rls
-	if _, err := s.ROLayerStores(); err != nil {
-		return err
-	}
-
 	gipath := filepath.Join(s.graphRoot, driverPrefix+"images")
 	if err := os.MkdirAll(gipath, 0700); err != nil {
 		return err
@@ -698,7 +697,18 @@ func (s *store) load() error {
 		return err
 	}
 	s.containerStore = rcs
+
+	s.digestLockRoot = filepath.Join(s.runRoot, driverPrefix+"locks")
+	if err := os.MkdirAll(s.digestLockRoot, 0700); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// GetDigestLock returns a digest-specific Locker.
+func (s *store) GetDigestLock(d digest.Digest) (Locker, error) {
+	return GetLockfile(filepath.Join(s.digestLockRoot, d.String()))
 }
 
 func (s *store) getGraphDriver() (drivers.Driver, error) {
@@ -707,6 +717,7 @@ func (s *store) getGraphDriver() (drivers.Driver, error) {
 	}
 	config := drivers.Options{
 		Root:          s.graphRoot,
+		RunRoot:       s.runRoot,
 		DriverOptions: s.graphOptions,
 		UIDMaps:       s.uidMap,
 		GIDMaps:       s.gidMap,
@@ -758,7 +769,7 @@ func (s *store) LayerStore() (LayerStore, error) {
 	if err := os.MkdirAll(glpath, 0700); err != nil {
 		return nil, err
 	}
-	rls, err := newLayerStore(rlpath, glpath, driver, s.uidMap, s.gidMap)
+	rls, err := s.newLayerStore(rlpath, glpath, driver)
 	if err != nil {
 		return nil, err
 	}
@@ -885,7 +896,7 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		for _, l := range append([]ROLayerStore{rlstore}, rlstores...) {
 			lstore := l
 			if lstore != rlstore {
-				lstore.Lock()
+				lstore.RLock()
 				defer lstore.Unlock()
 				if modified, err := lstore.Modified(); modified || err != nil {
 					if err = lstore.Load(); err != nil {
@@ -964,7 +975,11 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, o
 		var ilayer *Layer
 		for _, s := range append([]ROLayerStore{lstore}, lstores...) {
 			store := s
-			store.Lock()
+			if store == lstore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1023,11 +1038,12 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 		return reflect.DeepEqual(layer.UIDMap, options.UIDMap) && reflect.DeepEqual(layer.GIDMap, options.GIDMap)
 	}
 	var layer, parentLayer *Layer
+	allStores := append([]ROLayerStore{rlstore}, lstores...)
 	// Locate the image's top layer and its parent, if it has one.
-	for _, s := range append([]ROLayerStore{rlstore}, lstores...) {
+	for _, s := range allStores {
 		store := s
 		if store != rlstore {
-			store.Lock()
+			store.RLock()
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1041,10 +1057,13 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore ROImageStore, crea
 				// We want the layer's parent, too, if it has one.
 				var cParentLayer *Layer
 				if cLayer.Parent != "" {
-					// Its parent should be around here, somewhere.
-					if cParentLayer, err = store.Get(cLayer.Parent); err != nil {
-						// Nope, couldn't find it.  We're not going to be able
-						// to diff this one properly.
+					// Its parent should be in one of the stores, somewhere.
+					for _, ps := range allStores {
+						if cParentLayer, err = ps.Get(cLayer.Parent); err == nil {
+							break
+						}
+					}
+					if cParentLayer == nil {
 						continue
 					}
 				}
@@ -1160,7 +1179,11 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		var cimage *Image
 		for _, s := range append([]ROImageStore{istore}, istores...) {
 			store := s
-			store.Lock()
+			if store == istore {
+				store.Lock()
+			} else {
+				store.RLock()
+			}
 			defer store.Unlock()
 			if modified, err := store.Modified(); modified || err != nil {
 				if err = store.Load(); err != nil {
@@ -1174,22 +1197,24 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 			}
 		}
 		if cimage == nil {
-			return nil, ErrImageUnknown
+			return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 		}
 		imageID = cimage.ID
 
-		createMappedLayer := imageHomeStore == istore
+		if cimage.TopLayer != "" {
+			createMappedLayer := imageHomeStore == istore
+			ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
+			if err != nil {
+				return nil, err
+			}
+			imageTopLayer = ilayer
 
-		ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, createMappedLayer, rlstore, lstores, idMappingsOptions)
-		if err != nil {
-			return nil, err
-		}
-		imageTopLayer = ilayer
-		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
-			uidMap = ilayer.UIDMap
-		}
-		if !options.HostGIDMapping && len(options.GIDMap) == 0 {
-			gidMap = ilayer.GIDMap
+			if !options.HostUIDMapping && len(options.UIDMap) == 0 {
+				uidMap = ilayer.UIDMap
+			}
+			if !options.HostGIDMapping && len(options.GIDMap) == 0 {
+				gidMap = ilayer.GIDMap
+			}
 		}
 	} else {
 		rlstore.Lock()
@@ -1407,7 +1432,7 @@ func (s *store) ListImageBigData(id string) ([]string, error) {
 			return bigDataNames, err
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImageBigDataSize(id, key string) (int64, error) {
@@ -1472,6 +1497,7 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	foundImage := false
 	for _, s := range append([]ROImageStore{istore}, istores...) {
 		store := s
 		store.RLock()
@@ -1485,8 +1511,14 @@ func (s *store) ImageBigData(id, key string) ([]byte, error) {
 		if err == nil {
 			return data, nil
 		}
+		if store.Exists(id) {
+			foundImage = true
+		}
 	}
-	return nil, ErrImageUnknown
+	if foundImage {
+		return nil, errors.Wrapf(os.ErrNotExist, "error locating item named %q for image with ID %q", key, id)
+	}
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
@@ -1557,10 +1589,12 @@ func (s *store) ImageSize(id string) (int64, error) {
 		return -1, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 	}
 
-	// Start with a list of the image's top layers.
+	// Start with a list of the image's top layers, if it has any.
 	queue := make(map[string]struct{})
 	for _, layerID := range append([]string{image.TopLayer}, image.MappedTopLayers...) {
-		queue[layerID] = struct{}{}
+		if layerID != "" {
+			queue[layerID] = struct{}{}
+		}
 	}
 	visited := make(map[string]struct{})
 	// Walk all of the layers.
@@ -2286,24 +2320,53 @@ func (s *store) DeleteContainer(id string) error {
 
 	if rcstore.Exists(id) {
 		if container, err := rcstore.Get(id); err == nil {
+			errChan := make(chan error)
+			var wg sync.WaitGroup
+
 			if rlstore.Exists(container.LayerID) {
-				if err = rlstore.Delete(container.LayerID); err != nil {
-					return err
-				}
+				wg.Add(1)
+				go func() {
+					errChan <- rlstore.Delete(container.LayerID)
+					wg.Done()
+				}()
 			}
-			if err = rcstore.Delete(id); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- rcstore.Delete(id)
+				wg.Done()
+			}()
+
 			middleDir := s.graphDriverName + "-containers"
 			gcpath := filepath.Join(s.GraphRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(gcpath); err != nil {
-				return err
-			}
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(gcpath)
+				wg.Done()
+			}()
+
 			rcpath := filepath.Join(s.RunRoot(), middleDir, container.ID)
-			if err = os.RemoveAll(rcpath); err != nil {
-				return err
+			wg.Add(1)
+			go func() {
+				errChan <- os.RemoveAll(rcpath)
+				wg.Done()
+			}()
+
+			go func() {
+				wg.Wait()
+				close(errChan)
+			}()
+
+			for {
+				select {
+				case err, ok := <-errChan:
+					if !ok {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+				}
 			}
-			return nil
 		}
 	}
 	return ErrNotAContainer
@@ -2449,6 +2512,10 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	s.graphLock.Lock()
+	defer s.graphLock.Unlock()
+
 	rlstore.Lock()
 	defer rlstore.Unlock()
 	if modified, err := rlstore.Modified(); modified || err != nil {
@@ -2456,6 +2523,18 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			return "", err
 		}
 	}
+
+	/* We need to make sure the home mount is present when the Mount is done.  */
+	if s.graphLock.TouchedSince(s.lastLoaded) {
+		s.graphDriver = nil
+		s.layerStore = nil
+		s.graphDriver, err = s.getGraphDriver()
+		if err != nil {
+			return "", err
+		}
+		s.lastLoaded = time.Now()
+	}
+
 	if rlstore.Exists(id) {
 		options := drivers.MountOpts{
 			MountLabel: mountLabel,
@@ -2737,8 +2816,14 @@ func (s *store) ContainerParentOwners(id string) ([]int, []int, error) {
 }
 
 func (s *store) Layers() ([]Layer, error) {
-	var layers []Layer
 	lstore, err := s.LayerStore()
+	if err != nil {
+		return nil, err
+	}
+	if err := lstore.LoadLocked(); err != nil {
+		return nil, err
+	}
+	layers, err := lstore.Layers()
 	if err != nil {
 		return nil, err
 	}
@@ -2748,7 +2833,7 @@ func (s *store) Layers() ([]Layer, error) {
 		return nil, err
 	}
 
-	for _, s := range append([]ROLayerStore{lstore}, lstores...) {
+	for _, s := range lstores {
 		store := s
 		store.RLock()
 		defer store.Unlock()
@@ -2861,7 +2946,7 @@ func (s *store) Image(id string) (*Image, error) {
 			return image, nil
 		}
 	}
-	return nil, ErrImageUnknown
+	return nil, errors.Wrapf(ErrImageUnknown, "error locating image with ID %q", id)
 }
 
 func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
@@ -2923,7 +3008,7 @@ func (s *store) ImagesByDigest(d digest.Digest) ([]*Image, error) {
 			}
 		}
 		imageList, err := store.ByDigest(d)
-		if err != nil && err != ErrImageUnknown {
+		if err != nil && errors.Cause(err) != ErrImageUnknown {
 			return nil, err
 		}
 		images = append(images, imageList...)
@@ -3223,9 +3308,9 @@ const defaultConfigFile = "/etc/containers/storage.conf"
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
 	if rootless {
-		home, err := homeDir()
-		if err != nil {
-			return "", errors.Wrapf(err, "cannot determine users homedir")
+		home := homedir.Get()
+		if home == "" {
+			return "", errors.New("cannot determine user's homedir")
 		}
 		return filepath.Join(home, ".config/containers/storage.conf"), nil
 	}
@@ -3235,10 +3320,11 @@ func DefaultConfigFile(rootless bool) (string, error) {
 // TOML-friendly explicit tables used for conversions.
 type tomlConfig struct {
 	Storage struct {
-		Driver    string                         `toml:"driver"`
-		RunRoot   string                         `toml:"runroot"`
-		GraphRoot string                         `toml:"graphroot"`
-		Options   struct{ config.OptionsConfig } `toml:"options"`
+		Driver              string            `toml:"driver"`
+		RunRoot             string            `toml:"runroot"`
+		GraphRoot           string            `toml:"graphroot"`
+		RootlessStoragePath string            `toml:"rootless_storage_path"`
+		Options             cfg.OptionsConfig `toml:"options"`
 	} `toml:"storage"`
 }
 
@@ -3259,6 +3345,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 		fmt.Printf("Failed to parse %s %v\n", configFile, err.Error())
 		return
 	}
+	if os.Getenv("STORAGE_DRIVER") != "" {
+		config.Storage.Driver = os.Getenv("STORAGE_DRIVER")
+	}
 	if config.Storage.Driver != "" {
 		storeOptions.GraphDriverName = config.Storage.Driver
 	}
@@ -3268,49 +3357,8 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if config.Storage.GraphRoot != "" {
 		storeOptions.GraphRoot = config.Storage.GraphRoot
 	}
-	if config.Storage.Options.Thinpool.AutoExtendPercent != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_percent=%s", config.Storage.Options.Thinpool.AutoExtendPercent))
-	}
-
-	if config.Storage.Options.Thinpool.AutoExtendThreshold != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.thinp_autoextend_threshold=%s", config.Storage.Options.Thinpool.AutoExtendThreshold))
-	}
-
-	if config.Storage.Options.Thinpool.BaseSize != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.basesize=%s", config.Storage.Options.Thinpool.BaseSize))
-	}
-	if config.Storage.Options.Thinpool.BlockSize != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.blocksize=%s", config.Storage.Options.Thinpool.BlockSize))
-	}
-	if config.Storage.Options.Thinpool.DirectLvmDevice != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device=%s", config.Storage.Options.Thinpool.DirectLvmDevice))
-	}
-	if config.Storage.Options.Thinpool.DirectLvmDeviceForce != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.directlvm_device_force=%s", config.Storage.Options.Thinpool.DirectLvmDeviceForce))
-	}
-	if config.Storage.Options.Thinpool.Fs != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.fs=%s", config.Storage.Options.Thinpool.Fs))
-	}
-	if config.Storage.Options.Thinpool.LogLevel != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.libdm_log_level=%s", config.Storage.Options.Thinpool.LogLevel))
-	}
-	if config.Storage.Options.Thinpool.MinFreeSpace != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.min_free_space=%s", config.Storage.Options.Thinpool.MinFreeSpace))
-	}
-	if config.Storage.Options.Thinpool.MkfsArg != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.mkfsarg=%s", config.Storage.Options.Thinpool.MkfsArg))
-	}
-	if config.Storage.Options.Thinpool.MountOpt != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.Thinpool.MountOpt))
-	}
-	if config.Storage.Options.Thinpool.UseDeferredDeletion != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_deletion=%s", config.Storage.Options.Thinpool.UseDeferredDeletion))
-	}
-	if config.Storage.Options.Thinpool.UseDeferredRemoval != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.use_deferred_removal=%s", config.Storage.Options.Thinpool.UseDeferredRemoval))
-	}
-	if config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("dm.xfs_nospace_max_retries=%s", config.Storage.Options.Thinpool.XfsNoSpaceMaxRetries))
+	if config.Storage.RootlessStoragePath != "" {
+		storeOptions.RootlessStoragePath = config.Storage.RootlessStoragePath
 	}
 	for _, s := range config.Storage.Options.AdditionalImageStores {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.imagestore=%s", config.Storage.Driver, s))
@@ -3318,14 +3366,11 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	if config.Storage.Options.Size != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.size=%s", config.Storage.Driver, config.Storage.Options.Size))
 	}
-	if config.Storage.Options.OstreeRepo != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ostree_repo=%s", config.Storage.Driver, config.Storage.Options.OstreeRepo))
-	}
-	if config.Storage.Options.SkipMountHome != "" {
-		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.skip_mount_home=%s", config.Storage.Driver, config.Storage.Options.SkipMountHome))
-	}
 	if config.Storage.Options.MountProgram != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mount_program=%s", config.Storage.Driver, config.Storage.Options.MountProgram))
+	}
+	if config.Storage.Options.IgnoreChownErrors != "" {
+		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.ignore_chown_errors=%s", config.Storage.Driver, config.Storage.Options.IgnoreChownErrors))
 	}
 	if config.Storage.Options.MountOpt != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, fmt.Sprintf("%s.mountopt=%s", config.Storage.Driver, config.Storage.Options.MountOpt))
@@ -3358,9 +3403,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	} else {
 		storeOptions.GIDMap = append(storeOptions.GIDMap, gidmap...)
 	}
-	if os.Getenv("STORAGE_DRIVER") != "" {
-		storeOptions.GraphDriverName = os.Getenv("STORAGE_DRIVER")
-	}
+
+	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
+
 	if os.Getenv("STORAGE_OPTS") != "" {
 		storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)
 	}
@@ -3377,12 +3422,18 @@ func init() {
 	ReloadConfigurationFile(defaultConfigFile, &defaultStoreOptions)
 }
 
+// GetDefaultMountOptions returns the default mountoptions defined in container/storage
 func GetDefaultMountOptions() ([]string, error) {
+	return GetMountOptions(defaultStoreOptions.GraphDriverName, defaultStoreOptions.GraphDriverOptions)
+}
+
+// GetMountOptions returns the mountoptions for the specified driver and graphDriverOptions
+func GetMountOptions(driver string, graphDriverOptions []string) ([]string, error) {
 	mountOpts := []string{
 		".mountopt",
-		fmt.Sprintf("%s.mountopt", defaultStoreOptions.GraphDriverName),
+		fmt.Sprintf("%s.mountopt", driver),
 	}
-	for _, option := range defaultStoreOptions.GraphDriverOptions {
+	for _, option := range graphDriverOptions {
 		key, val, err := parsers.ParseKeyValueOpt(option)
 		if err != nil {
 			return nil, err

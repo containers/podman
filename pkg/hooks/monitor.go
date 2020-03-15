@@ -2,9 +2,8 @@ package hooks
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
+	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
@@ -49,47 +48,11 @@ func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 	for {
 		select {
 		case event := <-watcher.Events:
-			filename := filepath.Base(event.Name)
-			if len(m.directories) <= 1 {
-				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					ok := m.remove(filename)
-					if ok {
-						logrus.Debugf("removed hook %s", event.Name)
-					}
-				} else if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
-					err = m.add(event.Name)
-					if err == nil {
-						logrus.Debugf("added hook %s", event.Name)
-					} else if err != ErrNoJSONSuffix {
-						logrus.Errorf("failed to add hook %s: %v", event.Name, err)
-					}
-				}
-			} else if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Remove == fsnotify.Remove {
-				err = nil
-				found := false
-				for i := len(m.directories) - 1; i >= 0; i-- {
-					path := filepath.Join(m.directories[i], filename)
-					err = m.add(path)
-					if err == nil {
-						found = true
-						logrus.Debugf("(re)added hook %s (triggered activity on %s)", path, event.Name)
-						break
-					} else if err == ErrNoJSONSuffix {
-						found = true
-						break // this is not going to change for fallback directories
-					} else if os.IsNotExist(err) {
-						continue // move on to the next fallback directory
-					} else {
-						found = true
-						logrus.Errorf("failed to (re)add hook %s (triggered by activity on %s): %v", path, event.Name, err)
-						break
-					}
-				}
-				if (found || event.Op&fsnotify.Remove == fsnotify.Remove) && err != nil {
-					ok := m.remove(filename)
-					if ok {
-						logrus.Debugf("removed hook %s (triggered by activity on %s)", filename, event.Name)
-					}
+			m.hooks = make(map[string]*current.Hook)
+			for _, dir := range m.directories {
+				err = ReadDir(dir, m.extensionStages, m.hooks)
+				if err != nil {
+					logrus.Errorf("failed loading hooks for %s: %v", event.Name, err)
 				}
 			}
 		case <-ctx.Done():

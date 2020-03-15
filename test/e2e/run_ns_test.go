@@ -25,7 +25,7 @@ var _ = Describe("Podman run ns", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreArtifact(fedoraMinimal)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -48,7 +48,16 @@ var _ = Describe("Podman run ns", func() {
 
 		session = podmanTest.Podman([]string{"run", "--pid=badpid", fedoraMinimal, "bash", "-c", "echo $$"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
+	})
+
+	It("podman run --cgroup private test", func() {
+		session := podmanTest.Podman([]string{"run", "--cgroupns=private", fedoraMinimal, "cat", "/proc/self/cgroup"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		output := session.OutputToString()
+		Expect(output).ToNot(ContainSubstring("slice"))
 	})
 
 	It("podman run ipcns test", func() {
@@ -93,6 +102,6 @@ var _ = Describe("Podman run ns", func() {
 	It("podman run bad ipc pid test", func() {
 		session := podmanTest.Podman([]string{"run", "--ipc=badpid", fedoraMinimal, "bash", "-c", "echo $$"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).ToNot(Equal(0))
+		Expect(session).To(ExitWithError())
 	})
 })

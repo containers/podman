@@ -6,6 +6,13 @@
 // various CPU architectures.
 package cpu
 
+// Initialized reports whether the CPU features were initialized.
+//
+// For some GOOS/GOARCH combinations initialization of the CPU features depends
+// on reading an operating specific file, e.g. /proc/self/auxv on linux/arm
+// Initialized will report false if reading the file fails.
+var Initialized bool
+
 // CacheLinePad is used to pad structs to avoid false sharing.
 type CacheLinePad struct{ _ [cacheLineSize]byte }
 
@@ -29,6 +36,8 @@ var X86 struct {
 	HasOSXSAVE   bool // OS supports XSAVE/XRESTOR for saving/restoring XMM registers.
 	HasPCLMULQDQ bool // PCLMULQDQ instruction - most often used for AES-GCM
 	HasPOPCNT    bool // Hamming weight instruction POPCNT.
+	HasRDRAND    bool // RDRAND instruction (on-chip random number generator)
+	HasRDSEED    bool // RDSEED instruction (on-chip random number generator)
 	HasSSE2      bool // Streaming SIMD extension 2 (always available on amd64)
 	HasSSE3      bool // Streaming SIMD extension 3
 	HasSSSE3     bool // Supplemental streaming SIMD extension 3
@@ -69,6 +78,42 @@ var ARM64 struct {
 	_           CacheLinePad
 }
 
+// ARM contains the supported CPU features of the current ARM (32-bit) platform.
+// All feature flags are false if:
+//   1. the current platform is not arm, or
+//   2. the current operating system is not Linux.
+var ARM struct {
+	_           CacheLinePad
+	HasSWP      bool // SWP instruction support
+	HasHALF     bool // Half-word load and store support
+	HasTHUMB    bool // ARM Thumb instruction set
+	Has26BIT    bool // Address space limited to 26-bits
+	HasFASTMUL  bool // 32-bit operand, 64-bit result multiplication support
+	HasFPA      bool // Floating point arithmetic support
+	HasVFP      bool // Vector floating point support
+	HasEDSP     bool // DSP Extensions support
+	HasJAVA     bool // Java instruction set
+	HasIWMMXT   bool // Intel Wireless MMX technology support
+	HasCRUNCH   bool // MaverickCrunch context switching and handling
+	HasTHUMBEE  bool // Thumb EE instruction set
+	HasNEON     bool // NEON instruction set
+	HasVFPv3    bool // Vector floating point version 3 support
+	HasVFPv3D16 bool // Vector floating point version 3 D8-D15
+	HasTLS      bool // Thread local storage support
+	HasVFPv4    bool // Vector floating point version 4 support
+	HasIDIVA    bool // Integer divide instruction support in ARM mode
+	HasIDIVT    bool // Integer divide instruction support in Thumb mode
+	HasVFPD32   bool // Vector floating point version 3 D15-D31
+	HasLPAE     bool // Large Physical Address Extensions
+	HasEVTSTRM  bool // Event stream support
+	HasAES      bool // AES hardware implementation
+	HasPMULL    bool // Polynomial multiplication instruction set
+	HasSHA1     bool // SHA1 hardware implementation
+	HasSHA2     bool // SHA2 hardware implementation
+	HasCRC32    bool // CRC32 hardware implementation
+	_           CacheLinePad
+}
+
 // PPC64 contains the supported CPU features of the current ppc64/ppc64le platforms.
 // If the current platform is not ppc64/ppc64le then all feature flags are false.
 //
@@ -84,4 +129,34 @@ var PPC64 struct {
 	IsPOWER8 bool // ISA v2.07 (POWER8)
 	IsPOWER9 bool // ISA v3.00 (POWER9)
 	_        CacheLinePad
+}
+
+// S390X contains the supported CPU features of the current IBM Z
+// (s390x) platform. If the current platform is not IBM Z then all
+// feature flags are false.
+//
+// S390X is padded to avoid false sharing. Further HasVX is only set
+// if the OS supports vector registers in addition to the STFLE
+// feature bit being set.
+var S390X struct {
+	_         CacheLinePad
+	HasZARCH  bool // z/Architecture mode is active [mandatory]
+	HasSTFLE  bool // store facility list extended
+	HasLDISP  bool // long (20-bit) displacements
+	HasEIMM   bool // 32-bit immediates
+	HasDFP    bool // decimal floating point
+	HasETF3EH bool // ETF-3 enhanced
+	HasMSA    bool // message security assist (CPACF)
+	HasAES    bool // KM-AES{128,192,256} functions
+	HasAESCBC bool // KMC-AES{128,192,256} functions
+	HasAESCTR bool // KMCTR-AES{128,192,256} functions
+	HasAESGCM bool // KMA-GCM-AES{128,192,256} functions
+	HasGHASH  bool // KIMD-GHASH function
+	HasSHA1   bool // K{I,L}MD-SHA-1 functions
+	HasSHA256 bool // K{I,L}MD-SHA-256 functions
+	HasSHA512 bool // K{I,L}MD-SHA-512 functions
+	HasSHA3   bool // K{I,L}MD-SHA3-{224,256,384,512} and K{I,L}MD-SHAKE-{128,256} functions
+	HasVX     bool // vector facility
+	HasVXE    bool // vector-enhancements facility 1
+	_         CacheLinePad
 }

@@ -51,11 +51,11 @@ func waitCmd(c *cliconfig.WaitValues) error {
 	}
 	interval := time.Duration(c.Interval) * time.Millisecond
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.WaitOnContainers(getContext(), c, interval)
 	if err != nil {

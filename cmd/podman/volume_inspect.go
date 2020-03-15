@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+
+	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
@@ -43,15 +46,34 @@ func volumeInspectCmd(c *cliconfig.VolumeInspectValues) error {
 		return errors.New("provide one or more volume names or use --all")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	vols, err := runtime.InspectVolumes(getContext(), c)
 	if err != nil {
 		return err
 	}
-	return generateVolLsOutput(vols, volumeLsOptions{Format: c.Format})
+
+	switch c.Format {
+	case "", formats.JSONString:
+		// Normal format - JSON string
+		jsonOut, err := json.MarshalIndent(vols, "", "     ")
+		if err != nil {
+			return errors.Wrapf(err, "error marshalling inspect JSON")
+		}
+		fmt.Println(string(jsonOut))
+	default:
+		// It's a Go template.
+		interfaces := make([]interface{}, len(vols))
+		for i, vol := range vols {
+			interfaces[i] = vol
+		}
+		out := formats.StdoutTemplateArray{Output: interfaces, Template: c.Format}
+		return out.Out()
+	}
+
+	return nil
 }

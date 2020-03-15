@@ -1,6 +1,7 @@
 package libpod
 
 import (
+	"github.com/containers/libpod/libpod/events"
 	"github.com/pkg/errors"
 )
 
@@ -52,6 +53,25 @@ func (r *Runtime) renumberLocks() error {
 			return err
 		}
 	}
+	allVols, err := r.state.AllVolumes()
+	if err != nil {
+		return err
+	}
+	for _, vol := range allVols {
+		lock, err := r.lockManager.AllocateLock()
+		if err != nil {
+			return errors.Wrapf(err, "error allocating lock for volume %s", vol.Name())
+		}
+
+		vol.config.LockID = lock.ID()
+
+		// Write the new lock ID
+		if err := r.state.RewriteVolumeConfig(vol, vol.config); err != nil {
+			return err
+		}
+	}
+
+	r.newSystemEvent(events.Renumber)
 
 	return nil
 }

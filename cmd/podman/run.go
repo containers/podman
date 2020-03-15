@@ -1,10 +1,13 @@
 package main
 
 import (
+	"os"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +26,7 @@ var (
 			return runCmd(&runCommand)
 		},
 		Example: `podman run imageID ls -alF /etc
-  podman run --net=host imageID dnf -y install java
+  podman run --network=host imageID dnf -y install java
   podman run --volume /var/hostdir:/var/ctrdir -i -t fedora /bin/bash`,
 	}
 )
@@ -34,8 +37,12 @@ func init() {
 	runCommand.SetUsageTemplate(UsageTemplate())
 	flags := runCommand.Flags()
 	flags.SetInterspersed(false)
+	flags.SetNormalizeFunc(aliasFlags)
 	flags.Bool("sig-proxy", true, "Proxy received signals to the process")
+	flags.Bool("rmi", false, "Remove container image unless used by other containers")
+	flags.AddFlagSet(getNetFlags())
 	getCreateFlags(&runCommand.PodmanCommand)
+	markFlagHiddenForRemoteClient("authfile", flags)
 }
 
 func runCmd(c *cliconfig.RunValues) error {
@@ -43,17 +50,29 @@ func runCmd(c *cliconfig.RunValues) error {
 		span, _ := opentracing.StartSpanFromContext(Ctx, "runCmd")
 		defer span.Finish()
 	}
-
+	if c.String("authfile") != "" {
+		if _, err := os.Stat(c.String("authfile")); err != nil {
+			return errors.Wrapf(err, "error checking authfile path %s", c.String("authfile"))
+		}
+	}
 	if err := createInit(&c.PodmanCommand); err != nil {
 		return err
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	exitCode, err = runtime.Run(getContext(), c, exitCode)
+	if c.Bool("rmi") {
+		imageName := c.InputArgs[0]
+		if newImage, newImageErr := runtime.NewImageFromLocal(imageName); newImageErr != nil {
+			logrus.Errorf("%s", errors.Wrapf(newImageErr, "failed creating image object"))
+		} else if _, errImage := runtime.RemoveImage(getContext(), newImage, false); errImage != nil {
+			logrus.Errorf("%s", errors.Wrapf(errImage, "failed removing image"))
+		}
+	}
 	return err
 }

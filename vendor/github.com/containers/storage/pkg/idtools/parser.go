@@ -2,6 +2,8 @@ package idtools
 
 import (
 	"fmt"
+	"math"
+	"math/bits"
 	"strconv"
 	"strings"
 )
@@ -31,10 +33,11 @@ func parseTriple(spec []string) (container, host, size uint32, err error) {
 
 // ParseIDMap parses idmap triples from string.
 func ParseIDMap(mapSpec []string, mapSetting string) (idmap []IDMap, err error) {
+	stdErr := fmt.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
 	for _, idMapSpec := range mapSpec {
 		idSpec := strings.Fields(strings.Map(nonDigitsToWhitespace, idMapSpec))
 		if len(idSpec)%3 != 0 {
-			return nil, fmt.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
+			return nil, stdErr
 		}
 		for i := range idSpec {
 			if i%3 != 0 {
@@ -42,7 +45,11 @@ func ParseIDMap(mapSpec []string, mapSetting string) (idmap []IDMap, err error) 
 			}
 			cid, hid, size, err := parseTriple(idSpec[i : i+3])
 			if err != nil {
-				return nil, fmt.Errorf("error initializing ID mappings: %s setting is malformed", mapSetting)
+				return nil, stdErr
+			}
+			// Avoid possible integer overflow on 32bit builds
+			if bits.UintSize == 32 && (cid > math.MaxInt32 || hid > math.MaxInt32 || size > math.MaxInt32) {
+				return nil, stdErr
 			}
 			mapping := IDMap{
 				ContainerID: int(cid),

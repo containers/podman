@@ -6,42 +6,20 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containernetworking/cni/pkg/types"
 	cnitypes "github.com/containernetworking/cni/pkg/types/current"
-	"github.com/containers/image/manifest"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/libpod/pkg/namespaces"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
-)
-
-// ContainerStatus represents the current state of a container
-type ContainerStatus int
-
-const (
-	// ContainerStateUnknown indicates that the container is in an error
-	// state where information about it cannot be retrieved
-	ContainerStateUnknown ContainerStatus = iota
-	// ContainerStateConfigured indicates that the container has had its
-	// storage configured but it has not been created in the OCI runtime
-	ContainerStateConfigured ContainerStatus = iota
-	// ContainerStateCreated indicates the container has been created in
-	// the OCI runtime but not started
-	ContainerStateCreated ContainerStatus = iota
-	// ContainerStateRunning indicates the container is currently executing
-	ContainerStateRunning ContainerStatus = iota
-	// ContainerStateStopped indicates that the container was running but has
-	// exited
-	ContainerStateStopped ContainerStatus = iota
-	// ContainerStatePaused indicates that the container has been paused
-	ContainerStatePaused ContainerStatus = iota
-	// ContainerStateExited indicates the the container has stopped and been
-	// cleaned up
-	ContainerStateExited ContainerStatus = iota
 )
 
 // CgroupfsDefaultCgroupParent is the cgroup parent for CGroupFS in libpod
@@ -50,6 +28,19 @@ const CgroupfsDefaultCgroupParent = "/libpod_parent"
 // SystemdDefaultCgroupParent is the cgroup parent for the systemd cgroup
 // manager in libpod
 const SystemdDefaultCgroupParent = "machine.slice"
+
+// SystemdDefaultRootlessCgroupParent is the cgroup parent for the systemd cgroup
+// manager in libpod when running as rootless
+const SystemdDefaultRootlessCgroupParent = "user.slice"
+
+// JournaldLogging is the string conmon expects to specify journald logging
+const JournaldLogging = "journald"
+
+// KubernetesLogging is the string conmon expects when specifying to use the kubernetes logging format
+const KubernetesLogging = "k8s-file"
+
+// JSONLogging is the string conmon expects when specifying to use the json logging format
+const JSONLogging = "json-file"
 
 // DefaultWaitInterval is the default interval between container status checks
 // while waiting.
@@ -102,6 +93,20 @@ func (ns LinuxNS) String() string {
 	}
 }
 
+// Valid restart policy types.
+const (
+	// RestartPolicyNone indicates that no restart policy has been requested
+	// by a container.
+	RestartPolicyNone = ""
+	// RestartPolicyNo is identical in function to RestartPolicyNone.
+	RestartPolicyNo = "no"
+	// RestartPolicyAlways unconditionally restarts the container.
+	RestartPolicyAlways = "always"
+	// RestartPolicyOnFailure restarts the container on non-0 exit code,
+	// with an optional maximum number of retries.
+	RestartPolicyOnFailure = "on-failure"
+)
+
 // Container is a single OCI container.
 // All operations on a Container that access state must begin with a call to
 // syncContainer().
@@ -112,7 +117,6 @@ func (ns LinuxNS) String() string {
 // assume that their callers handled this requirement. Generally speaking, if a
 // function takes the container lock and accesses any part of state, it should
 // syncContainer() immediately after locking.
-// ffjson: skip
 type Container struct {
 	config *ContainerConfig
 
@@ -123,25 +127,35 @@ type Container struct {
 	// Functions called on a batched container will not lock or sync
 	batched bool
 
-	valid   bool
-	lock    lock.Locker
-	runtime *Runtime
+	valid      bool
+	lock       lock.Locker
+	runtime    *Runtime
+	ociRuntime OCIRuntime
 
 	rootlessSlirpSyncR *os.File
 	rootlessSlirpSyncW *os.File
+
+	rootlessPortSyncR *os.File
+	rootlessPortSyncW *os.File
 
 	// A restored container should have the same IP address as before
 	// being checkpointed. If requestedIP is set it will be used instead
 	// of config.StaticIP.
 	requestedIP net.IP
+	// A restored container should have the same MAC address as before
+	// being checkpointed. If requestedMAC is set it will be used instead
+	// of config.StaticMAC.
+	requestedMAC net.HardwareAddr
+
+	// This is true if a container is restored from a checkpoint.
+	restoreFromCheckpoint bool
 }
 
 // ContainerState contains the current state of the container
 // It is stored on disk in a tmpfs and recreated on reboot
-// easyjson:json
 type ContainerState struct {
 	// The current state of the running container
-	State ContainerStatus `json:"state"`
+	State define.ContainerStatus `json:"state"`
 	// The path to the JSON OCI runtime spec for this container
 	ConfigPath string `json:"configPath,omitempty"`
 	// RunDir is a per-boot directory for container content
@@ -165,6 +179,8 @@ type ContainerState struct {
 	OOMKilled bool `json:"oomKilled,omitempty"`
 	// PID is the PID of a running container
 	PID int `json:"pid,omitempty"`
+	// ConmonPID is the PID of the container's conmon
+	ConmonPID int `json:"conmonPid,omitempty"`
 	// ExecSessions contains active exec sessions for container
 	// Exec session ID is mapped to PID of exec process
 	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
@@ -179,6 +195,16 @@ type ContainerState struct {
 	// This maps the path the file will be mounted to in the container to
 	// the path of the file on disk outside the container
 	BindMounts map[string]string `json:"bindMounts,omitempty"`
+	// StoppedByUser indicates whether the container was stopped by an
+	// explicit call to the Stop() API.
+	StoppedByUser bool `json:"stoppedByUser,omitempty"`
+	// RestartPolicyMatch indicates whether the conditions for restart
+	// policy have been met.
+	RestartPolicyMatch bool `json:"restartPolicyMatch,omitempty"`
+	// RestartCount is how many times the container was restarted by its
+	// restart policy. This is NOT incremented by normal container restarts
+	// (only by restart policy).
+	RestartCount uint `json:"restartCount,omitempty"`
 
 	// ExtensionStageHooks holds hooks which will be executed by libpod
 	// and not delegated to the OCI runtime.
@@ -189,7 +215,6 @@ type ContainerState struct {
 }
 
 // ExecSession contains information on an active exec session
-// easyjson:json
 type ExecSession struct {
 	ID      string   `json:"id"`
 	Command []string `json:"command"`
@@ -199,7 +224,6 @@ type ExecSession struct {
 // ContainerConfig contains all information that was used to create the
 // container. It may not be changed once created.
 // It is stored, read-only, on disk
-// easyjson:json
 type ContainerConfig struct {
 	Spec *spec.Spec `json:"spec"`
 	ID   string     `json:"id"`
@@ -211,18 +235,20 @@ type ContainerConfig struct {
 	// ID of this container's lock
 	LockID uint32 `json:"lockID"`
 
+	// CreateCommand is the full command plus arguments of the process the
+	// container has been created with.
+	CreateCommand []string `json:"CreateCommand,omitempty"`
+
 	// TODO consider breaking these subsections up into smaller structs
 
 	// UID/GID mappings used by the storage
 	IDMappings storage.IDMappingOptions `json:"idMappingsOptions,omitempty"`
 
-	// Information on the image used for the root filesystem/
+	// Information on the image used for the root filesystem
 	RootfsImageID   string `json:"rootfsImageID,omitempty"`
 	RootfsImageName string `json:"rootfsImageName,omitempty"`
 	// Rootfs to use for the container, this conflicts with RootfsImageID
 	Rootfs string `json:"rootfs,omitempty"`
-	// Whether to mount volumes specified in the image.
-	ImageVolumes bool `json:"imageVolumes"`
 	// Src path to be mounted on /dev/shm in container.
 	ShmDir string `json:"ShmDir,omitempty"`
 	// Size of the container's SHM.
@@ -280,6 +306,10 @@ type ContainerConfig struct {
 	// This cannot be set unless CreateNetNS is set.
 	// If not set, the container will be dynamically assigned an IP by CNI.
 	StaticIP net.IP `json:"staticIP"`
+	// StaticMAC is a static MAC to request for the container.
+	// This cannot be set unless CreateNetNS is set.
+	// If not set, the container will be dynamically assigned a MAC by CNI.
+	StaticMAC net.HardwareAddr `json:"staticMAC"`
 	// PortMappings are the ports forwarded to the container's network
 	// namespace
 	// These are not used unless CreateNetNS is true
@@ -340,14 +370,38 @@ type ContainerConfig struct {
 	StopTimeout uint `json:"stopTimeout,omitempty"`
 	// Time container was created
 	CreatedTime time.Time `json:"createdTime"`
+	// NoCgroups indicates that the container will not create CGroups. It is
+	// incompatible with CgroupParent.  Deprecated in favor of CgroupsMode.
+	NoCgroups bool `json:"noCgroups,omitempty"`
+	// CgroupsMode indicates how the container will create cgroups
+	// (disabled, no-conmon, enabled).  It supersedes NoCgroups.
+	CgroupsMode string `json:"cgroupsMode,omitempty"`
 	// Cgroup parent of the container
 	CgroupParent string `json:"cgroupParent"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
+	// LogTag is the tag used for logging
+	LogTag string `json:"logTag"`
+	// LogDriver driver for logs
+	LogDriver string `json:"logDriver"`
 	// File containing the conmon PID
 	ConmonPidFile string `json:"conmonPidFile,omitempty"`
+	// RestartPolicy indicates what action the container will take upon
+	// exiting naturally.
+	// Allowed options are "no" (take no action), "on-failure" (restart on
+	// non-zero exit code, up an a maximum of RestartRetries times),
+	// and "always" (always restart the container on any exit code).
+	// The empty string is treated as the default ("no")
+	RestartPolicy string `json:"restart_policy,omitempty"`
+	// RestartRetries indicates the number of attempts that will be made to
+	// restart the container. Used only if RestartPolicy is set to
+	// "on-failure".
+	RestartRetries uint `json:"restart_retries,omitempty"`
 	// TODO log options for log drivers
 
+	// PostConfigureNetNS needed when a user namespace is created by an OCI runtime
+	// if the network namespace is created before the user namespace it will be
+	// owned by the wrong user namespace.
 	PostConfigureNetNS bool `json:"postConfigureNetNS"`
 
 	// OCIRuntime used to create the container
@@ -377,51 +431,6 @@ type ContainerNamedVolume struct {
 	Dest string `json:"dest"`
 	// Options are fstab style mount options
 	Options []string `json:"options,omitempty"`
-}
-
-// ContainerStatus returns a string representation for users
-// of a container state
-func (t ContainerStatus) String() string {
-	switch t {
-	case ContainerStateUnknown:
-		return "unknown"
-	case ContainerStateConfigured:
-		return "configured"
-	case ContainerStateCreated:
-		return "created"
-	case ContainerStateRunning:
-		return "running"
-	case ContainerStateStopped:
-		return "stopped"
-	case ContainerStatePaused:
-		return "paused"
-	case ContainerStateExited:
-		return "exited"
-	}
-	return "bad state"
-}
-
-// StringToContainerStatus converts a string representation of a containers
-// status into an actual container status type
-func StringToContainerStatus(status string) (ContainerStatus, error) {
-	switch status {
-	case ContainerStateUnknown.String():
-		return ContainerStateUnknown, nil
-	case ContainerStateConfigured.String():
-		return ContainerStateConfigured, nil
-	case ContainerStateCreated.String():
-		return ContainerStateCreated, nil
-	case ContainerStateRunning.String():
-		return ContainerStateRunning, nil
-	case ContainerStateStopped.String():
-		return ContainerStateStopped, nil
-	case ContainerStatePaused.String():
-		return ContainerStatePaused, nil
-	case ContainerStateExited.String():
-		return ContainerStateExited, nil
-	default:
-		return ContainerStateUnknown, errors.Wrapf(ErrInvalidArg, "unknown container state: %s", status)
-	}
 }
 
 // Config accessors
@@ -461,14 +470,12 @@ func (c *Container) specFromState() (*spec.Spec, error) {
 		if err != nil {
 			return nil, errors.Wrapf(err, "error reading container config")
 		}
-		if err := json.Unmarshal([]byte(content), &returnSpec); err != nil {
+		if err := json.Unmarshal(content, &returnSpec); err != nil {
 			return nil, errors.Wrapf(err, "error unmarshalling container config")
 		}
-	} else {
+	} else if !os.IsNotExist(err) {
 		// ignore when the file does not exist
-		if !os.IsNotExist(err) {
-			return nil, errors.Wrapf(err, "error opening container config")
-		}
+		return nil, errors.Wrapf(err, "error opening container config")
 	}
 
 	return returnSpec, nil
@@ -499,12 +506,6 @@ func (c *Container) Namespace() string {
 // Image returns the ID and name of the image used as the container's rootfs
 func (c *Container) Image() (string, string) {
 	return c.config.RootfsImageID, c.config.RootfsImageName
-}
-
-// ImageVolumes returns whether the container is configured to create
-// persistent volumes requested by the image
-func (c *Container) ImageVolumes() bool {
-	return c.config.ImageVolumes
 }
 
 // ShmDir returns the sources path to be mounted on /dev/shm in container
@@ -655,10 +656,7 @@ func (c *Container) HostsAdd() []string {
 // trigger some OCI hooks.
 func (c *Container) UserVolumes() []string {
 	volumes := make([]string, 0, len(c.config.UserVolumes))
-	for _, vol := range c.config.UserVolumes {
-		volumes = append(volumes, vol)
-	}
-
+	volumes = append(volumes, c.config.UserVolumes...)
 	return volumes
 }
 
@@ -666,10 +664,7 @@ func (c *Container) UserVolumes() []string {
 // This is not added to the spec, but is instead used during image commit.
 func (c *Container) Entrypoint() []string {
 	entrypoint := make([]string, 0, len(c.config.Entrypoint))
-	for _, str := range c.config.Entrypoint {
-		entrypoint = append(entrypoint, str)
-	}
-
+	entrypoint = append(entrypoint, c.config.Entrypoint...)
 	return entrypoint
 }
 
@@ -677,10 +672,7 @@ func (c *Container) Entrypoint() []string {
 // This is not added to the spec, but is instead used during image commit
 func (c *Container) Command() []string {
 	command := make([]string, 0, len(c.config.Command))
-	for _, str := range c.config.Command {
-		command = append(command, str)
-	}
-
+	command = append(command, c.config.Command...)
 	return command
 }
 
@@ -729,9 +721,30 @@ func (c *Container) LogPath() string {
 	return c.config.LogPath
 }
 
+// LogTag returns the tag to the container's log file
+func (c *Container) LogTag() string {
+	return c.config.LogTag
+}
+
+// RestartPolicy returns the container's restart policy.
+func (c *Container) RestartPolicy() string {
+	return c.config.RestartPolicy
+}
+
+// RestartRetries returns the number of retries that will be attempted when
+// using the "on-failure" restart policy
+func (c *Container) RestartRetries() uint {
+	return c.config.RestartRetries
+}
+
+// LogDriver returns the log driver for this container
+func (c *Container) LogDriver() string {
+	return c.config.LogDriver
+}
+
 // RuntimeName returns the name of the runtime
 func (c *Container) RuntimeName() string {
-	return c.runtime.ociRuntime.name
+	return c.config.OCIRuntime
 }
 
 // Runtime spec accessors
@@ -758,13 +771,13 @@ func (c *Container) WorkingDir() string {
 // Require locking
 
 // State returns the current state of the container
-func (c *Container) State() (ContainerStatus, error) {
+func (c *Container) State() (define.ContainerStatus, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			return ContainerStateUnknown, err
+			return define.ContainerStateUnknown, err
 		}
 	}
 	return c.state.State, nil
@@ -854,7 +867,7 @@ func (c *Container) OOMKilled() (bool, error) {
 	return c.state.OOMKilled, nil
 }
 
-// PID returns the PID of the container
+// PID returns the PID of the container.
 // If the container is not running, a pid of 0 will be returned. No error will
 // occur.
 func (c *Container) PID() (int, error) {
@@ -868,6 +881,22 @@ func (c *Container) PID() (int, error) {
 	}
 
 	return c.state.PID, nil
+}
+
+// ConmonPID Returns the PID of the container's conmon process.
+// If the container is not running, a PID of 0 will be returned. No error will
+// occur.
+func (c *Container) ConmonPID() (int, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
+	}
+
+	return c.state.ConmonPID, nil
 }
 
 // ExecSessions retrieves active exec sessions running in the container
@@ -903,7 +932,7 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	session, ok := c.state.ExecSessions[id]
 	if !ok {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
 	}
 
 	returnSession := new(ExecSession)
@@ -928,7 +957,7 @@ func (c *Container) IPs() ([]net.IPNet, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
+		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	ips := make([]net.IPNet, 0)
@@ -956,7 +985,7 @@ func (c *Container) Routes() ([]types.Route, error) {
 	}
 
 	if !c.config.CreateNetNS {
-		return nil, errors.Wrapf(ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
+		return nil, errors.Wrapf(define.ErrInvalidArg, "container %s network namespace is not managed by libpod", c.ID())
 	}
 
 	routes := make([]types.Route, 0)
@@ -1003,12 +1032,27 @@ func (c *Container) BindMounts() (map[string]string, error) {
 	return newMap, nil
 }
 
+// StoppedByUser returns whether the container was last stopped by an explicit
+// call to the Stop() API, or whether it exited naturally.
+func (c *Container) StoppedByUser() (bool, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return false, err
+		}
+	}
+
+	return c.state.StoppedByUser, nil
+}
+
 // Misc Accessors
 // Most will require locking
 
 // NamespacePath returns the path of one of the container's namespaces
 // If the container is not running, an error will be returned
-func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
+func (c *Container) NamespacePath(linuxNS LinuxNS) (string, error) { //nolint:interfacer
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -1017,26 +1061,37 @@ func (c *Container) NamespacePath(ns LinuxNS) (string, error) {
 		}
 	}
 
-	if c.state.State != ContainerStateRunning && c.state.State != ContainerStatePaused {
-		return "", errors.Wrapf(ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
+	if c.state.State != define.ContainerStateRunning && c.state.State != define.ContainerStatePaused {
+		return "", errors.Wrapf(define.ErrCtrStopped, "cannot get namespace path unless container %s is running", c.ID())
 	}
 
-	if ns == InvalidNS {
-		return "", errors.Wrapf(ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
+	if linuxNS == InvalidNS {
+		return "", errors.Wrapf(define.ErrInvalidArg, "invalid namespace requested from container %s", c.ID())
 	}
 
-	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, ns.String()), nil
+	return fmt.Sprintf("/proc/%d/ns/%s", c.state.PID, linuxNS.String()), nil
 }
 
 // CGroupPath returns a cgroups "path" for a given container.
 func (c *Container) CGroupPath() (string, error) {
 	switch c.runtime.config.CgroupManager {
-	case CgroupfsCgroupsManager:
+	case define.CgroupfsCgroupsManager:
 		return filepath.Join(c.config.CgroupParent, fmt.Sprintf("libpod-%s", c.ID())), nil
-	case SystemdCgroupsManager:
+	case define.SystemdCgroupsManager:
+		if rootless.IsRootless() {
+			uid := rootless.GetRootlessUID()
+			parts := strings.SplitN(c.config.CgroupParent, "/", 2)
+
+			dir := ""
+			if len(parts) > 1 {
+				dir = parts[1]
+			}
+
+			return filepath.Join(parts[0], fmt.Sprintf("user-%d.slice/user@%d.service/user.slice/%s", uid, uid, dir), createUnitName("libpod", c.ID())), nil
+		}
 		return filepath.Join(c.config.CgroupParent, createUnitName("libpod", c.ID())), nil
 	default:
-		return "", errors.Wrapf(ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
+		return "", errors.Wrapf(define.ErrInvalidArg, "unsupported CGroup manager %s in use", c.runtime.config.CgroupManager)
 	}
 }
 
@@ -1106,7 +1161,7 @@ func (c *Container) NetworkDisabled() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		return networkDisabled(container)
+		return container.NetworkDisabled()
 	}
 	return networkDisabled(c)
 
@@ -1152,4 +1207,13 @@ func (c *Container) HasHealthCheck() bool {
 // HealthCheckConfig returns the command and timing attributes of the health check
 func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
 	return c.config.HealthCheckConfig
+}
+
+// AutoRemove indicates whether the container will be removed after it is executed
+func (c *Container) AutoRemove() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return c.Spec().Annotations[InspectAnnotationAutoremove] == InspectResponseTrue
 }

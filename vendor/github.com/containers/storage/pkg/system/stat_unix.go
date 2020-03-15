@@ -3,6 +3,8 @@
 package system
 
 import (
+	"os"
+	"strconv"
 	"syscall"
 )
 
@@ -54,7 +56,19 @@ func (s StatT) Mtim() syscall.Timespec {
 func Stat(path string) (*StatT, error) {
 	s := &syscall.Stat_t{}
 	if err := syscall.Stat(path, s); err != nil {
-		return nil, err
+		return nil, &os.PathError{Op: "Stat", Path: path, Err: err}
+	}
+	return fromStatT(s)
+}
+
+// Fstat takes an open file descriptor and returns
+// a system.StatT type pertaining to that file.
+//
+// Throws an error if the file descriptor is invalid
+func Fstat(fd int) (*StatT, error) {
+	s := &syscall.Stat_t{}
+	if err := syscall.Fstat(fd, s); err != nil {
+		return nil, &os.PathError{Op: "Fstat", Path: strconv.Itoa(fd), Err: err}
 	}
 	return fromStatT(s)
 }

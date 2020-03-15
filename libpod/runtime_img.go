@@ -10,34 +10,37 @@ import (
 	"os"
 
 	"github.com/containers/buildah/imagebuildah"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/image/directory"
-	dockerarchive "github.com/containers/image/docker/archive"
-	ociarchive "github.com/containers/image/oci/archive"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/containers/image/v5/directory"
+	dockerarchive "github.com/containers/image/v5/docker/archive"
+	ociarchive "github.com/containers/image/v5/oci/archive"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // Runtime API
 
 // RemoveImage deletes an image from local storage
 // Images being used by running containers can only be removed if force=true
-func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (string, error) {
+func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool) (*image.ImageDeleteResponse, error) {
+	response := image.ImageDeleteResponse{}
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return "", ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	// Get all containers, filter to only those using the image, and remove those containers
 	ctrs, err := r.state.AllContainers()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	imageCtrs := []*Container{}
 	for _, ctr := range ctrs {
@@ -48,18 +51,18 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 	if len(imageCtrs) > 0 && len(img.Names()) <= 1 {
 		if force {
 			for _, ctr := range imageCtrs {
-				if err := r.removeContainer(ctx, ctr, true, false); err != nil {
-					return "", errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
+				if err := r.removeContainer(ctx, ctr, true, false, false); err != nil {
+					return nil, errors.Wrapf(err, "error removing image %s: container %s using image could not be removed", img.ID(), ctr.ID())
 				}
 			}
 		} else {
-			return "", fmt.Errorf("could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
+			return nil, fmt.Errorf("could not remove image %s as it is being used by %d containers", img.ID(), len(imageCtrs))
 		}
 	}
 
-	hasChildren, err := img.IsParent()
+	hasChildren, err := img.IsParent(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if (len(img.Names()) > 1 && !img.InputIsID()) || hasChildren {
@@ -67,32 +70,35 @@ func (r *Runtime) RemoveImage(ctx context.Context, img *image.Image, force bool)
 		// the image. we figure out which repotag the user is trying to refer
 		// to and untag it.
 		repoName, err := img.MatchRepoTag(img.InputName)
-		if hasChildren && err == image.ErrRepoTagNotFound {
-			return "", errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
+		if hasChildren && errors.Cause(err) == image.ErrRepoTagNotFound {
+			return nil, errors.Errorf("unable to delete %q (cannot be forced) - image has dependent child images", img.ID())
 		}
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 		if err := img.UntagImage(repoName); err != nil {
-			return "", err
+			return nil, err
 		}
-		return fmt.Sprintf("Untagged: %s", repoName), nil
+		response.Untagged = append(response.Untagged, repoName)
+		return &response, nil
 	} else if len(img.Names()) > 1 && img.InputIsID() && !force {
 		// If the user requests to delete an image by ID and the image has multiple
 		// reponames and no force is applied, we error out.
-		return "", fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
+		return nil, fmt.Errorf("unable to delete %s (must force) - image is referred to in multiple tags", img.ID())
 	}
-	err = img.Remove(force)
+	err = img.Remove(ctx, force)
 	if err != nil && errors.Cause(err) == storage.ErrImageUsedByContainer {
 		if errStorage := r.rmStorageContainers(force, img); errStorage == nil {
 			// Containers associated with the image should be deleted now,
 			// let's try removing the image again.
-			err = img.Remove(force)
+			err = img.Remove(ctx, force)
 		} else {
 			err = errStorage
 		}
 	}
-	return img.ID(), err
+	response.Untagged = append(response.Untagged, img.Names()...)
+	response.Deleted = img.ID()
+	return &response, err
 }
 
 // Remove containers that are in storage rather than Podman.
@@ -140,9 +146,9 @@ func removeStorageContainers(ctrIDs []string, store storage.Store) error {
 }
 
 // Build adds the runtime to the imagebuildah call
-func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) error {
-	_, _, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
-	return err
+func (r *Runtime) Build(ctx context.Context, options imagebuildah.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+	return id, ref, err
 }
 
 // Import is called as an intermediary to the image library Import
@@ -154,10 +160,11 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 
 	ic := v1.ImageConfig{}
 	if len(changes) > 0 {
-		ic, err = util.GetImageConfig(changes)
+		config, err := util.GetImageConfig(changes)
 		if err != nil {
 			return "", errors.Wrapf(err, "error adding config changes to image %q", source)
 		}
+		ic = config.ImageConfig
 	}
 
 	hist := []v1.History{
@@ -186,7 +193,7 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 	}
 	// if it's stdin, buffer it, too
 	if source == "-" {
-		file, err := downloadFromFile(os.Stdin)
+		file, err := DownloadFromFile(os.Stdin)
 		if err != nil {
 			return "", err
 		}
@@ -202,11 +209,11 @@ func (r *Runtime) Import(ctx context.Context, source string, reference string, c
 }
 
 // donwloadFromURL downloads an image in the format "https:/example.com/myimage.tar"
-// and temporarily saves in it /var/tmp/importxyz, which is deleted after the image is imported
+// and temporarily saves in it $TMPDIR/importxyz, which is deleted after the image is imported
 func downloadFromURL(source string) (string, error) {
 	fmt.Printf("Downloading from %q\n", source)
 
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
+	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
 	}
@@ -226,10 +233,10 @@ func downloadFromURL(source string) (string, error) {
 	return outFile.Name(), nil
 }
 
-// donwloadFromFile reads all of the content from the reader and temporarily
-// saves in it /var/tmp/importxyz, which is deleted after the image is imported
-func downloadFromFile(reader *os.File) (string, error) {
-	outFile, err := ioutil.TempFile("/var/tmp", "import")
+// DownloadFromFile reads all of the content from the reader and temporarily
+// saves in it $TMPDIR/importxyz, which is deleted after the image is imported
+func DownloadFromFile(reader *os.File) (string, error) {
+	outFile, err := ioutil.TempFile(util.Tmpdir(), "import")
 	if err != nil {
 		return "", errors.Wrap(err, "error creating file")
 	}

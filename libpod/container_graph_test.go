@@ -8,7 +8,7 @@ import (
 )
 
 func TestBuildContainerGraphNoCtrsIsEmpty(t *testing.T) {
-	graph, err := buildContainerGraph([]*Container{})
+	graph, err := BuildContainerGraph([]*Container{})
 	assert.NoError(t, err)
 	assert.Equal(t, 0, len(graph.nodes))
 	assert.Equal(t, 0, len(graph.noDepNodes))
@@ -24,7 +24,7 @@ func TestBuildContainerGraphOneCtr(t *testing.T) {
 	ctr1, err := getTestCtr1(manager)
 	assert.NoError(t, err)
 
-	graph, err := buildContainerGraph([]*Container{ctr1})
+	graph, err := BuildContainerGraph([]*Container{ctr1})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(graph.nodes))
 	assert.Equal(t, 1, len(graph.noDepNodes))
@@ -49,7 +49,7 @@ func TestBuildContainerGraphTwoCtrNoEdge(t *testing.T) {
 	ctr2, err := getTestCtr2(manager)
 	assert.NoError(t, err)
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(graph.nodes))
 	assert.Equal(t, 2, len(graph.noDepNodes))
@@ -76,7 +76,7 @@ func TestBuildContainerGraphTwoCtrOneEdge(t *testing.T) {
 	assert.NoError(t, err)
 	ctr2.config.UserNsCtr = ctr1.config.ID
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(graph.nodes))
 	assert.Equal(t, 1, len(graph.noDepNodes))
@@ -99,7 +99,7 @@ func TestBuildContainerGraphTwoCtrCycle(t *testing.T) {
 	ctr2.config.UserNsCtr = ctr1.config.ID
 	ctr1.config.NetNsCtr = ctr2.config.ID
 
-	_, err = buildContainerGraph([]*Container{ctr1, ctr2})
+	_, err = BuildContainerGraph([]*Container{ctr1, ctr2})
 	assert.Error(t, err)
 }
 
@@ -116,7 +116,7 @@ func TestBuildContainerGraphThreeCtrNoEdges(t *testing.T) {
 	ctr3, err := getTestCtrN("3", manager)
 	assert.NoError(t, err)
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2, ctr3})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(graph.nodes))
 	assert.Equal(t, 3, len(graph.noDepNodes))
@@ -150,7 +150,7 @@ func TestBuildContainerGraphThreeContainersTwoInCycle(t *testing.T) {
 	ctr1.config.UserNsCtr = ctr2.config.ID
 	ctr2.config.IPCNsCtr = ctr1.config.ID
 
-	_, err = buildContainerGraph([]*Container{ctr1, ctr2, ctr3})
+	_, err = BuildContainerGraph([]*Container{ctr1, ctr2, ctr3})
 	assert.Error(t, err)
 }
 
@@ -170,7 +170,7 @@ func TestBuildContainerGraphThreeContainersCycle(t *testing.T) {
 	ctr2.config.IPCNsCtr = ctr3.config.ID
 	ctr3.config.NetNsCtr = ctr1.config.ID
 
-	_, err = buildContainerGraph([]*Container{ctr1, ctr2, ctr3})
+	_, err = BuildContainerGraph([]*Container{ctr1, ctr2, ctr3})
 	assert.Error(t, err)
 }
 
@@ -190,7 +190,7 @@ func TestBuildContainerGraphThreeContainersNoCycle(t *testing.T) {
 	ctr1.config.NetNsCtr = ctr3.config.ID
 	ctr2.config.IPCNsCtr = ctr3.config.ID
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2, ctr3})
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(graph.nodes))
 	assert.Equal(t, 1, len(graph.noDepNodes))
@@ -215,7 +215,7 @@ func TestBuildContainerGraphFourContainersNoEdges(t *testing.T) {
 	ctr4, err := getTestCtrN("4", manager)
 	assert.NoError(t, err)
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(graph.nodes))
 	assert.Equal(t, 4, len(graph.noDepNodes))
@@ -256,7 +256,7 @@ func TestBuildContainerGraphFourContainersTwoInCycle(t *testing.T) {
 	ctr1.config.IPCNsCtr = ctr2.config.ID
 	ctr2.config.UserNsCtr = ctr1.config.ID
 
-	_, err = buildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
+	_, err = BuildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
 	assert.Error(t, err)
 }
 
@@ -280,7 +280,7 @@ func TestBuildContainerGraphFourContainersAllInCycle(t *testing.T) {
 	ctr3.config.NetNsCtr = ctr4.config.ID
 	ctr4.config.UTSNsCtr = ctr1.config.ID
 
-	_, err = buildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
+	_, err = BuildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
 	assert.Error(t, err)
 }
 
@@ -303,7 +303,7 @@ func TestBuildContainerGraphFourContainersNoneInCycle(t *testing.T) {
 	ctr1.config.NetNsCtr = ctr3.config.ID
 	ctr2.config.UserNsCtr = ctr3.config.ID
 
-	graph, err := buildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
+	graph, err := BuildContainerGraph([]*Container{ctr1, ctr2, ctr3, ctr4})
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(graph.nodes))
 	assert.Equal(t, 2, len(graph.noDepNodes))

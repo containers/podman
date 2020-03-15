@@ -196,8 +196,20 @@ echo ########################################################
 echo test "build with preprocessor"
 echo ########################################################
 
-  target=alpine-image
+  TARGET=alpine-image
   podman build -q -t ${TARGET} -f Decomposed.in $HOME/test/build/preprocess
+  buildah --debug=false images
+  CID=$(buildah from $TARGET)
+  buildah rm $CID
+  podman rmi $(buildah --debug=false images -q)
+  buildah --debug=false images -q
+
+echo ########################################################
+echo test "build with priv'd RUN"
+echo ########################################################
+
+  TARGET=alpinepriv
+  podman build -q -t ${TARGET} -f $HOME/test/build/run-privd $HOME/test/build/run-privd
   buildah --debug=false images
   CID=$(buildah from $TARGET)
   buildah rm $CID

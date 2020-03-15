@@ -2,9 +2,11 @@ package shortcuts
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/sirupsen/logrus"
 )
 
-// GetPodsByContext gets pods whether all, latest, or a slice of names/ids
+// GetPodsByContext returns a slice of pods. Note that all, latest and pods are
+// mutually exclusive arguments.
 func GetPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) ([]*libpod.Pod, error) {
 	var outpods []*libpod.Pod
 	if all {
@@ -18,33 +20,46 @@ func GetPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) 
 		outpods = append(outpods, p)
 		return outpods, nil
 	}
+	var err error
 	for _, p := range pods {
-		pod, err := runtime.LookupPod(p)
-		if err != nil {
-			return nil, err
+		pod, e := runtime.LookupPod(p)
+		if e != nil {
+			// Log all errors here, so callers don't need to.
+			logrus.Debugf("Error looking up pod %q: %v", p, e)
+			if err == nil {
+				err = e
+			}
+		} else {
+			outpods = append(outpods, pod)
 		}
-		outpods = append(outpods, pod)
 	}
-	return outpods, nil
+	return outpods, err
 }
 
 // GetContainersByContext gets pods whether all, latest, or a slice of names/ids
+// is specified.
 func GetContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
 	var ctr *libpod.Container
 	ctrs = []*libpod.Container{}
 
-	if all {
+	switch {
+	case all:
 		ctrs, err = runtime.GetAllContainers()
-	} else if latest {
+	case latest:
 		ctr, err = runtime.GetLatestContainer()
 		ctrs = append(ctrs, ctr)
-	} else {
+	default:
 		for _, n := range names {
 			ctr, e := runtime.LookupContainer(n)
-			if e != nil && err == nil {
-				err = e
+			if e != nil {
+				// Log all errors here, so callers don't need to.
+				logrus.Debugf("Error looking up container %q: %v", n, e)
+				if err == nil {
+					err = e
+				}
+			} else {
+				ctrs = append(ctrs, ctr)
 			}
-			ctrs = append(ctrs, ctr)
 		}
 	}
 	return

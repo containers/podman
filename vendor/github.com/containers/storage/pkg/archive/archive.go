@@ -36,14 +36,15 @@ type (
 
 	// TarOptions wraps the tar options.
 	TarOptions struct {
-		IncludeFiles     []string
-		ExcludePatterns  []string
-		Compression      Compression
-		NoLchown         bool
-		UIDMaps          []idtools.IDMap
-		GIDMaps          []idtools.IDMap
-		ChownOpts        *idtools.IDPair
-		IncludeSourceDir bool
+		IncludeFiles      []string
+		ExcludePatterns   []string
+		Compression       Compression
+		NoLchown          bool
+		UIDMaps           []idtools.IDMap
+		GIDMaps           []idtools.IDMap
+		IgnoreChownErrors bool
+		ChownOpts         *idtools.IDPair
+		IncludeSourceDir  bool
 		// WhiteoutFormat is the expected on disk format for whiteout files.
 		// This format will be converted to the standard format on pack
 		// and from the standard format on unpack.
@@ -65,6 +66,12 @@ type (
 		// precision in timestamps.
 		CopyPass bool
 	}
+)
+
+const (
+	tarExt  = "tar"
+	solaris = "solaris"
+	windows = "windows"
 )
 
 // Archiver allows the reuse of most utility functions of this package with a
@@ -98,6 +105,8 @@ const (
 	Gzip
 	// Xz is xz compression algorithm.
 	Xz
+	// Zstd is zstd compression algorithm.
+	Zstd
 )
 
 const (
@@ -141,6 +150,7 @@ func DetectCompression(source []byte) Compression {
 		Bzip2: {0x42, 0x5A, 0x68},
 		Gzip:  {0x1F, 0x8B, 0x08},
 		Xz:    {0xFD, 0x37, 0x7A, 0x58, 0x5A, 0x00},
+		Zstd:  {0x28, 0xb5, 0x2f, 0xfd},
 	} {
 		if len(source) < len(m) {
 			logrus.Debug("Len too short")
@@ -200,6 +210,8 @@ func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
 			<-chdone
 			return readBufWrapper.Close()
 		}), nil
+	case Zstd:
+		return zstdReader(buf)
 	default:
 		return nil, fmt.Errorf("Unsupported compression format %s", (&compression).Extension())
 	}
@@ -217,6 +229,8 @@ func CompressStream(dest io.Writer, compression Compression) (io.WriteCloser, er
 		gzWriter := gzip.NewWriter(dest)
 		writeBufWrapper := p.NewWriteCloserWrapper(buf, gzWriter)
 		return writeBufWrapper, nil
+	case Zstd:
+		return zstdWriter(dest)
 	case Bzip2, Xz:
 		// archive/bzip2 does not support writing, and there is no xz support at all
 		// However, this is not a problem as docker only currently generates gzipped tars
@@ -317,13 +331,15 @@ func ReplaceFileTarWrapper(inputTarStream io.ReadCloser, mods map[string]TarModi
 func (compression *Compression) Extension() string {
 	switch *compression {
 	case Uncompressed:
-		return "tar"
+		return tarExt
 	case Bzip2:
-		return "tar.bz2"
+		return tarExt + ".bz2"
 	case Gzip:
-		return "tar.gz"
+		return tarExt + ".gz"
 	case Xz:
-		return "tar.xz"
+		return tarExt + ".xz"
+	case Zstd:
+		return tarExt + ".zst"
 	}
 	return ""
 }
@@ -377,10 +393,38 @@ func fillGo18FileTypeBits(mode int64, fi os.FileInfo) int64 {
 // ReadSecurityXattrToTarHeader reads security.capability xattr from filesystem
 // to a tar header
 func ReadSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
-	capability, _ := system.Lgetxattr(path, "security.capability")
+	capability, err := system.Lgetxattr(path, "security.capability")
+	if err != nil && err != system.EOPNOTSUPP {
+		return err
+	}
 	if capability != nil {
 		hdr.Xattrs = make(map[string]string)
 		hdr.Xattrs["security.capability"] = string(capability)
+	}
+	return nil
+}
+
+// ReadUserXattrToTarHeader reads user.* xattr from filesystem to a tar header
+func ReadUserXattrToTarHeader(path string, hdr *tar.Header) error {
+	xattrs, err := system.Llistxattr(path)
+	if err != nil && err != system.EOPNOTSUPP {
+		return err
+	}
+	for _, key := range xattrs {
+		if strings.HasPrefix(key, "user.") {
+			value, err := system.Lgetxattr(path, key)
+			if err == system.E2BIG {
+				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", path, key)
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if hdr.Xattrs == nil {
+				hdr.Xattrs = make(map[string]string)
+			}
+			hdr.Xattrs[key] = string(value)
+		}
 	}
 	return nil
 }
@@ -459,6 +503,9 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	if err := ReadSecurityXattrToTarHeader(path, hdr); err != nil {
 		return err
 	}
+	if err := ReadUserXattrToTarHeader(path, hdr); err != nil {
+		return err
+	}
 	if ta.CopyPass {
 		copyPassHeader(hdr)
 	}
@@ -530,10 +577,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	}
 
 	if hdr.Typeflag == tar.TypeReg && hdr.Size > 0 {
-		// We use system.OpenSequential to ensure we use sequential file
-		// access on Windows to avoid depleting the standby list.
-		// On Linux, this equates to a regular os.Open.
-		file, err := system.OpenSequential(path)
+		file, err := os.Open(path)
 		if err != nil {
 			return err
 		}
@@ -554,7 +598,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	return nil
 }
 
-func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns bool) error {
+func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool) error {
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
@@ -574,7 +618,7 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 		// Source is regular file. We use system.OpenFileSequential to use sequential
 		// file access to avoid depleting the standby list on Windows.
 		// On Linux, this equates to a regular os.OpenFile
-		file, err := system.OpenFileSequential(path, os.O_CREATE|os.O_WRONLY, hdrInfo.Mode())
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, hdrInfo.Mode())
 		if err != nil {
 			return err
 		}
@@ -632,12 +676,17 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 	}
 
 	// Lchown is not supported on Windows.
-	if Lchown && runtime.GOOS != "windows" {
+	if Lchown && runtime.GOOS != windows {
 		if chownOpts == nil {
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
-		if err := idtools.SafeLchown(path, chownOpts.UID, chownOpts.GID); err != nil {
-			return err
+		err := idtools.SafeLchown(path, chownOpts.UID, chownOpts.GID)
+		if err != nil {
+			if ignoreChownErrors {
+				fmt.Fprintf(os.Stderr, "Chown error detected. Ignoring due to ignoreChownErrors flag: %v\n", err)
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -806,11 +855,12 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 				// is asking for that file no matter what - which is true
 				// for some files, like .dockerignore and Dockerfile (sometimes)
 				if include != relFilePath {
-					skip, err = pm.Matches(relFilePath)
+					matches, err := pm.IsMatch(relFilePath)
 					if err != nil {
 						logrus.Errorf("Error matching %s: %v", relFilePath, err)
 						return err
 					}
+					skip = matches
 				}
 
 				if skip {
@@ -984,7 +1034,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS); err != nil {
+		if err := createTarFile(path, dest, hdr, trBuf, !options.NoLchown, chownOpts, options.InUserNS, options.IgnoreChownErrors); err != nil {
 			return err
 		}
 
@@ -1149,7 +1199,7 @@ func (archiver *Archiver) CopyFileWithTar(src, dst string) (err error) {
 		dst = filepath.Join(dst, filepath.Base(src))
 	}
 	// Create the holding directory if necessary
-	if err := system.MkdirAll(filepath.Dir(dst), 0700, ""); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0700); err != nil {
 		return err
 	}
 

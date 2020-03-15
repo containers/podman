@@ -8,14 +8,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/buildah/util"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +27,7 @@ const (
 	Package = "buildah"
 	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
 	// too.
-	Version = "1.7.2"
+	Version = "1.14.2"
 	// The value we use to identify what type of information, currently a
 	// serialized Builder structure, we are using as per-container state.
 	// This should only be changed when we make incompatible changes to
@@ -39,7 +40,7 @@ const (
 	stateFile = Package + ".json"
 )
 
-// PullPolicy takes the value PullIfMissing, PullAlways, or PullNever.
+// PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
 type PullPolicy int
 
 const (
@@ -51,6 +52,11 @@ const (
 	// take, signalling that a fresh, possibly updated, copy of the image
 	// should be pulled from a registry before the build proceeds.
 	PullAlways
+	// PullIfNewer is one of the values that BuilderOptions.PullPolicy
+	// can take, signalling that the source image should only be pulled
+	// from a registry if a local copy is not already present or if a
+	// newer version the image is present on the repository.
+	PullIfNewer
 	// PullNever is one of the values that BuilderOptions.PullPolicy can
 	// take, signalling that the source image should not be pulled from a
 	// registry if a local copy of it is not already present.
@@ -64,6 +70,8 @@ func (p PullPolicy) String() string {
 		return "PullIfMissing"
 	case PullAlways:
 		return "PullAlways"
+	case PullIfNewer:
+		return "PullIfNewer"
 	case PullNever:
 		return "PullNever"
 	}
@@ -119,6 +127,9 @@ type Builder struct {
 	// FromImageID is the ID of the source image which was used to create
 	// the container, if one was used.  It should not be modified.
 	FromImageID string `json:"image-id"`
+	// FromImageDigest is the digest of the source image which was used to
+	// create the container, if one was used.  It should not be modified.
+	FromImageDigest string `json:"image-digest"`
 	// Config is the source image's configuration.  It should not be
 	// modified.
 	Config []byte `json:"config,omitempty"`
@@ -169,13 +180,8 @@ type Builder struct {
 	CNIConfigDir string
 	// ID mapping options to use when running processes in the container with non-host user namespaces.
 	IDMappingOptions IDMappingOptions
-	// AddCapabilities is a list of capabilities to add to the default set when running
-	// commands in the container.
-	AddCapabilities []string
-	// DropCapabilities is a list of capabilities to remove from the default set,
-	// after processing the AddCapabilities set, when running commands in the container.
-	// If a capability appears in both lists, it will be dropped.
-	DropCapabilities []string
+	// Capabilities is a list of capabilities to use when running commands in the container.
+	Capabilities []string
 	// PrependedEmptyLayers are history entries that we'll add to a
 	// committed image, after any history items that we inherit from a base
 	// image, but before the history item for the layer that we're
@@ -185,12 +191,17 @@ type Builder struct {
 	// committed image after the history item for the layer that we're
 	// committing.
 	AppendedEmptyLayers []v1.History
-
-	CommonBuildOpts *CommonBuildOptions
+	CommonBuildOpts     *CommonBuildOptions
 	// TopLayer is the top layer of the image
 	TopLayer string
 	// Format for the build Image
 	Format string
+	// TempVolumes are temporary mount points created during container runs
+	TempVolumes map[string]bool
+	// ContentDigester counts the digest of all Add()ed content
+	ContentDigester CompositeDigester
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
 }
 
 // BuilderInfo are used as objects to display container information
@@ -198,6 +209,7 @@ type BuilderInfo struct {
 	Type                  string
 	FromImage             string
 	FromImageID           string
+	FromImageDigest       string
 	Config                string
 	Manifest              string
 	Container             string
@@ -212,14 +224,13 @@ type BuilderInfo struct {
 	DefaultMountsFilePath string
 	Isolation             string
 	NamespaceOptions      NamespaceOptions
+	Capabilities          []string
 	ConfigureNetwork      string
 	CNIPluginPath         string
 	CNIConfigDir          string
 	IDMappingOptions      IDMappingOptions
-	DefaultCapabilities   []string
-	AddCapabilities       []string
-	DropCapabilities      []string
 	History               []v1.History
+	Devices               []configs.Device
 }
 
 // GetBuildInfo gets a pointer to a Builder object and returns a BuilderInfo object from it.
@@ -237,10 +248,12 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		EmptyLayer: false,
 	})
 	history = append(history, copyHistory(b.AppendedEmptyLayers)...)
+	sort.Strings(b.Capabilities)
 	return BuilderInfo{
 		Type:                  b.Type,
 		FromImage:             b.FromImage,
 		FromImageID:           b.FromImageID,
+		FromImageDigest:       b.FromImageDigest,
 		Config:                string(b.Config),
 		Manifest:              string(b.Manifest),
 		Container:             b.Container,
@@ -259,10 +272,9 @@ func GetBuildInfo(b *Builder) BuilderInfo {
 		CNIPluginPath:         b.CNIPluginPath,
 		CNIConfigDir:          b.CNIConfigDir,
 		IDMappingOptions:      b.IDMappingOptions,
-		DefaultCapabilities:   append([]string{}, util.DefaultCapabilities...),
-		AddCapabilities:       append([]string{}, b.AddCapabilities...),
-		DropCapabilities:      append([]string{}, b.DropCapabilities...),
+		Capabilities:          b.Capabilities,
 		History:               history,
+		Devices:               b.Devices,
 	}
 }
 
@@ -282,8 +294,16 @@ type CommonBuildOptions struct {
 	CPUSetCPUs string
 	// CPUSetMems memory nodes (MEMs) in which to allow execution (0-3, 0,1). Only effective on NUMA systems.
 	CPUSetMems string
+	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
+	HTTPProxy bool
 	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
+	// DNSSearch is the list of DNS search domains to add to the build container's /etc/resolv.conf
+	DNSSearch []string
+	// DNSServers is the list of DNS servers to add to the build container's /etc/resolv.conf
+	DNSServers []string
+	// DNSOptions is the list of DNS
+	DNSOptions []string
 	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
 	// LabelOpts is the a slice of fields of an SELinux context, given in "field:pair" format, or "disable".
@@ -297,7 +317,7 @@ type CommonBuildOptions struct {
 	ShmSize string
 	// Ulimit specifies resource limit options, in the form type:softlimit[:hardlimit].
 	// These types are recognized:
-	// "core": maximimum core dump size (ulimit -c)
+	// "core": maximum core dump size (ulimit -c)
 	// "cpu": maximum CPU time (ulimit -t)
 	// "data": maximum size of a process's data segment (ulimit -d)
 	// "fsize": maximum size of new files (ulimit -f)
@@ -378,17 +398,21 @@ type BuilderOptions struct {
 	CNIConfigDir string
 	// ID mapping options to use if we're setting up our own user namespace.
 	IDMappingOptions *IDMappingOptions
-	// AddCapabilities is a list of capabilities to add to the default set when
+	// Capabilities is a list of capabilities to use when
 	// running commands in the container.
-	AddCapabilities []string
-	// DropCapabilities is a list of capabilities to remove from the default set,
-	// after processing the AddCapabilities set, when running commands in the
-	// container.  If a capability appears in both lists, it will be dropped.
-	DropCapabilities []string
-
+	Capabilities    []string
 	CommonBuildOpts *CommonBuildOptions
 	// Format for the container image
 	Format string
+	// Devices are the additional devices to add to the containers
+	Devices []configs.Device
+	//DefaultEnv for containers
+	DefaultEnv []string
+	// MaxPullRetries is the maximum number of attempts we'll make to pull
+	// any one image from the external registry if the first attempt fails.
+	MaxPullRetries int
+	// PullRetryDelay is how long to wait before retrying a pull attempt.
+	PullRetryDelay time.Duration
 }
 
 // ImportOptions are used to initialize a Builder from an existing container

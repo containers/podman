@@ -4,16 +4,16 @@ import (
 	"context"
 	"io"
 	"os"
-	"syscall"
+	"path"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	_ "github.com/containers/libpod/pkg/hooks/0.1.0"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/version"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/opentracing/opentracing-go"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +21,7 @@ import (
 // This is populated by the Makefile from the VERSION file
 // in the repository
 var (
-	exitCode = 125
+	exitCode = define.ExecErrorCodeGeneric
 	Ctx      context.Context
 	span     opentracing.Span
 	closer   io.Closer
@@ -32,61 +32,75 @@ var (
 var mainCommands = []*cobra.Command{
 	_attachCommand,
 	_buildCommand,
+	_commitCommand,
 	_diffCommand,
 	_createCommand,
 	_eventsCommand,
+	_execCommand,
 	_exportCommand,
 	_generateCommand,
 	_historyCommand,
 	&_imagesCommand,
 	_importCommand,
 	_infoCommand,
+	_initCommand,
 	&_inspectCommand,
 	_killCommand,
 	_loadCommand,
 	_logsCommand,
+	_pauseCommand,
 	podCommand.Command,
+	_portCommand,
 	&_psCommand,
 	_pullCommand,
 	_pushCommand,
+	_restartCommand,
 	_rmCommand,
 	&_rmiCommand,
 	_runCommand,
 	_saveCommand,
 	_stopCommand,
 	_tagCommand,
-	_umountCommand,
+	_topCommand,
+	_unpauseCommand,
 	_versionCommand,
 	_waitCommand,
 	imageCommand.Command,
+	_startCommand,
 	systemCommand.Command,
+	_untagCommand,
 }
 
 var rootCmd = &cobra.Command{
-	Use:  "podman",
-	Long: "manage pods and images",
-	RunE: commandRunE(),
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		return before(cmd, args)
-	},
-	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-		return after(cmd, args)
-	},
-	SilenceUsage:  true,
-	SilenceErrors: true,
+	Use:                path.Base(os.Args[0]),
+	Long:               "manage pods and images",
+	RunE:               commandRunE(),
+	PersistentPreRunE:  before,
+	PersistentPostRunE: after,
+	SilenceUsage:       true,
+	SilenceErrors:      true,
 }
 
 var MainGlobalOpts cliconfig.MainFlags
 
-func init() {
+func initCobra() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.TraverseChildren = true
 	rootCmd.Version = version.Version
 	// Override default --help information of `--version` global flag
 	var dummyVersion bool
-	rootCmd.PersistentFlags().BoolVar(&dummyVersion, "version", false, "Version for podman")
+	rootCmd.Flags().BoolVarP(&dummyVersion, "version", "v", false, "Version of podman")
 	rootCmd.AddCommand(mainCommands...)
 	rootCmd.AddCommand(getMainCommands()...)
+}
+
+func init() {
+	if err := libpod.SetXdgDirs(); err != nil {
+		logrus.Errorf(err.Error())
+		os.Exit(1)
+	}
+	initBuild()
+	initCobra()
 }
 
 func initConfig() {
@@ -94,14 +108,6 @@ func initConfig() {
 }
 
 func before(cmd *cobra.Command, args []string) error {
-	if err := libpod.SetXdgRuntimeDir(""); err != nil {
-		logrus.Errorf(err.Error())
-		os.Exit(1)
-	}
-	if err := setupRootless(cmd, args); err != nil {
-		return err
-	}
-
 	//	Set log level; if not log-level is provided, default to error
 	logLevel := MainGlobalOpts.LogLevel
 	if logLevel == "" {
@@ -112,26 +118,27 @@ func before(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	logrus.SetLevel(level)
-
-	rlimits := new(syscall.Rlimit)
-	rlimits.Cur = 1048576
-	rlimits.Max = 1048576
-	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error getting rlimits")
-		}
-		rlimits.Cur = rlimits.Max
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return errors.Wrapf(err, "error setting new rlimits")
-		}
+	if err := setSyslog(); err != nil {
+		return err
 	}
 
+	if err := setupRootless(cmd, args); err != nil {
+		return err
+	}
+
+	// check that global opts input is valid
+	if err := checkInput(); err != nil {
+		return err
+	}
+
+	if err := setRLimits(); err != nil {
+		return err
+	}
 	if rootless.IsRootless() {
 		logrus.Info("running as rootless")
 	}
+	setUMask()
 
-	// Be sure we can create directories with 0755 mode.
-	syscall.Umask(0022)
 	return profileOn(cmd)
 }
 
@@ -144,19 +151,23 @@ func main() {
 	//cpuProfile := false
 
 	if reexec.Init() {
+		// We were invoked with a different argv[0] indicating that we
+		// had a specific job to do as a subprocess, and it's done.
 		return
+	}
+	// Hard code TMPDIR functions to use /var/tmp, if user did not override
+	if _, ok := os.LookupEnv("TMPDIR"); !ok {
+		os.Setenv("TMPDIR", "/var/tmp")
 	}
 	if err := rootCmd.Execute(); err != nil {
 		outputError(err)
-	} else {
-		// The exitCode modified from 125, indicates an application
+	} else if exitCode == define.ExecErrorCodeGeneric {
+		// The exitCode modified from define.ExecErrorCodeGeneric,
+		// indicates an application
 		// running inside of a container failed, as opposed to the
 		// podman command failed.  Must exit with that exit code
 		// otherwise command exited correctly.
-		if exitCode == 125 {
-			exitCode = 0
-		}
-
+		exitCode = 0
 	}
 
 	// Check if /etc/containers/registries.conf exists when running in

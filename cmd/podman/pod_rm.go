@@ -12,7 +12,7 @@ import (
 
 var (
 	podRmCommand     cliconfig.PodRmValues
-	podRmDescription = fmt.Sprintf(`podman rm will remove one or more pods from the host.
+	podRmDescription = fmt.Sprintf(`podman rm will remove one or more stopped pods and their containers from the host.
 
   The pod name or ID can be used.  A pod with containers will not be removed without --force. If --force is specified, all containers will be stopped, then removed.`)
 	_podRmCommand = &cobra.Command{
@@ -26,7 +26,7 @@ var (
 			return podRmCmd(&podRmCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod rm mywebserverpod
   podman pod rm -f 860a4b23
@@ -41,17 +41,19 @@ func init() {
 	flags := podRmCommand.Flags()
 	flags.BoolVarP(&podRmCommand.All, "all", "a", false, "Remove all running pods")
 	flags.BoolVarP(&podRmCommand.Force, "force", "f", false, "Force removal of a running pod by first stopping all containers, then removing all containers in the pod.  The default is false")
+	flags.BoolVarP(&podRmCommand.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&podRmCommand.Latest, "latest", "l", false, "Remove the latest pod podman is aware of")
+	markFlagHiddenForRemoteClient("ignore", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 // podRmCmd deletes pods
 func podRmCmd(c *cliconfig.PodRmValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podRmIds, podRmErrors := runtime.RemovePods(getContext(), c)
 	for _, p := range podRmIds {

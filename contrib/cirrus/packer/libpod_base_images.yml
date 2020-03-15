@@ -11,24 +11,20 @@ variables:
     TIMESTAMP:
     # Required for output from qemu builders
     TTYDEV:
-    # RHEL images require click-through agreements to obtain (required)
-    RHEL_BASE_IMAGE_NAME:
-    RHEL_IMAGE_FILE:
-    RHEL_CSUM_FILE:
-    # RHEL requires a subscription to install/update packages
-    RHSM_COMMAND:
+
+    # Ubuntu releases are merely copied to this project for control purposes
+    UBUNTU_BASE_IMAGE:
+    PRIOR_UBUNTU_BASE_IMAGE:
 
     # Latest Fedora release
-    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-Base-29-1.2.x86_64.qcow2"
-    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/29/Cloud/x86_64/images/Fedora-Cloud-29-1.2-x86_64-CHECKSUM"
-    FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-29-1-2'  # Name to use in GCE
+    FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images/Fedora-Cloud-Base-31-1.9.x86_64.qcow2"
+    FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/31/Cloud/x86_64/images/Fedora-Cloud-31-1.9-x86_64-CHECKSUM"
+    FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-31-1-9'
+
     # Prior Fedora release
-    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2"
-    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-28-1.1-x86_64-CHECKSUM"
-    PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-28-1-1'  # Name to use in GCE
-    FAH_IMAGE_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1.x86_64.qcow2"
-    FAH_CSUM_URL: "https://dl.fedoraproject.org/pub/alt/atomic/stable/Fedora-Atomic-29-20181025.1/AtomicHost/x86_64/images/Fedora-AtomicHost-29-20181025.1-x86_64-CHECKSUM"
-    FAH_BASE_IMAGE_NAME: 'fedora-atomichost-29-20181025-1'  # Name to use in GCE
+    PRIOR_FEDORA_IMAGE_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-Base-30-1.2.x86_64.qcow2"
+    PRIOR_FEDORA_CSUM_URL: "https://dl.fedoraproject.org/pub/fedora/linux/releases/30/Cloud/x86_64/images/Fedora-Cloud-30-1.2-x86_64-CHECKSUM"
+    PRIOR_FEDORA_BASE_IMAGE_NAME: 'fedora-cloud-base-30-1-2'
 
     # The name of the image in GCE used for packer build libpod_images.yml
     IBI_BASE_NAME: 'image-builder-image'
@@ -45,28 +41,9 @@ variables:
 sensitive-variables:
     - 'GOOGLE_APPLICATION_CREDENTIALS'
     - 'GCP_PROJECT_ID'
-    - 'RHSM_COMMAND'
 
 # What images to produce in which cloud
 builders:
-    - name: '{{user `IBI_BASE_NAME`}}'
-      type: 'googlecompute'
-      image_name: '{{user `IBI_BASE_NAME`}}-{{user `TIMESTAMP`}}'
-      image_family: '{{user `IBI_BASE_NAME`}}'
-      source_image_project_id: 'centos-cloud'
-      source_image_family: 'centos-7'
-      project_id: '{{user `GCP_PROJECT_ID`}}'
-      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
-      communicator: 'ssh'
-      ssh_username: 'centos'
-      ssh_pty: 'true'
-      # The only supported zone in Cirrus-CI, as of addition of this comment
-      zone: 'us-central1-a'
-      # Enable nested virtualization in case it's ever needed
-      image_licenses:
-        - 'https://www.googleapis.com/compute/v1/projects/vm-options/global/licenses/enable-vmx'
-      min_cpu_platform: "Intel Broadwell"  # nested-virt requirement
-
     - &nested_virt
       name: 'fedora'
       type: 'qemu'
@@ -109,59 +86,63 @@ builders:
       iso_url: '{{user `PRIOR_FEDORA_IMAGE_URL`}}'
       iso_checksum_url: '{{user `PRIOR_FEDORA_CSUM_URL`}}'
 
-    - <<: *nested_virt
-      name: 'fah'
-      iso_url: '{{user `FAH_IMAGE_URL`}}'
-      iso_checksum_url: '{{user `FAH_CSUM_URL`}}'
-      disk_size: 10240
+    - &imgcopy
+      name: 'ubuntu'
+      type: 'googlecompute'
+      image_name: '{{user `UBUNTU_BASE_IMAGE`}}'
+      image_family: '{{build_name}}-base'
+      source_image: '{{user `UBUNTU_BASE_IMAGE`}}'
+      source_image_project_id: 'ubuntu-os-cloud'
+      project_id: '{{user `GCP_PROJECT_ID`}}'
+      account_file: '{{user `GOOGLE_APPLICATION_CREDENTIALS`}}'
+      startup_script_file: "systemd_banish.sh"
+      zone: 'us-central1-a'
+      disk_size: 20
+      communicator: 'none'
 
-    - <<: *nested_virt
-      name: 'rhel'
-      iso_url: 'file://{{user `RHEL_IMAGE_FILE`}}'
-      iso_checksum_url: 'file://{{user `RHEL_CSUM_FILE`}}'
-      disk_size: 10240
+    - <<: *imgcopy
+      name: 'prior-ubuntu'
+      image_name: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
+      source_image: '{{user `PRIOR_UBUNTU_BASE_IMAGE`}}'
 
 provisioners:
     - type: 'shell'
+      only: ['fedora', 'prior-fedora']
       inline:
         - 'mkdir -p /tmp/libpod/{{user `SCRIPT_BASE`}}'
         - 'mkdir -p /tmp/libpod/{{user `PACKER_BASE`}}'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/.cirrus.yml'
       destination: '/tmp/libpod/.cirrus.yml'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/{{user `SCRIPT_BASE`}}/'
       destination: '/tmp/libpod/{{user `SCRIPT_BASE`}}/'
 
     - type: 'file'
+      only: ['fedora', 'prior-fedora']
       source: '{{user `GOSRC`}}/{{user `PACKER_BASE`}}/'
       destination: '/tmp/libpod/{{user `PACKER_BASE`}}/'
 
     - &shell_script
+      only: ['fedora', 'prior-fedora']
       type: 'shell'
       inline:
-        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
-        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh pre'
-      expect_disconnect: true  # Allow this to reboot the VM
+        - 'chmod +x /tmp/libpod/{{user `PACKER_BASE`}}/*.sh'
+        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh'
+      expect_disconnect: true  # Allow this to reboot the VM if needed
       environment_vars:
           - 'TIMESTAMP={{user `TIMESTAMP`}}'
           - 'GOSRC=/tmp/libpod'
           - 'SCRIPT_BASE={{user `SCRIPT_BASE`}}'
           - 'PACKER_BASE={{user `PACKER_BASE`}}'
-          - 'RHSM_COMMAND={{user `RHSM_COMMAND`}}'
-
-    - <<: *shell_script
-      inline: ['{{user `GOSRC`}}/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh']
-      expect_disconnect: false
-      pause_before: '10s'
-      inline:
-        - '/tmp/libpod/{{user `PACKER_BASE`}}/{{build_name}}_base-setup.sh post'
 
 post-processors:
     - - type: "compress"
-        only: ['fedora', 'prior-fedora', 'fah', 'rhel']
+        only: ['fedora', 'prior-fedora']
         output: '/tmp/{{build_name}}/disk.raw.tar.gz'
         format: '.tar.gz'
         compression_level: 9
@@ -174,20 +155,10 @@ post-processors:
         gcs_object_name: '{{build_name}}-{{user `TIMESTAMP`}}.tar.gz'
         image_name: "{{user `FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `FEDORA_IMAGE_URL`}}'
-        image_family: '{{user `FEDORA_BASE_IMAGE_NAME`}}'
+        image_family: '{{build_name}}-base'
       - <<: *gcp_import
         only: ['prior-fedora']
         image_name: "{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
         image_description: 'Based on {{user `PRIOR_FEDORA_IMAGE_URL`}}'
-        image_family: '{{user `PRIOR_FEDORA_BASE_IMAGE_NAME`}}'
-      - <<: *gcp_import
-        only: ['fah']
-        image_name: "{{user `FAH_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
-        image_description: 'Based on {{user `FAH_IMAGE_URL`}}'
-        image_family: '{{user `FAH_BASE_IMAGE_NAME`}}'
-      - <<: *gcp_import
-        only: ['rhel']
-        image_name: "{{user `RHEL_BASE_IMAGE_NAME`}}-{{user `TIMESTAMP`}}"
-        image_description: 'Based on {{user `RHEL_IMAGE_FILE`}}'
-        image_family: '{{user `RHEL_BASE_IMAGE_NAME`}}'
+        image_family: '{{build_name}}-base'
       - type: 'manifest'

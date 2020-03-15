@@ -5,6 +5,7 @@ package integration
 import (
 	"os"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,19 +14,24 @@ import (
 var _ = Describe("Podman pod stats", func() {
 	var (
 		tempdir    string
-		err        error
 		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if os.Geteuid() != 0 && !cgroupsv2 {
+			Skip("This function is not enabled for rootless podman not running on cgroups v2")
+		}
+
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -169,7 +175,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} \""})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats.ExitCode()).ToNot(Equal(0))
+		Expect(stats).To(ExitWithError())
 	})
 
 })

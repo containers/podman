@@ -2,11 +2,16 @@ package createconfig
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/docker/go-units"
+	"github.com/pkg/errors"
 )
+
+// deviceCgroupRulegex defines the valid format of device-cgroup-rule
+var deviceCgroupRuleRegex = regexp.MustCompile(`^([acb]) ([0-9]+|\*):([0-9]+|\*) ([rwm]{1,3})$`)
 
 // Pod signifies a kernel namespace is being shared
 // by a container with the pod it is associated with
@@ -14,12 +19,12 @@ const Pod = "pod"
 
 // weightDevice is a structure that holds device:weight pair
 type weightDevice struct {
-	path   string
-	weight uint16
+	Path   string
+	Weight uint16
 }
 
 func (w *weightDevice) String() string {
-	return fmt.Sprintf("%s:%d", w.path, w.weight)
+	return fmt.Sprintf("%s:%d", w.Path, w.Weight)
 }
 
 // LinuxNS is a struct that contains namespace information
@@ -54,9 +59,9 @@ func NS(s string) string {
 	return ""
 }
 
-// validateweightDevice validates that the specified string has a valid device-weight format
+// ValidateweightDevice validates that the specified string has a valid device-weight format
 // for blkio-weight-device flag
-func validateweightDevice(val string) (*weightDevice, error) {
+func ValidateweightDevice(val string) (*weightDevice, error) {
 	split := strings.SplitN(val, ":", 2)
 	if len(split) != 2 {
 		return nil, fmt.Errorf("bad format: %s", val)
@@ -73,8 +78,8 @@ func validateweightDevice(val string) (*weightDevice, error) {
 	}
 
 	return &weightDevice{
-		path:   split[0],
-		weight: uint16(weight),
+		Path:   split[0],
+		Weight: uint16(weight),
 	}, nil
 }
 
@@ -126,26 +131,29 @@ func validateIOpsDevice(val string) (*throttleDevice, error) { //nolint
 	if err != nil {
 		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>. Number must be a positive integer", val)
 	}
-	if rate < 0 {
-		return nil, fmt.Errorf("invalid rate for device: %s. The correct format is <device-path>:<number>. Number must be a positive integer", val)
-	}
-
 	return &throttleDevice{
 		path: split[0],
-		rate: uint64(rate),
+		rate: rate,
 	}, nil
 }
 
-func getLoggingPath(opts []string) string {
+// getLoggingOpts splits the path= and tag= options provided to --log-opt.
+func getLoggingOpts(opts []string) (string, string) {
+	var path, tag string
 	for _, opt := range opts {
 		arr := strings.SplitN(opt, "=", 2)
 		if len(arr) == 2 {
 			if strings.TrimSpace(arr[0]) == "path" {
-				return strings.TrimSpace(arr[1])
+				path = strings.TrimSpace(arr[1])
+			} else if strings.TrimSpace(arr[0]) == "tag" {
+				tag = strings.TrimSpace(arr[1])
 			}
 		}
+		if path != "" && tag != "" {
+			break
+		}
 	}
-	return ""
+	return path, tag
 }
 
 // ParseDevice parses device mapping string to a src, dest & permissions string
@@ -201,4 +209,17 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
+}
+
+// validateDeviceCgroupRule validates the format of deviceCgroupRule
+func validateDeviceCgroupRule(deviceCgroupRule string) error {
+	if !deviceCgroupRuleRegex.MatchString(deviceCgroupRule) {
+		return errors.Errorf("invalid device cgroup rule format: '%s'", deviceCgroupRule)
+	}
+	return nil
+}
+
+// parseDeviceCgroupRule matches and parses the deviceCgroupRule into slice
+func parseDeviceCgroupRule(deviceCgroupRule string) [][]string {
+	return deviceCgroupRuleRegex.FindAllStringSubmatch(deviceCgroupRule, -1)
 }

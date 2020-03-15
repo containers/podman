@@ -2,26 +2,24 @@
 
 package libpod
 
-import (
-	"github.com/containers/libpod/pkg/inspect"
-)
+import "github.com/containers/libpod/libpod/define"
 
 func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (r *Runtime) setupNetNS(ctr *Container) (err error) {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (r *Runtime) teardownNetNS(ctr *Container) error {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (r *Runtime) createNetNS(ctr *Container) (err error) {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
-func (c *Container) getContainerNetworkInfo(data *inspect.ContainerInspectData) *inspect.ContainerInspectData {
-	return nil
+func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
+	return nil, define.ErrNotImplemented
 }

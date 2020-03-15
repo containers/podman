@@ -7,23 +7,25 @@ import (
 	"strings"
 
 	"github.com/containers/buildah"
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/containers/storage"
-	"github.com/fatih/camelcase"
+	"github.com/containers/libpod/pkg/sysinfo"
+	"github.com/containers/libpod/pkg/util/camelcase"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
-	stores = make(map[storage.Store]struct{})
-	json   = jsoniter.ConfigCompatibleWithStandardLibrary
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 const (
-	idTruncLength = 12
+	idTruncLength      = 12
+	sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kilobytes), m (megabytes), or g (gigabytes))"
 )
 
 func splitCamelCase(src string) string {
@@ -38,24 +40,45 @@ func shortID(id string) string {
 	return id
 }
 
-// checkAllAndLatest checks that --all and --latest are used correctly
-func checkAllAndLatest(c *cobra.Command, args []string, ignoreArgLen bool) error {
+// checkAllLatestAndCIDFile checks that --all and --latest are used correctly.
+// If cidfile is set, also check for the --cidfile flag.
+func checkAllLatestAndCIDFile(c *cobra.Command, args []string, ignoreArgLen bool, cidfile bool) error {
 	argLen := len(args)
 	if c.Flags().Lookup("all") == nil || c.Flags().Lookup("latest") == nil {
-		return errors.New("unable to lookup values for 'latest' or 'all'")
+		if !cidfile {
+			return errors.New("unable to lookup values for 'latest' or 'all'")
+		} else if c.Flags().Lookup("cidfile") == nil {
+			return errors.New("unable to lookup values for 'latest', 'all' or 'cidfile'")
+		}
 	}
-	all, _ := c.Flags().GetBool("all")
-	latest, _ := c.Flags().GetBool("latest")
-	if all && latest {
+
+	specifiedAll, _ := c.Flags().GetBool("all")
+	specifiedLatest, _ := c.Flags().GetBool("latest")
+	specifiedCIDFile := false
+	if cid, _ := c.Flags().GetStringArray("cidfile"); len(cid) > 0 {
+		specifiedCIDFile = true
+	}
+
+	if specifiedCIDFile && (specifiedAll || specifiedLatest) {
+		return errors.Errorf("--all, --latest and --cidfile cannot be used together")
+	} else if specifiedAll && specifiedLatest {
 		return errors.Errorf("--all and --latest cannot be used together")
 	}
+
 	if ignoreArgLen {
 		return nil
 	}
-	if (all || latest) && argLen > 0 {
+	if (argLen > 0) && (specifiedAll || specifiedLatest) {
 		return errors.Errorf("no arguments are needed with --all or --latest")
+	} else if cidfile && (argLen > 0) && (specifiedAll || specifiedLatest || specifiedCIDFile) {
+		return errors.Errorf("no arguments are needed with --all, --latest or --cidfile")
 	}
-	if argLen < 1 && !all && !latest {
+
+	if specifiedCIDFile {
+		return nil
+	}
+
+	if argLen < 1 && !specifiedAll && !specifiedLatest && !specifiedCIDFile {
 		return errors.Errorf("you must provide at least one name or id")
 	}
 	return nil
@@ -79,58 +102,6 @@ func commandRunE() func(*cobra.Command, []string) error {
 	}
 }
 
-// getAllOrLatestContainers tries to return the correct list of containers
-// depending if --all, --latest or <container-id> is used.
-// It requires the Context (c) and the Runtime (runtime). As different
-// commands are using different container state for the --all option
-// the desired state has to be specified in filterState. If no filter
-// is desired a -1 can be used to get all containers. For a better
-// error message, if the filter fails, a corresponding verb can be
-// specified which will then appear in the error message.
-func getAllOrLatestContainers(c *cliconfig.PodmanCommand, runtime *libpod.Runtime, filterState libpod.ContainerStatus, verb string) ([]*libpod.Container, error) {
-	var containers []*libpod.Container
-	var lastError error
-	var err error
-	if c.Bool("all") {
-		if filterState != -1 {
-			var filterFuncs []libpod.ContainerFilter
-			filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
-				state, _ := c.State()
-				return state == filterState
-			})
-			containers, err = runtime.GetContainers(filterFuncs...)
-		} else {
-			containers, err = runtime.GetContainers()
-		}
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get %s containers", verb)
-		}
-	} else if c.Bool("latest") {
-		lastCtr, err := runtime.GetLatestContainer()
-		if err != nil {
-			return nil, errors.Wrapf(err, "unable to get latest container")
-		}
-		containers = append(containers, lastCtr)
-	} else {
-		args := c.InputArgs
-		for _, i := range args {
-			container, err := runtime.LookupContainer(i)
-			if err != nil {
-				if lastError != nil {
-					fmt.Fprintln(os.Stderr, lastError)
-				}
-				lastError = errors.Wrapf(err, "unable to find container %s", i)
-			}
-			if container != nil {
-				// This is here to make sure this does not return [<nil>] but only nil
-				containers = append(containers, container)
-			}
-		}
-	}
-
-	return containers, lastError
-}
-
 // getContext returns a non-nil, empty context
 func getContext() context.Context {
 	if Ctx != nil {
@@ -146,14 +117,49 @@ func getDefaultNetwork() string {
 	return "bridge"
 }
 
-func getCreateFlags(c *cliconfig.PodmanCommand) {
-
-	createFlags := c.Flags()
-
-	createFlags.StringSlice(
+func getNetFlags() *pflag.FlagSet {
+	netFlags := pflag.FlagSet{}
+	netFlags.StringSlice(
 		"add-host", []string{},
 		"Add a custom host-to-IP mapping (host:ip) (default [])",
 	)
+	netFlags.StringSlice(
+		"dns", []string{},
+		"Set custom DNS servers",
+	)
+	netFlags.StringSlice(
+		"dns-opt", []string{},
+		"Set custom DNS options",
+	)
+	netFlags.StringSlice(
+		"dns-search", []string{},
+		"Set custom DNS search domains",
+	)
+	netFlags.String(
+		"ip", "",
+		"Specify a static IPv4 address for the container",
+	)
+	netFlags.String(
+		"mac-address", "",
+		"Container MAC address (e.g. 92:d0:c6:0a:29:33)",
+	)
+	netFlags.String(
+		"network", getDefaultNetwork(),
+		"Connect a container to a network",
+	)
+	netFlags.StringSliceP(
+		"publish", "p", []string{},
+		"Publish a container's port, or a range of ports, to the host (default [])",
+	)
+	netFlags.Bool(
+		"no-hosts", false,
+		"Do not create /etc/hosts within the container, instead use the version from the image",
+	)
+	return &netFlags
+}
+
+func getCreateFlags(c *cliconfig.PodmanCommand) {
+	createFlags := c.Flags()
 	createFlags.StringSlice(
 		"annotation", []string{},
 		"Add annotations to container (key:value) (default [])",
@@ -161,6 +167,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.StringSliceP(
 		"attach", "a", []string{},
 		"Attach to STDIN, STDOUT or STDERR (default [])",
+	)
+	createFlags.String(
+		"authfile", buildahcli.GetDefaultAuthFile(),
+		"Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override",
 	)
 	createFlags.String(
 		"blkio-weight", "",
@@ -177,6 +187,14 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.StringSlice(
 		"cap-drop", []string{},
 		"Drop capabilities from the container",
+	)
+	createFlags.String(
+		"cgroupns", "",
+		"cgroup namespace to use",
+	)
+	createFlags.String(
+		"cgroups", "enabled",
+		`control container cgroup configuration ("enabled"|"disabled"|"no-conmon")`,
 	)
 	createFlags.String(
 		"cgroup-parent", "",
@@ -226,13 +244,21 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"detach", "d", false,
 		"Run container in background and print container ID",
 	)
-	createFlags.String(
-		"detach-keys", "",
-		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or `ctrl-<value>` where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
+	detachKeys := createFlags.String(
+		"detach-keys", define.DefaultDetachKeys,
+		"Override the key sequence for detaching a container. Format is a single character `[a-Z]` or a comma separated sequence of `ctrl-<value>`, where `<value>` is one of: `a-z`, `@`, `^`, `[`, `\\`, `]`, `^` or `_`",
 	)
+	// Clear the default, the value specified in the config file should have the
+	// priority
+	*detachKeys = ""
+
 	createFlags.StringSlice(
 		"device", []string{},
 		"Add a host device to the container (default [])",
+	)
+	createFlags.StringSlice(
+		"device-cgroup-rule", []string{},
+		"Add a rule to the cgroup allowed devices list",
 	)
 	createFlags.StringSlice(
 		"device-read-bps", []string{},
@@ -250,18 +276,6 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"device-write-iops", []string{},
 		"Limit write rate (IO per second) to a device (e.g. --device-write-iops=/dev/sda:1000)",
 	)
-	createFlags.StringSlice(
-		"dns", []string{},
-		"Set custom DNS servers",
-	)
-	createFlags.StringSlice(
-		"dns-opt", []string{},
-		"Set custom DNS options",
-	)
-	createFlags.StringSlice(
-		"dns-search", []string{},
-		"Set custom DNS search domains",
-	)
 	createFlags.String(
 		"entrypoint", "",
 		"Overwrite the default ENTRYPOINT of the image",
@@ -269,6 +283,9 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.StringArrayP(
 		"env", "e", []string{},
 		"Set environment variables in container",
+	)
+	createFlags.Bool(
+		"env-host", false, "Use all current host environment variables in container",
 	)
 	createFlags.StringSlice(
 		"env-file", []string{},
@@ -290,32 +307,36 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"help", false, "",
 	)
 	createFlags.String(
-		"healthcheck-command", "",
+		"health-cmd", "",
 		"set a healthcheck command for the container ('none' disables the existing healthcheck)",
 	)
 	createFlags.String(
-		"healthcheck-interval", cliconfig.DefaultHealthCheckInterval,
+		"health-interval", cliconfig.DefaultHealthCheckInterval,
 		"set an interval for the healthchecks (a value of disable results in no automatic timer setup)",
 	)
 	createFlags.Uint(
-		"healthcheck-retries", cliconfig.DefaultHealthCheckRetries,
+		"health-retries", cliconfig.DefaultHealthCheckRetries,
 		"the number of retries allowed before a healthcheck is considered to be unhealthy",
 	)
 	createFlags.String(
-		"healthcheck-start-period", cliconfig.DefaultHealthCheckStartPeriod,
+		"health-start-period", cliconfig.DefaultHealthCheckStartPeriod,
 		"the initialization time needed for a container to bootstrap",
 	)
 	createFlags.String(
-		"healthcheck-timeout", cliconfig.DefaultHealthCheckTimeout,
+		"health-timeout", cliconfig.DefaultHealthCheckTimeout,
 		"the maximum time allowed to complete the healthcheck before an interval is considered failed",
 	)
 	createFlags.StringP(
 		"hostname", "h", "",
 		"Set container hostname",
 	)
+	createFlags.Bool(
+		"http-proxy", true,
+		"Set proxy environment variables in the container based on the host proxy vars",
+	)
 	createFlags.String(
 		"image-volume", cliconfig.DefaultImageVolume,
-		"Tells podman how to handle the builtin image volumes. The options are: 'bind', 'tmpfs', or 'ignore'",
+		`Tells podman how to handle the builtin image volumes ("bind"|"tmpfs"|"ignore")`,
 	)
 	createFlags.Bool(
 		"init", false,
@@ -324,15 +345,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	createFlags.String(
 		"init-path", "",
 		// Do not use  the Value field for setting the default value to determine user input (i.e., non-empty string)
-		fmt.Sprintf("Path to the container-init binary (default: %q)", libpod.DefaultInitPath),
+		fmt.Sprintf("Path to the container-init binary (default: %q)", define.DefaultInitPath),
 	)
 	createFlags.BoolP(
 		"interactive", "i", false,
 		"Keep STDIN open even if not attached",
-	)
-	createFlags.String(
-		"ip", "",
-		"Specify a static IPv4 address for the container",
 	)
 	createFlags.String(
 		"ipc", "",
@@ -340,7 +357,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"kernel-memory", "",
-		"Kernel memory limit (format: `<number>[<unit>]`, where unit = b, k, m or g)",
+		"Kernel memory limit "+sizeWithUnitFormat,
 	)
 	createFlags.StringArrayP(
 		"label", "l", []string{},
@@ -358,17 +375,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"log-opt", []string{},
 		"Logging driver options (default [])",
 	)
-	createFlags.String(
-		"mac-address", "",
-		"Container MAC address (e.g. 92:d0:c6:0a:29:33), not currently supported",
-	)
 	createFlags.StringP(
 		"memory", "m", "",
-		"Memory limit (format: <number>[<unit>], where unit = b, k, m or g)",
+		"Memory limit "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"memory-reservation", "",
-		"Memory soft limit (format: <number>[<unit>], where unit = b, k, m or g)",
+		"Memory soft limit "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"memory-swap", "",
@@ -382,17 +395,9 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"name", "",
 		"Assign a name to the container",
 	)
-	createFlags.String(
-		"net", getDefaultNetwork(),
-		"Connect a container to a network",
-	)
-	createFlags.String(
-		"network", getDefaultNetwork(),
-		"Connect a container to a network",
-	)
 	createFlags.Bool(
-		"no-hosts", false,
-		"Do not create /etc/hosts within the container, instead use the version from the image",
+		"no-healthcheck", false,
+		"Disable healthchecks on container",
 	)
 	createFlags.Bool(
 		"oom-kill-disable", false,
@@ -403,12 +408,22 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Tune the host's OOM preferences (-1000 to 1000)",
 	)
 	createFlags.String(
+		"override-arch", "",
+		"use `ARCH` instead of the architecture of the machine for choosing images",
+	)
+	markFlagHidden(createFlags, "override-arch")
+	createFlags.String(
+		"override-os", "",
+		"use `OS` instead of the running OS for choosing images",
+	)
+	markFlagHidden(createFlags, "override-os")
+	createFlags.String(
 		"pid", "",
 		"PID namespace to use",
 	)
 	createFlags.Int64(
-		"pids-limit", 0,
-		"Tune container pids limit (set -1 for unlimited)",
+		"pids-limit", sysinfo.GetDefaultPidsLimit(),
+		"Tune container pids limit (set 0 for unlimited)",
 	)
 	createFlags.String(
 		"pod", "",
@@ -418,13 +433,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"privileged", false,
 		"Give extended privileges to container",
 	)
-	createFlags.StringSliceP(
-		"publish", "p", []string{},
-		"Publish a container's port, or a range of ports, to the host (default [])",
-	)
 	createFlags.BoolP(
 		"publish-all", "P", false,
 		"Publish all exposed ports to random ports on the host interface",
+	)
+	createFlags.String(
+		"pull", "missing",
+		`Pull image before creating ("always"|"missing"|"never")`,
 	)
 	createFlags.BoolP(
 		"quiet", "q", false,
@@ -434,9 +449,13 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"read-only", false,
 		"Make containers root filesystem read-only",
 	)
+	createFlags.Bool(
+		"read-only-tmpfs", true,
+		"When running containers in read-only mode mount a read-write tmpfs on /run, /tmp and /var/tmp",
+	)
 	createFlags.String(
 		"restart", "",
-		"Restart is not supported.  Please use a systemd unit file for restart",
+		`Restart policy to apply when a container exits ("always"|"no"|"on-failure")`,
 	)
 	createFlags.Bool(
 		"rm", false,
@@ -452,14 +471,14 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 	)
 	createFlags.String(
 		"shm-size", cliconfig.DefaultShmSize,
-		"Size of `/dev/shm`. The format is `<number><unit>`",
+		"Size of /dev/shm "+sizeWithUnitFormat,
 	)
 	createFlags.String(
 		"stop-signal", "",
 		"Signal to stop a container. Default is SIGTERM",
 	)
 	createFlags.Uint(
-		"stop-timeout", libpod.CtrRemoveTimeout,
+		"stop-timeout", define.CtrRemoveTimeout,
 		"Timeout (in seconds) to stop a container. Default is 10",
 	)
 	createFlags.StringSlice(
@@ -479,11 +498,11 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"sysctl", []string{},
 		"Sysctl options (default [])",
 	)
-	createFlags.Bool(
-		"systemd", cliconfig.DefaultSystemD,
-		"Run container in systemd mode if the command executable is systemd or init",
+	createFlags.String(
+		"systemd", "true",
+		`Run container in systemd mode ("true"|"false"|"always")`,
 	)
-	createFlags.StringSlice(
+	createFlags.StringArray(
 		"tmpfs", []string{},
 		"Mount a temporary filesystem (`tmpfs`) into a container (default [])",
 	)
@@ -504,7 +523,7 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"Username or UID (format: <name|uid>[:<group|gid>])",
 	)
 	createFlags.String(
-		"userns", "",
+		"userns", os.Getenv("PODMAN_USERNS"),
 		"User namespace to use",
 	)
 	createFlags.String(
@@ -527,6 +546,10 @@ func getCreateFlags(c *cliconfig.PodmanCommand) {
 		"workdir", "w", "",
 		"Working directory inside the container",
 	)
+	createFlags.String(
+		"seccomp-policy", "default",
+		"Policy for selecting a seccomp profile (experimental)",
+	)
 }
 
 func getFormat(c *cliconfig.PodmanCommand) (string, error) {
@@ -539,13 +562,6 @@ func getFormat(c *cliconfig.PodmanCommand) (string, error) {
 		return buildah.Dockerv2ImageManifest, nil
 	}
 	return "", errors.Errorf("unrecognized image type %q", format)
-}
-
-func getAuthFile(authfile string) string {
-	if authfile != "" {
-		return authfile
-	}
-	return os.Getenv("REGISTRY_AUTH_FILE")
 }
 
 // scrubServer removes 'http://' or 'https://' from the front of the

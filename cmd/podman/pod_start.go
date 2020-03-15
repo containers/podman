@@ -26,7 +26,7 @@ var (
 			return podStartCmd(&podStartCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod start podID
   podman pod start --latest
@@ -45,11 +45,11 @@ func init() {
 }
 
 func podStartCmd(c *cliconfig.PodStartValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podStartIDs, podStartErrors := runtime.StartPods(getContext(), c)
 	for _, p := range podStartIDs {

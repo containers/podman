@@ -11,6 +11,7 @@ import (
 
 /*
 #cgo LDFLAGS: -llgrp
+#cgo CFLAGS: -Wall -Werror
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/lgrp_user.h>

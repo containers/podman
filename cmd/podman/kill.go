@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/docker/docker/pkg/signal"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,7 +24,7 @@ var (
 			return killCmd(&killCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman kill mywebserver
   podman kill 860a4b23
@@ -54,16 +54,16 @@ func killCmd(c *cliconfig.KillValues) error {
 
 	// Check if the signalString provided by the user is valid
 	// Invalid signals will return err
-	killSignal, err := signal.ParseSignal(c.Signal)
+	killSignal, err := util.ParseSignal(c.Signal)
 	if err != nil {
 		return err
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	ok, failures, err := runtime.KillContainers(getContext(), c, killSignal)
 	if err != nil {

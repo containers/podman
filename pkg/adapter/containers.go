@@ -3,21 +3,30 @@
 package adapter
 
 import (
+	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/containers/buildah"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	envLib "github.com/containers/libpod/pkg/env"
+	"github.com/containers/libpod/pkg/systemd/generate"
 	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -59,7 +68,7 @@ func (r *LocalRuntime) LookupContainer(idOrName string) (*Container, error) {
 func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopValues) ([]string, map[string]error, error) {
 	var timeout *uint
 	if cli.Flags().Changed("timeout") || cli.Flags().Changed("time") {
-		t := uint(cli.Timeout)
+		t := cli.Timeout
 		timeout = &t
 	}
 
@@ -69,8 +78,18 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 	}
 	logrus.Debugf("Setting maximum stop workers to %d", maxWorkers)
 
-	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
-	if err != nil {
+	names := cli.InputArgs
+	for _, cidFile := range cli.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		names = append(names, id)
+	}
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
 		return nil, nil, err
 	}
 
@@ -85,12 +104,15 @@ func (r *LocalRuntime) StopContainers(ctx context.Context, cli *cliconfig.StopVa
 		}
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				err := c.StopWithTimeout(*timeout)
 				if err != nil {
-					if errors.Cause(err) == libpod.ErrCtrStopped {
+					if errors.Cause(err) == define.ErrCtrStopped {
 						logrus.Debugf("Container %s is already stopped", c.ID())
+						return nil
+					} else if cli.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+						logrus.Debugf("Container %s is not running, could not stop", c.ID())
 						return nil
 					}
 					logrus.Debugf("Failed to stop container %s: %s", c.ID(), err.Error())
@@ -121,9 +143,46 @@ func (r *LocalRuntime) KillContainers(ctx context.Context, cli *cliconfig.KillVa
 		c := c
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				return c.Kill(uint(signal))
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// InitContainers initializes container(s) based on CLI inputs.
+// Returns list of successful id(s), map of failed id(s) to errors, or a general
+// error not from the container.
+func (r *LocalRuntime) InitContainers(ctx context.Context, cli *cliconfig.InitValues) ([]string, map[string]error, error) {
+	maxWorkers := shared.DefaultPoolSize("init")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum init workers to %d", maxWorkers)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pool := shared.NewPool("init", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.Init(ctx)
+				if err != nil {
+					// If we're initializing all containers, ignore invalid state errors
+					if cli.All && errors.Cause(err) == define.ErrCtrStateInvalid {
+						return nil
+					}
+					return err
+				}
+				return nil
 			},
 		})
 	}
@@ -143,13 +202,48 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 	}
 	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
 
-	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
-	if err != nil {
-		// Force may be used to remove containers no longer found in the database
-		if cli.Force && len(cli.InputArgs) > 0 && errors.Cause(err) == libpod.ErrNoSuchCtr {
-			r.RemoveContainersFromStorage(cli.InputArgs)
+	if cli.Storage {
+		for _, ctr := range cli.InputArgs {
+			if err := r.RemoveStorageContainer(ctr, cli.Force); err != nil {
+				failures[ctr] = err
+			}
+			ok = append(ok, ctr)
 		}
-		return ok, failures, err
+		return ok, failures, nil
+	}
+
+	names := cli.InputArgs
+	for _, cidFile := range cli.CIDFiles {
+		content, err := ioutil.ReadFile(cidFile)
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "error reading CIDFile")
+		}
+		id := strings.Split(string(content), "\n")[0]
+		names = append(names, id)
+	}
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, names, r.Runtime)
+	if err != nil && !(cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr) {
+		// Failed to get containers. If force is specified, get the containers ID
+		// and evict them
+		if !cli.Force {
+			return ok, failures, err
+		}
+
+		for _, ctr := range cli.InputArgs {
+			logrus.Debugf("Evicting container %q", ctr)
+			id, err := r.EvictContainer(ctx, ctr, cli.Volumes)
+			if err != nil {
+				if cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+					logrus.Debugf("Ignoring error (--allow-missing): %v", err)
+					continue
+				}
+				failures[ctr] = errors.Wrapf(err, "Failed to evict container: %q", id)
+				continue
+			}
+			ok = append(ok, id)
+		}
+		return ok, failures, nil
 	}
 
 	pool := shared.NewPool("rm", maxWorkers, len(ctrs))
@@ -157,10 +251,14 @@ func (r *LocalRuntime) RemoveContainers(ctx context.Context, cli *cliconfig.RmVa
 		c := c
 
 		pool.Add(shared.Job{
-			c.ID(),
-			func() error {
+			ID: c.ID(),
+			Fn: func() error {
 				err := r.RemoveContainer(ctx, c, cli.Force, cli.Volumes)
 				if err != nil {
+					if cli.Ignore && errors.Cause(err) == define.ErrNoSuchCtr {
+						logrus.Debugf("Ignoring error (--allow-missing): %v", err)
+						return nil
+					}
 					logrus.Debugf("Failed to remove container %s: %s", c.ID(), err.Error())
 				}
 				return err
@@ -188,7 +286,7 @@ func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig
 			logrus.Debugf("Error umounting container %s state: %s", ctr.ID(), err.Error())
 			continue
 		}
-		if state == libpod.ContainerStateRunning {
+		if state == define.ContainerStateRunning {
 			logrus.Debugf("Error umounting container %s, is running", ctr.ID())
 			continue
 		}
@@ -198,7 +296,7 @@ func (r *LocalRuntime) UmountRootFilesystems(ctx context.Context, cli *cliconfig
 				logrus.Debugf("Error umounting container %s, storage.ErrLayerNotMounted", ctr.ID())
 				continue
 			}
-			failures[ctr.ID()] = errors.Wrapf(err, "error unmounting continaner %s", ctr.ID())
+			failures[ctr.ID()] = errors.Wrapf(err, "error unmounting container %s", ctr.ID())
 		} else {
 			ok = append(ok, ctr.ID())
 		}
@@ -229,13 +327,22 @@ func (r *LocalRuntime) WaitOnContainers(ctx context.Context, cli *cliconfig.Wait
 }
 
 // Log logs one or more containers
-func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *libpod.LogOptions) error {
+func (r *LocalRuntime) Log(c *cliconfig.LogsValues, options *logs.LogOptions) error {
+
 	var wg sync.WaitGroup
 	options.WaitGroup = &wg
 	if len(c.InputArgs) > 1 {
 		options.Multi = true
 	}
-	logChannel := make(chan *libpod.LogLine, int(c.Tail)*len(c.InputArgs)+1)
+	tailLen := int(c.Tail)
+	if tailLen < 0 {
+		tailLen = 0
+	}
+	numContainers := len(c.InputArgs)
+	if numContainers == 0 {
+		numContainers = 1
+	}
+	logChannel := make(chan *logs.LogLine, tailLen*numContainers+1)
 	containers, err := shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
 	if err != nil {
 		return err
@@ -263,6 +370,23 @@ func (r *LocalRuntime) CreateContainer(ctx context.Context, c *cliconfig.CreateV
 	return ctr.ID(), nil
 }
 
+// Select the detach keys to use from user input flag, config file, or default value
+func (r *LocalRuntime) selectDetachKeys(flagValue string) (string, error) {
+	if flagValue != "" {
+		return flagValue, nil
+	}
+
+	config, err := r.GetConfig()
+	if err != nil {
+		return "", errors.Wrapf(err, "unable to retrieve runtime config")
+	}
+	if config.DetachKeys != "" {
+		return config.DetachKeys, nil
+	}
+
+	return define.DefaultDetachKeys, nil
+}
+
 // Run a libpod container
 func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode int) (int, error) {
 	results := shared.NewIntermediateLayer(&c.PodmanCommand, false)
@@ -284,11 +408,7 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 		// if the container was created as part of a pod, also start its dependencies, if any.
 		if err := ctr.Start(ctx, c.IsSet("pod")); err != nil {
 			// This means the command did not exist
-			exitCode = 127
-			if strings.Index(err.Error(), "permission denied") > -1 {
-				exitCode = 126
-			}
-			return exitCode, err
+			return define.ExitCode(err), err
 		}
 
 		fmt.Printf("%s\n", ctr.ID())
@@ -323,46 +443,48 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 			case "stdin":
 				inputStream = os.Stdin
 			default:
-				return exitCode, errors.Wrapf(libpod.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
+				return exitCode, errors.Wrapf(define.ErrInvalidArg, "invalid stream %q for --attach - must be one of stdin, stdout, or stderr", stream)
 			}
 		}
 	}
+
+	keys := c.String("detach-keys")
+	if !c.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return exitCode, err
+		}
+	}
+
 	// if the container was created as part of a pod, also start its dependencies, if any.
-	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, c.String("detach-keys"), c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
+	if err := StartAttachCtr(ctx, ctr, outputStream, errorStream, inputStream, keys, c.Bool("sig-proxy"), true, c.IsSet("pod")); err != nil {
 		// We've manually detached from the container
 		// Do not perform cleanup, or wait for container exit code
 		// Just exit immediately
-		if errors.Cause(err) == libpod.ErrDetach {
-			exitCode = 0
-			return exitCode, nil
-		}
-		// This means the command did not exist
-		exitCode = 127
-		if strings.Index(err.Error(), "permission denied") > -1 {
-			exitCode = 126
+		if errors.Cause(err) == define.ErrDetach {
+			return 0, nil
 		}
 		if c.IsSet("rm") {
 			if deleteError := r.Runtime.RemoveContainer(ctx, ctr, true, false); deleteError != nil {
-				logrus.Errorf("unable to remove container %s after failing to start and attach to it", ctr.ID())
+				logrus.Debugf("unable to remove container %s after failing to start and attach to it", ctr.ID())
 			}
 		}
-		return exitCode, err
+		if errors.Cause(err) == define.ErrWillDeadlock {
+			logrus.Debugf("Deadlock error: %v", err)
+			return define.ExitCode(err), errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+		}
+		return define.ExitCode(err), err
 	}
 
 	if ecode, err := ctr.Wait(); err != nil {
-		if errors.Cause(err) == libpod.ErrNoSuchCtr {
-			// The container may have been removed
-			// Go looking for an exit file
-			config, err := r.Runtime.GetConfig()
-			if err != nil {
-				return exitCode, err
-			}
-			ctrExitCode, err := ReadExitFile(config.TmpDir, ctr.ID())
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			// Check events
+			event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
 			if err != nil {
 				logrus.Errorf("Cannot get exit code: %v", err)
-				exitCode = 127
+				exitCode = define.ExecErrorCodeNotFound
 			} else {
-				exitCode = ctrExitCode
+				exitCode = event.ContainerExitCode
 			}
 		}
 	} else {
@@ -370,32 +492,14 @@ func (r *LocalRuntime) Run(ctx context.Context, c *cliconfig.RunValues, exitCode
 	}
 
 	if c.IsSet("rm") {
-		r.Runtime.RemoveContainer(ctx, ctr, false, true)
-	}
-
-	return exitCode, nil
-}
-
-// ReadExitFile reads a container's exit file
-func ReadExitFile(runtimeTmp, ctrID string) (int, error) {
-	exitFile := filepath.Join(runtimeTmp, "exits", fmt.Sprintf("%s-old", ctrID))
-
-	logrus.Debugf("Attempting to read container %s exit code from file %s", ctrID, exitFile)
-
-	// Check if it exists
-	if _, err := os.Stat(exitFile); err != nil {
-		return 0, errors.Wrapf(err, "error getting exit file for container %s", ctrID)
-	}
-
-	// File exists, read it in and convert to int
-	statusStr, err := ioutil.ReadFile(exitFile)
-	if err != nil {
-		return 0, errors.Wrapf(err, "error reading exit file for container %s", ctrID)
-	}
-
-	exitCode, err := strconv.Atoi(string(statusStr))
-	if err != nil {
-		return 0, errors.Wrapf(err, "error parsing exit code for container %s", ctrID)
+		if err := r.Runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr ||
+				errors.Cause(err) == define.ErrCtrRemoved {
+				logrus.Warnf("Container %s does not exist: %v", ctr.ID(), err)
+			} else {
+				logrus.Errorf("Error removing container %s: %v", ctr.ID(), err)
+			}
+		}
 	}
 
 	return exitCode, nil
@@ -432,7 +536,7 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if err != nil {
 		return errors.Wrapf(err, "unable to determine state of %s", ctr.ID())
 	}
-	if conState != libpod.ContainerStateRunning {
+	if conState != define.ContainerStateRunning {
 		return errors.Errorf("you can only attach to running containers")
 	}
 
@@ -440,20 +544,39 @@ func (r *LocalRuntime) Attach(ctx context.Context, c *cliconfig.AttachValues) er
 	if c.NoStdin {
 		inputStream = nil
 	}
+
+	keys := c.DetachKeys
+	if !c.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return err
+		}
+	}
+
 	// If the container is in a pod, also set to recursively start dependencies
-	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, c.DetachKeys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != libpod.ErrDetach {
+	if err := StartAttachCtr(ctx, ctr, os.Stdout, os.Stderr, inputStream, keys, c.SigProxy, false, ctr.PodID() != ""); err != nil && errors.Cause(err) != define.ErrDetach {
 		return errors.Wrapf(err, "error attaching to container %s", ctr.ID())
 	}
 	return nil
 }
 
 // Checkpoint one or more containers
-func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues) error {
 	var (
 		containers     []*libpod.Container
 		err, lastError error
 	)
 
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           c.Keep,
+		KeepRunning:    c.LeaveRunning,
+		TCPEstablished: c.TcpEstablished,
+		TargetFile:     c.Export,
+		IgnoreRootfs:   c.IgnoreRootfs,
+	}
+	if c.Export == "" && c.IgnoreRootfs {
+		return errors.Errorf("--ignore-rootfs can only be used with --export")
+	}
 	if c.All {
 		containers, err = r.Runtime.GetRunningContainers()
 	} else {
@@ -477,21 +600,34 @@ func (r *LocalRuntime) Checkpoint(c *cliconfig.CheckpointValues, options libpod.
 }
 
 // Restore one or more containers
-func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.ContainerCheckpointOptions) error {
+func (r *LocalRuntime) Restore(ctx context.Context, c *cliconfig.RestoreValues) error {
 	var (
 		containers     []*libpod.Container
 		err, lastError error
 		filterFuncs    []libpod.ContainerFilter
 	)
 
+	options := libpod.ContainerCheckpointOptions{
+		Keep:            c.Keep,
+		TCPEstablished:  c.TcpEstablished,
+		TargetFile:      c.Import,
+		Name:            c.Name,
+		IgnoreRootfs:    c.IgnoreRootfs,
+		IgnoreStaticIP:  c.IgnoreStaticIP,
+		IgnoreStaticMAC: c.IgnoreStaticMAC,
+	}
+
 	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
 		state, _ := c.State()
-		return state == libpod.ContainerStateExited
+		return state == define.ContainerStateExited
 	})
 
-	if c.All {
+	switch {
+	case c.Import != "":
+		containers, err = crImportCheckpoint(ctx, r.Runtime, c.Import, c.Name)
+	case c.All:
 		containers, err = r.GetContainers(filterFuncs...)
-	} else {
+	default:
 		containers, err = shortcuts.GetContainersByContext(false, c.Latest, c.InputArgs, r.Runtime)
 	}
 	if err != nil {
@@ -509,4 +645,747 @@ func (r *LocalRuntime) Restore(c *cliconfig.RestoreValues, options libpod.Contai
 		}
 	}
 	return lastError
+}
+
+// Start will start a container
+func (r *LocalRuntime) Start(ctx context.Context, c *cliconfig.StartValues, sigProxy bool) (int, error) {
+	var (
+		exitCode  = define.ExecErrorCodeGeneric
+		lastError error
+	)
+
+	args := c.InputArgs
+	if c.Latest {
+		lastCtr, err := r.GetLatestContainer()
+		if err != nil {
+			return 0, errors.Wrapf(err, "unable to get latest container")
+		}
+		args = append(args, lastCtr.ID())
+	}
+
+	for _, container := range args {
+		ctr, err := r.LookupContainer(container)
+		if err != nil {
+			if lastError != nil {
+				fmt.Fprintln(os.Stderr, lastError)
+			}
+			lastError = errors.Wrapf(err, "unable to find container %s", container)
+			continue
+		}
+
+		ctrState, err := ctr.State()
+		if err != nil {
+			return exitCode, errors.Wrapf(err, "unable to get container state")
+		}
+
+		ctrRunning := ctrState == define.ContainerStateRunning
+
+		if c.Attach {
+			inputStream := os.Stdin
+			if !c.Interactive {
+				if !ctr.Stdin() {
+					inputStream = nil
+				}
+			}
+
+			keys := c.DetachKeys
+			if !c.IsSet("detach-keys") {
+				keys, err = r.selectDetachKeys(keys)
+				if err != nil {
+					return exitCode, err
+				}
+			}
+
+			// attach to the container and also start it not already running
+			// If the container is in a pod, also set to recursively start dependencies
+			err = StartAttachCtr(ctx, ctr.Container, os.Stdout, os.Stderr, inputStream, keys, sigProxy, !ctrRunning, ctr.PodID() != "")
+			if errors.Cause(err) == define.ErrDetach {
+				// User manually detached
+				// Exit cleanly immediately
+				exitCode = 0
+				return exitCode, nil
+			}
+
+			if errors.Cause(err) == define.ErrWillDeadlock {
+				logrus.Debugf("Deadlock error: %v", err)
+				return define.ExitCode(err), errors.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
+			}
+
+			if ctrRunning {
+				return 0, err
+			}
+
+			if err != nil {
+				return exitCode, errors.Wrapf(err, "unable to start container %s", ctr.ID())
+			}
+
+			if ecode, err := ctr.Wait(); err != nil {
+				if errors.Cause(err) == define.ErrNoSuchCtr {
+					// Check events
+					event, err := r.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+					if err != nil {
+						logrus.Errorf("Cannot get exit code: %v", err)
+						exitCode = define.ExecErrorCodeNotFound
+					} else {
+						exitCode = event.ContainerExitCode
+					}
+				}
+			} else {
+				exitCode = int(ecode)
+			}
+
+			return exitCode, nil
+		}
+		// Start the container if it's not running already.
+		if !ctrRunning {
+			// Handle non-attach start
+			// If the container is in a pod, also set to recursively start dependencies
+			if err := ctr.Start(ctx, ctr.PodID() != ""); err != nil {
+				if lastError != nil {
+					fmt.Fprintln(os.Stderr, lastError)
+				}
+				if errors.Cause(err) == define.ErrWillDeadlock {
+					lastError = errors.Wrapf(err, "please run 'podman system renumber' to resolve deadlocks")
+					continue
+				}
+				lastError = errors.Wrapf(err, "unable to start container %q", container)
+				continue
+			}
+		}
+		// Check if the container is referenced by ID or by name and print
+		// it accordingly.
+		if strings.HasPrefix(ctr.ID(), container) {
+			fmt.Println(ctr.ID())
+		} else {
+			fmt.Println(container)
+		}
+	}
+	return exitCode, lastError
+}
+
+// PauseContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) PauseContainers(ctx context.Context, cli *cliconfig.PauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*libpod.Container
+		err      error
+	)
+
+	maxWorkers := shared.DefaultPoolSize("pause")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	if cli.All {
+		ctrs, err = r.GetRunningContainers()
+	} else {
+		ctrs, err = shortcuts.GetContainersByContext(false, false, cli.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+
+	pool := shared.NewPool("pause", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.Pause()
+				if err != nil {
+					logrus.Debugf("Failed to pause container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// UnpauseContainers removes container(s) based on CLI inputs.
+func (r *LocalRuntime) UnpauseContainers(ctx context.Context, cli *cliconfig.UnpauseValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+		ctrs     []*libpod.Container
+		err      error
+	)
+
+	maxWorkers := shared.DefaultPoolSize("pause")
+	if cli.GlobalIsSet("max-workers") {
+		maxWorkers = cli.GlobalFlags.MaxWorks
+	}
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	if cli.All {
+		var filterFuncs []libpod.ContainerFilter
+		filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == define.ContainerStatePaused
+		})
+		ctrs, err = r.GetContainers(filterFuncs...)
+	} else {
+		ctrs, err = shortcuts.GetContainersByContext(false, false, cli.InputArgs, r.Runtime)
+	}
+	if err != nil {
+		return ok, failures, err
+	}
+
+	pool := shared.NewPool("pause", maxWorkers, len(ctrs))
+	for _, c := range ctrs {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.Unpause()
+				if err != nil {
+					logrus.Debugf("Failed to unpause container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// Restart containers without or without a timeout
+func (r *LocalRuntime) Restart(ctx context.Context, c *cliconfig.RestartValues) ([]string, map[string]error, error) {
+	var (
+		containers        []*libpod.Container
+		restartContainers []*libpod.Container
+		err               error
+	)
+	useTimeout := c.Flag("timeout").Changed || c.Flag("time").Changed
+	inputTimeout := c.Timeout
+
+	// Handle --latest
+	switch {
+	case c.Latest:
+		lastCtr, err := r.Runtime.GetLatestContainer()
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "unable to get latest container")
+		}
+		restartContainers = append(restartContainers, lastCtr)
+	case c.Running:
+		containers, err = r.GetRunningContainers()
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	case c.All:
+		containers, err = r.Runtime.GetAllContainers()
+		if err != nil {
+			return nil, nil, err
+		}
+		restartContainers = append(restartContainers, containers...)
+	default:
+		for _, id := range c.InputArgs {
+			ctr, err := r.Runtime.LookupContainer(id)
+			if err != nil {
+				return nil, nil, err
+			}
+			restartContainers = append(restartContainers, ctr)
+		}
+	}
+
+	maxWorkers := shared.DefaultPoolSize("restart")
+	if c.GlobalIsSet("max-workers") {
+		maxWorkers = c.GlobalFlags.MaxWorks
+	}
+
+	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
+
+	// We now have a slice of all the containers to be restarted. Iterate them to
+	// create restart Funcs with a timeout as needed
+	pool := shared.NewPool("restart", maxWorkers, len(restartContainers))
+	for _, c := range restartContainers {
+		ctr := c
+		timeout := ctr.StopTimeout()
+		if useTimeout {
+			timeout = inputTimeout
+		}
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := ctr.RestartWithTimeout(ctx, timeout)
+				if err != nil {
+					logrus.Debugf("Failed to restart container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// Top display the running processes of a container
+func (r *LocalRuntime) Top(cli *cliconfig.TopValues) ([]string, error) {
+	var (
+		descriptors []string
+		container   *libpod.Container
+		err         error
+	)
+	if cli.Latest {
+		descriptors = cli.InputArgs
+		container, err = r.Runtime.GetLatestContainer()
+	} else {
+		descriptors = cli.InputArgs[1:]
+		container, err = r.Runtime.LookupContainer(cli.InputArgs[0])
+	}
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to lookup requested container")
+	}
+
+	return container.Top(descriptors)
+}
+
+// ExecContainer executes a command in the container
+func (r *LocalRuntime) ExecContainer(ctx context.Context, cli *cliconfig.ExecValues) (int, error) {
+	var (
+		ctr *Container
+		err error
+		cmd []string
+	)
+	// default invalid command exit code
+	ec := define.ExecErrorCodeGeneric
+
+	if cli.Latest {
+		if ctr, err = r.GetLatestContainer(); err != nil {
+			return ec, err
+		}
+		cmd = cli.InputArgs[0:]
+	} else {
+		if ctr, err = r.LookupContainer(cli.InputArgs[0]); err != nil {
+			return ec, err
+		}
+		cmd = cli.InputArgs[1:]
+	}
+
+	if cli.PreserveFDs > 0 {
+		entries, err := ioutil.ReadDir("/proc/self/fd")
+		if err != nil {
+			return ec, errors.Wrapf(err, "unable to read /proc/self/fd")
+		}
+
+		m := make(map[int]bool)
+		for _, e := range entries {
+			i, err := strconv.Atoi(e.Name())
+			if err != nil {
+				return ec, errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
+			}
+			m[i] = true
+		}
+
+		for i := 3; i < 3+cli.PreserveFDs; i++ {
+			if _, found := m[i]; !found {
+				return ec, errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
+			}
+		}
+	}
+
+	// Validate given environment variables
+	env := map[string]string{}
+	if len(cli.EnvFile) > 0 {
+		for _, f := range cli.EnvFile {
+			fileEnv, err := envLib.ParseFile(f)
+			if err != nil {
+				return ec, err
+			}
+			env = envLib.Join(env, fileEnv)
+		}
+	}
+	cliEnv, err := envLib.ParseSlice(cli.Env)
+	if err != nil {
+		return ec, errors.Wrap(err, "error parsing environment variables")
+	}
+	env = envLib.Join(env, cliEnv)
+
+	streams := new(libpod.AttachStreams)
+	streams.OutputStream = os.Stdout
+	streams.ErrorStream = os.Stderr
+	if cli.Interactive {
+		streams.InputStream = bufio.NewReader(os.Stdin)
+		streams.AttachInput = true
+	}
+	streams.AttachOutput = true
+	streams.AttachError = true
+
+	keys := cli.DetachKeys
+	if !cli.IsSet("detach-keys") {
+		keys, err = r.selectDetachKeys(keys)
+		if err != nil {
+			return ec, err
+		}
+	}
+
+	ec, err = ExecAttachCtr(ctx, ctr.Container, cli.Tty, cli.Privileged, env, cmd, cli.User, cli.Workdir, streams, uint(cli.PreserveFDs), keys)
+	return define.TranslateExecErrorToExitCode(ec, err), err
+}
+
+// Prune removes stopped containers
+func (r *LocalRuntime) Prune(ctx context.Context, maxWorkers int, filters []string) ([]string, map[string]error, error) {
+	var (
+		ok         = []string{}
+		failures   = map[string]error{}
+		err        error
+		filterFunc []libpod.ContainerFilter
+	)
+
+	logrus.Debugf("Setting maximum rm workers to %d", maxWorkers)
+
+	for _, filter := range filters {
+		filterSplit := strings.SplitN(filter, "=", 2)
+		if len(filterSplit) < 2 {
+			return ok, failures, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", filter)
+		}
+
+		f, err := shared.GenerateContainerFilterFuncs(filterSplit[0], filterSplit[1], r.Runtime)
+		if err != nil {
+			return ok, failures, err
+		}
+		filterFunc = append(filterFunc, f)
+	}
+
+	containerStateFilter := func(c *libpod.Container) bool {
+		state, err := c.State()
+		if err != nil {
+			logrus.Error(err)
+			return false
+		}
+		if c.PodID() != "" {
+			return false
+		}
+		if state == define.ContainerStateStopped || state == define.ContainerStateExited {
+			return true
+		}
+		return false
+	}
+	filterFunc = append(filterFunc, containerStateFilter)
+
+	delContainers, err := r.Runtime.GetContainers(filterFunc...)
+	if err != nil {
+		return ok, failures, err
+	}
+	if len(delContainers) < 1 {
+		return ok, failures, err
+	}
+	pool := shared.NewPool("prune", maxWorkers, len(delContainers))
+	for _, c := range delContainers {
+		ctr := c
+		pool.Add(shared.Job{
+			ID: ctr.ID(),
+			Fn: func() error {
+				err := r.Runtime.RemoveContainer(ctx, ctr, false, false)
+				if err != nil {
+					logrus.Debugf("Failed to prune container %s: %s", ctr.ID(), err.Error())
+				}
+				return err
+			},
+		})
+	}
+	return pool.Run()
+}
+
+// CleanupContainers any leftovers bits of stopped containers
+func (r *LocalRuntime) CleanupContainers(ctx context.Context, cli *cliconfig.CleanupValues) ([]string, map[string]error, error) {
+	var (
+		ok       = []string{}
+		failures = map[string]error{}
+	)
+
+	ctrs, err := shortcuts.GetContainersByContext(cli.All, cli.Latest, cli.InputArgs, r.Runtime)
+	if err != nil {
+		return ok, failures, err
+	}
+
+	for _, ctr := range ctrs {
+		if cli.Remove {
+			err = removeContainer(ctx, ctr, r)
+		} else {
+			err = cleanupContainer(ctx, ctr, r)
+		}
+
+		if err == nil {
+			ok = append(ok, ctr.ID())
+		} else {
+			failures[ctr.ID()] = err
+		}
+
+		if cli.RemoveImage {
+			_, imageName := ctr.Image()
+			if err := removeContainerImage(ctx, ctr, r); err != nil {
+				failures[imageName] = err
+			} else {
+				ok = append(ok, imageName)
+			}
+		}
+	}
+	return ok, failures, nil
+}
+
+// Only used when cleaning up containers
+func removeContainer(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	if err := runtime.RemoveContainer(ctx, ctr, false, true); err != nil {
+		return errors.Wrapf(err, "failed to cleanup and remove container %v", ctr.ID())
+	}
+	return nil
+}
+
+func cleanupContainer(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	if err := ctr.Cleanup(ctx); err != nil {
+		return errors.Wrapf(err, "failed to cleanup container %v", ctr.ID())
+	}
+	return nil
+}
+
+func removeContainerImage(ctx context.Context, ctr *libpod.Container, runtime *LocalRuntime) error {
+	_, imageName := ctr.Image()
+	ctrImage, err := runtime.NewImageFromLocal(imageName)
+	if err != nil {
+		return err
+	}
+	_, err = runtime.RemoveImage(ctx, ctrImage, false)
+	return err
+}
+
+// Port displays port information about existing containers
+func (r *LocalRuntime) Port(c *cliconfig.PortValues) ([]*Container, error) {
+	var (
+		portContainers []*Container
+		containers     []*libpod.Container
+		err            error
+	)
+
+	if !c.All {
+		names := []string{}
+		if len(c.InputArgs) >= 1 {
+			names = []string{c.InputArgs[0]}
+		}
+		containers, err = shortcuts.GetContainersByContext(false, c.Latest, names, r.Runtime)
+	} else {
+		containers, err = r.Runtime.GetRunningContainers()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	//Convert libpod containers to adapter Containers
+	for _, con := range containers {
+		if state, _ := con.State(); state != define.ContainerStateRunning {
+			continue
+		}
+		portContainers = append(portContainers, &Container{con})
+	}
+	return portContainers, nil
+}
+
+// generateServiceName generates the container name and the service name for systemd service.
+func generateServiceName(c *cliconfig.GenerateSystemdValues, ctr *libpod.Container, pod *libpod.Pod) (string, string) {
+	var kind, name, ctrName string
+	if pod == nil {
+		kind = "container"
+		name = ctr.ID()
+		if c.Name {
+			name = ctr.Name()
+		}
+		ctrName = name
+	} else {
+		kind = "pod"
+		name = pod.ID()
+		ctrName = ctr.ID()
+		if c.Name {
+			name = pod.Name()
+			ctrName = ctr.Name()
+		}
+	}
+	return ctrName, fmt.Sprintf("%s-%s", kind, name)
+}
+
+// generateSystemdgenContainerInfo is a helper to generate a
+// systemdgen.ContainerInfo for `GenerateSystemd`.
+func (r *LocalRuntime) generateSystemdgenContainerInfo(c *cliconfig.GenerateSystemdValues, nameOrID string, pod *libpod.Pod) (*generate.ContainerInfo, bool, error) {
+	ctr, err := r.Runtime.LookupContainer(nameOrID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	timeout := int(ctr.StopTimeout())
+	if c.StopTimeout >= 0 {
+		timeout = c.StopTimeout
+	}
+
+	config := ctr.Config()
+	conmonPidFile := config.ConmonPidFile
+	if conmonPidFile == "" {
+		return nil, true, errors.Errorf("conmon PID file path is empty, try to recreate the container with --conmon-pidfile flag")
+	}
+
+	name, serviceName := generateServiceName(c, ctr, pod)
+	info := &generate.ContainerInfo{
+		ServiceName:       serviceName,
+		ContainerName:     name,
+		RestartPolicy:     c.RestartPolicy,
+		PIDFile:           conmonPidFile,
+		StopTimeout:       timeout,
+		GenerateTimestamp: true,
+		CreateCommand:     config.CreateCommand,
+	}
+
+	return info, true, nil
+}
+
+// GenerateSystemd creates a unit file for a container or pod.
+func (r *LocalRuntime) GenerateSystemd(c *cliconfig.GenerateSystemdValues) (string, error) {
+	opts := generate.Options{
+		Files: c.Files,
+		New:   c.New,
+	}
+
+	// First assume it's a container.
+	if info, found, err := r.generateSystemdgenContainerInfo(c, c.InputArgs[0], nil); found && err != nil {
+		return "", err
+	} else if found && err == nil {
+		return generate.CreateContainerSystemdUnit(info, opts)
+	}
+
+	// --new does not support pods.
+	if c.New {
+		return "", errors.Errorf("error generating systemd unit files: cannot generate generic files for a pod")
+	}
+
+	// We're either having a pod or garbage.
+	pod, err := r.Runtime.LookupPod(c.InputArgs[0])
+	if err != nil {
+		return "", err
+	}
+
+	// Error out if the pod has no infra container, which we require to be the
+	// main service.
+	if !pod.HasInfraContainer() {
+		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no infra container", pod.Name())
+	}
+
+	// Generate a systemdgen.ContainerInfo for the infra container. This
+	// ContainerInfo acts as the main service of the pod.
+	infraID, err := pod.InfraContainerID()
+	if err != nil {
+		return "", nil
+	}
+	podInfo, _, err := r.generateSystemdgenContainerInfo(c, infraID, pod)
+	if err != nil {
+		return "", nil
+	}
+
+	// Compute the container-dependency graph for the Pod.
+	containers, err := pod.AllContainers()
+	if err != nil {
+		return "", err
+	}
+	if len(containers) == 0 {
+		return "", fmt.Errorf("error generating systemd unit files: Pod %q has no containers", pod.Name())
+	}
+	graph, err := libpod.BuildContainerGraph(containers)
+	if err != nil {
+		return "", err
+	}
+
+	// Traverse the dependency graph and create systemdgen.ContainerInfo's for
+	// each container.
+	containerInfos := []*generate.ContainerInfo{podInfo}
+	for ctr, dependencies := range graph.DependencyMap() {
+		// Skip the infra container as we already generated it.
+		if ctr.ID() == infraID {
+			continue
+		}
+		ctrInfo, _, err := r.generateSystemdgenContainerInfo(c, ctr.ID(), nil)
+		if err != nil {
+			return "", err
+		}
+		// Now add the container's dependencies and at the container as a
+		// required service of the infra container.
+		for _, dep := range dependencies {
+			if dep.ID() == infraID {
+				ctrInfo.BoundToServices = append(ctrInfo.BoundToServices, podInfo.ServiceName)
+			} else {
+				_, serviceName := generateServiceName(c, dep, nil)
+				ctrInfo.BoundToServices = append(ctrInfo.BoundToServices, serviceName)
+			}
+		}
+		podInfo.RequiredServices = append(podInfo.RequiredServices, ctrInfo.ServiceName)
+		containerInfos = append(containerInfos, ctrInfo)
+	}
+
+	// Now generate the systemd service for all containers.
+	builder := strings.Builder{}
+	for i, info := range containerInfos {
+		if i > 0 {
+			builder.WriteByte('\n')
+		}
+		out, err := generate.CreateContainerSystemdUnit(info, opts)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(out)
+	}
+
+	return builder.String(), nil
+}
+
+// GetNamespaces returns namespace information about a container for PS
+func (r *LocalRuntime) GetNamespaces(container shared.PsContainerOutput) *shared.Namespace {
+	return shared.GetNamespaces(container.Pid)
+}
+
+// Commit creates a local image from a container
+func (r *LocalRuntime) Commit(ctx context.Context, c *cliconfig.CommitValues, container, imageName string) (string, error) {
+	var (
+		writer   io.Writer
+		mimeType string
+	)
+	switch c.Format {
+	case "oci":
+		mimeType = buildah.OCIv1ImageManifest
+		if c.Flag("message").Changed {
+			return "", errors.Errorf("messages are only compatible with the docker image format (-f docker)")
+		}
+	case "docker":
+		mimeType = manifest.DockerV2Schema2MediaType
+	default:
+		return "", errors.Errorf("unrecognized image format %q", c.Format)
+	}
+	if !c.Quiet {
+		writer = os.Stderr
+	}
+	ctr, err := r.Runtime.LookupContainer(container)
+	if err != nil {
+		return "", errors.Wrapf(err, "error looking up container %q", container)
+	}
+
+	rtc, err := r.Runtime.GetConfig()
+	if err != nil {
+		return "", err
+	}
+
+	sc := image.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	coptions := buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		ReportWriter:          writer,
+		SystemContext:         sc,
+		PreferredManifestType: mimeType,
+	}
+	options := libpod.ContainerCommitOptions{
+		CommitOptions:  coptions,
+		Pause:          c.Pause,
+		IncludeVolumes: c.IncludeVolumes,
+		Message:        c.Message,
+		Changes:        c.Change,
+		Author:         c.Author,
+	}
+	newImage, err := ctr.Commit(ctx, imageName, options)
+	if err != nil {
+		return "", err
+	}
+	return newImage.ID(), nil
 }

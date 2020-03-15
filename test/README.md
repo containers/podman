@@ -39,8 +39,9 @@ The following instructions assume your GOPATH is ~/go. Adjust as needed for your
 environment.
 
 ### Installing ginkgo
-Build ginkgo and install it under $GOPATH/bin with the following command:
+Build ginkgo and install it under $GOPATH/bin with the following commands:
 ```
+export GOCACHE="$(mktemp -d)"
 GOPATH=~/go make .install.ginkgo
 ```
 If your PATH does not include $GOPATH/bin, you might consider adding it.
@@ -110,19 +111,30 @@ make shell
 
 This will run a container and give you a shell and you can follow the instructions above.
 
-# System test
+# System tests
 System tests are used for testing the *podman* CLI in the context of a complete system. It
 requires that *podman*, all dependencies, and configurations are in place.  The intention of
 system testing is to match as closely as possible with real-world user/developer use-cases
 and environments. The orchestration of the environments and tests is left to external
 tooling.
 
-* `PodmanTestSystem`: System test *struct* as a composite of `PodmanTest`. It will not add any
-options to the command by default. When you run system test, you can set GLOBALOPTIONS,
-PODMAN_SUBCMD_OPTIONS or PODMAN_BINARY in ENV to run the test suite for different test matrices.
+System tests use Bash Automated Testing System (`bats`) as a testing framework.
+Install it via your package manager or get latest stable version
+[directly from the repository](https://github.com/bats-core/bats-core), e.g.:
 
-## Run system test
-You can run the test with following command:
+```
+mkdir -p ~/tools/bats
+git clone --single-branch --branch v1.1.0 https://github.com/bats-core/bats-core.git ~/tools/bats
+```
+
+Make sure that `bats` binary (`bin/bats` in the repository) is in your `PATH`, if not - add it:
+
+```
+PATH=$PATH:~/tools/bats/bin
+```
+
+## Running system tests
+When `bats` is installed and is in your `PATH`, you can run the test suite with following command:
 
 ```
 make localsystem

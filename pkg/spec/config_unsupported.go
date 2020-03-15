@@ -8,14 +8,14 @@ import (
 	"github.com/pkg/errors"
 )
 
-func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
+func getSeccompConfig(config *SecurityConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
 	return nil, errors.New("function not supported on non-linux OS's")
 }
 func addDevice(g *generate.Generator, device string) error {
 	return errors.New("function not implemented")
 }
 
-func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
+func addPrivilegedDevices(g *generate.Generator) error {
 	return errors.New("function not implemented")
 }
 
@@ -27,6 +27,10 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 	return nil, errors.New("function not implemented")
 }
 
-func devicesFromPath(g *generate.Generator, devicePath string) error {
+func DevicesFromPath(g *generate.Generator, devicePath string) error {
+	return errors.New("function not implemented")
+}
+
+func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
 	return errors.New("function not implemented")
 }

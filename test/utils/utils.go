@@ -26,20 +26,24 @@ var (
 // PodmanTestCommon contains common functions will be updated later in
 // the inheritance structs
 type PodmanTestCommon interface {
-	MakeOptions(args []string) []string
+	MakeOptions(args []string, noEvents, noCache bool) []string
 	WaitForContainer() bool
 	WaitContainerReady(id string, expStr string, timeout int, step int) bool
 }
 
 // PodmanTest struct for command line options
 type PodmanTest struct {
-	PodmanMakeOptions  func(args []string) []string
+	PodmanMakeOptions  func(args []string, noEvents, noCache bool) []string
 	PodmanBinary       string
 	ArtifactPath       string
 	TempDir            string
 	RemoteTest         bool
 	RemotePodmanBinary string
 	VarlinkSession     *os.Process
+	VarlinkEndpoint    string
+	VarlinkCommand     *exec.Cmd
+	ImageCacheDir      string
+	ImageCacheFS       string
 }
 
 // PodmanSession wraps the gexec.session so we can extend it
@@ -55,19 +59,21 @@ type HostOS struct {
 }
 
 // MakeOptions assembles all podman options
-func (p *PodmanTest) MakeOptions(args []string) []string {
-	return p.PodmanMakeOptions(args)
+func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string {
+	return p.PodmanMakeOptions(args, noEvents, noCache)
 }
 
-// PodmanAsUserBase exec podman as user. uid and gid is set for credentials useage. env is used
+// PodmanAsUserBase exec podman as user. uid and gid is set for credentials usage. env is used
 // to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string) *PodmanSession {
+func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool) *PodmanSession {
 	var command *exec.Cmd
-	podmanOptions := p.MakeOptions(args)
+	podmanOptions := p.MakeOptions(args, noEvents, noCache)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
+		env = append(env, fmt.Sprintf("PODMAN_VARLINK_ADDRESS=%s", p.VarlinkEndpoint))
 	}
+
 	if env == nil {
 		fmt.Printf("Running: %s %s\n", podmanBinary, strings.Join(podmanOptions, " "))
 	} else {
@@ -95,8 +101,8 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 }
 
 // PodmanBase exec podman with default env.
-func (p *PodmanTest) PodmanBase(args []string) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, "", nil)
+func (p *PodmanTest) PodmanBase(args []string, noEvents, noCache bool) *PodmanSession {
+	return p.PodmanAsUserBase(args, 0, 0, "", nil, noEvents, noCache)
 }
 
 // WaitForContainer waits on a started container
@@ -114,7 +120,7 @@ func (p *PodmanTest) WaitForContainer() bool {
 // containers are currently running.
 func (p *PodmanTest) NumberOfContainersRunning() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-q"})
+	ps := p.PodmanBase([]string{"ps", "-q"}, false, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -129,7 +135,7 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 // containers are currently defined.
 func (p *PodmanTest) NumberOfContainers() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-aq"})
+	ps := p.PodmanBase([]string{"ps", "-aq"}, false, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -144,7 +150,7 @@ func (p *PodmanTest) NumberOfContainers() int {
 // pods are currently defined.
 func (p *PodmanTest) NumberOfPods() int {
 	var pods []string
-	ps := p.PodmanBase([]string{"pod", "ps", "-q"})
+	ps := p.PodmanBase([]string{"pod", "ps", "-q"}, false, true)
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -160,7 +166,7 @@ func (p *PodmanTest) NumberOfPods() int {
 func (p *PodmanTest) GetContainerStatus() string {
 	var podmanArgs = []string{"ps"}
 	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
-	session := p.PodmanBase(podmanArgs)
+	session := p.PodmanBase(podmanArgs, false, true)
 	session.WaitWithDefaultTimeout()
 	return session.OutputToString()
 }
@@ -168,7 +174,7 @@ func (p *PodmanTest) GetContainerStatus() string {
 // WaitContainerReady waits process or service inside container start, and ready to be used.
 func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, step int) bool {
 	startTime := time.Now()
-	s := p.PodmanBase([]string{"logs", id})
+	s := p.PodmanBase([]string{"logs", id}, false, true)
 	s.WaitWithDefaultTimeout()
 
 	for {
@@ -181,7 +187,7 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 			return true
 		}
 		time.Sleep(time.Duration(step) * time.Second)
-		s = p.PodmanBase([]string{"logs", id})
+		s = p.PodmanBase([]string{"logs", id}, false, true)
 		s.WaitWithDefaultTimeout()
 	}
 }
@@ -262,7 +268,7 @@ func (s *PodmanSession) ErrorGrepString(term string) (bool, []string) {
 	return matches, greps
 }
 
-//LineInOutputStartsWith returns true if a line in a
+// LineInOutputStartsWith returns true if a line in a
 // session output starts with the supplied string
 func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
 	for _, i := range s.OutputToStringArray() {
@@ -273,7 +279,7 @@ func (s *PodmanSession) LineInOuputStartsWith(term string) bool {
 	return false
 }
 
-//LineInOutputContains returns true if a line in a
+// LineInOutputContains returns true if a line in a
 // session output contains the supplied string
 func (s *PodmanSession) LineInOutputContains(term string) bool {
 	for _, i := range s.OutputToStringArray() {
@@ -284,7 +290,7 @@ func (s *PodmanSession) LineInOutputContains(term string) bool {
 	return false
 }
 
-//LineInOutputContainsTag returns true if a line in the
+// LineInOutputContainsTag returns true if a line in the
 // session's output contains the repo-tag pair as returned
 // by podman-images(1).
 func (s *PodmanSession) LineInOutputContainsTag(repo, tag string) bool {
@@ -310,7 +316,7 @@ func (s *PodmanSession) IsJSONOutputValid() bool {
 
 // WaitWithDefaultTimeout waits for process finished with defaultWaitTimeout
 func (s *PodmanSession) WaitWithDefaultTimeout() {
-	s.Wait(defaultWaitTimeout)
+	Eventually(s, defaultWaitTimeout).Should(gexec.Exit())
 	os.Stdout.Sync()
 	os.Stderr.Sync()
 	fmt.Println("output:", s.OutputToString())
@@ -342,7 +348,7 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
-//tagOutPutToMap parses each string in imagesOutput and returns
+// tagOutPutToMap parses each string in imagesOutput and returns
 // a map of repo:tag pairs.  Notice, the first array item will
 // be skipped as it's considered to be the header.
 func tagOutputToMap(imagesOutput []string) map[string]string {
@@ -365,7 +371,7 @@ func tagOutputToMap(imagesOutput []string) map[string]string {
 	return m
 }
 
-//GetHostDistributionInfo returns a struct with its distribution name and version
+// GetHostDistributionInfo returns a struct with its distribution name and version
 func GetHostDistributionInfo() HostOS {
 	f, err := os.Open(OSReleasePath)
 	defer f.Close()
@@ -409,7 +415,7 @@ func IsKernelNewerThan(version string) (bool, error) {
 
 }
 
-//IsCommandAvaible check if command exist
+// IsCommandAvaible check if command exist
 func IsCommandAvailable(command string) bool {
 	check := exec.Command("bash", "-c", strings.Join([]string{"command -v", command}, " "))
 	err := check.Run()

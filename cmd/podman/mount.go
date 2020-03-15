@@ -35,7 +35,7 @@ var (
 			return mountCmd(&mountCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, true)
+			return checkAllLatestAndCIDFile(cmd, args, true, false)
 		},
 	}
 )
@@ -61,11 +61,11 @@ type jsonMountPoint struct {
 }
 
 func mountCmd(c *cliconfig.MountValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if os.Geteuid() != 0 {
 		rtc, err := runtime.GetConfig()
@@ -78,7 +78,7 @@ func mountCmd(c *cliconfig.MountValues) error {
 			return fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
 		}
 
-		became, ret, err := rootless.BecomeRootInUserNS()
+		became, ret, err := rootless.BecomeRootInUserNS("")
 		if err != nil {
 			return err
 		}

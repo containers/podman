@@ -6,7 +6,7 @@ import (
 	"errors"
 	"strings"
 
-	hooks "github.com/containers/libpod/pkg/hooks"
+	"github.com/containers/libpod/pkg/hooks"
 	current "github.com/containers/libpod/pkg/hooks/1.0.0"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -19,7 +19,7 @@ type Hook struct {
 	Hook      *string  `json:"hook"`
 	Arguments []string `json:"arguments,omitempty"`
 
-	// https://github.com/kubernetes-sigs/cri-o/pull/1235
+	// https://github.com/cri-o/cri-o/pull/1235
 	Stages []string `json:"stages"`
 	Stage  []string `json:"stage"`
 

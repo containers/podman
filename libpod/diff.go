@@ -1,6 +1,8 @@
 package libpod
 
 import (
+	"io"
+
 	"github.com/containers/libpod/libpod/layers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/pkg/errors"
@@ -42,6 +44,16 @@ func (r *Runtime) GetDiff(from, to string) ([]archive.Change, error) {
 		}
 	}
 	return rchanges, err
+}
+
+// ApplyDiffTarStream applies the changes stored in 'diff' to the layer 'to'
+func (r *Runtime) ApplyDiffTarStream(to string, diff io.Reader) error {
+	toLayer, err := r.getLayerID(to)
+	if err != nil {
+		return err
+	}
+	_, err = r.store.ApplyDiff(toLayer, diff)
+	return err
 }
 
 // GetLayerID gets a full layer id given a full or partial id

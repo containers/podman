@@ -6,23 +6,23 @@ package parse
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"net"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"unicode"
 
 	"github.com/containers/buildah"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/docker/go-units"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	units "github.com/docker/go-units"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
-	"golang.org/x/sys/unix"
 )
 
 const (
@@ -30,6 +30,17 @@ const (
 	SeccompDefaultPath = "/usr/share/containers/seccomp.json"
 	// SeccompOverridePath if this exists it overrides the default seccomp path
 	SeccompOverridePath = "/etc/crio/seccomp.json"
+	// TypeBind is the type for mounting host dir
+	TypeBind = "bind"
+	// TypeTmpfs is the type for mounting tmpfs
+	TypeTmpfs = "tmpfs"
+)
+
+var (
+	errBadMntOption  = errors.Errorf("invalid mount option")
+	errDuplicateDest = errors.Errorf("duplicate mount destination")
+	optionArgError   = errors.Errorf("must provide an argument for option")
+	noDestError      = errors.Errorf("must set volume destination")
 )
 
 // CommonBuildOptions parses the build options from the bud cli
@@ -37,16 +48,10 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 	var (
 		memoryLimit int64
 		memorySwap  int64
+		noDNS       bool
 		err         error
 	)
-	rlim := unix.Rlimit{Cur: 1048576, Max: 1048576}
-	defaultLimits := []string{}
-	if err := unix.Setrlimit(unix.RLIMIT_NOFILE, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nofile=%d:%d", rlim.Cur, rlim.Max))
-	}
-	if err := unix.Setrlimit(unix.RLIMIT_NPROC, &rlim); err == nil {
-		defaultLimits = append(defaultLimits, fmt.Sprintf("nproc=%d:%d", rlim.Cur, rlim.Max))
-	}
+
 	memVal, _ := c.Flags().GetString("memory")
 	if memVal != "" {
 		memoryLimit, err = units.RAMInBytes(memVal)
@@ -71,17 +76,54 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 			}
 		}
 	}
+
+	noDNS = false
+	dnsServers := []string{}
+	if c.Flag("dns").Changed {
+		dnsServers, _ = c.Flags().GetStringSlice("dns")
+		for _, server := range dnsServers {
+			if strings.ToLower(server) == "none" {
+				noDNS = true
+			}
+		}
+		if noDNS && len(dnsServers) > 1 {
+			return nil, errors.Errorf("invalid --dns, --dns=none may not be used with any other --dns options")
+		}
+	}
+
+	dnsSearch := []string{}
+	if c.Flag("dns-search").Changed {
+		dnsSearch, _ = c.Flags().GetStringSlice("dns-search")
+		if noDNS && len(dnsSearch) > 0 {
+			return nil, errors.Errorf("invalid --dns-search, --dns-search may not be used with --dns=none")
+		}
+	}
+
+	dnsOptions := []string{}
+	if c.Flag("dns-search").Changed {
+		dnsOptions, _ = c.Flags().GetStringSlice("dns-option")
+		if noDNS && len(dnsOptions) > 0 {
+			return nil, errors.Errorf("invalid --dns-option, --dns-option may not be used with --dns=none")
+		}
+	}
+
 	if _, err := units.FromHumanSize(c.Flag("shm-size").Value.String()); err != nil {
 		return nil, errors.Wrapf(err, "invalid --shm-size")
 	}
-	volumes, _ := c.Flags().GetStringSlice("volume")
-	if err := ParseVolumes(volumes); err != nil {
+	volumes, _ := c.Flags().GetStringArray("volume")
+	if err := Volumes(volumes); err != nil {
 		return nil, err
 	}
 	cpuPeriod, _ := c.Flags().GetUint64("cpu-period")
 	cpuQuota, _ := c.Flags().GetInt64("cpu-quota")
-	cpuShares, _ := c.Flags().GetUint64("cpu-shared")
-	ulimit, _ := c.Flags().GetStringSlice("ulimit")
+	cpuShares, _ := c.Flags().GetUint64("cpu-shares")
+	httpProxy, _ := c.Flags().GetBool("http-proxy")
+
+	ulimit := []string{}
+	if c.Flag("ulimit").Changed {
+		ulimit, _ = c.Flags().GetStringSlice("ulimit")
+	}
+
 	commonOpts := &buildah.CommonBuildOptions{
 		AddHost:      addHost,
 		CgroupParent: c.Flag("cgroup-parent").Value.String(),
@@ -90,13 +132,17 @@ func CommonBuildOptions(c *cobra.Command) (*buildah.CommonBuildOptions, error) {
 		CPUSetCPUs:   c.Flag("cpuset-cpus").Value.String(),
 		CPUSetMems:   c.Flag("cpuset-mems").Value.String(),
 		CPUShares:    cpuShares,
+		DNSSearch:    dnsSearch,
+		DNSServers:   dnsServers,
+		DNSOptions:   dnsOptions,
+		HTTPProxy:    httpProxy,
 		Memory:       memoryLimit,
 		MemorySwap:   memorySwap,
 		ShmSize:      c.Flag("shm-size").Value.String(),
-		Ulimit:       append(defaultLimits, ulimit...),
+		Ulimit:       ulimit,
 		Volumes:      volumes,
 	}
-	securityOpts, _ := c.Flags().GetStringSlice("security-opt")
+	securityOpts, _ := c.Flags().GetStringArray("security-opt")
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
 		return nil, err
 	}
@@ -145,32 +191,268 @@ func parseSecurityOpts(securityOpts []string, commonOpts *buildah.CommonBuildOpt
 	return nil
 }
 
-// ParseVolumes validates the host and container paths passed in to the --volume flag
-func ParseVolumes(volumes []string) error {
+// Volume parses the input of --volume
+func Volume(volume string) (specs.Mount, error) {
+	mount := specs.Mount{}
+	arr := strings.SplitN(volume, ":", 3)
+	if len(arr) < 2 {
+		return mount, errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
+	}
+	if err := validateVolumeMountHostDir(arr[0]); err != nil {
+		return mount, err
+	}
+	if err := ValidateVolumeCtrDir(arr[1]); err != nil {
+		return mount, err
+	}
+	mountOptions := ""
+	if len(arr) > 2 {
+		mountOptions = arr[2]
+		if _, err := ValidateVolumeOpts(strings.Split(arr[2], ",")); err != nil {
+			return mount, err
+		}
+	}
+	mountOpts := strings.Split(mountOptions, ",")
+	mount.Source = arr[0]
+	mount.Destination = arr[1]
+	mount.Type = "rbind"
+	mount.Options = mountOpts
+	return mount, nil
+}
+
+// Volumes validates the host and container paths passed in to the --volume flag
+func Volumes(volumes []string) error {
 	if len(volumes) == 0 {
 		return nil
 	}
 	for _, volume := range volumes {
-		arr := strings.SplitN(volume, ":", 3)
-		if len(arr) < 2 {
-			return errors.Errorf("incorrect volume format %q, should be host-dir:ctr-dir[:option]", volume)
-		}
-		if err := validateVolumeHostDir(arr[0]); err != nil {
+		if _, err := Volume(volume); err != nil {
 			return err
-		}
-		if err := validateVolumeCtrDir(arr[1]); err != nil {
-			return err
-		}
-		if len(arr) > 2 {
-			if err := validateVolumeOpts(arr[2]); err != nil {
-				return err
-			}
 		}
 	}
 	return nil
 }
 
-func validateVolumeHostDir(hostDir string) error {
+func getVolumeMounts(volumes []string) (map[string]specs.Mount, error) {
+	finalVolumeMounts := make(map[string]specs.Mount)
+
+	for _, volume := range volumes {
+		volumeMount, err := Volume(volume)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := finalVolumeMounts[volumeMount.Destination]; ok {
+			return nil, errors.Wrapf(errDuplicateDest, volumeMount.Destination)
+		}
+		finalVolumeMounts[volumeMount.Destination] = volumeMount
+	}
+	return finalVolumeMounts, nil
+}
+
+// GetVolumes gets the volumes from --volume and --mount
+func GetVolumes(volumes []string, mounts []string) ([]specs.Mount, error) {
+	unifiedMounts, err := getMounts(mounts)
+	if err != nil {
+		return nil, err
+	}
+	volumeMounts, err := getVolumeMounts(volumes)
+	if err != nil {
+		return nil, err
+	}
+	for dest, mount := range volumeMounts {
+		if _, ok := unifiedMounts[dest]; ok {
+			return nil, errors.Wrapf(errDuplicateDest, dest)
+		}
+		unifiedMounts[dest] = mount
+	}
+
+	finalMounts := make([]specs.Mount, 0, len(unifiedMounts))
+	for _, mount := range unifiedMounts {
+		finalMounts = append(finalMounts, mount)
+	}
+	return finalMounts, nil
+}
+
+// getMounts takes user-provided input from the --mount flag and creates OCI
+// spec mounts.
+// buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
+// buildah run --mount type=tmpfs,target=/dev/shm ...
+func getMounts(mounts []string) (map[string]specs.Mount, error) {
+	finalMounts := make(map[string]specs.Mount)
+
+	errInvalidSyntax := errors.Errorf("incorrect mount format: should be --mount type=<bind|tmpfs>,[src=<host-dir>,]target=<ctr-dir>[,options]")
+
+	// TODO(vrothberg): the manual parsing can be replaced with a regular expression
+	//                  to allow a more robust parsing of the mount format and to give
+	//                  precise errors regarding supported format versus supported options.
+	for _, mount := range mounts {
+		arr := strings.SplitN(mount, ",", 2)
+		if len(arr) < 2 {
+			return nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
+		}
+		kv := strings.Split(arr[0], "=")
+		// TODO: type is not explicitly required in Docker.
+		// If not specified, it defaults to "volume".
+		if len(kv) != 2 || kv[0] != "type" {
+			return nil, errors.Wrapf(errInvalidSyntax, "%q", mount)
+		}
+
+		tokens := strings.Split(arr[1], ",")
+		switch kv[1] {
+		case TypeBind:
+			mount, err := GetBindMount(tokens)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := finalMounts[mount.Destination]; ok {
+				return nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+			}
+			finalMounts[mount.Destination] = mount
+		case TypeTmpfs:
+			mount, err := GetTmpfsMount(tokens)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := finalMounts[mount.Destination]; ok {
+				return nil, errors.Wrapf(errDuplicateDest, mount.Destination)
+			}
+			finalMounts[mount.Destination] = mount
+		default:
+			return nil, errors.Errorf("invalid filesystem type %q", kv[1])
+		}
+	}
+
+	return finalMounts, nil
+}
+
+// GetBindMount parses a single bind mount entry from the --mount flag.
+func GetBindMount(args []string) (specs.Mount, error) {
+	newMount := specs.Mount{
+		Type: TypeBind,
+	}
+
+	setSource := false
+	setDest := false
+
+	for _, val := range args {
+		kv := strings.Split(val, "=")
+		switch kv[0] {
+		case "bind-nonrecursive":
+			newMount.Options = append(newMount.Options, "bind")
+		case "ro", "nosuid", "nodev", "noexec":
+			// TODO: detect duplication of these options.
+			// (Is this necessary?)
+			newMount.Options = append(newMount.Options, kv[0])
+		case "shared", "rshared", "private", "rprivate", "slave", "rslave", "Z", "z":
+			newMount.Options = append(newMount.Options, kv[0])
+		case "bind-propagation":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			newMount.Options = append(newMount.Options, kv[1])
+		case "src", "source":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := ValidateVolumeHostDir(kv[1]); err != nil {
+				return newMount, err
+			}
+			newMount.Source = kv[1]
+			setSource = true
+		case "target", "dst", "destination":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
+				return newMount, err
+			}
+			newMount.Destination = kv[1]
+			setDest = true
+		default:
+			return newMount, errors.Wrapf(errBadMntOption, kv[0])
+		}
+	}
+
+	if !setDest {
+		return newMount, noDestError
+	}
+
+	if !setSource {
+		newMount.Source = newMount.Destination
+	}
+
+	opts, err := ValidateVolumeOpts(newMount.Options)
+	if err != nil {
+		return newMount, err
+	}
+	newMount.Options = opts
+
+	return newMount, nil
+}
+
+// GetTmpfsMount parses a single tmpfs mount entry from the --mount flag
+func GetTmpfsMount(args []string) (specs.Mount, error) {
+	newMount := specs.Mount{
+		Type:   TypeTmpfs,
+		Source: TypeTmpfs,
+	}
+
+	setDest := false
+
+	for _, val := range args {
+		kv := strings.Split(val, "=")
+		switch kv[0] {
+		case "ro", "nosuid", "nodev", "noexec":
+			newMount.Options = append(newMount.Options, kv[0])
+		case "tmpfs-mode":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			newMount.Options = append(newMount.Options, fmt.Sprintf("mode=%s", kv[1]))
+		case "tmpfs-size":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			newMount.Options = append(newMount.Options, fmt.Sprintf("size=%s", kv[1]))
+		case "src", "source":
+			return newMount, errors.Errorf("source is not supported with tmpfs mounts")
+		case "target", "dst", "destination":
+			if len(kv) == 1 {
+				return newMount, errors.Wrapf(optionArgError, kv[0])
+			}
+			if err := ValidateVolumeCtrDir(kv[1]); err != nil {
+				return newMount, err
+			}
+			newMount.Destination = kv[1]
+			setDest = true
+		default:
+			return newMount, errors.Wrapf(errBadMntOption, kv[0])
+		}
+	}
+
+	if !setDest {
+		return newMount, noDestError
+	}
+
+	return newMount, nil
+}
+
+// ValidateVolumeHostDir validates a volume mount's source directory
+func ValidateVolumeHostDir(hostDir string) error {
+	if len(hostDir) == 0 {
+		return errors.Errorf("host directory cannot be empty")
+	}
+	if filepath.IsAbs(hostDir) {
+		if _, err := os.Stat(hostDir); err != nil {
+			return errors.Wrapf(err, "error checking path %q", hostDir)
+		}
+	}
+	// If hostDir is not an absolute path, that means the user wants to create a
+	// named volume. This will be done later on in the code.
+	return nil
+}
+
+// validates the host path of buildah --volume
+func validateVolumeMountHostDir(hostDir string) error {
 	if !filepath.IsAbs(hostDir) {
 		return errors.Errorf("invalid host path, must be an absolute path %q", hostDir)
 	}
@@ -180,38 +462,72 @@ func validateVolumeHostDir(hostDir string) error {
 	return nil
 }
 
-func validateVolumeCtrDir(ctrDir string) error {
+// ValidateVolumeCtrDir validates a volume mount's destination directory.
+func ValidateVolumeCtrDir(ctrDir string) error {
+	if len(ctrDir) == 0 {
+		return errors.Errorf("container directory cannot be empty")
+	}
 	if !filepath.IsAbs(ctrDir) {
-		return errors.Errorf("invalid container path, must be an absolute path %q", ctrDir)
+		return errors.Errorf("invalid container path %q, must be an absolute path", ctrDir)
 	}
 	return nil
 }
 
-func validateVolumeOpts(option string) error {
-	var foundRootPropagation, foundRWRO, foundLabelChange int
-	options := strings.Split(option, ",")
+// ValidateVolumeOpts validates a volume's options
+func ValidateVolumeOpts(options []string) ([]string, error) {
+	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid int
+	finalOpts := make([]string, 0, len(options))
 	for _, opt := range options {
 		switch opt {
+		case "noexec", "exec":
+			foundExec++
+			if foundExec > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'noexec' or 'exec' option", strings.Join(options, ", "))
+			}
+		case "nodev", "dev":
+			foundDev++
+			if foundDev > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nodev' or 'dev' option", strings.Join(options, ", "))
+			}
+		case "nosuid", "suid":
+			foundSuid++
+			if foundSuid > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'nosuid' or 'suid' option", strings.Join(options, ", "))
+			}
 		case "rw", "ro":
-			if foundRWRO > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", option)
-			}
 			foundRWRO++
-		case "z", "Z":
-			if foundLabelChange > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 'z' or 'Z' option", option)
+			if foundRWRO > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'rw' or 'ro' option", strings.Join(options, ", "))
 			}
+		case "z", "Z", "O":
 			foundLabelChange++
-		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
-			if foundRootPropagation > 1 {
-				return errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", option)
+			if foundLabelChange > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 'z', 'Z', or 'O' option", strings.Join(options, ", "))
 			}
+		case "private", "rprivate", "shared", "rshared", "slave", "rslave", "unbindable", "runbindable":
 			foundRootPropagation++
+			if foundRootPropagation > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]shared', '[r]private', '[r]slave' or '[r]unbindable' option", strings.Join(options, ", "))
+			}
+		case "bind", "rbind":
+			bindType++
+			if bindType > 1 {
+				return nil, errors.Errorf("invalid options %q, can only specify 1 '[r]bind' option", strings.Join(options, ", "))
+			}
+		case "cached", "delegated":
+			// The discarded ops are OS X specific volume options
+			// introduced in a recent Docker version.
+			// They have no meaning on Linux, so here we silently
+			// drop them. This matches Docker's behavior (the options
+			// are intended to be always safe to use, even not on OS
+			// X).
+			continue
 		default:
-			return errors.Errorf("invalid option type %q", option)
+			return nil, errors.Errorf("invalid option type %q", opt)
 		}
+		finalOpts = append(finalOpts, opt)
 	}
-	return nil
+	return finalOpts, nil
 }
 
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
@@ -268,8 +584,8 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.SignaturePolicyPath = sigPolicy
 	}
 	authfile, err := c.Flags().GetString("authfile")
-	if err == nil && c.Flag("authfile").Changed {
-		ctx.AuthFilePath = authfile
+	if err == nil {
+		ctx.AuthFilePath = getAuthFile(authfile)
 	}
 	regConf, err := c.Flags().GetString("registries-conf")
 	if err == nil && c.Flag("registries-conf").Changed {
@@ -280,7 +596,61 @@ func SystemContextFromOptions(c *cobra.Command) (*types.SystemContext, error) {
 		ctx.RegistriesDirPath = regConfDir
 	}
 	ctx.DockerRegistryUserAgent = fmt.Sprintf("Buildah/%s", buildah.Version)
+	if os, err := c.Flags().GetString("override-os"); err == nil {
+		ctx.OSChoice = os
+	}
+	if arch, err := c.Flags().GetString("override-arch"); err == nil {
+		ctx.ArchitectureChoice = arch
+	}
+	ctx.BigFilesTemporaryDir = GetTempDir()
 	return ctx, nil
+}
+
+func getAuthFile(authfile string) string {
+	if authfile != "" {
+		return authfile
+	}
+	return os.Getenv("REGISTRY_AUTH_FILE")
+}
+
+// PlatformFromOptions parses the operating system (os) and architecture (arch)
+// from the provided command line options.
+func PlatformFromOptions(c *cobra.Command) (os, arch string, err error) {
+	os = runtime.GOOS
+	arch = runtime.GOARCH
+
+	if selectedOS, err := c.Flags().GetString("os"); err == nil && selectedOS != runtime.GOOS {
+		os = selectedOS
+	}
+	if selectedArch, err := c.Flags().GetString("arch"); err == nil && selectedArch != runtime.GOARCH {
+		arch = selectedArch
+	}
+
+	if pf, err := c.Flags().GetString("platform"); err == nil && pf != DefaultPlatform() {
+		selectedOS, selectedArch, err := parsePlatform(pf)
+		if err != nil {
+			return "", "", errors.Wrap(err, "unable to parse platform")
+		}
+		arch = selectedArch
+		os = selectedOS
+	}
+
+	return os, arch, nil
+}
+
+const platformSep = "/"
+
+// DefaultPlatform returns the standard platform for the current system
+func DefaultPlatform() string {
+	return runtime.GOOS + platformSep + runtime.GOARCH
+}
+
+func parsePlatform(platform string) (os, arch string, err error) {
+	split := strings.Split(platform, platformSep)
+	if len(split) != 2 {
+		return "", "", errors.Errorf("invalid platform syntax for %q (use OS/ARCH)", platform)
+	}
+	return split[0], split[1], nil
 }
 
 func parseCreds(creds string) (string, string) {
@@ -490,7 +860,7 @@ func NamespaceOptions(c *cobra.Command) (namespaceOptions buildah.NamespaceOptio
 					Host: true,
 				})
 			default:
-				if what == specs.NetworkNamespace {
+				if what == string(specs.NetworkNamespace) {
 					if how == "none" {
 						options.AddOrReplace(buildah.NamespaceOption{
 							Name: what,
@@ -541,8 +911,7 @@ func defaultIsolation() (buildah.Isolation, error) {
 }
 
 // IsolationOption parses the --isolation flag.
-func IsolationOption(c *cobra.Command) (buildah.Isolation, error) {
-	isolation, _ := c.Flags().GetString("isolation")
+func IsolationOption(isolation string) (buildah.Isolation, error) {
 	if isolation != "" {
 		switch strings.ToLower(isolation) {
 		case "oci":
@@ -556,4 +925,94 @@ func IsolationOption(c *cobra.Command) (buildah.Isolation, error) {
 		}
 	}
 	return defaultIsolation()
+}
+
+// ScrubServer removes 'http://' or 'https://' from the front of the
+// server/registry string if either is there.  This will be mostly used
+// for user input from 'buildah login' and 'buildah logout'.
+func ScrubServer(server string) string {
+	server = strings.TrimPrefix(server, "https://")
+	return strings.TrimPrefix(server, "http://")
+}
+
+// RegistryFromFullName gets the registry from the input. If the input is of the form
+// quay.io/myuser/myimage, it will parse it and just return quay.io
+// It also returns true if a full image name was given
+func RegistryFromFullName(input string) string {
+	split := strings.Split(input, "/")
+	if len(split) > 1 {
+		return split[0]
+	}
+	return split[0]
+}
+
+// Device parses device mapping string to a src, dest & permissions string
+// Valid values for device looklike:
+//    '/dev/sdc"
+//    '/dev/sdc:/dev/xvdc"
+//    '/dev/sdc:/dev/xvdc:rwm"
+//    '/dev/sdc:rm"
+func Device(device string) (string, string, string, error) {
+	src := ""
+	dst := ""
+	permissions := "rwm"
+	arr := strings.Split(device, ":")
+	switch len(arr) {
+	case 3:
+		if !isValidDeviceMode(arr[2]) {
+			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
+		}
+		permissions = arr[2]
+		fallthrough
+	case 2:
+		if isValidDeviceMode(arr[1]) {
+			permissions = arr[1]
+		} else {
+			if len(arr[1]) == 0 || arr[1][0] != '/' {
+				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
+			}
+			dst = arr[1]
+		}
+		fallthrough
+	case 1:
+		if len(arr[0]) > 0 {
+			src = arr[0]
+			break
+		}
+		fallthrough
+	default:
+		return "", "", "", fmt.Errorf("invalid device specification: %s", device)
+	}
+
+	if dst == "" {
+		dst = src
+	}
+	return src, dst, permissions, nil
+}
+
+// isValidDeviceMode checks if the mode for device is valid or not.
+// isValid mode is a composition of r (read), w (write), and m (mknod).
+func isValidDeviceMode(mode string) bool {
+	var legalDeviceMode = map[rune]bool{
+		'r': true,
+		'w': true,
+		'm': true,
+	}
+	if mode == "" {
+		return false
+	}
+	for _, c := range mode {
+		if !legalDeviceMode[c] {
+			return false
+		}
+		legalDeviceMode[c] = false
+	}
+	return true
+}
+
+func GetTempDir() string {
+	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
+		return tmpdir
+	}
+	return "/var/tmp"
 }

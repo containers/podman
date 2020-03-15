@@ -7,8 +7,7 @@ type Volume (
   labels: [string]string,
   mountPoint: string,
   driver: string,
-  options: [string]string,
-  scope: string
+  options: [string]string
 )
 
 type NotImplemented (
@@ -17,6 +16,11 @@ type NotImplemented (
 
 type StringResponse (
     message: string
+)
+
+type RemoveImageResponse (
+    untagged: []string,
+    deleted: string
 )
 
 type LogLine (
@@ -59,7 +63,8 @@ type VolumeRemoveOpts (
 
 type Image (
   id: string,
-  digest:   string,
+  digest: string,
+  digests: []string,
   parentId: string,
   repoTags: []string,
   repoDigests: []string,
@@ -69,7 +74,9 @@ type Image (
   containers: int,
   labels: [string]string,
   isParent: bool,
-  topLayer: string
+  topLayer: string,
+  readOnly: bool,
+  history: []string
 )
 
 # ImageHistory describes the returned structure from ImageHistory.
@@ -144,10 +151,11 @@ type PsOpts (
     last: ?int,
     latest: ?bool,
     noTrunc: ?bool,
-	pod: ?bool,
-	quiet: ?bool,
-	sort: ?string,
-	sync: ?bool
+    pod: ?bool,
+    quiet: ?bool,
+    size: ?bool,
+    sort: ?string,
+    sync: ?bool
 )
 
 type PsContainer (
@@ -207,7 +215,7 @@ type ContainerNameSpace (
     ipc: string
 )
 
-# InfoDistribution describes the the host's distribution
+# InfoDistribution describes the host's distribution
 type InfoDistribution (
     distribution: string,
     version: string
@@ -226,7 +234,8 @@ type InfoHost (
     hostname: string,
     kernel: string,
     os: string,
-    uptime: string
+    uptime: string,
+    eventlogger: string
 )
 
 # InfoGraphStatus describes the detailed status of the storage driver
@@ -234,6 +243,13 @@ type InfoGraphStatus (
     backing_filesystem: string,
     native_overlay_diff: string,
     supports_d_type: string
+)
+
+# InfoRegistry describes the host's registry information
+type InfoRegistry (
+    search: []string,
+    insecure: []string,
+    blocked: []string
 )
 
 # InfoStore describes the host's storage informatoin
@@ -247,7 +263,7 @@ type InfoStore (
     run_root: string
 )
 
-# InfoPodman provides details on the podman binary
+# InfoPodman provides details on the Podman binary
 type InfoPodmanBinary (
     compiler: string,
     go_version: string,
@@ -258,8 +274,7 @@ type InfoPodmanBinary (
 # PodmanInfo describes the Podman host and build
 type PodmanInfo (
     host: InfoHost,
-    registries: []string,
-    insecure_registries: []string,
+    registries: InfoRegistry,
     store: InfoStore,
     podman: InfoPodmanBinary
 )
@@ -272,6 +287,8 @@ type Sockets(
 )
 
 # Create is an input structure for creating containers.
+# args[0] is the image name or id
+# args[1-] are the new commands if changed
 type Create (
     args: []string,
     addHost: ?[]string,
@@ -333,19 +350,22 @@ type Create (
     memorySwap: ?string,
     memorySwappiness: ?int,
     name: ?string,
-    net: ?string,
     network: ?string,
     noHosts: ?bool,
     oomKillDisable: ?bool,
     oomScoreAdj: ?int,
+    overrideArch: ?string,
+    overrideOS: ?string,
     pid: ?string,
     pidsLimit: ?int,
     pod: ?string,
     privileged: ?bool,
     publish: ?[]string,
     publishAll: ?bool,
+    pull: ?string,
     quiet: ?bool,
     readonly: ?bool,
+    readonlytmpfs: ?bool,
     restart: ?string,
     rm: ?bool,
     rootfs: ?bool,
@@ -357,7 +377,7 @@ type Create (
     subuidname: ?string,
     subgidname: ?string,
     sysctl: ?[]string,
-    systemd: ?bool,
+    systemd: ?string,
     tmpfs: ?[]string,
     tty: ?bool,
     uidmap: ?[]string,
@@ -413,7 +433,6 @@ type BuildInfo (
     remoteIntermediateCtrs: bool,
     reportWriter: string,
     runtimeArgs: []string,
-    signaturePolicyPath: string,
     squash: bool
 )
 
@@ -466,13 +485,9 @@ type PodContainerErrorData (
 type Runlabel(
     image: string,
     authfile: string,
-    certDir: string,
-    creds: string,
     display: bool,
     name: string,
     pull: bool,
-    signaturePolicyPath: string,
-    tlsVerify: ?bool,
     label: string,
     extraArgs: []string,
     opts: [string]string
@@ -502,6 +517,25 @@ type DiffInfo(
     changeType: string
 )
 
+type ExecOpts(
+    # container name or id
+    name: string,
+    # Create pseudo tty
+    tty: bool,
+    # privileged access in container
+    privileged: bool,
+    # command to execute in container
+    cmd: []string,
+    # user to use in container
+    user: ?string,
+    # workdir to run command in container
+    workdir: ?string,
+    # slice of keyword=value environment variables
+    env: ?[]string,
+    # string of detach keys
+    detachKeys: ?string
+)
+
 # GetVersion returns version and build information of the podman service
 method GetVersion() -> (
     version: string,
@@ -512,6 +546,10 @@ method GetVersion() -> (
     remote_api_version: int
 )
 
+# Reset resets Podman back to its initial state.
+# Removes all Pods, Containers, Images and Volumes
+method Reset() -> ()
+
 # GetInfo returns a [PodmanInfo](#PodmanInfo) struct that describes podman and its host such as storage stats,
 # build information of Podman, and system-wide registries.
 method GetInfo() -> (info: PodmanInfo)
@@ -521,6 +559,14 @@ method GetInfo() -> (info: PodmanInfo)
 method ListContainers() -> (containers: []Container)
 
 method Ps(opts: PsOpts) -> (containers: []PsContainer)
+
+method GetContainersByStatus(status: []string) -> (containerS: []Container)
+
+method Top (nameOrID: string, descriptors: []string) -> (top: []string)
+
+# HealthCheckRun executes defined container's healthcheck command
+# and returns the container's health status.
+method HealthCheckRun (nameOrID: string) -> (healthCheckStatus: string)
 
 # GetContainer returns information about a single container.  If a container
 # with the given id doesn't exist, a [ContainerNotFound](#ContainerNotFound)
@@ -636,6 +682,14 @@ method StartContainer(name: string) -> (container: string)
 # ~~~
 method StopContainer(name: string, timeout: int) -> (container: string)
 
+# InitContainer initializes the given container. It accepts a container name or
+# ID, and will initialize the container matching that ID if possible, and error
+# if not. Containers can only be initialized when they are in the Created or
+# Exited states. Initialization prepares a container to be started, but does not
+# start the container. It is intended to be used to debug a container's state
+# prior to starting it.
+method InitContainer(name: string) -> (container: string)
+
 # RestartContainer will restart a running container given a container name or ID and timeout value. The timeout
 # value is the time before a forcible stop is used to stop the container.  If the container cannot be found by
 # name or ID, a [ContainerNotFound](#ContainerNotFound)  error will be returned; otherwise, the ID of the
@@ -663,7 +717,7 @@ method PauseContainer(name: string) -> (container: string)
 # See also [PauseContainer](#PauseContainer).
 method UnpauseContainer(name: string) -> (container: string)
 
-# Attach takes the name or ID of a container and sets up a the ability to remotely attach to its console. The start
+# Attach takes the name or ID of a container and sets up the ability to remotely attach to its console. The start
 # bool is whether you wish to start the container in question first.
 method Attach(name: string, detachKeys: string, start: bool) -> ()
 
@@ -691,10 +745,12 @@ method GetAttachSockets(name: string) -> (sockets: Sockets)
 # or name, a [ContainerNotFound](#ContainerNotFound) error is returned.
 method WaitContainer(name: string, interval: int) -> (exitcode: int)
 
-# RemoveContainer requires the name or ID of container as well a boolean representing whether a running container can be stopped and removed, and a boolean
+# RemoveContainer requires the name or ID of a container as well as a boolean that
+# indicates whether a container should be forcefully removed (e.g., by stopping it), and a boolean
 # indicating whether to remove builtin volumes. Upon successful removal of the
 # container, its ID is returned.  If the
 # container cannot be found by name or ID, a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# See also [EvictContainer](EvictContainer).
 # #### Example
 # ~~~
 # $ varlink call -m unix:/run/podman/io.podman/io.podman.RemoveContainer '{"name": "62f4fd98cb57"}'
@@ -703,6 +759,20 @@ method WaitContainer(name: string, interval: int) -> (exitcode: int)
 # }
 # ~~~
 method RemoveContainer(name: string, force: bool, removeVolumes: bool) -> (container: string)
+
+# EvictContainer requires the name or ID of a container as well as a boolean that
+# indicates to remove builtin volumes. Upon successful eviction of the container,
+# its ID is returned.  If the container cannot be found by name or ID,
+# a [ContainerNotFound](#ContainerNotFound) error will be returned.
+# See also [RemoveContainer](RemoveContainer).
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.EvictContainer '{"name": "62f4fd98cb57"}'
+# {
+#   "container": "62f4fd98cb57f529831e8f90610e54bba74bd6f02920ffb485e15376ed365c20"
+# }
+# ~~~
+method EvictContainer(name: string, removeVolumes: bool) -> (container: string)
 
 # DeleteStoppedContainers will delete all containers that are not running. It will return a list the deleted
 # container IDs.  See also [RemoveContainer](RemoveContainer).
@@ -724,19 +794,59 @@ method DeleteStoppedContainers() -> (containers: []string)
 # See also [InspectImage](#InspectImage).
 method ListImages() -> (images: []Image)
 
+# ListImagesWithFilters returns information about the images that are currently in storage
+# after one or more filters has been applied.
+# See also [InspectImage](#InspectImage).
+method ListImagesWithFilters(filters: []string) -> (images: []Image)
+
 # GetImage returns information about a single image in storage.
 # If the image caGetImage returns be found, [ImageNotFound](#ImageNotFound) will be returned.
 method GetImage(id: string) -> (image: Image)
 
 # BuildImage takes a [BuildInfo](#BuildInfo) structure and builds an image.  At a minimum, you must provide the
-# 'dockerfile' and 'tags' options in the BuildInfo structure. It will return a [MoreResponse](#MoreResponse) structure
+# contextDir tarball path, the 'dockerfiles' path, and 'output' option in the BuildInfo structure.  The 'output'
+# options is the name of the of the resulting build. It will return a [MoreResponse](#MoreResponse) structure
 # that contains the build logs and resulting image ID.
+# #### Example
+# ~~~
+# $ sudo varlink call -m unix:///run/podman/io.podman/io.podman.BuildImage '{"build":{"contextDir":"/tmp/t/context.tar","dockerfiles":["Dockerfile"], "output":"foobar"}}'
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "STEP 1: FROM alpine\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "STEP 2: COMMIT foobar\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "",
+#    "logs": [
+#      "b7b28af77ffec6054d13378df4fdf02725830086c7444d9c278af25312aa39b9\n"
+#    ]
+#  }
+# }
+# {
+#  "image": {
+#    "id": "b7b28af77ffec6054d13378df4fdf02725830086c7444d9c278af25312aa39b9",
+#    "logs": []
+#  }
+# }
+# ~~~
 method BuildImage(build: BuildInfo) -> (image: MoreResponse)
 
 # This function is not implemented yet.
 # method CreateImage() -> (notimplemented: NotImplemented)
 
-# InspectImage takes the name or ID of an image and returns a string respresentation of data associated with the
+# InspectImage takes the name or ID of an image and returns a string representation of data associated with the
 #image.  You must serialize the string into JSON to use it further.  An [ImageNotFound](#ImageNotFound) error will
 # be returned if the image cannot be found.
 method InspectImage(name: string) -> (image: string)
@@ -746,15 +856,20 @@ method InspectImage(name: string) -> (image: string)
 # [ImageNotFound](#ImageNotFound) error is returned.
 method HistoryImage(name: string) -> (history: []ImageHistory)
 
-# PushImage takes three input arguments: the name or ID of an image, the fully-qualified destination name of the image,
-# and a boolean as to whether tls-verify should be used (with false disabling TLS, not affecting the default behavior).
+# PushImage takes two input arguments: the name or ID of an image, the fully-qualified destination name of the image,
 # It will return an [ImageNotFound](#ImageNotFound) error if
 # the image cannot be found in local storage; otherwise it will return a [MoreResponse](#MoreResponse)
-method PushImage(name: string, tag: string, tlsverify: ?bool, signaturePolicy: string, creds: string, certDir: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
+method PushImage(name: string, tag: string, compress: bool, format: string, removeSignatures: bool, signBy: string) -> (reply: MoreResponse)
 
 # TagImage takes the name or ID of an image in local storage as well as the desired tag name.  If the image cannot
 # be found, an [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of the image is returned on success.
 method TagImage(name: string, tagged: string) -> (image: string)
+
+# UntagImage takes the name or ID of an image in local storage as well as the
+# tag name to be removed.  If the image cannot be found, an
+# [ImageNotFound](#ImageNotFound) error will be returned; otherwise, the ID of
+# the image is returned on success.
+method UntagImage(name: string, tag: string) -> (image: string)
 
 # RemoveImage takes the name or ID of an image as well as a boolean that determines if containers using that image
 # should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned.  The
@@ -768,10 +883,15 @@ method TagImage(name: string, tagged: string) -> (image: string)
 # ~~~
 method RemoveImage(name: string, force: bool) -> (image: string)
 
+# RemoveImageWithResponse takes the name or ID of an image as well as a boolean that determines if containers using that image
+# should be deleted.  If the image cannot be found, an [ImageNotFound](#ImageNotFound) error will be returned. The response is
+# in the form of a RemoveImageResponse .
+method RemoveImageWithResponse(name: string, force: bool) -> (response: RemoveImageResponse)
+
 # SearchImages searches available registries for images that contain the
 # contents of "query" in their name. If "limit" is given, limits the amount of
 # search results per registry.
-method SearchImages(query: string, limit: ?int, tlsVerify: ?bool, filter: ImageSearchFilter) -> (results: []ImageSearchResult)
+method SearchImages(query: string, limit: ?int, filter: ImageSearchFilter) -> (results: []ImageSearchResult)
 
 # DeleteUnusedImages deletes any images not associated with a container.  The IDs of the deleted images are returned
 # in a string array.
@@ -795,15 +915,15 @@ method DeleteUnusedImages() -> (images: []string)
 # attributes: _CMD, ENTRYPOINT, ENV, EXPOSE, LABEL, ONBUILD, STOPSIGNAL, USER, VOLUME, and WORKDIR_.  To pause the
 # container while it is being committed, pass a _true_ bool for the pause argument.  If the container cannot
 # be found by the ID or name provided, a (ContainerNotFound)[#ContainerNotFound] error will be returned; otherwise,
-# the resulting image's ID will be returned as a string.
-method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) -> (image: string)
+# the resulting image's ID will be returned as a string inside a MoreResponse.
+method Commit(name: string, image_name: string, changes: []string, author: string, message: string, pause: bool, manifestType: string) -> (reply: MoreResponse)
 
 # ImportImage imports an image from a source (like tarball) into local storage.  The image can have additional
 # descriptions added to it using the message and changes options. See also [ExportImage](ExportImage).
 method ImportImage(source: string, reference: string, message: string, changes: []string, delete: bool) -> (image: string)
 
 # ExportImage takes the name or ID of an image and exports it to a destination like a tarball.  There is also
-# a booleon option to force compression.  It also takes in a string array of tags to be able to save multiple
+# a boolean option to force compression.  It also takes in a string array of tags to be able to save multiple
 # tags of the same image to a tarball (each tag should be of the form <image>:<tag>).  Upon completion, the ID
 # of the image is returned. If the image cannot be found in local storage, an [ImageNotFound](#ImageNotFound)
 # error will be returned. See also [ImportImage](ImportImage).
@@ -812,7 +932,7 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 # PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
 # are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
 # status as it occurs.
-method PullImage(name: string, certDir: string, creds: string, signaturePolicy: string, tlsVerify: ?bool) -> (reply: MoreResponse)
+method PullImage(name: string) -> (reply: MoreResponse)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.
@@ -908,7 +1028,7 @@ method ListPods() -> (pods: []ListPodData)
 # ~~~
 method GetPod(name: string) -> (pod: ListPodData)
 
-# InspectPod takes the name or ID of an image and returns a string respresentation of data associated with the
+# InspectPod takes the name or ID of an image and returns a string representation of data associated with the
 # pod.  You must serialize the string into JSON to use it further.  A [PodNotFound](#PodNotFound) error will
 # be returned if the pod cannot be found.
 method InspectPod(name: string) -> (pod: string)
@@ -1053,6 +1173,9 @@ method TopPod(pod: string, latest: bool, descriptors: []string) -> (stats: []str
 # ~~~
 method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
 
+# GetPodsByStatus searches for pods whose status is included in statuses
+method GetPodsByStatus(statuses: []string) -> (pods: []string)
+
 # ImageExists talks a full or partial image ID or name and returns an int as to whether
 # the image exists in local storage. An int result of 0 means the image does exist in
 # local storage; whereas 1 indicates the image does not exists in local storage.
@@ -1064,6 +1187,16 @@ method GetPodStats(name: string) -> (pod: string, containers: []ContainerStats)
 # }
 # ~~~
 method ImageExists(name: string) -> (exists: int)
+
+# ImageTree returns the image tree for the provided image name or ID
+# #### Example
+# ~~~
+# $ varlink call -m unix:/run/podman/io.podman/io.podman.ImageTree '{"name": "alpine"}'
+# {
+#   "tree":  "Image ID: e7d92cdc71fe\nTags:     [docker.io/library/alpine:latest]\nSize:     5.861MB\nImage Layers\n└──  ID: 5216338b40a7 Size: 5.857MB Top Layer of: [docker.io/library/alpine:latest]\n"
+# }
+# ~~~
+method ImageTree(name: string, whatRequires: bool) -> (tree: string)
 
 # ContainerExists takes a full or partial container ID or name and returns an int as to
 # whether the container exists in local storage.  A result of 0 means the container does
@@ -1087,6 +1220,9 @@ method ContainerRestore(name: string, keep: bool, tcpEstablished: bool) -> (id: 
 
 # ContainerRunlabel runs executes a command as described by a given container image label.
 method ContainerRunlabel(runlabel: Runlabel) -> ()
+
+# ExecContainer executes a command in the given container.
+method ExecContainer(opts: ExecOpts) -> ()
 
 # ListContainerMounts gathers all the mounted container mount points and returns them as an array
 # of strings
@@ -1122,7 +1258,7 @@ method  UnmountContainer(name: string, force: bool) -> ()
 
 # ImagesPrune removes all unused images from the local store.  Upon successful pruning,
 # the IDs of the removed images are returned.
-method ImagesPrune(all: bool) -> (pruned: []string)
+method ImagesPrune(all: bool, filter: []string) -> (pruned: []string)
 
 # This function is not implemented yet.
 # method ListContainerPorts(name: string) -> (notimplemented: NotImplemented)
@@ -1171,10 +1307,14 @@ method ReceiveFile(path: string, delete: bool) -> (len: int)
 method VolumeCreate(options: VolumeCreateOpts) -> (volumeName: string)
 
 # VolumeRemove removes a volume on a remote host
-method VolumeRemove(options: VolumeRemoveOpts) -> (volumeNames: []string)
+method VolumeRemove(options: VolumeRemoveOpts) -> (successes: []string, failures: [string]string)
 
 # GetVolumes gets slice of the volumes on a remote host
 method GetVolumes(args: []string, all: bool) -> (volumes: []Volume)
+
+# InspectVolume inspects a single volume. Returns inspect JSON in the form of a
+# string.
+method InspectVolume(name: string) -> (volume: string)
 
 # VolumesPrune removes unused volumes on the host
 method VolumesPrune() -> (prunedNames: []string, prunedErrors: []string)
@@ -1217,13 +1357,16 @@ error PodNotFound (name: string, reason: string)
 # VolumeNotFound means the volume could not be found by the name or ID in local storage.
 error VolumeNotFound (id: string, reason: string)
 
-# PodContainerError means a container associated with a pod failed to preform an operation. It contains
+# PodContainerError means a container associated with a pod failed to perform an operation. It contains
 # a container ID of the container that failed.
 error PodContainerError (podname: string, errors: []PodContainerErrorData)
 
 # NoContainersInPod means a pod has no containers on which to perform the operation. It contains
 # the pod ID.
 error NoContainersInPod (name: string)
+
+# InvalidState indicates that a container or pod was in an improper state for the requested operation
+error InvalidState (id: string, reason: string)
 
 # ErrorOccurred is a generic error for an error that occurs during the execution.  The actual error message
 # is includes as part of the error's text.
@@ -1234,3 +1377,9 @@ error RuntimeError (reason: string)
 
 # The Podman endpoint requires that you use a streaming connection.
 error WantsMoreRequired (reason: string)
+
+# Container is already stopped
+error ErrCtrStopped (id: string)
+
+# This function requires CGroupsV2 to run in rootless mode.
+error ErrRequiresCgroupsV2ForRootless(reason: string)

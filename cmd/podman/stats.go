@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -12,6 +11,9 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/docker/go-units"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -33,7 +35,7 @@ var (
 
 	statsDescription = "Display percentage of CPU, memory, network I/O, block I/O and PIDs for one or more containers."
 	_statsCommand    = &cobra.Command{
-		Use:   "stats [flags] CONTAINER [CONTAINER...]",
+		Use:   "stats [flags] [CONTAINER...]",
 		Short: "Display a live stream of container resource usage statistics",
 		Long:  statsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -41,9 +43,6 @@ var (
 			statsCommand.GlobalFlags = MainGlobalOpts
 			statsCommand.Remote = remoteclient
 			return statsCmd(&statsCommand)
-		},
-		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
 		},
 		Example: `podman stats --all --no-stream
   podman stats ctrID
@@ -65,8 +64,14 @@ func init() {
 }
 
 func statsCmd(c *cliconfig.StatsValues) error {
-	if os.Geteuid() != 0 {
-		return errors.New("stats is not supported for rootless containers")
+	if rootless.IsRootless() {
+		unified, err := cgroups.IsCgroup2UnifiedMode()
+		if err != nil {
+			return err
+		}
+		if !unified {
+			return errors.New("stats is not supported in rootless mode without cgroups v2")
+		}
 	}
 
 	all := c.All
@@ -84,15 +89,13 @@ func statsCmd(c *cliconfig.StatsValues) error {
 
 	if ctr > 1 {
 		return errors.Errorf("--all, --latest and containers cannot be used together")
-	} else if ctr == 0 {
-		return errors.Errorf("you must specify --all, --latest, or at least one container")
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	times := -1
 	if c.NoStream {
@@ -100,12 +103,12 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	}
 
 	var ctrs []*libpod.Container
-	var containerFunc func() ([]*libpod.Container, error)
 
-	containerFunc = runtime.GetRunningContainers
-	if len(c.InputArgs) > 0 {
+	containerFunc := runtime.GetRunningContainers
+	switch {
+	case len(c.InputArgs) > 0:
 		containerFunc = func() ([]*libpod.Container, error) { return runtime.GetContainersByList(c.InputArgs) }
-	} else if latest {
+	case latest:
 		containerFunc = func() ([]*libpod.Container, error) {
 			lastCtr, err := runtime.GetLatestContainer()
 			if err != nil {
@@ -113,7 +116,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			}
 			return []*libpod.Container{lastCtr}, nil
 		}
-	} else if all {
+	case all:
 		containerFunc = runtime.GetAllContainers
 	}
 
@@ -126,9 +129,13 @@ func statsCmd(c *cliconfig.StatsValues) error {
 	for _, ctr := range ctrs {
 		initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
 		if err != nil {
-			// when doing "all", dont worry about containers that are not running
-			if c.All && errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+			// when doing "all", don't worry about containers that are not running
+			cause := errors.Cause(err)
+			if c.All && (cause == define.ErrCtrRemoved || cause == define.ErrNoSuchCtr || cause == define.ErrCtrStateInvalid) {
 				continue
+			}
+			if cause == cgroups.ErrCgroupV1Rootless {
+				err = cause
 			}
 			return err
 		}
@@ -148,7 +155,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			id := ctr.ID()
 			if _, ok := containerStats[ctr.ID()]; !ok {
 				initialStats, err := ctr.GetContainerStats(&libpod.ContainerStats{})
-				if errors.Cause(err) == libpod.ErrCtrRemoved || errors.Cause(err) == libpod.ErrNoSuchCtr || errors.Cause(err) == libpod.ErrCtrStateInvalid {
+				if errors.Cause(err) == define.ErrCtrRemoved || errors.Cause(err) == define.ErrNoSuchCtr || errors.Cause(err) == define.ErrCtrStateInvalid {
 					// skip dealing with a container that is gone
 					continue
 				}
@@ -158,7 +165,7 @@ func statsCmd(c *cliconfig.StatsValues) error {
 				containerStats[id] = initialStats
 			}
 			stats, err := ctr.GetContainerStats(containerStats[id])
-			if err != nil && errors.Cause(err) != libpod.ErrNoSuchCtr {
+			if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
 				return err
 			}
 			// replace the previous measurement with the current one
@@ -174,7 +181,9 @@ func statsCmd(c *cliconfig.StatsValues) error {
 			tm.MoveCursor(1, 1)
 			tm.Flush()
 		}
-		outputStats(reportStats, format)
+		if err := outputStats(reportStats, format); err != nil {
+			return err
+		}
 		time.Sleep(time.Second)
 	}
 	return nil
@@ -198,7 +207,7 @@ func outputStats(stats []*libpod.ContainerStats, format string) error {
 		}
 		out = formats.StdoutTemplateArray{Output: statsToGeneric(outputStats, []statsOutputParams{}), Template: format, Fields: mapOfHeaders}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func genStatsFormat(format string) string {
@@ -211,14 +220,14 @@ func genStatsFormat(format string) string {
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
-func statsToGeneric(templParams []statsOutputParams, JSONParams []statsOutputParams) (genericParams []interface{}) {
+func statsToGeneric(templParams []statsOutputParams, jsonParams []statsOutputParams) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return

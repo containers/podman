@@ -26,7 +26,8 @@ func (i *LibpodAPI) SendFile(call iopodman.VarlinkCall, ftype string, length int
 	defer outputFile.Close()
 
 	if err = call.ReplySendFile(outputFile.Name()); err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		// If an error occurs while sending the reply, return the error
+		return err
 	}
 
 	writer := bufio.NewWriter(outputFile)
@@ -60,9 +61,10 @@ func (i *LibpodAPI) ReceiveFile(call iopodman.VarlinkCall, filepath string, dele
 	}
 
 	// Send the file length down to client
-	// Varlink connection upraded
+	// Varlink connection upgraded
 	if err = call.ReplyReceiveFile(fileInfo.Size()); err != nil {
-		return call.ReplyErrorOccurred(err.Error())
+		// If an error occurs while sending the reply, return the error
+		return err
 	}
 
 	reader := bufio.NewReader(fs)

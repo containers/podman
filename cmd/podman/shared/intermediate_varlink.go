@@ -3,9 +3,9 @@
 package shared
 
 import (
-	"fmt"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
 )
 
@@ -127,18 +127,21 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		MemorySwap:             StringToPtr(g.Find("memory-swap")),
 		MemorySwappiness:       AnyIntToInt64Ptr(g.Find("memory-swappiness")),
 		Name:                   StringToPtr(g.Find("name")),
-		Net:                    StringToPtr(g.Find("net")),
 		Network:                StringToPtr(g.Find("network")),
 		OomKillDisable:         BoolToPtr(g.Find("oom-kill-disable")),
 		OomScoreAdj:            AnyIntToInt64Ptr(g.Find("oom-score-adj")),
+		OverrideOS:             StringToPtr(g.Find("override-os")),
+		OverrideArch:           StringToPtr(g.Find("override-arch")),
 		Pid:                    StringToPtr(g.Find("pid")),
 		PidsLimit:              AnyIntToInt64Ptr(g.Find("pids-limit")),
 		Pod:                    StringToPtr(g.Find("pod")),
 		Privileged:             BoolToPtr(g.Find("privileged")),
 		Publish:                StringSliceToPtr(g.Find("publish")),
 		PublishAll:             BoolToPtr(g.Find("publish-all")),
+		Pull:                   StringToPtr(g.Find("pull")),
 		Quiet:                  BoolToPtr(g.Find("quiet")),
 		Readonly:               BoolToPtr(g.Find("read-only")),
+		Readonlytmpfs:          BoolToPtr(g.Find("read-only-tmpfs")),
 		Restart:                StringToPtr(g.Find("restart")),
 		Rm:                     BoolToPtr(g.Find("rm")),
 		Rootfs:                 BoolToPtr(g.Find("rootfs")),
@@ -150,7 +153,7 @@ func (g GenericCLIResults) MakeVarlink() iopodman.Create {
 		Subuidname:             StringToPtr(g.Find("subuidname")),
 		Subgidname:             StringToPtr(g.Find("subgidname")),
 		Sysctl:                 StringSliceToPtr(g.Find("sysctl")),
-		Systemd:                BoolToPtr(g.Find("systemd")),
+		Systemd:                StringToPtr(g.Find("systemd")),
 		Tmpfs:                  StringSliceToPtr(g.Find("tmpfs")),
 		Tty:                    BoolToPtr(g.Find("tty")),
 		Uidmap:                 StringSliceToPtr(g.Find("uidmap")),
@@ -206,7 +209,6 @@ func boolFromVarlink(v *bool, flagName string, defaultValue bool) CRBool {
 		cr.Val = defaultValue
 		cr.Changed = false
 	} else {
-		fmt.Println(flagName, cr.Val)
 		cr.Val = *v
 		cr.Changed = true
 	}
@@ -318,6 +320,13 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	// We do not get a default network over varlink. Unlike the other default values for some cli
 	// elements, it seems it gets set to the default anyway.
 
+	var memSwapDefault int64 = -1
+	netModeDefault := "bridge"
+	systemdDefault := "true"
+	if rootless.IsRootless() {
+		netModeDefault = "slirp4netns"
+	}
+
 	m := make(map[string]GenericCLIResult)
 	m["add-host"] = stringSliceFromVarlink(opts.AddHost, "add-host", nil)
 	m["annotation"] = stringSliceFromVarlink(opts.Annotation, "annotation", nil)
@@ -374,21 +383,24 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["memory"] = stringFromVarlink(opts.Memory, "memory", nil)
 	m["memory-reservation"] = stringFromVarlink(opts.MemoryReservation, "memory-reservation", nil)
 	m["memory-swap"] = stringFromVarlink(opts.MemorySwap, "memory-swap", nil)
-	m["memory-swappiness"] = int64FromVarlink(opts.MemorySwappiness, "memory-swappiness", nil)
+	m["memory-swappiness"] = int64FromVarlink(opts.MemorySwappiness, "memory-swappiness", &memSwapDefault)
 	m["name"] = stringFromVarlink(opts.Name, "name", nil)
-	m["net"] = stringFromVarlink(opts.Net, "net", nil)
-	m["network"] = stringFromVarlink(opts.Network, "network", nil)
+	m["network"] = stringFromVarlink(opts.Network, "network", &netModeDefault)
 	m["no-hosts"] = boolFromVarlink(opts.NoHosts, "no-hosts", false)
 	m["oom-kill-disable"] = boolFromVarlink(opts.OomKillDisable, "oon-kill-disable", false)
 	m["oom-score-adj"] = intFromVarlink(opts.OomScoreAdj, "oom-score-adj", nil)
+	m["override-os"] = stringFromVarlink(opts.OverrideOS, "override-os", nil)
+	m["override-arch"] = stringFromVarlink(opts.OverrideArch, "override-arch", nil)
 	m["pid"] = stringFromVarlink(opts.Pid, "pid", nil)
 	m["pids-limit"] = int64FromVarlink(opts.PidsLimit, "pids-limit", nil)
 	m["pod"] = stringFromVarlink(opts.Pod, "pod", nil)
 	m["privileged"] = boolFromVarlink(opts.Privileged, "privileged", false)
 	m["publish"] = stringSliceFromVarlink(opts.Publish, "publish", nil)
 	m["publish-all"] = boolFromVarlink(opts.PublishAll, "publish-all", false)
+	m["pull"] = stringFromVarlink(opts.Pull, "missing", nil)
 	m["quiet"] = boolFromVarlink(opts.Quiet, "quiet", false)
 	m["read-only"] = boolFromVarlink(opts.Readonly, "read-only", false)
+	m["read-only-tmpfs"] = boolFromVarlink(opts.Readonlytmpfs, "read-only-tmpfs", true)
 	m["restart"] = stringFromVarlink(opts.Restart, "restart", nil)
 	m["rm"] = boolFromVarlink(opts.Rm, "rm", false)
 	m["rootfs"] = boolFromVarlink(opts.Rootfs, "rootfs", false)
@@ -400,7 +412,7 @@ func VarlinkCreateToGeneric(opts iopodman.Create) GenericCLIResults {
 	m["subgidname"] = stringFromVarlink(opts.Subgidname, "subgidname", nil)
 	m["subuidname"] = stringFromVarlink(opts.Subuidname, "subuidname", nil)
 	m["sysctl"] = stringSliceFromVarlink(opts.Sysctl, "sysctl", nil)
-	m["systemd"] = boolFromVarlink(opts.Systemd, "systemd", cliconfig.DefaultSystemD)
+	m["systemd"] = stringFromVarlink(opts.Systemd, "systemd", &systemdDefault)
 	m["tmpfs"] = stringSliceFromVarlink(opts.Tmpfs, "tmpfs", nil)
 	m["tty"] = boolFromVarlink(opts.Tty, "tty", false)
 	m["uidmap"] = stringSliceFromVarlink(opts.Uidmap, "uidmap", nil)

@@ -8,13 +8,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/image/signature"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/transports/alltransports"
+	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/libpod/pkg/trust"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -33,8 +35,8 @@ var (
 			signCommand.Remote = remoteclient
 			return signCmd(&signCommand)
 		},
-		Example: `podman sign --sign-by mykey imageID
-  podman sign --sign-by mykey --directory ./mykeydir imageID`,
+		Example: `podman image sign --sign-by mykey imageID
+  podman image sign --sign-by mykey --directory ./mykeydir imageID`,
 	}
 )
 
@@ -45,7 +47,7 @@ func init() {
 	flags := signCommand.Flags()
 	flags.StringVarP(&signCommand.Directory, "directory", "d", "", "Define an alternate directory to store signatures")
 	flags.StringVar(&signCommand.SignBy, "sign-by", "", "Name of the signing key")
-
+	flags.StringVar(&signCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 }
 
 // SignatureStoreDir defines default directory to store signatures
@@ -56,11 +58,11 @@ func signCmd(c *cliconfig.SignValues) error {
 	if len(args) < 1 {
 		return errors.Errorf("at least one image name must be specified")
 	}
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	signby := c.SignBy
 	if signby == "" {
@@ -75,6 +77,13 @@ func signCmd(c *cliconfig.SignValues) error {
 		}
 	}
 
+	sc := runtime.SystemContext()
+	sc.DockerCertPath = c.CertDir
+
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerCertPath: c.CertDir,
+	}
+
 	mech, err := signature.NewGPGSigningMechanism()
 	if err != nil {
 		return errors.Wrap(err, "error initializing GPG")
@@ -84,7 +93,7 @@ func signCmd(c *cliconfig.SignValues) error {
 		return errors.Wrap(err, "signing is not supported")
 	}
 
-	systemRegistriesDirPath := trust.RegistriesDirPath(runtime.SystemContext())
+	systemRegistriesDirPath := trust.RegistriesDirPath(sc)
 	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
 		return errors.Wrapf(err, "error reading registry configuration")
@@ -95,9 +104,13 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return errors.Wrapf(err, "error parsing image name")
 		}
-		rawSource, err := srcRef.NewImageSource(getContext(), runtime.SystemContext())
+		rawSource, err := srcRef.NewImageSource(getContext(), sc)
 		if err != nil {
 			return errors.Wrapf(err, "error getting image source")
+		}
+		err = rawSource.Close()
+		if err != nil {
+			logrus.Errorf("unable to close new image source %q", err)
 		}
 		manifest, _, err := rawSource.GetManifest(getContext(), nil)
 		if err != nil {
@@ -113,26 +126,37 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return err
 		}
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, nil, image.SigningOptions{SignBy: signby}, false, nil)
+		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, &dockerRegistryOptions, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}
 
-		registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
-		if registryInfo != nil {
+		if rootless.IsRootless() {
 			if sigStoreDir == "" {
-				sigStoreDir = registryInfo.SigStoreStaging
+				runtimeConfig, err := runtime.GetConfig()
+				if err != nil {
+					return err
+				}
+
+				sigStoreDir = filepath.Join(filepath.Dir(runtimeConfig.StorageConfig.GraphRoot), "sigstore")
+			}
+		} else {
+			registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)
+			if registryInfo != nil {
 				if sigStoreDir == "" {
-					sigStoreDir = registryInfo.SigStore
+					sigStoreDir = registryInfo.SigStoreStaging
+					if sigStoreDir == "" {
+						sigStoreDir = registryInfo.SigStore
+					}
+				}
+				sigStoreDir, err = isValidSigStoreDir(sigStoreDir)
+				if err != nil {
+					return errors.Wrapf(err, "invalid signature storage %s", sigStoreDir)
 				}
 			}
-			sigStoreDir, err = isValidSigStoreDir(sigStoreDir)
-			if err != nil {
-				return errors.Wrapf(err, "invalid signature storage %s", sigStoreDir)
+			if sigStoreDir == "" {
+				sigStoreDir = SignatureStoreDir
 			}
-		}
-		if sigStoreDir == "" {
-			sigStoreDir = SignatureStoreDir
 		}
 
 		repos, err := newImage.RepoDigests()

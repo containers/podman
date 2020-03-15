@@ -1,15 +1,6 @@
 package libpod
 
-// DBConfig is a set of Libpod runtime configuration settings that are saved
-// in a State when it is first created, and can subsequently be retrieved.
-type DBConfig struct {
-	LibpodRoot  string
-	LibpodTmp   string
-	StorageRoot string
-	StorageTmp  string
-	GraphDriver string
-	VolumePath  string
-}
+import "github.com/containers/libpod/libpod/config"
 
 // State is a storage backend for libpod's current state.
 // A State is only initialized once per instance of libpod.
@@ -37,7 +28,7 @@ type State interface {
 	// root and tmp dirs, and c/storage graph driver.
 	// This is not implemented by the in-memory state, as it has no need to
 	// validate runtime configuration.
-	GetDBConfig() (*DBConfig, error)
+	GetDBConfig() (*config.DBConfig, error)
 
 	// ValidateDBConfig validates the config in the given Runtime struct
 	// against paths stored in the configured database.
@@ -58,6 +49,9 @@ type State interface {
 	// If the container is not in the set namespace, an error will be
 	// returned.
 	Container(id string) (*Container, error)
+	// Return a container ID from the database by full or partial ID or full
+	// name.
+	LookupContainerID(idOrName string) (string, error)
 	// Return a container from the database by full or partial ID or full
 	// name.
 	// Containers not in the set namespace will be ignored.
@@ -98,6 +92,9 @@ type State interface {
 	// returned.
 	AllContainers() ([]*Container, error)
 
+	// Return a container config from the database by full ID
+	GetContainerConfig(id string) (*ContainerConfig, error)
+
 	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// Rewrite a container's configuration.
 	// This function breaks libpod's normal prohibition on a read-only
@@ -115,12 +112,20 @@ type State interface {
 	// answer is this: use this only very sparingly, and only if you really
 	// know what you're doing.
 	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
-	// PLEASE READ THE ABOVE DESCRIPTION BEFORE USING.
+	// PLEASE READ THE DESCRIPTION FOR RewriteContainerConfig BEFORE USING.
 	// This function is identical to RewriteContainerConfig, save for the
 	// fact that it is used with pods instead.
 	// It is subject to the same conditions as RewriteContainerConfig.
 	// Please do not use this unless you know what you're doing.
 	RewritePodConfig(pod *Pod, newCfg *PodConfig) error
+	// PLEASE READ THE DESCRIPTION FOR RewriteContainerConfig BEFORE USING.
+	// This function is identical to RewriteContainerConfig, save for the
+	// fact that it is used with volumes instead.
+	// It is subject to the same conditions as RewriteContainerConfig.
+	// The exception is that volumes do not have IDs, so only volume name
+	// cannot be altered.
+	// Please do not use this unless you know what you're doing.
+	RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error
 
 	// Accepts full ID of pod.
 	// If the pod given is not in the set namespace, an error will be
@@ -182,6 +187,9 @@ type State interface {
 	// Volume accepts full name of volume
 	// If the volume doesn't exist, an error will be returned
 	Volume(volName string) (*Volume, error)
+	// LookupVolume accepts an unambiguous partial name or full name of a
+	// volume. Ambiguous names will result in an error.
+	LookupVolume(name string) (*Volume, error)
 	// HasVolume returns true if volName exists in the state,
 	// otherwise it returns false
 	HasVolume(volName string) (bool, error)
@@ -195,6 +203,10 @@ type State interface {
 	// RemoveVolume removes the specified volume.
 	// Only volumes that have no container dependencies can be removed
 	RemoveVolume(volume *Volume) error
+	// UpdateVolume updates the volume's state from the database.
+	UpdateVolume(volume *Volume) error
+	// SaveVolume saves a volume's state to the database.
+	SaveVolume(volume *Volume) error
 	// AllVolumes returns all the volumes available in the state
 	AllVolumes() ([]*Volume, error)
 }

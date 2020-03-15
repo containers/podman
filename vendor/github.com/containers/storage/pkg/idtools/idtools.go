@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/user"
 	"sort"
 	"strconv"
 	"strings"
 	"syscall"
 
+	"github.com/containers/storage/pkg/system"
 	"github.com/pkg/errors"
 )
 
@@ -244,7 +246,13 @@ func parseSubgid(username string) (ranges, error) {
 // and return all found ranges for a specified username. If the special value
 // "ALL" is supplied for username, then all ranges in the file will be returned
 func parseSubidFile(path, username string) (ranges, error) {
-	var rangeList ranges
+	var (
+		rangeList ranges
+		uidstr    string
+	)
+	if u, err := user.Lookup(username); err == nil {
+		uidstr = u.Uid
+	}
 
 	subidFile, err := os.Open(path)
 	if err != nil {
@@ -266,7 +274,7 @@ func parseSubidFile(path, username string) (ranges, error) {
 		if len(parts) != 3 {
 			return rangeList, fmt.Errorf("Cannot parse subuid/gid information: Format not correct for %s file", path)
 		}
-		if parts[0] == username || username == "ALL" {
+		if parts[0] == username || username == "ALL" || (parts[0] == uidstr && parts[0] != "") {
 			startid, err := strconv.Atoi(parts[1])
 			if err != nil {
 				return rangeList, fmt.Errorf("String to int conversion failed during subuid/gid parsing of %s: %v", path, err)
@@ -289,9 +297,19 @@ func checkChownErr(err error, name string, uid, gid int) error {
 }
 
 func SafeChown(name string, uid, gid int) error {
+	if stat, statErr := system.Stat(name); statErr == nil {
+		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
+			return nil
+		}
+	}
 	return checkChownErr(os.Chown(name, uid, gid), name, uid, gid)
 }
 
 func SafeLchown(name string, uid, gid int) error {
+	if stat, statErr := system.Lstat(name); statErr == nil {
+		if stat.UID() == uint32(uid) && stat.GID() == uint32(gid) {
+			return nil
+		}
+	}
 	return checkChownErr(os.Lchown(name, uid, gid), name, uid, gid)
 }

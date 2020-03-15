@@ -315,6 +315,38 @@ func (j *Layer) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		fflib.FormatBits2(buf, uint64(j.CompressionType), 10, j.CompressionType < 0)
 		buf.WriteByte(',')
 	}
+	if len(j.UIDs) != 0 {
+		buf.WriteString(`"uidset":`)
+		if j.UIDs != nil {
+			buf.WriteString(`[`)
+			for i, v := range j.UIDs {
+				if i != 0 {
+					buf.WriteString(`,`)
+				}
+				fflib.FormatBits2(buf, uint64(v), 10, false)
+			}
+			buf.WriteString(`]`)
+		} else {
+			buf.WriteString(`null`)
+		}
+		buf.WriteByte(',')
+	}
+	if len(j.GIDs) != 0 {
+		buf.WriteString(`"gidset":`)
+		if j.GIDs != nil {
+			buf.WriteString(`[`)
+			for i, v := range j.GIDs {
+				if i != 0 {
+					buf.WriteString(`,`)
+				}
+				fflib.FormatBits2(buf, uint64(v), 10, false)
+			}
+			buf.WriteString(`]`)
+		} else {
+			buf.WriteString(`null`)
+		}
+		buf.WriteByte(',')
+	}
 	if len(j.Flags) != 0 {
 		buf.WriteString(`"flags":`)
 		/* Falling back. type=map[string]interface {} kind=map */
@@ -395,6 +427,10 @@ const (
 
 	ffjtLayerCompressionType
 
+	ffjtLayerUIDs
+
+	ffjtLayerGIDs
+
 	ffjtLayerFlags
 
 	ffjtLayerUIDMap
@@ -423,6 +459,10 @@ var ffjKeyLayerUncompressedDigest = []byte("diff-digest")
 var ffjKeyLayerUncompressedSize = []byte("diff-size")
 
 var ffjKeyLayerCompressionType = []byte("compression")
+
+var ffjKeyLayerUIDs = []byte("uidset")
+
+var ffjKeyLayerGIDs = []byte("gidset")
 
 var ffjKeyLayerFlags = []byte("flags")
 
@@ -537,7 +577,12 @@ mainparse:
 
 				case 'g':
 
-					if bytes.Equal(ffjKeyLayerGIDMap, kn) {
+					if bytes.Equal(ffjKeyLayerGIDs, kn) {
+						currentKey = ffjtLayerGIDs
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyLayerGIDMap, kn) {
 						currentKey = ffjtLayerGIDMap
 						state = fflib.FFParse_want_colon
 						goto mainparse
@@ -582,7 +627,12 @@ mainparse:
 
 				case 'u':
 
-					if bytes.Equal(ffjKeyLayerUIDMap, kn) {
+					if bytes.Equal(ffjKeyLayerUIDs, kn) {
+						currentKey = ffjtLayerUIDs
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
+					} else if bytes.Equal(ffjKeyLayerUIDMap, kn) {
 						currentKey = ffjtLayerUIDMap
 						state = fflib.FFParse_want_colon
 						goto mainparse
@@ -604,6 +654,18 @@ mainparse:
 
 				if fflib.EqualFoldRight(ffjKeyLayerFlags, kn) {
 					currentKey = ffjtLayerFlags
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyLayerGIDs, kn) {
+					currentKey = ffjtLayerGIDs
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
+				if fflib.EqualFoldRight(ffjKeyLayerUIDs, kn) {
+					currentKey = ffjtLayerUIDs
 					state = fflib.FFParse_want_colon
 					goto mainparse
 				}
@@ -723,6 +785,12 @@ mainparse:
 
 				case ffjtLayerCompressionType:
 					goto handle_CompressionType
+
+				case ffjtLayerUIDs:
+					goto handle_UIDs
+
+				case ffjtLayerGIDs:
+					goto handle_GIDs
 
 				case ffjtLayerFlags:
 					goto handle_Flags
@@ -1086,6 +1154,162 @@ handle_CompressionType:
 
 			j.CompressionType = archive.Compression(tval)
 
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_UIDs:
+
+	/* handler: j.UIDs type=[]uint32 kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.UIDs = nil
+		} else {
+
+			j.UIDs = []uint32{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJUIDs uint32
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJUIDs type=uint32 kind=uint32 quoted=false*/
+
+				{
+					if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+						return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for uint32", tok))
+					}
+				}
+
+				{
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						tval, err := fflib.ParseUint(fs.Output.Bytes(), 10, 32)
+
+						if err != nil {
+							return fs.WrapErr(err)
+						}
+
+						tmpJUIDs = uint32(tval)
+
+					}
+				}
+
+				j.UIDs = append(j.UIDs, tmpJUIDs)
+
+				wantVal = false
+			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_GIDs:
+
+	/* handler: j.GIDs type=[]uint32 kind=slice quoted=false*/
+
+	{
+
+		{
+			if tok != fflib.FFTok_left_brace && tok != fflib.FFTok_null {
+				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for ", tok))
+			}
+		}
+
+		if tok == fflib.FFTok_null {
+			j.GIDs = nil
+		} else {
+
+			j.GIDs = []uint32{}
+
+			wantVal := true
+
+			for {
+
+				var tmpJGIDs uint32
+
+				tok = fs.Scan()
+				if tok == fflib.FFTok_error {
+					goto tokerror
+				}
+				if tok == fflib.FFTok_right_brace {
+					break
+				}
+
+				if tok == fflib.FFTok_comma {
+					if wantVal == true {
+						// TODO(pquerna): this isn't an ideal error message, this handles
+						// things like [,,,] as an array value.
+						return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
+					}
+					continue
+				} else {
+					wantVal = true
+				}
+
+				/* handler: tmpJGIDs type=uint32 kind=uint32 quoted=false*/
+
+				{
+					if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
+						return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for uint32", tok))
+					}
+				}
+
+				{
+
+					if tok == fflib.FFTok_null {
+
+					} else {
+
+						tval, err := fflib.ParseUint(fs.Output.Bytes(), 10, 32)
+
+						if err != nil {
+							return fs.WrapErr(err)
+						}
+
+						tmpJGIDs = uint32(tval)
+
+					}
+				}
+
+				j.GIDs = append(j.GIDs, tmpJGIDs)
+
+				wantVal = false
+			}
 		}
 	}
 

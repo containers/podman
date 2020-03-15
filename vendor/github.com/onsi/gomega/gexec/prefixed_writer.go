@@ -1,3 +1,5 @@
+// untested sections: 1
+
 package gexec
 
 import (
@@ -6,7 +8,7 @@ import (
 )
 
 /*
-PrefixedWriter wraps an io.Writer, emiting the passed in prefix at the beginning of each new line.
+PrefixedWriter wraps an io.Writer, emitting the passed in prefix at the beginning of each new line.
 This can be useful when running multiple gexec.Sessions concurrently - you can prefix the log output of each
 session by passing in a PrefixedWriter:
 

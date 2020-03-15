@@ -4,18 +4,23 @@ set -e
 
 source $(dirname $0)/lib.sh
 
-record_timestamp "env. setup start"
+req_env_var USER HOME GOSRC SCRIPT_BASE SETUP_MARKER_FILEPATH
 
-req_env_var "
-USER $USER
-HOME $HOME
-ENVLIB $ENVLIB
-SCRIPT_BASE $SCRIPT_BASE
-CIRRUS_BUILD_ID $CIRRUS_BUILD_ID"
+# Ensure this script only executes successfully once and always logs ending timestamp
+if [[ -e "$SETUP_MARKER_FILEPATH" ]]; then
+    show_env_vars
+    exit 0
+fi
 
-[[ "$SHELL" =~ "bash" ]] || chsh -s /bin/bash
-
-cd "$CIRRUS_WORKING_DIR"  # for clarity of initial conditions
+exithandler() {
+    RET=$?
+    echo "."
+    echo "$(basename $0) exit status: $RET"
+    [[ "$RET" -eq "0" ]] && date +%s >> "$SETUP_MARKER_FILEPATH"
+    show_env_vars
+    [[ "$RET" -eq "0" ]] || warn "Non-zero exit caused by error ABOVE env. var. display."
+}
+trap exithandler EXIT
 
 # Verify basic dependencies
 for depbin in go rsync unzip sha256sum curl make python3 git
@@ -26,67 +31,111 @@ do
     fi
 done
 
-# Setup env. vars common to all tasks/scripts/platforms and
-# ensure they return for every following script execution.
-MARK="# Added by $0, manual changes will be lost."
-touch "$HOME/$ENVLIB"
-if ! grep -q "$MARK" "$HOME/$ENVLIB"
-then
-    cp "$HOME/$ENVLIB" "$HOME/${ENVLIB}_original"
-    # N/B: Single-quote items evaluated every time, double-quotes only once (right now).
-    for envstr in \
-        "$MARK" \
-        "export EPOCH_TEST_COMMIT=\"$CIRRUS_BASE_SHA\"" \
-        "export HEAD=\"$CIRRUS_CHANGE_IN_REPO\"" \
-        "export TRAVIS=\"1\"" \
-        "export GOSRC=\"$CIRRUS_WORKING_DIR\"" \
-        "export OS_RELEASE_ID=\"$(os_release_id)\"" \
-        "export OS_RELEASE_VER=\"$(os_release_ver)\"" \
-        "export OS_REL_VER=\"$(os_release_id)-$(os_release_ver)\"" \
-        "export BUILT_IMAGE_SUFFIX=\"-$CIRRUS_REPO_NAME-${CIRRUS_CHANGE_IN_REPO:0:8}\"" \
-        "export GOPATH=\"/var/tmp/go\"" \
-        'export PATH="$HOME/bin:$GOPATH/bin:/usr/local/bin:$PATH"' \
-        'export LD_LIBRARY_PATH="/usr/local/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"'
-    do
-        # Make permanent in later shells, and set in current shell
-        X=$(echo "$envstr" | tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
-    done
+# Sometimes environment setup needs to vary between distros
+# Note: This should only be used for environment variables, and temporary workarounds.
+#       Anything externally dependent, should be made fixed-in-time by adding to
+#       contrib/cirrus/packer/*_setup.sh to be incorporated into VM cache-images
+#       (see docs).
+cd "${GOSRC}/"
+case "${OS_RELEASE_ID}" in
+    ubuntu)
+        CRIO_RUNC_PATH="/usr/lib/cri-o-runc/sbin/runc"
+        if dpkg -L cri-o-runc | grep -m 1 -q "$CRIO_RUNC_PATH"
+        then
+            echo "Linking $CRIO_RUNC_PATH to /usr/bin/runc for ease of testing."
+            ln -f "$CRIO_RUNC_PATH" "/usr/bin/runc"
+        fi
+        ;;
+    fedora)
+        # All SELinux distros need this for systemd-in-a-container
+        setsebool container_manage_cgroup true
+        if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
+            bash "$SCRIPT_BASE/add_second_partition.sh"
+        fi
 
-    # Some setup needs to vary between distros
-    case "${OS_RELEASE_ID}-${OS_RELEASE_VER}" in
-        ubuntu-18)
-            # Always install runc on Ubuntu
-            install_runc_from_git
-            ;;
-        fedora-29) ;&  # Continue to the next item
-        fedora-28)
-            RUNC="https://kojipkgs.fedoraproject.org/packages/runc/1.0.0/55.dev.git578fe65.fc${OS_RELEASE_VER}/x86_64/runc-1.0.0-55.dev.git578fe65.fc${OS_RELEASE_VER}.x86_64.rpm"
-            echo ">>>>> OVERRIDING RUNC WITH $RUNC <<<<<"
-            dnf -y install "$RUNC"
-            ;&  # Continue to the next item
-        centos-7) ;&
-        rhel-7)
-            ;;
-        *) bad_os_id_ver ;;
-    esac
+        warn "Switching io scheduler to 'deadline' to avoid RHBZ 1767539"
+        warn "aka https://bugzilla.kernel.org/show_bug.cgi?id=205447"
+        echo "mq-deadline" > /sys/block/sda/queue/scheduler
+        cat /sys/block/sda/queue/scheduler
 
-    cd "${GOSRC}/"
-    # Reload to incorporate any changes from above
-    source "$SCRIPT_BASE/lib.sh"
+        warn "Forcing systemd cgroup manager"
+        X=$(echo "export CGROUP_MANAGER=systemd" | \
+            tee -a /etc/environment) && eval "$X" && echo "$X"
+        ;;
+    centos)  # Current VM is an image-builder-image no local podman/testing
+        echo "No further setup required for VM image building"
+        exit 0
+        ;;
+    *) bad_os_id_ver ;;
+esac
 
-    case "$SPECIALMODE" in
-        rootless)
-            X=$(echo "export ROOTLESS_USER='some${RANDOM}dude'" | \
-                tee -a "$HOME/$ENVLIB") && eval "$X" && echo "$X"
+# Reload to incorporate any changes from above
+source "$SCRIPT_BASE/lib.sh"
+
+case "$CG_FS_TYPE" in
+    tmpfs)
+        warn "Forcing testing with runc instead of crun"
+        X=$(echo "export OCI_RUNTIME=/usr/bin/runc" | \
+            tee -a /etc/environment) && eval "$X" && echo "$X"
+        ;;
+    cgroup2fs)
+        # This is necessary since we've built/installed from source, which uses runc as the default.
+        warn "Forcing testing with crun instead of runc"
+        X=$(echo "export OCI_RUNTIME=/usr/bin/crun" | \
+            tee -a /etc/environment) && eval "$X" && echo "$X"
+
+        if [[ "$MOD_LIBPOD_CONF" == "true" ]]; then
+            warn "Updating runtime setting in repo. copy of libpod.conf"
+            sed -i -r -e 's/^runtime = "runc"/runtime = "crun"/' $GOSRC/libpod.conf
+            git diff $GOSRC/libpod.conf
+        fi
+
+        if [[ "$OS_RELEASE_ID" == "fedora" ]]; then
+            warn "Upgrading to the latest crun"
+            # Normally not something to do for stable testing
+            # but crun is new, and late-breaking fixes may be required
+            # on short notice
+            dnf update -y crun
+        fi
+        ;;
+    *)
+        die 110 "Unsure how to handle cgroup filesystem type '$CG_FS_TYPE'"
+        ;;
+esac
+
+# Must execute before possible setup_rootless()
+make install.tools
+
+case "$SPECIALMODE" in
+    none)
+        [[ -n "$CROSS_PLATFORM" ]] || \
+            remove_packaged_podman_files
+        ;;
+    endpoint)
+        remove_packaged_podman_files
+        ;;
+    bindings)
+        remove_packaged_podman_files
+        ;;
+    rootless)
+        # Only do this once, even if ROOTLESS_USER (somehow) changes
+        if ! grep -q 'ROOTLESS_USER' /etc/environment
+        then
+            X=$(echo "export ROOTLESS_USER='${ROOTLESS_USER:-some${RANDOM}dude}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            X=$(echo "export SPECIALMODE='${SPECIALMODE}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
+            X=$(echo "export TEST_REMOTE_CLIENT='${TEST_REMOTE_CLIENT}'" | \
+                tee -a /etc/environment) && eval "$X" && echo "$X"
             setup_rootless
-            ;;
-        in_podman)  # Assumed to be Fedora
-            dnf install -y podman buildah
-            $SCRIPT_BASE/setup_container_environment.sh
-            ;;
-    esac
-fi
+        fi
+        remove_packaged_podman_files
+        ;;
+    in_podman)  # Assumed to be Fedora
+        $SCRIPT_BASE/setup_container_environment.sh
+        ;;
+    *)
+        die 111 "Unsupported \$SPECIALMODE: $SPECIALMODE"
+esac
 
-show_env_vars
-
-record_timestamp "env. setup end"
+install_test_configs

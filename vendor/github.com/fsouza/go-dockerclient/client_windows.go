@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build windows
-
 package docker
 
 import (
@@ -12,10 +10,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Microsoft/go-winio"
+	winio "github.com/Microsoft/go-winio"
 )
 
-const namedPipeConnectTimeout = 2 * time.Second
+const (
+	defaultHost             = "npipe:////./pipe/docker_engine"
+	namedPipeConnectTimeout = 2 * time.Second
+)
 
 type pipeDialer struct {
 	dialFunc func(network, addr string) (net.Conn, error)
@@ -31,12 +32,13 @@ func (c *Client) initializeNativeClient(trFunc func() *http.Transport) {
 		return
 	}
 	namedPipePath := c.endpointURL.Path
-	dialFunc := func(network, addr string) (net.Conn, error) {
+	//nolint:unparam
+	dialFunc := func(_, addr string) (net.Conn, error) {
 		timeout := namedPipeConnectTimeout
 		return winio.DialPipe(namedPipePath, &timeout)
 	}
 	tr := trFunc()
-	tr.Dial = dialFunc
+	tr.Proxy = nil
 	tr.DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return dialFunc(network, addr)
 	}

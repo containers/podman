@@ -40,6 +40,8 @@ var (
 type CreateOpts struct {
 	MountLabel string
 	StorageOpt map[string]string
+	*idtools.IDMappings
+	ignoreChownErrors bool
 }
 
 // MountOpts contains optional arguments for LayerStope.Mount() methods.
@@ -47,13 +49,21 @@ type MountOpts struct {
 	// Mount label is the MAC Labels to assign to mount point (SELINUX)
 	MountLabel string
 	// UidMaps & GidMaps are the User Namespace mappings to be assigned to content in the mount point
-	UidMaps []idtools.IDMap
-	GidMaps []idtools.IDMap
+	UidMaps []idtools.IDMap // nolint: golint
+	GidMaps []idtools.IDMap // nolint: golint
 	Options []string
 }
 
+// ApplyDiffOpts contains optional arguments for ApplyDiff methods.
+type ApplyDiffOpts struct {
+	Diff              io.Reader
+	Mappings          *idtools.IDMappings
+	MountLabel        string
+	IgnoreChownErrors bool
+}
+
 // InitFunc initializes the storage driver.
-type InitFunc func(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error)
+type InitFunc func(homedir string, options Options) (Driver, error)
 
 // ProtoDriver defines the basic capabilities of a driver.
 // This interface exists solely to be a minimum set of methods
@@ -114,7 +124,7 @@ type DiffDriver interface {
 	// layer with the specified id and parent, returning the size of the
 	// new layer in bytes.
 	// The io.Reader must be an uncompressed stream.
-	ApplyDiff(id string, idMappings *idtools.IDMappings, parent string, mountLabel string, diff io.Reader) (size int64, err error)
+	ApplyDiff(id string, parent string, options ApplyDiffOpts) (size int64, err error)
 	// DiffSize calculates the changes between the specified id
 	// and its parent and returns the size in bytes of the changes
 	// relative to its base filesystem directory.
@@ -202,7 +212,7 @@ func Register(name string, initFunc InitFunc) error {
 // GetDriver initializes and returns the registered driver
 func GetDriver(name string, config Options) (Driver, error) {
 	if initFunc, exists := drivers[name]; exists {
-		return initFunc(filepath.Join(config.Root, name), config.DriverOptions, config.UIDMaps, config.GIDMaps)
+		return initFunc(filepath.Join(config.Root, name), config)
 	}
 
 	logrus.Errorf("Failed to GetDriver graph %s %s", name, config.Root)
@@ -210,9 +220,9 @@ func GetDriver(name string, config Options) (Driver, error) {
 }
 
 // getBuiltinDriver initializes and returns the registered driver, but does not try to load from plugins
-func getBuiltinDriver(name, home string, options []string, uidMaps, gidMaps []idtools.IDMap) (Driver, error) {
+func getBuiltinDriver(name, home string, options Options) (Driver, error) {
 	if initFunc, exists := drivers[name]; exists {
-		return initFunc(filepath.Join(home, name), options, uidMaps, gidMaps)
+		return initFunc(filepath.Join(home, name), options)
 	}
 	logrus.Errorf("Failed to built-in GetDriver graph %s %s", name, home)
 	return nil, errors.Wrapf(ErrNotSupported, "failed to built-in GetDriver graph %s %s", name, home)
@@ -221,6 +231,7 @@ func getBuiltinDriver(name, home string, options []string, uidMaps, gidMaps []id
 // Options is used to initialize a graphdriver
 type Options struct {
 	Root                string
+	RunRoot             string
 	DriverOptions       []string
 	UIDMaps             []idtools.IDMap
 	GIDMaps             []idtools.IDMap
@@ -244,7 +255,7 @@ func New(name string, config Options) (Driver, error) {
 		if _, prior := driversMap[name]; prior {
 			// of the state found from prior drivers, check in order of our priority
 			// which we would prefer
-			driver, err := getBuiltinDriver(name, config.Root, config.DriverOptions, config.UIDMaps, config.GIDMaps)
+			driver, err := getBuiltinDriver(name, config.Root, config)
 			if err != nil {
 				// unlike below, we will return error here, because there is prior
 				// state, and now it is no longer supported/prereq/compatible, so
@@ -272,7 +283,7 @@ func New(name string, config Options) (Driver, error) {
 
 	// Check for priority drivers first
 	for _, name := range priority {
-		driver, err := getBuiltinDriver(name, config.Root, config.DriverOptions, config.UIDMaps, config.GIDMaps)
+		driver, err := getBuiltinDriver(name, config.Root, config)
 		if err != nil {
 			if isDriverNotSupported(err) {
 				continue
@@ -284,7 +295,7 @@ func New(name string, config Options) (Driver, error) {
 
 	// Check all registered drivers if no priority driver is found
 	for name, initFunc := range drivers {
-		driver, err := initFunc(filepath.Join(config.Root, name), config.DriverOptions, config.UIDMaps, config.GIDMaps)
+		driver, err := initFunc(filepath.Join(config.Root, name), config)
 		if err != nil {
 			if isDriverNotSupported(err) {
 				continue

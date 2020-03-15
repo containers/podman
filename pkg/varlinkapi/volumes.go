@@ -3,6 +3,9 @@
 package varlinkapi
 
 import (
+	"encoding/json"
+
+	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 )
@@ -21,7 +24,11 @@ func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vol
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(options.Labels))
 	}
 	if len(options.Options) > 0 {
-		volumeOptions = append(volumeOptions, libpod.WithVolumeOptions(options.Options))
+		parsedOptions, err := shared.ParseVolumeOptions(options.Options)
+		if err != nil {
+			return call.ReplyErrorOccurred(err.Error())
+		}
+		volumeOptions = append(volumeOptions, parsedOptions...)
 	}
 	newVolume, err := i.Runtime.NewVolume(getContext(), volumeOptions...)
 	if err != nil {
@@ -32,11 +39,16 @@ func (i *LibpodAPI) VolumeCreate(call iopodman.VarlinkCall, options iopodman.Vol
 
 // VolumeRemove removes volumes by options.All or options.Volumes
 func (i *LibpodAPI) VolumeRemove(call iopodman.VarlinkCall, options iopodman.VolumeRemoveOpts) error {
-	deletedVolumes, err := i.Runtime.RemoveVolumes(getContext(), options.Volumes, options.All, options.Force)
+	success, failed, err := shared.SharedRemoveVolumes(getContext(), i.Runtime, options.Volumes, options.All, options.Force)
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
-	return call.ReplyVolumeRemove(deletedVolumes)
+	// Convert map[string]string to map[string]error
+	errStrings := make(map[string]string)
+	for k, v := range failed {
+		errStrings[k] = v.Error()
+	}
+	return call.ReplyVolumeRemove(success, errStrings)
 }
 
 // GetVolumes returns all the volumes known to the remote system
@@ -68,11 +80,27 @@ func (i *LibpodAPI) GetVolumes(call iopodman.VarlinkCall, args []string, all boo
 			MountPoint: v.MountPoint(),
 			Name:       v.Name(),
 			Options:    v.Options(),
-			Scope:      v.Scope(),
 		}
 		volumes = append(volumes, newVol)
 	}
 	return call.ReplyGetVolumes(volumes)
+}
+
+// InspectVolume inspects a single volume, returning its JSON as a string.
+func (i *LibpodAPI) InspectVolume(call iopodman.VarlinkCall, name string) error {
+	vol, err := i.Runtime.LookupVolume(name)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	inspectOut, err := vol.Inspect()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	inspectJSON, err := json.Marshal(inspectOut)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	return call.ReplyInspectVolume(string(inspectJSON))
 }
 
 // VolumesPrune removes unused images via a varlink call

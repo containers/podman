@@ -6,12 +6,14 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/types"
+	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -44,26 +46,31 @@ func init() {
 	runlabelCommand.SetHelpTemplate(HelpTemplate())
 	runlabelCommand.SetUsageTemplate(UsageTemplate())
 	flags := runlabelCommand.Flags()
-	flags.StringVar(&runlabelCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&runlabelCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
 	flags.BoolVar(&runlabelCommand.Display, "display", false, "Preview the command that the label would run")
 	flags.BoolVar(&runlabelCommand.Replace, "replace", false, "Replace existing container with a new one from the image")
-	flags.StringVar(&runlabelCommand.Name, "name", "", "Assign a name to the container")
+	flags.StringVarP(&runlabelCommand.Name, "name", "n", "", "Assign a name to the container")
 
 	flags.StringVar(&runlabelCommand.Opt1, "opt1", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt2, "opt2", "", "Optional parameter to pass for install")
 	flags.StringVar(&runlabelCommand.Opt3, "opt3", "", "Optional parameter to pass for install")
-	flags.MarkHidden("opt1")
-	flags.MarkHidden("opt2")
-	flags.MarkHidden("opt3")
-
+	markFlagHidden(flags, "opt1")
+	markFlagHidden(flags, "opt2")
+	markFlagHidden(flags, "opt3")
 	flags.BoolP("pull", "p", false, "Pull the image if it does not exist locally prior to executing the label contents")
 	flags.BoolVarP(&runlabelCommand.Quiet, "quiet", "q", false, "Suppress output information when installing images")
-	flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
-	flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&runlabelCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&runlabelCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
+		flags.StringVar(&runlabelCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
+		flags.BoolVar(&runlabelCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
-	flags.MarkDeprecated("pull", "podman will pull if not found in local storage")
+		if err := flags.MarkDeprecated("pull", "podman will pull if not found in local storage"); err != nil {
+			logrus.Error("unable to mark pull flag deprecated")
+		}
+		markFlagHidden(flags, "signature-policy")
+	}
 }
 
 // installCmd gets the data from the command line and calls installImage
@@ -85,11 +92,17 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 	}
 
 	opts := make(map[string]string)
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
+
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
+	}
 
 	args := c.InputArgs
 	if len(args) < 2 {
@@ -136,8 +149,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
-	authfile := getAuthFile(c.Authfile)
-	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, true, c.Creds, dockerRegistryOptions, authfile, c.SignaturePolicy, stdOut)
+	runLabel, imageName, err := shared.GetRunlabel(label, runlabelImage, ctx, runtime, true, c.Creds, dockerRegistryOptions, c.Authfile, c.SignaturePolicy, stdOut)
 	if err != nil {
 		return err
 	}
@@ -145,12 +157,13 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 		return errors.Errorf("%s does not have a label of %s", runlabelImage, label)
 	}
 
-	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs)
+	globalOpts := util.GetGlobalOpts(c)
+	cmd, env, err := shared.GenerateRunlabelCommand(runLabel, imageName, c.Name, opts, extraArgs, globalOpts)
 	if err != nil {
 		return err
 	}
 	if !c.Quiet {
-		fmt.Printf("command: %s\n", strings.Join(cmd, " "))
+		fmt.Printf("command: %s\n", strings.Join(append([]string{os.Args[0]}, cmd[1:]...), " "))
 		if c.Display {
 			return nil
 		}
@@ -163,7 +176,7 @@ func runlabelCmd(c *cliconfig.RunlabelValues) error {
 				name := cmd[i+1]
 				ctr, err := runtime.LookupContainer(name)
 				if err != nil {
-					if errors.Cause(err) != libpod.ErrNoSuchCtr {
+					if errors.Cause(err) != define.ErrNoSuchCtr {
 						logrus.Debugf("Error occurred searching for container %s: %s", name, err.Error())
 						return err
 					}

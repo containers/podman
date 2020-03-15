@@ -17,6 +17,12 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   file,
   umount,
 
+{{if ge .Version 208096}}
+  # Allow signals from privileged profiles and from within the same profile
+  signal (receive) peer=unconfined,
+  signal (send,receive) peer={{.Name}},
+{{end}}
+
   deny @{PROC}/* w,   # deny write for all files directly in /proc (not in a subdir)
   # deny write to files not in /proc/<number>/** or /proc/sys/**
   deny @{PROC}/{[^1-9],[^1-9][^0-9],[^1-9s][^0-9y][^0-9s],[^1-9][^0-9][^0-9][^0-9]*}/** w,

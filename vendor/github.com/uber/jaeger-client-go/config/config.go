@@ -76,16 +76,28 @@ type SamplerConfig struct {
 	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MANAGER_HOST_PORT
 	SamplingServerURL string `yaml:"samplingServerURL"`
 
-	// MaxOperations is the maximum number of operations that the sampler
-	// will keep track of. If an operation is not tracked, a default probabilistic
-	// sampler will be used rather than the per operation specific sampler.
-	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MAX_OPERATIONS
-	MaxOperations int `yaml:"maxOperations"`
-
 	// SamplingRefreshInterval controls how often the remotely controlled sampler will poll
 	// jaeger-agent for the appropriate sampling strategy.
 	// Can be set by exporting an environment variable named JAEGER_SAMPLER_REFRESH_INTERVAL
 	SamplingRefreshInterval time.Duration `yaml:"samplingRefreshInterval"`
+
+	// MaxOperations is the maximum number of operations that the PerOperationSampler
+	// will keep track of. If an operation is not tracked, a default probabilistic
+	// sampler will be used rather than the per operation specific sampler.
+	// Can be set by exporting an environment variable named JAEGER_SAMPLER_MAX_OPERATIONS.
+	MaxOperations int `yaml:"maxOperations"`
+
+	// Opt-in feature for applications that require late binding of span name via explicit
+	// call to SetOperationName when using PerOperationSampler. When this feature is enabled,
+	// the sampler will return retryable=true from OnCreateSpan(), thus leaving the sampling
+	// decision as non-final (and the span as writeable). This may lead to degraded performance
+	// in applications that always provide the correct span name on trace creation.
+	//
+	// For backwards compatibility this option is off by default.
+	OperationNameLateBinding bool `yaml:"operationNameLateBinding"`
+
+	// Options can be used to programmatically pass additional options to the Remote sampler.
+	Options []jaeger.SamplerOption
 }
 
 // ReporterConfig configures the reporter. All fields are optional.
@@ -122,6 +134,10 @@ type ReporterConfig struct {
 	// Password instructs reporter to include a password for basic http authentication when sending spans to
 	// jaeger-collector. Can be set by exporting an environment variable named JAEGER_PASSWORD
 	Password string `yaml:"password"`
+
+	// HTTPHeaders instructs the reporter to add these headers to the http request when reporting spans.
+	// This field takes effect only when using HTTPTransport by setting the CollectorEndpoint.
+	HTTPHeaders map[string]string `yaml:"http_headers"`
 }
 
 // BaggageRestrictionsConfig configures the baggage restrictions manager which can be used to whitelist
@@ -181,13 +197,14 @@ func (c Configuration) New(
 // NewTracer returns a new tracer based on the current configuration, using the given options,
 // and a closer func that can be used to flush buffers before shutdown.
 func (c Configuration) NewTracer(options ...Option) (opentracing.Tracer, io.Closer, error) {
+	if c.Disabled {
+		return &opentracing.NoopTracer{}, &nullCloser{}, nil
+	}
+
 	if c.ServiceName == "" {
 		return nil, nil, errors.New("no service name provided")
 	}
 
-	if c.Disabled {
-		return &opentracing.NoopTracer{}, &nullCloser{}, nil
-	}
 	opts := applyOptions(options...)
 	tracerMetrics := jaeger.NewMetrics(opts.metrics, nil)
 	if c.RPCMetrics {
@@ -231,8 +248,10 @@ func (c Configuration) NewTracer(options ...Option) (opentracing.Tracer, io.Clos
 		jaeger.TracerOptions.Logger(opts.logger),
 		jaeger.TracerOptions.CustomHeaderKeys(c.Headers),
 		jaeger.TracerOptions.Gen128Bit(opts.gen128Bit),
+		jaeger.TracerOptions.PoolSpans(opts.poolSpans),
 		jaeger.TracerOptions.ZipkinSharedRPCSpan(opts.zipkinSharedRPCSpan),
 		jaeger.TracerOptions.MaxTagValueLength(opts.maxTagValueLength),
+		jaeger.TracerOptions.NoDebugFlagOnForcedSampling(opts.noDebugFlagOnForcedSampling),
 	}
 
 	for _, tag := range opts.tags {
@@ -329,7 +348,7 @@ func (sc *SamplerConfig) NewSampler(
 			return jaeger.NewProbabilisticSampler(sc.Param)
 		}
 		return nil, fmt.Errorf(
-			"Invalid Param for probabilistic sampler: %v. Expecting value between 0 and 1",
+			"invalid Param for probabilistic sampler; expecting value between 0 and 1, received %v",
 			sc.Param,
 		)
 	}
@@ -347,16 +366,14 @@ func (sc *SamplerConfig) NewSampler(
 			jaeger.SamplerOptions.Metrics(metrics),
 			jaeger.SamplerOptions.InitialSampler(initSampler),
 			jaeger.SamplerOptions.SamplingServerURL(sc.SamplingServerURL),
+			jaeger.SamplerOptions.MaxOperations(sc.MaxOperations),
+			jaeger.SamplerOptions.OperationNameLateBinding(sc.OperationNameLateBinding),
+			jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval),
 		}
-		if sc.MaxOperations != 0 {
-			options = append(options, jaeger.SamplerOptions.MaxOperations(sc.MaxOperations))
-		}
-		if sc.SamplingRefreshInterval != 0 {
-			options = append(options, jaeger.SamplerOptions.SamplingRefreshInterval(sc.SamplingRefreshInterval))
-		}
+		options = append(options, sc.Options...)
 		return jaeger.NewRemotelyControlledSampler(serviceName, options...), nil
 	}
-	return nil, fmt.Errorf("Unknown sampler type %v", sc.Type)
+	return nil, fmt.Errorf("unknown sampler type (%s)", sc.Type)
 }
 
 // NewReporter instantiates a new reporter that submits spans to the collector
@@ -384,11 +401,12 @@ func (rc *ReporterConfig) NewReporter(
 
 func (rc *ReporterConfig) newTransport() (jaeger.Transport, error) {
 	switch {
-	case rc.CollectorEndpoint != "" && rc.User != "" && rc.Password != "":
-		return transport.NewHTTPTransport(rc.CollectorEndpoint, transport.HTTPBatchSize(1),
-			transport.HTTPBasicAuth(rc.User, rc.Password)), nil
 	case rc.CollectorEndpoint != "":
-		return transport.NewHTTPTransport(rc.CollectorEndpoint, transport.HTTPBatchSize(1)), nil
+		httpOptions := []transport.HTTPOption{transport.HTTPBatchSize(1), transport.HTTPHeaders(rc.HTTPHeaders)}
+		if rc.User != "" && rc.Password != "" {
+			httpOptions = append(httpOptions, transport.HTTPBasicAuth(rc.User, rc.Password))
+		}
+		return transport.NewHTTPTransport(rc.CollectorEndpoint, httpOptions...), nil
 	default:
 		return jaeger.NewUDPTransport(rc.LocalAgentHostPort, 0)
 	}

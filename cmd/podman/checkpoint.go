@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/rootless"
 	"github.com/pkg/errors"
@@ -27,7 +26,7 @@ var (
 			return checkpointCmd(&checkpointCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman container checkpoint --keep ctrID
   podman container checkpoint --all
@@ -46,6 +45,8 @@ func init() {
 	flags.BoolVar(&checkpointCommand.TcpEstablished, "tcp-established", false, "Checkpoint a container with established TCP connections")
 	flags.BoolVarP(&checkpointCommand.All, "all", "a", false, "Checkpoint all running containers")
 	flags.BoolVarP(&checkpointCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	flags.StringVarP(&checkpointCommand.Export, "export", "e", "", "Export the checkpoint image to a tar.gz")
+	flags.BoolVar(&checkpointCommand.IgnoreRootfs, "ignore-rootfs", false, "Do not include root file-system changes when exporting")
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
@@ -54,16 +55,11 @@ func checkpointCmd(c *cliconfig.CheckpointValues) error {
 		return errors.New("checkpointing a container requires root")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
 
-	options := libpod.ContainerCheckpointOptions{
-		Keep:           c.Keep,
-		KeepRunning:    c.LeaveRunning,
-		TCPEstablished: c.TcpEstablished,
-	}
-	return runtime.Checkpoint(c, options)
+	defer runtime.DeferredShutdown(false)
+	return runtime.Checkpoint(c)
 }

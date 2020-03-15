@@ -4,6 +4,7 @@ package varlinkapi
 
 import (
 	"encoding/json"
+
 	"github.com/containers/libpod/cmd/podman/shared"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 )

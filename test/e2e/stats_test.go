@@ -6,27 +6,34 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/libpod/pkg/cgroups"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
+// TODO: we need to check the output. Currently, we only check the exit codes
+// which is not enough.
 var _ = Describe("Podman stats", func() {
 	var (
 		tempdir    string
-		err        error
 		podmanTest *PodmanTestIntegration
 	)
 
 	BeforeEach(func() {
-		SkipIfRootless()
+		cgroupsv2, err := cgroups.IsCgroup2UnifiedMode()
+		Expect(err).To(BeNil())
+
+		if os.Geteuid() != 0 && !cgroupsv2 {
+			Skip("This function is not enabled for rootless podman not running on cgroups v2")
+		}
 		tempdir, err = CreateTempDirInTempDir()
 		if err != nil {
 			os.Exit(1)
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -61,11 +68,20 @@ var _ = Describe("Podman stats", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
+	It("podman stats on all running containers", func() {
+		session := podmanTest.RunTopContainer("")
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		session = podmanTest.Podman([]string{"stats", "--no-stream"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+	})
+
 	It("podman stats only output cids", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.Container}}\""})
+		session = podmanTest.Podman([]string{"stats", "--all", "--no-stream", "--format", "\"{{.ID}}\""})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})

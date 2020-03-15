@@ -66,7 +66,7 @@ func (gr GroupResource) Empty() bool {
 	return len(gr.Group) == 0 && len(gr.Resource) == 0
 }
 
-func (gr *GroupResource) String() string {
+func (gr GroupResource) String() string {
 	if len(gr.Group) == 0 {
 		return gr.Resource
 	}
@@ -85,11 +85,10 @@ func ParseGroupKind(gk string) GroupKind {
 // ParseGroupResource turns "resource.group" string into a GroupResource struct.  Empty strings are allowed
 // for each field.
 func ParseGroupResource(gr string) GroupResource {
-	if i := strings.Index(gr, "."); i == -1 {
-		return GroupResource{Resource: gr}
-	} else {
+	if i := strings.Index(gr, "."); i >= 0 {
 		return GroupResource{Group: gr[i+1:], Resource: gr[:i]}
 	}
+	return GroupResource{Resource: gr}
 }
 
 // GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
@@ -112,7 +111,7 @@ func (gvr GroupVersionResource) GroupVersion() GroupVersion {
 	return GroupVersion{Group: gvr.Group, Version: gvr.Version}
 }
 
-func (gvr *GroupVersionResource) String() string {
+func (gvr GroupVersionResource) String() string {
 	return strings.Join([]string{gvr.Group, "/", gvr.Version, ", Resource=", gvr.Resource}, "")
 }
 
@@ -131,7 +130,7 @@ func (gk GroupKind) WithVersion(version string) GroupVersionKind {
 	return GroupVersionKind{Group: gk.Group, Version: version, Kind: gk.Kind}
 }
 
-func (gk *GroupKind) String() string {
+func (gk GroupKind) String() string {
 	if len(gk.Group) == 0 {
 		return gk.Kind
 	}
@@ -192,6 +191,11 @@ func (gv GroupVersion) String() string {
 	return gv.Version
 }
 
+// Identifier implements runtime.GroupVersioner interface.
+func (gv GroupVersion) Identifier() string {
+	return gv.String()
+}
+
 // KindForGroupVersionKinds identifies the preferred GroupVersionKind out of a list. It returns ok false
 // if none of the options match the group. It prefers a match to group and version over just group.
 // TODO: Move GroupVersion to a package under pkg/runtime, since it's used by scheme.
@@ -247,6 +251,15 @@ func (gv GroupVersion) WithResource(resource string) GroupVersionResource {
 //   in fewer places.
 type GroupVersions []GroupVersion
 
+// Identifier implements runtime.GroupVersioner interface.
+func (gv GroupVersions) Identifier() string {
+	groupVersions := make([]string, 0, len(gv))
+	for i := range gv {
+		groupVersions = append(groupVersions, gv[i].String())
+	}
+	return fmt.Sprintf("[%s]", strings.Join(groupVersions, ","))
+}
+
 // KindForGroupVersionKinds identifies the preferred GroupVersionKind out of a list. It returns ok false
 // if none of the options match the group.
 func (gvs GroupVersions) KindForGroupVersionKinds(kinds []GroupVersionKind) (GroupVersionKind, bool) {
@@ -282,8 +295,8 @@ func bestMatch(kinds []GroupVersionKind, targets []GroupVersionKind) GroupVersio
 
 // ToAPIVersionAndKind is a convenience method for satisfying runtime.Object on types that
 // do not use TypeMeta.
-func (gvk *GroupVersionKind) ToAPIVersionAndKind() (string, string) {
-	if gvk == nil {
+func (gvk GroupVersionKind) ToAPIVersionAndKind() (string, string) {
+	if gvk.Empty() {
 		return "", ""
 	}
 	return gvk.GroupVersion().String(), gvk.Kind

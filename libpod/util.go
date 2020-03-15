@@ -1,38 +1,30 @@
 package libpod
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/containers/image/signature"
-	"github.com/containers/image/types"
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/utils"
 	"github.com/fsnotify/fsnotify"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // Runtime API constants
 const (
-	// DefaultTransport is a prefix that we apply to an image name
-	// to check docker hub first for the image
-	DefaultTransport = "docker://"
+	unknownPackage = "Unknown"
 )
-
-// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
-func OpenExclusiveFile(path string) (*os.File, error) {
-	baseDir := filepath.Dir(path)
-	if baseDir != "" {
-		if _, err := os.Stat(baseDir); err != nil {
-			return nil, err
-		}
-	}
-	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-}
 
 // FuncTimer helps measure the execution time of a function
 // For debug purposes, do not leave in code
@@ -40,24 +32,6 @@ func OpenExclusiveFile(path string) (*os.File, error) {
 func FuncTimer(funcName string) {
 	elapsed := time.Since(time.Now())
 	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
-}
-
-// CopyStringStringMap deep copies a map[string]string and returns the result
-func CopyStringStringMap(m map[string]string) map[string]string {
-	n := map[string]string{}
-	for k, v := range m {
-		n[k] = v
-	}
-	return n
-}
-
-// GetPolicyContext creates a signature policy context for the given signature policy path
-func GetPolicyContext(path string) (*signature.PolicyContext, error) {
-	policy, err := signature.DefaultPolicy(&types.SystemContext{SignaturePolicyPath: path})
-	if err != nil {
-		return nil, err
-	}
-	return signature.NewPolicyContext(policy)
 }
 
 // RemoveScientificNotationFromFloat returns a float without any
@@ -90,11 +64,7 @@ func MountExists(specMounts []spec.Mount, dest string) bool {
 
 // WaitForFile waits until a file has been created or the given timeout has occurred
 func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
-	done := make(chan struct{})
-	chControl := make(chan struct{})
-
 	var inotifyEvents chan fsnotify.Event
-	var timer chan struct{}
 	watcher, err := fsnotify.NewWatcher()
 	if err == nil {
 		if err := watcher.Add(filepath.Dir(path)); err == nil {
@@ -102,51 +72,40 @@ func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, e
 		}
 		defer watcher.Close()
 	}
-	if inotifyEvents == nil {
-		// If for any reason we fail to create the inotify
-		// watcher, fallback to polling the file
-		timer = make(chan struct{})
-		go func() {
-			select {
-			case <-chControl:
-				close(timer)
-				return
-			default:
-				time.Sleep(25 * time.Millisecond)
-				timer <- struct{}{}
-			}
-		}()
+
+	var timeoutChan <-chan time.Time
+
+	if timeout != 0 {
+		timeoutChan = time.After(timeout)
 	}
 
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			case <-timer:
-				_, err := os.Stat(path)
-				if err == nil {
-					close(done)
-					return
-				}
-			case <-inotifyEvents:
-				_, err := os.Stat(path)
-				if err == nil {
-					close(done)
-					return
-				}
+	for {
+		select {
+		case e := <-chWait:
+			return true, e
+		case <-inotifyEvents:
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
 			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-time.After(25 * time.Millisecond):
+			// Check periodically for the file existence.  It is needed
+			// if the inotify watcher could not have been created.  It is
+			// also useful when using inotify as if for any reasons we missed
+			// a notification, we won't hang the process.
+			_, err := os.Stat(path)
+			if err == nil {
+				return false, nil
+			}
+			if !os.IsNotExist(err) {
+				return false, errors.Wrapf(err, "checking file %s", path)
+			}
+		case <-timeoutChan:
+			return false, errors.Wrapf(define.ErrInternal, "timed out waiting for file %s", path)
 		}
-	}()
-
-	select {
-	case e := <-chWait:
-		return true, e
-	case <-done:
-		return false, nil
-	case <-time.After(timeout):
-		close(chControl)
-		return false, errors.Wrapf(ErrInternal, "timed out waiting for file %s", path)
 	}
 }
 
@@ -175,15 +134,15 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 func validPodNSOption(p *Pod, ctrPod string) error {
 	if p == nil {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in was nil. Container may not be associated with a pod")
 	}
 
 	if ctrPod == "" {
-		return errors.Wrapf(ErrInvalidArg, "container is not a member of any pod")
+		return errors.Wrapf(define.ErrInvalidArg, "container is not a member of any pod")
 	}
 
 	if ctrPod != p.ID() {
-		return errors.Wrapf(ErrInvalidArg, "pod passed in is not the pod the container is associated with")
+		return errors.Wrapf(define.ErrInvalidArg, "pod passed in is not the pod the container is associated with")
 	}
 	return nil
 }
@@ -196,4 +155,99 @@ func JSONDeepCopy(from, to interface{}) error {
 		return err
 	}
 	return json.Unmarshal(tmp, to)
+}
+
+func dpkgVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/dpkg", "-S", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func rpmVersion(path string) string {
+	output := unknownPackage
+	cmd := exec.Command("/usr/bin/rpm", "-q", "-f", path)
+	if outp, err := cmd.Output(); err == nil {
+		output = string(outp)
+	}
+	return strings.Trim(output, "\n")
+}
+
+func packageVersion(program string) string {
+	if out := rpmVersion(program); out != unknownPackage {
+		return out
+	}
+	return dpkgVersion(program)
+}
+
+func programVersion(mountProgram string) (string, error) {
+	output, err := utils.ExecCmd(mountProgram, "--version")
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSuffix(output, "\n"), nil
+}
+
+// DefaultSeccompPath returns the path to the default seccomp.json file
+// if it exists, first it checks OverrideSeccomp and then default.
+// If neither exist function returns ""
+func DefaultSeccompPath() (string, error) {
+	_, err := os.Stat(config.SeccompOverridePath)
+	if err == nil {
+		return config.SeccompOverridePath, nil
+	}
+	if !os.IsNotExist(err) {
+		return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompOverridePath)
+	}
+	if _, err := os.Stat(config.SeccompDefaultPath); err != nil {
+		if !os.IsNotExist(err) {
+			return "", errors.Wrapf(err, "can't check if %q exists", config.SeccompDefaultPath)
+		}
+		return "", nil
+	}
+	return config.SeccompDefaultPath, nil
+}
+
+// CheckDependencyContainer verifies the given container can be used as a
+// dependency of another container.
+// Both the dependency to check and the container that will be using the
+// dependency must be passed in.
+// It is assumed that ctr is locked, and depCtr is unlocked.
+func checkDependencyContainer(depCtr, ctr *Container) error {
+	state, err := depCtr.State()
+	if err != nil {
+		return errors.Wrapf(err, "error accessing dependency container %s state", depCtr.ID())
+	}
+	if state == define.ContainerStateRemoving {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "cannot use container %s as a dependency as it is being removed", depCtr.ID())
+	}
+
+	if depCtr.ID() == ctr.ID() {
+		return errors.Wrapf(define.ErrInvalidArg, "must specify another container")
+	}
+
+	if ctr.config.Pod != "" && depCtr.PodID() != ctr.config.Pod {
+		return errors.Wrapf(define.ErrInvalidArg, "container has joined pod %s and dependency container %s is not a member of the pod", ctr.config.Pod, depCtr.ID())
+	}
+
+	return nil
+}
+
+// hijackWriteErrorAndClose writes an error to a hijacked HTTP session and
+// closes it. Intended to HTTPAttach function.
+// If error is nil, it will not be written; we'll only close the connection.
+func hijackWriteErrorAndClose(toWrite error, cid string, httpCon io.Closer, httpBuf *bufio.ReadWriter) {
+	if toWrite != nil {
+		if _, err := httpBuf.Write([]byte(toWrite.Error())); err != nil {
+			logrus.Errorf("Error writing error %q to container %s HTTP attach connection: %v", toWrite, cid, err)
+		} else if err := httpBuf.Flush(); err != nil {
+			logrus.Errorf("Error flushing HTTP buffer for container %s HTTP attach connection: %v", cid, err)
+		}
+	}
+
+	if err := httpCon.Close(); err != nil {
+		logrus.Errorf("Error closing container %s HTTP attach connection: %v", cid, err)
+	}
 }

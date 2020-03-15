@@ -24,7 +24,7 @@ var _ = Describe("Podman mount", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -77,7 +77,7 @@ var _ = Describe("Podman mount", func() {
 		j := podmanTest.Podman([]string{"mount", "--format=json"})
 		j.WaitWithDefaultTimeout()
 		Expect(j.ExitCode()).To(Equal(0))
-		Expect(j.IsJSONOutputValid())
+		Expect(j.IsJSONOutputValid()).To(BeTrue())
 
 		umount := podmanTest.Podman([]string{"umount", cid})
 		umount.WaitWithDefaultTimeout()
@@ -153,6 +153,126 @@ var _ = Describe("Podman mount", func() {
 		Expect(mount2.ExitCode()).To(Equal(0))
 
 		umount := podmanTest.Podman([]string{"umount", "--all"})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
+
+	It("podman list mounted container", func() {
+		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid := setup.OutputToString()
+
+		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(Equal(""))
+
+		mount := podmanTest.Podman([]string{"mount", cid})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
+
+		umount := podmanTest.Podman([]string{"umount", cid})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+	})
+
+	It("podman list running container", func() {
+		SkipIfRootless()
+
+		setup := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid := setup.OutputToString()
+
+		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
+
+		stop := podmanTest.Podman([]string{"stop", cid})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+
+		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(Equal(""))
+	})
+
+	It("podman list multiple mounted containers", func() {
+		SkipIfRootless()
+
+		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid1 := setup.OutputToString()
+
+		setup = podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid2 := setup.OutputToString()
+
+		setup = podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid3 := setup.OutputToString()
+
+		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(Equal(""))
+
+		mount := podmanTest.Podman([]string{"mount", cid1, cid3})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(ContainSubstring(cid1))
+		Expect(lmount.OutputToString()).ToNot(ContainSubstring(cid2))
+		Expect(lmount.OutputToString()).To(ContainSubstring(cid3))
+
+		umount := podmanTest.Podman([]string{"umount", cid1, cid3})
+		umount.WaitWithDefaultTimeout()
+		Expect(umount.ExitCode()).To(Equal(0))
+
+		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(Equal(""))
+
+	})
+
+	It("podman list mounted container", func() {
+		SkipIfRootless()
+
+		setup := podmanTest.Podman([]string{"create", ALPINE, "ls"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+		cid := setup.OutputToString()
+
+		lmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(Equal(""))
+
+		mount := podmanTest.Podman([]string{"mount", cid})
+		mount.WaitWithDefaultTimeout()
+		Expect(mount.ExitCode()).To(Equal(0))
+
+		lmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		lmount.WaitWithDefaultTimeout()
+		Expect(lmount.ExitCode()).To(Equal(0))
+		Expect(lmount.OutputToString()).To(ContainSubstring(cid))
+
+		umount := podmanTest.Podman([]string{"umount", cid})
 		umount.WaitWithDefaultTimeout()
 		Expect(umount.ExitCode()).To(Equal(0))
 	})

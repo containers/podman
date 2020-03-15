@@ -39,6 +39,7 @@ type HTTPTransport struct {
 	spans           []*j.Span
 	process         *j.Process
 	httpCredentials *HTTPBasicAuthCredentials
+	headers         map[string]string
 }
 
 // HTTPBasicAuthCredentials stores credentials for HTTP basic auth.
@@ -73,6 +74,13 @@ func HTTPBasicAuth(username string, password string) HTTPOption {
 func HTTPRoundTripper(transport http.RoundTripper) HTTPOption {
 	return func(c *HTTPTransport) {
 		c.client.Transport = transport
+	}
+}
+
+// HTTPHeaders defines the HTTP headers that will be attached to the jaeger client's HTTP request
+func HTTPHeaders(headers map[string]string) HTTPOption {
+	return func(c *HTTPTransport) {
+		c.headers = headers
 	}
 }
 
@@ -136,6 +144,9 @@ func (c *HTTPTransport) send(spans []*j.Span) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-thrift")
+	for k, v := range c.headers {
+		req.Header.Set(k, v)
+	}
 
 	if c.httpCredentials != nil {
 		req.SetBasicAuth(c.httpCredentials.username, c.httpCredentials.password)

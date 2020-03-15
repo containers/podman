@@ -1,8 +1,11 @@
 /.artifacts/
 /_output/
-/conmon/conmon.o
+/brew
+/conmon/
 /docs/*.[158]
 /docs/*.[158].gz
+/docs/remote
+/docs/build/
 *.o
 *.orig
 /pause/pause.o
@@ -10,6 +13,7 @@
 /test/bin2img/bin2img
 /test/checkseccomp/checkseccomp
 /test/copyimg/copyimg
+/test/goecho/goecho
 /build/
 .nfs*
 .ropeproject
@@ -17,4 +21,11 @@ __pycache__
 /cmd/podman/varlink/ioprojectatomicpodman.go
 /cmd/podman/varlink/iopodman.go
 .gopathok
-test/e2e/e2e.coverprofile
+release.txt
+podman-remote*.zip
+podman*.tar.gz
+.idea*
+.vscode*
+contrib/spec/podman.spec
+*.rpm
+*.coverprofile

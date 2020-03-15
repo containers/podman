@@ -24,6 +24,13 @@ type Manager interface {
 	// The underlying lock MUST be the same as another other lock with the
 	// same UUID.
 	RetrieveLock(id uint32) (Locker, error)
+	// AllocateAndRetrieveLock marks the lock with the given UUID as in use
+	// and retrieves it.
+	// RetrieveAndAllocateLock will error if the lock in question has
+	// already been allocated.
+	// This is mostly used after a system restart to repopulate the list of
+	// locks in use.
+	AllocateAndRetrieveLock(id uint32) (Locker, error)
 	// PLEASE READ FULL DESCRIPTION BEFORE USING.
 	// FreeAllLocks frees all allocated locks, in preparation for lock
 	// reallocation.

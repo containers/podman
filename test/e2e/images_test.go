@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	"github.com/docker/go-units"
@@ -25,7 +26,7 @@ var _ = Describe("Podman images", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -44,14 +45,15 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images with no images prints header", func() {
-		rmi := podmanTest.Podman([]string{"rmi", "-a"})
+		rmi := podmanTest.PodmanNoCache([]string{"rmi", "-a"})
 		rmi.WaitWithDefaultTimeout()
 		Expect(rmi.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"images"})
+		session := podmanTest.PodmanNoCache([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
+		Expect(session.LineInOutputContains("REPOSITORY")).To(BeTrue())
 	})
 
 	It("podman image List", func() {
@@ -65,15 +67,16 @@ var _ = Describe("Podman images", func() {
 
 	It("podman images with multiple tags", func() {
 		// tag "docker.io/library/alpine:latest" to "foo:{a,b,c}"
-		session := podmanTest.Podman([]string{"tag", ALPINE, "foo:a", "foo:b", "foo:c"})
+		podmanTest.RestoreAllArtifacts()
+		session := podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foo:a", "foo:b", "foo:c"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		// tag "foo:c" to "bar:{a,b}"
-		session = podmanTest.Podman([]string{"tag", "foo:c", "bar:a", "bar:b"})
+		session = podmanTest.PodmanNoCache([]string{"tag", "foo:c", "bar:a", "bar:b"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		// check all previous and the newly tagged images
-		session = podmanTest.Podman([]string{"images"})
+		session = podmanTest.PodmanNoCache([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		session.LineInOutputContainsTag("docker.io/library/alpine", "latest")
@@ -83,7 +86,7 @@ var _ = Describe("Podman images", func() {
 		session.LineInOutputContainsTag("foo", "c")
 		session.LineInOutputContainsTag("bar", "a")
 		session.LineInOutputContainsTag("bar", "b")
-		session = podmanTest.Podman([]string{"images", "-qn"})
+		session = podmanTest.PodmanNoCache([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(BeNumerically("==", 2))
@@ -98,6 +101,13 @@ var _ = Describe("Podman images", func() {
 		Expect(session.LineInOuputStartsWith("docker.io/library/busybox")).To(BeTrue())
 	})
 
+	It("podman empty images list in JSON format", func() {
+		session := podmanTest.Podman([]string{"images", "--format=json", "not-existing-image"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.IsJSONOutputValid()).To(BeTrue())
+	})
+
 	It("podman images in JSON format", func() {
 		session := podmanTest.Podman([]string{"images", "--format=json"})
 		session.WaitWithDefaultTimeout()
@@ -106,7 +116,8 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images in GO template format", func() {
-		session := podmanTest.Podman([]string{"images", "--format={{.ID}}"})
+		formatStr := "{{.ID}}\t{{.Created}}\t{{.CreatedAt}}\t{{.CreatedSince}}\t{{.CreatedTime}}"
+		session := podmanTest.Podman([]string{"images", fmt.Sprintf("--format=%s", formatStr)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
@@ -119,19 +130,20 @@ var _ = Describe("Podman images", func() {
 	})
 
 	It("podman images filter by image name", func() {
-		session := podmanTest.Podman([]string{"images", "-q", ALPINE})
+		podmanTest.RestoreAllArtifacts()
+		session := podmanTest.PodmanNoCache([]string{"images", "-q", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(1))
 
-		session = podmanTest.Podman([]string{"tag", ALPINE, "foo:a"})
+		session = podmanTest.PodmanNoCache([]string{"tag", ALPINE, "foo:a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
-		session = podmanTest.Podman([]string{"tag", BB, "foo:b"})
+		session = podmanTest.PodmanNoCache([]string{"tag", BB, "foo:b"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"images", "-q", "foo"})
+		session = podmanTest.PodmanNoCache([]string{"images", "-q", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(2))
@@ -141,24 +153,25 @@ var _ = Describe("Podman images", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
-		result := podmanTest.Podman([]string{"images", "-q", "-f", "reference=docker.io*"})
+		podmanTest.RestoreAllArtifacts()
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "reference=docker.io*"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
 		Expect(len(result.OutputToStringArray())).To(Equal(2))
 
-		retapline := podmanTest.Podman([]string{"images", "-f", "reference=a*pine"})
+		retapline := podmanTest.PodmanNoCache([]string{"images", "-f", "reference=a*pine"})
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline.ExitCode()).To(Equal(0))
 		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
-		Expect(retapline.LineInOutputContains("alpine"))
+		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
-		retapline = podmanTest.Podman([]string{"images", "-f", "reference=alpine"})
+		retapline = podmanTest.PodmanNoCache([]string{"images", "-f", "reference=alpine"})
 		retapline.WaitWithDefaultTimeout()
 		Expect(retapline.ExitCode()).To(Equal(0))
 		Expect(len(retapline.OutputToStringArray())).To(Equal(2))
-		Expect(retapline.LineInOutputContains("alpine"))
+		Expect(retapline.LineInOutputContains("alpine")).To(BeTrue())
 
-		retnone := podmanTest.Podman([]string{"images", "-q", "-f", "reference=bogus"})
+		retnone := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "reference=bogus"})
 		retnone.WaitWithDefaultTimeout()
 		Expect(retnone.ExitCode()).To(Equal(0))
 		Expect(len(retnone.OutputToStringArray())).To(Equal(0))
@@ -169,46 +182,49 @@ var _ = Describe("Podman images", func() {
 			Skip("Does not work on remote client")
 		}
 		dockerfile := `FROM docker.io/library/alpine:latest
+RUN apk update && apk add man
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "before=foobar.com/before:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(2))
+		Expect(len(result.OutputToStringArray()) >= 1).To(BeTrue())
 	})
 
 	It("podman images filter after image", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
-		rmi := podmanTest.Podman([]string{"rmi", "busybox"})
+		podmanTest.RestoreAllArtifacts()
+		rmi := podmanTest.PodmanNoCache([]string{"rmi", "busybox"})
 		rmi.WaitWithDefaultTimeout()
 		Expect(rmi.ExitCode()).To(Equal(0))
 
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"images", "-q", "-f", "after=docker.io/library/alpine:latest"})
+		result := podmanTest.PodmanNoCache([]string{"images", "-q", "-f", "after=docker.io/library/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
 	It("podman image list filter after image", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
-		rmi := podmanTest.Podman([]string{"image", "rm", "busybox"})
+		podmanTest.RestoreAllArtifacts()
+		rmi := podmanTest.PodmanNoCache([]string{"image", "rm", "busybox"})
 		rmi.WaitWithDefaultTimeout()
 		Expect(rmi.ExitCode()).To(Equal(0))
 
 		dockerfile := `FROM docker.io/library/alpine:latest
 `
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
-		result := podmanTest.Podman([]string{"image", "list", "-q", "-f", "after=docker.io/library/alpine:latest"})
+		result := podmanTest.PodmanNoCache([]string{"image", "list", "-q", "-f", "after=docker.io/library/alpine:latest"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
 	It("podman images filter dangling", func() {
@@ -222,7 +238,7 @@ var _ = Describe("Podman images", func() {
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
 	It("podman check for image with sha256: prefix", func() {
@@ -255,46 +271,154 @@ var _ = Describe("Podman images", func() {
 		Expect(result.ExitCode()).To(Equal(0))
 	})
 
-	It("podman images sort by tag", func() {
-		session := podmanTest.Podman([]string{"images", "--sort", "tag", "--format={{.Tag}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+	It("podman images sort by values", func() {
+		sortValueTest := func(value string, result int, format string) []string {
+			f := fmt.Sprintf("{{.%s}}", format)
+			session := podmanTest.Podman([]string{"images", "--sort", value, "--format", f})
+			session.WaitWithDefaultTimeout()
+			Expect(session.ExitCode()).To(Equal(result))
 
-		sortedArr := session.OutputToStringArray()
+			return session.OutputToStringArray()
+		}
+
+		sortedArr := sortValueTest("created", 0, "CreatedAt")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] > sortedArr[j] })).To(BeTrue())
+
+		sortedArr = sortValueTest("id", 0, "ID")
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
-	})
 
-	It("podman images sort by size", func() {
-		session := podmanTest.Podman([]string{"images", "--sort", "size", "--format={{.Size}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		sortedArr = sortValueTest("repository", 0, "Repository")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
 
-		sortedArr := session.OutputToStringArray()
+		sortedArr = sortValueTest("size", 0, "Size")
 		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool {
 			size1, _ := units.FromHumanSize(sortedArr[i])
 			size2, _ := units.FromHumanSize(sortedArr[j])
 			return size1 < size2
 		})).To(BeTrue())
+		sortedArr = sortValueTest("tag", 0, "Tag")
+		Expect(sort.SliceIsSorted(sortedArr, func(i, j int) bool { return sortedArr[i] < sortedArr[j] })).To(BeTrue())
+
+		sortValueTest("badvalue", 125, "Tag")
+		sortValueTest("id", 125, "badvalue")
 	})
 
 	It("podman images --all flag", func() {
 		if podmanTest.RemoteTest {
 			Skip("Does not work on remote client")
 		}
+		podmanTest.RestoreAllArtifacts()
 		dockerfile := `FROM docker.io/library/alpine:latest
 RUN mkdir hello
 RUN touch test.txt
 ENV foo=bar
 `
 		podmanTest.BuildImage(dockerfile, "test", "true")
-		session := podmanTest.Podman([]string{"images"})
+		session := podmanTest.PodmanNoCache([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(len(session.OutputToStringArray())).To(Equal(4))
 
-		session2 := podmanTest.Podman([]string{"images", "--all"})
+		session2 := podmanTest.PodmanNoCache([]string{"images", "--all"})
 		session2.WaitWithDefaultTimeout()
 		Expect(session2.ExitCode()).To(Equal(0))
 		Expect(len(session2.OutputToStringArray())).To(Equal(6))
 	})
+
+	It("podman images filter by label", func() {
+		SkipIfRemote()
+		dockerfile := `FROM docker.io/library/alpine:latest
+LABEL version="1.0"
+LABEL "com.example.vendor"="Example Vendor"
+`
+		podmanTest.BuildImage(dockerfile, "test", "true")
+		session := podmanTest.Podman([]string{"images", "-f", "label=version=1.0"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(2))
+	})
+
+	It("podman with images with no layers", func() {
+		if podmanTest.RemoteTest {
+			Skip("Does not work on remote client")
+		}
+
+		dockerfile := strings.Join([]string{
+			`FROM scratch`,
+			`LABEL org.opencontainers.image.authors="<somefolks@example.org>"`,
+			`LABEL org.opencontainers.image.created=2019-06-11T19:03:37Z`,
+			`LABEL org.opencontainers.image.description="This is a test image"`,
+			`LABEL org.opencontainers.image.title=test`,
+			`LABEL org.opencontainers.image.vendor="Example.org"`,
+			`LABEL org.opencontainers.image.version=1`,
+		}, "\n")
+		podmanTest.BuildImage(dockerfile, "foo", "true")
+
+		session := podmanTest.Podman([]string{"images", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output := session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"image", "tree", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(MatchRegexp("No Image Layers"))
+
+		session = podmanTest.Podman([]string{"history", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"history", "--quiet", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(len(session.OutputToStringArray())).To(Equal(6))
+
+		session = podmanTest.Podman([]string{"image", "list", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"image", "list"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"inspect", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Not(MatchRegexp("<missing>")))
+		Expect(output).To(Not(MatchRegexp("error")))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		output = session.OutputToString()
+		Expect(output).To(Equal("[]"))
+	})
+
+	It("podman images --filter readonly", func() {
+		SkipIfRemote()
+		dockerfile := `FROM docker.io/library/alpine:latest
+`
+		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
+		result := podmanTest.Podman([]string{"images", "-f", "readonly=true"})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		result1 := podmanTest.Podman([]string{"images", "--filter", "readonly=false"})
+		result1.WaitWithDefaultTimeout()
+		Expect(result1.ExitCode()).To(Equal(0))
+		Expect(result.OutputToStringArray()).To(Not(Equal(result1.OutputToStringArray())))
+	})
+
 })

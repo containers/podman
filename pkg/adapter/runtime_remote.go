@@ -9,26 +9,31 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	v1 "k8s.io/api/core/v1"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
 
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/types"
+	"github.com/containers/buildah/pkg/formats"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/cmd/podman/remoteclientconfig"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/varlink/go/varlink"
+	v1 "k8s.io/api/core/v1"
 )
 
 // ImageRuntime is wrapper for image runtime
@@ -38,6 +43,8 @@ type RemoteImageRuntime struct{}
 type RemoteRuntime struct {
 	Conn   *varlink.Connection
 	Remote bool
+	cmd    cliconfig.MainFlags
+	config io.Reader
 }
 
 // LocalRuntime describes a typical libpod runtime
@@ -45,20 +52,77 @@ type LocalRuntime struct {
 	*RemoteRuntime
 }
 
+// GetRuntimeNoStore returns a LocalRuntime struct with the actual runtime embedded in it
+// The nostore is ignored
+func GetRuntimeNoStore(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	return GetRuntime(ctx, c)
+}
+
 // GetRuntime returns a LocalRuntime struct with the actual runtime embedded in it
-func GetRuntime(c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
-	runtime := RemoteRuntime{}
+func GetRuntime(ctx context.Context, c *cliconfig.PodmanCommand) (*LocalRuntime, error) {
+	var (
+		customConfig bool
+		err          error
+		f            *os.File
+	)
+	runtime := RemoteRuntime{
+		Remote: true,
+		cmd:    c.GlobalFlags,
+	}
+	configPath := remoteclientconfig.GetConfigFilePath()
+	// Check if the basedir for configPath exists and if not, create it.
+	if _, err := os.Stat(filepath.Dir(configPath)); os.IsNotExist(err) {
+		if mkdirErr := os.MkdirAll(filepath.Dir(configPath), 0750); mkdirErr != nil {
+			return nil, mkdirErr
+		}
+	}
+	if len(c.GlobalFlags.RemoteConfigFilePath) > 0 {
+		configPath = c.GlobalFlags.RemoteConfigFilePath
+		customConfig = true
+	}
+
+	f, err = os.Open(configPath)
+	if err != nil {
+		// If user does not explicitly provide a configuration file path and we cannot
+		// find a default, no error should occur.
+		if os.IsNotExist(err) && !customConfig {
+			logrus.Debugf("unable to load configuration file at %s", configPath)
+			runtime.config = nil
+		} else {
+			return nil, errors.Wrapf(err, "unable to load configuration file at %s", configPath)
+		}
+	} else {
+		// create the io reader for the remote client
+		runtime.config = bufio.NewReader(f)
+	}
 	conn, err := runtime.Connect()
 	if err != nil {
 		return nil, err
 	}
-
+	runtime.Conn = conn
 	return &LocalRuntime{
-		&RemoteRuntime{
-			Conn:   conn,
-			Remote: true,
-		},
+		&runtime,
 	}, nil
+}
+
+// DeferredShutdown is a bogus wrapper for compaat with the libpod
+// runtime and should only be run when a defer is being used
+func (r RemoteRuntime) DeferredShutdown(force bool) {
+	if err := r.Shutdown(force); err != nil {
+		logrus.Error("unable to shutdown runtime")
+	}
+}
+
+// RuntimeConfig is a bogus wrapper for compat with the libpod runtime
+type RuntimeConfig struct {
+	// CGroupManager is the CGroup Manager to use
+	// Valid values are "cgroupfs" and "systemd"
+	CgroupManager string
+}
+
+// Shutdown is a bogus wrapper for compat with the libpod runtime
+func (r *RemoteRuntime) GetConfig() (*RuntimeConfig, error) {
+	return nil, nil
 }
 
 // Shutdown is a bogus wrapper for compat with the libpod runtime
@@ -72,19 +136,22 @@ type ContainerImage struct {
 }
 
 type remoteImage struct {
-	ID          string
-	Labels      map[string]string
-	RepoTags    []string
-	RepoDigests []string
-	Parent      string
-	Size        int64
-	Created     time.Time
-	InputName   string
-	Names       []string
-	Digest      digest.Digest
-	isParent    bool
-	Runtime     *LocalRuntime
-	TopLayer    string
+	ID           string
+	Labels       map[string]string
+	RepoTags     []string
+	RepoDigests  []string
+	Parent       string
+	Size         int64
+	Created      time.Time
+	InputName    string
+	Names        []string
+	Digest       digest.Digest
+	Digests      []digest.Digest
+	isParent     bool
+	Runtime      *LocalRuntime
+	TopLayer     string
+	ReadOnly     bool
+	NamesHistory []string
 }
 
 // Container ...
@@ -97,6 +164,18 @@ type remoteContainer struct {
 	Runtime *LocalRuntime
 	config  *libpod.ContainerConfig
 	state   *libpod.ContainerState
+}
+
+// Pod ...
+type Pod struct {
+	remotepod
+}
+
+type remotepod struct {
+	config     *libpod.PodConfig
+	state      *libpod.PodInspectState
+	containers []libpod.PodContainerInfo
+	Runtime    *LocalRuntime
 }
 
 type VolumeFilter func(*Volume) bool
@@ -113,12 +192,49 @@ type remoteVolume struct {
 
 // GetImages returns a slice of containerimages over a varlink connection
 func (r *LocalRuntime) GetImages() ([]*ContainerImage, error) {
+	return r.getImages(false)
+}
+
+// GetRWImages returns a slice of read/write containerimages over a varlink connection
+func (r *LocalRuntime) GetRWImages() ([]*ContainerImage, error) {
+	return r.getImages(true)
+}
+
+func (r *LocalRuntime) GetFilteredImages(filters []string, rwOnly bool) ([]*ContainerImage, error) {
+	if len(filters) > 0 {
+		return nil, errors.Wrap(define.ErrNotImplemented, "filtering images is not supported on the remote client")
+	}
 	var newImages []*ContainerImage
 	images, err := iopodman.ListImages().Call(r.Conn)
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range images {
+		if rwOnly && i.ReadOnly {
+			continue
+		}
+		name := i.Id
+		if len(i.RepoTags) > 1 {
+			name = i.RepoTags[0]
+		}
+		newImage, err := imageInListToContainerImage(i, name, r)
+		if err != nil {
+			return nil, err
+		}
+		newImages = append(newImages, newImage)
+	}
+	return newImages, nil
+}
+func (r *LocalRuntime) getImages(rwOnly bool) ([]*ContainerImage, error) {
+	var newImages []*ContainerImage
+	images, err := iopodman.ListImages().Call(r.Conn)
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range images {
+		if rwOnly && i.ReadOnly {
+			continue
+		}
 		name := i.Id
 		if len(i.RepoTags) > 1 {
 			name = i.RepoTags[0]
@@ -137,20 +253,27 @@ func imageInListToContainerImage(i iopodman.Image, name string, runtime *LocalRu
 	if err != nil {
 		return nil, err
 	}
+	var digests []digest.Digest
+	for _, d := range i.Digests {
+		digests = append(digests, digest.Digest(d))
+	}
 	ri := remoteImage{
-		InputName:   name,
-		ID:          i.Id,
-		Digest:      digest.Digest(i.Digest),
-		Labels:      i.Labels,
-		RepoTags:    i.RepoTags,
-		RepoDigests: i.RepoTags,
-		Parent:      i.ParentId,
-		Size:        i.Size,
-		Created:     created,
-		Names:       i.RepoTags,
-		isParent:    i.IsParent,
-		Runtime:     runtime,
-		TopLayer:    i.TopLayer,
+		InputName:    name,
+		ID:           i.Id,
+		Digest:       digest.Digest(i.Digest),
+		Digests:      digests,
+		Labels:       i.Labels,
+		RepoTags:     i.RepoTags,
+		RepoDigests:  i.RepoTags,
+		Parent:       i.ParentId,
+		Size:         i.Size,
+		Created:      created,
+		Names:        i.RepoTags,
+		isParent:     i.IsParent,
+		Runtime:      runtime,
+		TopLayer:     i.TopLayer,
+		ReadOnly:     i.ReadOnly,
+		NamesHistory: i.History,
 	}
 	return &ContainerImage{ri}, nil
 }
@@ -168,10 +291,7 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 // LoadFromArchiveReference creates an image from a local archive
 func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
 	var iid string
-	// TODO We need to find a way to leak certDir, creds, and the tlsverify into this function, normally this would
-	// come from cli options but we don't want want those in here either.
-	tlsverify := true
-	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, srcRef.DockerReference().String(), "", "", signaturePolicyPath, &tlsverify)
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, srcRef.DockerReference().String())
 	if err != nil {
 		return nil, err
 	}
@@ -198,26 +318,12 @@ func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef type
 }
 
 // New calls into local storage to look for an image in local storage or to pull it
-func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, forcePull bool, label *string) (*ContainerImage, error) {
+func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authfile string, writer io.Writer, dockeroptions *image.DockerRegistryOptions, signingoptions image.SigningOptions, label *string, pullType util.PullType) (*ContainerImage, error) {
 	var iid string
 	if label != nil {
 		return nil, errors.New("the remote client function does not support checking a remote image for a label")
 	}
-	var (
-		tlsVerify    bool
-		tlsVerifyPtr *bool
-	)
-	if dockeroptions.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-		tlsVerify = true
-		tlsVerifyPtr = &tlsVerify
-
-	}
-	if dockeroptions.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
-		tlsVerify = false
-		tlsVerifyPtr = &tlsVerify
-	}
-
-	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, name, dockeroptions.DockerCertPath, "", signaturePolicyPath, tlsVerifyPtr)
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, name)
 	if err != nil {
 		return nil, err
 	}
@@ -241,10 +347,14 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 	return newImage, nil
 }
 
+func (r *LocalRuntime) ImageTree(imageOrID string, whatRequires bool) (string, error) {
+	return iopodman.ImageTree().Call(r.Conn, imageOrID, whatRequires)
+}
+
 // IsParent goes through the layers in the store and checks if i.TopLayer is
 // the parent of any other layer in store. Double check that image with that
 // layer exists as well.
-func (ci *ContainerImage) IsParent() (bool, error) {
+func (ci *ContainerImage) IsParent(context.Context) (bool, error) {
 	return ci.remoteImage.isParent, nil
 }
 
@@ -258,9 +368,19 @@ func (ci *ContainerImage) Names() []string {
 	return ci.remoteImage.Names
 }
 
+// NamesHistory returns a string array of names previously associated with the image
+func (ci *ContainerImage) NamesHistory() []string {
+	return ci.remoteImage.NamesHistory
+}
+
 // Created returns the time the image was created
 func (ci *ContainerImage) Created() time.Time {
 	return ci.remoteImage.Created
+}
+
+// IsReadOnly returns whether the image is ReadOnly
+func (ci *ContainerImage) IsReadOnly() bool {
+	return ci.remoteImage.ReadOnly
 }
 
 // Size returns the size of the image
@@ -272,6 +392,11 @@ func (ci *ContainerImage) Size(ctx context.Context) (*uint64, error) {
 // Digest returns the image's digest
 func (ci *ContainerImage) Digest() digest.Digest {
 	return ci.remoteImage.Digest
+}
+
+// Digests returns the image's digests
+func (ci *ContainerImage) Digests() []digest.Digest {
+	return append([]digest.Digest{}, ci.remoteImage.Digests...)
 }
 
 // Labels returns a map of the image's labels
@@ -295,9 +420,22 @@ func (ci *ContainerImage) TagImage(tag string) error {
 	return err
 }
 
+// UntagImage removes a single tag from an image
+func (ci *ContainerImage) UntagImage(tag string) error {
+	_, err := iopodman.UntagImage().Call(ci.Runtime.Conn, ci.ID(), tag)
+	return err
+}
+
 // RemoveImage calls varlink to remove an image
-func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (string, error) {
-	return iopodman.RemoveImage().Call(r.Conn, img.InputName, force)
+func (r *LocalRuntime) RemoveImage(ctx context.Context, img *ContainerImage, force bool) (*image.ImageDeleteResponse, error) {
+	ir := image.ImageDeleteResponse{}
+	response, err := iopodman.RemoveImageWithResponse().Call(r.Conn, img.InputName, force)
+	if err != nil {
+		return nil, err
+	}
+	ir.Deleted = response.Deleted
+	ir.Untagged = append(ir.Untagged, response.Untagged...)
+	return &ir, nil
 }
 
 // History returns the history of an image and its layers
@@ -326,8 +464,8 @@ func (ci *ContainerImage) History(ctx context.Context) ([]*image.History, error)
 }
 
 // PruneImages is the wrapper call for a remote-client to prune images
-func (r *LocalRuntime) PruneImages(all bool) ([]string, error) {
-	return iopodman.ImagesPrune().Call(r.Conn, all)
+func (r *LocalRuntime) PruneImages(ctx context.Context, all bool, filter []string) ([]string, error) {
+	return iopodman.ImagesPrune().Call(r.Conn, all, filter)
 }
 
 // Export is a wrapper to container export to a tarfile
@@ -361,7 +499,7 @@ func (r *LocalRuntime) GetFileFromRemoteHost(remoteFilePath, outputPath string, 
 
 	reader := r.Conn.Reader
 	if _, err := io.CopyN(writer, reader, length); err != nil {
-		return errors.Wrap(err, "file transer failed")
+		return errors.Wrap(err, "file transfer failed")
 	}
 	return nil
 }
@@ -376,7 +514,7 @@ func (r *LocalRuntime) Import(ctx context.Context, source, reference string, cha
 	return iopodman.ImportImage().Call(r.Conn, strings.TrimRight(tempFile, ":"), reference, history, changes, true)
 }
 
-func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) error {
+func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) (string, reference.Canonical, error) {
 	buildOptions := iopodman.BuildOptions{
 		AddHosts:     options.CommonBuildOpts.AddHost,
 		CgroupParent: options.CommonBuildOpts.CgroupParent,
@@ -402,51 +540,50 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 		Compression:           string(options.Compression),
 		DefaultsMountFilePath: options.DefaultMountsFilePath,
 		Dockerfiles:           dockerfiles,
-		//Err: string(options.Err),
+		// Err: string(options.Err),
 		ForceRmIntermediateCtrs: options.ForceRmIntermediateCtrs,
 		Iidfile:                 options.IIDFile,
 		Label:                   options.Labels,
 		Layers:                  options.Layers,
 		Nocache:                 options.NoCache,
-		//Out:
+		// Out:
 		Output:                 options.Output,
 		OutputFormat:           options.OutputFormat,
 		PullPolicy:             options.PullPolicy.String(),
 		Quiet:                  options.Quiet,
 		RemoteIntermediateCtrs: options.RemoveIntermediateCtrs,
-		//ReportWriter:
-		RuntimeArgs:         options.RuntimeArgs,
-		SignaturePolicyPath: options.SignaturePolicyPath,
-		Squash:              options.Squash,
+		// ReportWriter:
+		RuntimeArgs: options.RuntimeArgs,
+		Squash:      options.Squash,
 	}
 	// tar the file
 	outputFile, err := ioutil.TempFile("", "varlink_tar_send")
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 	defer outputFile.Close()
 	defer os.Remove(outputFile.Name())
 
 	// Create the tarball of the context dir to a tempfile
 	if err := utils.TarToFilesystem(options.ContextDirectory, outputFile); err != nil {
-		return err
+		return "", nil, err
 	}
 	// Send the context dir tarball over varlink.
 	tempFile, err := r.SendFileOverVarlink(outputFile.Name())
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 	buildinfo.ContextDir = tempFile
 
 	reply, err := iopodman.BuildImage().Send(r.Conn, varlink.More, buildinfo)
 	if err != nil {
-		return err
+		return "", nil, err
 	}
 
 	for {
 		responses, flags, err := reply()
 		if err != nil {
-			return err
+			return "", nil, err
 		}
 		for _, line := range responses.Logs {
 			fmt.Print(line)
@@ -455,7 +592,7 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 			break
 		}
 	}
-	return err
+	return "", nil, err
 }
 
 // SendFileOverVarlink sends a file over varlink in an upgraded connection
@@ -504,12 +641,12 @@ func (r *LocalRuntime) SendFileOverVarlink(source string) (string, error) {
 
 // GetAllVolumes retrieves all the volumes
 func (r *LocalRuntime) GetAllVolumes() ([]*libpod.Volume, error) {
-	return nil, libpod.ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }
 
 // RemoveVolume removes a volumes
 func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force, prune bool) error {
-	return libpod.ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 // GetContainers retrieves all containers from the state
@@ -517,14 +654,14 @@ func (r *LocalRuntime) RemoveVolume(ctx context.Context, v *libpod.Volume, force
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
 func (r *LocalRuntime) GetContainers(filters ...libpod.ContainerFilter) ([]*libpod.Container, error) {
-	return nil, libpod.ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }
 
 // RemoveContainer removes the given container
 // If force is specified, the container will be stopped first
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *LocalRuntime) RemoveContainer(ctx context.Context, c *libpod.Container, force, volumes bool) error {
-	return libpod.ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 // CreateVolume creates a volume over a varlink connection for the remote client
@@ -545,31 +682,23 @@ func (r *LocalRuntime) CreateVolume(ctx context.Context, c *cliconfig.VolumeCrea
 }
 
 // RemoveVolumes removes volumes over a varlink connection for the remote client
-func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, error) {
+func (r *LocalRuntime) RemoveVolumes(ctx context.Context, c *cliconfig.VolumeRmValues) ([]string, map[string]error, error) {
 	rmOpts := iopodman.VolumeRemoveOpts{
 		All:     c.All,
 		Force:   c.Force,
 		Volumes: c.InputArgs,
 	}
-	return iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+	success, failures, err := iopodman.VolumeRemove().Call(r.Conn, rmOpts)
+	stringsToErrors := make(map[string]error)
+	for k, v := range failures {
+		stringsToErrors[k] = errors.New(v)
+	}
+	return success, stringsToErrors, err
 }
 
-func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
+func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestMIMEType, authfile, digestfile, signaturePolicyPath string, writer io.Writer, forceCompress bool, signingOptions image.SigningOptions, dockerRegistryOptions *image.DockerRegistryOptions, additionalDockerArchiveTags []reference.NamedTagged) error {
 
-	var (
-		tls       *bool
-		tlsVerify bool
-	)
-	if dockerRegistryOptions.DockerInsecureSkipTLSVerify == types.OptionalBoolTrue {
-		tlsVerify = false
-		tls = &tlsVerify
-	}
-	if dockerRegistryOptions.DockerInsecureSkipTLSVerify == types.OptionalBoolFalse {
-		tlsVerify = true
-		tls = &tlsVerify
-	}
-
-	reply, err := iopodman.PushImage().Send(r.Conn, varlink.More, srcName, destination, tls, signaturePolicyPath, "", dockerRegistryOptions.DockerCertPath, forceCompress, manifestMIMEType, signingOptions.RemoveSignatures, signingOptions.SignBy)
+	reply, err := iopodman.PushImage().Send(r.Conn, varlink.More, srcName, destination, forceCompress, manifestMIMEType, signingOptions.RemoveSignatures, signingOptions.SignBy)
 	if err != nil {
 		return err
 	}
@@ -590,15 +719,42 @@ func (r *LocalRuntime) Push(ctx context.Context, srcName, destination, manifestM
 }
 
 // InspectVolumes returns a slice of volumes based on an arg list or --all
-func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*Volume, error) {
-	reply, err := iopodman.GetVolumes().Call(r.Conn, c.InputArgs, c.All)
-	if err != nil {
-		return nil, err
+func (r *LocalRuntime) InspectVolumes(ctx context.Context, c *cliconfig.VolumeInspectValues) ([]*libpod.InspectVolumeData, error) {
+	var (
+		inspectData []*libpod.InspectVolumeData
+		volumes     []string
+	)
+
+	if c.All {
+		allVolumes, err := r.Volumes(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, vol := range allVolumes {
+			volumes = append(volumes, vol.Name())
+		}
+	} else {
+		for _, arg := range c.InputArgs {
+			volumes = append(volumes, arg)
+		}
 	}
-	return varlinkVolumeToVolume(r, reply), nil
+
+	for _, vol := range volumes {
+		jsonString, err := iopodman.InspectVolume().Call(r.Conn, vol)
+		if err != nil {
+			return nil, err
+		}
+		inspectJSON := new(libpod.InspectVolumeData)
+		if err := json.Unmarshal([]byte(jsonString), inspectJSON); err != nil {
+			return nil, errors.Wrapf(err, "error unmarshalling inspect JSON for volume %s", vol)
+		}
+		inspectData = append(inspectData, inspectJSON)
+	}
+
+	return inspectData, nil
 }
 
-//Volumes returns a slice of adapter.volumes based on information about libpod
+// Volumes returns a slice of adapter.volumes based on information about libpod
 // volumes over a varlink connection
 func (r *LocalRuntime) Volumes(ctx context.Context) ([]*Volume, error) {
 	reply, err := iopodman.GetVolumes().Call(r.Conn, []string{}, true)
@@ -617,7 +773,6 @@ func varlinkVolumeToVolume(r *LocalRuntime, volumes []iopodman.Volume) []*Volume
 			MountPoint: v.MountPoint,
 			Driver:     v.Driver,
 			Options:    v.Options,
-			Scope:      v.Scope,
 		}
 		n := remoteVolume{
 			Runtime: r,
@@ -760,8 +915,8 @@ func IsImageNotFound(err error) bool {
 }
 
 // HealthCheck executes a container's healthcheck over a varlink connection
-func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (libpod.HealthCheckStatus, error) {
-	return -1, libpod.ErrNotImplemented
+func (r *LocalRuntime) HealthCheck(c *cliconfig.HealthCheckValues) (string, error) {
+	return iopodman.HealthCheckRun().Call(r.Conn, c.InputArgs[0])
 }
 
 // Events monitors libpod/podman events over a varlink connection
@@ -776,9 +931,13 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 	}
 
 	w := bufio.NewWriter(os.Stdout)
-	tmpl, err := template.New("events").Parse(c.Format)
-	if err != nil {
-		return err
+	var tmpl *template.Template
+	if c.Format != formats.JSONString {
+		template, err := template.New("events").Parse(c.Format)
+		if err != nil {
+			return err
+		}
+		tmpl = template
 	}
 
 	for {
@@ -812,7 +971,15 @@ func (r *LocalRuntime) Events(c *cliconfig.EventValues) error {
 			Time:   eTime,
 			Type:   eType,
 		}
-		if len(c.Format) > 0 {
+		if c.Format == formats.JSONString {
+			jsonStr, err := event.ToJSONString()
+			if err != nil {
+				return errors.Wrapf(err, "unable to format json")
+			}
+			if _, err := w.Write([]byte(jsonStr)); err != nil {
+				return err
+			}
+		} else if len(c.Format) > 0 {
 			if err := tmpl.Execute(w, event); err != nil {
 				return err
 			}
@@ -876,4 +1043,47 @@ func (r *LocalRuntime) GenerateKube(c *cliconfig.GenerateKubeValues) (*v1.Pod, *
 	}
 	err = json.Unmarshal([]byte(reply.Service), &service)
 	return &pod, &service, err
+}
+
+// GetContainersByContext looks up containers based on the cli input of all, latest, or a list
+func (r *LocalRuntime) GetContainersByContext(all bool, latest bool, namesOrIDs []string) ([]*Container, error) {
+	var containers []*Container
+	cids, err := iopodman.GetContainersByContext().Call(r.Conn, all, latest, namesOrIDs)
+	if err != nil {
+		return nil, err
+	}
+	for _, cid := range cids {
+		ctr, err := r.LookupContainer(cid)
+		if err != nil {
+			return nil, err
+		}
+		containers = append(containers, ctr)
+	}
+	return containers, nil
+}
+
+// GetVersion returns version information from service
+func (r *LocalRuntime) GetVersion() (define.Version, error) {
+	version, goVersion, gitCommit, built, osArch, apiVersion, err := iopodman.GetVersion().Call(r.Conn)
+	if err != nil {
+		return define.Version{}, errors.Wrapf(err, "Unable to obtain server version information")
+	}
+
+	var buildTime int64
+	if built != "" {
+		t, err := time.Parse(time.RFC3339, built)
+		if err != nil {
+			return define.Version{}, nil
+		}
+		buildTime = t.Unix()
+	}
+
+	return define.Version{
+		RemoteAPIVersion: apiVersion,
+		Version:          version,
+		GoVersion:        goVersion,
+		GitCommit:        gitCommit,
+		Built:            buildTime,
+		OsArch:           osArch,
+	}, nil
 }

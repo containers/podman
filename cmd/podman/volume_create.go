@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/shared"
+	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -37,27 +37,26 @@ func init() {
 	flags := volumeCreateCommand.Flags()
 	flags.StringVar(&volumeCreateCommand.Driver, "driver", "", "Specify volume driver name (default local)")
 	flags.StringSliceVarP(&volumeCreateCommand.Label, "label", "l", []string{}, "Set metadata for a volume (default [])")
-	flags.StringSliceVarP(&volumeCreateCommand.Opt, "opt", "o", []string{}, "Set driver specific options (default [])")
-
+	flags.StringArrayVarP(&volumeCreateCommand.Opt, "opt", "o", []string{}, "Set driver specific options (default [])")
 }
 
 func volumeCreateCmd(c *cliconfig.VolumeCreateValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if len(c.InputArgs) > 1 {
 		return errors.Errorf("too many arguments, create takes at most 1 argument")
 	}
 
-	labels, err := shared.GetAllLabels([]string{}, c.Label)
+	labels, err := parse.GetAllLabels([]string{}, c.Label)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process labels")
 	}
 
-	opts, err := shared.GetAllLabels([]string{}, c.Opt)
+	opts, err := parse.GetAllLabels([]string{}, c.Opt)
 	if err != nil {
 		return errors.Wrapf(err, "unable to process options")
 	}

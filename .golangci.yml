@@ -1,0 +1,32 @@
+---
+run:
+  build-tags:
+    - apparmor
+    - seccomp
+    - selinux
+  concurrency: 6
+  deadline: 5m
+  skip-dirs-use-default: true
+  skip-dirs:
+    - contrib
+    - dependencies
+    - test
+  skip-files:
+    - iopodman.go
+    - swagger.go
+linters:
+  enable-all: true
+  disable:
+    - dupl
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - goconst
+    - gocyclo
+    - golint
+    - gosec
+    - lll
+    - maligned
+    - misspell
+    - prealloc
+    - unparam

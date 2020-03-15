@@ -8,7 +8,10 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/varlinkapi/virtwriter"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/tools/remotecommand"
 )
@@ -29,7 +32,7 @@ func setupStreams(call iopodman.VarlinkCall) (*bufio.Reader, *bufio.Writer, *io.
 
 	streams := libpod.AttachStreams{
 		OutputStream: stdoutWriter,
-		InputStream:  pr,
+		InputStream:  bufio.NewReader(pr),
 		// Runc eats the error stream
 		ErrorStream:  stdoutWriter,
 		AttachInput:  true,
@@ -53,27 +56,64 @@ func (i *LibpodAPI) Attach(call iopodman.VarlinkCall, name string, detachKeys st
 	if err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
+	state, err := ctr.State()
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	if !start && state != define.ContainerStateRunning {
+		return call.ReplyErrorOccurred("container must be running to attach")
+	}
+
+	// ACK the client upgrade request
+	if err := call.ReplyAttach(); err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
 
 	reader, writer, _, pw, streams := setupStreams(call)
-
 	go func() {
-		if err := virtwriter.Reader(reader, nil, nil, pw, resize); err != nil {
+		if err := virtwriter.Reader(reader, nil, nil, pw, resize, nil); err != nil {
 			errChan <- err
 		}
 	}()
 
-	if start {
-		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
-	} else {
+	if state == define.ContainerStateRunning {
 		finalErr = attach(ctr, streams, detachKeys, resize, errChan)
+	} else {
+		finalErr = startAndAttach(ctr, streams, detachKeys, resize, errChan)
 	}
 
-	if finalErr != libpod.ErrDetach && finalErr != nil {
+	exitCode := define.ExitCode(finalErr)
+	if finalErr != define.ErrDetach && finalErr != nil {
 		logrus.Error(finalErr)
+	} else {
+		if ecode, err := ctr.Wait(); err != nil {
+			if errors.Cause(err) == define.ErrNoSuchCtr {
+				// Check events
+				event, err := i.Runtime.GetLastContainerEvent(ctr.ID(), events.Exited)
+				if err != nil {
+					logrus.Errorf("Cannot get exit code: %v", err)
+					exitCode = define.ExecErrorCodeNotFound
+				} else {
+					exitCode = event.ContainerExitCode
+				}
+			} else {
+				exitCode = define.ExitCode(err)
+			}
+		} else {
+			exitCode = int(ecode)
+		}
 	}
-	quitWriter := virtwriter.NewVirtWriteCloser(writer, virtwriter.Quit)
-	_, err = quitWriter.Write([]byte("HANG-UP"))
-	// TODO error handling is not quite right here yet
+
+	if ctr.AutoRemove() {
+		err := i.Runtime.RemoveContainer(getContext(), ctr, false, false)
+		if err != nil {
+			logrus.Errorf("Failed to remove container %s: %s", ctr.ID(), err.Error())
+		}
+	}
+
+	if err = virtwriter.HangUp(writer, uint32(exitCode)); err != nil {
+		logrus.Errorf("Failed to HANG-UP attach to %s: %s", ctr.ID(), err.Error())
+	}
 	return call.Writer.Flush()
 }
 

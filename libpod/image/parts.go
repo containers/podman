@@ -3,7 +3,7 @@ package image
 import (
 	"strings"
 
-	"github.com/containers/image/docker/reference"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/pkg/errors"
 )
 
@@ -67,7 +67,7 @@ func (ip *imageParts) suspiciousRefNameTagValuesForSearch() (string, string, str
 	} else if _, hasDigest := ip.unnormalizedRef.(reference.Digested); hasDigest {
 		tag = "none"
 	} else {
-		tag = "latest"
+		tag = LatestTag
 	}
 	return registry, imageName, tag
 }

@@ -1,5 +1,5 @@
 #!/bin/bash
-set -xeuo pipefail
+set -xeo pipefail
 
 export GOPATH=/var/tmp/go
 export PATH=$HOME/gopath/bin:$PATH:$GOPATH/bin
@@ -32,9 +32,10 @@ integrationtest=0
 unittest=0
 validate=0
 options=0
+remote=0
 install_tools_made=0
 
-while getopts "biptuv" opt; do
+while getopts "bituv" opt; do
     case "$opt" in
     b) build=1
        options=1
@@ -53,6 +54,12 @@ while getopts "biptuv" opt; do
        ;;
     esac
 done
+
+# The TEST_REMOTE_CLIENT environment variable decides whether
+# to test varlinke
+if [[ "$TEST_REMOTE_CLIENT" == "true" ]]; then
+    remote=1
+fi
 
 # If no options are passed, do everything
 if [ $options -eq 0 ]; then
@@ -82,7 +89,7 @@ if [ "${CONTAINER_RUNTIME}" == "none" ]; then
 fi
 
 
-export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/ostree_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
+export TAGS="seccomp $($GOSRC/hack/btrfs_tag.sh) $($GOSRC/hack/libdm_tag.sh) $($GOSRC/hack/btrfs_installed_tag.sh) $($GOSRC/hack/selinux_tag.sh)"
 
 # Validate
 if [ $validate -eq 1 ]; then
@@ -119,6 +126,7 @@ if [ $install -eq 1 ]; then
     make TAGS="${TAGS}" install.bin PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.man PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.cni PREFIX=/usr ETCDIR=/etc
+    make TAGS="${TAGS}" install.config PREFIX=/usr ETCDIR=/etc
     make TAGS="${TAGS}" install.systemd PREFIX=/usr ETCDIR=/etc
 fi
 
@@ -126,6 +134,8 @@ fi
 if [ $integrationtest -eq 1 ]; then
     make TAGS="${TAGS}" test-binaries
     make varlink_generate
-    make ginkgo $INTEGRATION_TEST_ENVS
-    make ginkgo-remote $INTEGRATION_TEST_ENVS
+    make localintegration $INTEGRATION_TEST_ENVS
+    if [ $remote -eq 1 ]; then
+        make remoteintegration $INTEGRATION_TEST_ENVS
+    fi
 fi

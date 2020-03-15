@@ -6,11 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"syscall"
 	"unsafe"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -83,7 +85,30 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 		return err
 	}
 	info.stat = stat
-	info.capability, _ = system.Lgetxattr(cpath, "security.capability") // lgetxattr(2): fs access
+	info.capability, err = system.Lgetxattr(cpath, "security.capability") // lgetxattr(2): fs access
+	if err != nil && err != system.EOPNOTSUPP {
+		return err
+	}
+	xattrs, err := system.Llistxattr(cpath)
+	if err != nil && err != system.EOPNOTSUPP {
+		return err
+	}
+	for _, key := range xattrs {
+		if strings.HasPrefix(key, "user.") {
+			value, err := system.Lgetxattr(cpath, key)
+			if err == system.E2BIG {
+				logrus.Errorf("archive: Skipping xattr for file %s since value is too big: %s", cpath, key)
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if info.xattrs == nil {
+				info.xattrs = make(map[string]string)
+			}
+			info.xattrs[key] = string(value)
+		}
+	}
 	parent.children[info.name] = info
 	return nil
 }
@@ -307,9 +332,7 @@ func overlayLowerContainsWhiteout(root, path string) (bool, error) {
 		return false, err
 	}
 	if err == nil && stat.Mode()&os.ModeCharDevice != 0 {
-		// Check if there's whiteout for the specified item in the specified layer.
-		s := stat.Sys().(*syscall.Stat_t)
-		if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+		if isWhiteOut(stat) {
 			return true, nil
 		}
 	}
@@ -319,8 +342,7 @@ func overlayLowerContainsWhiteout(root, path string) (bool, error) {
 func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (string, error) {
 	// If it's a whiteout item, then a file or directory with that name is removed by this layer.
 	if fi.Mode()&os.ModeCharDevice != 0 {
-		s := fi.Sys().(*syscall.Stat_t)
-		if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+		if isWhiteOut(fi) {
 			return path, nil
 		}
 	}
@@ -350,10 +372,7 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 		}
 		if err == nil {
 			if stat.Mode()&os.ModeCharDevice != 0 {
-				// It's a whiteout for this directory, so it can't have been
-				// deleted in this layer.
-				s := stat.Sys().(*syscall.Stat_t)
-				if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+				if isWhiteOut(stat) {
 					return "", nil
 				}
 			}
@@ -370,10 +389,7 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 			}
 			if err == nil {
 				if stat.Mode()&os.ModeCharDevice != 0 {
-					// If it's whiteout for a parent directory, then the
-					// original directory wasn't inherited into the top layer.
-					s := stat.Sys().(*syscall.Stat_t)
-					if major(s.Rdev) == 0 && minor(s.Rdev) == 0 {
+					if isWhiteOut(stat) {
 						return "", nil
 					}
 				}

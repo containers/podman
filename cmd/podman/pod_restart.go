@@ -26,7 +26,7 @@ var (
 			return podRestartCmd(&podRestartCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod restart podID1 podID2
   podman pod restart --latest
@@ -47,18 +47,18 @@ func init() {
 
 func podRestartCmd(c *cliconfig.PodRestartValues) error {
 	var lastError error
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	restartIDs, conErrors, restartErrors := runtime.RestartPods(getContext(), c)
 
 	for _, p := range restartIDs {
 		fmt.Println(p)
 	}
-	if conErrors != nil && len(conErrors) > 0 {
+	if len(conErrors) > 0 {
 		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)

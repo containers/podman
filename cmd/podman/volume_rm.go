@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
@@ -47,24 +45,14 @@ func volumeRmCmd(c *cliconfig.VolumeRmValues) error {
 		return errors.New("choose either one or more volumes or all")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
-	deletedVolumeNames, err := runtime.RemoveVolumes(getContext(), c)
+	defer runtime.DeferredShutdown(false)
+	deletedVolumeNames, deletedVolumeErrors, err := runtime.RemoveVolumes(getContext(), c)
 	if err != nil {
-		if len(deletedVolumeNames) > 0 {
-			printDeleteVolumes(deletedVolumeNames)
-			return err
-		}
+		return err
 	}
-	printDeleteVolumes(deletedVolumeNames)
-	return err
-}
-
-func printDeleteVolumes(volumes []string) {
-	for _, v := range volumes {
-		fmt.Println(v)
-	}
+	return printCmdResults(deletedVolumeNames, deletedVolumeErrors)
 }

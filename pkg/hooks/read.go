@@ -67,7 +67,7 @@ func ReadDir(path string, extensionStages []string, hooks map[string]*current.Ho
 	if err != nil {
 		return err
 	}
-
+	res := err
 	for _, file := range files {
 		filePath := filepath.Join(path, file.Name())
 		hook, err := Read(filePath, extensionStages)
@@ -80,12 +80,17 @@ func ReadDir(path string, extensionStages []string, hooks map[string]*current.Ho
 					continue
 				}
 			}
-			return err
+			if res == nil {
+				res = err
+			} else {
+				res = errors.Wrapf(res, "%v", err)
+			}
+			continue
 		}
 		hooks[file.Name()] = hook
 		logrus.Debugf("added hook %s", filePath)
 	}
-	return nil
+	return res
 }
 
 func init() {

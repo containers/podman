@@ -24,7 +24,7 @@ var _ = Describe("Podman run dns", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -41,10 +41,17 @@ var _ = Describe("Podman run dns", func() {
 		session.LineInOuputStartsWith("search foobar.com")
 	})
 
+	It("podman run remove all search domain", func() {
+		session := podmanTest.Podman([]string{"run", "--dns-search=.", ALPINE, "cat", "/etc/resolv.conf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.LineInOuputStartsWith("search")).To(BeFalse())
+	})
+
 	It("podman run add bad dns server", func() {
 		session := podmanTest.Podman([]string{"run", "--dns=foobar", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman run add dns server", func() {
@@ -64,7 +71,7 @@ var _ = Describe("Podman run dns", func() {
 	It("podman run add bad host", func() {
 		session := podmanTest.Podman([]string{"run", "--add-host=foo:1.2", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman run add host", func() {
@@ -93,5 +100,23 @@ var _ = Describe("Podman run dns", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.LineInOutputContains("foobar")).To(BeTrue())
+	})
+
+	It("podman run mutually excludes --dns* and --network", func() {
+		session := podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "container:ALPINE", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{"run", "--dns-opt=1.2.3.4", "--network", "container:ALPINE", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{"run", "--dns-search=foobar.com", "--network", "none", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError())
+
+		session = podmanTest.Podman([]string{"run", "--dns=1.2.3.4", "--network", "host", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To((Equal(0)))
 	})
 })

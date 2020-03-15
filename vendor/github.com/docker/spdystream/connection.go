@@ -14,7 +14,7 @@ import (
 
 var (
 	ErrInvalidStreamId   = errors.New("Invalid stream id")
-	ErrTimeout           = errors.New("Timeout occurred")
+	ErrTimeout           = errors.New("Timeout occured")
 	ErrReset             = errors.New("Stream reset")
 	ErrWriteClosedStream = errors.New("Write on closed stream")
 )
@@ -325,7 +325,7 @@ Loop:
 		readFrame, err := s.framer.ReadFrame()
 		if err != nil {
 			if err != io.EOF {
-				debugMessage("frame read error: %s", err)
+				fmt.Errorf("frame read error: %s", err)
 			} else {
 				debugMessage("(%p) EOF received", s)
 			}
@@ -421,7 +421,7 @@ func (s *Connection) frameHandler(frameQueue *PriorityFrameQueue, newHandler Str
 		}
 
 		if frameErr != nil {
-			debugMessage("frame handling error: %s", frameErr)
+			fmt.Errorf("frame handling error: %s", frameErr)
 		}
 	}
 }
@@ -451,7 +451,6 @@ func (s *Connection) addStreamFrame(frame *spdy.SynStreamFrame) {
 		dataChan:   make(chan []byte),
 		headerChan: make(chan http.Header),
 		closeChan:  make(chan bool),
-		priority:   frame.Priority,
 	}
 	if frame.CFHeader.Flags&spdy.ControlFlagFin != 0x00 {
 		stream.closeRemoteChannels()
@@ -474,7 +473,7 @@ func (s *Connection) checkStreamFrame(frame *spdy.SynStreamFrame) bool {
 		go func() {
 			resetErr := s.sendResetFrame(spdy.ProtocolError, frame.StreamId)
 			if resetErr != nil {
-				debugMessage("reset error: %s", resetErr)
+				fmt.Errorf("reset error: %s", resetErr)
 			}
 		}()
 		return false
@@ -719,7 +718,7 @@ func (s *Connection) shutdown(closeTimeout time.Duration) {
 			select {
 			case err, ok := <-s.shutdownChan:
 				if ok {
-					debugMessage("Unhandled close error after %s: %s", duration, err)
+					fmt.Errorf("Unhandled close error after %s: %s", duration, err)
 				}
 			default:
 			}

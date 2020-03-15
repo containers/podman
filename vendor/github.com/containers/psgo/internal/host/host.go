@@ -24,26 +24,6 @@ import (
 	"strings"
 )
 
-/*
-#include <unistd.h>
-*/
-import "C"
-
-var (
-	// cache host queries to redundant calculations
-	clockTicks *int64
-	bootTime   *int64
-)
-
-// ClockTicks returns sysconf(SC_CLK_TCK).
-func ClockTicks() int64 {
-	if clockTicks == nil {
-		ticks := int64(C.sysconf(C._SC_CLK_TCK))
-		clockTicks = &ticks
-	}
-	return *clockTicks
-}
-
 // BootTime parses /proc/uptime returns the boot time in seconds since the
 // Epoch, 1970-01-01 00:00:00 +0000 (UTC).
 func BootTime() (int64, error) {

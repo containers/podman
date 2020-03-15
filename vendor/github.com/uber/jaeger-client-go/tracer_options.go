@@ -51,10 +51,10 @@ func (tracerOptions) CustomHeaderKeys(headerKeys *HeadersConfig) TracerOption {
 		if headerKeys == nil {
 			return
 		}
-		textPropagator := newTextMapPropagator(headerKeys.applyDefaults(), tracer.metrics)
+		textPropagator := NewTextMapPropagator(headerKeys.ApplyDefaults(), tracer.metrics)
 		tracer.addCodec(opentracing.TextMap, textPropagator, textPropagator)
 
-		httpHeaderPropagator := newHTTPHeaderPropagator(headerKeys.applyDefaults(), tracer.metrics)
+		httpHeaderPropagator := NewHTTPHeaderPropagator(headerKeys.ApplyDefaults(), tracer.metrics)
 		tracer.addCodec(opentracing.HTTPHeaders, httpHeaderPropagator, httpHeaderPropagator)
 	}
 }
@@ -81,7 +81,11 @@ func (tracerOptions) RandomNumber(randomNumber func() uint64) TracerOption {
 // that can access parent spans after those spans have been finished.
 func (tracerOptions) PoolSpans(poolSpans bool) TracerOption {
 	return func(tracer *Tracer) {
-		tracer.options.poolSpans = poolSpans
+		if poolSpans {
+			tracer.spanAllocator = newSyncPollSpanAllocator()
+		} else {
+			tracer.spanAllocator = simpleSpanAllocator{}
+		}
 	}
 }
 
@@ -122,6 +126,12 @@ func (tracerOptions) Gen128Bit(gen128Bit bool) TracerOption {
 	}
 }
 
+func (tracerOptions) NoDebugFlagOnForcedSampling(noDebugFlagOnForcedSampling bool) TracerOption {
+	return func(tracer *Tracer) {
+		tracer.options.noDebugFlagOnForcedSampling = noDebugFlagOnForcedSampling
+	}
+}
+
 func (tracerOptions) HighTraceIDGenerator(highTraceIDGenerator func() uint64) TracerOption {
 	return func(tracer *Tracer) {
 		tracer.options.highTraceIDGenerator = highTraceIDGenerator
@@ -131,6 +141,18 @@ func (tracerOptions) HighTraceIDGenerator(highTraceIDGenerator func() uint64) Tr
 func (tracerOptions) MaxTagValueLength(maxTagValueLength int) TracerOption {
 	return func(tracer *Tracer) {
 		tracer.options.maxTagValueLength = maxTagValueLength
+	}
+}
+
+// MaxLogsPerSpan limits the number of Logs in a span (if set to a nonzero
+// value). If a span has more logs than this value, logs are dropped as
+// necessary (and replaced with a log describing how many were dropped).
+//
+// About half of the MaxLogsPerSpan logs kept are the oldest logs, and about
+// half are the newest logs.
+func (tracerOptions) MaxLogsPerSpan(maxLogsPerSpan int) TracerOption {
+	return func(tracer *Tracer) {
+		tracer.options.maxLogsPerSpan = maxLogsPerSpan
 	}
 }
 

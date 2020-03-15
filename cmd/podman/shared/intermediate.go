@@ -8,7 +8,7 @@ import (
 /*
 attention
 
-in this file you will see alot of struct duplication.  this was done because people wanted a strongly typed
+in this file you will see a lot of struct duplication.  this was done because people wanted a strongly typed
 varlink mechanism.  this resulted in us creating this intermediate layer that allows us to take the input
 from the cli and make an intermediate layer which can be transferred as strongly typed structures over a varlink
 interface.
@@ -114,7 +114,7 @@ func (f GenericCLIResults) findResult(flag string) GenericCLIResult {
 	if ok {
 		return val
 	}
-	logrus.Errorf("unable to find flag %s", flag)
+	logrus.Debugf("unable to find flag %s", flag)
 	return nil
 }
 
@@ -370,6 +370,8 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["blkio-weight-device"] = newCRStringSlice(c, "blkio-weight-device")
 	m["cap-add"] = newCRStringSlice(c, "cap-add")
 	m["cap-drop"] = newCRStringSlice(c, "cap-drop")
+	m["cgroupns"] = newCRString(c, "cgroupns")
+	m["cgroups"] = newCRString(c, "cgroups")
 	m["cgroup-parent"] = newCRString(c, "cgroup-parent")
 	m["cidfile"] = newCRString(c, "cidfile")
 	m["conmon-pidfile"] = newCRString(c, "conmon-pidfile")
@@ -384,6 +386,7 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["detach"] = newCRBool(c, "detach")
 	m["detach-keys"] = newCRString(c, "detach-keys")
 	m["device"] = newCRStringSlice(c, "device")
+	m["device-cgroup-rule"] = newCRStringSlice(c, "device-cgroup-rule")
 	m["device-read-bps"] = newCRStringSlice(c, "device-read-bps")
 	m["device-read-iops"] = newCRStringSlice(c, "device-read-iops")
 	m["device-write-bps"] = newCRStringSlice(c, "device-write-bps")
@@ -398,11 +401,11 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["gidmap"] = newCRStringSlice(c, "gidmap")
 	m["group-add"] = newCRStringSlice(c, "group-add")
 	m["help"] = newCRBool(c, "help")
-	m["healthcheck-command"] = newCRString(c, "healthcheck-command")
-	m["healthcheck-interval"] = newCRString(c, "healthcheck-interval")
-	m["healthcheck-retries"] = newCRUint(c, "healthcheck-retries")
-	m["healthcheck-start-period"] = newCRString(c, "healthcheck-start-period")
-	m["healthcheck-timeout"] = newCRString(c, "healthcheck-timeout")
+	m["healthcheck-command"] = newCRString(c, "health-cmd")
+	m["healthcheck-interval"] = newCRString(c, "health-interval")
+	m["healthcheck-retries"] = newCRUint(c, "health-retries")
+	m["healthcheck-start-period"] = newCRString(c, "health-start-period")
+	m["healthcheck-timeout"] = newCRString(c, "health-timeout")
 	m["hostname"] = newCRString(c, "hostname")
 	m["image-volume"] = newCRString(c, "image-volume")
 	m["init"] = newCRBool(c, "init")
@@ -421,19 +424,23 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["memory-swap"] = newCRString(c, "memory-swap")
 	m["memory-swappiness"] = newCRInt64(c, "memory-swappiness")
 	m["name"] = newCRString(c, "name")
-	m["net"] = newCRString(c, "net")
 	m["network"] = newCRString(c, "network")
+	m["no-healthcheck"] = newCRBool(c, "no-healthcheck")
 	m["no-hosts"] = newCRBool(c, "no-hosts")
 	m["oom-kill-disable"] = newCRBool(c, "oom-kill-disable")
 	m["oom-score-adj"] = newCRInt(c, "oom-score-adj")
+	m["override-arch"] = newCRString(c, "override-arch")
+	m["override-os"] = newCRString(c, "override-os")
 	m["pid"] = newCRString(c, "pid")
 	m["pids-limit"] = newCRInt64(c, "pids-limit")
 	m["pod"] = newCRString(c, "pod")
 	m["privileged"] = newCRBool(c, "privileged")
 	m["publish"] = newCRStringSlice(c, "publish")
 	m["publish-all"] = newCRBool(c, "publish-all")
+	m["pull"] = newCRString(c, "pull")
 	m["quiet"] = newCRBool(c, "quiet")
 	m["read-only"] = newCRBool(c, "read-only")
+	m["read-only-tmpfs"] = newCRBool(c, "read-only-tmpfs")
 	m["restart"] = newCRString(c, "restart")
 	m["rm"] = newCRBool(c, "rm")
 	m["rootfs"] = newCRBool(c, "rootfs")
@@ -445,8 +452,8 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["subgidname"] = newCRString(c, "subgidname")
 	m["subuidname"] = newCRString(c, "subuidname")
 	m["sysctl"] = newCRStringSlice(c, "sysctl")
-	m["systemd"] = newCRBool(c, "systemd")
-	m["tmpfs"] = newCRStringSlice(c, "tmpfs")
+	m["systemd"] = newCRString(c, "systemd")
+	m["tmpfs"] = newCRStringArray(c, "tmpfs")
 	m["tty"] = newCRBool(c, "tty")
 	m["uidmap"] = newCRStringSlice(c, "uidmap")
 	m["ulimit"] = newCRStringSlice(c, "ulimit")
@@ -457,8 +464,13 @@ func NewIntermediateLayer(c *cliconfig.PodmanCommand, remote bool) GenericCLIRes
 	m["volume"] = newCRStringArray(c, "volume")
 	m["volumes-from"] = newCRStringSlice(c, "volumes-from")
 	m["workdir"] = newCRString(c, "workdir")
+	m["seccomp-policy"] = newCRString(c, "seccomp-policy")
 	// global flag
 	if !remote {
+		m["authfile"] = newCRString(c, "authfile")
+		m["cgroupns"] = newCRString(c, "cgroupns")
+		m["env-host"] = newCRBool(c, "env-host")
+		m["http-proxy"] = newCRBool(c, "http-proxy")
 		m["trace"] = newCRBool(c, "trace")
 		m["syslog"] = newCRBool(c, "syslog")
 	}

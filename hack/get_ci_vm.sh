@@ -11,7 +11,7 @@ ${YEL}WARNING: This will not work without local sudo access to run podman,${NOR}
          ${YEL}possession of the proper ssh private key is required.${NOR}
 "
 # TODO: Many/most of these values should come from .cirrus.yml
-ZONE="us-central1-a"
+ZONE="${ZONE:-us-central1-a}"
 CPUS="2"
 MEMORY="4Gb"
 DISK="200"
@@ -19,7 +19,6 @@ PROJECT="libpod-218412"
 GOSRC="/var/tmp/go/src/github.com/containers/libpod"
 GCLOUD_IMAGE=${GCLOUD_IMAGE:-quay.io/cevich/gcloud_centos:latest}
 GCLOUD_SUDO=${GCLOUD_SUDO-sudo}
-ROOTLESS_USER="madcowdog"
 
 # Shared tmp directory between container and us
 TMPDIR=$(mktemp -d --tmpdir $(basename $0)_tmpdir_XXXXXX)
@@ -48,11 +47,15 @@ showrun() {
 }
 
 cleanup() {
+    RET=$?
     set +e
     wait
 
     # set GCLOUD_DEBUG to leave tmpdir behind for postmortem
     test -z "$GCLOUD_DEBUG" && rm -rf $TMPDIR
+
+    # Not always called from an exit handler, but should always exit when called
+    exit $RET
 }
 trap cleanup EXIT
 
@@ -65,16 +68,18 @@ delvm() {
 }
 
 image_hints() {
+    _BIS=$(egrep -m 1 '_BUILT_IMAGE_SUFFIX:[[:space:]+"[[:print:]]+"' "$LIBPODROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]')
     egrep '[[:space:]]+[[:alnum:]].+_CACHE_IMAGE_NAME:[[:space:]+"[[:print:]]+"' \
         "$LIBPODROOT/.cirrus.yml" | cut -d: -f 2 | tr -d '"[:blank:]' | \
-        grep -v 'notready' | grep -v 'image-builder' | sort -u
+        sed -r -e "s/\\\$[{]_BUILT_IMAGE_SUFFIX[}]/$_BIS/" | sort -u
 }
 
 show_usage() {
     echo -e "\n${RED}ERROR: $1${NOR}"
-    echo -e "${YEL}Usage: $(basename $0) [-s | -p | -r] <image_name>${NOR}"
-    echo "Use -s / -p to select source or package based dependencies"
-    echo -e "Use -r to setup and run tests as a regular user.\n"
+    echo -e "${YEL}Usage: $(basename $0) [-m <SPECIALMODE>] [-u <ROOTLESS_USER> ] <image_name>${NOR}"
+    echo "Use -m <SPECIALMODE> with a supported value documented in contrib/cirrus/README.md."
+    echo "With '-m rootless' must also specify -u <ROOTLESS_USER> with name of user to create & use"
+    echo ""
     if [[ -r ".cirrus.yml" ]]
     then
         echo -e "${YEL}Some possible image_name values (from .cirrus.yml):${NOR}"
@@ -87,40 +92,68 @@ show_usage() {
 get_env_vars() {
     python -c '
 import yaml
-env=yaml.load(open(".cirrus.yml"))["env"]
+env=yaml.load(open(".cirrus.yml"), Loader=yaml.SafeLoader)["env"]
 keys=[k for k in env if "ENCRYPTED" not in str(env[k])]
 for k,v in env.items():
     v=str(v)
-    if "ENCRYPTED" not in v:
-        print "{0}=\"{1}\"".format(k, v),
+    if "ENCRYPTED" not in v and "ADD_SECOND_PARTITION" not in v:
+        print("{0}=\"{1}\"".format(k, v)),
     '
 }
 
 parse_args(){
     echo -e "$USAGE_WARNING"
 
-    if [[ -z "$1" ]]
+    if [[ "$USER" =~ "root" ]]
     then
-        show_usage "Must specify at least one command-line parameter."
-    elif [[ "$1" == "-p" ]]
-    then
-        echo -e "${YEL}Hint: Use -p for package-based dependencies or -s for source-based.${NOR}"
-        DEPS="PACKAGE_DEPS=true SOURCE_DEPS=false"
-        IMAGE_NAME="$2"
+        show_usage "This script must be run as a regular user."
+    fi
 
-    elif [[ "$1" == "-s" ]]
+    ENVS="$(get_env_vars)"
+    [[ "$#" -ge "1" ]] || \
+        show_usage "Must specify at least one command-line parameter."
+
+    IMAGE_NAME=""
+    ROOTLESS_USER=""
+    SPECIALMODE="none"
+    for arg
+    do
+        if [[ "$SPECIALMODE" == "GRABNEXT" ]] && [[ "${arg:0:1}" != "-" ]]
+        then
+            SPECIALMODE="$arg"
+            echo -e "${YEL}Using \$SPECIALMODE=$SPECIALMODE.${NOR}"
+            continue
+        elif [[ "$ROOTLESS_USER" == "GRABNEXT" ]] && [[ "${arg:0:1}" != "-" ]]
+        then
+            ROOTLESS_USER="$arg"
+            echo -e "${YEL}Using \$ROOTLESS_USER=$ROOTLESS_USER.${NOR}"
+            continue
+        fi
+        case "$arg" in
+            -m)
+                SPECIALMODE="GRABNEXT"
+                ;;
+            -u)
+                ROOTLESS_USER="GRABNEXT"
+                ;;
+            *)
+                [[ "${arg:0:1}" != "-" ]] || \
+                    show_usage "Unknown command-line option '$arg'."
+                [[ -z "$IMAGE_NAME" ]] || \
+                    show_usage "Must specify exactly one image name, got '$IMAGE_NAME' and '$arg'."
+                IMAGE_NAME="$arg"
+                ;;
+        esac
+    done
+
+    if [[ "$SPECIALMODE" == "GRABNEXT" ]]
     then
-        echo -e "${RED}Using source-based dependencies.${NOR}"
-        DEPS="PACKAGE_DEPS=false SOURCE_DEPS=true"
-        IMAGE_NAME="$2"
-    elif [[ "$1" == "-r" ]]
+        show_usage "Must specify argument to -m option."
+    fi
+
+    if [[ "$ROOTLESS_USER" == "GRABNEXT" ]]
     then
-        DEPS="ROOTLESS_USER=$ROOTLESS_USER"
-        IMAGE_NAME="$2"
-    else  # no -s or -p
-        echo -e "${RED}Using package-based dependencies.${NOR}"
-        DEPS="$(get_env_vars)"
-        IMAGE_NAME="$1"
+        show_usage "Must specify argument to -u option."
     fi
 
     if [[ -z "$IMAGE_NAME" ]]
@@ -128,15 +161,33 @@ parse_args(){
         show_usage "No image-name specified."
     fi
 
-    if [[ "$USER" =~ "root" ]]
+    if [[ "$SPECIALMODE" == "rootless" ]] && [[ -z "$ROOTLESS_USER" ]]
     then
-        show_usage "This script must be run as a regular user."
+        show_usage "With '-m rootless' must also pass -u <username> of rootless user."
     fi
 
-    SETUP_CMD="env $DEPS $GOSRC/contrib/cirrus/setup_environment.sh"
+    if echo "$IMAGE_NAME" | grep -q "image-builder-image"
+    then
+        echo -e "Creating an image-builder VM, I hope you know what you're doing.\n"
+        IBI_ARGS="--scopes=compute-rw,storage-rw,userinfo-email"
+        SSHUSER="centos"
+    else
+        unset IBI_ARGS
+        SSHUSER="root"
+    fi
+
+    ENVS="$ENVS SPECIALMODE=\"$SPECIALMODE\""
+
+    [[ -z "$ROOTLESS_USER" ]] || \
+        ENVS="$ENVS ROOTLESS_USER=$ROOTLESS_USER"
+
+    SETUP_CMD="env $ENVS ADD_SECOND_PARTITIO=True $GOSRC/contrib/cirrus/setup_environment.sh"
     VMNAME="${VMNAME:-${USER}-${IMAGE_NAME}}"
-    CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $VMNAME"
-    SSH_CMD="$PGCLOUD compute ssh root@$VMNAME"
+
+    CREATE_CMD="$PGCLOUD compute instances create --zone=$ZONE --image=${IMAGE_NAME} --custom-cpu=$CPUS --custom-memory=$MEMORY --boot-disk-size=$DISK --labels=in-use-by=$USER $IBI_ARGS $VMNAME"
+
+    SSH_CMD="$PGCLOUD compute ssh $SSHUSER@$VMNAME"
+
     CLEANUP_CMD="$PGCLOUD compute instances delete --zone $ZONE --delete-disks=all $VMNAME"
 }
 
@@ -147,7 +198,7 @@ parse_args(){
 
 cd "$LIBPODROOT"
 
-parse_args $@
+parse_args "$@"
 
 # Ensure mount-points and data directories exist on host as $USER.  Also prevents
 # permission-denied errors during cleanup() b/c `sudo podman` created mount-points
@@ -181,17 +232,21 @@ then
            "$HOME/.config/gcloud/configurations/config_default"
 fi
 
-# Couldn't make rsync work with gcloud's ssh wrapper :(
+# Couldn't make rsync work with gcloud's ssh wrapper because ssh-keys generated on the fly
 TARBALL=$VMNAME.tar.bz2
-echo -e "\n${YEL}Packing up repository into a tarball $VMNAME.${NOR}"
-showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed -C $LIBPODROOT .
+echo -e "\n${YEL}Packing up local repository into a tarball.${NOR}"
+showrun --background tar cjf $TMPDIR/$TARBALL --warning=no-file-changed --exclude-vcs-ignores -C $LIBPODROOT .
 
 trap delvm INT  # Allow deleting VM if CTRL-C during create
 # This fails if VM already exists: permit this usage to re-init
-echo -e "\n${YEL}Trying to creating a VM named $VMNAME ${RED}(might take a minute/two.  Errors ignored).${NOR}"
+echo -e "\n${YEL}Trying to creating a VM named $VMNAME${NOR}\n${YEL}in GCE region/zone $ZONE${NOR}"
+echo -e "For faster access, export ZONE='something-closer-<any letter>'"
+echo 'List of regions and zones: https://cloud.google.com/compute/docs/regions-zones/'
+echo -e "${RED}(might take a minute/two.  Errors ignored).${NOR}"
 showrun $CREATE_CMD || true # allow re-running commands below when "delete: N"
 
 # Any subsequent failure should prompt for VM deletion
+trap - INT
 trap delvm EXIT
 
 echo -e "\n${YEL}Waiting up to 30s for ssh port to open${NOR}"
@@ -208,19 +263,13 @@ then
 fi
 echo -e "${YEL}Got it${NOR}"
 
-if $SSH_CMD --command "test -r /root/.bash_profile_original"
-then
-    echo -e "\n${YEL}Resetting environment configuration${NOR}"
-    showrun $SSH_CMD --command "cp /root/.bash_profile_original /root/.bash_profile"
-fi
-
 echo -e "\n${YEL}Removing and re-creating $GOSRC on $VMNAME.${NOR}"
 showrun $SSH_CMD --command "rm -rf $GOSRC"
 showrun $SSH_CMD --command "mkdir -p $GOSRC"
 
-echo -e "\n${YEL}Transfering tarball to $VMNAME.${NOR}"
+echo -e "\n${YEL}Transferring tarball to $VMNAME.${NOR}"
 wait
-showrun $SCP_CMD $HOME/$TARBALL root@$VMNAME:/tmp/$TARBALL
+showrun $SCP_CMD $HOME/$TARBALL $SSHUSER@$VMNAME:/tmp/$TARBALL
 
 echo -e "\n${YEL}Unpacking tarball into $GOSRC on $VMNAME.${NOR}"
 showrun $SSH_CMD --command "tar xjf /tmp/$TARBALL -C $GOSRC"
@@ -231,9 +280,14 @@ showrun $SSH_CMD --command "rm -f /tmp/$TARBALL"
 echo -e "\n${YEL}Executing environment setup${NOR}"
 showrun $SSH_CMD --command "$SETUP_CMD"
 
-echo -e "\n${YEL}Connecting to $VMNAME ${RED}(option to delete VM upon logout).${NOR}\n"
-if [[ "$1" == "-r" ]]
+VMIP=$($PGCLOUD compute instances describe $VMNAME --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+
+echo -e "\n${YEL}Connecting to $VMNAME${NOR}\nPublic IP Address: $VMIP\n${RED}(option to delete VM upon logout).${NOR}\n"
+if [[ -n "$ROOTLESS_USER" ]]
 then
+    echo "Re-chowning source files after transfer"
+    showrun $SSH_CMD --command "chown -R $ROOTLESS_USER $GOSRC"
+    echo "Connecting as user $ROOTLESS_USER"
     SSH_CMD="$PGCLOUD compute ssh $ROOTLESS_USER@$VMNAME"
 fi
-showrun $SSH_CMD -- -t "cd $GOSRC && exec env $DEPS bash -il"
+showrun $SSH_CMD -- -t "cd $GOSRC && exec env $ENVS bash -il"

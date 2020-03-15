@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -26,7 +24,7 @@ var _ = Describe("Podman ps", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -109,7 +107,7 @@ var _ = Describe("Podman ps", func() {
 	It("podman pod ps mutually exclusive flags", func() {
 		session := podmanTest.Podman([]string{"pod", "ps", "-q", "--format", "{{.ID}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 	})
 

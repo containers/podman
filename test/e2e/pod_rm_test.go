@@ -1,10 +1,10 @@
-// +build !remoteclient
-
 package integration
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -25,7 +25,7 @@ var _ = Describe("Podman pod rm", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -42,6 +42,21 @@ var _ = Describe("Podman pod rm", func() {
 		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
 		Expect(result.ExitCode()).To(Equal(0))
+
+		// Also check that we don't leak cgroups
+		err := filepath.Walk("/sys/fs/cgroup", func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				Expect(err).To(BeNil())
+			}
+			if strings.Contains(info.Name(), podid) {
+				return fmt.Errorf("leaking cgroup path %s", path)
+			}
+			return nil
+		})
+		Expect(err).To(BeNil())
 	})
 
 	It("podman pod rm latest pod", func() {
@@ -62,7 +77,7 @@ var _ = Describe("Podman pod rm", func() {
 		Expect(result.OutputToString()).To(Not(ContainSubstring(podid2)))
 	})
 
-	It("podman pod rm doesn't remove a pod with a container", func() {
+	It("podman pod rm removes a pod with a container", func() {
 		_, ec, podid := podmanTest.CreatePod("")
 		Expect(ec).To(Equal(0))
 
@@ -71,11 +86,11 @@ var _ = Describe("Podman pod rm", func() {
 
 		result := podmanTest.Podman([]string{"pod", "rm", podid})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(125))
+		Expect(result.ExitCode()).To(Equal(0))
 
 		result = podmanTest.Podman([]string{"ps", "-qa"})
 		result.WaitWithDefaultTimeout()
-		Expect(len(result.OutputToStringArray())).To(Equal(1))
+		Expect(len(result.OutputToStringArray())).To(Equal(0))
 	})
 
 	It("podman pod rm -f does remove a running container", func() {
@@ -120,8 +135,8 @@ var _ = Describe("Podman pod rm", func() {
 		fmt.Printf("Removing all empty pods\n")
 		result := podmanTest.Podman([]string{"pod", "rm", "-a"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Not(Equal(0)))
-		foundExpectedError, _ := result.ErrorGrepString("contains containers and cannot be removed")
+		Expect(result).To(ExitWithError())
+		foundExpectedError, _ := result.ErrorGrepString("cannot be removed")
 		Expect(foundExpectedError).To(Equal(true))
 
 		num_pods = podmanTest.NumberOfPods()
@@ -170,5 +185,48 @@ var _ = Describe("Podman pod rm", func() {
 		result = podmanTest.Podman([]string{"pod", "ps", "-q"})
 		result.WaitWithDefaultTimeout()
 		Expect(result.OutputToString()).To(BeEmpty())
+	})
+
+	It("podman rm bogus pod", func() {
+		session := podmanTest.Podman([]string{"pod", "rm", "bogus"})
+		session.WaitWithDefaultTimeout()
+		// TODO: `podman rm` returns 1 for a bogus container. Should the RC be consistent?
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman rm bogus pod and a running pod", func() {
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(125))
+	})
+
+	It("podman rm --ignore bogus pod and a running pod", func() {
+		SkipIfRemote()
+
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.RunTopContainerInPod("test1", podid1)
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "--force", "--ignore", "bogus", "test1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "rm", "--ignore", "test1", "bogus"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 })

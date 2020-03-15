@@ -55,9 +55,11 @@ function check_help() {
 
         # If usage has required arguments, try running without them
         if expr "$usage" : '.*\[flags\] [A-Z]' >/dev/null; then
-            dprint "podman $@ $cmd (without required args)"
-            run_podman 125 "$@" $cmd
-            is "$output" "Error:"
+            if [ "$cmd" != "stats"]; then
+                dprint "podman $@ $cmd (without required args)"
+                run_podman 125 "$@" $cmd
+                is "$output" "Error:"
+            fi
         fi
 
         count=$(expr $count + 1)

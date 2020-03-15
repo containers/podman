@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -21,7 +23,6 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			Name:            name,
 			RootfsImageID:   id,
 			RootfsImageName: "testimg",
-			ImageVolumes:    true,
 			StaticDir:       "/does/not/exist/",
 			LogPath:         "/does/not/exist/",
 			Stdin:           true,
@@ -49,7 +50,7 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			},
 		},
 		state: &ContainerState{
-			State:      ContainerStateRunning,
+			State:      define.ContainerStateRunning,
 			ConfigPath: "/does/not/exist/specs/" + id,
 			RunDir:     "/does/not/exist/tmp/",
 			Mounted:    true,
@@ -73,7 +74,7 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			},
 		},
 		runtime: &Runtime{
-			config: &RuntimeConfig{
+			config: &config.Config{
 				VolumePath: "/does/not/exist/tmp/volumes",
 			},
 		},
@@ -88,13 +89,13 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 
 	ctr.config.Labels["test"] = "testing"
 
-	// Allocate a lock for the container
-	lock, err := manager.AllocateLock()
+	// Allocate a containerLock for the container
+	containerLock, err := manager.AllocateLock()
 	if err != nil {
 		return nil, err
 	}
-	ctr.lock = lock
-	ctr.config.LockID = lock.ID()
+	ctr.lock = containerLock
+	ctr.config.LockID = containerLock.ID()
 
 	return ctr, nil
 }
@@ -113,13 +114,13 @@ func getTestPod(id, name string, manager lock.Manager) (*Pod, error) {
 		valid: true,
 	}
 
-	// Allocate a lock for the pod
-	lock, err := manager.AllocateLock()
+	// Allocate a podLock for the pod
+	podLock, err := manager.AllocateLock()
 	if err != nil {
 		return nil, err
 	}
-	pod.lock = lock
-	pod.config.LockID = lock.ID()
+	pod.lock = podLock
+	pod.config.LockID = podLock.ID()
 
 	return pod, nil
 }

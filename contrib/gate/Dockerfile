@@ -1,19 +1,14 @@
-FROM fedora:29
+FROM fedora:31
 RUN dnf -y install \
-      atomic-registries \
       btrfs-progs-devel \
-      buildah \
       bzip2 \
-      conmon \
       container-selinux \
       containernetworking-cni \
-      containernetworking-cni-devel \
       device-mapper-devel \
       findutils \
       git \
       glib2-devel \
       glibc-static \
-      gnupg \
       golang \
       gpgme-devel \
       iptables \
@@ -23,7 +18,6 @@ RUN dnf -y install \
       lsof \
       make \
       nmap-ncat \
-      ostree-devel \
       procps-ng \
       python \
       python3-dateutil \
@@ -31,38 +25,44 @@ RUN dnf -y install \
       python3-pytoml \
       python3-pyyaml \
       python3-varlink \
-      containers-common \
-      slirp4netns \
       rsync \
+      slirp4netns \
+      unzip \
       which \
       xz \
+      zip \
       && dnf clean all
 
-ENV GOPATH="/go" \
-    PATH="/go/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin" \
+ENV GOPATH="/var/tmp/go" \
+    GOBIN="/var/tmp/go/bin" \
+    PATH="/var/tmp/go/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin" \
     SRCPATH="/usr/src/libpod" \
-    GOSRC="/go/src/github.com/containers/libpod"
+    GOSRC="/var/tmp/go/src/github.com/containers/libpod"
 
-# Only needed for installing build-time dependencies
+# Only needed for installing build-time dependencies, then will be removed
 COPY / $GOSRC
-
-WORKDIR $GOSRC
 
 # Install dependencies
 RUN set -x && \
-    make install.tools && \
+    mkdir -p "$GOBIN" && \
+    mkdir -p /etc/cni/net.d && \
+    mkdir -p /etc/containers && \
     install -D -m 755 $GOSRC/contrib/gate/entrypoint.sh /usr/local/bin/ && \
-    rm -rf "$GOSRC"
+    python3 -m pip install pre-commit
 
 # Install cni config
-#RUN make install.cni
-RUN mkdir -p /etc/cni/net.d/
 COPY cni/87-podman-bridge.conflist /etc/cni/net.d/87-podman-bridge.conflist
-
 # Make sure we have some policy for pulling images
-RUN mkdir -p /etc/containers
 COPY test/policy.json /etc/containers/policy.json
 COPY test/redhat_sigstore.yaml /etc/containers/registries.d/registry.access.redhat.com.yaml
 
+WORKDIR "$GOSRC"
+RUN make install.tools && \
+    cd / && \
+    rm -rf "$GOSRC" && \
+    mkdir -p "$GOSRC"
 VOLUME ["/usr/src/libpod"]
+# This entrypoint will synchronize the above volume ($SRCPATH) to $GOSRC before
+# executing make.  This ensures the original source remains prestine and is never
+# modified by any lint/validation checks.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

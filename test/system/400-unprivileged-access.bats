@@ -22,7 +22,7 @@ load helpers
     # as a user, the parent directory must be world-readable.
     test_script=$PODMAN_TMPDIR/fail-if-writable
     cat >$test_script <<"EOF"
-#!/bin/sh
+#!/bin/bash
 
 path="$1"
 
@@ -30,6 +30,12 @@ die() {
     echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
     echo "#| FAIL: $*"                                           >&2
     echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2
+
+    # Show permissions of directories from here on up
+    while expr "$path" : "/var/lib/containers" >/dev/null; do
+        echo "#|  $(ls -ld $path)"
+        path=$(dirname $path)
+    done
 
     exit 1
 }
@@ -65,8 +71,10 @@ EOF
 
     # get podman image and container storage directories
     run_podman info --format '{{.store.GraphRoot}}'
+    is "$output" "/var/lib/containers/storage" "GraphRoot in expected place"
     GRAPH_ROOT="$output"
     run_podman info --format '{{.store.RunRoot}}'
+    is "$output" "/var/run/containers/storage" "RunRoot in expected place"
     RUN_ROOT="$output"
 
     # The main test: find all world-writable files or directories underneath

@@ -27,7 +27,7 @@ var (
 			return podStopCmd(&podStopCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod stop mywebserverpod
   podman pod stop --latest
@@ -41,17 +41,19 @@ func init() {
 	podStopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podStopCommand.Flags()
 	flags.BoolVarP(&podStopCommand.All, "all", "a", false, "Stop all running pods")
+	flags.BoolVarP(&podStopCommand.Ignore, "ignore", "i", false, "Ignore errors when a specified pod is missing")
 	flags.BoolVarP(&podStopCommand.Latest, "latest", "l", false, "Stop the latest pod podman is aware of")
 	flags.UintVarP(&podStopCommand.Timeout, "timeout", "t", 0, "Seconds to wait for pod stop before killing the container")
+	markFlagHiddenForRemoteClient("ignore", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
 }
 
 func podStopCmd(c *cliconfig.PodStopValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	podStopIds, podStopErrors := runtime.StopPods(getContext(), c)
 	for _, p := range podStopIds {

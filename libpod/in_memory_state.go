@@ -3,6 +3,8 @@ package libpod
 import (
 	"strings"
 
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/registrar"
 	"github.com/containers/storage/pkg/truncindex"
 	"github.com/pkg/errors"
@@ -79,8 +81,8 @@ func (s *InMemoryState) Refresh() error {
 
 // GetDBConfig is not implemented for in-memory state.
 // As we do not store a config, return an empty one.
-func (s *InMemoryState) GetDBConfig() (*DBConfig, error) {
-	return &DBConfig{}, nil
+func (s *InMemoryState) GetDBConfig() (*config.DBConfig, error) {
+	return &config.DBConfig{}, nil
 }
 
 // ValidateDBConfig is not implemented for the in-memory state.
@@ -99,12 +101,12 @@ func (s *InMemoryState) SetNamespace(ns string) error {
 // Container retrieves a container from its full ID
 func (s *InMemoryState) Container(id string) (*Container, error) {
 	if id == "" {
-		return nil, ErrEmptyID
+		return nil, define.ErrEmptyID
 	}
 
 	ctr, ok := s.containers[id]
 	if !ok {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no container with ID %s found", id)
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container with ID %s found", id)
 	}
 
 	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
@@ -114,15 +116,16 @@ func (s *InMemoryState) Container(id string) (*Container, error) {
 	return ctr, nil
 }
 
-// LookupContainer retrieves a container by full ID, unique partial ID, or name
-func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+// lookupID retrieves a container or pod ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) lookupID(idOrName string) (string, error) {
 	var (
 		nameIndex *registrar.Registrar
 		idIndex   *truncindex.TruncIndex
 	)
 
 	if idOrName == "" {
-		return nil, ErrEmptyID
+		return "", define.ErrEmptyID
 	}
 
 	if s.namespace != "" {
@@ -130,7 +133,7 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 		if !ok {
 			// We have no containers in the namespace
 			// Return false
-			return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+			return "", define.ErrNoSuchCtr
 		}
 		nameIndex = nsIndex.nameIndex
 		idIndex = nsIndex.idIndex
@@ -146,19 +149,59 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 			fullID, err = idIndex.Get(idOrName)
 			if err != nil {
 				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+					return "", define.ErrNoSuchCtr
 				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
+				return "", errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
 			}
 		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
+			return "", errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
 		}
+	}
+
+	return fullID, nil
+}
+
+// LookupContainerID retrieves a container ID by full ID, unique partial ID, or
+// name
+func (s *InMemoryState) LookupContainerID(idOrName string) (string, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+		_, ok := s.containers[fullID]
+		if !ok {
+			// It's a pod, not a container
+			return "", errors.Wrapf(define.ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
+		}
+
+	case define.ErrNoSuchCtr:
+		return "", errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return "", err
+	}
+
+	return fullID, nil
+}
+
+// LookupContainer retrieves a container by full ID, unique partial ID, or name
+func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
+	fullID, err := s.lookupID(idOrName)
+
+	switch err {
+	case nil:
+
+	case define.ErrNoSuchCtr:
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
+
+	default:
+		return nil, err
 	}
 
 	ctr, ok := s.containers[fullID]
 	if !ok {
 		// It's a pod, not a container
-		return nil, errors.Wrapf(ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "name or ID %s is a pod, not a container", idOrName)
 	}
 
 	return ctr, nil
@@ -167,7 +210,7 @@ func (s *InMemoryState) LookupContainer(idOrName string) (*Container, error) {
 // HasContainer checks if a container with the given ID is present in the state
 func (s *InMemoryState) HasContainer(id string) (bool, error) {
 	if id == "" {
-		return false, ErrEmptyID
+		return false, define.ErrEmptyID
 	}
 
 	ctr, ok := s.containers[id]
@@ -182,15 +225,15 @@ func (s *InMemoryState) HasContainer(id string) (bool, error) {
 // Containers in a pod cannot be added to the state
 func (s *InMemoryState) AddContainer(ctr *Container) error {
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
 	}
 
 	if _, ok := s.containers[ctr.ID()]; ok {
-		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
+		return errors.Wrapf(define.ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
 	if ctr.config.Pod != "" {
-		return errors.Wrapf(ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
+		return errors.Wrapf(define.ErrInvalidArg, "cannot add a container that is in a pod with AddContainer, use AddContainerToPod")
 	}
 
 	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
@@ -204,12 +247,12 @@ func (s *InMemoryState) AddContainer(ctr *Container) error {
 	for _, depID := range depCtrs {
 		depCtr, ok := s.containers[depID]
 		if !ok {
-			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depID)
+			return errors.Wrapf(define.ErrNoSuchCtr, "cannot depend on nonexistent container %s", depID)
 		} else if depCtr.config.Pod != "" {
-			return errors.Wrapf(ErrInvalidArg, "cannot depend on container in a pod if not part of same pod")
+			return errors.Wrapf(define.ErrInvalidArg, "cannot depend on container in a pod if not part of same pod")
 		}
 		if depCtr.config.Namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depID, depCtr.config.Namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depID, depCtr.config.Namespace)
 		}
 	}
 
@@ -270,12 +313,12 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	deps, ok := s.ctrDepends[ctr.ID()]
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
 	}
 
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
 	}
 
 	if err := s.idIndex.Delete(ctr.ID()); err != nil {
@@ -289,7 +332,7 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 	if ctr.config.Namespace != "" {
 		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
 		if !ok {
-			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
+			return errors.Wrapf(define.ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
 		}
 		if err := nsIndex.idIndex.Delete(ctr.ID()); err != nil {
 			return errors.Wrapf(err, "error removing container %s from namespace ID index", ctr.ID())
@@ -317,13 +360,13 @@ func (s *InMemoryState) RemoveContainer(ctr *Container) error {
 func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 	// If the container is invalid, return error
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
 	}
 
 	// If the container does not exist, return error
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
 	return s.checkNSMatch(ctr.ID(), ctr.Namespace())
@@ -336,13 +379,13 @@ func (s *InMemoryState) UpdateContainer(ctr *Container) error {
 func (s *InMemoryState) SaveContainer(ctr *Container) error {
 	// If the container is invalid, return error
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container with ID %s is not valid", ctr.ID())
 	}
 
 	// If the container does not exist, return error
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
 	return s.checkNSMatch(ctr.ID(), ctr.Namespace())
@@ -351,13 +394,13 @@ func (s *InMemoryState) SaveContainer(ctr *Container) error {
 // ContainerInUse checks if the given container is being used by other containers
 func (s *InMemoryState) ContainerInUse(ctr *Container) ([]string, error) {
 	if !ctr.valid {
-		return nil, ErrCtrRemoved
+		return nil, define.ErrCtrRemoved
 	}
 
 	// If the container does not exist, return error
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
-		return nil, errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
 	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
@@ -384,19 +427,29 @@ func (s *InMemoryState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
+// GetContainerConfig returns a container config from the database by full ID
+func (s *InMemoryState) GetContainerConfig(id string) (*ContainerConfig, error) {
+	ctr, err := s.LookupContainer(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return ctr.Config(), nil
+}
+
 // RewriteContainerConfig rewrites a container's configuration.
 // This function is DANGEROUS, even with an in-memory state.
 // Please read the full comment on it in state.go before using it.
 func (s *InMemoryState) RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error {
 	if !ctr.valid {
-		return ErrCtrRemoved
+		return define.ErrCtrRemoved
 	}
 
 	// If the container does not exist, return error
 	stateCtr, ok := s.containers[ctr.ID()]
 	if !ok {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "container with ID %s not found in state", ctr.ID())
 	}
 
 	stateCtr.config = newCfg
@@ -409,14 +462,14 @@ func (s *InMemoryState) RewriteContainerConfig(ctr *Container, newCfg *Container
 // Please read the full comment on it in state.go before using it.
 func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 	if !pod.valid {
-		return ErrPodRemoved
+		return define.ErrPodRemoved
 	}
 
 	// If the pod does not exist, return error
 	statePod, ok := s.pods[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "pod with ID %s not found in state", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "pod with ID %s not found in state", pod.ID())
 	}
 
 	statePod.config = newCfg
@@ -424,24 +477,79 @@ func (s *InMemoryState) RewritePodConfig(pod *Pod, newCfg *PodConfig) error {
 	return nil
 }
 
+// RewriteVolumeConfig rewrites a volume's configuration.
+// This function is DANGEROUS, even with in-memory state.
+// Please read the full comment in state.go before using it.
+func (s *InMemoryState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	// If the volume does not exist, return error
+	stateVol, ok := s.volumes[volume.Name()]
+	if !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	stateVol.config = newCfg
+
+	return nil
+}
+
 // Volume retrieves a volume from its full name
 func (s *InMemoryState) Volume(name string) (*Volume, error) {
 	if name == "" {
-		return nil, ErrEmptyID
+		return nil, define.ErrEmptyID
 	}
 
 	vol, ok := s.volumes[name]
 	if !ok {
-		return nil, errors.Wrapf(ErrNoSuchCtr, "no volume with name %s found", name)
+		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no volume with name %s found", name)
 	}
 
 	return vol, nil
 }
 
+// LookupVolume finds a volume from an unambiguous partial ID.
+func (s *InMemoryState) LookupVolume(name string) (*Volume, error) {
+	if name == "" {
+		return nil, define.ErrEmptyID
+	}
+
+	vol, ok := s.volumes[name]
+	if ok {
+		return vol, nil
+	}
+
+	// Alright, we've failed to find by full name. Now comes the expensive
+	// part.
+	// Loop through all volumes and look for matches.
+	var (
+		foundMatch bool
+		candidate  *Volume
+	)
+	for volName, vol := range s.volumes {
+		if strings.HasPrefix(volName, name) {
+			if foundMatch {
+				return nil, errors.Wrapf(define.ErrVolumeExists, "more than one result for volume name %q", name)
+			}
+			candidate = vol
+			foundMatch = true
+		}
+	}
+
+	if !foundMatch {
+		return nil, errors.Wrapf(define.ErrNoSuchVolume, "no volume with name %q found", name)
+	}
+
+	return candidate, nil
+}
+
 // HasVolume checks if a volume with the given name is present in the state
 func (s *InMemoryState) HasVolume(name string) (bool, error) {
 	if name == "" {
-		return false, ErrEmptyID
+		return false, define.ErrEmptyID
 	}
 
 	_, ok := s.volumes[name]
@@ -455,11 +563,11 @@ func (s *InMemoryState) HasVolume(name string) (bool, error) {
 // AddVolume adds a volume to the state
 func (s *InMemoryState) AddVolume(volume *Volume) error {
 	if !volume.valid {
-		return errors.Wrapf(ErrVolumeRemoved, "volume with name %s is not valid", volume.Name())
+		return errors.Wrapf(define.ErrVolumeRemoved, "volume with name %s is not valid", volume.Name())
 	}
 
 	if _, ok := s.volumes[volume.Name()]; ok {
-		return errors.Wrapf(ErrVolumeExists, "volume with name %s already exists in state", volume.Name())
+		return errors.Wrapf(define.ErrVolumeExists, "volume with name %s already exists in state", volume.Name())
 	}
 
 	s.volumes[volume.Name()] = volume
@@ -473,12 +581,12 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	deps, ok := s.volumeDepends[volume.Name()]
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(ErrVolumeExists, "the following containers depend on volume %s: %s", volume.Name(), depsStr)
+		return errors.Wrapf(define.ErrVolumeExists, "the following containers depend on volume %s: %s", volume.Name(), depsStr)
 	}
 
 	if _, ok := s.volumes[volume.Name()]; !ok {
 		volume.valid = false
-		return errors.Wrapf(ErrVolumeRemoved, "no volume exists in state with name %s", volume.Name())
+		return errors.Wrapf(define.ErrVolumeRemoved, "no volume exists in state with name %s", volume.Name())
 	}
 
 	delete(s.volumes, volume.Name())
@@ -486,16 +594,46 @@ func (s *InMemoryState) RemoveVolume(volume *Volume) error {
 	return nil
 }
 
+// UpdateVolume updates a volume from the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) UpdateVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
+// SaveVolume saves a volume's state to the database.
+// For the in-memory state, this is a no-op.
+func (s *InMemoryState) SaveVolume(volume *Volume) error {
+	if !volume.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	if _, ok := s.volumes[volume.Name()]; !ok {
+		volume.valid = false
+		return errors.Wrapf(define.ErrNoSuchVolume, "volume with name %q not found in state", volume.Name())
+	}
+
+	return nil
+}
+
 // VolumeInUse checks if the given volume is being used by at least one container
 func (s *InMemoryState) VolumeInUse(volume *Volume) ([]string, error) {
 	if !volume.valid {
-		return nil, ErrVolumeRemoved
+		return nil, define.ErrVolumeRemoved
 	}
 
 	// If the volume does not exist, return error
 	if _, ok := s.volumes[volume.Name()]; !ok {
 		volume.valid = false
-		return nil, errors.Wrapf(ErrNoSuchVolume, "volume with name %s not found in state", volume.Name())
+		return nil, errors.Wrapf(define.ErrNoSuchVolume, "volume with name %s not found in state", volume.Name())
 	}
 
 	arr, ok := s.volumeDepends[volume.Name()]
@@ -519,12 +657,12 @@ func (s *InMemoryState) AllVolumes() ([]*Volume, error) {
 // Pod retrieves a pod from the state from its full ID
 func (s *InMemoryState) Pod(id string) (*Pod, error) {
 	if id == "" {
-		return nil, ErrEmptyID
+		return nil, define.ErrEmptyID
 	}
 
 	pod, ok := s.pods[id]
 	if !ok {
-		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with id %s found", id)
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod with id %s found", id)
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -537,49 +675,22 @@ func (s *InMemoryState) Pod(id string) (*Pod, error) {
 // LookupPod retrieves a pod from the state from a full or unique partial ID or
 // a full name
 func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
-	var (
-		nameIndex *registrar.Registrar
-		idIndex   *truncindex.TruncIndex
-	)
+	fullID, err := s.lookupID(idOrName)
 
-	if idOrName == "" {
-		return nil, ErrEmptyID
-	}
+	switch err {
+	case nil:
 
-	if s.namespace != "" {
-		nsIndex, ok := s.namespaceIndexes[s.namespace]
-		if !ok {
-			// We have no containers in the namespace
-			// Return false
-			return nil, errors.Wrapf(ErrNoSuchCtr, "no container found with name or ID %s", idOrName)
-		}
-		nameIndex = nsIndex.nameIndex
-		idIndex = nsIndex.idIndex
-	} else {
-		nameIndex = s.nameIndex
-		idIndex = s.idIndex
-	}
+	case define.ErrNoSuchCtr, define.ErrNoSuchPod:
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
 
-	fullID, err := nameIndex.Get(idOrName)
-	if err != nil {
-		if err == registrar.ErrNameNotReserved {
-			// What was passed is not a name, assume it's an ID
-			fullID, err = idIndex.Get(idOrName)
-			if err != nil {
-				if err == truncindex.ErrNotExist {
-					return nil, errors.Wrapf(ErrNoSuchPod, "no pod found with name or ID %s", idOrName)
-				}
-				return nil, errors.Wrapf(err, "error performing truncindex lookup for ID %s", idOrName)
-			}
-		} else {
-			return nil, errors.Wrapf(err, "error performing registry lookup for ID %s", idOrName)
-		}
+	default:
+		return nil, err
 	}
 
 	pod, ok := s.pods[fullID]
 	if !ok {
 		// It's a container not a pod
-		return nil, errors.Wrapf(ErrNoSuchPod, "id or name %s is a container not a pod", idOrName)
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "id or name %s is a container, not a pod", idOrName)
 	}
 
 	return pod, nil
@@ -588,7 +699,7 @@ func (s *InMemoryState) LookupPod(idOrName string) (*Pod, error) {
 // HasPod checks if a pod with the given ID is present in the state
 func (s *InMemoryState) HasPod(id string) (bool, error) {
 	if id == "" {
-		return false, ErrEmptyID
+		return false, define.ErrEmptyID
 	}
 
 	pod, ok := s.pods[id]
@@ -602,11 +713,11 @@ func (s *InMemoryState) HasPod(id string) (bool, error) {
 // PodHasContainer checks if the given pod has a container with the given ID
 func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 	if !pod.valid {
-		return false, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+		return false, errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	if ctrID == "" {
-		return false, ErrEmptyID
+		return false, define.ErrEmptyID
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -616,7 +727,7 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return false, errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
+		return false, errors.Wrapf(define.ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
 	}
 
 	_, ok = podCtrs[ctrID]
@@ -626,7 +737,7 @@ func (s *InMemoryState) PodHasContainer(pod *Pod, ctrID string) (bool, error) {
 // PodContainersByID returns the IDs of all containers in the given pod
 func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 	if !pod.valid {
-		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+		return nil, errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -636,7 +747,7 @@ func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
 	}
 
 	length := len(podCtrs)
@@ -655,7 +766,7 @@ func (s *InMemoryState) PodContainersByID(pod *Pod) ([]string, error) {
 // PodContainers retrieves the containers from a pod
 func (s *InMemoryState) PodContainers(pod *Pod) ([]*Container, error) {
 	if !pod.valid {
-		return nil, errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+		return nil, errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -665,7 +776,7 @@ func (s *InMemoryState) PodContainers(pod *Pod) ([]*Container, error) {
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return nil, errors.Wrapf(ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchPod, "no pod with ID %s found in state", pod.ID())
 	}
 
 	length := len(podCtrs)
@@ -684,7 +795,7 @@ func (s *InMemoryState) PodContainers(pod *Pod) ([]*Container, error) {
 // AddPod adds a given pod to the state
 func (s *InMemoryState) AddPod(pod *Pod) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and cannot be added", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid and cannot be added", pod.ID())
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -692,11 +803,11 @@ func (s *InMemoryState) AddPod(pod *Pod) error {
 	}
 
 	if _, ok := s.pods[pod.ID()]; ok {
-		return errors.Wrapf(ErrPodExists, "pod with ID %s already exists in state", pod.ID())
+		return errors.Wrapf(define.ErrPodExists, "pod with ID %s already exists in state", pod.ID())
 	}
 
 	if _, ok := s.podContainers[pod.ID()]; ok {
-		return errors.Wrapf(ErrPodExists, "pod with ID %s already exists in state", pod.ID())
+		return errors.Wrapf(define.ErrPodExists, "pod with ID %s already exists in state", pod.ID())
 	}
 
 	if err := s.nameIndex.Reserve(pod.Name(), pod.ID()); err != nil {
@@ -746,15 +857,15 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 
 	if _, ok := s.pods[pod.ID()]; !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 	if len(podCtrs) != 0 {
-		return errors.Wrapf(ErrCtrExists, "pod %s is not empty and cannot be removed", pod.ID())
+		return errors.Wrapf(define.ErrCtrExists, "pod %s is not empty and cannot be removed", pod.ID())
 	}
 
 	if err := s.idIndex.Delete(pod.ID()); err != nil {
@@ -767,7 +878,7 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 	if pod.config.Namespace != "" {
 		nsIndex, ok := s.namespaceIndexes[pod.config.Namespace]
 		if !ok {
-			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", pod.config.Namespace)
+			return errors.Wrapf(define.ErrInternal, "error retrieving index for namespace %q", pod.config.Namespace)
 		}
 		if err := nsIndex.idIndex.Delete(pod.ID()); err != nil {
 			return errors.Wrapf(err, "error removing container %s from namespace ID index", pod.ID())
@@ -784,7 +895,7 @@ func (s *InMemoryState) RemovePod(pod *Pod) error {
 // Will only remove containers if no dependencies outside of the pod are present
 func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -795,7 +906,7 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 
 	// Go through container dependencies. Check to see if any are outside the pod.
@@ -804,7 +915,7 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 		if ok {
 			for _, dep := range ctrDeps {
 				if _, ok := podCtrs[dep]; !ok {
-					return errors.Wrapf(ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
+					return errors.Wrapf(define.ErrCtrExists, "container %s has dependency %s outside of pod %s", ctr, dep, pod.ID())
 				}
 			}
 		}
@@ -830,18 +941,18 @@ func (s *InMemoryState) RemovePodContainers(pod *Pod) error {
 // state
 func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid", pod.ID())
 	}
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid", ctr.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid", ctr.ID())
 	}
 
 	if ctr.config.Pod != pod.ID() {
-		return errors.Wrapf(ErrInvalidArg, "container %s is not in pod %s", ctr.ID(), pod.ID())
+		return errors.Wrapf(define.ErrInvalidArg, "container %s is not in pod %s", ctr.ID(), pod.ID())
 	}
 
 	if ctr.config.Namespace != pod.config.Namespace {
-		return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
+		return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %s and pod %s is in namespace %s",
 			ctr.ID(), ctr.config.Namespace, pod.ID(), pod.config.Namespace)
 	}
 
@@ -853,12 +964,12 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrPodRemoved, "pod %s not found in state", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s not found in state", pod.ID())
 	}
 
 	// Is the container already in the pod?
 	if _, ok = podCtrs[ctr.ID()]; ok {
-		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), pod.ID())
+		return errors.Wrapf(define.ErrCtrExists, "container with ID %s already exists in pod %s", ctr.ID(), pod.ID())
 	}
 
 	// There are potential race conditions with this
@@ -867,20 +978,20 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 	depCtrs := ctr.Dependencies()
 	for _, depCtr := range depCtrs {
 		if _, ok = s.containers[depCtr]; !ok {
-			return errors.Wrapf(ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
+			return errors.Wrapf(define.ErrNoSuchCtr, "cannot depend on nonexistent container %s", depCtr)
 		}
 		depCtrStruct, ok := podCtrs[depCtr]
 		if !ok {
-			return errors.Wrapf(ErrInvalidArg, "cannot depend on container %s as it is not in pod %s", depCtr, pod.ID())
+			return errors.Wrapf(define.ErrInvalidArg, "cannot depend on container %s as it is not in pod %s", depCtr, pod.ID())
 		}
 		if depCtrStruct.config.Namespace != ctr.config.Namespace {
-			return errors.Wrapf(ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depCtr, depCtrStruct.config.Namespace)
+			return errors.Wrapf(define.ErrNSMismatch, "container %s is in namespace %s and cannot depend on container %s in namespace %s", ctr.ID(), ctr.config.Namespace, depCtr, depCtrStruct.config.Namespace)
 		}
 	}
 
 	// Add container to state
 	if _, ok = s.containers[ctr.ID()]; ok {
-		return errors.Wrapf(ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
+		return errors.Wrapf(define.ErrCtrExists, "container with ID %s already exists in state", ctr.ID())
 	}
 
 	if err := s.nameIndex.Reserve(ctr.Name(), ctr.ID()); err != nil {
@@ -928,10 +1039,10 @@ func (s *InMemoryState) AddContainerToPod(pod *Pod, ctr *Container) error {
 // The container is also removed from the state
 func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	if !pod.valid {
-		return errors.Wrapf(ErrPodRemoved, "pod %s is not valid and containers cannot be removed", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s is not valid and containers cannot be removed", pod.ID())
 	}
 	if !ctr.valid {
-		return errors.Wrapf(ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
+		return errors.Wrapf(define.ErrCtrRemoved, "container %s is not valid and cannot be removed from the pod", ctr.ID())
 	}
 
 	if err := s.checkNSMatch(ctr.ID(), ctr.Namespace()); err != nil {
@@ -942,30 +1053,30 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	deps, ok := s.ctrDepends[ctr.ID()]
 	if ok && len(deps) != 0 {
 		depsStr := strings.Join(deps, ", ")
-		return errors.Wrapf(ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
+		return errors.Wrapf(define.ErrCtrExists, "the following containers depend on container %s: %s", ctr.ID(), depsStr)
 	}
 
 	// Retrieve pod containers
 	podCtrs, ok := s.podContainers[pod.ID()]
 	if !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrPodRemoved, "pod %s has been removed", pod.ID())
+		return errors.Wrapf(define.ErrPodRemoved, "pod %s has been removed", pod.ID())
 	}
 
 	// Does the container exist?
 	if _, ok := s.containers[ctr.ID()]; !ok {
 		ctr.valid = false
-		return errors.Wrapf(ErrNoSuchCtr, "container %s does not exist in state", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "container %s does not exist in state", ctr.ID())
 	}
 
 	// Is the container in the pod?
 	if _, ok := podCtrs[ctr.ID()]; !ok {
-		return errors.Wrapf(ErrNoSuchCtr, "container with ID %s not found in pod %s", ctr.ID(), pod.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "container with ID %s not found in pod %s", ctr.ID(), pod.ID())
 	}
 
 	// Remove container from state
 	if _, ok := s.containers[ctr.ID()]; !ok {
-		return errors.Wrapf(ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
+		return errors.Wrapf(define.ErrNoSuchCtr, "no container exists in state with ID %s", ctr.ID())
 	}
 
 	if err := s.idIndex.Delete(ctr.ID()); err != nil {
@@ -980,7 +1091,7 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 	if ctr.config.Namespace != "" {
 		nsIndex, ok := s.namespaceIndexes[ctr.config.Namespace]
 		if !ok {
-			return errors.Wrapf(ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
+			return errors.Wrapf(define.ErrInternal, "error retrieving index for namespace %q", ctr.config.Namespace)
 		}
 		if err := nsIndex.idIndex.Delete(ctr.ID()); err != nil {
 			return errors.Wrapf(err, "error removing container %s from namespace ID index", ctr.ID())
@@ -1001,7 +1112,7 @@ func (s *InMemoryState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 // This is a no-op as there is no backing store
 func (s *InMemoryState) UpdatePod(pod *Pod) error {
 	if !pod.valid {
-		return ErrPodRemoved
+		return define.ErrPodRemoved
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -1010,7 +1121,7 @@ func (s *InMemoryState) UpdatePod(pod *Pod) error {
 
 	if _, ok := s.pods[pod.ID()]; !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 
 	return nil
@@ -1020,7 +1131,7 @@ func (s *InMemoryState) UpdatePod(pod *Pod) error {
 // This is a no-op at there is no backing store
 func (s *InMemoryState) SavePod(pod *Pod) error {
 	if !pod.valid {
-		return ErrPodRemoved
+		return define.ErrPodRemoved
 	}
 
 	if err := s.checkNSMatch(pod.ID(), pod.Namespace()); err != nil {
@@ -1029,7 +1140,7 @@ func (s *InMemoryState) SavePod(pod *Pod) error {
 
 	if _, ok := s.pods[pod.ID()]; !ok {
 		pod.valid = false
-		return errors.Wrapf(ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
+		return errors.Wrapf(define.ErrNoSuchPod, "no pod exists in state with ID %s", pod.ID())
 	}
 
 	return nil
@@ -1133,7 +1244,7 @@ func (s *InMemoryState) removeCtrFromVolDependsMap(depCtrID, volName string) {
 // namespaces.
 func (s *InMemoryState) checkNSMatch(id, ns string) error {
 	if s.namespace != "" && s.namespace != ns {
-		return errors.Wrapf(ErrNSMismatch, "cannot access %s as it is in namespace %q and we are in namespace %q",
+		return errors.Wrapf(define.ErrNSMismatch, "cannot access %s as it is in namespace %q and we are in namespace %q",
 			id, ns, s.namespace)
 	}
 	return nil

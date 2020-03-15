@@ -48,6 +48,8 @@ const (
 	FsMagicZfs = FsMagic(0x2fc12fc1)
 	// FsMagicOverlay filesystem id for overlay
 	FsMagicOverlay = FsMagic(0x794C7630)
+	// FsMagicFUSE filesystem id for FUSE
+	FsMagicFUSE = FsMagic(0x65735546)
 )
 
 var (

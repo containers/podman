@@ -7,9 +7,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
-	"github.com/docker/docker/profiles/seccomp"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -31,8 +32,8 @@ func Device(d *configs.Device) spec.LinuxDevice {
 	}
 }
 
-// devicesFromPath computes a list of devices
-func devicesFromPath(g *generate.Generator, devicePath string) error {
+// DevicesFromPath computes a list of devices
+func DevicesFromPath(g *generate.Generator, devicePath string) error {
 	devs := strings.Split(devicePath, ":")
 	resolvedDevicePath := devs[0]
 	// check if it is a symbolic link
@@ -90,6 +91,42 @@ func devicesFromPath(g *generate.Generator, devicePath string) error {
 	return addDevice(g, strings.Join(append([]string{resolvedDevicePath}, devs[1:]...), ":"))
 }
 
+func deviceCgroupRules(g *generate.Generator, deviceCgroupRules []string) error {
+	for _, deviceCgroupRule := range deviceCgroupRules {
+		if err := validateDeviceCgroupRule(deviceCgroupRule); err != nil {
+			return err
+		}
+		ss := parseDeviceCgroupRule(deviceCgroupRule)
+		if len(ss[0]) != 5 {
+			return errors.Errorf("invalid device cgroup rule format: '%s'", deviceCgroupRule)
+		}
+		matches := ss[0]
+		var major, minor *int64
+		if matches[2] == "*" {
+			majorDev := int64(-1)
+			major = &majorDev
+		} else {
+			majorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			major = &majorDev
+		}
+		if matches[3] == "*" {
+			minorDev := int64(-1)
+			minor = &minorDev
+		} else {
+			minorDev, err := strconv.ParseInt(matches[2], 10, 64)
+			if err != nil {
+				return errors.Errorf("invalid major value in device cgroup rule format: '%s'", deviceCgroupRule)
+			}
+			minor = &minorDev
+		}
+		g.AddLinuxResourcesDevice(true, matches[1], major, minor, matches[4])
+	}
+	return nil
+}
+
 func addDevice(g *generate.Generator, device string) error {
 	src, dst, permissions, err := ParseDevice(device)
 	if err != nil {
@@ -98,6 +135,26 @@ func addDevice(g *generate.Generator, device string) error {
 	dev, err := devices.DeviceFromPath(src, permissions)
 	if err != nil {
 		return errors.Wrapf(err, "%s is not a valid device", src)
+	}
+	if rootless.IsRootless() {
+		if _, err := os.Stat(src); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "the specified device %s doesn't exist", src)
+			}
+			return errors.Wrapf(err, "stat device %s exist", src)
+		}
+		perm := "ro"
+		if strings.Contains(permissions, "w") {
+			perm = "rw"
+		}
+		devMnt := spec.Mount{
+			Destination: dst,
+			Type:        TypeBind,
+			Source:      src,
+			Options:     []string{"slave", "nosuid", "noexec", perm, "rbind"},
+		}
+		g.Config.Mounts = append(g.Config.Mounts, devMnt)
+		return nil
 	}
 	dev.Path = dst
 	linuxdev := spec.LinuxDevice{
@@ -114,43 +171,102 @@ func addDevice(g *generate.Generator, device string) error {
 	return nil
 }
 
-func (c *CreateConfig) addPrivilegedDevices(g *generate.Generator) error {
-	hostDevices, err := devices.HostDevices()
+// based on getDevices from runc (libcontainer/devices/devices.go)
+func getDevices(path string) ([]*configs.Device, error) {
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		if rootless.IsRootless() && os.IsPermission(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := []*configs.Device{}
+	for _, f := range files {
+		switch {
+		case f.IsDir():
+			switch f.Name() {
+			// ".lxc" & ".lxd-mounts" added to address https://github.com/lxc/lxd/issues/2825
+			case "pts", "shm", "fd", "mqueue", ".lxc", ".lxd-mounts":
+				continue
+			default:
+				sub, err := getDevices(filepath.Join(path, f.Name()))
+				if err != nil {
+					return nil, err
+				}
+				if sub != nil {
+					out = append(out, sub...)
+				}
+				continue
+			}
+		case f.Name() == "console":
+			continue
+		}
+		device, err := devices.DeviceFromPath(filepath.Join(path, f.Name()), "rwm")
+		if err != nil {
+			if err == devices.ErrNotADevice {
+				continue
+			}
+			if os.IsNotExist(err) {
+				continue
+			}
+			return nil, err
+		}
+		out = append(out, device)
+	}
+	return out, nil
+}
+
+func addPrivilegedDevices(g *generate.Generator) error {
+	hostDevices, err := getDevices("/dev")
 	if err != nil {
 		return err
 	}
 	g.ClearLinuxDevices()
-	for _, d := range hostDevices {
-		g.AddDevice(Device(d))
-	}
 
-	// Add resources device - need to clear the existing one first.
-	g.Spec().Linux.Resources.Devices = nil
-	g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
-	return nil
-}
-
-func getSeccompConfig(config *CreateConfig, configSpec *spec.Spec) (*spec.LinuxSeccomp, error) {
-	var seccompConfig *spec.LinuxSeccomp
-	var err error
-
-	if config.SeccompProfilePath != "" {
-		seccompProfile, err := ioutil.ReadFile(config.SeccompProfilePath)
-		if err != nil {
-			return nil, errors.Wrapf(err, "opening seccomp profile (%s) failed", config.SeccompProfilePath)
+	if rootless.IsRootless() {
+		mounts := make(map[string]interface{})
+		for _, m := range g.Mounts() {
+			mounts[m.Destination] = true
 		}
-		seccompConfig, err = seccomp.LoadProfile(string(seccompProfile), configSpec)
-		if err != nil {
-			return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
+		newMounts := []spec.Mount{}
+		for _, d := range hostDevices {
+			devMnt := spec.Mount{
+				Destination: d.Path,
+				Type:        TypeBind,
+				Source:      d.Path,
+				Options:     []string{"slave", "nosuid", "noexec", "rw", "rbind"},
+			}
+			if d.Path == "/dev/ptmx" || strings.HasPrefix(d.Path, "/dev/tty") {
+				continue
+			}
+			if _, found := mounts[d.Path]; found {
+				continue
+			}
+			st, err := os.Stat(d.Path)
+			if err != nil {
+				if err == unix.EPERM {
+					continue
+				}
+				return errors.Wrapf(err, "stat %s", d.Path)
+			}
+			// Skip devices that the user has not access to.
+			if st.Mode()&0007 == 0 {
+				continue
+			}
+			newMounts = append(newMounts, devMnt)
 		}
+		g.Config.Mounts = append(newMounts, g.Config.Mounts...)
+		g.Config.Linux.Resources.Devices = nil
 	} else {
-		seccompConfig, err = seccomp.GetDefaultProfile(configSpec)
-		if err != nil {
-			return nil, errors.Wrapf(err, "loading seccomp profile (%s) failed", config.SeccompProfilePath)
+		for _, d := range hostDevices {
+			g.AddDevice(Device(d))
 		}
+		// Add resources device - need to clear the existing one first.
+		g.Config.Linux.Resources.Devices = nil
+		g.AddLinuxResourcesDevice(true, "", nil, nil, "rwm")
 	}
 
-	return seccompConfig, nil
+	return nil
 }
 
 func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
@@ -164,16 +280,16 @@ func (c *CreateConfig) createBlockIO() (*spec.LinuxBlockIO, error) {
 		var lwds []spec.LinuxWeightDevice
 		ret = bio
 		for _, i := range c.Resources.BlkioWeightDevice {
-			wd, err := validateweightDevice(i)
+			wd, err := ValidateweightDevice(i)
 			if err != nil {
 				return ret, errors.Wrapf(err, "invalid values for blkio-weight-device")
 			}
-			wdStat, err := getStatFromPath(wd.path)
+			wdStat, err := GetStatFromPath(wd.Path)
 			if err != nil {
-				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.path)
+				return ret, errors.Wrapf(err, "error getting stat from path %q", wd.Path)
 			}
 			lwd := spec.LinuxWeightDevice{
-				Weight: &wd.weight,
+				Weight: &wd.Weight,
 			}
 			lwd.Major = int64(unix.Major(wdStat.Rdev))
 			lwd.Minor = int64(unix.Minor(wdStat.Rdev))
@@ -231,7 +347,7 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 		if err != nil {
 			return []spec.LinuxThrottleDevice{}, err
 		}
-		ltdStat, err := getStatFromPath(t.path)
+		ltdStat, err := GetStatFromPath(t.path)
 		if err != nil {
 			return ltds, errors.Wrapf(err, "error getting stat from path %q", t.path)
 		}
@@ -243,4 +359,10 @@ func makeThrottleArray(throttleInput []string, rateType int) ([]spec.LinuxThrott
 		ltds = append(ltds, ltd)
 	}
 	return ltds, nil
+}
+
+func GetStatFromPath(path string) (unix.Stat_t, error) {
+	s := unix.Stat_t{}
+	err := unix.Stat(path, &s)
+	return s, err
 }

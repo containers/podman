@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/image/docker"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/types"
 	sysreg "github.com/containers/libpod/pkg/registries"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -99,7 +99,9 @@ func SearchImages(term string, options SearchOptions) ([]SearchResult, error) {
 
 	ctx := context.Background()
 	for i := range registries {
-		sem.Acquire(ctx, 1)
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return nil, err
+		}
 		go searchImageInRegistryHelper(i, registries[i])
 	}
 
@@ -160,8 +162,11 @@ func searchImageInRegistry(term string, registry string, options SearchOptions) 
 	if len(results) < limit {
 		limit = len(results)
 	}
-	if options.Limit != 0 && options.Limit < len(results) {
-		limit = options.Limit
+	if options.Limit != 0 {
+		limit = len(results)
+		if options.Limit < len(results) {
+			limit = options.Limit
+		}
 	}
 
 	paramsArr := []SearchResult{}
@@ -215,21 +220,18 @@ func ParseSearchFilter(filter []string) (*SearchFilter, error) {
 				return nil, errors.Wrapf(err, "incorrect value type for stars filter")
 			}
 			sFilter.Stars = stars
-			break
 		case "is-automated":
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsAutomated = types.OptionalBoolFalse
 			} else {
 				sFilter.IsAutomated = types.OptionalBoolTrue
 			}
-			break
 		case "is-official":
 			if len(arr) == 2 && arr[1] == "false" {
 				sFilter.IsOfficial = types.OptionalBoolFalse
 			} else {
 				sFilter.IsOfficial = types.OptionalBoolTrue
 			}
-			break
 		default:
 			return nil, errors.Errorf("invalid filter type %q", f)
 		}

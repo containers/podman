@@ -2,6 +2,8 @@
 
 package libpod
 
+import "github.com/containers/libpod/libpod/define"
+
 // GetContainerPidInformation returns process-related data of all processes in
 // the container.  The output data can be controlled via the `descriptors`
 // argument which expects format descriptors and supports all AIXformat
@@ -11,11 +13,5 @@ package libpod
 //
 // For more details, please refer to github.com/containers/psgo.
 func (c *Container) GetContainerPidInformation(descriptors []string) ([]string, error) {
-	return nil, ErrNotImplemented
-}
-
-// GetContainerPidInformationDescriptors returns a string slice of all supported
-// format descriptors of GetContainerPidInformation.
-func GetContainerPidInformationDescriptors() ([]string, error) {
-	return nil, ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }

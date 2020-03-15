@@ -18,6 +18,11 @@ var LsDockerfile = `
 FROM  alpine:latest
 LABEL RUN ls -la`
 
+var GlobalDockerfile = `
+FROM alpine:latest
+LABEL RUN echo \$GLOBAL_OPTS
+`
+
 var _ = Describe("podman container runlabel", func() {
 	var (
 		tempdir    string
@@ -32,7 +37,7 @@ var _ = Describe("podman container runlabel", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -70,12 +75,42 @@ var _ = Describe("podman container runlabel", func() {
 	It("podman container runlabel bogus label should result in non-zero exit code", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 	})
 	It("podman container runlabel bogus label in remote image should result in non-zero exit", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", "docker.io/library/ubuntu:latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).ToNot(Equal(0))
+		Expect(result).To(ExitWithError())
 
+	})
+
+	It("podman container runlabel global options", func() {
+		Skip("Test nonfunctional for podman-in-podman testing")
+		image := "podman-global-test:ls"
+		podmanTest.BuildImage(GlobalDockerfile, image, "false")
+		result := podmanTest.Podman([]string{"--syslog", "--log-level", "debug", "container", "runlabel", "RUN", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+
+		Expect(result.OutputToString()).To(ContainSubstring("--syslog true"))
+		Expect(result.OutputToString()).To(ContainSubstring("--log-level debug"))
+		result = podmanTest.Podman([]string{"rmi", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
+	})
+
+	It("runlabel should fail with nonexist authfile", func() {
+		SkipIfRemote()
+		image := "podman-runlabel-test:podman"
+		podmanTest.BuildImage(PodmanDockerfile, image, "false")
+
+		// runlabel should fail with nonexist authfile
+		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexist", "RUN", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Not(Equal(0)))
+
+		result = podmanTest.Podman([]string{"rmi", image})
+		result.WaitWithDefaultTimeout()
+		Expect(result.ExitCode()).To(Equal(0))
 	})
 })

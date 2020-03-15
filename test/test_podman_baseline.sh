@@ -504,6 +504,16 @@ EOF
         echo "failed"
     fi
 
+    #Expected to pass (as root with --privileged).
+    #Note that the profile should not be loaded letting the mount succeed.
+    podman run --privileged docker.io/library/alpine:latest sh -c "mkdir tmp2; mount --bind tmp tmp2"
+    rc=$?
+    echo -n "root with specified AppArmor profile but --privileged: "
+    if [ $rc == 0 ]; then
+        echo "passed"
+    else
+        echo "failed"
+    fi
     #Expected to fail (as rootless)
     sudo -u "#1000" podman run --security-opt apparmor=$aaProfile docker.io/library/alpine:latest echo hello
     rc=$?
@@ -524,6 +534,28 @@ EOF
     sudo -u "#1000" podman rmi --all
     rm -f $aaFile
 fi
+
+########
+# Build Dockerfile for RUN with priv'd command test
+########
+FILE=./Dockerfile
+/bin/cat <<EOM >$FILE
+FROM alpine
+RUN apk add nginx
+EOM
+chmod +x $FILE
+
+########
+# Build with the Dockerfile
+########
+podman build -f Dockerfile -t build-priv
+
+########
+# Cleanup
+########
+podman rm -a -f
+podman rmi -a -f
+rm ./Dockerfile
 
 ########
 # Build Dockerfile for WhaleSays test

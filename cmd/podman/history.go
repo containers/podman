@@ -67,11 +67,11 @@ func init() {
 }
 
 func historyCmd(c *cliconfig.HistoryValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	format := genHistoryFormat(c.Format, c.Quiet)
 
@@ -115,14 +115,14 @@ func genHistoryFormat(format string, quiet bool) string {
 }
 
 // historyToGeneric makes an empty array of interfaces for output
-func historyToGeneric(templParams []historyTemplateParams, JSONParams []*image.History) (genericParams []interface{}) {
+func historyToGeneric(templParams []historyTemplateParams, jsonParams []*image.History) (genericParams []interface{}) {
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
 		return
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return
@@ -141,11 +141,12 @@ func (h *historyTemplateParams) headerMap() map[string]string {
 }
 
 // getHistorytemplateOutput gets the modified history information to be printed in human readable format
-func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (historyOutput []historyTemplateParams) {
+func getHistoryTemplateOutput(history []*image.History, opts historyOptions) []historyTemplateParams {
 	var (
-		outputSize  string
-		createdTime string
-		createdBy   string
+		outputSize    string
+		createdTime   string
+		createdBy     string
+		historyOutput []historyTemplateParams
 	)
 	for _, hist := range history {
 		imageID := hist.ID
@@ -154,7 +155,7 @@ func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (hi
 		}
 
 		if opts.human {
-			createdTime = units.HumanDuration(time.Since((*hist.Created))) + " ago"
+			createdTime = units.HumanDuration(time.Since(*hist.Created)) + " ago"
 			outputSize = units.HumanSize(float64(hist.Size))
 		} else {
 			createdTime = (hist.Created).Format(time.RFC3339)
@@ -175,7 +176,7 @@ func getHistoryTemplateOutput(history []*image.History, opts historyOptions) (hi
 		}
 		historyOutput = append(historyOutput, params)
 	}
-	return
+	return historyOutput
 }
 
 // generateHistoryOutput generates the history based on the format given
@@ -194,5 +195,5 @@ func generateHistoryOutput(history []*image.History, opts historyOptions) error 
 		out = formats.StdoutTemplateArray{Output: historyToGeneric(historyOutput, []*image.History{}), Template: opts.format, Fields: historyOutput[0].headerMap()}
 	}
 
-	return formats.Writer(out).Out()
+	return out.Out()
 }

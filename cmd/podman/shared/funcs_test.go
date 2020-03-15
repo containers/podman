@@ -20,7 +20,7 @@ var (
 func TestGenerateCommand(t *testing.T) {
 	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo \"hello world\""
 	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo hello world"
-	newCommand, err := GenerateCommand(inputCommand, "foo", "bar")
+	newCommand, err := GenerateCommand(inputCommand, "foo", "bar", "")
 	assert.Nil(t, err)
 	assert.Equal(t, "hello world", newCommand[11])
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
@@ -83,7 +83,7 @@ func TestGenerateCommandCheckSubstitution(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		newCommand, err := GenerateCommand(test.input, "foo", "bar")
+		newCommand, err := GenerateCommand(test.input, "foo", "bar", "")
 		if test.shouldFail {
 			assert.NotNil(t, err)
 		} else {
@@ -96,14 +96,14 @@ func TestGenerateCommandCheckSubstitution(t *testing.T) {
 func TestGenerateCommandPath(t *testing.T) {
 	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
 	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
-	newCommand, _ := GenerateCommand(inputCommand, "foo", "bar")
+	newCommand, _ := GenerateCommand(inputCommand, "foo", "bar", "")
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
 
 func TestGenerateCommandNoSetName(t *testing.T) {
 	inputCommand := "docker run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
 	correctCommand := "/proc/self/exe run -it --name foo -e NAME=foo -e IMAGE=foo foo echo install"
-	newCommand, err := GenerateCommand(inputCommand, "foo", "")
+	newCommand, err := GenerateCommand(inputCommand, "foo", "", "")
 	assert.Nil(t, err)
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
@@ -111,7 +111,7 @@ func TestGenerateCommandNoSetName(t *testing.T) {
 func TestGenerateCommandNoName(t *testing.T) {
 	inputCommand := "docker run -it -e IMAGE=IMAGE IMAGE echo install"
 	correctCommand := "/proc/self/exe run -it -e IMAGE=foo foo echo install"
-	newCommand, err := GenerateCommand(inputCommand, "foo", "")
+	newCommand, err := GenerateCommand(inputCommand, "foo", "", "")
 	assert.Nil(t, err)
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }
@@ -119,7 +119,7 @@ func TestGenerateCommandNoName(t *testing.T) {
 func TestGenerateCommandAlreadyPodman(t *testing.T) {
 	inputCommand := "podman run -it --name NAME -e NAME=NAME -e IMAGE=IMAGE IMAGE echo install"
 	correctCommand := "/proc/self/exe run -it --name bar -e NAME=bar -e IMAGE=foo foo echo install"
-	newCommand, err := GenerateCommand(inputCommand, "foo", "bar")
+	newCommand, err := GenerateCommand(inputCommand, "foo", "bar", "")
 	assert.Nil(t, err)
 	assert.Equal(t, correctCommand, strings.Join(newCommand, " "))
 }

@@ -1,10 +1,5 @@
 package cliconfig
 
-const (
-	// DefaultSystemD value
-	DefaultSystemD bool = true
-)
-
 var (
 	// DefaultHealthCheckInterval default value
 	DefaultHealthCheckInterval = "30s"

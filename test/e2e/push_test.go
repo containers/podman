@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -38,22 +39,18 @@ var _ = Describe("Podman push", func() {
 	})
 
 	It("podman push to containers/storage", func() {
-		session := podmanTest.Podman([]string{"push", ALPINE, "containers-storage:busybox:test"})
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE, "containers-storage:busybox:test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		session = podmanTest.Podman([]string{"rmi", ALPINE})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-		session = podmanTest.Podman([]string{"rmi", "busybox:test"})
+		session = podmanTest.PodmanNoCache([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to dir", func() {
 		bbdir := filepath.Join(podmanTest.TempDir, "busybox")
-		session := podmanTest.Podman([]string{"push", "--remove-signatures", ALPINE,
+		session := podmanTest.PodmanNoCache([]string{"push", "--remove-signatures", ALPINE,
 			fmt.Sprintf("dir:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -63,10 +60,12 @@ var _ = Describe("Podman push", func() {
 		if podmanTest.Host.Arch == "ppc64le" {
 			Skip("No registry image for ppc64le")
 		}
+		if rootless.IsRootless() {
+			podmanTest.RestoreArtifact(registry)
+		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
-		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+		session := podmanTest.PodmanNoCache([]string{"run", "-d", "--name", "registry", "-p", "5000:5000", registry, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -74,9 +73,17 @@ var _ = Describe("Podman push", func() {
 			Skip("Can not start docker registry.")
 		}
 
-		push := podmanTest.Podman([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
+
+		// Test --digestfile option
+		push2 := podmanTest.PodmanNoCache([]string{"push", "--tls-verify=false", "--digestfile=/tmp/digestfile.txt", "--remove-signatures", ALPINE, "localhost:5000/my-alpine"})
+		push2.WaitWithDefaultTimeout()
+		fi, err := os.Lstat("/tmp/digestfile.txt")
+		Expect(err).To(BeNil())
+		Expect(fi.Name()).To(Equal("digestfile.txt"))
+		Expect(push2.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to local registry with authorization", func() {
@@ -106,8 +113,7 @@ var _ = Describe("Podman push", func() {
 		}
 		lock := GetPortLock("5000")
 		defer lock.Unlock()
-		podmanTest.RestoreArtifact(registry)
-		session := podmanTest.Podman([]string{"run", "--entrypoint", "htpasswd", registry, "-Bbn", "podmantest", "test"})
+		session := podmanTest.PodmanNoCache([]string{"run", "--entrypoint", "htpasswd", registry, "-Bbn", "podmantest", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -117,7 +123,7 @@ var _ = Describe("Podman push", func() {
 		f.WriteString(session.OutputToString())
 		f.Sync()
 
-		session = podmanTest.Podman([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
+		session = podmanTest.PodmanNoCache([]string{"run", "-d", "-p", "5000:5000", "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
 			"-v", strings.Join([]string{certPath, "/certs"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
@@ -129,36 +135,36 @@ var _ = Describe("Podman push", func() {
 			Skip("Can not start docker registry.")
 		}
 
-		session = podmanTest.Podman([]string{"logs", "registry"})
+		session = podmanTest.PodmanNoCache([]string{"logs", "registry"})
 		session.WaitWithDefaultTimeout()
 
-		push := podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
+		push := podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5000/tlstest"})
+		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5000/tlstest"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), "/etc/containers/certs.d/localhost:5000/ca.crt"})
 		Expect(setup.ExitCode()).To(Equal(0))
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
+		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5000/credstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
+		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5000/certdirtest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push.ExitCode()).To(Not(Equal(0)))
+		Expect(push).To(ExitWithError())
 
-		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
+		push = podmanTest.PodmanNoCache([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5000/defaultflags"})
 		push.WaitWithDefaultTimeout()
 		Expect(push.ExitCode()).To(Equal(0))
 	})
 
 	It("podman push to docker-archive", func() {
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", ALPINE,
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -177,7 +183,7 @@ var _ = Describe("Podman push", func() {
 			Skip("Docker is not available")
 		}
 
-		session := podmanTest.Podman([]string{"push", ALPINE, "docker-daemon:alpine:podmantest"})
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE, "docker-daemon:alpine:podmantest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
@@ -191,32 +197,15 @@ var _ = Describe("Podman push", func() {
 
 	It("podman push to oci-archive", func() {
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", ALPINE,
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE,
 			fmt.Sprintf("oci-archive:%s:latest", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 	})
 
-	It("podman push to local ostree", func() {
-		if !IsCommandAvailable("ostree") {
-			Skip("ostree is not installed")
-		}
-
-		ostreePath := filepath.Join(podmanTest.TempDir, "ostree/repo")
-		os.MkdirAll(ostreePath, os.ModePerm)
-
-		setup := SystemExec("ostree", []string{strings.Join([]string{"--repo=", ostreePath}, ""), "init"})
-		Expect(setup.ExitCode()).To(Equal(0))
-
-		session := podmanTest.Podman([]string{"push", ALPINE, strings.Join([]string{"ostree:alp@", ostreePath}, "")})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
-
-	})
-
 	It("podman push to docker-archive no reference", func() {
 		tarfn := filepath.Join(podmanTest.TempDir, "alp.tar")
-		session := podmanTest.Podman([]string{"push", ALPINE,
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE,
 			fmt.Sprintf("docker-archive:%s", tarfn)})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
@@ -224,7 +213,7 @@ var _ = Describe("Podman push", func() {
 
 	It("podman push to oci-archive no reference", func() {
 		ociarc := filepath.Join(podmanTest.TempDir, "alp-oci")
-		session := podmanTest.Podman([]string{"push", ALPINE,
+		session := podmanTest.PodmanNoCache([]string{"push", ALPINE,
 			fmt.Sprintf("oci-archive:%s", ociarc)})
 
 		session.WaitWithDefaultTimeout()

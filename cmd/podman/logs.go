@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -15,7 +15,7 @@ var (
 	logsCommand     cliconfig.LogsValues
 	logsDescription = `Retrieves logs for one or more containers.
 
-  This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs.
+  This does not guarantee execution order when combined with podman run (i.e. your run may not have generated any logs at the time you execute podman logs).
 `
 	_logsCommand = &cobra.Command{
 		Use:   "logs [flags] CONTAINER [CONTAINER...]",
@@ -37,6 +37,7 @@ var (
 			return nil
 		},
 		Example: `podman logs ctrID
+  podman logs --names ctrID1 ctrID2
   podman logs --tail 2 mywebserver
   podman logs --follow=true --since 10m ctrID
   podman logs mywebserver mydbserver`,
@@ -52,10 +53,10 @@ func init() {
 	flags.BoolVarP(&logsCommand.Follow, "follow", "f", false, "Follow log output.  The default is false")
 	flags.BoolVarP(&logsCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.StringVar(&logsCommand.Since, "since", "", "Show logs since TIMESTAMP")
-	flags.Uint64Var(&logsCommand.Tail, "tail", 0, "Output the specified number of LINES at the end of the logs.  Defaults to 0, which prints all lines")
+	flags.Int64Var(&logsCommand.Tail, "tail", -1, "Output the specified number of LINES at the end of the logs.  Defaults to -1, which prints all lines")
 	flags.BoolVarP(&logsCommand.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
-	flags.MarkHidden("details")
-
+	flags.BoolVarP(&logsCommand.UseName, "names", "n", false, "Output the container name in the log")
+	markFlagHidden(flags, "details")
 	flags.SetInterspersed(false)
 
 	markFlagHiddenForRemoteClient("latest", flags)
@@ -64,11 +65,11 @@ func init() {
 func logsCmd(c *cliconfig.LogsValues) error {
 	var err error
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	sinceTime := time.Time{}
 	if c.Flag("since").Changed {
@@ -80,13 +81,13 @@ func logsCmd(c *cliconfig.LogsValues) error {
 		sinceTime = since
 	}
 
-	opts := &libpod.LogOptions{
+	options := &logs.LogOptions{
 		Details:    c.Details,
 		Follow:     c.Follow,
 		Since:      sinceTime,
 		Tail:       c.Tail,
 		Timestamps: c.Timestamps,
+		UseName:    c.UseName,
 	}
-
-	return runtime.Log(c, opts)
+	return runtime.Log(c, options)
 }

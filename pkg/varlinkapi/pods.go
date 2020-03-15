@@ -5,18 +5,25 @@ package varlinkapi
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/containers/libpod/pkg/adapter/shortcuts"
-	"github.com/containers/libpod/pkg/rootless"
 	"syscall"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter/shortcuts"
 )
 
 // CreatePod ...
 func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCreate) error {
 	var options []libpod.PodCreateOption
+	if create.Infra {
+		options = append(options, libpod.WithInfraContainer())
+		nsOptions, err := shared.GetNamespaceOptions(create.Share)
+		if err != nil {
+			return err
+		}
+		options = append(options, nsOptions...)
+	}
 	if create.CgroupParent != "" {
 		options = append(options, libpod.WithPodCgroupParent(create.CgroupParent))
 	}
@@ -37,23 +44,12 @@ func (i *LibpodAPI) CreatePod(call iopodman.VarlinkCall, create iopodman.PodCrea
 		if !create.Infra {
 			return call.ReplyErrorOccurred("you must have an infra container to publish port bindings to the host")
 		}
-		if rootless.IsRootless() {
-			return call.ReplyErrorOccurred("rootless networking does not allow port binding to the host")
-		}
 		portBindings, err := shared.CreatePortBindings(create.Publish)
 		if err != nil {
-			return err
+			return call.ReplyErrorOccurred(err.Error())
 		}
 		options = append(options, libpod.WithInfraContainerPorts(portBindings))
 
-	}
-	if create.Infra {
-		options = append(options, libpod.WithInfraContainer())
-		nsOptions, err := shared.GetNamespaceOptions(create.Share)
-		if err != nil {
-			return err
-		}
-		options = append(options, nsOptions...)
 	}
 	options = append(options, libpod.WithPodCgroups())
 
@@ -99,6 +95,28 @@ func (i *LibpodAPI) GetPod(call iopodman.VarlinkCall, name string) error {
 	}
 
 	return call.ReplyGetPod(listPod)
+}
+
+// GetPodsByStatus returns a slice of pods filtered by a libpod status
+func (i *LibpodAPI) GetPodsByStatus(call iopodman.VarlinkCall, statuses []string) error {
+	filterFuncs := func(p *libpod.Pod) bool {
+		state, _ := shared.GetPodStatus(p)
+		for _, status := range statuses {
+			if state == status {
+				return true
+			}
+		}
+		return false
+	}
+	filteredPods, err := i.Runtime.Pods(filterFuncs)
+	if err != nil {
+		return call.ReplyErrorOccurred(err.Error())
+	}
+	podIDs := make([]string, 0, len(filteredPods))
+	for _, p := range filteredPods {
+		podIDs = append(podIDs, p.ID())
+	}
+	return call.ReplyGetPodsByStatus(podIDs)
 }
 
 // InspectPod ...
@@ -229,7 +247,7 @@ func (i *LibpodAPI) RemovePod(call iopodman.VarlinkCall, name string, force bool
 	if err != nil {
 		return call.ReplyPodNotFound(name, err.Error())
 	}
-	if err = i.Runtime.RemovePod(ctx, pod, force, force); err != nil {
+	if err = i.Runtime.RemovePod(ctx, pod, true, force); err != nil {
 		return call.ReplyErrorOccurred(err.Error())
 	}
 

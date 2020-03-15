@@ -61,7 +61,8 @@ func TestPostDeleteHooks(t *testing.T) {
 	}
 
 	stateRegexp := `{"ociVersion":"1\.0\.1-dev","id":"123abc","status":"stopped","bundle":"` + strings.TrimSuffix(os.TempDir(), "/") + `/libpod_test_[0-9]*","annotations":{"a":"b"}}`
-	for _, path := range []string{statePath, copyPath} {
+	for _, p := range []string{statePath, copyPath} {
+		path := p
 		t.Run(path, func(t *testing.T) {
 			content, err := ioutil.ReadFile(path)
 			if err != nil {

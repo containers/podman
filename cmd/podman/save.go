@@ -9,8 +9,8 @@ import (
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -70,11 +70,11 @@ func saveCmd(c *cliconfig.SaveValues) error {
 		return errors.Errorf("need at least 1 argument")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Flag("compress").Changed && (c.Format != ociManifestDir && c.Format != v2s2ManifestDir && c.Format == "") {
 		return errors.Errorf("--compress can only be set when --format is either 'oci-dir' or 'docker-dir'")
@@ -82,7 +82,7 @@ func saveCmd(c *cliconfig.SaveValues) error {
 
 	if len(c.Output) == 0 {
 		fi := os.Stdout
-		if logrus.IsTerminal(fi) {
+		if terminal.IsTerminal(int(fi.Fd())) {
 			return errors.Errorf("refusing to save to terminal. Use -o flag or redirect")
 		}
 		c.Output = "/dev/stdout"

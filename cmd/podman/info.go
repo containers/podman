@@ -3,13 +3,15 @@ package main
 import (
 	"fmt"
 	rt "runtime"
+	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -50,26 +52,35 @@ func infoCmd(c *cliconfig.InfoValues) error {
 	info := map[string]interface{}{}
 	remoteClientInfo := map[string]interface{}{}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	infoArr, err := runtime.Info()
 	if err != nil {
 		return errors.Wrapf(err, "error getting info")
 	}
+
 	if runtime.Remote {
+		endpoint, err := runtime.RemoteEndpoint()
+		if err != nil {
+			logrus.Errorf("Failed to obtain server connection: %s", err.Error())
+		} else {
+			remoteClientInfo["Connection"] = endpoint.Connection
+			remoteClientInfo["Connection Type"] = endpoint.Type.String()
+		}
+
 		remoteClientInfo["RemoteAPI Version"] = version.RemoteAPIVersion
 		remoteClientInfo["Podman Version"] = version.Version
 		remoteClientInfo["OS Arch"] = fmt.Sprintf("%s/%s", rt.GOOS, rt.GOARCH)
-		infoArr = append(infoArr, libpod.InfoData{Type: "client", Data: remoteClientInfo})
+		infoArr = append(infoArr, define.InfoData{Type: "client", Data: remoteClientInfo})
 	}
 
 	if !runtime.Remote && c.Debug {
 		debugInfo := debugInfo(c)
-		infoArr = append(infoArr, libpod.InfoData{Type: "debug", Data: debugInfo})
+		infoArr = append(infoArr, define.InfoData{Type: "debug", Data: debugInfo})
 	}
 
 	for _, currInfo := range infoArr {
@@ -78,6 +89,9 @@ func infoCmd(c *cliconfig.InfoValues) error {
 
 	var out formats.Writer
 	infoOutputFormat := c.Format
+	if strings.Join(strings.Fields(infoOutputFormat), "") == "{{json.}}" {
+		infoOutputFormat = formats.JSONString
+	}
 	switch infoOutputFormat {
 	case formats.JSONString:
 		out = formats.JSONStruct{Output: info}
@@ -87,9 +101,7 @@ func infoCmd(c *cliconfig.InfoValues) error {
 		out = formats.StdoutTemplate{Output: info, Template: infoOutputFormat}
 	}
 
-	formats.Writer(out).Out()
-
-	return nil
+	return out.Out()
 }
 
 // top-level "debug" info
@@ -98,7 +110,7 @@ func debugInfo(c *cliconfig.InfoValues) map[string]interface{} {
 	info["compiler"] = rt.Compiler
 	info["go version"] = rt.Version()
 	info["podman version"] = version.Version
-	version, _ := libpod.GetVersion()
+	version, _ := define.GetVersion()
 	info["git commit"] = version.GitCommit
 	return info
 }

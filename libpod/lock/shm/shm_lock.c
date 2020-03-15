@@ -145,7 +145,7 @@ shm_struct_t *setup_lock_shm(char *path, uint32_t num_locks, int *error_code) {
 
   // Set mutexes to robust - if a process dies while holding a mutex, we'll get
   // a special error code on the next attempt to lock it.
-  // This should prevent panicing processes from leaving the state unusable.
+  // This should prevent panicking processes from leaving the state unusable.
   ret_code = pthread_mutexattr_setrobust(&attr, PTHREAD_MUTEX_ROBUST);
   if (ret_code != 0) {
     *error_code = -1 * ret_code;
@@ -298,7 +298,7 @@ int32_t close_lock_shm(shm_struct_t *shm) {
 // Allocate the first available semaphore
 // Returns a positive integer guaranteed to be less than UINT32_MAX on success,
 // or negative errno values on failure
-// On sucess, the returned integer is the number of the semaphore allocated
+// On success, the returned integer is the number of the semaphore allocated
 int64_t allocate_semaphore(shm_struct_t *shm) {
   int ret_code, i;
   bitmap_t test_map;
@@ -354,11 +354,66 @@ int64_t allocate_semaphore(shm_struct_t *shm) {
   return -1 * ENOSPC;
 }
 
+// Allocate the semaphore with the given ID.
+// Returns an error if the semaphore with this ID does not exist, or has already
+// been allocated.
+// Returns 0 on success, or negative errno values on failure.
+int32_t allocate_given_semaphore(shm_struct_t *shm, uint32_t sem_index) {
+  int bitmap_index, index_in_bitmap, ret_code;
+  bitmap_t test_map;
+
+  if (shm == NULL) {
+    return -1 * EINVAL;
+  }
+
+  // Check if the lock index is valid
+  if (sem_index >= shm->num_locks) {
+    return -1 * EINVAL;
+  }
+
+  bitmap_index = sem_index / BITMAP_SIZE;
+  index_in_bitmap = sem_index % BITMAP_SIZE;
+
+  // This should never happen if the sem_index test above succeeded, but better
+  // safe than sorry
+  if (bitmap_index >= shm->num_bitmaps) {
+    return -1 * EFAULT;
+  }
+
+  test_map = 0x1 << index_in_bitmap;
+
+  // Lock the mutex controlling access to our shared memory
+  ret_code = take_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  // Check if the semaphore is allocated
+  if ((test_map & shm->locks[bitmap_index].bitmap) != 0) {
+    ret_code = release_mutex(&(shm->segment_lock));
+    if (ret_code != 0) {
+      return -1 * ret_code;
+    }
+
+    return -1 * EEXIST;
+  }
+
+  // The semaphore is not allocated, allocate it
+  shm->locks[bitmap_index].bitmap = shm->locks[bitmap_index].bitmap | test_map;
+
+  ret_code = release_mutex(&(shm->segment_lock));
+  if (ret_code != 0) {
+    return -1 * ret_code;
+  }
+
+  return 0;
+}
+
 // Deallocate a given semaphore
 // Returns 0 on success, negative ERRNO values on failure
 int32_t deallocate_semaphore(shm_struct_t *shm, uint32_t sem_index) {
   bitmap_t test_map;
-  int bitmap_index, index_in_bitmap, ret_code, i;
+  int bitmap_index, index_in_bitmap, ret_code;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -445,7 +500,7 @@ int32_t deallocate_all_semaphores(shm_struct_t *shm) {
 // subsequently realize they have been removed).
 // Returns 0 on success, -1 on failure
 int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
-  int bitmap_index, index_in_bitmap, ret_code;
+  int bitmap_index, index_in_bitmap;
 
   if (shm == NULL) {
     return -1 * EINVAL;
@@ -467,7 +522,7 @@ int32_t lock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
 // subsequently realize they have been removed).
 // Returns 0 on success, -1 on failure
 int32_t unlock_semaphore(shm_struct_t *shm, uint32_t sem_index) {
-  int bitmap_index, index_in_bitmap, ret_code;
+  int bitmap_index, index_in_bitmap;
 
   if (shm == NULL) {
     return -1 * EINVAL;

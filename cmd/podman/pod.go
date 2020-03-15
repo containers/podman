@@ -24,6 +24,7 @@ var podSubCommands = []*cobra.Command{
 	_podInspectCommand,
 	_podKillCommand,
 	_podPauseCommand,
+	_prunePodsCommand,
 	_podPsCommand,
 	_podRestartCommand,
 	_podRmCommand,

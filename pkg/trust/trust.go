@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	yaml "gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v2"
 )
 
 // PolicyContent struct for policy.json file
@@ -139,7 +139,7 @@ func LoadAndMergeConfig(dirPath string) (*RegistryConfiguration, error) {
 	return &mergedConfig, nil
 }
 
-// HaveMatchRegistry checks if trust settings for the registry have been configed in yaml file
+// HaveMatchRegistry checks if trust settings for the registry have been configured in yaml file
 func HaveMatchRegistry(key string, registryConfigs *RegistryConfiguration) *RegistryNamespace {
 	searchKey := key
 	if !strings.Contains(searchKey, "/") {

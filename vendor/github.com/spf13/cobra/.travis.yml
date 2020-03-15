@@ -1,0 +1,28 @@
+language: go
+
+stages:
+  - diff
+  - test
+
+go:
+  - 1.10.x
+  - 1.11.x
+  - 1.12.x
+  - tip
+
+matrix:
+  allow_failures:
+    - go: tip
+  include:
+    - stage: diff
+      go: 1.12.x
+      script: diff -u <(echo -n) <(gofmt -d -s .)
+
+before_install: go get -u github.com/kyoh86/richgo
+
+script:
+  - richgo test -v ./...
+  - go build
+  - if [ -z $NOVET ]; then
+      diff -u <(echo -n) <(go vet . 2>&1 | grep -vE 'ExampleCommand|bash_completions.*Fprint');
+    fi

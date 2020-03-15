@@ -13,7 +13,7 @@ var (
 	_eventsCommand    = &cobra.Command{
 		Use:   "events",
 		Args:  noSubArgs,
-		Short: "show podman events",
+		Short: "Show podman events",
 		Long:  eventsDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			eventsCommand.InputArgs = args
@@ -36,15 +36,15 @@ func init() {
 	flags.BoolVar(&eventsCommand.Stream, "stream", true, "stream new events; for testing only")
 	flags.StringVar(&eventsCommand.Since, "since", "", "show all events created since timestamp")
 	flags.StringVar(&eventsCommand.Until, "until", "", "show all events until timestamp")
-	flags.MarkHidden("stream")
+	markFlagHidden(flags, "stream")
 }
 
 func eventsCmd(c *cliconfig.EventValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	return runtime.Events(c)
 }

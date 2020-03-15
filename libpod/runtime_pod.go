@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -30,7 +31,7 @@ func (r *Runtime) RemovePod(ctx context.Context, p *Pod, removeCtrs, force bool)
 	defer r.lock.Unlock()
 
 	if !r.valid {
-		return ErrRuntimeStopped
+		return define.ErrRuntimeStopped
 	}
 
 	if !p.valid {
@@ -53,7 +54,7 @@ func (r *Runtime) GetPod(id string) (*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	return r.state.Pod(id)
@@ -65,7 +66,7 @@ func (r *Runtime) HasPod(id string) (bool, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return false, ErrRuntimeStopped
+		return false, define.ErrRuntimeStopped
 	}
 
 	return r.state.HasPod(id)
@@ -78,7 +79,7 @@ func (r *Runtime) LookupPod(idOrName string) (*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	return r.state.LookupPod(idOrName)
@@ -93,7 +94,7 @@ func (r *Runtime) Pods(filters ...PodFilter) ([]*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	pods, err := r.state.AllPods()
@@ -122,7 +123,7 @@ func (r *Runtime) GetAllPods() ([]*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 
 	return r.state.AllPods()
@@ -137,7 +138,7 @@ func (r *Runtime) GetLatestPod() (*Pod, error) {
 		return nil, errors.Wrapf(err, "unable to get all pods")
 	}
 	if len(pods) == 0 {
-		return nil, ErrNoSuchPod
+		return nil, define.ErrNoSuchPod
 	}
 	for podIndex, pod := range pods {
 		createdTime := pod.config.CreatedTime
@@ -159,7 +160,7 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 	defer r.lock.RUnlock()
 
 	if !r.valid {
-		return nil, ErrRuntimeStopped
+		return nil, define.ErrRuntimeStopped
 	}
 	containers, err := r.GetRunningContainers()
 	if err != nil {
@@ -171,7 +172,7 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 			pods = append(pods, c.PodID())
 			pod, err := r.GetPod(c.PodID())
 			if err != nil {
-				if errors.Cause(err) == ErrPodRemoved || errors.Cause(err) == ErrNoSuchPod {
+				if errors.Cause(err) == define.ErrPodRemoved || errors.Cause(err) == define.ErrNoSuchPod {
 					continue
 				}
 				return nil, err
@@ -180,4 +181,32 @@ func (r *Runtime) GetRunningPods() ([]*Pod, error) {
 		}
 	}
 	return runningPods, nil
+}
+
+// PrunePods removes unused pods and their containers from local storage.
+// If force is given, then running pods are also included in the pruning.
+func (r *Runtime) PrunePods() (map[string]error, error) {
+	response := make(map[string]error)
+	states := []string{define.PodStateStopped, define.PodStateExited}
+	filterFunc := func(p *Pod) bool {
+		state, _ := p.GetPodStatus()
+		for _, status := range states {
+			if state == status {
+				return true
+			}
+		}
+		return false
+	}
+	pods, err := r.Pods(filterFunc)
+	if err != nil {
+		return nil, err
+	}
+	if len(pods) < 1 {
+		return response, nil
+	}
+	for _, pod := range pods {
+		err := r.removePod(context.TODO(), pod, true, false)
+		response[pod.ID()] = err
+	}
+	return response, nil
 }

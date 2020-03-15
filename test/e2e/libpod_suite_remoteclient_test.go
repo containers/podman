@@ -3,15 +3,19 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/inspect"
-	"github.com/onsi/ginkgo"
+	"github.com/containers/libpod/pkg/rootless"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/onsi/ginkgo"
 )
 
 func SkipIfRemote() {
@@ -20,51 +24,28 @@ func SkipIfRemote() {
 
 func SkipIfRootless() {
 	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for remote podman")
+		ginkgo.Skip("This function is not enabled for rootless podman")
 	}
-}
-
-// Cleanup cleans up the temporary store
-func (p *PodmanTestIntegration) Cleanup() {
-	p.StopVarlink()
-	// TODO
-	// Stop all containers
-	// Rm all containers
-
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
-
-	// Clean up the registries configuration file ENV variable set in Create
-	resetRegistriesConfigEnv()
 }
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args)
+	podmanSession := p.PodmanBase(args, false, false)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
-//RunTopContainer runs a simple container in the background that
-// runs top.  If the name passed != "", it will have a name
-func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionIntegration {
-	// TODO
-	return nil
+// PodmanNoCache calls podman with out adding the imagecache
+func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, false, true)
+	return &PodmanSessionIntegration{podmanSession}
 }
 
-//RunLsContainer runs a simple container in the background that
-// simply runs ls. If the name passed != "", it will have a name
-func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionIntegration, int, string) {
-	// TODO
-	return nil, 0, ""
+// PodmanNoEvents calls the Podman command without an imagecache and without an
+// events backend. It is used mostly for caching and uncaching images.
+func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, true, true)
+	return &PodmanSessionIntegration{podmanSession}
 }
-
-// InspectImageJSON takes the session output of an inspect
-// image and returns json
-//func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
-//	// TODO
-//	return nil
-//}
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
@@ -80,95 +61,88 @@ func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 func resetRegistriesConfigEnv() {
 	os.Setenv("REGISTRIES_CONFIG_PATH", "")
 }
-
-// InspectContainerToJSON takes the session output of an inspect
-// container and returns json
-func (s *PodmanSessionIntegration) InspectContainerToJSON() []inspect.ContainerData {
-	// TODO
-	return nil
-}
-
-// CreatePod creates a pod with no infra container
-// it optionally takes a pod name
-func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {
-	// TODO
-	return nil, 0, ""
-}
-
-func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSessionIntegration {
-	// TODO
-	return nil
-}
-
-// BuildImage uses podman build and buildah to build an image
-// called imageName based on a string dockerfile
-func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string) {
-	// TODO
-}
-
-// CleanupPod cleans up the temporary store
-func (p *PodmanTestIntegration) CleanupPod() {
-	// TODO
-}
-
-// InspectPodToJSON takes the sessions output from a pod inspect and returns json
-func (s *PodmanSessionIntegration) InspectPodToJSON() libpod.PodInspect {
-	// TODO
-	return libpod.PodInspect{}
-}
-func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {
-	// TODO
-	return nil, 0, ""
-}
-
-// PullImages pulls multiple images
-func (p *PodmanTestIntegration) PullImages(images []string) error {
-	// TODO
-	return libpod.ErrNotImplemented
-}
-
-// PodmanPID execs podman and returns its PID
-func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
-	// TODO
-	return nil, 0
-}
-
-// CleanupVolume cleans up the temporary store
-func (p *PodmanTestIntegration) CleanupVolume() {
-	// TODO
-}
-
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 	pti := PodmanTestCreateUtil(tempDir, true)
 	pti.StartVarlink()
 	return pti
 }
 
+func (p *PodmanTestIntegration) ResetVarlinkAddress() {
+	os.Unsetenv("PODMAN_VARLINK_ADDRESS")
+}
+
+func (p *PodmanTestIntegration) SetVarlinkAddress(addr string) {
+	os.Setenv("PODMAN_VARLINK_ADDRESS", addr)
+}
+
 func (p *PodmanTestIntegration) StartVarlink() {
 	if os.Geteuid() == 0 {
 		os.MkdirAll("/run/podman", 0755)
 	}
-	varlinkEndpoint := "unix:/run/podman/io.podman"
-	if addr := os.Getenv("PODMAN_VARLINK_ADDRESS"); addr != "" {
-		varlinkEndpoint = addr
-	}
+	varlinkEndpoint := p.VarlinkEndpoint
+	p.SetVarlinkAddress(p.VarlinkEndpoint)
 
 	args := []string{"varlink", "--timeout", "0", varlinkEndpoint}
 	podmanOptions := getVarlinkOptions(p, args)
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
 	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 	command.Start()
+	command.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	p.VarlinkCommand = command
 	p.VarlinkSession = command.Process
+	p.DelayForVarlink()
 }
 
 func (p *PodmanTestIntegration) StopVarlink() {
+	var out bytes.Buffer
+	var pids []int
 	varlinkSession := p.VarlinkSession
-	varlinkSession.Kill()
-	varlinkSession.Wait()
+
+	if !rootless.IsRootless() {
+		if err := varlinkSession.Kill(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on varlink stop-kill %q", err)
+		}
+		if _, err := varlinkSession.Wait(); err != nil {
+			fmt.Fprintf(os.Stderr, "error on varlink stop-wait %q", err)
+		}
+
+	} else {
+		p.ResetVarlinkAddress()
+		parentPid := fmt.Sprintf("%d", p.VarlinkSession.Pid)
+		pgrep := exec.Command("pgrep", "-P", parentPid)
+		fmt.Printf("running: pgrep %s\n", parentPid)
+		pgrep.Stdout = &out
+		err := pgrep.Run()
+		if err != nil {
+			fmt.Fprint(os.Stderr, "unable to find varlink pid")
+		}
+
+		for _, s := range strings.Split(out.String(), "\n") {
+			if len(s) == 0 {
+				continue
+			}
+			p, err := strconv.Atoi(s)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "unable to convert %s to int", s)
+			}
+			if p != 0 {
+				pids = append(pids, p)
+			}
+		}
+
+		pids = append(pids, p.VarlinkSession.Pid)
+		for _, pid := range pids {
+			syscall.Kill(pid, syscall.SIGKILL)
+		}
+	}
+	socket := strings.Split(p.VarlinkEndpoint, ":")[1]
+	if err := os.Remove(socket); err != nil {
+		fmt.Println(err)
+	}
 }
 
 //MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	return args
 }
 
@@ -184,6 +158,21 @@ func getVarlinkOptions(p *PodmanTestIntegration, args []string) []string {
 	return podmanOptions
 }
 
+func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+	p.CrioRoot = p.ImageCacheDir
+	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
+	restore.WaitWithDefaultTimeout()
+	return nil
+}
+
+// SeedImages restores all the artifacts into the main store for remote tests
+func (p *PodmanTestIntegration) SeedImages() error {
+	return p.RestoreAllArtifacts()
+}
+
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	fmt.Printf("Restoring %s...\n", image)
@@ -197,3 +186,17 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	command.Wait()
 	return nil
 }
+
+func (p *PodmanTestIntegration) DelayForVarlink() {
+	for i := 0; i < 5; i++ {
+		session := p.Podman([]string{"info"})
+		session.WaitWithDefaultTimeout()
+		if session.ExitCode() == 0 || i == 4 {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+}
+
+func populateCache(podman *PodmanTestIntegration) {}
+func removeCache()                                {}

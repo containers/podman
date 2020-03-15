@@ -115,7 +115,7 @@ var _ = Describe("Common functions test", func() {
 		bytes, _ := ioutil.ReadAll(read)
 		json.Unmarshal(bytes, compareData)
 
-		Expect(reflect.DeepEqual(testData, compareData)).To(BeTrue(), "Data chaned after we store it to file.")
+		Expect(reflect.DeepEqual(testData, compareData)).To(BeTrue(), "Data changed after we store it to file.")
 	})
 
 	DescribeTable("Test Containerized",

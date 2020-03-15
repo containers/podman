@@ -44,6 +44,8 @@ func typeToString(input *idl.Type) string {
 		return "map[string]"
 	case idl.TypeInt:
 		return "int"
+	case idl.TypeMaybe:
+		return fmt.Sprintf("?%s", typeToString(input.ElementType))
 	}
 	return ""
 }
@@ -179,7 +181,7 @@ func generateIndex(methods []funcDescriber, types []typeDescriber, errors []err,
 
 		}
 		for _, outArg := range method.returnParams {
-			outArgs = append(outArgs, fmt.Sprintf("%s", outArg.paramKind))
+			outArgs = append(outArgs, outArg.paramKind)
 
 		}
 		b.WriteString(fmt.Sprintf("\n[func %s(%s) %s](#%s)\n", method.Name, strings.Join(inArgs, ", "), strings.Join(outArgs, ", "), method.Name))
@@ -270,5 +272,8 @@ func main() {
 	out = generateTypeDescriptions(types, out)
 	out.WriteString("## Errors\n")
 	out = generateErrorDescriptions(errors, out)
-	ioutil.WriteFile(mdFile, out.Bytes(), 0755)
+	if err := ioutil.WriteFile(mdFile, out.Bytes(), 0755); err != nil {
+		fmt.Fprintf(os.Stderr, "Error writing file: %v\n", err)
+		os.Exit(1)
+	}
 }

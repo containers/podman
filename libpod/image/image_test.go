@@ -3,12 +3,14 @@ package image
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 
+	"github.com/containers/libpod/libpod/events"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/reexec"
 	"github.com/opencontainers/go-digest"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +18,6 @@ import (
 var (
 	bbNames      = []string{"docker.io/library/busybox:latest", "docker.io/library/busybox", "docker.io/busybox:latest", "docker.io/busybox", "busybox:latest", "busybox"}
 	bbGlibcNames = []string{"docker.io/library/busybox:glibc", "docker.io/busybox:glibc", "busybox:glibc"}
-	fedoraNames  = []string{"registry.fedoraproject.org/fedora-minimal:latest", "registry.fedoraproject.org/fedora-minimal", "fedora-minimal:latest", "fedora-minimal"}
 )
 
 type localImageTest struct {
@@ -68,6 +69,13 @@ func makeLocalMatrix(b, bg *Image) ([]localImageTest, error) {
 
 }
 
+func TestMain(m *testing.M) {
+	if reexec.Init() {
+		return
+	}
+	os.Exit(m.Run())
+}
+
 // TestImage_NewFromLocal tests finding the image locally by various names,
 // tags, and aliases
 func TestImage_NewFromLocal(t *testing.T) {
@@ -81,15 +89,15 @@ func TestImage_NewFromLocal(t *testing.T) {
 		RunRoot:   workdir,
 		GraphRoot: workdir,
 	}
-	var writer io.Writer
-	writer = os.Stdout
+	writer := os.Stdout
 
 	// Need images to be present for this test
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, false, nil)
+	ir.Eventer = events.NewNullEventer()
+	bb, err := ir.New(context.Background(), "docker.io/library/busybox:latest", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
 	assert.NoError(t, err)
-	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, false, nil)
+	bbglibc, err := ir.New(context.Background(), "docker.io/library/busybox:glibc", "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
 	assert.NoError(t, err)
 
 	tm, err := makeLocalMatrix(bb, bbglibc)
@@ -97,7 +105,7 @@ func TestImage_NewFromLocal(t *testing.T) {
 
 	for _, image := range tm {
 		// tag our images
-		image.img.TagImage(image.taggedName)
+		err = image.img.TagImage(image.taggedName)
 		assert.NoError(t, err)
 		for _, name := range image.names {
 			newImage, err := ir.NewFromLocal(name)
@@ -127,19 +135,18 @@ func TestImage_New(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
+	ir.Eventer = events.NewNullEventer()
 	// Build the list of pull names
 	names = append(names, bbNames...)
-	names = append(names, fedoraNames...)
-	var writer io.Writer
-	writer = os.Stdout
+	writer := os.Stdout
 
 	// Iterate over the names and delete the image
 	// after the pull
 	for _, img := range names {
-		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, false, nil)
+		newImage, err := ir.New(context.Background(), img, "", "", writer, nil, SigningOptions{}, nil, util.PullImageMissing)
 		assert.NoError(t, err)
 		assert.NotEqual(t, newImage.ID(), "")
-		err = newImage.Remove(false)
+		err = newImage.Remove(context.Background(), false)
 		assert.NoError(t, err)
 	}
 
@@ -164,7 +171,8 @@ func TestImage_MatchRepoTag(t *testing.T) {
 	}
 	ir, err := NewImageRuntimeFromOptions(so)
 	assert.NoError(t, err)
-	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, false, nil)
+	ir.Eventer = events.NewNullEventer()
+	newImage, err := ir.New(context.Background(), "busybox", "", "", os.Stdout, nil, SigningOptions{}, nil, util.PullImageMissing)
 	assert.NoError(t, err)
 	err = newImage.TagImage("foo:latest")
 	assert.NoError(t, err)
@@ -200,7 +208,7 @@ func TestImage_RepoDigests(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name     string
 		names    []string
 		expected []string
@@ -221,6 +229,7 @@ func TestImage_RepoDigests(t *testing.T) {
 			expected: []string{"docker.io/library/busybox@sha256:7173b809ca12ec5dee4506cd86be934c4596dd234ee82c0662eac04a8c2c71dc"},
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			image := &Image{
 				image: &storage.Image{
@@ -229,6 +238,19 @@ func TestImage_RepoDigests(t *testing.T) {
 				},
 			}
 			actual, err := image.RepoDigests()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			assert.Equal(t, test.expected, actual)
+
+			image = &Image{
+				image: &storage.Image{
+					Names:   test.names,
+					Digests: []digest.Digest{dgst},
+				},
+			}
+			actual, err = image.RepoDigests()
 			if err != nil {
 				t.Fatal(err)
 			}

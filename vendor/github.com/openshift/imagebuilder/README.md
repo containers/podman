@@ -64,6 +64,11 @@ $ imagebuilder -f Dockerfile:Dockerfile.extra .
 will build the current directory and combine the first Dockerfile with the second. The FROM in the second image
 is ignored.
 
+Note that imagebuilder adds the built image to the `docker` daemon's internal storage. If you use `podman` you must first pull the image into its local registry:
+
+```
+$ podman pull docker-daemon:<IMAGE>:<TAG> # must contain either a tag or a digest
+```
 
 ## Code Example
 

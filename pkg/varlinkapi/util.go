@@ -12,6 +12,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/channelwriter"
 	"github.com/containers/storage/pkg/archive"
 )
 
@@ -73,7 +75,7 @@ func makeListContainer(containerID string, batchInfo shared.BatchContainerStruct
 		Names:            batchInfo.ConConfig.Name,
 		Labels:           batchInfo.ConConfig.Labels,
 		Mounts:           mounts,
-		Containerrunning: batchInfo.ConState == libpod.ContainerStateRunning,
+		Containerrunning: batchInfo.ConState == define.ContainerStateRunning,
 		Namespaces:       namespace,
 	}
 	if batchInfo.Size != nil {
@@ -189,9 +191,48 @@ func makePsOpts(inOpts iopodman.PsOpts) shared.PsOptions {
 		Latest:    derefBool(inOpts.Latest),
 		NoTrunc:   derefBool(inOpts.NoTrunc),
 		Pod:       derefBool(inOpts.Pod),
-		Size:      true,
+		Size:      derefBool(inOpts.Size),
 		Sort:      derefString(inOpts.Sort),
 		Namespace: true,
 		Sync:      derefBool(inOpts.Sync),
 	}
+}
+
+// forwardOutput is a helper method for varlink endpoints that employ both more and without
+// more.  it is capable of sending updates as the output writer gets them or append them
+// all to a log.  the chan error is the error from the libpod call so we can honor
+// and error event in that case.
+func forwardOutput(log []string, c chan error, wantsMore bool, output *channelwriter.Writer, reply func(br iopodman.MoreResponse) error) ([]string, error) {
+	done := false
+	for {
+		select {
+		// We need to check if the libpod func being called has returned an
+		// error yet
+		case err := <-c:
+			if err != nil {
+				return nil, err
+			}
+			done = true
+		// if no error is found, we pull what we can from the log writer and
+		// append it to log string slice
+		case line := <-output.ByteChannel:
+			log = append(log, string(line))
+			// If the end point is being used in more mode, send what we have
+			if wantsMore {
+				br := iopodman.MoreResponse{
+					Logs: log,
+				}
+				if err := reply(br); err != nil {
+					return nil, err
+				}
+				// "reset" the log to empty because we are sending what we
+				// get as we get it
+				log = []string{}
+			}
+		}
+		if done {
+			break
+		}
+	}
+	return log, nil
 }

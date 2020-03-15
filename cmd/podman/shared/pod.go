@@ -4,19 +4,14 @@ import (
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 )
 
-const (
-	stopped = "Stopped"
-	running = "Running"
-	paused  = "Paused"
-	exited  = "Exited"
-	errored = "Error"
-	created = "Created"
-)
+// TODO GetPodStatus and CreatePodStatusResults should removed once the adapter
+// and shared packages are reworked.  It has now been duplicated in libpod proper.
 
 // GetPodStatus determines the status of the pod based on the
 // statuses of the containers in the pod.
@@ -24,52 +19,54 @@ const (
 func GetPodStatus(pod *libpod.Pod) (string, error) {
 	ctrStatuses, err := pod.Status()
 	if err != nil {
-		return errored, err
+		return define.PodStateErrored, err
 	}
 	return CreatePodStatusResults(ctrStatuses)
 }
 
-func CreatePodStatusResults(ctrStatuses map[string]libpod.ContainerStatus) (string, error) {
+func CreatePodStatusResults(ctrStatuses map[string]define.ContainerStatus) (string, error) {
 	ctrNum := len(ctrStatuses)
 	if ctrNum == 0 {
-		return created, nil
+		return define.PodStateCreated, nil
 	}
 	statuses := map[string]int{
-		stopped: 0,
-		running: 0,
-		paused:  0,
-		created: 0,
-		errored: 0,
+		define.PodStateStopped: 0,
+		define.PodStateRunning: 0,
+		define.PodStatePaused:  0,
+		define.PodStateCreated: 0,
+		define.PodStateErrored: 0,
 	}
 	for _, ctrStatus := range ctrStatuses {
 		switch ctrStatus {
-		case libpod.ContainerStateExited:
+		case define.ContainerStateExited:
 			fallthrough
-		case libpod.ContainerStateStopped:
-			statuses[stopped]++
-		case libpod.ContainerStateRunning:
-			statuses[running]++
-		case libpod.ContainerStatePaused:
-			statuses[paused]++
-		case libpod.ContainerStateCreated, libpod.ContainerStateConfigured:
-			statuses[created]++
+		case define.ContainerStateStopped:
+			statuses[define.PodStateStopped]++
+		case define.ContainerStateRunning:
+			statuses[define.PodStateRunning]++
+		case define.ContainerStatePaused:
+			statuses[define.PodStatePaused]++
+		case define.ContainerStateCreated, define.ContainerStateConfigured:
+			statuses[define.PodStateCreated]++
 		default:
-			statuses[errored]++
+			statuses[define.PodStateErrored]++
 		}
 	}
 
-	if statuses[running] > 0 {
-		return running, nil
-	} else if statuses[paused] == ctrNum {
-		return paused, nil
-	} else if statuses[stopped] == ctrNum {
-		return exited, nil
-	} else if statuses[stopped] > 0 {
-		return stopped, nil
-	} else if statuses[errored] > 0 {
-		return errored, nil
+	switch {
+	case statuses[define.PodStateRunning] > 0:
+		return define.PodStateRunning, nil
+	case statuses[define.PodStatePaused] == ctrNum:
+		return define.PodStatePaused, nil
+	case statuses[define.PodStateStopped] == ctrNum:
+		return define.PodStateExited, nil
+	case statuses[define.PodStateStopped] > 0:
+		return define.PodStateStopped, nil
+	case statuses[define.PodStateErrored] > 0:
+		return define.PodStateErrored, nil
+	default:
+		return define.PodStateCreated, nil
 	}
-	return created, nil
 }
 
 // GetNamespaceOptions transforms a slice of kernel namespaces

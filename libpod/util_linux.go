@@ -5,13 +5,15 @@ package libpod
 import (
 	"fmt"
 	"strings"
+	"syscall"
 
-	"github.com/containerd/cgroups"
-	"github.com/containers/libpod/pkg/util"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 // systemdSliceFromPath makes a new systemd slice under the given parent with
@@ -34,24 +36,42 @@ func systemdSliceFromPath(parent, name string) (string, error) {
 	return cgroupPath, nil
 }
 
+func getDefaultSystemdCgroup() string {
+	if rootless.IsRootless() {
+		return SystemdDefaultRootlessCgroupParent
+	}
+	return SystemdDefaultCgroupParent
+}
+
 // makeSystemdCgroup creates a systemd CGroup at the given location.
 func makeSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(SystemdDefaultCgroupParent)
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
 		return err
 	}
 
-	return controller.Create(path, &spec.LinuxResources{})
+	if rootless.IsRootless() {
+		return controller.CreateSystemdUserUnit(path, rootless.GetRootlessUID())
+	}
+	return controller.CreateSystemdUnit(path)
 }
 
 // deleteSystemdCgroup deletes the systemd cgroup at the given location
 func deleteSystemdCgroup(path string) error {
-	controller, err := cgroups.NewSystemd(SystemdDefaultCgroupParent)
+	controller, err := cgroups.NewSystemd(getDefaultSystemdCgroup())
 	if err != nil {
 		return err
 	}
+	if rootless.IsRootless() {
+		conn, err := cgroups.GetUserConnection(rootless.GetRootlessUID())
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		return controller.DeleteByPathConn(path, conn)
+	}
 
-	return controller.Delete(path)
+	return controller.DeleteByPath(path)
 }
 
 // assembleSystemdCgroupName creates a systemd cgroup path given a base and
@@ -61,7 +81,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	const sliceSuffix = ".slice"
 
 	if !strings.HasSuffix(baseSlice, sliceSuffix) {
-		return "", errors.Wrapf(ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
+		return "", errors.Wrapf(define.ErrInvalidArg, "cannot assemble cgroup path with base %q - must end in .slice", baseSlice)
 	}
 
 	noSlice := strings.TrimSuffix(baseSlice, sliceSuffix)
@@ -70,32 +90,9 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 	return final, nil
 }
 
-// GetV1CGroups gets the V1 cgroup subsystems and then "filters"
-// out any subsystems that are provided by the caller.  Passing nil
-// for excludes will return the subsystems unfiltered.
-//func GetV1CGroups(excludes []string) ([]cgroups.Subsystem, error) {
-func GetV1CGroups(excludes []string) cgroups.Hierarchy {
-	return func() ([]cgroups.Subsystem, error) {
-		var filtered []cgroups.Subsystem
-
-		subSystem, err := cgroups.V1()
-		if err != nil {
-			return nil, err
-		}
-		for _, s := range subSystem {
-			// If the name of the subsystem is not in the list of excludes, then
-			// add it as a keeper.
-			if !util.StringInSlice(string(s.Name()), excludes) {
-				filtered = append(filtered, s)
-			}
-		}
-		return filtered, nil
-	}
-}
-
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
-func LabelVolumePath(path string, shared bool) error {
+func LabelVolumePath(path string) error {
 	_, mountLabel, err := label.InitLabels([]string{})
 	if err != nil {
 		return errors.Wrapf(err, "error getting default mountlabels")
@@ -103,12 +100,24 @@ func LabelVolumePath(path string, shared bool) error {
 	if err := label.ReleaseLabel(mountLabel); err != nil {
 		return errors.Wrapf(err, "error releasing label %q", mountLabel)
 	}
-	if err := label.Relabel(path, mountLabel, shared); err != nil {
-		permString := "private"
-		if shared {
-			permString = "shared"
+
+	if err := label.Relabel(path, mountLabel, true); err != nil {
+		if err != syscall.ENOTSUP {
+			logrus.Debugf("Labeling not supported on %q", path)
+		} else {
+			return errors.Wrapf(err, "error setting selinux label for %s to %q as shared", path, mountLabel)
 		}
-		return errors.Wrapf(err, "error setting selinux label for %s to %q as %s", path, mountLabel, permString)
 	}
 	return nil
+}
+
+// Unmount umounts a target directory
+func Unmount(mount string) {
+	if err := unix.Unmount(mount, unix.MNT_DETACH); err != nil {
+		if err != syscall.EINVAL {
+			logrus.Warnf("failed to unmount %s : %v", mount, err)
+		} else {
+			logrus.Debugf("failed to unmount %s : %v", mount, err)
+		}
+	}
 }

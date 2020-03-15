@@ -445,6 +445,11 @@ func (j *TarOptions) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	} else {
 		buf.WriteString(`null`)
 	}
+	if j.IgnoreChownErrors {
+		buf.WriteString(`,"IgnoreChownErrors":true`)
+	} else {
+		buf.WriteString(`,"IgnoreChownErrors":false`)
+	}
 	if j.ChownOpts != nil {
 		/* Struct fall back. type=idtools.IDPair kind=struct */
 		buf.WriteString(`,"ChownOpts":`)
@@ -516,6 +521,8 @@ const (
 
 	ffjtTarOptionsGIDMaps
 
+	ffjtTarOptionsIgnoreChownErrors
+
 	ffjtTarOptionsChownOpts
 
 	ffjtTarOptionsIncludeSourceDir
@@ -544,6 +551,8 @@ var ffjKeyTarOptionsNoLchown = []byte("NoLchown")
 var ffjKeyTarOptionsUIDMaps = []byte("UIDMaps")
 
 var ffjKeyTarOptionsGIDMaps = []byte("GIDMaps")
+
+var ffjKeyTarOptionsIgnoreChownErrors = []byte("IgnoreChownErrors")
 
 var ffjKeyTarOptionsChownOpts = []byte("ChownOpts")
 
@@ -663,6 +672,11 @@ mainparse:
 						state = fflib.FFParse_want_colon
 						goto mainparse
 
+					} else if bytes.Equal(ffjKeyTarOptionsIgnoreChownErrors, kn) {
+						currentKey = ffjtTarOptionsIgnoreChownErrors
+						state = fflib.FFParse_want_colon
+						goto mainparse
+
 					} else if bytes.Equal(ffjKeyTarOptionsIncludeSourceDir, kn) {
 						currentKey = ffjtTarOptionsIncludeSourceDir
 						state = fflib.FFParse_want_colon
@@ -766,6 +780,12 @@ mainparse:
 					goto mainparse
 				}
 
+				if fflib.EqualFoldRight(ffjKeyTarOptionsIgnoreChownErrors, kn) {
+					currentKey = ffjtTarOptionsIgnoreChownErrors
+					state = fflib.FFParse_want_colon
+					goto mainparse
+				}
+
 				if fflib.EqualFoldRight(ffjKeyTarOptionsGIDMaps, kn) {
 					currentKey = ffjtTarOptionsGIDMaps
 					state = fflib.FFParse_want_colon
@@ -836,6 +856,9 @@ mainparse:
 
 				case ffjtTarOptionsGIDMaps:
 					goto handle_GIDMaps
+
+				case ffjtTarOptionsIgnoreChownErrors:
+					goto handle_IgnoreChownErrors
 
 				case ffjtTarOptionsChownOpts:
 					goto handle_ChownOpts
@@ -1218,6 +1241,41 @@ handle_GIDMaps:
 
 				wantVal = false
 			}
+		}
+	}
+
+	state = fflib.FFParse_after_value
+	goto mainparse
+
+handle_IgnoreChownErrors:
+
+	/* handler: j.IgnoreChownErrors type=bool kind=bool quoted=false*/
+
+	{
+		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
+			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
+		}
+	}
+
+	{
+		if tok == fflib.FFTok_null {
+
+		} else {
+			tmpb := fs.Output.Bytes()
+
+			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
+
+				j.IgnoreChownErrors = true
+
+			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
+
+				j.IgnoreChownErrors = false
+
+			} else {
+				err = errors.New("unexpected bytes for true/false value")
+				return fs.WrapErr(err)
+			}
+
 		}
 	}
 

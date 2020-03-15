@@ -8,6 +8,7 @@ that we follow.
 
 * [Reporting Issues](#reporting-issues)
 * [Contributing to libpod](#contributing-to-libpod)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/libpod.svg)](https://cirrus-ci.com/github/containers/libpod/master)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -47,18 +48,12 @@ First you need to fork this project on GitHub.
 
 Be sure to have [defined your `$GOPATH` environment variable](https://github.com/golang/go/wiki/GOPATH).
 
-Create a path that correspond to your clone `mkdir -p $GOPATH/github.com/<you>`.
+Create a path that corresponds to the go import paths of libpod: `mkdir -p $GOPATH/src/github.com/containers`.
 
-Clone your fork locally:
+Then clone your fork locally:
 ```shell
-$ git clone git@github.com:<you>/libpod github.com/<you> $GOPATH/github.com/<you>/libpod
-$ cd $GOPATH/github.com/<you>/libpod
-```
-
-You can also use `go get` to clone your fork:
-```shell
-$ go get github.com:<you>/libpod
-$ cd $GOPATH/github.com/<you>/libpod
+$ git clone git@github.com:<you>/libpod $GOPATH/src/github.com/containers/libpod
+$ cd $GOPATH/src/github.com/containers/libpod
 ```
 
 ### Deal with make
@@ -266,24 +261,62 @@ commit automatically with `git commit -s`.
 
 All code changes must pass ``make validate`` and ``make lint``, as
 executed in a standard container.  The container image for this
-purpose is provided at: ``quay.io/libpod/gate:latest``.  However,
-for changes to the image itself, it may also be built locally
-from the repository root, with the command:
+purpose is provided at: ``quay.io/libpod/gate:master``.  With
+other tags available for different branches as needed.  These
+images are built automatically after merges to the branch.
+
+#### Building the gate container locally
+
+For local use, debugging, or experimentation, the gate image may
+be built locally from the repository root, with the command:
 
 ```
-sudo podman build -t quay.io/libpod/gate:latest -f contrib/gate/Dockerfile .
+podman build -t gate -f contrib/gate/Dockerfile .
 ```
 
 ***N/B:*** **don't miss the dot (.) at the end, it's really important**
 
-The container executes 'make' by default, on a copy of the repository.
-This avoids changing or leaving build artifacts in your working directory.
-Execution does not require any special permissions from the host. However,
-the repository root must be bind-mounted into the container at
-'/usr/src/libpod'. For example, running `make lint` is done (from
-the repository root) with the command:
+#### Local use of gate container
 
-``sudo podman run -it --rm -v $PWD:/usr/src/libpod:ro --security-opt label=disable quay.io/libpod/gate:latest lint``
+The gate container's entry-point executes 'make' by default, on a copy of
+the repository made at runtime.  This avoids the container changing or
+leaving build artifacts in your hosts working directory.  It also guarantees
+every execution is based upon pristine code provided from the host.
+
+Execution does not require any special permissions from the host. However,
+your libpod repository clone's root must be bind-mounted to the container at
+'/usr/src/libpod'.  The copy will be made into /var/tmp/go (`$GOSRC` in container)
+before running your make target.  For example, running `make lint` from a
+repository clone at $HOME/devel/libpod could be done with the commands:
+
+```bash
+$ cd $HOME/devel/libpod
+$ podman run -it --rm -v $PWD:/usr/src/libpod:ro \
+    --security-opt label=disable quay.io/libpod/gate:master \
+    lint
+```
+
+***N/B:*** Depending on your clone's git remotes-configuration,
+(esp. for `validate` and `lint` targets), you may also need to reference the
+commit which was your upstream fork-point.  Otherwise you may receive an error
+similar to:
+
+```
+fatal: Not a valid object name master
+Makefile:152: *** Required variable EPOCH_TEST_COMMIT value is undefined, whitespace, or empty.  Stop.
+```
+
+For example, assuming your have a remote called `upstream` running the
+validate target should be done like this:
+
+```bash
+$ cd $HOME/devel/libpod
+$ git remote update upstream
+$ export EPOCH_TEST_COMMIT=$(git merge-base upstream/master HEAD)
+$ podman run -it --rm -e EPOCH_TEST_COMMIT -v $PWD:/usr/src/libpod:ro \
+    --security-opt label=disable quay.io/libpod/gate:master \
+    validate
+```
 
 ### Integration Tests
 
@@ -296,6 +329,48 @@ be provided with PRs.
 For details on how to run the tests for Podman in your test environment, see the
 Integration Tests [README.md](test/README.md).
 
+## Continuous Integration
+
+All pull requests and branch-merges automatically run:
+
+* Go format/lint checking
+* Unit testing
+* Integration Testing
+* Special testing (like running inside a container, or as a regular user)
+
+For a more in-depth reference of the CI system, please [refer to it's dedicated
+documentation.](contrib/cirrus/README.md)
+
+There is always additional complexity added by automation, and so it sometimes
+can fail for any number of reasons.  This includes post-merge testing on all
+branches, which you may occasionally see [red bars on the status graph
+.](https://cirrus-ci.com/github/containers/libpod/master)
+
+When the graph shows mostly green bars on the right, it's a good indication
+the master branch is currently stable.  Alternating red/green bars is indicative
+of a testing "flake", and should be examined (anybody can do this):
+
+* *One or a small handful of tests, on a single task, (i.e. specific distro/version)
+  where all others ran successfully:*  Frequently the cause is networking or a brief
+  external service outage.  The failed tasks may simply be re-run by pressing the
+  corresponding button on the task details page.
+
+* *Multiple tasks failing*: Logically this should be due to some shared/common element.
+  If that element is identifiable as a networking or external service (e.g. packaging
+  repository outage), a re-run should be attempted.
+
+* *All tasks are failing*: If a common element is **not** identifiable as
+  temporary (i.e. container registry outage), please seek assistance via
+  [the methods below](#communications) as this may be early indication of
+  a more serious problem.
+
+In the (hopefully) rare case there are multiple, contiguous red bars, this is
+a ***very bad*** sign.  It means additional merges are occurring despite an uncorrected
+or persistently faulty condition.  This risks additional bugs being introduced
+and further complication of necessary corrective measures.  Most likely people
+are aware and working on this, but it doesn't hurt [to confirm and/or try and help
+if possible.](#communications)
+
 ## Communications
 
 For general questions and discussion, please use the
@@ -307,8 +382,8 @@ and
 [PRs](https://github.com/containers/libpod/pulls)
 tracking system.
 
-[owners]: https://github.com/kubernetes/community/blob/master/contributors/guide/owners.md#owners
-
+There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
+You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
 
 ### Bot Interactions
 
@@ -336,7 +411,7 @@ author hold special privileges on the github repository.  Others can be used by 
   will cause Cirrus CI to ***NOT*** execute tests for the PR or after merge.  This
   is useful in only one instance:  Your changes are absolutely not exercised by
   any test.  For example, documentation changes.  ***IMPORTANT NOTE*** **Other
-  automation may interpret the lack of test results as "PASSED" and unintentionall
+  automation may interpret the lack of test results as "PASSED" and unintentional
   merge a PR.  Consider also using `/hold` in a comment, to add additional
   protection.**
 

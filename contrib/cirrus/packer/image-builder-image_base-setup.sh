@@ -11,12 +11,7 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source $GOSRC/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-    TIMESTAMP $TIMESTAMP
-    GOSRC $GOSRC
-    SCRIPT_BASE $SCRIPT_BASE
-    PACKER_BASE $PACKER_BASE
-"
+req_env_var TIMESTAMP GOSRC SCRIPT_BASE PACKER_BASE
 
 install_ooe
 
@@ -36,10 +31,8 @@ ooe.sh sudo yum -y install \
     libvirt-client \
     libvirt-daemon \
     make \
-    python34 \
-    python34 \
-    python34-PyYAML \
-    python34-PyYAML \
+    python36 \
+    python36-PyYAML \
     qemu-img \
     qemu-kvm \
     qemu-kvm-tools \

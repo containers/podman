@@ -35,13 +35,24 @@ type InstallPluginOptions struct {
 //
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) InstallPlugins(opts InstallPluginOptions) error {
+	headers, err := headersWithAuth(opts.Auth)
+	if err != nil {
+		return err
+	}
+
 	path := "/plugins/pull?" + queryString(opts)
-	resp, err := c.do("POST", path, doOptions{
+	resp, err := c.do(http.MethodPost, path, doOptions{
 		data:    opts.Plugins,
 		context: opts.Context,
+		headers: headers,
 	})
-	defer resp.Body.Close()
 	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	// PullPlugin streams back the progress of the pull, we must consume the whole body
+	// otherwise the pull will be canceled on the engine.
+	if _, err := ioutil.ReadAll(resp.Body); err != nil {
 		return err
 	}
 	return nil
@@ -152,7 +163,7 @@ type PluginDetail struct {
 //
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) ListPlugins(ctx context.Context) ([]PluginDetail, error) {
-	resp, err := c.do("GET", "/plugins", doOptions{
+	resp, err := c.do(http.MethodGet, "/plugins", doOptions{
 		context: ctx,
 	})
 	if err != nil {
@@ -179,7 +190,7 @@ type ListFilteredPluginsOptions struct {
 // See https://goo.gl/rmdmWg for more details.
 func (c *Client) ListFilteredPlugins(opts ListFilteredPluginsOptions) ([]PluginDetail, error) {
 	path := "/plugins/json?" + queryString(opts)
-	resp, err := c.do("GET", path, doOptions{
+	resp, err := c.do(http.MethodGet, path, doOptions{
 		context: opts.Context,
 	})
 	if err != nil {
@@ -193,12 +204,41 @@ func (c *Client) ListFilteredPlugins(opts ListFilteredPluginsOptions) ([]PluginD
 	return pluginDetails, nil
 }
 
-// GetPluginPrivileges returns pulginPrivileges or an error.
+// GetPluginPrivileges returns pluginPrivileges or an error.
 //
 // See https://goo.gl/C4t7Tz for more details.
-func (c *Client) GetPluginPrivileges(name string, ctx context.Context) ([]PluginPrivilege, error) {
-	resp, err := c.do("GET", "/plugins/privileges?remote="+name, doOptions{
-		context: ctx,
+//nolint:golint
+func (c *Client) GetPluginPrivileges(remote string, ctx context.Context) ([]PluginPrivilege, error) {
+	return c.GetPluginPrivilegesWithOptions(
+		GetPluginPrivilegesOptions{
+			Remote:  remote,
+			Context: ctx,
+		})
+}
+
+// GetPluginPrivilegesOptions specify parameters to the GetPluginPrivilegesWithOptions function.
+//
+// See https://goo.gl/C4t7Tz for more details.
+type GetPluginPrivilegesOptions struct {
+	Remote  string
+	Auth    AuthConfiguration
+	Context context.Context
+}
+
+// GetPluginPrivilegesWithOptions returns pluginPrivileges or an error.
+//
+// See https://goo.gl/C4t7Tz for more details.
+//nolint:golint
+func (c *Client) GetPluginPrivilegesWithOptions(opts GetPluginPrivilegesOptions) ([]PluginPrivilege, error) {
+	headers, err := headersWithAuth(opts.Auth)
+	if err != nil {
+		return nil, err
+	}
+
+	path := "/plugins/privileges?" + queryString(opts)
+	resp, err := c.do(http.MethodGet, path, doOptions{
+		context: opts.Context,
+		headers: headers,
 	})
 	if err != nil {
 		return nil, err
@@ -214,21 +254,18 @@ func (c *Client) GetPluginPrivileges(name string, ctx context.Context) ([]Plugin
 // InspectPlugins returns a pluginDetail or an error.
 //
 // See https://goo.gl/C4t7Tz for more details.
+//nolint:golint
 func (c *Client) InspectPlugins(name string, ctx context.Context) (*PluginDetail, error) {
-	resp, err := c.do("GET", "/plugins/"+name+"/json", doOptions{
+	resp, err := c.do(http.MethodGet, "/plugins/"+name+"/json", doOptions{
 		context: ctx,
 	})
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, &NoSuchPlugin{ID: name}
 		}
 		return nil, err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 	var pluginDetail PluginDetail
 	if err := json.NewDecoder(resp.Body).Decode(&pluginDetail); err != nil {
 		return nil, err
@@ -252,20 +289,26 @@ type RemovePluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) RemovePlugin(opts RemovePluginOptions) (*PluginDetail, error) {
 	path := "/plugins/" + opts.Name + "?" + queryString(opts)
-	resp, err := c.do("DELETE", path, doOptions{context: opts.Context})
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	resp, err := c.do(http.MethodDelete, path, doOptions{context: opts.Context})
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return nil, &NoSuchPlugin{ID: opts.Name}
 		}
 		return nil, err
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(body) == 0 {
+		// Seems like newer docker versions won't return the plugindetail after removal
+		return nil, nil
+	}
+
 	var pluginDetail PluginDetail
-	if err := json.NewDecoder(resp.Body).Decode(&pluginDetail); err != nil {
+	if err := json.Unmarshal(body, &pluginDetail); err != nil {
 		return nil, err
 	}
 	return &pluginDetail, nil
@@ -287,8 +330,7 @@ type EnablePluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) EnablePlugin(opts EnablePluginOptions) error {
 	path := "/plugins/" + opts.Name + "/enable?" + queryString(opts)
-	resp, err := c.do("POST", path, doOptions{context: opts.Context})
-	defer resp.Body.Close()
+	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
 	if err != nil {
 		return err
 	}
@@ -311,8 +353,7 @@ type DisablePluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) DisablePlugin(opts DisablePluginOptions) error {
 	path := "/plugins/" + opts.Name + "/disable"
-	resp, err := c.do("POST", path, doOptions{context: opts.Context})
-	defer resp.Body.Close()
+	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
 	if err != nil {
 		return err
 	}
@@ -337,13 +378,14 @@ type CreatePluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) CreatePlugin(opts CreatePluginOptions) (string, error) {
 	path := "/plugins/create?" + queryString(opts)
-	resp, err := c.do("POST", path, doOptions{
+	resp, err := c.do(http.MethodPost, path, doOptions{
 		data:    opts.Path,
-		context: opts.Context})
-	defer resp.Body.Close()
+		context: opts.Context,
+	})
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 	containerNameBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
@@ -366,11 +408,11 @@ type PushPluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) PushPlugin(opts PushPluginOptions) error {
 	path := "/plugins/" + opts.Name + "/push"
-	resp, err := c.do("POST", path, doOptions{context: opts.Context})
-	defer resp.Body.Close()
+	resp, err := c.do(http.MethodPost, path, doOptions{context: opts.Context})
 	if err != nil {
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 
@@ -390,17 +432,17 @@ type ConfigurePluginOptions struct {
 // See https://goo.gl/C4t7Tz for more details.
 func (c *Client) ConfigurePlugin(opts ConfigurePluginOptions) error {
 	path := "/plugins/" + opts.Name + "/set"
-	resp, err := c.do("POST", path, doOptions{
+	resp, err := c.do(http.MethodPost, path, doOptions{
 		data:    opts.Envs,
 		context: opts.Context,
 	})
-	defer resp.Body.Close()
 	if err != nil {
 		if e, ok := err.(*Error); ok && e.Status == http.StatusNotFound {
 			return &NoSuchPlugin{ID: opts.Name}
 		}
 		return err
 	}
+	resp.Body.Close()
 	return nil
 }
 

@@ -10,7 +10,8 @@ import (
 
 func TestNoMatch(t *testing.T) {
 	config := &rspec.Spec{}
-	for _, or := range []bool{true, false} {
+	for _, o := range []bool{true, false} {
+		or := o
 		t.Run(fmt.Sprintf("or %t", or), func(t *testing.T) {
 			when := When{Or: or}
 			match, err := when.Match(config, map[string]string{}, false)
@@ -27,10 +28,13 @@ func TestAlways(t *testing.T) {
 	processStruct := &rspec.Process{
 		Args: []string{"/bin/sh", "a", "b"},
 	}
-	for _, always := range []bool{true, false} {
-		for _, or := range []bool{true, false} {
-			for _, process := range []*rspec.Process{processStruct, nil} {
-				t.Run(fmt.Sprintf("always %t, or %t, has process %t", always, or, (process != nil)), func(t *testing.T) {
+	for _, a := range []bool{true, false} {
+		always := a
+		for _, o := range []bool{true, false} {
+			or := o
+			for _, p := range []*rspec.Process{processStruct, nil} {
+				process := p
+				t.Run(fmt.Sprintf("always %t, or %t, has process %t", always, or, process != nil), func(t *testing.T) {
 					config.Process = process
 					when := When{Always: &always, Or: or}
 					match, err := when.Match(config, map[string]string{}, false)
@@ -48,7 +52,8 @@ func TestHasBindMountsAnd(t *testing.T) {
 	hasBindMounts := true
 	when := When{HasBindMounts: &hasBindMounts}
 	config := &rspec.Spec{}
-	for _, containerHasBindMounts := range []bool{false, true} {
+	for _, b := range []bool{false, true} {
+		containerHasBindMounts := b
 		t.Run(fmt.Sprintf("%t", containerHasBindMounts), func(t *testing.T) {
 			match, err := when.Match(config, map[string]string{}, containerHasBindMounts)
 			if err != nil {
@@ -63,7 +68,8 @@ func TestHasBindMountsOr(t *testing.T) {
 	hasBindMounts := true
 	when := When{HasBindMounts: &hasBindMounts, Or: true}
 	config := &rspec.Spec{}
-	for _, containerHasBindMounts := range []bool{false, true} {
+	for _, b := range []bool{false, true} {
+		containerHasBindMounts := b
 		t.Run(fmt.Sprintf("%t", containerHasBindMounts), func(t *testing.T) {
 			match, err := when.Match(config, map[string]string{}, containerHasBindMounts)
 			if err != nil {
@@ -82,7 +88,7 @@ func TestAnnotations(t *testing.T) {
 		},
 	}
 	config := &rspec.Spec{}
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name        string
 		annotations map[string]string
 		or          bool
@@ -131,6 +137,7 @@ func TestAnnotations(t *testing.T) {
 			match: false,
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			when.Or = test.or
 			match, err := when.Match(config, test.annotations, false)
@@ -149,7 +156,7 @@ func TestCommands(t *testing.T) {
 		},
 	}
 	config := &rspec.Spec{}
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name    string
 		process *rspec.Process
 		match   bool
@@ -173,6 +180,7 @@ func TestCommands(t *testing.T) {
 			match: false,
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			config.Process = test.process
 			match, err := when.Match(config, map[string]string{}, false)
@@ -209,7 +217,7 @@ func TestHasBindMountsAndCommands(t *testing.T) {
 		},
 	}
 	config := &rspec.Spec{Process: &rspec.Process{}}
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name          string
 		command       string
 		hasBindMounts bool
@@ -273,6 +281,7 @@ func TestHasBindMountsAndCommands(t *testing.T) {
 			match:         false,
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			config.Process.Args = []string{test.command}
 			when.Or = test.or
@@ -287,7 +296,7 @@ func TestHasBindMountsAndCommands(t *testing.T) {
 
 func TestInvalidRegexp(t *testing.T) {
 	config := &rspec.Spec{Process: &rspec.Process{Args: []string{"/bin/sh"}}}
-	for _, test := range []struct {
+	for _, tt := range []struct {
 		name     string
 		when     When
 		expected string
@@ -308,6 +317,7 @@ func TestInvalidRegexp(t *testing.T) {
 			expected: "^command: error parsing regexp: .*",
 		},
 	} {
+		test := tt
 		t.Run(test.name, func(t *testing.T) {
 			_, err := test.when.Match(config, map[string]string{"a": "b"}, false)
 			if err == nil {

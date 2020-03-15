@@ -90,6 +90,22 @@ func (m *InMemoryManager) RetrieveLock(id uint32) (Locker, error) {
 	return m.locks[id], nil
 }
 
+// AllocateAndRetrieveLock allocates a lock with the given ID (if not already in
+// use) and returns it.
+func (m *InMemoryManager) AllocateAndRetrieveLock(id uint32) (Locker, error) {
+	if id >= m.numLocks {
+		return nil, errors.Errorf("given lock ID %d is too large - this manager only supports lock indexes up to %d", id, m.numLocks)
+	}
+
+	if m.locks[id].allocated {
+		return nil, errors.Errorf("given lock ID %d is already in use, cannot reallocate", id)
+	}
+
+	m.locks[id].allocated = true
+
+	return m.locks[id], nil
+}
+
 // FreeAllLocks frees all locks.
 // This function is DANGEROUS. Please read the full comment in locks.go before
 // trying to use it.

@@ -31,10 +31,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/docker/docker/opts"
 	"github.com/docker/docker/pkg/homedir"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/pkg/stdcopy"
-	"github.com/fsouza/go-dockerclient/internal/jsonmessage"
 )
 
 const (
@@ -55,7 +54,9 @@ var (
 	ErrInactivityTimeout = errors.New("inactivity time exceeded timeout")
 
 	apiVersion112, _ = NewAPIVersion("1.12")
+	apiVersion118, _ = NewAPIVersion("1.18")
 	apiVersion119, _ = NewAPIVersion("1.19")
+	apiVersion121, _ = NewAPIVersion("1.21")
 	apiVersion124, _ = NewAPIVersion("1.24")
 	apiVersion125, _ = NewAPIVersion("1.25")
 	apiVersion135, _ = NewAPIVersion("1.35")
@@ -70,7 +71,7 @@ type APIVersion []int
 // <minor> and <patch> are integer numbers.
 func NewAPIVersion(input string) (APIVersion, error) {
 	if !strings.Contains(input, ".") {
-		return nil, fmt.Errorf("Unable to parse version %q", input)
+		return nil, fmt.Errorf("unable to parse version %q", input)
 	}
 	raw := strings.Split(input, "-")
 	arr := strings.Split(raw[0], ".")
@@ -79,7 +80,7 @@ func NewAPIVersion(input string) (APIVersion, error) {
 	for i, val := range arr {
 		ret[i], err = strconv.Atoi(val)
 		if err != nil {
-			return nil, fmt.Errorf("Unable to parse version %q: %q is not an integer", input, val)
+			return nil, fmt.Errorf("unable to parse version %q: %q is not an integer", input, val)
 		}
 	}
 	return ret, nil
@@ -263,16 +264,19 @@ func NewVersionedTLSClient(endpoint string, cert, key, ca, apiVersionString stri
 }
 
 // NewClientFromEnv returns a Client instance ready for communication created from
-// Docker's default logic for the environment variables DOCKER_HOST, DOCKER_TLS_VERIFY, and DOCKER_CERT_PATH.
+// Docker's default logic for the environment variables DOCKER_HOST, DOCKER_TLS_VERIFY, DOCKER_CERT_PATH,
+// and DOCKER_API_VERSION.
 //
 // See https://github.com/docker/docker/blob/1f963af697e8df3a78217f6fdbf67b8123a7db94/docker/docker.go#L68.
 // See https://github.com/docker/compose/blob/81707ef1ad94403789166d2fe042c8a718a4c748/compose/cli/docker_client.py#L7.
+// See https://github.com/moby/moby/blob/28d7dba41d0c0d9c7f0dafcc79d3c59f2b3f5dc3/client/options.go#L51
 func NewClientFromEnv() (*Client, error) {
-	client, err := NewVersionedClientFromEnv("")
+	apiVersionString := os.Getenv("DOCKER_API_VERSION")
+	client, err := NewVersionedClientFromEnv(apiVersionString)
 	if err != nil {
 		return nil, err
 	}
-	client.SkipServerVersionCheck = true
+	client.SkipServerVersionCheck = apiVersionString == ""
 	return client, nil
 }
 
@@ -329,7 +333,7 @@ func NewVersionedTLSClientFromBytes(endpoint string, certPEMBlock, keyPEMBlock, 
 	} else {
 		caPool := x509.NewCertPool()
 		if !caPool.AppendCertsFromPEM(caPEMCert) {
-			return nil, errors.New("Could not add RootCA pem")
+			return nil, errors.New("could not add RootCA pem")
 		}
 		tlsConfig.RootCAs = caPool
 	}
@@ -387,7 +391,7 @@ func (c *Client) Endpoint() string {
 //
 // See https://goo.gl/wYfgY1 for more details.
 func (c *Client) Ping() error {
-	return c.PingWithContext(nil)
+	return c.PingWithContext(context.TODO())
 }
 
 // PingWithContext pings the docker server
@@ -396,7 +400,7 @@ func (c *Client) Ping() error {
 // See https://goo.gl/wYfgY1 for more details.
 func (c *Client) PingWithContext(ctx context.Context) error {
 	path := "/_ping"
-	resp, err := c.do("GET", path, doOptions{context: ctx})
+	resp, err := c.do(http.MethodGet, path, doOptions{context: ctx})
 	if err != nil {
 		return err
 	}
@@ -408,13 +412,13 @@ func (c *Client) PingWithContext(ctx context.Context) error {
 }
 
 func (c *Client) getServerAPIVersionString() (version string, err error) {
-	resp, err := c.do("GET", "/version", doOptions{})
+	resp, err := c.do(http.MethodGet, "/version", doOptions{})
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Received unexpected status %d while trying to retrieve the server version", resp.StatusCode)
+		return "", fmt.Errorf("received unexpected status %d while trying to retrieve the server version", resp.StatusCode)
 	}
 	var versionResponse map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&versionResponse); err != nil {
@@ -464,7 +468,7 @@ func (c *Client) do(method, path string, doOptions doOptions) (*http.Response, e
 	req.Header.Set("User-Agent", userAgent)
 	if doOptions.data != nil {
 		req.Header.Set("Content-Type", "application/json")
-	} else if method == "POST" {
+	} else if method == http.MethodPost {
 		req.Header.Set("Content-Type", "plain/text")
 	}
 
@@ -519,7 +523,7 @@ func chooseError(ctx context.Context, err error) error {
 }
 
 func (c *Client) stream(method, path string, streamOptions streamOptions) error {
-	if (method == "POST" || method == "PUT") && streamOptions.in == nil {
+	if (method == http.MethodPost || method == http.MethodPut) && streamOptions.in == nil {
 		streamOptions.in = bytes.NewReader(nil)
 	}
 	if path != "/version" && !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
@@ -528,12 +532,25 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 			return err
 		}
 	}
-	req, err := http.NewRequest(method, c.getURL(path), streamOptions.in)
+	return c.streamURL(method, c.getURL(path), streamOptions)
+}
+
+func (c *Client) streamURL(method, url string, streamOptions streamOptions) error {
+	if (method == http.MethodPost || method == http.MethodPut) && streamOptions.in == nil {
+		streamOptions.in = bytes.NewReader(nil)
+	}
+	if !c.SkipServerVersionCheck && c.expectedAPIVersion == nil {
+		err := c.checkAPIVersion()
+		if err != nil {
+			return err
+		}
+	}
+	req, err := http.NewRequest(method, url, streamOptions.in)
 	if err != nil {
 		return err
 	}
 	req.Header.Set("User-Agent", userAgent)
-	if method == "POST" {
+	if method == http.MethodPost {
 		req.Header.Set("Content-Type", "plain/text")
 	}
 	for key, val := range streamOptions.headers {
@@ -592,6 +609,7 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 
 			return chooseError(subCtx, err)
 		}
+		defer resp.Body.Close()
 	} else {
 		if resp, err = c.HTTPClient.Do(req.WithContext(subCtx)); err != nil {
 			if strings.Contains(err.Error(), "connection refused") {
@@ -599,11 +617,11 @@ func (c *Client) stream(method, path string, streamOptions streamOptions) error 
 			}
 			return chooseError(subCtx, err)
 		}
+		defer resp.Body.Close()
 		if streamOptions.reqSent != nil {
 			close(streamOptions.reqSent)
 		}
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 400 {
 		return newError(resp)
 	}
@@ -639,16 +657,18 @@ func handleStreamResponse(resp *http.Response, streamOptions *streamOptions) err
 		_, err = io.Copy(streamOptions.stdout, resp.Body)
 		return err
 	}
-	if st, ok := streamOptions.stdout.(interface {
-		io.Writer
-		FD() uintptr
-		IsTerminal() bool
-	}); ok {
+	if st, ok := streamOptions.stdout.(stream); ok {
 		err = jsonmessage.DisplayJSONMessagesToStream(resp.Body, st, nil)
 	} else {
 		err = jsonmessage.DisplayJSONMessagesStream(resp.Body, streamOptions.stdout, 0, false, nil)
 	}
 	return err
+}
+
+type stream interface {
+	io.Writer
+	FD() uintptr
+	IsTerminal() bool
 }
 
 type proxyReader struct {
@@ -760,8 +780,10 @@ func (c *Client) hijack(method, path string, hijackOptions hijackOptions) (Close
 	errs := make(chan error, 1)
 	quit := make(chan struct{})
 	go func() {
+		//nolint:staticcheck
 		clientconn := httputil.NewClientConn(dial, nil)
 		defer clientconn.Close()
+		//nolint:bodyclose
 		clientconn.Do(req)
 		if hijackOptions.success != nil {
 			hijackOptions.success <- struct{}{}
@@ -856,6 +878,29 @@ func (c *Client) getURL(path string) string {
 	return fmt.Sprintf("%s%s", urlStr, path)
 }
 
+func (c *Client) getPath(basepath string, opts interface{}) (string, error) {
+	queryStr, requiredAPIVersion := queryStringVersion(opts)
+	return c.pathVersionCheck(basepath, queryStr, requiredAPIVersion)
+}
+
+func (c *Client) pathVersionCheck(basepath, queryStr string, requiredAPIVersion APIVersion) (string, error) {
+	urlStr := strings.TrimRight(c.endpointURL.String(), "/")
+	if c.endpointURL.Scheme == unixProtocol || c.endpointURL.Scheme == namedPipeProtocol {
+		urlStr = ""
+	}
+	if c.requestedAPIVersion != nil {
+		if c.requestedAPIVersion.GreaterThanOrEqualTo(requiredAPIVersion) {
+			return fmt.Sprintf("%s/v%s%s?%s", urlStr, c.requestedAPIVersion, basepath, queryStr), nil
+		}
+		return "", fmt.Errorf("API %s requires version %s, requested version %s is insufficient",
+			basepath, requiredAPIVersion, c.requestedAPIVersion)
+	}
+	if requiredAPIVersion != nil {
+		return fmt.Sprintf("%s/v%s%s?%s", urlStr, requiredAPIVersion, basepath, queryStr), nil
+	}
+	return fmt.Sprintf("%s%s?%s", urlStr, basepath, queryStr), nil
+}
+
 // getFakeNativeURL returns the URL needed to make an HTTP request over a UNIX
 // domain socket to the given path.
 func (c *Client) getFakeNativeURL(path string) string {
@@ -872,24 +917,18 @@ func (c *Client) getFakeNativeURL(path string) string {
 	return fmt.Sprintf("%s%s", urlStr, path)
 }
 
-type jsonMessage struct {
-	Status   string `json:"status,omitempty"`
-	Progress string `json:"progress,omitempty"`
-	Error    string `json:"error,omitempty"`
-	Stream   string `json:"stream,omitempty"`
-}
-
-func queryString(opts interface{}) string {
+func queryStringVersion(opts interface{}) (string, APIVersion) {
 	if opts == nil {
-		return ""
+		return "", nil
 	}
 	value := reflect.ValueOf(opts)
 	if value.Kind() == reflect.Ptr {
 		value = value.Elem()
 	}
 	if value.Kind() != reflect.Struct {
-		return ""
+		return "", nil
 	}
+	var apiVersion APIVersion
 	items := url.Values(map[string][]string{})
 	for i := 0; i < value.NumField(); i++ {
 		field := value.Type().Field(i)
@@ -902,53 +941,80 @@ func queryString(opts interface{}) string {
 		} else if key == "-" {
 			continue
 		}
-		addQueryStringValue(items, key, value.Field(i))
+		if addQueryStringValue(items, key, value.Field(i)) {
+			verstr := field.Tag.Get("ver")
+			if verstr != "" {
+				ver, _ := NewAPIVersion(verstr)
+				if apiVersion == nil {
+					apiVersion = ver
+				} else if ver.GreaterThan(apiVersion) {
+					apiVersion = ver
+				}
+			}
+		}
 	}
-	return items.Encode()
+	return items.Encode(), apiVersion
 }
 
-func addQueryStringValue(items url.Values, key string, v reflect.Value) {
+func queryString(opts interface{}) string {
+	s, _ := queryStringVersion(opts)
+	return s
+}
+
+func addQueryStringValue(items url.Values, key string, v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Bool:
 		if v.Bool() {
 			items.Add(key, "1")
+			return true
 		}
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if v.Int() > 0 {
 			items.Add(key, strconv.FormatInt(v.Int(), 10))
+			return true
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if v.Uint() > 0 {
 			items.Add(key, strconv.FormatUint(v.Uint(), 10))
+			return true
 		}
 	case reflect.Float32, reflect.Float64:
 		if v.Float() > 0 {
 			items.Add(key, strconv.FormatFloat(v.Float(), 'f', -1, 64))
+			return true
 		}
 	case reflect.String:
 		if v.String() != "" {
 			items.Add(key, v.String())
+			return true
 		}
 	case reflect.Ptr:
 		if !v.IsNil() {
 			if b, err := json.Marshal(v.Interface()); err == nil {
 				items.Add(key, string(b))
+				return true
 			}
 		}
 	case reflect.Map:
 		if len(v.MapKeys()) > 0 {
 			if b, err := json.Marshal(v.Interface()); err == nil {
 				items.Add(key, string(b))
+				return true
 			}
 		}
 	case reflect.Array, reflect.Slice:
 		vLen := v.Len()
+		var valuesAdded int
 		if vLen > 0 {
 			for i := 0; i < vLen; i++ {
-				addQueryStringValue(items, key, v.Index(i))
+				if addQueryStringValue(items, key, v.Index(i)) {
+					valuesAdded++
+				}
 			}
 		}
+		return valuesAdded > 0
 	}
+	return false
 }
 
 // Error represents failures in the API. It represents a failure from the API.
@@ -1029,7 +1095,7 @@ func getDockerEnv() (*dockerEnv, error) {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	var err error
 	if dockerHost == "" {
-		dockerHost = opts.DefaultHost
+		dockerHost = defaultHost
 	}
 	dockerTLSVerify := os.Getenv("DOCKER_TLS_VERIFY") != ""
 	var dockerCertPath string

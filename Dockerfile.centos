@@ -2,9 +2,12 @@ FROM registry.centos.org/centos/centos:7
 
 RUN yum -y install btrfs-progs-devel \
               atomic-registries \
+              autoconf \
+              automake \
               bzip2 \
               device-mapper-devel \
               findutils \
+              file \
               git \
               glibc-static \
               glib2-devel \
@@ -15,10 +18,10 @@ RUN yum -y install btrfs-progs-devel \
               libassuan-devel \
               libseccomp-devel \
               libselinux-devel \
+              libtool \
               containers-common \
               runc \
               make \
-              ostree-devel \
               lsof \
               which\
               golang-github-cpuguy83-go-md2man \
@@ -27,24 +30,16 @@ RUN yum -y install btrfs-progs-devel \
               iptables && yum clean all
 
 # Install CNI plugins
-ENV CNI_COMMIT 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
+ENV CNI_COMMIT 485be65581341430f9106a194a98f0f2412245fb
 RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
+       && export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
        && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
        && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
-       && ./build.sh \
+       && git checkout --detach -q "$CNI_COMMIT" \
+       && ./build_linux.sh \
        && mkdir -p /usr/libexec/cni \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
-
-# Install buildah
-RUN set -x \
-       && export GOPATH=/go \
-       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
-       && cd "$GOPATH/src/github.com/containers/buildah" \
-       && make \
-       && make install
 
 # Install ginkgo
 RUN set -x \
@@ -57,22 +52,15 @@ RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
 
-# Install easyjson
-RUN set -x \
-      && export GOPATH=/go \
-      && go get -u github.com/mailru/easyjson/... \
-      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
-
 # Install conmon
-ENV CRIO_COMMIT 7a283c391abb7bd25086a8ff91dbb36ebdd24466
+ENV CONMON_COMMIT 6f3572558b97bc60dd8f8c7f0807748e6ce2c440
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
-	&& cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
+	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
+	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CRIO_COMMIT" \
+	&& git checkout --detach -q "$CONMON_COMMIT" \
 	&& make \
-	&& make bin/conmon \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 

@@ -1,4 +1,4 @@
-// +build !selinux
+// +build !selinux !linux
 
 package selinux
 
@@ -33,6 +33,11 @@ func SetDisabled() {
 // GetEnabled returns whether selinux is currently enabled.
 func GetEnabled() bool {
 	return false
+}
+
+// ClassIndex returns the int index for an object class in the loaded policy, or -1 and an error
+func ClassIndex(class string) (int, error) {
+	return -1, nil
 }
 
 // SetFileLabel sets the SELinux label for this path or returns an error.
@@ -89,11 +94,26 @@ func CanonicalizeContext(val string) (string, error) {
 }
 
 /*
+ComputeCreateContext requests the type transition from source to target for class  from the kernel.
+*/
+func ComputeCreateContext(source string, target string, class string) (string, error) {
+	return "", nil
+}
+
+/*
 SetExecLabel sets the SELinux label that the kernel will use for any programs
 that are executed by the current process thread, or an error.
 */
 func SetExecLabel(label string) error {
 	return nil
+}
+
+/*
+SetTaskLabel sets the SELinux label for the current thread, or an error.
+This requires the dyntransition permission.
+*/
+func SetTaskLabel(label string) error {
+        return nil
 }
 
 /*
@@ -106,6 +126,22 @@ func SetSocketLabel(label string) error {
 
 // SocketLabel retrieves the current socket label setting
 func SocketLabel() (string, error) {
+	return "", nil
+}
+
+// PeerLabel retrieves the label of the client on the other side of a socket
+func PeerLabel(fd uintptr) (string, error) {
+	return "", nil
+}
+
+// SetKeyLabel takes a process label and tells the kernel to assign the
+// label to the next kernel keyring that gets created
+func SetKeyLabel(label string) error {
+	return nil
+}
+
+// KeyLabel retrieves the current kernel keyring label setting
+func KeyLabel() (string, error) {
 	return "", nil
 }
 

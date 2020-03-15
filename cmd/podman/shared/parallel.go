@@ -72,7 +72,7 @@ func ParallelExecuteWorkerPool(workers int, functions []ParallelWorkerInput) (ma
 }
 
 // Parallelize provides the maximum number of parallel workers (int) as calculated by a basic
-// heuristic. This can be overriden by the --max-workers primary switch to podman.
+// heuristic. This can be overridden by the --max-workers primary switch to podman.
 func Parallelize(job string) int {
 	numCpus := runtime.NumCPU()
 	switch job {

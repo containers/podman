@@ -12,7 +12,7 @@ import sys
 
 class IRC:
 
-    response_timeout = 10  # seconds
+    response_timeout = 30  # seconds
     irc = socket.socket()
 
     def __init__(self, server, nickname, channel):
@@ -90,9 +90,16 @@ class IRC:
 if len(sys.argv) < 3:
     print("Error: Must pass desired nick and message as parameters")
 else:
-    irc = IRC("irc.freenode.net", sys.argv[1], "#podman")
-    err = irc.connect(*os.environ.get('IRCID', 'Big Bug').split(" ", 2))
-    if not err:
+    for try_again in (True,False):
+        irc = IRC("irc.freenode.net", sys.argv[1], "#podman")
+        err = irc.connect(*os.environ.get('IRCID', 'Big Bug').split(" ", 2))
+        if err and try_again:
+            print("Trying again in 5 seconds...")
+            time.sleep(5)
+            continue
+        elif err:
+            break
         irc.message(" ".join(sys.argv[2:]))
         time.sleep(5.0)  # avoid join/quit spam
         irc.quit()
+        break

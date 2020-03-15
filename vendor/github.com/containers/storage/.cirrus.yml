@@ -1,0 +1,143 @@
+---
+
+# Main collection of env. vars to set for all tasks and scripts.
+env:
+    ####
+    #### Global variables used for all tasks
+    ####
+    # Overrides default location (/tmp/cirrus) for repo clone
+    CIRRUS_WORKING_DIR: "/var/tmp/go/src/github.com/containers/storage"
+    # Shell used to execute all script commands
+    CIRRUS_SHELL: "/bin/bash"
+    # Automation script path relative to $CIRRUS_WORKING_DIR)
+    SCRIPT_BASE: "./contrib/cirrus"
+    # No need to go crazy, but grab enough to cover most PRs
+    CIRRUS_CLONE_DEPTH: 50
+
+    ####
+    #### Cache-image names to test with
+    ####
+    # GCE project where images live
+    IMAGE_PROJECT: "libpod-218412"
+    _BUILT_IMAGE_SUFFIX: "libpod-5874660151656448"
+    FEDORA_CACHE_IMAGE_NAME: "fedora-31-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_FEDORA_CACHE_IMAGE_NAME: "fedora-30-${_BUILT_IMAGE_SUFFIX}"
+    UBUNTU_CACHE_IMAGE_NAME: "ubuntu-19-${_BUILT_IMAGE_SUFFIX}"
+    PRIOR_UBUNTU_CACHE_IMAGE_NAME: "ubuntu-18-${_BUILT_IMAGE_SUFFIX}"
+
+    ####
+    #### Command variables to help avoid duplication
+    ####
+    # Command to prefix every output line with a timestamp
+    # (can't do inline awk script, Cirrus-CI or YAML mangles quoting)
+    _TIMESTAMP: 'awk --file ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk'
+    _DFCMD: 'df -lhTx tmpfs'
+    _RAUDITCMD: 'cat /var/log/audit/audit.log'
+    _UAUDITCMD: 'cat /var/log/kern.log'
+    _JOURNALCMD: 'journalctl -b'
+
+gcp_credentials: ENCRYPTED[c87717f04fb15499d19a3b3fa0ad2cdedecc047e82967785d101e9bc418e93219f755e662feac8390088a2df1a4d8464]
+
+# Default timeout for each task
+timeout_in: 120m
+
+# Default VM to use unless set or modified by task
+gce_instance:
+    image_project: "${IMAGE_PROJECT}"
+    zone: "us-central1-b"  # Required by Cirrus for the time being
+    cpu: 2
+    memory: "4Gb"
+    disk: 200
+    image_name: "${FEDORA_CACHE_IMAGE_NAME}"
+
+
+testing_task:
+
+    depends_on:
+        - lint
+
+    # Not all $TEST_DRIVER combinations are valid for all OS types.
+    # Note: Nested-variable resolution happens at runtime, not eval. time.
+    # Use verbose logic for ease of reading/maintaining.
+    only_if: >-
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "vfs" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "aufs" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "overlay" ) ||
+        ( $VM_IMAGE =~ '.*UBUNTU.*' && $TEST_DRIVER == "fuse-overlay" ) ||
+        ( $VM_IMAGE =~ '.*FEDORA.*' && $TEST_DRIVER != "aufs" )
+
+    allow_failures: $TEST_DRIVER == "devicemapper"
+
+    env:
+        matrix:
+            VM_IMAGE: "${FEDORA_CACHE_IMAGE_NAME}"
+            VM_IMAGE: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            VM_IMAGE: "${UBUNTU_CACHE_IMAGE_NAME}"
+            # VM_IMAGE: "${PRIOR_UBUNTU_CACHE_IMAGE_NAME}"  # No fuse3 support
+        matrix:  # See ./contrib/cirrus/build_and_test.sh
+            TEST_DRIVER: "vfs"
+            TEST_DRIVER: "aufs"
+            TEST_DRIVER: "overlay"
+            TEST_DRIVER: "fuse-overlay"
+            TEST_DRIVER: "devicemapper"
+            TEST_DRIVER: "fuse-overlay-whiteout"
+
+    gce_instance:  # Only need to specify differences from defaults (above)
+        image_name: "${VM_IMAGE}"
+
+    # Separate scripts for separate outputs, makes debugging easier.
+    setup_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
+    build_and_test_script: '${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/build_and_test.sh |& ${_TIMESTAMP}'
+
+    always:
+        df_script: '${_DFCMD} || true'
+        rh_audit_log_script: '${_RAUDITCMD} || true'
+        ubuntu_audit_log_script: '${_UAUDITCMD} || true'
+        journal_log_script: '${_JOURNALCMD} || true'
+
+lint_task:
+    env:
+        CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
+    container:
+        image: golang:1.12
+    modules_cache:
+        fingerprint_script: cat go.sum
+        folder: $GOPATH/pkg/mod
+    build_script: |
+      echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
+      apt-get update
+      apt-get install -y libbtrfs-dev libdevmapper-dev
+    test_script: make lint
+
+# Update metadata on VM images referenced by this repository state
+meta_task:
+
+    container:
+        image: "quay.io/libpod/imgts:master"
+        cpu: 1
+        memory: 1
+
+    env:
+        # Space-separated list of images used by this repository state
+        IMGNAMES: |-
+            ${FEDORA_CACHE_IMAGE_NAME}
+            ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
+            ${UBUNTU_CACHE_IMAGE_NAME}
+            ${PRIOR_UBUNTU_CACHE_IMAGE_NAME}
+        BUILDID: "${CIRRUS_BUILD_ID}"
+        REPOREF: "${CIRRUS_CHANGE_IN_REPO}"
+        GCPJSON: ENCRYPTED[244a93fe8b386b48b96f748342bf741350e43805eee81dd04b45093bdf737e540b993fc735df41f131835fa0f9b65826]
+        GCPNAME: ENCRYPTED[91cf7aa421858b26b67835978d224b4a5c46afcf52a0f1ec1b69a99b248715dc8e92a1b56fde18e092acf256fa80ae9c]
+        GCPPROJECT: ENCRYPTED[79b0f7eb5958e25bc7095d5d368fa8d94447a43ffacb9c693de438186e2f767b7efe9563d6954297ae4730220e10aa9c]
+        CIRRUS_CLONE_DEPTH: 1  # source not used
+
+    script: '/usr/local/bin/entrypoint.sh |& ${_TIMESTAMP}'
+
+vendor_task:
+    container:
+        image: golang:1.13
+    modules_cache:
+        fingerprint_script: cat go.sum
+        folder: $GOPATH/pkg/mod
+    build_script: make vendor
+    test_script: hack/tree_status.sh

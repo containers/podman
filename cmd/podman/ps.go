@@ -15,87 +15,32 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 	"github.com/docker/go-units"
-	"github.com/opentracing/opentracing-go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/fields"
 )
 
 const (
-	mountTruncLength = 12
-	hid              = "CONTAINER ID"
-	himage           = "IMAGE"
-	hcommand         = "COMMAND"
-	hcreated         = "CREATED"
-	hstatus          = "STATUS"
-	hports           = "PORTS"
-	hnames           = "NAMES"
-	hsize            = "SIZE"
-	hinfra           = "IS INFRA"
-	hpod             = "POD"
-	nspid            = "PID"
-	nscgroup         = "CGROUPNS"
-	nsipc            = "IPC"
-	nsmnt            = "MNT"
-	nsnet            = "NET"
-	nspidns          = "PIDNS"
-	nsuserns         = "USERNS"
-	nsuts            = "UTS"
+	hid      = "CONTAINER ID"
+	himage   = "IMAGE"
+	hcommand = "COMMAND"
+	hcreated = "CREATED"
+	hstatus  = "STATUS"
+	hports   = "PORTS"
+	hnames   = "NAMES"
+	hsize    = "SIZE"
+	hinfra   = "IS INFRA" //nolint
+	hpod     = "POD"
+	hpodname = "POD NAME"
+	nspid    = "PID"
+	nscgroup = "CGROUPNS"
+	nsipc    = "IPC"
+	nsmnt    = "MNT"
+	nsnet    = "NET"
+	nspidns  = "PIDNS"
+	nsuserns = "USERNS"
+	nsuts    = "UTS"
 )
-
-type psTemplateParams struct {
-	ID            string
-	Image         string
-	Command       string
-	CreatedAtTime time.Time
-	Created       string
-	Status        string
-	Ports         string
-	Size          string
-	Names         string
-	Labels        string
-	Mounts        string
-	PID           int
-	CGROUPNS      string
-	IPC           string
-	MNT           string
-	NET           string
-	PIDNS         string
-	USERNS        string
-	UTS           string
-	Pod           string
-	IsInfra       bool
-}
-
-// psJSONParams is used as a base structure for the psParams
-// If template output is requested, psJSONParams will be converted to
-// psTemplateParams.
-// psJSONParams will be populated by data from libpod.Container,
-// the members of the struct are the sama data types as their sources.
-type psJSONParams struct {
-	ID               string                `json:"id"`
-	Image            string                `json:"image"`
-	ImageID          string                `json:"image_id"`
-	Command          []string              `json:"command"`
-	ExitCode         int32                 `json:"exitCode"`
-	Exited           bool                  `json:"exited"`
-	CreatedAt        time.Time             `json:"createdAt"`
-	StartedAt        time.Time             `json:"startedAt"`
-	ExitedAt         time.Time             `json:"exitedAt"`
-	Status           string                `json:"status"`
-	PID              int                   `json:"PID"`
-	Ports            []ocicni.PortMapping  `json:"ports"`
-	Size             *shared.ContainerSize `json:"size,omitempty"`
-	Names            string                `json:"names"`
-	Labels           fields.Set            `json:"labels"`
-	Mounts           []string              `json:"mounts"`
-	ContainerRunning bool                  `json:"ctrRunning"`
-	Namespaces       *shared.Namespace     `json:"namespace,omitempty"`
-	Pod              string                `json:"pod,omitempty"`
-	IsInfra          bool                  `json:"infra"`
-}
 
 // Type declaration and functions for sorting the PS output
 type psSorted []shared.PsContainerOutput
@@ -198,12 +143,11 @@ func init() {
 }
 
 func psCmd(c *cliconfig.PsValues) error {
-	if c.Bool("trace") {
-		span, _ := opentracing.StartSpanFromContext(Ctx, "psCmd")
-		defer span.Finish()
-	}
-
-	var watch bool
+	var (
+		watch   bool
+		runtime *adapter.LocalRuntime
+		err     error
+	)
 
 	if c.Watch > 0 {
 		watch = true
@@ -216,13 +160,16 @@ func psCmd(c *cliconfig.PsValues) error {
 	if err := checkFlagsPassed(c); err != nil {
 		return errors.Wrapf(err, "error with flags passed")
 	}
-
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	if !c.Size {
+		runtime, err = adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
+	} else {
+		runtime, err = adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	}
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
 
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if !watch {
 		if err := psDisplay(c, runtime); err != nil {
@@ -258,11 +205,25 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 	if c.Last >= 0 && c.Latest {
 		return errors.Errorf("last and latest are mutually exclusive")
 	}
-	// Quiet conflicts with size, namespace, and format with a Go template
+	// Filter on status forces all
+	if len(c.Filter) > 0 {
+		for _, filter := range c.Filter {
+			splitFilter := strings.SplitN(filter, "=", 2)
+			if strings.ToLower(splitFilter[0]) == "status" {
+				c.All = true
+				break
+			}
+		}
+	}
+	// Quiet conflicts with size and namespace and is overridden by a Go
+	// template.
 	if c.Quiet {
-		if c.Size || c.Namespace || (c.Flag("format").Changed &&
-			c.Format != formats.JSONString) {
-			return errors.Errorf("quiet conflicts with size, namespace, and format with go template")
+		if c.Size || c.Namespace {
+			return errors.Errorf("quiet conflicts with size and namespace")
+		}
+		if c.Flag("format").Changed && c.Format != formats.JSONString {
+			// Quiet is overridden by Go template output.
+			c.Quiet = false
 		}
 	}
 	// Size and namespace conflict with each other
@@ -270,22 +231,6 @@ func checkFlagsPassed(c *cliconfig.PsValues) error {
 		return errors.Errorf("size and namespace options conflict")
 	}
 	return nil
-}
-
-// generate the accurate header based on template given
-func (p *psTemplateParams) headerMap() map[string]string {
-	v := reflect.Indirect(reflect.ValueOf(p))
-	values := make(map[string]string)
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		if value == "ID" {
-			value = "Container" + value
-		}
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
 }
 
 func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
@@ -312,57 +257,6 @@ func sortPsOutput(sortBy string, psOutput psSorted) (psSorted, error) {
 		return nil, errors.Errorf("invalid option for --sort, options are: command, created, id, image, names, runningfor, size, or status")
 	}
 	return psOutput, nil
-}
-
-// getLabels converts the labels to a string of the form "key=value, key2=value2"
-func formatLabels(labels map[string]string) string {
-	var arr []string
-	if len(labels) > 0 {
-		for key, val := range labels {
-			temp := key + "=" + val
-			arr = append(arr, temp)
-		}
-		return strings.Join(arr, ",")
-	}
-	return ""
-}
-
-// getMounts converts the volumes mounted to a string of the form "mount1, mount2"
-// it truncates it if noTrunc is false
-func getMounts(mounts []string, noTrunc bool) string {
-	return strings.Join(getMountsArray(mounts, noTrunc), ",")
-}
-
-func getMountsArray(mounts []string, noTrunc bool) []string {
-	var arr []string
-	if len(mounts) == 0 {
-		return mounts
-	}
-	for _, mount := range mounts {
-		splitArr := strings.Split(mount, ":")
-		if len(splitArr[0]) > mountTruncLength && !noTrunc {
-			arr = append(arr, splitArr[0][:mountTruncLength]+"...")
-			continue
-		}
-		arr = append(arr, splitArr[0])
-	}
-	return arr
-}
-
-// portsToString converts the ports used to a string of the from "port1, port2"
-func portsToString(ports []ocicni.PortMapping) string {
-	var portDisplay []string
-	if len(ports) == 0 {
-		return ""
-	}
-	for _, v := range ports {
-		hostIP := v.HostIP
-		if hostIP == "" {
-			hostIP = "0.0.0.0"
-		}
-		portDisplay = append(portDisplay, fmt.Sprintf("%s:%d->%d/%s", hostIP, v.HostPort, v.ContainerPort, v.Protocol))
-	}
-	return strings.Join(portDisplay, ", ")
 }
 
 func printFormat(format string, containers []shared.PsContainerOutput) error {
@@ -440,6 +334,9 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 	}
 
 	pss, err := runtime.Ps(c, opts)
+	if err != nil {
+		return err
+	}
 	// Here and down
 	if opts.Sort != "" {
 		pss, err = sortPsOutput(opts.Sort, pss)
@@ -469,7 +366,7 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s", hid, himage, hcommand, hcreated, hstatus, hports, hnames)
 		// User wants pod info
 		if opts.Pod {
-			fmt.Fprintf(w, "\t%s", hpod)
+			fmt.Fprintf(w, "\t%s\t%s", hpod, hpodname)
 		}
 		//User wants size info
 		if opts.Size {
@@ -488,7 +385,7 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 			fmt.Fprintf(w, "\n%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Image, container.Command, container.Created, container.Status, container.Ports, container.Names)
 			// User wants pod info
 			if opts.Pod {
-				fmt.Fprintf(w, "\t%s", container.Pod)
+				fmt.Fprintf(w, "\t%s\t%s", container.Pod, container.PodName)
 			}
 			//User wants size info
 			if opts.Size {
@@ -497,13 +394,13 @@ func psDisplay(c *cliconfig.PsValues, runtime *adapter.LocalRuntime) error {
 					size = units.HumanSizeWithPrecision(0, 0)
 				} else {
 					size = units.HumanSizeWithPrecision(float64(container.Size.RwSize), 3) + " (virtual " + units.HumanSizeWithPrecision(float64(container.Size.RootFsSize), 3) + ")"
-					fmt.Fprintf(w, "\t%s", size)
 				}
+				fmt.Fprintf(w, "\t%s", size)
 			}
 
 		} else {
 			// Print namespace information
-			ns := shared.GetNamespaces(container.Pid)
+			ns := runtime.GetNamespaces(container)
 			fmt.Fprintf(w, "\n%s\t%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s", container.ID, container.Names, container.Pid, ns.Cgroup, ns.IPC, ns.MNT, ns.NET, ns.PIDNS, ns.User, ns.UTS)
 		}
 

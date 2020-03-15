@@ -63,22 +63,22 @@ func volumePrune(runtime *adapter.LocalRuntime, ctx context.Context) error {
 }
 
 func volumePruneCmd(c *cliconfig.VolumePruneValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	// Prompt for confirmation if --force is not set
 	if !c.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container.")
 		fmt.Print("Are you sure you want to continue? [y/N] ")
-		ans, err := reader.ReadString('\n')
+		answer, err := reader.ReadString('\n')
 		if err != nil {
 			return errors.Wrapf(err, "error reading input")
 		}
-		if strings.ToLower(ans)[0] != 'y' {
+		if strings.ToLower(answer)[0] != 'y' {
 			return nil
 		}
 	}

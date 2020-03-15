@@ -18,7 +18,7 @@ die() {
     exit 1
 }
 
-cd $(dirname $0)/../docs || die "Please run me from top-level libpod dir"
+cd $(dirname $0)/../docs/source/markdown || die "Please run me from top-level libpod dir"
 
 rc=0
 
@@ -30,8 +30,11 @@ for md in *.1.md;do
     # care only about the first.
     name=$(egrep -A1 '^#* NAME' $md|tail -1|awk '{print $1}' | tr -d \\\\)
 
-    if [ "$name" != "$(basename $md .1.md)" ]; then
-        printf "%-32s  NAME= %s\n" $md $name
+    expect=$(basename $md .1.md)
+    if [ "$name" != "$expect" ]; then
+        echo
+        printf "Inconsistent program NAME in %s:\n" $md
+        printf "  NAME= %s  (expected: %s)\n" $name $expect
         rc=1
     fi
 done
@@ -39,8 +42,9 @@ done
 # Pass 2: compare descriptions.
 #
 # Make sure the descriptive text in podman-foo.1.md matches the one
-# in the table in podman.1.md.
-for md in *.1.md;do
+# in the table in podman.1.md. podman-remote is not a podman subcommand,
+# so it is excluded here.
+for md in $(ls -1 *-*.1.md | grep -v remote);do
     desc=$(egrep -A1 '^#* NAME' $md|tail -1|sed -e 's/^podman[^ ]\+ - //')
 
     # podman.1.md has a two-column table; podman-*.1.md all have three.
@@ -56,8 +60,11 @@ for md in *.1.md;do
 
     if [ "$desc" != "$parent_desc" ]; then
         echo
+        printf "Inconsistent subcommand descriptions:\n"
         printf "  %-32s = '%s'\n" $md "$desc"
         printf "  %-32s = '%s'\n" $parent "$parent_desc"
+        printf "Please ensure that the NAME section of $md\n"
+        printf "matches the subcommand description in $parent\n"
         rc=1
     fi
 done
@@ -81,16 +88,21 @@ for md in *.1.md;do
     # arguments are bracketed by single ones.
     #   E.g. '**podman volume inspect** [*options*] *volume*...'
     # Get the command name, and confirm that it matches the md file name.
-    cmd=$(echo "$synopsis" | sed -e 's/\(.*\)\*\*.*/\1/' | tr -d \* | tr ' ' '-')
-    if [ "$md" != "$cmd.1.md" ]; then
-        printf "  %-32s SYNOPSIS = %s\n" $md "$cmd"
+    cmd=$(echo "$synopsis" | sed -e 's/\(.*\)\*\*.*/\1/' | tr -d \*)
+    md_nodash=$(basename "$md" .1.md | tr '-' ' ')
+    if [ "$cmd" != "$md_nodash" -a "$cmd" != "podman-remote" ]; then
+        echo
+        printf "Inconsistent program name in SYNOPSIS in %s:\n" $md
+        printf "  SYNOPSIS = %s (expected: '%s')\n" "$cmd" "$md_nodash"
         rc=1
     fi
 
     # The convention is to use UPPER CASE in 'podman foo --help',
     # but *lower case bracketed by asterisks* in the man page
     if expr "$synopsis" : ".*[A-Z]" >/dev/null; then
-        printf "  %-32s UPPER-CASE '%s'\n" $md "$synopsis"
+        echo
+        printf "Inconsistent capitalization in SYNOPSIS in %s\n" $md
+        printf "  '%s' should not contain upper-case characters\n" "$synopsis"
         rc=1
     fi
 

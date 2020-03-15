@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/containers/libpod/libpod/config"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/lock"
 	"github.com/containers/storage"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +53,7 @@ func getEmptyBoltState() (s State, p string, m lock.Manager, err error) {
 	}
 
 	runtime := new(Runtime)
-	runtime.config = new(RuntimeConfig)
+	runtime.config = new(config.Config)
 	runtime.config.StorageConfig = storage.StoreOptions{}
 	runtime.lockManager = lockManager
 
@@ -348,7 +350,8 @@ func TestAddCtrSameNamespaceSucceeds(t *testing.T) {
 
 		testCtr.config.Namespace = "test1"
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
@@ -367,12 +370,14 @@ func TestAddCtrDifferentNamespaceFails(t *testing.T) {
 
 		testCtr.config.Namespace = "test1"
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.AddContainer(testCtr)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
@@ -404,7 +409,8 @@ func TestGetContainerInDifferentNamespaceFails(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		_, err = state.Container(testCtr.ID())
 		assert.Error(t, err)
@@ -421,7 +427,8 @@ func TestGetContainerInSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		ctr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
@@ -451,12 +458,18 @@ func TestLookupContainerWithEmptyIDFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("")
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID("")
+		assert.Error(t, err)
 	})
 }
 
 func TestLookupNonexistentContainerFails(t *testing.T) {
 	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
 		_, err := state.LookupContainer("does not exist")
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID("does not exist")
 		assert.Error(t, err)
 	})
 }
@@ -471,8 +484,11 @@ func TestLookupContainerByFullID(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -486,8 +502,11 @@ func TestLookupContainerByUniquePartialID(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.ID()[0:8])
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.ID()[0:8])
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -506,6 +525,9 @@ func TestLookupContainerByNonUniquePartialIDFails(t *testing.T) {
 
 		_, err = state.LookupContainer(testCtr1.ID()[0:8])
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testCtr1.ID()[0:8])
+		assert.Error(t, err)
 	})
 }
 
@@ -519,8 +541,11 @@ func TestLookupContainerByName(t *testing.T) {
 
 		retrievedCtr, err := state.LookupContainer(testCtr.Name())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, retrievedCtr, testCtr, true)
+
+		retrievedID, err := state.LookupContainerID(testCtr.Name())
+		assert.NoError(t, err)
+		assert.Equal(t, retrievedID, testCtr.ID())
 	})
 }
 
@@ -533,6 +558,9 @@ func TestLookupCtrByPodNameFails(t *testing.T) {
 		assert.NoError(t, err)
 
 		_, err = state.LookupContainer(testPod.Name())
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testPod.Name())
 		assert.Error(t, err)
 	})
 }
@@ -547,6 +575,9 @@ func TestLookupCtrByPodIDFails(t *testing.T) {
 
 		_, err = state.LookupContainer(testPod.ID())
 		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testPod.ID())
+		assert.Error(t, err)
 	})
 }
 
@@ -560,12 +591,16 @@ func TestLookupCtrInSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		ctr, err := state.LookupContainer(testCtr.ID())
 		assert.NoError(t, err)
-
 		testContainersEqual(t, ctr, testCtr, true)
+
+		ctrID, err := state.LookupContainerID(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, ctrID, testCtr.ID())
 	})
 }
 
@@ -579,9 +614,13 @@ func TestLookupCtrInDifferentNamespaceFails(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.LookupContainer(testCtr.ID())
+		assert.Error(t, err)
+
+		_, err = state.LookupContainerID(testCtr.ID())
 		assert.Error(t, err)
 	})
 }
@@ -601,12 +640,16 @@ func TestLookupContainerMatchInDifferentNamespaceSucceeds(t *testing.T) {
 		err = state.AddContainer(testCtr2)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		ctr, err := state.LookupContainer("000")
 		assert.NoError(t, err)
-
 		testContainersEqual(t, ctr, testCtr2, true)
+
+		ctrID, err := state.LookupContainerID("000")
+		assert.NoError(t, err)
+		assert.Equal(t, ctrID, testCtr2.ID())
 	})
 }
 
@@ -663,7 +706,8 @@ func TestHasContainerSameNamespaceIsTrue(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		exists, err := state.HasContainer(testCtr.ID())
 		assert.NoError(t, err)
@@ -681,7 +725,8 @@ func TestHasContainerDifferentNamespaceIsFalse(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		exists, err := state.HasContainer(testCtr.ID())
 		assert.NoError(t, err)
@@ -700,7 +745,7 @@ func TestSaveAndUpdateContainer(t *testing.T) {
 		retrievedCtr, err := state.Container(testCtr.ID())
 		require.NoError(t, err)
 
-		retrievedCtr.state.State = ContainerStateStopped
+		retrievedCtr.state.State = define.ContainerStateStopped
 		retrievedCtr.state.ExitCode = 127
 		retrievedCtr.state.FinishedTime = time.Now()
 
@@ -724,12 +769,13 @@ func TestSaveAndUpdateContainerSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		retrievedCtr, err := state.Container(testCtr.ID())
 		assert.NoError(t, err)
 
-		retrievedCtr.state.State = ContainerStateStopped
+		retrievedCtr.state.State = define.ContainerStateStopped
 		retrievedCtr.state.ExitCode = 127
 		retrievedCtr.state.FinishedTime = time.Now()
 
@@ -771,7 +817,8 @@ func TestUpdateContainerNotInNamespaceReturnsError(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.UpdateContainer(testCtr)
 		assert.Error(t, err)
@@ -806,7 +853,8 @@ func TestSaveContainerNotInNamespaceReturnsError(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.SaveContainer(testCtr)
 		assert.Error(t, err)
@@ -859,12 +907,14 @@ func TestRemoveContainerNotInNamespaceFails(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(ctrs))
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.RemoveContainer(testCtr)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		ctrs2, err := state.AllContainers()
 		assert.NoError(t, err)
@@ -925,7 +975,8 @@ func TestGetAllContainersNoContainerInNamespace(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
@@ -949,7 +1000,8 @@ func TestGetContainerOneContainerInNamespace(t *testing.T) {
 		err = state.AddContainer(testCtr2)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
@@ -985,7 +1037,8 @@ func TestContainerInUseCtrNotInNamespace(t *testing.T) {
 		err = state.AddContainer(testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.ContainerInUse(testCtr)
 		assert.Error(t, err)
@@ -1462,7 +1515,8 @@ func TestGetPodInNamespaceSucceeds(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
@@ -1481,7 +1535,8 @@ func TestGetPodPodNotInNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.Pod(testPod.ID())
 		assert.Error(t, err)
@@ -1602,7 +1657,8 @@ func TestLookupPodInSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		statePod, err := state.LookupPod(testPod.ID())
 		assert.NoError(t, err)
@@ -1621,7 +1677,8 @@ func TestLookupPodInDifferentNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.LookupPod(testPod.ID())
 		assert.Error(t, err)
@@ -1646,7 +1703,8 @@ func TestLookupPodOneInDifferentNamespaceFindsRightPod(t *testing.T) {
 		err = state.AddPod(testPod2)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		pod, err := state.LookupPod(strings.Repeat("1", 5))
 		assert.NoError(t, err)
@@ -1722,7 +1780,8 @@ func TestHasPodSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		exist, err := state.HasPod(testPod.ID())
 		assert.NoError(t, err)
@@ -1740,7 +1799,8 @@ func TestHasPodDifferentNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		exist, err := state.HasPod(testPod.ID())
 		assert.NoError(t, err)
@@ -1878,7 +1938,8 @@ func TestAddPodSameNamespaceSucceeds(t *testing.T) {
 
 		testPod.config.Namespace = "test1"
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
@@ -1898,12 +1959,14 @@ func TestAddPodDifferentNamespaceFails(t *testing.T) {
 
 		testPod.config.Namespace = "test1"
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.AddPod(testPod)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
@@ -2032,12 +2095,14 @@ func TestRemovePodNotInNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.RemovePod(testPod)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
@@ -2117,7 +2182,8 @@ func TestAllPodsPodInDifferentNamespaces(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
@@ -2143,7 +2209,8 @@ func TestAllPodsOnePodInDifferentNamespace(t *testing.T) {
 		err = state.AddPod(testPod2)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
@@ -2239,7 +2306,8 @@ func TestPodHasContainerPodNotInNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.PodHasContainer(testPod, strings.Repeat("2", 32))
 		assert.Error(t, err)
@@ -2358,7 +2426,8 @@ func TestPodContainerByIDPodNotInNamespace(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.PodContainersByID(testPod)
 		assert.Error(t, err)
@@ -2478,7 +2547,8 @@ func TestPodContainersPodNotInNamespace(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		_, err = state.PodContainers(testPod)
 		assert.Error(t, err)
@@ -2651,7 +2721,8 @@ func TestRemoveContainersNotInNamespace(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.RemovePodContainers(testPod)
 		assert.Error(t, err)
@@ -3194,7 +3265,8 @@ func TestAddCtrToPodSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		err = state.AddContainerToPod(testPod, testCtr)
 		assert.NoError(t, err)
@@ -3218,15 +3290,17 @@ func TestAddCtrToPodDifferentNamespaceFails(t *testing.T) {
 		testPod.config.Namespace = "test1"
 		testCtr.config.Pod = testPod.ID()
 
-		state.AddPod(testPod)
+		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.AddContainerToPod(testPod, testCtr)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		ctrs, err := state.AllContainers()
 		assert.NoError(t, err)
@@ -3426,7 +3500,8 @@ func TestRemoveContainerFromPodSameNamespaceSucceeds(t *testing.T) {
 		err = state.AddContainerToPod(testPod, testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		err = state.RemoveContainerFromPod(testPod, testCtr)
 		assert.NoError(t, err)
@@ -3460,12 +3535,14 @@ func TestRemoveContainerFromPodDifferentNamespaceFails(t *testing.T) {
 		err = state.AddContainerToPod(testPod, testCtr)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.RemoveContainerFromPod(testPod, testCtr)
 		assert.Error(t, err)
 
-		state.SetNamespace("")
+		err = state.SetNamespace("")
+		assert.NoError(t, err)
 
 		ctrs, err := state.PodContainers(testPod)
 		assert.NoError(t, err)
@@ -3504,7 +3581,8 @@ func TestUpdatePodNotInNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.UpdatePod(testPod)
 		assert.Error(t, err)
@@ -3538,7 +3616,8 @@ func TestSavePodNotInNamespaceFails(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test2")
+		err = state.SetNamespace("test2")
+		assert.NoError(t, err)
 
 		err = state.SavePod(testPod)
 		assert.Error(t, err)
@@ -3580,7 +3659,8 @@ func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
 		err = state.AddPod(testPod)
 		assert.NoError(t, err)
 
-		state.SetNamespace("test1")
+		err = state.SetNamespace("test1")
+		assert.NoError(t, err)
 
 		statePod, err := state.Pod(testPod.ID())
 		assert.NoError(t, err)
@@ -3596,5 +3676,32 @@ func TestSaveAndUpdatePodSameNamespace(t *testing.T) {
 		assert.NoError(t, err)
 
 		testPodsEqual(t, testPod, statePod, false)
+	})
+}
+
+func TestGetContainerConfigSucceeds(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		testCtr, err := getTestCtr1(manager)
+		assert.NoError(t, err)
+
+		err = state.AddContainer(testCtr)
+		assert.NoError(t, err)
+
+		ctrCfg, err := state.GetContainerConfig(testCtr.ID())
+		assert.NoError(t, err)
+		assert.Equal(t, ctrCfg, testCtr.Config())
+	})
+}
+
+func TestGetContainerConfigEmptyIDFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		_, err := state.GetContainerConfig("")
+		assert.Error(t, err)
+	})
+}
+func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
+	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+		_, err := state.GetContainerConfig("does not exist")
+		assert.Error(t, err)
 	})
 }

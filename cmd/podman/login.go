@@ -6,12 +6,16 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/docker"
-	"github.com/containers/image/pkg/docker/config"
-	"github.com/containers/image/types"
+	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/pkg/docker/config"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/registries"
+	"github.com/docker/docker-credential-helpers/credentials"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -31,25 +35,30 @@ var (
 			return loginCmd(&loginCommand)
 		},
 		Example: `podman login -u testuser -p testpassword localhost:5000
-  podman login --authfile authdir/myauths.json quay.io
   podman login -u testuser -p testpassword localhost:5000`,
 	}
 )
 
 func init() {
+	if !remote {
+		_loginCommand.Example = fmt.Sprintf("%s\n  podman login --authfile authdir/myauths.json quay.io", _loginCommand.Example)
+
+	}
 	loginCommand.Command = _loginCommand
 	loginCommand.SetHelpTemplate(HelpTemplate())
 	loginCommand.SetUsageTemplate(UsageTemplate())
 	flags := loginCommand.Flags()
 
-	flags.StringVar(&loginCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
-	flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
 	flags.BoolVar(&loginCommand.GetLogin, "get-login", true, "Return the current login user for the registry")
 	flags.StringVarP(&loginCommand.Password, "password", "p", "", "Password for registry")
-	flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.StringVarP(&loginCommand.Username, "username", "u", "", "Username for registry")
 	flags.BoolVar(&loginCommand.StdinPassword, "password-stdin", false, "Take the password from stdin")
-
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&loginCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&loginCommand.CertDir, "cert-dir", "", "Pathname of a directory containing TLS certificates and keys used to connect to the registry")
+		flags.BoolVar(&loginCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
 // loginCmd uses the authentication package to store a user's authenticated credentials
@@ -59,13 +68,25 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	if len(args) > 1 {
 		return errors.Errorf("too many arguments, login takes only 1 argument")
 	}
+	var server string
 	if len(args) == 0 {
-		return errors.Errorf("please specify a registry to login to")
-	}
-	server := registryFromFullName(scrubServer(args[0]))
-	authfile := getAuthFile(c.Authfile)
+		registriesFromFile, err := registries.GetRegistries()
+		if err != nil || len(registriesFromFile) == 0 {
+			return errors.Errorf("please specify a registry to login to")
+		}
 
-	sc := image.GetSystemContext("", authfile, false)
+		server = registriesFromFile[0]
+		logrus.Debugf("registry not specified, default to the first registry %q from registries.conf", server)
+
+	} else {
+		server = registryFromFullName(scrubServer(args[0]))
+	}
+
+	if c.Flag("password").Changed {
+		fmt.Fprintf(os.Stderr, "WARNING! Using --password via the cli is insecure. Please consider using --password-stdin\n")
+	}
+
+	sc := image.GetSystemContext("", c.Authfile, false)
 	if c.Flag("tls-verify").Changed {
 		sc.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
@@ -73,25 +94,19 @@ func loginCmd(c *cliconfig.LoginValues) error {
 		sc.DockerCertPath = c.CertDir
 	}
 
-	if c.Flag("get-login").Changed {
-		user, err := config.GetUserLoggedIn(sc, server)
-
-		if err != nil {
-			return errors.Wrapf(err, "unable to check for login user")
-		}
-
-		if user == "" {
-			return errors.Errorf("not logged into %s", server)
-		}
-
-		fmt.Printf("%s\n", user)
-		return nil
-	}
-
 	// username of user logged in to server (if one exists)
 	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
-	if err != nil {
+	// Do not return error if no credentials found in credHelpers, new credentials will be stored by config.SetAuthentication
+	if err != nil && err != credentials.NewErrCredentialsNotFound() {
 		return errors.Wrapf(err, "error reading auth file")
+	}
+
+	if c.Flag("get-login").Changed {
+		if userFromAuthFile == "" {
+			return errors.Errorf("not logged into %s", server)
+		}
+		fmt.Printf("%s\n", userFromAuthFile)
+		return nil
 	}
 
 	ctx := getContext()
@@ -134,15 +149,15 @@ func loginCmd(c *cliconfig.LoginValues) error {
 			return err
 		}
 	}
-	switch err {
-	case nil:
+	if err == nil {
 		fmt.Println("Login Succeeded!")
 		return nil
-	case docker.ErrUnauthorizedForCredentials:
-		return errors.Errorf("error logging into %q: invalid username/password", server)
-	default:
-		return errors.Wrapf(err, "error authenticating creds for %q", server)
 	}
+	if unauthorizedError, ok := err.(docker.ErrUnauthorizedForCredentials); ok {
+		logrus.Debugf("error logging into %q: %v", server, unauthorizedError)
+		return errors.Errorf("error logging into %q: invalid username/password", server)
+	}
+	return errors.Wrapf(err, "error authenticating creds for %q", server)
 }
 
 // getUserAndPass gets the username and password from STDIN if not given

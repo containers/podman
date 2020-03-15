@@ -1,9 +1,4 @@
-
-# N/B: PACKER_BUILDS variable is required.  Should contain CSV of
-# builder name(s) from applicable YAML file,
-# e.g for names see libpod_images.yml
-
-PACKER_VER ?= 1.3.2
+PACKER_VER ?= 1.4.3
 GOARCH=$(shell go env GOARCH)
 ARCH=$(uname -m)
 PACKER_DIST_FILENAME := packer_${PACKER_VER}_linux_${GOARCH}.zip
@@ -15,6 +10,9 @@ PACKER_BASE ?= contrib/cirrus/packer
 SCRIPT_BASE ?= contrib/cirrus
 POST_MERGE_BUCKET_SUFFIX ?=
 
+UBUNTU_BASE_IMAGE = $(shell source ../lib.sh && echo "$$UBUNTU_BASE_IMAGE")
+PRIOR_UBUNTU_BASE_IMAGE = $(shell source ../lib.sh && echo "$$PRIOR_UBUNTU_BASE_IMAGE")
+
 # For debugging nested-virt, use
 #TTYDEV := $(shell tty)
 TTYDEV := /dev/null
@@ -22,8 +20,16 @@ TTYDEV := /dev/null
 .PHONY: all
 all: libpod_images
 
+# Utility target for checking required parameters
+.PHONY: guard-%
+guard-%:
+	@if [[ -z "$($*)" ]]; then \
+		echo "Missing or empty required make variable '$*'."; \
+		exit 1; \
+	fi;
+
 %.json: %.yml
-	@python3 -c 'import json,yaml; json.dump( yaml.load(open("$<").read()), open("$@","w"), indent=2);'
+	@python3 -c 'import json,yaml; json.dump( yaml.safe_load(open("$<").read()), open("$@","w"), indent=2);'
 
 ${PACKER_DIST_FILENAME}:
 	@curl -L --silent --show-error \
@@ -44,11 +50,10 @@ test: libpod_base_images.json libpod_images.json packer
 	@echo "All good"
 
 .PHONY: libpod_images
-libpod_images: libpod_images.json packer
-ifndef PACKER_BUILDS
-	$(error PACKER_BUILDS is undefined, expected builder-names CSV)
-endif
-	./packer build -only=${PACKER_BUILDS} \
+libpod_images: guard-PACKER_BUILDS libpod_images.json packer
+	./packer build \
+		-force \
+		$(shell test -z "${PACKER_BUILDS}" || echo "-only=${PACKER_BUILDS}") \
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
@@ -71,23 +76,10 @@ cidata.iso: user-data meta-data
 
 # This is intended to be run by a human, with admin access to the libpod GCE project.
 .PHONY: libpod_base_images
-libpod_base_images: libpod_base_images.json cidata.iso cidata.ssh packer
-ifndef GCP_PROJECT_ID
-	$(error GCP_PROJECT_ID is undefined, expected complete GCP project ID string e.g. foobar-12345)
-endif
-ifndef GOOGLE_APPLICATION_CREDENTIALS
-	$(error GOOGLE_APPLICATION_CREDENTIALS is undefined, expected absolute path to JSON file, like $HOME/.config/gcloud/legacy_credentials/*/adc.json)
-endif
-ifndef RHEL_IMAGE_FILE
-	$(error RHEL_IMAGE_FILE is undefined, expected full path to a rhel-server-ec2-*.raw.xz file)
-endif
-ifndef RHEL_CSUM_FILE
-	$(error RHEL_CSUM_FILE is undefined, expected full path to a rhel-server-ec2-*.raw.xz.SHA256SUM file)
-endif
-ifndef RHSM_COMMAND
-	$(error RHSM_COMMAND is undefined, expected string required for temporarily registering VM)
-endif
+libpod_base_images: guard-GCP_PROJECT_ID guard-GOOGLE_APPLICATION_CREDENTIALS libpod_base_images.json cidata.iso cidata.ssh packer
 	PACKER_CACHE_DIR=/tmp ./packer build \
+		$(shell test -z "${PACKER_BUILDS}" || echo "-only=${PACKER_BUILDS}") \
+		-force \
 		-var TIMESTAMP=$(TIMESTAMP) \
 		-var TTYDEV=$(TTYDEV) \
 		-var GCP_PROJECT_ID=$(GCP_PROJECT_ID) \
@@ -95,10 +87,6 @@ endif
 		-var GOSRC=$(GOSRC) \
 		-var PACKER_BASE=$(PACKER_BASE) \
 		-var SCRIPT_BASE=$(SCRIPT_BASE) \
-		-var RHEL_BASE_IMAGE_NAME=$(shell basename $(RHEL_IMAGE_FILE) | tr -d '[[:space:]]' | sed -r -e 's/\.${ARCH}\.raw\.xz//' | tr '[[:upper:]]' '[[:lower:]]' | tr '[[:punct:]]' '-') \
-		-var RHEL_IMAGE_FILE=$(RHEL_IMAGE_FILE) \
-		-var RHEL_CSUM_FILE=$(RHEL_CSUM_FILE) \
-	    -var 'RHSM_COMMAND=$(RHSM_COMMAND)' \
-		-var POST_MERGE_BUCKET_SUFFIX=$(POST_MERGE_BUCKET_SUFFIX) \
-		-only $(PACKER_BUILDS) \
+		-var UBUNTU_BASE_IMAGE=$(UBUNTU_BASE_IMAGE) \
+		-var PRIOR_UBUNTU_BASE_IMAGE=$(PRIOR_UBUNTU_BASE_IMAGE) \
 		libpod_base_images.json

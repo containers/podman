@@ -20,7 +20,7 @@ func TestIsCpusetListAvailable(t *testing.T) {
 	for _, c := range cases {
 		r, err := isCpusetListAvailable(c.provided, c.available)
 		if (c.err && err == nil) && r != c.res {
-			t.Fatalf("Expected pair: %v, %v for %s, %s. Got %v, %v instead", c.res, c.err, c.provided, c.available, (c.err && err == nil), r)
+			t.Fatalf("Expected pair: %v, %v for %s, %s. Got %v, %v instead", c.res, c.err, c.provided, c.available, c.err && err == nil, r)
 		}
 	}
 }

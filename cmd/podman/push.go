@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/image/directory"
-	"github.com/containers/image/manifest"
-	"github.com/containers/image/types"
+	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/image/v5/directory"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
@@ -35,19 +36,22 @@ var (
 			return pushCmd(&pushCommand)
 		},
 		Example: `podman push imageID docker://registry.example.com/repository:tag
-  podman push imageID oci-archive:/path/to/layout:image:tag
-  podman push --authfile temp-auths/myauths.json alpine docker://docker.io/myrepo/alpine`,
+  podman push imageID oci-archive:/path/to/layout:image:tag`,
 	}
 )
 
 func init() {
+	if !remote {
+		_pushCommand.Example = fmt.Sprintf("%s\n  podman push --authfile temp-auths/myauths.json alpine docker://docker.io/myrepo/alpine", _pushCommand.Example)
+
+	}
+
 	pushCommand.Command = _pushCommand
 	pushCommand.SetHelpTemplate(HelpTemplate())
 	pushCommand.SetUsageTemplate(UsageTemplate())
 	flags := pushCommand.Flags()
-	flags.MarkHidden("signature-policy")
-	flags.StringVar(&pushCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 	flags.StringVar(&pushCommand.Creds, "creds", "", "`Credentials` (USERNAME:PASSWORD) to use for authenticating to a registry")
+	flags.StringVar(&pushCommand.Digestfile, "digestfile", "", "After copying the image, write the digest of the resulting image to the file")
 	flags.StringVarP(&pushCommand.Format, "format", "f", "", "Manifest type (oci, v2s1, or v2s2) to use when pushing an image using the 'dir:' transport (default is manifest type of source)")
 	flags.BoolVarP(&pushCommand.Quiet, "quiet", "q", false, "Don't output progress information when pushing images")
 	flags.BoolVar(&pushCommand.RemoveSignatures, "remove-signatures", false, "Discard any pre-existing signatures in the image")
@@ -55,10 +59,12 @@ func init() {
 
 	// Disabled flags for the remote client
 	if !remote {
-		flags.StringVar(&pushCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pushCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.StringVar(&pushCommand.CertDir, "cert-dir", "", "`Pathname` of a directory containing TLS certificates and keys")
 		flags.BoolVar(&pushCommand.Compress, "compress", false, "Compress tarball image layers when pushing to a directory using the 'dir' transport. (default is same compression type as source)")
 		flags.StringVar(&pushCommand.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 		flags.BoolVar(&pushCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+		markFlagHidden(flags, "signature-policy")
 	}
 }
 
@@ -67,6 +73,12 @@ func pushCmd(c *cliconfig.PushValues) error {
 		registryCreds *types.DockerAuthConfig
 		destName      string
 	)
+
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
+	}
 
 	args := c.InputArgs
 	if len(args) == 0 || len(args) > 2 {
@@ -80,9 +92,16 @@ func pushCmd(c *cliconfig.PushValues) error {
 		destName = args[1]
 	}
 
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
+	if err != nil {
+		return errors.Wrapf(err, "could not create runtime")
+	}
+	defer runtime.DeferredShutdown(false)
+
 	// --compress and --format can only be used for the "dir" transport
 	splitArg := strings.SplitN(destName, ":", 2)
-	if c.Flag("compress").Changed || c.Flag("format").Changed {
+
+	if c.IsSet("compress") || c.Flag("format").Changed {
 		if splitArg[0] != directory.Transport.Name() {
 			return errors.Errorf("--compress and --format can be set only when pushing to a directory using the 'dir' transport")
 		}
@@ -99,12 +118,6 @@ func pushCmd(c *cliconfig.PushValues) error {
 		}
 		registryCreds = creds
 	}
-
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
-	if err != nil {
-		return errors.Wrapf(err, "could not create runtime")
-	}
-	defer runtime.Shutdown(false)
 
 	var writer io.Writer
 	if !c.Quiet {
@@ -129,7 +142,7 @@ func pushCmd(c *cliconfig.PushValues) error {
 		DockerRegistryCreds: registryCreds,
 		DockerCertPath:      certPath,
 	}
-	if c.Flag("tls-verify").Changed {
+	if c.IsSet("tls-verify") {
 		dockerRegistryOptions.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
 	}
 
@@ -138,7 +151,5 @@ func pushCmd(c *cliconfig.PushValues) error {
 		SignBy:           signBy,
 	}
 
-	authfile := getAuthFile(c.Authfile)
-
-	return runtime.Push(getContext(), srcName, destName, manifestType, authfile, c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
+	return runtime.Push(getContext(), srcName, destName, manifestType, c.Authfile, c.String("digestfile"), c.SignaturePolicy, writer, c.Compress, so, &dockerRegistryOptions, nil)
 }

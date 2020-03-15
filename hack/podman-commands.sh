@@ -34,7 +34,7 @@ function podman_man() {
         # This md file has a table of the form:
         #   | [podman-cmd(1)\[(podman-cmd.1.md)   | Description ... |
         # For all such, print the 'cmd' portion (the one in brackets).
-        sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/$1.1.md
+        sed -ne 's/^|\s\+\[podman-\([a-z]\+\)(1.*/\1/p' <docs/source/markdown/$1.1.md
 
         # Special case: there is no podman-help man page, nor need for such.
         echo "help"
@@ -48,7 +48,7 @@ function podman_man() {
         #    | cmd | [podman-cmd(1)](podman-cmd.1.md) | Description ... |
         # For all such we find, with 'podman- in the second column, print the
         # first column (with whitespace trimmed)
-        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/$1.1.md
+        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/source/markdown/$1.1.md
     fi
 }
 
@@ -93,7 +93,7 @@ if [ $rc -ne 0 ]; then
 * podman man pages.
 *
 * The 'checking:' header indicates the specific command (and possibly
-* subcommand) being tested, e.g. podman --help vs docs/podman.1.md.
+* subcommand) being tested, e.g. podman --help vs docs/source/podman.1.md.
 *
 * A '-' indicates a subcommand present in 'podman --help' but not the
 * corresponding man page.

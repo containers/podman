@@ -35,7 +35,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/storage/drivers"
+	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/directory"
@@ -83,7 +83,7 @@ type Driver struct {
 
 // Init returns a new AUFS driver.
 // An error is returned if AUFS is not supported.
-func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (graphdriver.Driver, error) {
+func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) {
 
 	// Try to load the aufs kernel module
 	if err := supportsAufs(); err != nil {
@@ -91,7 +91,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 
 	}
 
-	fsMagic, err := graphdriver.GetFSMagic(root)
+	fsMagic, err := graphdriver.GetFSMagic(home)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	}
 
 	var mountOptions string
-	for _, option := range options {
+	for _, option := range options.DriverOptions {
 		key, val, err := parsers.ParseKeyValueOpt(option)
 		if err != nil {
 			return nil, err
@@ -126,36 +126,36 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	}
 
 	a := &Driver{
-		root:         root,
-		uidMaps:      uidMaps,
-		gidMaps:      gidMaps,
+		root:         home,
+		uidMaps:      options.UIDMaps,
+		gidMaps:      options.GIDMaps,
 		pathCache:    make(map[string]string),
 		ctr:          graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicAufs)),
 		locker:       locker.New(),
 		mountOptions: mountOptions,
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(uidMaps, gidMaps)
+	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
 	if err != nil {
 		return nil, err
 	}
 	// Create the root aufs driver dir and return
 	// if it already exists
 	// If not populate the dir structure
-	if err := idtools.MkdirAllAs(root, 0700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(home, 0700, rootUID, rootGID); err != nil {
 		if os.IsExist(err) {
 			return a, nil
 		}
 		return nil, err
 	}
 
-	if err := mountpk.MakePrivate(root); err != nil {
+	if err := mountpk.MakePrivate(home); err != nil {
 		return nil, err
 	}
 
 	// Populate the dir structure
 	for _, p := range paths {
-		if err := idtools.MkdirAllAs(path.Join(root, p), 0700, rootUID, rootGID); err != nil {
+		if err := idtools.MkdirAllAs(path.Join(home, p), 0700, rootUID, rootGID); err != nil {
 			return nil, err
 		}
 	}
@@ -165,7 +165,7 @@ func Init(root string, options []string, uidMaps, gidMaps []idtools.IDMap) (grap
 	})
 
 	for _, path := range []string{"mnt", "diff"} {
-		p := filepath.Join(root, path)
+		p := filepath.Join(home, path)
 		entries, err := ioutil.ReadDir(p)
 		if err != nil {
 			logger.WithError(err).WithField("dir", p).Error("error reading dir entries")
@@ -255,6 +255,9 @@ func (a *Driver) AdditionalImageStores() []string {
 
 // CreateFromTemplate creates a layer with the same contents and parent as another layer.
 func (a *Driver) CreateFromTemplate(id, template string, templateIDMappings *idtools.IDMappings, parent string, parentIDMappings *idtools.IDMappings, opts *graphdriver.CreateOpts, readWrite bool) error {
+	if opts == nil {
+		opts = &graphdriver.CreateOpts{}
+	}
 	return graphdriver.NaiveCreateFromTemplate(a, id, template, templateIDMappings, parent, parentIDMappings, opts, readWrite)
 }
 
@@ -547,13 +550,13 @@ func (a *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent stri
 // ApplyDiff extracts the changeset from the given diff into the
 // layer with the specified id and parent, returning the size of the
 // new layer in bytes.
-func (a *Driver) ApplyDiff(id string, idMappings *idtools.IDMappings, parent, mountLabel string, diff io.Reader) (size int64, err error) {
+func (a *Driver) ApplyDiff(id, parent string, options graphdriver.ApplyDiffOpts) (size int64, err error) {
 	if !a.isParent(id, parent) {
-		return a.naiveDiff.ApplyDiff(id, idMappings, parent, mountLabel, diff)
+		return a.naiveDiff.ApplyDiff(id, parent, options)
 	}
 
 	// AUFS doesn't need the parent id to apply the diff if it is the direct parent.
-	if err = a.applyDiff(id, idMappings, diff); err != nil {
+	if err = a.applyDiff(id, options.Mappings, options.Diff); err != nil {
 		return
 	}
 

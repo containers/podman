@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -17,7 +17,7 @@ var (
 	portDescription = `List port mappings for the CONTAINER, or lookup the public-facing port that is NAT-ed to the PRIVATE_PORT
 `
 	_portCommand = &cobra.Command{
-		Use:   "port [flags] CONTAINER",
+		Use:   "port [flags] CONTAINER [PORT]",
 		Short: "List port mappings or a specific mapping for the container",
 		Long:  portDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -27,7 +27,7 @@ var (
 			return portCmd(&portCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, true)
+			return checkAllLatestAndCIDFile(cmd, args, true, false)
 		},
 		Example: `podman port --all
   podman port ctrID 80/tcp
@@ -49,12 +49,9 @@ func init() {
 
 func portCmd(c *cliconfig.PortValues) error {
 	var (
-		userProto, containerName string
-		userPort                 int
-		container                *libpod.Container
-		containers               []*libpod.Container
+		userPort nat.Port
+		err      error
 	)
-
 	args := c.InputArgs
 
 	if c.Latest && c.All {
@@ -66,9 +63,6 @@ func portCmd(c *cliconfig.PortValues) error {
 	if len(args) == 0 && !c.Latest && !c.All {
 		return errors.Errorf("you must supply a running container name or id")
 	}
-	if !c.Latest && !c.All {
-		containerName = args[0]
-	}
 
 	port := ""
 	if len(args) > 1 && !c.Latest {
@@ -77,61 +71,36 @@ func portCmd(c *cliconfig.PortValues) error {
 	if len(args) == 1 && c.Latest {
 		port = args[0]
 	}
-	if port != "" {
+	if len(port) > 0 {
 		fields := strings.Split(port, "/")
-		// User supplied at least port
-		var err error
-		// User supplied port and protocol
-		if len(fields) == 2 {
-			userProto = fields[1]
-		}
-		if len(fields) >= 1 {
-			p := fields[0]
-			userPort, err = strconv.Atoi(p)
-			if err != nil {
-				return errors.Wrapf(err, "unable to format port")
-			}
-		}
-		// Format is incorrect
 		if len(fields) > 2 || len(fields) < 1 {
 			return errors.Errorf("port formats are port/protocol. '%s' is invalid", port)
 		}
+		if len(fields) == 1 {
+			fields = append(fields, "tcp")
+		}
+
+		userPort, err = nat.NewPort(fields[1], fields[0])
+		if err != nil {
+			return err
+		}
 	}
 
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
-
-	if !c.Latest && !c.All {
-		container, err = runtime.LookupContainer(containerName)
-		if err != nil {
-			return errors.Wrapf(err, "unable to find container %s", containerName)
-		}
-		containers = append(containers, container)
-	} else if c.Latest {
-		container, err = runtime.GetLatestContainer()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get last created container")
-		}
-		containers = append(containers, container)
-	} else {
-		containers, err = runtime.GetRunningContainers()
-		if err != nil {
-			return errors.Wrapf(err, "unable to get all containers")
-		}
+	defer runtime.DeferredShutdown(false)
+	containers, err := runtime.Port(c)
+	if err != nil {
+		return err
 	}
-
 	for _, con := range containers {
-		if state, _ := con.State(); state != libpod.ContainerStateRunning {
-			continue
-		}
-
 		portmappings, err := con.PortMappings()
 		if err != nil {
 			return err
 		}
+		var found bool
 		// Iterate mappings
 		for _, v := range portmappings {
 			hostIP := v.HostIP
@@ -147,15 +116,18 @@ func portCmd(c *cliconfig.PortValues) error {
 				fmt.Printf("%d/%s -> %s:%d\n", v.ContainerPort, v.Protocol, hostIP, v.HostPort)
 				continue
 			}
-			// We have a match on ports
-			if v.ContainerPort == int32(userPort) {
-				if userProto == "" || userProto == v.Protocol {
-					fmt.Printf("%s:%d\n", hostIP, v.HostPort)
-					break
-				}
-			} else {
-				return errors.Errorf("No public port '%d' published for %s", userPort, containerName)
+			containerPort, err := nat.NewPort(v.Protocol, strconv.Itoa(int(v.ContainerPort)))
+			if err != nil {
+				return err
 			}
+			if containerPort == userPort {
+				fmt.Printf("%s:%d\n", hostIP, v.HostPort)
+				found = true
+				break
+			}
+		}
+		if !found && port != "" {
+			return errors.Errorf("failed to find published port %q", port)
 		}
 	}
 

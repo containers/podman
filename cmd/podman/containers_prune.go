@@ -1,14 +1,16 @@
 package main
 
 import (
-	"context"
+	"bufio"
+	"fmt"
+	"os"
+	"strings"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -38,54 +40,47 @@ func init() {
 	pruneContainersCommand.SetHelpTemplate(HelpTemplate())
 	pruneContainersCommand.SetUsageTemplate(UsageTemplate())
 	flags := pruneContainersCommand.Flags()
-	flags.BoolVarP(&pruneContainersCommand.Force, "force", "f", false, "Force removal of a running container.  The default is false")
-}
-
-func pruneContainers(runtime *adapter.LocalRuntime, ctx context.Context, maxWorkers int, force, volumes bool) error {
-	var deleteFuncs []shared.ParallelWorkerInput
-
-	filter := func(c *libpod.Container) bool {
-		state, err := c.State()
-		if state == libpod.ContainerStateStopped || (state == libpod.ContainerStateExited && err == nil && c.PodID() == "") {
-			return true
-		}
-		return false
-	}
-	delContainers, err := runtime.GetContainers(filter)
-	if err != nil {
-		return err
-	}
-	if len(delContainers) < 1 {
-		return nil
-	}
-	for _, container := range delContainers {
-		con := container
-		f := func() error {
-			return runtime.RemoveContainer(ctx, con, force, volumes)
-		}
-
-		deleteFuncs = append(deleteFuncs, shared.ParallelWorkerInput{
-			ContainerID:  con.ID(),
-			ParallelFunc: f,
-		})
-	}
-	// Run the parallel funcs
-	deleteErrors, errCount := shared.ParallelExecuteWorkerPool(maxWorkers, deleteFuncs)
-	return printParallelOutput(deleteErrors, errCount)
+	flags.BoolVarP(&pruneContainersCommand.Force, "force", "f", false, "Skip interactive prompt for container removal")
+	flags.StringArrayVar(&pruneContainersCommand.Filter, "filter", []string{}, "Provide filter values (e.g. 'until=<timestamp>')")
 }
 
 func pruneContainersCmd(c *cliconfig.PruneContainersValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	if !c.Force {
+		reader := bufio.NewReader(os.Stdin)
+		fmt.Printf(`WARNING! This will remove all stopped containers.
+Are you sure you want to continue? [y/N] `)
+		answer, err := reader.ReadString('\n')
+		if err != nil {
+			return errors.Wrapf(err, "error reading input")
+		}
+		if strings.ToLower(answer)[0] != 'y' {
+			return nil
+		}
+	}
+
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
-	maxWorkers := shared.Parallelize("rm")
+	maxWorkers := shared.DefaultPoolSize("prune")
 	if c.GlobalIsSet("max-workers") {
 		maxWorkers = c.GlobalFlags.MaxWorks
 	}
-	logrus.Debugf("Setting maximum workers to %d", maxWorkers)
-
-	return pruneContainers(runtime, getContext(), maxWorkers, c.Bool("force"), c.Bool("volumes"))
+	ok, failures, err := runtime.Prune(getContext(), maxWorkers, c.Filter)
+	if err != nil {
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			if len(c.InputArgs) > 1 {
+				exitCode = define.ExecErrorCodeGeneric
+			} else {
+				exitCode = 1
+			}
+		}
+		return err
+	}
+	if len(failures) > 0 {
+		exitCode = define.ExecErrorCodeGeneric
+	}
+	return printCmdResults(ok, failures)
 }

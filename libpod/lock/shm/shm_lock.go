@@ -1,6 +1,9 @@
+// +build linux,cgo
+
 package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
+// #cgo CFLAGS: -Wall -Werror
 // #include <stdlib.h>
 // #include "shm_lock.h"
 // const uint32_t bitmap_size_c = BITMAP_SIZE;
@@ -19,7 +22,7 @@ var (
 	// BitmapSize is the size of the bitmap used when managing SHM locks.
 	// an SHM lock manager's max locks will be rounded up to a multiple of
 	// this number.
-	BitmapSize uint32 = uint32(C.bitmap_size_c)
+	BitmapSize = uint32(C.bitmap_size_c)
 )
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
@@ -132,6 +135,23 @@ func (locks *SHMLocks) AllocateSemaphore() (uint32, error) {
 	}
 
 	return uint32(retCode), nil
+}
+
+// AllocateGivenSemaphore allocates the given semaphore from the shared-memory
+// segment for use by a container or pod.
+// If the semaphore is already in use or the index is invalid an error will be
+// returned.
+func (locks *SHMLocks) AllocateGivenSemaphore(sem uint32) error {
+	if !locks.valid {
+		return errors.Wrapf(syscall.EINVAL, "locks have already been closed")
+	}
+
+	retCode := C.allocate_given_semaphore(locks.lockStruct, C.uint32_t(sem))
+	if retCode < 0 {
+		return syscall.Errno(-1 * retCode)
+	}
+
+	return nil
 }
 
 // DeallocateSemaphore frees a semaphore in a shared-memory segment so it can be

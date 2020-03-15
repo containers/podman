@@ -27,7 +27,11 @@ var spewConfig = spew.ConfigState{
 // reads back a possibly-altered form from their standard output).
 func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Spec, postKillTimeout time.Duration) (hookErr, err error) {
 	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
 	for i, hook := range hooks {
+		hook := hook
 		var stdout bytes.Buffer
 		hookErr, err = Run(ctx, &hook, data, &stdout, nil, postKillTimeout)
 		if err != nil {
@@ -43,11 +47,11 @@ func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Sp
 		}
 
 		if !reflect.DeepEqual(config, &newConfig) {
-			old := spewConfig.Sdump(config)
-			new := spewConfig.Sdump(&newConfig)
+			oldConfig := spewConfig.Sdump(config)
+			newConfig := spewConfig.Sdump(&newConfig)
 			diff, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
-				A:        difflib.SplitLines(old),
-				B:        difflib.SplitLines(new),
+				A:        difflib.SplitLines(oldConfig),
+				B:        difflib.SplitLines(newConfig),
 				FromFile: "Old",
 				FromDate: "",
 				ToFile:   "New",

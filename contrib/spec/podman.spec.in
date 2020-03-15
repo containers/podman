@@ -1,8 +1,9 @@
 %global with_devel 0
 %global with_bundled 1
-%global with_debug 1
 %global with_check 0
 %global with_unit_test 0
+%bcond_without doc
+%bcond_without debug
 
 %if 0%{?fedora} >= 28
 %bcond_without varlink
@@ -10,7 +11,7 @@
 %bcond_with varlink
 %endif
 
-%if 0%{?with_debug}
+%if %{with debug}
 %global _find_debuginfo_dwz_opts %{nil}
 %global _dwz_low_mem_die_limit 0
 %else
@@ -20,6 +21,9 @@
 # %if ! 0% {?gobuild:1}
 %define gobuild(o:) go build -tags="$BUILDTAGS" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
 #% endif
+
+# libpod hack directory
+%define hackdir %{_builddir}/%{repo}-%{shortcommit0}
 
 %global provider github
 %global provider_tld com
@@ -33,44 +37,53 @@
 %global shortcommit0 %(c=%{commit0}; echo ${c:0:8})
 
 # People want conmon packaged with the copr rpm
-%global import_path_conmon      github.com/kubernetes-sigs/cri-o
+%global import_path_conmon      github.com/containers/conmon
 %global git_conmon      https://%{import_path_conmon}
-%global commit_conmon   4cd5a7c60349be0678d9f1b0657683324c1a2726
+%global commit_conmon   d532caebc788fafdd2a305b68cd1983b4039bea4
 %global shortcommit_conmon %(c=%{commit_conmon}; echo ${c:0:7})
 
 Name: podman
-Version: 1.3.0
+%if 0%{?fedora}
+Epoch: 99
+%else
+Epoch: 0
+%endif
+Version: 1.8.2
 Release: #COMMITDATE#.git%{shortcommit0}%{?dist}
 Summary: Manage Pods, Containers and Container Images
 License: ASL 2.0
 URL: %{git_podman}
 Source0: %{git0}/archive/%{commit0}/%{repo}-%{shortcommit0}.tar.gz
-Source1: crio.tar.gz
+Source1: conmon.tar.gz
 # e.g. el6 has ppc64 arch without gcc-go, so EA tag is required
 #ExclusiveArch:  %%{?go_arches:%%{go_arches}}%%{!?go_arches:%%{ix86} x86_64 aarch64 %%{arm}}
 ExclusiveArch: aarch64 %{arm} ppc64le s390x x86_64
 # The COPR process will uncomment this
 #BuildRequires: golang-bin
 #
+# btrfs-progs-devel package is not available in CentOS/RHEL-8
+%if 0%{?rhel} != 8 && 0%{?centos} != 8
 BuildRequires: btrfs-progs-devel
+%endif
 BuildRequires: glib2-devel
 BuildRequires: glibc-devel
 BuildRequires: glibc-static
 BuildRequires: git
+%if %{with doc}
 BuildRequires: go-md2man
+%endif
 BuildRequires: gpgme-devel
 BuildRequires: libassuan-devel
 BuildRequires: libgpg-error-devel
 BuildRequires: libseccomp-devel
 BuildRequires: libselinux-devel
-BuildRequires: ostree-devel
 BuildRequires: pkgconfig
 BuildRequires: make
+BuildRequires: systemd-devel
 Requires: runc
 Requires: skopeo-containers
 Requires: containernetworking-plugins >= 0.6.0-3
 Requires: iptables
-Requires: oci-systemd-hook
 %if 0%{?rhel} <= 7
 Requires: container-selinux
 %else
@@ -138,7 +151,6 @@ Provides: bundled(golang(github.com/opencontainers/runtime-spec)) = v1.0.0
 Provides: bundled(golang(github.com/opencontainers/runtime-tools)) = 625e2322645b151a7cbb93a8b42920933e72167f
 Provides: bundled(golang(github.com/opencontainers/selinux)) = b6fa367ed7f534f9ba25391cc2d467085dbb445a
 Provides: bundled(golang(github.com/openshift/imagebuilder)) = master
-Provides: bundled(golang(github.com/ostreedev/ostree-go)) = master
 Provides: bundled(golang(github.com/pkg/errors)) = v0.8.0
 Provides: bundled(golang(github.com/pmezard/go-difflib)) = 792786c7400a136282c1664665ae0a8db921c6c2
 Provides: bundled(golang(github.com/pquerna/ffjson)) = d49c2bc1aa135aad0c6f4fc2056623ec78f5d5ac
@@ -184,6 +196,14 @@ Provides: bundled(golang(k8s.io/utils)) = 258e2a2fa64568210fbd6267cf1d8fd87c3cb8
 %{repo} provides a library for applications looking to use
 the Container Pod concept popularized by Kubernetes.
 
+%package remote
+Summary:       Remote Podman client
+
+%description -n podman-remote
+%{summary}
+This package provides the Podman remote client which
+can be used to access Podman running on a server.
+
 %if 0%{?with_devel}
 %package devel
 Summary:       Library for applications looking to use Container Pods
@@ -203,7 +223,7 @@ BuildRequires: golang(github.com/containers/image/docker/tarfile)
 BuildRequires: golang(github.com/containers/image/image)
 BuildRequires: golang(github.com/containers/image/oci/archive)
 BuildRequires: golang(github.com/containers/image/pkg/strslice)
-BuildRequires: golang(github.com/containers/image/pkg/sysregistries)
+BuildRequires: golang(github.com/containers/image/pkg/sysregistriesv2)
 BuildRequires: golang(github.com/containers/image/signature)
 BuildRequires: golang(github.com/containers/image/storage)
 BuildRequires: golang(github.com/containers/image/tarball)
@@ -255,7 +275,7 @@ Requires:      golang(github.com/containers/image/docker/tarfile)
 Requires:      golang(github.com/containers/image/image)
 Requires:      golang(github.com/containers/image/oci/archive)
 Requires:      golang(github.com/containers/image/pkg/strslice)
-Requires:      golang(github.com/containers/image/pkg/sysregistries)
+Requires:      golang(github.com/containers/image/pkg/sysregistriesv2)
 Requires:      golang(github.com/containers/image/signature)
 Requires:      golang(github.com/containers/image/storage)
 Requires:      golang(github.com/containers/image/tarball)
@@ -342,11 +362,26 @@ This package contains unit tests for project
 providing packages with %{import_path} prefix.
 %endif
 
+%if %{with doc}
+%package manpages
+Summary: Man pages for the %{name} commands
+BuildArch: noarch
+
+%description manpages
+Man pages for the %{name} commands
+%endif
+
 %prep
 %autosetup -Sgit -n %{repo}-%{shortcommit0}
 
-# untar cri-o
+# untar conmon
 tar zxf %{SOURCE1}
+
+sed -i 's/install.remote: podman-remote/install.remote:/' Makefile
+sed -i 's/install.bin: podman/install.bin:/' Makefile
+%if %{with doc}
+sed -i 's/install.man: docs/install.man:/' Makefile
+%endif
 
 %build
 mkdir _build
@@ -355,35 +390,49 @@ mkdir -p src/%{provider}.%{provider_tld}/%{project}
 ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
+export GO111MODULE=off
 export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
-export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
+export BUILDTAGS="varlink selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh) $(%{hackdir}/hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
-BUILDTAGS=$BUILDTAGS make binaries docs
 
+%if %{with doc}
+BUILDTAGS=$BUILDTAGS make binaries docs
+%else
+BUILDTAGS=$BUILDTAGS make binaries
+%endif
 # build conmon
-pushd crio
+pushd conmon
 
 mkdir _output
 pushd _output
-mkdir -p src/%{provider}.%{provider_tld}/{kubernetes-sigs,opencontainers}
+mkdir -p src/%{provider}.%{provider_tld}/{containers,opencontainers}
 ln -s $(dirs +1 -l) src/%{import_path_conmon}
 popd
 
-ln -s vendor src
-export GOPATH=$(pwd)/_output:$(pwd):%{gopath}
-export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) containers_image_ostree_stub"
-BUILDTAGS=$BUILDTAGS make -C conmon
+export BUILDTAGS="selinux seccomp $(%{hackdir}/hack/btrfs_installed_tag.sh) $(%{hackdir}/hack/btrfs_tag.sh)"
+BUILDTAGS=$BUILDTAGS make
 popd
 
 %install
 install -dp %{buildroot}%{_unitdir}
+install -dp %{buildroot}%{_usr}/lib/systemd/user
+%if %{with doc}
 PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
         install.bin \
+        install.remote \
         install.man \
         install.cni \
         install.systemd \
         install.completions
+%else
+PODMAN_VERSION=%{version} %{__make} PREFIX=%{buildroot}%{_prefix} ETCDIR=%{buildroot}%{_sysconfdir} \
+        install.bin \
+        install.remote \
+        install.cni \
+        install.systemd \
+        install.completions
+%endif
 
 mv pkg/hooks/README.md pkg/hooks/README-hooks.md
 
@@ -393,7 +442,7 @@ install -p -m 644 %{repo}.conf %{buildroot}%{_datadir}/containers
 
 # install conmon
 install -dp %{buildroot}%{_libexecdir}/%{name}
-install -p -m 755 crio/bin/conmon %{buildroot}%{_libexecdir}/%{name}
+install -p -m 755 conmon/bin/conmon %{buildroot}%{_libexecdir}/%{name}
 
 # source codes for building projects
 %if 0%{?with_devel}
@@ -464,10 +513,8 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 
 %files
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %{_bindir}/%{name}
-%{_mandir}/man1/*.1*
-%{_mandir}/man5/*.5*
 %{_datadir}/bash-completion/completions/*
 %{_datadir}/zsh/site-functions/*
 %{_libexecdir}/%{name}/conmon
@@ -475,19 +522,32 @@ export GOPATH=%{buildroot}/%{gopath}:$(pwd)/vendor:%{gopath}
 %{_datadir}/containers/%{repo}.conf
 %{_unitdir}/io.podman.service
 %{_unitdir}/io.podman.socket
+%{_usr}/lib/systemd/user/io.podman.service
+%{_usr}/lib/systemd/user/io.podman.socket
 %{_usr}/lib/tmpfiles.d/%{name}.conf
 
 %if 0%{?with_devel}
 %files -n libpod-devel -f devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
 %dir %{gopath}/src/%{provider}.%{provider_tld}/%{project}
 %endif
 
 %if 0%{?with_unit_test} && 0%{?with_devel}
 %files unit-test-devel -f unit-test-devel.file-list
 %license LICENSE
-%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md code-of-conduct.md transfer.md
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
+%endif
+
+%files -n podman-remote
+%license LICENSE
+%doc README.md CONTRIBUTING.md pkg/hooks/README-hooks.md install.md CODE-OF-CONDUCT.md transfer.md
+%{_bindir}/%{name}-remote
+
+%if %{with doc}
+%files manpages
+%{_mandir}/man1/*.1*
+%{_mandir}/man5/*.5*
 %endif
 
 %changelog

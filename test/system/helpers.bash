@@ -36,7 +36,7 @@ function basic_setup() {
         if [ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]; then
             found_needed_image=1
         else
-            echo "# setup(): removing stray images" >&3
+            echo "# setup(): removing stray images $1 $2" >&3
             run_podman rmi --force "$1" >/dev/null 2>&1 || true
             run_podman rmi --force "$2" >/dev/null 2>&1 || true
         fi
@@ -133,7 +133,9 @@ function run_podman() {
 
     # stdout is only emitted upon error; this echo is to help a debugger
     echo "\$ $PODMAN $*"
-    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@"
+    # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
+    # if podman crashes unexpectedly without cleaning up subprocesses.
+    run timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$output"
@@ -190,13 +192,22 @@ function wait_for_output {
         fi
     done
 
-    [ -n "$cid" ] || die "FATAL: wait_for_ready: no container name/ID in '$*'"
+    [ -n "$cid" ] || die "FATAL: wait_for_output: no container name/ID in '$*'"
 
     t1=$(expr $SECONDS + $how_long)
     while [ $SECONDS -lt $t1 ]; do
         run_podman logs $cid
-        if expr "$output" : ".*$expect" >/dev/null; then
+        logs=$output
+        if expr "$logs" : ".*$expect" >/dev/null; then
             return
+        fi
+
+        # Barf if container is not running
+        run_podman inspect --format '{{.State.Running}}' $cid
+        if [ $output != "true" ]; then
+            run_podman inspect --format '{{.State.ExitCode}}' $cid
+            exitcode=$output
+            die "Container exited (status: $exitcode) before we saw '$expect': $logs"
         fi
 
         sleep $sleep_delay
@@ -214,32 +225,49 @@ function wait_for_ready {
 ###############################################################################
 # BEGIN miscellaneous tools
 
+# Shortcuts for common needs:
+function is_rootless() {
+    [ "$(id -u)" -ne 0 ]
+}
+
+function is_remote() {
+    [[ "$PODMAN" =~ -remote ]]
+}
+
 ######################
 #  skip_if_rootless  #  ...with an optional message
 ######################
 function skip_if_rootless() {
-    if [ "$(id -u)" -eq 0 ]; then
-        return
+    if is_rootless; then
+        skip "${1:-not applicable under rootless podman}"
     fi
-
-    skip "${1:-not applicable under rootless podman}"
 }
 
 ####################
 #  skip_if_remote  #  ...with an optional message
 ####################
 function skip_if_remote() {
-    if [[ ! "$PODMAN" =~ -remote ]]; then
+    if is_remote; then
+        skip "${1:-test does not work with podman-remote}"
+    fi
+}
+
+#########################
+#  skip_if_not_systemd  #  ...with an optional message
+#########################
+function skip_if_not_systemd() {
+    if systemctl --user >/dev/null 2>&1; then
         return
     fi
 
-    skip "${1:-test does not work with podman-remote}"
+    skip "${1:-no systemd or daemon does not respond}"
 }
 
 #########
 #  die  #  Abort with helpful message
 #########
 function die() {
+    # FIXME: handle multi-line output
     echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
     echo "#| FAIL: $*"                                           >&2
     echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2
@@ -355,5 +383,19 @@ function random_string() {
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
 
+
+#########################
+#  find_exec_pid_files  #  Returns nothing or exec_pid hash files
+#########################
+#
+# Return exec_pid hash files if exists, otherwise, return nothing
+#
+function find_exec_pid_files() {
+    run_podman info --format '{{.store.RunRoot}}'
+    local storage_path="$output"
+    if [ -d $storage_path ]; then
+        find $storage_path -type f -iname 'exec_pid_*'
+    fi
+}
 # END   miscellaneous tools
 ###############################################################################

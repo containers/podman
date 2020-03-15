@@ -5,18 +5,14 @@ import (
 	"unsafe"
 )
 
-//go:generate go run $GOROOT/src/syscall/mksyscall_windows.go -output zsyscall_windows.go interop.go
+//go:generate go run ../../mksyscall_windows.go -output zsyscall_windows.go interop.go
 
-//sys coTaskMemFree(buffer unsafe.Pointer) = ole32.CoTaskMemFree
+//sys coTaskMemFree(buffer unsafe.Pointer) = api_ms_win_core_com_l1_1_0.CoTaskMemFree
 
 func ConvertAndFreeCoTaskMemString(buffer *uint16) string {
 	str := syscall.UTF16ToString((*[1 << 29]uint16)(unsafe.Pointer(buffer))[:])
 	coTaskMemFree(unsafe.Pointer(buffer))
 	return str
-}
-
-func ConvertAndFreeCoTaskMemBytes(buffer *uint16) []byte {
-	return []byte(ConvertAndFreeCoTaskMemString(buffer))
 }
 
 func Win32FromHresult(hr uintptr) syscall.Errno {

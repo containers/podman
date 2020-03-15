@@ -24,3 +24,8 @@ func CheckProfileAndLoadDefault(name string) (string, error) {
 	}
 	return "", ErrApparmorUnsupported
 }
+
+// DefaultContent dummy.
+func DefaultContent(name string) ([]byte, error) {
+	return nil, nil
+}

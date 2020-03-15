@@ -1,4 +1,4 @@
-// +build linux
+// +build linux,cgo
 
 package loopback
 
@@ -93,7 +93,7 @@ func openNextAvailableLoopback(index int, sparseName string, sparseFile *os.File
 			logrus.Errorf("Error getting loopback backing file: %s", err)
 			return nil, ErrGetLoopbackBackingFile
 		}
-		if dev != st.Dev || ino != st.Ino {
+		if dev != uint64(st.Dev) || ino != st.Ino {
 			logrus.Errorf("Loopback device and filesystem disagree on device/inode for %q: %#x(%d):%#x(%d) vs %#x(%d):%#x(%d)", sparseName, dev, dev, ino, ino, st.Dev, st.Dev, st.Ino, st.Ino)
 		}
 

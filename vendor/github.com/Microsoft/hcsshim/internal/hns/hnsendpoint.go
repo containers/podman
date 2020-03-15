@@ -3,6 +3,7 @@ package hns
 import (
 	"encoding/json"
 	"net"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -23,7 +24,9 @@ type HNSEndpoint struct {
 	DisableICC         bool              `json:",omitempty"`
 	PrefixLength       uint8             `json:",omitempty"`
 	IsRemoteEndpoint   bool              `json:",omitempty"`
+	EnableLowMetric    bool              `json:",omitempty"`
 	Namespace          *Namespace        `json:",omitempty"`
+	EncapOverhead      uint16            `json:",omitempty"`
 }
 
 //SystemType represents the type of the system on which actions are done
@@ -90,6 +93,27 @@ func GetHNSEndpointByName(endpointName string) (*HNSEndpoint, error) {
 		}
 	}
 	return nil, EndpointNotFoundError{EndpointName: endpointName}
+}
+
+type endpointAttachInfo struct {
+	SharedContainers json.RawMessage `json:",omitempty"`
+}
+
+func (endpoint *HNSEndpoint) IsAttached(vID string) (bool, error) {
+	attachInfo := endpointAttachInfo{}
+	err := hnsCall("GET", "/endpoints/"+endpoint.Id, "", &attachInfo)
+
+	// Return false allows us to just return the err
+	if err != nil {
+		return false, err
+	}
+
+	if strings.Contains(strings.ToLower(string(attachInfo.SharedContainers)), strings.ToLower(vID)) {
+		return true, nil
+	}
+
+	return false, nil
+
 }
 
 // Create Endpoint by sending EndpointRequest to HNS. TODO: Create a separate HNS interface to place all these methods

@@ -14,7 +14,7 @@ LABEL RUN podman --version
 RUN apk update
 RUN apk add bash`
 
-var _ = Describe("Podman rm", func() {
+var _ = Describe("Podman prune", func() {
 	var (
 		tempdir    string
 		err        error
@@ -28,7 +28,7 @@ var _ = Describe("Podman rm", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -39,16 +39,20 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman container prune containers", func() {
-		SkipIfRemote()
 		top := podmanTest.RunTopContainer("")
 		top.WaitWithDefaultTimeout()
 		Expect(top.ExitCode()).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Equal(0))
+		top = podmanTest.RunTopContainer("")
+		top.WaitWithDefaultTimeout()
+		Expect(top.ExitCode()).To(Equal(0))
+		cid := top.OutputToString()
 
-		prune := podmanTest.Podman([]string{"container", "prune"})
+		stop := podmanTest.Podman([]string{"stop", cid})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+
+		prune := podmanTest.Podman([]string{"container", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
@@ -65,7 +69,7 @@ var _ = Describe("Podman rm", func() {
 		hasNone, _ := none.GrepString("<none>")
 		Expect(hasNone).To(BeTrue())
 
-		prune := podmanTest.Podman([]string{"image", "prune"})
+		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
@@ -78,11 +82,12 @@ var _ = Describe("Podman rm", func() {
 	})
 
 	It("podman image prune unused images", func() {
-		prune := podmanTest.Podman([]string{"image", "prune", "-a"})
+		podmanTest.RestoreAllArtifacts()
+		prune := podmanTest.PodmanNoCache([]string{"image", "prune", "-af"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-aq"})
+		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
@@ -90,15 +95,47 @@ var _ = Describe("Podman rm", func() {
 
 	It("podman system image prune unused images", func() {
 		SkipIfRemote()
+		podmanTest.RestoreAllArtifacts()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
-		prune := podmanTest.Podman([]string{"system", "prune", "-a", "--force"})
+		prune := podmanTest.PodmanNoCache([]string{"system", "prune", "-a", "--force"})
 		prune.WaitWithDefaultTimeout()
 		Expect(prune.ExitCode()).To(Equal(0))
 
-		images := podmanTest.Podman([]string{"images", "-aq"})
+		images := podmanTest.PodmanNoCache([]string{"images", "-aq"})
 		images.WaitWithDefaultTimeout()
 		// all images are unused, so they all should be deleted!
 		Expect(len(images.OutputToStringArray())).To(Equal(0))
 	})
 
+	It("podman system prune pods", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "start", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"pod", "stop", "-l"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		pods := podmanTest.Podman([]string{"pod", "ps"})
+		pods.WaitWithDefaultTimeout()
+		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(len(pods.OutputToStringArray())).To(Equal(3))
+
+		prune := podmanTest.Podman([]string{"system", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(Equal(0))
+
+		pods = podmanTest.Podman([]string{"pod", "ps"})
+		pods.WaitWithDefaultTimeout()
+		Expect(pods.ExitCode()).To(Equal(0))
+		Expect(len(pods.OutputToStringArray())).To(Equal(2))
+	})
 })

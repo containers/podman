@@ -4,16 +4,18 @@ package libpod
 
 import (
 	"context"
+
+	"github.com/containers/libpod/libpod/define"
 )
 
 func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool) error {
-	return ErrNotImplemented
+	return define.ErrNotImplemented
 }
 
 func (r *Runtime) newVolume(ctx context.Context, options ...VolumeCreateOption) (*Volume, error) {
-	return nil, ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }
 
 func (r *Runtime) NewVolume(ctx context.Context, options ...VolumeCreateOption) (*Volume, error) {
-	return nil, ErrNotImplemented
+	return nil, define.ErrNotImplemented
 }

@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     e2fslibs-dev \
+    file \
     gawk \
     gettext \
     go-md2man \
@@ -18,9 +19,8 @@ RUN apt-get update && apt-get install -y \
     libfuse-dev \
     libnet-dev \
     libnl-3-dev \
-    libostree-dev \
     libprotobuf-dev \
-    libprotobuf-c0-dev \
+    libprotobuf-c-dev \
     libseccomp2 \
     libseccomp-dev \
     libtool \
@@ -44,48 +44,40 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean
 
 # Install runc
-ENV RUNC_COMMIT 96ec2177ae841256168fcf76954f7177af9446eb
+ENV RUNC_COMMIT 029124da7af7360afa781a0234d1b083550f797c
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
 	&& git clone https://github.com/opencontainers/runc.git "$GOPATH/src/github.com/opencontainers/runc" \
 	&& cd "$GOPATH/src/github.com/opencontainers/runc" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$RUNC_COMMIT" \
+	&& git checkout --detach -q "$RUNC_COMMIT" \
 	&& make static BUILDTAGS="seccomp selinux" \
 	&& cp runc /usr/bin/runc \
 	&& rm -rf "$GOPATH"
 
 # Install conmon
-ENV CRIO_COMMIT 7a283c391abb7bd25086a8ff91dbb36ebdd24466
+ENV CONMON_COMMIT 65fe0226d85b69fc9e527e376795c9791199153d
 RUN set -x \
 	&& export GOPATH="$(mktemp -d)" \
-	&& git clone https://github.com/kubernetes-sigs/cri-o.git "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
-	&& cd "$GOPATH/src/github.com/kubernetes-sigs/cri-o.git" \
+	&& git clone https://github.com/containers/conmon.git "$GOPATH/src/github.com/containers/conmon.git" \
+	&& cd "$GOPATH/src/github.com/containers/conmon.git" \
 	&& git fetch origin --tags \
-	&& git checkout -q "$CRIO_COMMIT" \
+	&& git checkout --detach -q "$CONMON_COMMIT" \
 	&& make \
 	&& install -D -m 755 bin/conmon /usr/libexec/podman/conmon \
 	&& rm -rf "$GOPATH"
 
 # Install CNI plugins
-ENV CNI_COMMIT 7480240de9749f9a0a5c8614b17f1f03e0c06ab9
+ENV CNI_COMMIT 485be65581341430f9106a194a98f0f2412245fb
 RUN set -x \
-       && export GOPATH="$(mktemp -d)" \
+       && export GOPATH="$(mktemp -d)" GOCACHE="$(mktemp -d)" \
        && git clone https://github.com/containernetworking/plugins.git "$GOPATH/src/github.com/containernetworking/plugins" \
        && cd "$GOPATH/src/github.com/containernetworking/plugins" \
-       && git checkout -q "$CNI_COMMIT" \
-       && ./build.sh \
+       && git checkout --detach -q "$CNI_COMMIT" \
+       && ./build_linux.sh \
        && mkdir -p /usr/libexec/cni \
        && cp bin/* /usr/libexec/cni \
        && rm -rf "$GOPATH"
-
-# Install buildah
-RUN set -x \
-       && export GOPATH=/go \
-       && git clone https://github.com/containers/buildah "$GOPATH/src/github.com/containers/buildah" \
-       && cd "$GOPATH/src/github.com/containers/buildah" \
-       && make \
-       && make install
 
 # Install ginkgo
 RUN set -x \
@@ -97,12 +89,6 @@ RUN set -x \
 RUN set -x \
        && export GOPATH=/go \
        && go get github.com/onsi/gomega/...
-
-# Install easyjson
-RUN set -x \
-      && export GOPATH=/go \
-      && go get -u github.com/mailru/easyjson/... \
-      && install -D -m 755 "$GOPATH"/bin/easyjson /usr/bin/
 
 # Install latest stable criu version
 RUN set -x \

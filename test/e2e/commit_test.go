@@ -1,5 +1,3 @@
-// +build !remoteclient
-
 package integration
 
 import (
@@ -24,7 +22,7 @@ var _ = Describe("Podman commit", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -117,6 +115,50 @@ var _ = Describe("Podman commit", func() {
 		Expect(foundBlue).To(Equal(true))
 	})
 
+	It("podman commit container with change flag and JSON entrypoint with =", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"commit", "--change", `ENTRYPOINT ["foo", "bar=baz"]`, "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectImageJSON()
+		Expect(len(data)).To(Equal(1))
+		Expect(len(data[0].Config.Entrypoint)).To(Equal(2))
+		Expect(data[0].Config.Entrypoint[0]).To(Equal("foo"))
+		Expect(data[0].Config.Entrypoint[1]).To(Equal("bar=baz"))
+	})
+
+	It("podman commit container with change CMD flag", func() {
+		test := podmanTest.Podman([]string{"run", "--name", "test1", "-d", ALPINE, "ls"})
+		test.WaitWithDefaultTimeout()
+		Expect(test.ExitCode()).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"commit", "--change", "CMD a b c", "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Config.Cmd}}", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring("sh -c a b c"))
+
+		session = podmanTest.Podman([]string{"commit", "--change", "CMD=[\"a\",\"b\",\"c\"]", "test1", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Config.Cmd}}", "foobar.com/test1-image:latest"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring("sh -c")))
+	})
+
 	It("podman commit container with pause flag", func() {
 		_, ec, _ := podmanTest.RunLsContainer("test1")
 		Expect(ec).To(Equal(0))
@@ -149,6 +191,9 @@ var _ = Describe("Podman commit", func() {
 	})
 
 	It("podman commit with volume mounts and --include-volumes", func() {
+		// We need to figure out how volumes are going to work correctly with the remote
+		// client.  This does not currently work.
+		SkipIfRemote()
 		s := podmanTest.Podman([]string{"run", "--name", "test1", "-v", "/tmp:/foo", "alpine", "date"})
 		s.WaitWithDefaultTimeout()
 		Expect(s.ExitCode()).To(Equal(0))
@@ -169,4 +214,24 @@ var _ = Describe("Podman commit", func() {
 		Expect(r.ExitCode()).To(Equal(0))
 	})
 
+	It("podman commit container check env variables", func() {
+		s := podmanTest.Podman([]string{"run", "--name", "test1", "-e", "TEST=1=1-01=9.01", "-it", "alpine", "true"})
+		s.WaitWithDefaultTimeout()
+		Expect(s.ExitCode()).To(Equal(0))
+
+		c := podmanTest.Podman([]string{"commit", "test1", "newimage"})
+		c.WaitWithDefaultTimeout()
+		Expect(c.ExitCode()).To(Equal(0))
+
+		inspect := podmanTest.Podman([]string{"inspect", "newimage"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect.ExitCode()).To(Equal(0))
+		image := inspect.InspectImageJSON()
+
+		envMap := make(map[string]bool)
+		for _, v := range image[0].Config.Env {
+			envMap[v] = true
+		}
+		Expect(envMap["TEST=1=1-01=9.01"]).To(BeTrue())
+	})
 })

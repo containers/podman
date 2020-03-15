@@ -3,27 +3,16 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/inspect"
-	. "github.com/containers/libpod/test/utils"
 	"github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/gexec"
 )
 
 func SkipIfRemote() {
-	if os.Geteuid() != 0 {
-		ginkgo.Skip("This function is not enabled for rootless podman")
-	}
 }
 
 func SkipIfRootless() {
@@ -34,169 +23,27 @@ func SkipIfRootless() {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args)
+	podmanSession := p.PodmanBase(args, false, false)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+// PodmanNoCache calls the podman command with no configured imagecache
+func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, false, true)
+	return &PodmanSessionIntegration{podmanSession}
+}
+
+// PodmanNoEvents calls the Podman command without an imagecache and without an
+// events backend. It is used mostly for caching and uncaching images.
+func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
+	podmanSession := p.PodmanBase(args, true, true)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
 func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env)
+	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false)
 	return &PodmanSessionIntegration{podmanSession}
-}
-
-// PodmanPID execs podman and returns its PID
-func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
-	podmanOptions := p.MakeOptions(args)
-	fmt.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
-	command := exec.Command(p.PodmanBinary, podmanOptions...)
-	session, err := gexec.Start(command, GinkgoWriter, GinkgoWriter)
-	if err != nil {
-		Fail(fmt.Sprintf("unable to run podman command: %s", strings.Join(podmanOptions, " ")))
-	}
-	podmanSession := &PodmanSession{session}
-	return &PodmanSessionIntegration{podmanSession}, command.Process.Pid
-}
-
-// Cleanup cleans up the temporary store
-func (p *PodmanTestIntegration) Cleanup() {
-	// Remove all containers
-	stopall := p.Podman([]string{"stop", "-a", "--timeout", "0"})
-	// stopall.WaitWithDefaultTimeout()
-	stopall.Wait(90)
-
-	session := p.Podman([]string{"rm", "-fa"})
-	session.Wait(90)
-
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
-
-	// Clean up the registries configuration file ENV variable set in Create
-	resetRegistriesConfigEnv()
-}
-
-// CleanupPod cleans up the temporary store
-func (p *PodmanTestIntegration) CleanupPod() {
-	// Remove all containers
-	session := p.Podman([]string{"pod", "rm", "-fa"})
-	session.Wait(90)
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
-}
-
-// CleanupVolume cleans up the temporary store
-func (p *PodmanTestIntegration) CleanupVolume() {
-	// Remove all containers
-	session := p.Podman([]string{"volume", "rm", "-fa"})
-	session.Wait(90)
-	// Nuke tempdir
-	if err := os.RemoveAll(p.TempDir); err != nil {
-		fmt.Printf("%q\n", err)
-	}
-}
-
-// PullImages pulls multiple images
-func (p *PodmanTestIntegration) PullImages(images []string) error {
-	for _, i := range images {
-		p.PullImage(i)
-	}
-	return nil
-}
-
-// PullImage pulls a single image
-// TODO should the timeout be configurable?
-func (p *PodmanTestIntegration) PullImage(image string) error {
-	session := p.Podman([]string{"pull", image})
-	session.Wait(60)
-	Expect(session.ExitCode()).To(Equal(0))
-	return nil
-}
-
-// InspectContainerToJSON takes the session output of an inspect
-// container and returns json
-func (s *PodmanSessionIntegration) InspectContainerToJSON() []inspect.ContainerData {
-	var i []inspect.ContainerData
-	err := json.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
-	return i
-}
-
-// InspectPodToJSON takes the sessions output from a pod inspect and returns json
-func (s *PodmanSessionIntegration) InspectPodToJSON() libpod.PodInspect {
-	var i libpod.PodInspect
-	err := json.Unmarshal(s.Out.Contents(), &i)
-	Expect(err).To(BeNil())
-	return i
-}
-
-// CreatePod creates a pod with no infra container
-// it optionally takes a pod name
-func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"pod", "create", "--infra=false", "--share", ""}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	session := p.Podman(podmanArgs)
-	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
-}
-
-// RunTopContainer runs a simple container in the background that
-// runs top.  If the name passed != "", it will have a name
-func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run"}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
-}
-
-func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run", "--pod", pod}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
-}
-
-// RunLsContainer runs a simple container in the background that
-// simply runs ls. If the name passed != "", it will have a name
-func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run"}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
-	session := p.Podman(podmanArgs)
-	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
-}
-
-func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run", "--pod", pod}
-	if name != "" {
-		podmanArgs = append(podmanArgs, "--name", name)
-	}
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "ls")
-	session := p.Podman(podmanArgs)
-	session.WaitWithDefaultTimeout()
-	return session, session.ExitCode(), session.OutputToString()
-}
-
-// BuildImage uses podman build and buildah to build an image
-// called imageName based on a string dockerfile
-func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string) {
-	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile")
-	err := ioutil.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
-	Expect(err).To(BeNil())
-	session := p.Podman([]string{"build", "--layers=" + layers, "-t", imageName, "--file", dockerfilePath, p.TempDir})
-	session.Wait(120)
-	Expect(session.ExitCode()).To(Equal(0))
 }
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
@@ -219,19 +66,29 @@ func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
 }
 
 // MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
 	var debug string
 	if _, ok := os.LookupEnv("DEBUG"); ok {
 		debug = "--log-level=debug --syslog=true "
 	}
 
-	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s",
-		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir), " ")
+	eventsType := "file"
+	if noEvents {
+		eventsType = "none"
+	}
+
+	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --cni-config-dir %s --cgroup-manager %s --tmpdir %s --events-backend %s",
+		debug, p.CrioRoot, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.CNIConfigDir, p.CgroupManager, p.TmpDir, eventsType), " ")
 	if os.Getenv("HOOK_OPTION") != "" {
 		podmanOptions = append(podmanOptions, os.Getenv("HOOK_OPTION"))
 	}
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
+	if !noCache {
+		cacheOptions := []string{"--storage-opt",
+			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+		podmanOptions = append(cacheOptions, podmanOptions...)
+	}
 	podmanOptions = append(podmanOptions, args...)
 	return podmanOptions
 }
@@ -241,7 +98,46 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	fmt.Printf("Restoring %s...\n", image)
 	dest := strings.Split(image, "/")
 	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
-	restore := p.Podman([]string{"load", "-q", "-i", destName})
+	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
 	restore.Wait(90)
 	return nil
+}
+
+// RestoreArtifactToCache populates the imagecache from tarballs that were cached earlier
+func (p *PodmanTestIntegration) RestoreArtifactToCache(image string) error {
+	fmt.Printf("Restoring %s...\n", image)
+	dest := strings.Split(image, "/")
+	destName := fmt.Sprintf("/tmp/%s.tar", strings.Replace(strings.Join(strings.Split(dest[len(dest)-1], "/"), ""), ":", "-", -1))
+
+	p.CrioRoot = p.ImageCacheDir
+	restore := p.PodmanNoEvents([]string{"load", "-q", "-i", destName})
+	restore.WaitWithDefaultTimeout()
+	return nil
+}
+
+func (p *PodmanTestIntegration) StopVarlink()     {}
+func (p *PodmanTestIntegration) DelayForVarlink() {}
+
+func populateCache(podman *PodmanTestIntegration) {
+	for _, image := range CACHE_IMAGES {
+		podman.RestoreArtifactToCache(image)
+	}
+	// logformatter uses this to recognize the first test
+	fmt.Printf("-----------------------------\n")
+}
+
+func removeCache() {
+	// Remove cache dirs
+	if err := os.RemoveAll(ImageCacheDir); err != nil {
+		fmt.Printf("%q\n", err)
+	}
+}
+
+// SeedImages is a no-op for localized testing
+func (p *PodmanTestIntegration) SeedImages() error {
+	return nil
+}
+
+// We don't support running Varlink when local
+func (p *PodmanTestIntegration) StartVarlink() {
 }

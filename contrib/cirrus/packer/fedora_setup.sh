@@ -8,84 +8,120 @@ set -e
 # Load in library (copied by packer, before this script was run)
 source /tmp/libpod/$SCRIPT_BASE/lib.sh
 
-req_env_var "
-SCRIPT_BASE $SCRIPT_BASE
-FEDORA_CNI_COMMIT $FEDORA_CNI_COMMIT
-CNI_COMMIT $CNI_COMMIT
-CRIO_COMMIT $CRIO_COMMIT
-CRIU_COMMIT $CRIU_COMMIT
-RUNC_COMMIT $RUNC_COMMIT
-"
+req_env_var SCRIPT_BASE PACKER_BUILDER_NAME GOSRC FEDORA_BASE_IMAGE OS_RELEASE_ID OS_RELEASE_VER
 
 install_ooe
 
 export GOPATH="$(mktemp -d)"
 trap "sudo rm -rf $GOPATH" EXIT
 
-ooe.sh sudo dnf update -y
+$BIGTO ooe.sh sudo dnf update -y
 
-ooe.sh sudo dnf install -y \
-    atomic-registries \
-    bats \
-    btrfs-progs-devel \
-    bzip2 \
-    device-mapper-devel \
-    emacs-nox \
-    findutils \
-    git \
-    glib2-devel \
-    glibc-static \
-    gnupg \
-    golang \
-    golang-github-cpuguy83-go-md2man \
-    golang-github-cpuguy83-go-md2man \
-    gpgme-devel \
-    iptables \
-    iproute \
-    libassuan-devel \
-    libcap-devel \
-    libnet \
-    libnet-devel \
-    libnl3-devel \
-    libseccomp-devel \
-    libselinux-devel \
-    lsof \
-    make \
-    nmap-ncat \
-    ostree-devel \
-    procps-ng \
-    protobuf \
-    protobuf-c \
-    protobuf-c-devel \
-    protobuf-compiler \
-    protobuf-devel \
-    protobuf-python \
-    python \
-    python2-future \
-    python3-dateutil \
-    python3-psutil \
-    python3-pytoml \
-    runc \
-    skopeo-containers \
-    slirp4netns \
-    unzip \
-    vim \
-    which \
+# Do not enable update-stesting on the previous Fedora release
+if [[ "$FEDORA_BASE_IMAGE" =~ "${OS_RELEASE_ID}-cloud-base-${OS_RELEASE_VER}" ]]; then
+    warn "Enabling updates-testing repository for image based on $FEDORA_BASE_IMAGE"
+    $LILTO ooe.sh sudo dnf install -y 'dnf-command(config-manager)'
+    $LILTO ooe.sh sudo dnf config-manager --set-enabled updates-testing
+else
+    warn "NOT enabling updates-testing repository for image based on $PRIOR_FEDORA_BASE_IMAGE"
+fi
+
+echo "Installing general build/test dependencies for Fedora '$OS_RELEASE_VER'"
+REMOVE_PACKAGES=()
+INSTALL_PACKAGES=(\
+    autoconf
+    automake
+    bash-completion
+    bats
+    bridge-utils
+    btrfs-progs-devel
+    bzip2
+    conmon
+    container-selinux
+    containernetworking-plugins
+    containers-common
+    criu
+    device-mapper-devel
+    dnsmasq
+    emacs-nox
+    file
+    findutils
+    fuse3
+    fuse3-devel
+    gcc
+    git
+    glib2-devel
+    glibc-static
+    gnupg
+    go-md2man
+    golang
+    gpgme-devel
+    iproute
+    iptables
+    jq
+    libassuan-devel
+    libcap-devel
+    libmsi1
+    libnet
+    libnet-devel
+    libnl3-devel
+    libseccomp
+    libseccomp-devel
+    libselinux-devel
+    libtool
+    libvarlink-util
+    lsof
+    make
+    msitools
+    nmap-ncat
+    pandoc
+    podman
+    procps-ng
+    protobuf
+    protobuf-c
+    protobuf-c-devel
+    protobuf-devel
+    protobuf-python
+    python
+    python3-dateutil
+    python3-psutil
+    python3-pytoml
+    selinux-policy-devel
+    skopeo
+    slirp4netns
+    unzip
+    vim
+    which
     xz
+    zip
+)
+case "$OS_RELEASE_VER" in
+    30)
+        INSTALL_PACKAGES+=(\
+            atomic-registries
+            golang-github-cpuguy83-go-md2man
+            python2-future
+            runc
+        )
+        REMOVE_PACKAGES+=(crun)
+        ;;
+    31)
+        INSTALL_PACKAGES+=(crun)
+        REMOVE_PACKAGES+=(runc)
+        ;;
+    *)
+        bad_os_id_ver ;;
+esac
+$BIGTO ooe.sh sudo dnf install -y ${INSTALL_PACKAGES[@]}
 
-install_varlink
+[[ "${#REMOVE_PACKAGES[@]}" -eq "0" ]] || \
+    $LILTO ooe.sh sudo dnf erase -y ${REMOVE_PACKAGES[@]}
 
-CNI_COMMIT=$FEDORA_CNI_COMMIT
-install_cni_plugins
+# Ensure there are no disruptive periodic services enabled by default in image
+systemd_banish
 
-install_buildah
+ooe.sh sudo /tmp/libpod/hack/install_catatonit.sh
 
-install_conmon
-
-install_criu
-
-install_packer_copied_files
-
-rh_finalize # N/B: Halts system!
+rh_finalize
 
 echo "SUCCESS!"

@@ -3,29 +3,11 @@
 set -e
 source $(dirname $0)/lib.sh
 
-req_env_var "
-CNI_COMMIT $CNI_COMMIT
-CRIO_COMMIT $CRIO_COMMIT
-RUNC_COMMIT $RUNC_COMMIT
-PACKER_BUILDS $PACKER_BUILDS
-BUILT_IMAGE_SUFFIX $BUILT_IMAGE_SUFFIX
-CENTOS_BASE_IMAGE $CENTOS_BASE_IMAGE
-UBUNTU_BASE_IMAGE $UBUNTU_BASE_IMAGE
-FEDORA_BASE_IMAGE $FEDORA_BASE_IMAGE
-FAH_BASE_IMAGE $FAH_BASE_IMAGE
-RHEL_BASE_IMAGE $RHEL_BASE_IMAGE
-RHSM_COMMAND $RHSM_COMMAND
-SERVICE_ACCOUNT $SERVICE_ACCOUNT
-GCE_SSH_USERNAME $GCE_SSH_USERNAME
-GCP_PROJECT_ID $GCP_PROJECT_ID
-PACKER_VER $PACKER_VER
-SCRIPT_BASE $SCRIPT_BASE
-PACKER_BASE $PACKER_BASE
-"
-
-record_timestamp "cache-image build start"
-
-show_env_vars
+BASE_IMAGE_VARS='FEDORA_BASE_IMAGE PRIOR_FEDORA_BASE_IMAGE UBUNTU_BASE_IMAGE PRIOR_UBUNTU_BASE_IMAGE'
+ENV_VARS="PACKER_BUILDS BUILT_IMAGE_SUFFIX $BASE_IMAGE_VARS SERVICE_ACCOUNT GCE_SSH_USERNAME GCP_PROJECT_ID PACKER_VER SCRIPT_BASE PACKER_BASE CIRRUS_BUILD_ID CIRRUS_CHANGE_IN_REPO"
+req_env_var $ENV_VARS
+# Must also be made available through make, into packer process
+export $ENV_VARS
 
 # Everything here is running on the 'image-builder-image' GCE image
 # Assume basic dependencies are all met, but there could be a newer version
@@ -43,6 +25,28 @@ then
 fi
 
 cd "$GOSRC/$PACKER_BASE"
+# Add/update labels on base-images used in this build to prevent premature deletion
+ARGS="
+"
+for base_image_var in $BASE_IMAGE_VARS
+do
+    # See entrypoint.sh in contrib/imgts and contrib/imgprune
+    # These updates can take a while, run them in the background, check later
+    gcloud compute images update \
+        --update-labels=last-used=$(date +%s) \
+        --update-labels=build-id=$CIRRUS_BUILD_ID \
+        --update-labels=repo-ref=$CIRRUS_CHANGE_IN_REPO \
+        --update-labels=project=$GCP_PROJECT_ID \
+        ${!base_image_var} &
+done
+
+make libpod_images \
+    PACKER_BUILDS=$PACKER_BUILDS \
+    PACKER_VER=$PACKER_VER \
+    GOSRC=$GOSRC \
+    SCRIPT_BASE=$SCRIPT_BASE \
+    PACKER_BASE=$PACKER_BASE \
+    BUILT_IMAGE_SUFFIX=$BUILT_IMAGE_SUFFIX
 
 # Separate PR-produced images from those produced on master.
 if [[ "${CIRRUS_BRANCH:-}" == "master" ]]
@@ -52,23 +56,12 @@ else
     POST_MERGE_BUCKET_SUFFIX=""
 fi
 
-make libpod_images \
-    PACKER_BUILDS=$PACKER_BUILDS \
-    PACKER_VER=$PACKER_VER \
-    GOSRC=$GOSRC \
-    SCRIPT_BASE=$SCRIPT_BASE \
-    PACKER_BASE=$PACKER_BASE \
-    POST_MERGE_BUCKET_SUFFIX=$POST_MERGE_BUCKET_SUFFIX \
-    BUILT_IMAGE_SUFFIX=$BUILT_IMAGE_SUFFIX
-
-record_timestamp "cache-image build end"
-
 # When successful, upload manifest of produced images using a filename unique
 # to this build.
 URI="gs://packer-import${POST_MERGE_BUCKET_SUFFIX}/manifest${BUILT_IMAGE_SUFFIX}.json"
 gsutil cp packer-manifest.json "$URI"
 
-echo "Finished."
-echo "Any tarball URI's referenced above at at $URI"
-echo "may be used to create VM images suitable for use in"
-echo ".cirrus.yml as values for the 'image_name' keys."
+# Ensure any background 'gcloud compute images update' processes finish
+wait  # No -n option in CentOS, this is the best that can be done :(
+
+echo "Finished. A JSON manifest of produced images is available at $URI"

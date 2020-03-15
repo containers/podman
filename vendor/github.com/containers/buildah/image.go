@@ -9,20 +9,21 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/image"
-	"github.com/containers/image/manifest"
-	is "github.com/containers/image/storage"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
+	is "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -55,6 +56,7 @@ type containerImageRef struct {
 	preferredManifestType string
 	exporting             bool
 	squash                bool
+	emptyLayer            bool
 	tarPath               func(path string) (io.ReadCloser, error)
 	parent                string
 	blobDirectory         string
@@ -126,6 +128,10 @@ func computeLayerMIMEType(what string, layerCompression archive.Compression) (om
 			// Until the image specs define a media type for xz-compressed layers, even if we know
 			// how to decompress them, we can't try to compress layers with xz.
 			return "", "", errors.New("media type for xz-compressed layers is not defined")
+		case archive.Zstd:
+			// Until the image specs define a media type for zstd-compressed layers, even if we know
+			// how to decompress them, we can't try to compress layers with zstd.
+			return "", "", errors.New("media type for zstd-compressed layers is not defined")
 		default:
 			logrus.Debugf("compressing %s with unknown compressor(?)", what)
 		}
@@ -183,7 +189,11 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	if err := json.Unmarshal(i.dconfig, &dimage); err != nil {
 		return v1.Image{}, v1.Manifest{}, docker.V2Image{}, docker.V2S2Manifest{}, err
 	}
-	dimage.Parent = docker.ID(digest.FromString(i.parent))
+	dimage.Parent = docker.ID(i.parent)
+	dimage.Container = i.containerID
+	if dimage.Config != nil {
+		dimage.ContainerConfig = *dimage.Config
+	}
 	// Always replace this value, since we're newer than our base image.
 	dimage.Created = created
 	// Clear the list of diffIDs, since we always repopulate it.
@@ -288,6 +298,11 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		layer, err := i.store.Layer(layerID)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to locate layer %q", layerID)
+		}
+		// If we're up to the final layer, but we don't want to include
+		// a diff for it, we're done.
+		if i.emptyLayer && layerID == i.layerID {
+			continue
 		}
 		// If we're not re-exporting the data, and we're reusing layers individually, reuse
 		// the blobsum and diff IDs.
@@ -432,7 +447,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		CreatedBy:  i.createdBy,
 		Author:     oimage.Author,
 		Comment:    i.historyComment,
-		EmptyLayer: false,
+		EmptyLayer: i.emptyLayer,
 	}
 	oimage.History = append(oimage.History, onews)
 	dnews := docker.V2S2History{
@@ -440,11 +455,10 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		CreatedBy:  i.createdBy,
 		Author:     dimage.Author,
 		Comment:    i.historyComment,
-		EmptyLayer: false,
+		EmptyLayer: i.emptyLayer,
 	}
 	dimage.History = append(dimage.History, dnews)
 	appendHistory(i.postEmptyLayers)
-	dimage.Parent = docker.ID(digest.FromString(i.parent))
 
 	// Sanity check that we didn't just create a mismatch between non-empty layers in the
 	// history and the number of diffIDs.
@@ -585,7 +599,7 @@ func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *
 	return i.manifest, i.manifestType, nil
 }
 
-func (i *containerImageSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
+func (i *containerImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
 	return nil, nil
 }
 
@@ -635,7 +649,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 	return ioutils.NewReadCloserWrapper(layerFile, closer), size, nil
 }
 
-func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squash bool, blobDirectory string, compress archive.Compression, historyTimestamp *time.Time, omitTimestamp bool) (types.ImageReference, error) {
+func (b *Builder) makeImageRef(options CommitOptions, exporting bool) (types.ImageReference, error) {
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
@@ -646,6 +660,7 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 			name = parsed
 		}
 	}
+	manifestType := options.PreferredManifestType
 	if manifestType == "" {
 		manifestType = OCIv1ImageManifest
 	}
@@ -658,17 +673,32 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 		return nil, errors.Wrapf(err, "error encoding docker-format image configuration %#v", b.Docker)
 	}
 	created := time.Now().UTC()
-	if historyTimestamp != nil {
-		created = historyTimestamp.UTC()
+	if options.HistoryTimestamp != nil {
+		created = options.HistoryTimestamp.UTC()
+	}
+	createdBy := b.CreatedBy()
+	if createdBy == "" {
+		createdBy = strings.Join(b.Shell(), " ")
+		if createdBy == "" {
+			createdBy = "/bin/sh"
+		}
 	}
 
-	if omitTimestamp {
+	if options.OmitTimestamp {
 		created = time.Unix(0, 0)
+	}
+
+	parent := ""
+	if b.FromImageID != "" {
+		parentDigest := digest.NewDigestFromEncoded(digest.Canonical, b.FromImageID)
+		if parentDigest.Validate() == nil {
+			parent = parentDigest.String()
+		}
 	}
 
 	ref := &containerImageRef{
 		store:                 b.store,
-		compression:           compress,
+		compression:           options.Compression,
 		name:                  name,
 		names:                 container.Names,
 		containerID:           container.ID,
@@ -677,15 +707,16 @@ func (b *Builder) makeImageRef(manifestType, parent string, exporting bool, squa
 		oconfig:               oconfig,
 		dconfig:               dconfig,
 		created:               created,
-		createdBy:             b.CreatedBy(),
+		createdBy:             createdBy,
 		historyComment:        b.HistoryComment(),
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,
 		exporting:             exporting,
-		squash:                squash,
-		tarPath:               b.tarPath(),
+		squash:                options.Squash,
+		emptyLayer:            options.EmptyLayer && !options.Squash,
+		tarPath:               b.tarPath(&b.IDMappingOptions),
 		parent:                parent,
-		blobDirectory:         blobDirectory,
+		blobDirectory:         options.BlobDirectory,
 		preEmptyLayers:        b.PrependedEmptyLayers,
 		postEmptyLayers:       b.AppendedEmptyLayers,
 	}

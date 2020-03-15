@@ -3,11 +3,17 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	iopodman "github.com/containers/libpod/cmd/podman/varlink"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/containers/libpod/pkg/varlinkapi"
 	"github.com/containers/libpod/version"
 	"github.com/pkg/errors"
@@ -23,7 +29,7 @@ var (
   Tools speaking varlink protocol can remotely manage pods, containers and images.
 `
 	_varlinkCommand = &cobra.Command{
-		Use:   "varlink [flags] URI",
+		Use:   "varlink [flags] [URI]",
 		Short: "Run varlink interface",
 		Long:  varlinkDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -45,21 +51,39 @@ func init() {
 }
 
 func varlinkCmd(c *cliconfig.VarlinkValues) error {
+	varlinkURI := adapter.DefaultVarlinkAddress
+	if rootless.IsRootless() {
+		xdg, err := util.GetRuntimeDir()
+		if err != nil {
+			return err
+		}
+		socketDir := filepath.Join(xdg, "podman/io.podman")
+		if _, err := os.Stat(filepath.Dir(socketDir)); os.IsNotExist(err) {
+			if err := os.Mkdir(filepath.Dir(socketDir), 0755); err != nil {
+				return err
+			}
+		}
+		varlinkURI = fmt.Sprintf("unix:%s", socketDir)
+	}
 	args := c.InputArgs
-	if len(args) < 1 {
-		return errors.Errorf("you must provide a varlink URI")
-	}
+
 	if len(args) > 1 {
-		return errors.Errorf("too many arguments. Requires exactly 1")
+		return errors.Errorf("too many arguments. You may optionally provide 1")
 	}
+
+	if len(args) > 0 {
+		varlinkURI = args[0]
+	}
+
+	logrus.Debugf("Using varlink socket: %s", varlinkURI)
 	timeout := time.Duration(c.Timeout) * time.Millisecond
 
 	// Create a single runtime for varlink
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntimeDisableFDs(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var varlinkInterfaces = []*iopodman.VarlinkInterface{varlinkapi.New(&c.PodmanCommand, runtime)}
 	// Register varlink service. The metadata can be retrieved with:
@@ -81,7 +105,7 @@ func varlinkCmd(c *cliconfig.VarlinkValues) error {
 	}
 
 	// Run the varlink server at the given address
-	if err = service.Listen(args[0], timeout); err != nil {
+	if err = service.Listen(varlinkURI, timeout); err != nil {
 		switch err.(type) {
 		case varlink.ServiceTimeoutError:
 			logrus.Infof("varlink service expired (use --timeout to increase session time beyond %d ms, 0 means never timeout)", c.Int64("timeout"))

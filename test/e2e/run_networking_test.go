@@ -25,7 +25,7 @@ var _ = Describe("Podman run networking", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -74,11 +74,10 @@ var _ = Describe("Podman run networking", func() {
 		Expect(results.OutputToString()).To(ContainSubstring("8000"))
 
 		ncBusy := SystemExec("nc", []string{"-l", "-p", "80"})
-		Expect(ncBusy.ExitCode()).ToNot(Equal(0))
+		Expect(ncBusy).To(ExitWithError())
 	})
 
 	It("podman run network expose ports in image metadata", func() {
-		podmanTest.RestoreArtifact(nginx)
 		session := podmanTest.Podman([]string{"create", "-dt", "-P", nginx})
 		session.Wait(90)
 		Expect(session.ExitCode()).To(Equal(0))
@@ -147,6 +146,17 @@ var _ = Describe("Podman run networking", func() {
 		Expect(match).Should(BeTrue())
 	})
 
+	It("podman run --net container: and --uts container:", func() {
+		ctrName := "ctrToJoin"
+		ctr1 := podmanTest.RunTopContainer(ctrName)
+		ctr1.WaitWithDefaultTimeout()
+		Expect(ctr1.ExitCode()).To(Equal(0))
+
+		ctr2 := podmanTest.Podman([]string{"run", "-d", "--net=container:" + ctrName, "--uts=container:" + ctrName, ALPINE, "true"})
+		ctr2.WaitWithDefaultTimeout()
+		Expect(ctr2.ExitCode()).To(Equal(0))
+	})
+
 	It("podman run --net container: copies hosts and resolv", func() {
 		SkipIfRootless()
 		ctrName := "ctr1"
@@ -177,6 +187,12 @@ var _ = Describe("Podman run networking", func() {
 		exec4.WaitWithDefaultTimeout()
 		Expect(exec4.ExitCode()).To(Equal(0))
 		Expect(exec4.OutputToString()).To(ContainSubstring("192.0.2.2 test1"))
+	})
+
+	It("podman run /etc/hosts contains --hostname", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--hostname", "foohostname", ALPINE, "grep", "foohostname", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
 	})
 
 	It("podman run network in user created network namespace", func() {
@@ -224,7 +240,21 @@ var _ = Describe("Podman run networking", func() {
 	It("podman run network in bogus user created network namespace", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.podman.io"})
 		session.Wait(90)
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 		Expect(session.ErrorToString()).To(ContainSubstring("stat /run/netns/xxy: no such file or directory"))
+	})
+
+	It("podman run in custom CNI network with --static-ip", func() {
+		SkipIfRootless()
+		netName := "podmantestnetwork"
+		ipAddr := "10.20.30.128"
+		create := podmanTest.Podman([]string{"network", "create", "--subnet", "10.20.30.0/24", netName})
+		create.WaitWithDefaultTimeout()
+		Expect(create.ExitCode()).To(BeZero())
+
+		run := podmanTest.Podman([]string{"run", "-t", "-i", "--rm", "--net", netName, "--ip", ipAddr, ALPINE, "ip", "addr"})
+		run.WaitWithDefaultTimeout()
+		Expect(run.ExitCode()).To(BeZero())
+		Expect(run.OutputToString()).To(ContainSubstring(ipAddr))
 	})
 })

@@ -10,15 +10,15 @@ import (
 	"sync"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/image"
-	"github.com/containers/image/manifest"
-	"github.com/containers/image/transports"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/transports"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -83,7 +83,7 @@ func makeFilename(blobSum digest.Digest, isConfig bool) string {
 
 // NewBlobCache creates a new blob cache that wraps an image reference.  Any blobs which are
 // written to the destination image created from the resulting reference will also be stored
-// as-is to the specifed directory or a temporary directory.  The cache directory's contents
+// as-is to the specified directory or a temporary directory.  The cache directory's contents
 // can be cleared by calling the returned BlobCache()'s ClearCache() method.
 // The compress argument controls whether or not the cache will try to substitute a compressed
 // or different version of a blob when preparing the list of layers when reading an image.
@@ -263,14 +263,14 @@ func (s *blobCacheSource) GetSignatures(ctx context.Context, instanceDigest *dig
 	return s.source.GetSignatures(ctx, instanceDigest)
 }
 
-func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context) ([]types.BlobInfo, error) {
-	signatures, err := s.source.GetSignatures(ctx, nil)
+func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
+	signatures, err := s.source.GetSignatures(ctx, instanceDigest)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error checking if image %q has signatures", transports.ImageName(s.reference))
 	}
 	canReplaceBlobs := !(len(signatures) > 0 && len(signatures[0]) > 0)
 
-	infos, err := s.source.LayerInfosForCopy(ctx)
+	infos, err := s.source.LayerInfosForCopy(ctx, instanceDigest)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting layer infos for copying image %q through cache", transports.ImageName(s.reference))
 	}
@@ -379,7 +379,9 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 		_, err3 = io.Copy(io.MultiWriter(tempFile, digester.Hash()), decompressed)
 	} else {
 		// Drain the pipe to keep from stalling the PutBlob() thread.
-		io.Copy(ioutil.Discard, decompressReader)
+		if _, err := io.Copy(ioutil.Discard, decompressReader); err != nil {
+			logrus.Debugf("error draining the pipe: %v", err)
+		}
 	}
 	decompressReader.Close()
 	decompressed.Close()
@@ -412,8 +414,8 @@ func saveStream(wg *sync.WaitGroup, decompressReader io.ReadCloser, tempFile *os
 	}
 }
 
-func (s *blobCacheDestination) HasThreadSafePutBlob() bool {
-	return s.destination.HasThreadSafePutBlob()
+func (d *blobCacheDestination) HasThreadSafePutBlob() bool {
+	return d.destination.HasThreadSafePutBlob()
 }
 
 func (d *blobCacheDestination) PutBlob(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, cache types.BlobInfoCache, isConfig bool) (types.BlobInfo, error) {
@@ -513,7 +515,7 @@ func (d *blobCacheDestination) TryReusingBlob(ctx context.Context, info types.Bl
 	return false, types.BlobInfo{}, nil
 }
 
-func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []byte) error {
+func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []byte, instanceDigest *digest.Digest) error {
 	manifestDigest, err := manifest.Digest(manifestBytes)
 	if err != nil {
 		logrus.Warnf("error digesting manifest %q: %v", string(manifestBytes), err)
@@ -523,13 +525,13 @@ func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []
 			logrus.Warnf("error saving manifest as %q: %v", filename, err)
 		}
 	}
-	return d.destination.PutManifest(ctx, manifestBytes)
+	return d.destination.PutManifest(ctx, manifestBytes, instanceDigest)
 }
 
-func (d *blobCacheDestination) PutSignatures(ctx context.Context, signatures [][]byte) error {
-	return d.destination.PutSignatures(ctx, signatures)
+func (d *blobCacheDestination) PutSignatures(ctx context.Context, signatures [][]byte, instanceDigest *digest.Digest) error {
+	return d.destination.PutSignatures(ctx, signatures, instanceDigest)
 }
 
-func (d *blobCacheDestination) Commit(ctx context.Context) error {
-	return d.destination.Commit(ctx)
+func (d *blobCacheDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
+	return d.destination.Commit(ctx, unparsedToplevel)
 }

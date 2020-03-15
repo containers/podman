@@ -2,6 +2,7 @@ package apparmor
 
 import (
 	"errors"
+
 	libpodVersion "github.com/containers/libpod/version"
 )
 

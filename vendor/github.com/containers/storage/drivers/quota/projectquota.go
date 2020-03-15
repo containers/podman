@@ -1,4 +1,4 @@
-// +build linux
+// +build linux,!exclude_disk_quota,cgo
 
 //
 // projectquota.go - implements XFS project quota controls

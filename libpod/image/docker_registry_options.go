@@ -1,8 +1,12 @@
 package image
 
 import (
-	"github.com/containers/image/docker/reference"
-	"github.com/containers/image/types"
+	"fmt"
+
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/types"
+
+	podmanVersion "github.com/containers/libpod/version"
 )
 
 // DockerRegistryOptions encapsulates settings that affect how we connect or
@@ -22,6 +26,10 @@ type DockerRegistryOptions struct {
 	// certificates and allows connecting to registries without encryption
 	// - or forces it on even if registries.conf has the registry configured as insecure.
 	DockerInsecureSkipTLSVerify types.OptionalBool
+	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.
+	OSChoice string
+	// If not "", overrides the use of platform.GOARCH when choosing an image or verifying architecture match.
+	ArchitectureChoice string
 }
 
 // GetSystemContext constructs a new system context from a parent context. the values in the DockerRegistryOptions, and other parameters.
@@ -31,11 +39,16 @@ func (o DockerRegistryOptions) GetSystemContext(parent *types.SystemContext, add
 		DockerCertPath:              o.DockerCertPath,
 		DockerInsecureSkipTLSVerify: o.DockerInsecureSkipTLSVerify,
 		DockerArchiveAdditionalTags: additionalDockerArchiveTags,
+		OSChoice:                    o.OSChoice,
+		ArchitectureChoice:          o.ArchitectureChoice,
 	}
 	if parent != nil {
 		sc.SignaturePolicyPath = parent.SignaturePolicyPath
 		sc.AuthFilePath = parent.AuthFilePath
 		sc.DirForceCompress = parent.DirForceCompress
+		sc.DockerRegistryUserAgent = parent.DockerRegistryUserAgent
+		sc.OSChoice = parent.OSChoice
+		sc.ArchitectureChoice = parent.ArchitectureChoice
 	}
 	return sc
 }
@@ -48,5 +61,7 @@ func GetSystemContext(signaturePolicyPath, authFilePath string, forceCompress bo
 	}
 	sc.AuthFilePath = authFilePath
 	sc.DirForceCompress = forceCompress
+	sc.DockerRegistryUserAgent = fmt.Sprintf("libpod/%s", podmanVersion.Version)
+
 	return sc
 }

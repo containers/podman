@@ -45,7 +45,7 @@ type Process struct {
 	Hgroup string
 }
 
-// LookupGID returns the textual group ID, if it can be optained, or the
+// LookupGID returns the textual group ID, if it can be obtained, or the
 // decimal representation otherwise.
 func LookupGID(gid string) (string, error) {
 	gidNum, err := strconv.Atoi(gid)
@@ -59,7 +59,7 @@ func LookupGID(gid string) (string, error) {
 	return g.Name, nil
 }
 
-// LookupUID return the textual user ID, if it can be optained, or the decimal
+// LookupUID return the textual user ID, if it can be obtained, or the decimal
 // representation otherwise.
 func LookupUID(uid string) (string, error) {
 	uidNum, err := strconv.Atoi(uid)
@@ -188,19 +188,30 @@ func (p *Process) SetHostData() error {
 
 // ElapsedTime returns the time.Duration since process p was created.
 func (p *Process) ElapsedTime() (time.Duration, error) {
+	startTime, err := p.StartTime()
+	if err != nil {
+		return 0, err
+	}
+	return (time.Now()).Sub(startTime), nil
+}
+
+// StarTime returns the time.Time when process p was started.
+func (p *Process) StartTime() (time.Time, error) {
 	sinceBoot, err := strconv.ParseInt(p.Stat.Starttime, 10, 64)
 	if err != nil {
-		return 0, err
+		return time.Time{}, err
 	}
-
-	sinceBoot = sinceBoot / host.ClockTicks()
-
+	clockTicks, err := host.ClockTicks()
+	if err != nil {
+		return time.Time{}, err
+	}
 	bootTime, err := host.BootTime()
 	if err != nil {
-		return 0, err
+		return time.Time{}, err
 	}
-	created := time.Unix(sinceBoot+bootTime, 0)
-	return (time.Now()).Sub(created), nil
+
+	sinceBoot = sinceBoot / clockTicks
+	return time.Unix(sinceBoot+bootTime, 0), nil
 }
 
 // CPUTime returns the cumlative CPU time of process p as a time.Duration.
@@ -213,7 +224,11 @@ func (p *Process) CPUTime() (time.Duration, error) {
 	if err != nil {
 		return 0, err
 	}
-	secs := (user + system) / host.ClockTicks()
+	clockTicks, err := host.ClockTicks()
+	if err != nil {
+		return 0, err
+	}
+	secs := (user + system) / clockTicks
 	cpu := time.Unix(secs, 0)
 	return cpu.Sub(time.Unix(0, 0)), nil
 }

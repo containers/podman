@@ -1,20 +1,17 @@
 package main
 
 import (
+	"os"
 	"reflect"
 	"strings"
 
+	buildahcli "github.com/containers/buildah/pkg/cli"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-)
-
-const (
-	descriptionTruncLength = 44
-	maxQueries             = 25
 )
 
 var (
@@ -43,12 +40,15 @@ func init() {
 	searchCommand.SetHelpTemplate(HelpTemplate())
 	searchCommand.SetUsageTemplate(UsageTemplate())
 	flags := searchCommand.Flags()
-	flags.StringVar(&searchCommand.Authfile, "authfile", "", "Path of the authentication file. Default is ${XDG_RUNTIME_DIR}/containers/auth.json. Use REGISTRY_AUTH_FILE environment variable to override")
 	flags.StringSliceVarP(&searchCommand.Filter, "filter", "f", []string{}, "Filter output based on conditions provided (default [])")
 	flags.StringVar(&searchCommand.Format, "format", "", "Change the output format to a Go template")
 	flags.IntVar(&searchCommand.Limit, "limit", 0, "Limit the number of results")
 	flags.BoolVar(&searchCommand.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	// Disabled flags for the remote client
+	if !remote {
+		flags.StringVar(&searchCommand.Authfile, "authfile", buildahcli.GetDefaultAuthFile(), "Path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
+		flags.BoolVar(&searchCommand.TlsVerify, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+	}
 }
 
 func searchCmd(c *cliconfig.SearchValues) error {
@@ -66,11 +66,17 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		return err
 	}
 
+	if c.Authfile != "" {
+		if _, err := os.Stat(c.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.Authfile)
+		}
+	}
+
 	searchOptions := image.SearchOptions{
 		NoTrunc:  c.NoTrunc,
 		Limit:    c.Limit,
 		Filter:   *filter,
-		Authfile: getAuthFile(c.Authfile),
+		Authfile: c.Authfile,
 	}
 	if c.Flag("tls-verify").Changed {
 		searchOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!c.TlsVerify)
@@ -85,8 +91,7 @@ func searchCmd(c *cliconfig.SearchValues) error {
 		return nil
 	}
 	out := formats.StdoutTemplateArray{Output: searchToGeneric(results), Template: format, Fields: searchHeaderMap()}
-	formats.Writer(out).Out()
-	return nil
+	return out.Out()
 }
 
 // searchHeaderMap returns the headers of a SearchResult.
@@ -117,17 +122,4 @@ func searchToGeneric(params []image.SearchResult) (genericParams []interface{}) 
 		genericParams = append(genericParams, interface{}(v))
 	}
 	return genericParams
-}
-
-func genSearchOutputMap() map[string]string {
-	io := image.SearchResult{}
-	v := reflect.Indirect(reflect.ValueOf(io))
-	values := make(map[string]string)
-
-	for i := 0; i < v.NumField(); i++ {
-		key := v.Type().Field(i).Name
-		value := key
-		values[key] = strings.ToUpper(splitCamelCase(value))
-	}
-	return values
 }

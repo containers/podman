@@ -25,8 +25,7 @@ var _ = Describe("Podman pod create", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
-		podmanTest.RestoreArtifact(infra)
+		podmanTest.SeedImages()
 	})
 
 	AfterEach(func() {
@@ -113,19 +112,17 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
 		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "curl", "localhost:80"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"run", fedoraMinimal, "curl", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pod correctly sets up IPCNS", func() {
@@ -138,7 +135,6 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(fedoraMinimal)
 		session = podmanTest.Podman([]string{"run", "--pod", podID, fedoraMinimal, "/bin/sh", "-c", "'touch /dev/shm/hi'"})
 		session.WaitWithDefaultTimeout()
 		if session.ExitCode() != 0 {
@@ -216,14 +212,13 @@ var _ = Describe("Podman pod create", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
-		podmanTest.RestoreArtifact(nginx)
 		session = podmanTest.Podman([]string{"run", "-d", "--pod", podID, nginx})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
 
 		session = podmanTest.Podman([]string{"run", "--pod", podID, "--network", "bridge", nginx, "curl", "localhost"})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 	})
 
 	It("podman pod container can override pod pid NS", func() {
@@ -314,7 +309,7 @@ var _ = Describe("Podman pod create", func() {
 
 		session = podmanTest.Podman([]string{"rm", infraID})
 		session.WaitWithDefaultTimeout()
-		Expect(session.ExitCode()).To(Not(Equal(0)))
+		Expect(session).To(ExitWithError())
 
 		session = podmanTest.Podman([]string{"pod", "rm", podID})
 		session.WaitWithDefaultTimeout()
@@ -387,5 +382,25 @@ var _ = Describe("Podman pod create", func() {
 		session = podmanTest.Podman([]string{"run", "--pod", podID, BB, "ping", "-c", "1", "foobar"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.ExitCode()).To(Equal(0))
+	})
+
+	It("podman run hostname is shared", func() {
+		session := podmanTest.Podman([]string{"pod", "create"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		podID := session.OutputToString()
+
+		// verify we can add a host to the infra's /etc/hosts
+		session = podmanTest.Podman([]string{"run", "--pod", podID, ALPINE, "hostname"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		hostname := session.OutputToString()
+
+		infraName := podID[:12] + "-infra"
+		// verify we can see the other hosts of infra's /etc/hosts
+		session = podmanTest.Podman([]string{"inspect", infraName})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 })

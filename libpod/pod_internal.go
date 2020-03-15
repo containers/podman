@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -52,31 +53,31 @@ func (p *Pod) refresh() error {
 	}
 
 	if !p.valid {
-		return ErrPodRemoved
+		return define.ErrPodRemoved
 	}
 
 	// Retrieve the pod's lock
-	lock, err := p.runtime.lockManager.RetrieveLock(p.config.LockID)
+	lock, err := p.runtime.lockManager.AllocateAndRetrieveLock(p.config.LockID)
 	if err != nil {
-		return errors.Wrapf(err, "error retrieving lock for pod %s", p.ID())
+		return errors.Wrapf(err, "error retrieving lock %d for pod %s", p.config.LockID, p.ID())
 	}
 	p.lock = lock
 
 	// We need to recreate the pod's cgroup
 	if p.config.UsePodCgroup {
 		switch p.runtime.config.CgroupManager {
-		case SystemdCgroupsManager:
+		case define.SystemdCgroupsManager:
 			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
 			if err != nil {
 				logrus.Errorf("Error creating CGroup for pod %s: %v", p.ID(), err)
 			}
 			p.state.CgroupPath = cgroupPath
-		case CgroupfsCgroupsManager:
+		case define.CgroupfsCgroupsManager:
 			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
 
 			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
 		default:
-			return errors.Wrapf(ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
 		}
 	}
 

@@ -1,15 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
-	"os"
-	"strconv"
-
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/libpodruntime"
-	"github.com/containers/libpod/cmd/podman/shared/parse"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -41,8 +35,13 @@ func init() {
 	execCommand.SetUsageTemplate(UsageTemplate())
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
+	flags.StringVar(&execCommand.DetachKeys, "detach-keys", define.DefaultDetachKeys, "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
+	// Clear the default, the value specified in the config file should have the
+	// priority
+	execCommand.DetachKeys = ""
 	flags.StringArrayVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
-	flags.BoolVarP(&execCommand.Interfactive, "interactive", "i", false, "Not supported.  All exec commands are interactive by default")
+	flags.StringSliceVar(&execCommand.EnvFile, "env-file", []string{}, "Read in a file of environment variables")
+	flags.BoolVarP(&execCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")
 	flags.BoolVarP(&execCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&execCommand.Privileged, "privileged", false, "Give the process extended Linux capabilities inside the container.  The default is false")
 	flags.BoolVarP(&execCommand.Tty, "tty", "t", false, "Allocate a pseudo-TTY. The default is false")
@@ -50,80 +49,31 @@ func init() {
 
 	flags.IntVar(&execCommand.PreserveFDs, "preserve-fds", 0, "Pass N additional file descriptors to the container")
 	flags.StringVarP(&execCommand.Workdir, "workdir", "w", "", "Working directory inside the container")
+	markFlagHiddenForRemoteClient("env-file", flags)
 	markFlagHiddenForRemoteClient("latest", flags)
+	markFlagHiddenForRemoteClient("preserve-fds", flags)
 }
 
 func execCmd(c *cliconfig.ExecValues) error {
-	args := c.InputArgs
-	var ctr *libpod.Container
-	var err error
-	argStart := 1
-	if len(args) < 1 && !c.Latest {
-		return errors.Errorf("you must provide one container name or id")
-	}
-	if len(args) < 2 && !c.Latest {
-		return errors.Errorf("you must provide a command to exec")
-	}
+	argLen := len(c.InputArgs)
 	if c.Latest {
-		argStart = 0
+		if argLen < 1 {
+			return errors.Errorf("you must provide a command to exec")
+		}
+	} else {
+		if argLen < 1 {
+			return errors.Errorf("you must provide one container name or id")
+		}
+		if argLen < 2 {
+			return errors.Errorf("you must provide a command to exec")
+		}
 	}
-	cmd := args[argStart:]
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntimeNoStore(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
-	if c.Latest {
-		ctr, err = runtime.GetLatestContainer()
-	} else {
-		ctr, err = runtime.LookupContainer(args[0])
-	}
-	if err != nil {
-		return errors.Wrapf(err, "unable to exec into %s", args[0])
-	}
-
-	if c.PreserveFDs > 0 {
-		entries, err := ioutil.ReadDir("/proc/self/fd")
-		if err != nil {
-			return errors.Wrapf(err, "unable to read /proc/self/fd")
-		}
-		m := make(map[int]bool)
-		for _, e := range entries {
-			i, err := strconv.Atoi(e.Name())
-			if err != nil {
-				if err != nil {
-					return errors.Wrapf(err, "cannot parse %s in /proc/self/fd", e.Name())
-				}
-			}
-			m[i] = true
-		}
-		for i := 3; i < 3+c.PreserveFDs; i++ {
-			if _, found := m[i]; !found {
-				return errors.New("invalid --preserve-fds=N specified. Not enough FDs available")
-			}
-		}
-
-	}
-
-	// ENVIRONMENT VARIABLES
-	env := map[string]string{}
-
-	if err := parse.ReadKVStrings(env, []string{}, c.Env); err != nil {
-		return errors.Wrapf(err, "unable to process environment variables")
-	}
-	envs := []string{}
-	for k, v := range env {
-		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	streams := new(libpod.AttachStreams)
-	streams.OutputStream = os.Stdout
-	streams.ErrorStream = os.Stderr
-	streams.InputStream = os.Stdin
-	streams.AttachOutput = true
-	streams.AttachError = true
-	streams.AttachInput = true
-
-	return ctr.Exec(c.Tty, c.Privileged, envs, cmd, c.User, c.Workdir, streams, c.PreserveFDs)
+	exitCode, err = runtime.ExecContainer(getContext(), c)
+	return err
 }

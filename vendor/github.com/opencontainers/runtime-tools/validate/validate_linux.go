@@ -16,6 +16,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	osFilepath "github.com/opencontainers/runtime-tools/filepath"
 	"github.com/opencontainers/runtime-tools/specerror"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
 
@@ -223,6 +224,12 @@ func (v *Validator) CheckLinux() (errs error) {
 					specerror.ReadonlyPathsAbs,
 					fmt.Errorf("readonlyPath %v is not an absolute path", readonlyPath),
 					rspec.Version))
+		}
+	}
+
+	if v.spec.Linux.MountLabel != "" {
+		if err := label.Validate(v.spec.Linux.MountLabel); err != nil {
+			errs = multierror.Append(errs, fmt.Errorf("mountLabel %v is invalid", v.spec.Linux.MountLabel))
 		}
 	}
 

@@ -26,7 +26,7 @@ var (
 			return podUnpauseCmd(&podUnpauseCommand)
 		},
 		Args: func(cmd *cobra.Command, args []string) error {
-			return checkAllAndLatest(cmd, args, false)
+			return checkAllLatestAndCIDFile(cmd, args, false, false)
 		},
 		Example: `podman pod unpause podID1 podID2
   podman pod unpause --all
@@ -46,18 +46,18 @@ func init() {
 
 func podUnpauseCmd(c *cliconfig.PodUnpauseValues) error {
 	var lastError error
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	unpauseIDs, conErrors, unpauseErrors := runtime.UnpausePods(c)
 
 	for _, p := range unpauseIDs {
 		fmt.Println(p)
 	}
-	if conErrors != nil && len(conErrors) > 0 {
+	if len(conErrors) > 0 {
 		for ctr, err := range conErrors {
 			if lastError != nil {
 				logrus.Errorf("%q", lastError)

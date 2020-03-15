@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -38,17 +38,15 @@ func init() {
 }
 
 func healthCheckCmd(c *cliconfig.HealthCheckValues) error {
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrap(err, "could not get runtime")
 	}
+	defer runtime.DeferredShutdown(false)
 	status, err := runtime.HealthCheck(c)
-	if err != nil {
-		if status == libpod.HealthCheckFailure {
-			fmt.Println("\nunhealthy")
-		}
-		return err
+	if err == nil && status == "unhealthy" {
+		exitCode = 1
 	}
-	fmt.Println("healthy")
-	return nil
+	fmt.Println(status)
+	return err
 }

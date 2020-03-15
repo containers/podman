@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -134,7 +136,7 @@ func parseCRILog(log []byte, msg *logMessage) error {
 	}
 	// Keep this forward compatible.
 	tags := bytes.Split(log[:idx], tagDelimiter)
-	partial := (LogTag(tags[0]) == LogTagPartial)
+	partial := LogTag(tags[0]) == LogTagPartial
 	// Trim the tailing new line if this is a partial line.
 	if partial && len(log) > 0 && log[len(log)-1] == '\n' {
 		log = log[:len(log)-1]
@@ -152,7 +154,7 @@ func ReadLogs(logPath string, ctr *libpod.Container, opts *LogOptions) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to open log file %q", logPath)
 	}
-	defer file.Close()
+	defer errorhandling.CloseQuiet(file)
 
 	msg := &logMessage{}
 	opts.bytes = -1
@@ -160,9 +162,9 @@ func ReadLogs(logPath string, ctr *libpod.Container, opts *LogOptions) error {
 	reader := bufio.NewReader(file)
 
 	if opts.Follow {
-		followLog(reader, writer, opts, ctr, msg, logPath)
+		err = followLog(reader, writer, opts, ctr, msg, logPath)
 	} else {
-		dumpLog(reader, writer, opts, msg, logPath)
+		err = dumpLog(reader, writer, opts, msg, logPath)
 	}
 	return err
 }
@@ -209,7 +211,7 @@ func followLog(reader *bufio.Reader, writer *logWriter, opts *LogOptions, ctr *l
 			if err != nil {
 				return err
 			}
-			if state != libpod.ContainerStateRunning && state != libpod.ContainerStatePaused {
+			if state != define.ContainerStateRunning && state != define.ContainerStatePaused {
 				break
 			}
 			continue

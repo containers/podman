@@ -1,21 +1,30 @@
 package util
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/containers/image/types"
+	"github.com/containers/image/v5/types"
+	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/pkg/errorhandling"
+	"github.com/containers/libpod/pkg/namespaces"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/spf13/pflag"
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -65,94 +74,327 @@ func StringInSlice(s string, sl []string) bool {
 	return false
 }
 
-// GetImageConfig converts the --change flag values in the format "CMD=/bin/bash USER=example"
-// to a type v1.ImageConfig
-func GetImageConfig(changes []string) (v1.ImageConfig, error) {
-	// USER=value | EXPOSE=value | ENV=value | ENTRYPOINT=value |
-	// CMD=value | VOLUME=value | WORKDIR=value | LABEL=key=value | STOPSIGNAL=value
+// ImageConfig is a wrapper around the OCIv1 Image Configuration struct exported
+// by containers/image, but containing additional fields that are not supported
+// by OCIv1 (but are by Docker v2) - notably OnBuild.
+type ImageConfig struct {
+	v1.ImageConfig
+	OnBuild []string
+}
 
-	var (
-		user       string
-		env        []string
-		entrypoint []string
-		cmd        []string
-		workingDir string
-		stopSignal string
-	)
+// GetImageConfig produces a v1.ImageConfig from the --change flag that is
+// accepted by several Podman commands. It accepts a (limited subset) of
+// Dockerfile instructions.
+func GetImageConfig(changes []string) (ImageConfig, error) {
+	// Valid changes:
+	// USER
+	// EXPOSE
+	// ENV
+	// ENTRYPOINT
+	// CMD
+	// VOLUME
+	// WORKDIR
+	// LABEL
+	// STOPSIGNAL
+	// ONBUILD
 
-	exposedPorts := make(map[string]struct{})
-	volumes := make(map[string]struct{})
-	labels := make(map[string]string)
+	config := ImageConfig{}
 
-	for _, ch := range changes {
-		pair := strings.Split(ch, "=")
-		if len(pair) == 1 {
-			return v1.ImageConfig{}, errors.Errorf("no value given for instruction %q", ch)
-		}
-		switch pair[0] {
-		case "USER":
-			user = pair[1]
-		case "EXPOSE":
-			var st struct{}
-			exposedPorts[pair[1]] = st
-		case "ENV":
-			env = append(env, pair[1])
-		case "ENTRYPOINT":
-			entrypoint = append(entrypoint, pair[1])
-		case "CMD":
-			cmd = append(cmd, pair[1])
-		case "VOLUME":
-			var st struct{}
-			volumes[pair[1]] = st
-		case "WORKDIR":
-			workingDir = pair[1]
-		case "LABEL":
-			if len(pair) == 3 {
-				labels[pair[1]] = pair[2]
-			} else {
-				labels[pair[1]] = ""
+	for _, change := range changes {
+		// First, let's assume proper Dockerfile format - space
+		// separator between instruction and value
+		split := strings.SplitN(change, " ", 2)
+
+		if len(split) != 2 {
+			split = strings.SplitN(change, "=", 2)
+			if len(split) != 2 {
+				return ImageConfig{}, errors.Errorf("invalid change %q - must be formatted as KEY VALUE", change)
 			}
+		}
+
+		outerKey := strings.ToUpper(strings.TrimSpace(split[0]))
+		value := strings.TrimSpace(split[1])
+		switch outerKey {
+		case "USER":
+			// Assume literal contents are the user.
+			if value == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide a value to USER", change)
+			}
+			config.User = value
+		case "EXPOSE":
+			// EXPOSE is either [portnum] or
+			// [portnum]/[proto]
+			// Protocol must be "tcp" or "udp"
+			splitPort := strings.Split(value, "/")
+			if len(splitPort) > 2 {
+				return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be formatted as PORT[/PROTO]", change)
+			}
+			portNum, err := strconv.Atoi(splitPort[0])
+			if err != nil {
+				return ImageConfig{}, errors.Wrapf(err, "invalid change %q - EXPOSE port must be an integer", change)
+			}
+			if portNum > 65535 || portNum <= 0 {
+				return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE port must be a valid port number", change)
+			}
+			proto := "tcp"
+			if len(splitPort) > 1 {
+				testProto := strings.ToLower(splitPort[1])
+				switch testProto {
+				case "tcp", "udp":
+					proto = testProto
+				default:
+					return ImageConfig{}, errors.Errorf("invalid change %q - EXPOSE protocol must be TCP or UDP", change)
+				}
+			}
+			if config.ExposedPorts == nil {
+				config.ExposedPorts = make(map[string]struct{})
+			}
+			config.ExposedPorts[fmt.Sprintf("%d/%s", portNum, proto)] = struct{}{}
+		case "ENV":
+			// Format is either:
+			// ENV key=value
+			// ENV key=value key=value ...
+			// ENV key value
+			// Both keys and values can be surrounded by quotes to group them.
+			// For now: we only support key=value
+			// We will attempt to strip quotation marks if present.
+
+			var (
+				key, val string
+			)
+
+			splitEnv := strings.SplitN(value, "=", 2)
+			key = splitEnv[0]
+			// We do need a key
+			if key == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - ENV must have at least one argument", change)
+			}
+			// Perfectly valid to not have a value
+			if len(splitEnv) == 2 {
+				val = splitEnv[1]
+			}
+
+			if strings.HasPrefix(key, `"`) && strings.HasSuffix(key, `"`) {
+				key = strings.TrimPrefix(strings.TrimSuffix(key, `"`), `"`)
+			}
+			if strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`) {
+				val = strings.TrimPrefix(strings.TrimSuffix(val, `"`), `"`)
+			}
+			config.Env = append(config.Env, fmt.Sprintf("%s=%s", key, val))
+		case "ENTRYPOINT":
+			// Two valid forms.
+			// First, JSON array.
+			// Second, not a JSON array - we interpret this as an
+			// argument to `sh -c`, unless empty, in which case we
+			// just use a blank entrypoint.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// It ain't valid JSON, so assume it's an
+				// argument to sh -c if not empty.
+				if value != "" {
+					config.Entrypoint = []string{"/bin/sh", "-c", value}
+				} else {
+					config.Entrypoint = []string{}
+				}
+			} else {
+				// Valid JSON
+				config.Entrypoint = testUnmarshal
+			}
+		case "CMD":
+			// Same valid forms as entrypoint.
+			// However, where ENTRYPOINT assumes that 'ENTRYPOINT '
+			// means no entrypoint, CMD assumes it is 'sh -c' with
+			// no third argument.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// It ain't valid JSON, so assume it's an
+				// argument to sh -c.
+				// Only include volume if it's not ""
+				config.Cmd = []string{"/bin/sh", "-c"}
+				if value != "" {
+					config.Cmd = append(config.Cmd, value)
+				}
+			} else {
+				// Valid JSON
+				config.Cmd = testUnmarshal
+			}
+		case "VOLUME":
+			// Either a JSON array or a set of space-separated
+			// paths.
+			// Acts rather similar to ENTRYPOINT and CMD, but always
+			// appends rather than replacing, and no sh -c prepend.
+			testUnmarshal := []string{}
+			if err := json.Unmarshal([]byte(value), &testUnmarshal); err != nil {
+				// Not valid JSON, so split on spaces
+				testUnmarshal = strings.Split(value, " ")
+			}
+			if len(testUnmarshal) == 0 {
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide at least one argument to VOLUME", change)
+			}
+			for _, vol := range testUnmarshal {
+				if vol == "" {
+					return ImageConfig{}, errors.Errorf("invalid change %q - VOLUME paths must not be empty", change)
+				}
+				if config.Volumes == nil {
+					config.Volumes = make(map[string]struct{})
+				}
+				config.Volumes[vol] = struct{}{}
+			}
+		case "WORKDIR":
+			// This can be passed multiple times.
+			// Each successive invocation is treated as relative to
+			// the previous one - so WORKDIR /A, WORKDIR b,
+			// WORKDIR c results in /A/b/c
+			// Just need to check it's not empty...
+			if value == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - must provide a non-empty WORKDIR", change)
+			}
+			config.WorkingDir = filepath.Join(config.WorkingDir, value)
+		case "LABEL":
+			// Same general idea as ENV, but we no longer allow " "
+			// as a separator.
+			// We didn't do that for ENV either, so nice and easy.
+			// Potentially problematic: LABEL might theoretically
+			// allow an = in the key? If people really do this, we
+			// may need to investigate more advanced parsing.
+			var (
+				key, val string
+			)
+
+			splitLabel := strings.SplitN(value, "=", 2)
+			// Unlike ENV, LABEL must have a value
+			if len(splitLabel) != 2 {
+				return ImageConfig{}, errors.Errorf("invalid change %q - LABEL must be formatted key=value", change)
+			}
+			key = splitLabel[0]
+			val = splitLabel[1]
+
+			if strings.HasPrefix(key, `"`) && strings.HasSuffix(key, `"`) {
+				key = strings.TrimPrefix(strings.TrimSuffix(key, `"`), `"`)
+			}
+			if strings.HasPrefix(val, `"`) && strings.HasSuffix(val, `"`) {
+				val = strings.TrimPrefix(strings.TrimSuffix(val, `"`), `"`)
+			}
+			// Check key after we strip quotations
+			if key == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - LABEL must have a non-empty key", change)
+			}
+			if config.Labels == nil {
+				config.Labels = make(map[string]string)
+			}
+			config.Labels[key] = val
 		case "STOPSIGNAL":
-			stopSignal = pair[1]
+			// Check the provided signal for validity.
+			killSignal, err := ParseSignal(value)
+			if err != nil {
+				return ImageConfig{}, errors.Wrapf(err, "invalid change %q - KILLSIGNAL must be given a valid signal", change)
+			}
+			config.StopSignal = fmt.Sprintf("%d", killSignal)
+		case "ONBUILD":
+			// Onbuild always appends.
+			if value == "" {
+				return ImageConfig{}, errors.Errorf("invalid change %q - ONBUILD must be given an argument", change)
+			}
+			config.OnBuild = append(config.OnBuild, value)
+		default:
+			return ImageConfig{}, errors.Errorf("invalid change %q - invalid instruction %s", change, outerKey)
 		}
 	}
 
-	return v1.ImageConfig{
-		User:         user,
-		ExposedPorts: exposedPorts,
-		Env:          env,
-		Entrypoint:   entrypoint,
-		Cmd:          cmd,
-		Volumes:      volumes,
-		WorkingDir:   workingDir,
-		Labels:       labels,
-		StopSignal:   stopSignal,
-	}, nil
+	return config, nil
+}
+
+// ParseSignal parses and validates a signal name or number.
+func ParseSignal(rawSignal string) (syscall.Signal, error) {
+	// Strip off leading dash, to allow -1 or -HUP
+	basename := strings.TrimPrefix(rawSignal, "-")
+
+	signal, err := signal.ParseSignal(basename)
+	if err != nil {
+		return -1, err
+	}
+	// 64 is SIGRTMAX; wish we could get this from a standard Go library
+	if signal < 1 || signal > 64 {
+		return -1, errors.Errorf("valid signals are 1 through 64")
+	}
+	return signal, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
-func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
+func ParseIDMapping(mode namespaces.UsernsMode, uidMapSlice, gidMapSlice []string, subUIDMap, subGIDMap string) (*storage.IDMappingOptions, error) {
 	options := storage.IDMappingOptions{
 		HostUIDMapping: true,
 		HostGIDMapping: true,
 	}
+
+	if mode.IsKeepID() {
+		if len(uidMapSlice) > 0 || len(gidMapSlice) > 0 {
+			return nil, errors.New("cannot specify custom mappings with --userns=keep-id")
+		}
+		if len(subUIDMap) > 0 || len(subGIDMap) > 0 {
+			return nil, errors.New("cannot specify subuidmap or subgidmap with --userns=keep-id")
+		}
+		if rootless.IsRootless() {
+			min := func(a, b int) int {
+				if a < b {
+					return a
+				}
+				return b
+			}
+
+			uid := rootless.GetRootlessUID()
+			gid := rootless.GetRootlessGID()
+
+			uids, gids, err := rootless.GetConfiguredMappings()
+			if err != nil {
+				return nil, errors.Wrapf(err, "cannot read mappings")
+			}
+			maxUID, maxGID := 0, 0
+			for _, u := range uids {
+				maxUID += u.Size
+			}
+			for _, g := range gids {
+				maxGID += g.Size
+			}
+
+			options.UIDMap, options.GIDMap = nil, nil
+
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(uid, maxUID)})
+			options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid, HostID: 0, Size: 1})
+			if maxUID > uid {
+				options.UIDMap = append(options.UIDMap, idtools.IDMap{ContainerID: uid + 1, HostID: uid + 1, Size: maxUID - uid})
+			}
+
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: 0, HostID: 1, Size: min(gid, maxGID)})
+			options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid, HostID: 0, Size: 1})
+			if maxGID > gid {
+				options.GIDMap = append(options.GIDMap, idtools.IDMap{ContainerID: gid + 1, HostID: gid + 1, Size: maxGID - gid})
+			}
+
+			options.HostUIDMapping = false
+			options.HostGIDMapping = false
+		}
+		// Simply ignore the setting and do not setup an inner namespace for root as it is a no-op
+		return &options, nil
+	}
+
 	if subGIDMap == "" && subUIDMap != "" {
 		subGIDMap = subUIDMap
 	}
 	if subUIDMap == "" && subGIDMap != "" {
 		subUIDMap = subGIDMap
 	}
-	if len(GIDMapSlice) == 0 && len(UIDMapSlice) != 0 {
-		GIDMapSlice = UIDMapSlice
+	if len(gidMapSlice) == 0 && len(uidMapSlice) != 0 {
+		gidMapSlice = uidMapSlice
 	}
-	if len(UIDMapSlice) == 0 && len(GIDMapSlice) != 0 {
-		UIDMapSlice = GIDMapSlice
+	if len(uidMapSlice) == 0 && len(gidMapSlice) != 0 {
+		uidMapSlice = gidMapSlice
 	}
-	if len(UIDMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
-		UIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
+	if len(uidMapSlice) == 0 && subUIDMap == "" && os.Getuid() != 0 {
+		uidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getuid())}
 	}
-	if len(GIDMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
-		GIDMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
+	if len(gidMapSlice) == 0 && subGIDMap == "" && os.Getuid() != 0 {
+		gidMapSlice = []string{fmt.Sprintf("0:%d:1", os.Getgid())}
 	}
 
 	if subUIDMap != "" && subGIDMap != "" {
@@ -163,11 +405,11 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 		options.UIDMap = mappings.UIDs()
 		options.GIDMap = mappings.GIDs()
 	}
-	parsedUIDMap, err := idtools.ParseIDMap(UIDMapSlice, "UID")
+	parsedUIDMap, err := idtools.ParseIDMap(uidMapSlice, "UID")
 	if err != nil {
 		return nil, err
 	}
-	parsedGIDMap, err := idtools.ParseIDMap(GIDMapSlice, "GID")
+	parsedGIDMap, err := idtools.ParseIDMap(gidMapSlice, "GID")
 	if err != nil {
 		return nil, err
 	}
@@ -183,79 +425,11 @@ func ParseIDMapping(UIDMapSlice, GIDMapSlice []string, subUIDMap, subGIDMap stri
 }
 
 var (
-	rootlessRuntimeDirOnce sync.Once
-	rootlessRuntimeDir     string
+	rootlessConfigHomeDirOnce sync.Once
+	rootlessConfigHomeDir     string
+	rootlessRuntimeDirOnce    sync.Once
+	rootlessRuntimeDir        string
 )
-
-// GetRootlessRuntimeDir returns the runtime directory when running as non root
-func GetRootlessRuntimeDir() (string, error) {
-	var rootlessRuntimeDirError error
-
-	rootlessRuntimeDirOnce.Do(func() {
-		runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		uid := fmt.Sprintf("%d", rootless.GetRootlessUID())
-		if runtimeDir == "" {
-			tmpDir := filepath.Join("/run", "user", uid)
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			tmpDir := filepath.Join(os.TempDir(), fmt.Sprintf("run-%s", uid))
-			os.MkdirAll(tmpDir, 0700)
-			st, err := os.Stat(tmpDir)
-			if err == nil && int(st.Sys().(*syscall.Stat_t).Uid) == os.Geteuid() && st.Mode().Perm() == 0700 {
-				runtimeDir = tmpDir
-			}
-		}
-		if runtimeDir == "" {
-			home := os.Getenv("HOME")
-			if home == "" {
-				rootlessRuntimeDirError = fmt.Errorf("neither XDG_RUNTIME_DIR nor HOME was set non-empty")
-				return
-			}
-			resolvedHome, err := filepath.EvalSymlinks(home)
-			if err != nil {
-				rootlessRuntimeDirError = errors.Wrapf(err, "cannot resolve %s", home)
-				return
-			}
-			runtimeDir = filepath.Join(resolvedHome, "rundir")
-		}
-		rootlessRuntimeDir = runtimeDir
-	})
-
-	if rootlessRuntimeDirError != nil {
-		return "", rootlessRuntimeDirError
-	}
-	return rootlessRuntimeDir, nil
-}
-
-// GetRootlessDirInfo returns the parent path of where the storage for containers and
-// volumes will be in rootless mode
-func GetRootlessDirInfo() (string, string, error) {
-	rootlessRuntime, err := GetRootlessRuntimeDir()
-	if err != nil {
-		return "", "", err
-	}
-
-	dataDir := os.Getenv("XDG_DATA_HOME")
-	if dataDir == "" {
-		home := os.Getenv("HOME")
-		if home == "" {
-			return "", "", fmt.Errorf("neither XDG_DATA_HOME nor HOME was set non-empty")
-		}
-		// runc doesn't like symlinks in the rootfs path, and at least
-		// on CoreOS /home is a symlink to /var/home, so resolve any symlink.
-		resolvedHome, err := filepath.EvalSymlinks(home)
-		if err != nil {
-			return "", "", errors.Wrapf(err, "cannot resolve %s", home)
-		}
-		dataDir = filepath.Join(resolvedHome, ".local", "share")
-	}
-	return dataDir, rootlessRuntime, nil
-}
 
 type tomlOptionsConfig struct {
 	MountProgram string `toml:"mount_program"`
@@ -288,16 +462,20 @@ func getTomlStorage(storeOptions *storage.StoreOptions) *tomlConfig {
 
 // WriteStorageConfigFile writes the configuration to a file
 func WriteStorageConfigFile(storageOpts *storage.StoreOptions, storageConf string) error {
-	os.MkdirAll(filepath.Dir(storageConf), 0755)
-	file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+	if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
+		return err
+	}
+	storageFile, err := os.OpenFile(storageConf, os.O_RDWR|os.O_TRUNC, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "cannot open %s", storageConf)
 	}
 	tomlConfiguration := getTomlStorage(storageOpts)
-	defer file.Close()
-	enc := toml.NewEncoder(file)
+	defer errorhandling.CloseQuiet(storageFile)
+	enc := toml.NewEncoder(storageFile)
 	if err := enc.Encode(tomlConfiguration); err != nil {
-		os.Remove(storageConf)
+		if err := os.Remove(storageConf); err != nil {
+			logrus.Errorf("unable to remove file %s", storageConf)
+		}
 		return err
 	}
 	return nil
@@ -323,4 +501,111 @@ func ParseInputTime(inputTime string) (time.Time, error) {
 		return time.Time{}, errors.Errorf("unable to interpret time value")
 	}
 	return time.Now().Add(-duration), nil
+}
+
+// GetGlobalOpts checks all global flags and generates the command string
+func GetGlobalOpts(c *cliconfig.RunlabelValues) string {
+	globalFlags := map[string]bool{
+		"cgroup-manager": true, "cni-config-dir": true, "conmon": true, "default-mounts-file": true,
+		"hooks-dir": true, "namespace": true, "root": true, "runroot": true,
+		"runtime": true, "storage-driver": true, "storage-opt": true, "syslog": true,
+		"trace": true, "network-cmd-path": true, "config": true, "cpu-profile": true,
+		"log-level": true, "tmpdir": true}
+	const stringSliceType string = "stringSlice"
+
+	var optsCommand []string
+	c.PodmanCommand.Command.Flags().VisitAll(func(f *pflag.Flag) {
+		if !f.Changed {
+			return
+		}
+		if _, exist := globalFlags[f.Name]; exist {
+			if f.Value.Type() == stringSliceType {
+				flagValue := strings.TrimSuffix(strings.TrimPrefix(f.Value.String(), "["), "]")
+				for _, value := range strings.Split(flagValue, ",") {
+					optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, value))
+				}
+			} else {
+				optsCommand = append(optsCommand, fmt.Sprintf("--%s %s", f.Name, f.Value.String()))
+			}
+		}
+	})
+	return strings.Join(optsCommand, " ")
+}
+
+// OpenExclusiveFile opens a file for writing and ensure it doesn't already exist
+func OpenExclusiveFile(path string) (*os.File, error) {
+	baseDir := filepath.Dir(path)
+	if baseDir != "" {
+		if _, err := os.Stat(baseDir); err != nil {
+			return nil, err
+		}
+	}
+	return os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
+}
+
+// PullType whether to pull new image
+type PullType int
+
+const (
+	// PullImageAlways always try to pull new image when create or run
+	PullImageAlways PullType = iota
+	// PullImageMissing pulls image if it is not locally
+	PullImageMissing
+	// PullImageNever will never pull new image
+	PullImageNever
+)
+
+// ValidatePullType check if the pullType from CLI is valid and returns the valid enum type
+// if the value from CLI is invalid returns the error
+func ValidatePullType(pullType string) (PullType, error) {
+	switch pullType {
+	case "always":
+		return PullImageAlways, nil
+	case "missing":
+		return PullImageMissing, nil
+	case "never":
+		return PullImageNever, nil
+	case "":
+		return PullImageMissing, nil
+	default:
+		return PullImageMissing, errors.Errorf("invalid pull type %q", pullType)
+	}
+}
+
+// ExitCode reads the error message when failing to executing container process
+// and then returns 0 if no error, 126 if command does not exist, or 127 for
+// all other errors
+func ExitCode(err error) int {
+	if err == nil {
+		return 0
+	}
+	e := strings.ToLower(err.Error())
+	if strings.Contains(e, "file not found") ||
+		strings.Contains(e, "no such file or directory") {
+		return 127
+	}
+
+	return 126
+}
+
+// HomeDir returns the home directory for the current user.
+func HomeDir() (string, error) {
+	home := os.Getenv("HOME")
+	if home == "" {
+		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
+		if err != nil {
+			return "", errors.Wrapf(err, "unable to resolve HOME directory")
+		}
+		home = usr.HomeDir
+	}
+	return home, nil
+}
+
+func Tmpdir() string {
+	tmpdir := os.Getenv("TMPDIR")
+	if tmpdir == "" {
+		tmpdir = "/var/tmp"
+	}
+
+	return tmpdir
 }

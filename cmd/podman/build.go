@@ -9,27 +9,31 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 var (
 	buildCommand     cliconfig.BuildValues
-	buildDescription = "Builds an OCI or Docker image using instructions from one or more Dockerfiles and a specified build context directory."
+	buildDescription = "Builds an OCI or Docker image using instructions from one or more Containerfiles and a specified build context directory."
 	layerValues      buildahcli.LayerResults
 	budFlagsValues   buildahcli.BudResults
 	fromAndBudValues buildahcli.FromAndBudResults
 	userNSValues     buildahcli.UserNSResults
 	namespaceValues  buildahcli.NameSpaceResults
+	podBuildValues   cliconfig.PodmanBuildResults
 
 	_buildCommand = &cobra.Command{
 		Use:   "build [flags] CONTEXT",
-		Short: "Build an image using instructions from Dockerfiles",
+		Short: "Build an image using instructions from Containerfiles",
 		Long:  buildDescription,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			buildCommand.InputArgs = args
@@ -39,67 +43,97 @@ var (
 			buildCommand.FromAndBudResults = &fromAndBudValues
 			buildCommand.LayerResults = &layerValues
 			buildCommand.NameSpaceResults = &namespaceValues
+			buildCommand.PodmanBuildResults = &podBuildValues
 			buildCommand.Remote = remoteclient
 			return buildCmd(&buildCommand)
 		},
 		Example: `podman build .
-  podman build --cert-dir ~/auth --creds=username:password -t imageName -f Dockerfile.simple .
+  podman build --creds=username:password -t imageName -f Containerfile.simple .
   podman build --layers --force-rm --tag imageName .`,
 	}
 )
 
-func init() {
+func initBuild() {
 	buildCommand.Command = _buildCommand
 	buildCommand.SetHelpTemplate(HelpTemplate())
 	buildCommand.SetUsageTemplate(UsageTemplate())
 	flags := buildCommand.Flags()
 	flags.SetInterspersed(true)
-
 	budFlags := buildahcli.GetBudFlags(&budFlagsValues)
 	flag := budFlags.Lookup("pull")
-	flag.Value.Set("true")
+	if err := flag.Value.Set("true"); err != nil {
+		logrus.Error("unable to set pull flag to true")
+	}
 	flag.DefValue = "true"
 	layerFlags := buildahcli.GetLayerFlags(&layerValues)
 	flag = layerFlags.Lookup("layers")
-	flag.Value.Set(useLayers())
-	flag.DefValue = (useLayers())
+	if err := flag.Value.Set(useLayers()); err != nil {
+		logrus.Error("unable to set uselayers")
+	}
+	flag.DefValue = useLayers()
 	flag = layerFlags.Lookup("force-rm")
-	flag.Value.Set("true")
+	if err := flag.Value.Set("true"); err != nil {
+		logrus.Error("unable to set force-rm flag to true")
+	}
 	flag.DefValue = "true"
+	podmanBuildFlags := GetPodmanBuildFlags(&podBuildValues)
+	flag = podmanBuildFlags.Lookup("squash-all")
+	if err := flag.Value.Set("false"); err != nil {
+		logrus.Error("unable to set squash-all flag to false")
+	}
 
-	fromAndBugFlags := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+	flag.DefValue = "true"
+	fromAndBugFlags, err := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
+	if err != nil {
+		logrus.Errorf("failed to setup podman build flags: %v", err)
+	}
 
 	flags.AddFlagSet(&budFlags)
-	flags.AddFlagSet(&layerFlags)
 	flags.AddFlagSet(&fromAndBugFlags)
+	flags.AddFlagSet(&layerFlags)
+	flags.AddFlagSet(&podmanBuildFlags)
+	markFlagHidden(flags, "signature-policy")
 }
 
-func getDockerfiles(files []string) []string {
-	var dockerfiles []string
+// GetPodmanBuildFlags flags used only by `podman build` and not by
+// `buildah bud`.
+func GetPodmanBuildFlags(flags *cliconfig.PodmanBuildResults) pflag.FlagSet {
+	fs := pflag.FlagSet{}
+	fs.BoolVar(&flags.SquashAll, "squash-all", false, "Squash all layers into a single layer.")
+	return fs
+}
+
+func getContainerfiles(files []string) []string {
+	var containerfiles []string
 	for _, f := range files {
 		if f == "-" {
-			dockerfiles = append(dockerfiles, "/dev/stdin")
+			containerfiles = append(containerfiles, "/dev/stdin")
 		} else {
-			dockerfiles = append(dockerfiles, f)
+			containerfiles = append(containerfiles, f)
 		}
 	}
-	return dockerfiles
+	return containerfiles
 }
 
 func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
 	var ret []buildah.NamespaceOption
 	if c.Network != "" {
-		if c.Network == "host" {
+		switch {
+		case c.Network == "host":
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
 				Host: true,
 			})
-		} else if c.Network[0] == '/' {
+		case c.Network == "container":
+			ret = append(ret, buildah.NamespaceOption{
+				Name: string(specs.NetworkNamespace),
+			})
+		case c.Network[0] == '/':
 			ret = append(ret, buildah.NamespaceOption{
 				Name: string(specs.NetworkNamespace),
 				Path: c.Network,
 			})
-		} else {
+		default:
 			return nil, fmt.Errorf("unsupported configuration network=%s", c.Network)
 		}
 	}
@@ -107,6 +141,12 @@ func getNsValues(c *cliconfig.BuildValues) ([]buildah.NamespaceOption, error) {
 }
 
 func buildCmd(c *cliconfig.BuildValues) error {
+	if (c.Flags().Changed("squash") && c.Flags().Changed("layers")) ||
+		(c.Flags().Changed("squash-all") && c.Flags().Changed("layers")) ||
+		(c.Flags().Changed("squash-all") && c.Flags().Changed("squash")) {
+		return fmt.Errorf("cannot specify squash, squash-all and layers options together")
+	}
+
 	// The following was taken directly from containers/buildah/cmd/bud.go
 	// TODO Find a away to vendor more of this in rather than copy from bud
 	output := ""
@@ -116,6 +156,11 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		if len(tags) > 0 {
 			output = tags[0]
 			tags = tags[1:]
+		}
+	}
+	if c.BudResults.Authfile != "" {
+		if _, err := os.Stat(c.BudResults.Authfile); err != nil {
+			return errors.Wrapf(err, "error getting authfile %s", c.BudResults.Authfile)
 		}
 	}
 
@@ -139,7 +184,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		}
 	}
 
-	dockerfiles := getDockerfiles(c.File)
+	containerfiles := getContainerfiles(c.File)
 	format, err := getFormat(&c.PodmanCommand)
 	if err != nil {
 		return nil
@@ -176,37 +221,39 @@ func buildCmd(c *cliconfig.BuildValues) error {
 			}
 			contextDir = absDir
 		}
-		cliArgs = Tail(cliArgs)
 	} else {
 		// No context directory or URL was specified.  Try to use the
-		// home of the first locally-available Dockerfile.
-		for i := range dockerfiles {
-			if strings.HasPrefix(dockerfiles[i], "http://") ||
-				strings.HasPrefix(dockerfiles[i], "https://") ||
-				strings.HasPrefix(dockerfiles[i], "git://") ||
-				strings.HasPrefix(dockerfiles[i], "github.com/") {
+		// home of the first locally-available Containerfile.
+		for i := range containerfiles {
+			if strings.HasPrefix(containerfiles[i], "http://") ||
+				strings.HasPrefix(containerfiles[i], "https://") ||
+				strings.HasPrefix(containerfiles[i], "git://") ||
+				strings.HasPrefix(containerfiles[i], "github.com/") {
 				continue
 			}
-			absFile, err := filepath.Abs(dockerfiles[i])
+			absFile, err := filepath.Abs(containerfiles[i])
 			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
+				return errors.Wrapf(err, "error determining path to file %q", containerfiles[i])
 			}
 			contextDir = filepath.Dir(absFile)
-			dockerfiles[i], err = filepath.Rel(contextDir, absFile)
-			if err != nil {
-				return errors.Wrapf(err, "error determining path to file %q", dockerfiles[i])
-			}
 			break
 		}
 	}
 	if contextDir == "" {
-		return errors.Errorf("no context directory specified, and no dockerfile specified")
+		return errors.Errorf("no context directory specified, and no containerfile specified")
 	}
-	if len(dockerfiles) == 0 {
-		dockerfiles = append(dockerfiles, filepath.Join(contextDir, "Dockerfile"))
+	if !fileIsDir(contextDir) {
+		return errors.Errorf("context must be a directory: %v", contextDir)
+	}
+	if len(containerfiles) == 0 {
+		if checkIfFileExists(filepath.Join(contextDir, "Containerfile")) {
+			containerfiles = append(containerfiles, filepath.Join(contextDir, "Containerfile"))
+		} else {
+			containerfiles = append(containerfiles, filepath.Join(contextDir, "Dockerfile"))
+		}
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
@@ -215,9 +262,17 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	for _, arg := range c.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
+
+	conf, err := runtime.GetConfig()
+	if err != nil {
+		return err
+	}
+	if conf != nil && conf.CgroupManager == define.SystemdCgroupsManager {
+		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
+	}
 	// end from buildah
 
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	var stdout, stderr, reporter *os.File
 	stdout = os.Stdout
@@ -267,7 +322,23 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		MemorySwap:   memorySwap,
 		ShmSize:      c.ShmSize,
 		Ulimit:       c.Ulimit,
-		Volumes:      c.Volume,
+		Volumes:      c.Volumes,
+	}
+
+	// `buildah bud --layers=false` acts like `docker build --squash` does.
+	// That is all of the new layers created during the build process are
+	// condensed into one, any layers present prior to this build are retained
+	// without condensing.  `buildah bud --squash` squashes both new and old
+	// layers down into one.  Translate Podman commands into Buildah.
+	// Squash invoked, retain old layers, squash new layers into one.
+	if c.Flags().Changed("squash") && c.Squash {
+		c.Squash = false
+		layers = false
+	}
+	// Squash-all invoked, squash both new and old layers into one.
+	if c.Flags().Changed("squash-all") {
+		c.Squash = true
+		layers = false
 	}
 
 	options := imagebuildah.BuildOptions{
@@ -281,6 +352,7 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		ContextDirectory:        contextDir,
 		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
 		Err:                     stderr,
+		In:                      os.Stdin,
 		ForceRmIntermediateCtrs: c.ForceRm,
 		IIDFile:                 c.Iidfile,
 		Labels:                  c.Label,
@@ -297,19 +369,14 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		RuntimeArgs:             runtimeFlags,
 		SignaturePolicyPath:     c.SignaturePolicy,
 		Squash:                  c.Squash,
-		Target:                  c.Target,
+		SystemContext: &types.SystemContext{
+			OSChoice:           c.OverrideOS,
+			ArchitectureChoice: c.OverrideArch,
+		},
+		Target: c.Target,
 	}
-	return runtime.Build(getContext(), c, options, dockerfiles)
-}
-
-// Tail returns a string slice after the first element unless there are
-// not enough elements, then it returns an empty slice.  This is to replace
-// the urfavecli Tail method for args
-func Tail(a []string) []string {
-	if len(a) >= 2 {
-		return []string(a)[1:]
-	}
-	return []string{}
+	_, _, err = runtime.Build(getContext(), c, options, containerfiles)
+	return err
 }
 
 // useLayers returns false if BUILDAH_LAYERS is set to "0" or "false"

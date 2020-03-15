@@ -59,27 +59,50 @@ func pruneSystemCmd(c *cliconfig.SystemPruneValues) error {
 		fmt.Printf(`
 WARNING! This will remove:
         - all stopped containers%s
+        - all stopped pods
         - all dangling images
         - all build cache
 Are you sure you want to continue? [y/N] `, volumeString)
-		ans, err := reader.ReadString('\n')
+		answer, err := reader.ReadString('\n')
 		if err != nil {
 			return errors.Wrapf(err, "error reading input")
 		}
-		if strings.ToLower(ans)[0] != 'y' {
+		if strings.ToLower(answer)[0] != 'y' {
 			return nil
 		}
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
+	// We must clean out pods first because if they may have infra containers
+	fmt.Println("Deleted Pods")
+	pruneValues := cliconfig.PodPruneValues{
+		PodmanCommand: c.PodmanCommand,
+	}
 	ctx := getContext()
+	ok, failures, lasterr := runtime.PrunePods(ctx, &pruneValues)
+
+	if err := printCmdResults(ok, failures); err != nil {
+		return err
+	}
+
+	rmWorkers := shared.Parallelize("rm")
 	fmt.Println("Deleted Containers")
-	lasterr := pruneContainers(runtime, ctx, shared.Parallelize("rm"), false, false)
+	ok, failures, err = runtime.Prune(ctx, rmWorkers, []string{})
+	if err != nil {
+		if lasterr != nil {
+			logrus.Errorf("%q", err)
+		}
+		lasterr = err
+	}
+	if err := printCmdResults(ok, failures); err != nil {
+		return err
+	}
+
 	if c.Bool("volumes") {
 		fmt.Println("Deleted Volumes")
 		err := volumePrune(runtime, getContext())
@@ -93,7 +116,8 @@ Are you sure you want to continue? [y/N] `, volumeString)
 
 	// Call prune; if any cids are returned, print them and then
 	// return err in case an error also came up
-	pruneCids, err := runtime.PruneImages(c.All)
+	// TODO: support for filters in system prune
+	pruneCids, err := runtime.PruneImages(ctx, c.All, []string{})
 	if len(pruneCids) > 0 {
 		fmt.Println("Deleted Images")
 		for _, cid := range pruneCids {

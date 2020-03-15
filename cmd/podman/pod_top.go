@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/containers/libpod/pkg/adapter"
 	"os"
 	"strings"
 	"text/tabwriter"
 
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/adapter"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -42,10 +42,9 @@ func init() {
 	podTopCommand.SetHelpTemplate(HelpTemplate())
 	podTopCommand.SetUsageTemplate(UsageTemplate())
 	flags := podTopCommand.Flags()
-	flags.BoolVarP(&podTopCommand.Latest, "latest,", "l", false, "Act on the latest pod podman is aware of")
+	flags.BoolVarP(&podTopCommand.Latest, "latest", "l", false, "Act on the latest pod podman is aware of")
 	flags.BoolVar(&podTopCommand.ListDescriptors, "list-descriptors", false, "")
-	flags.MarkHidden("list-descriptors")
-
+	markFlagHidden(flags, "list-descriptors")
 }
 
 func podTopCmd(c *cliconfig.PodTopValues) error {
@@ -55,7 +54,7 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 	args := c.InputArgs
 
 	if c.ListDescriptors {
-		descriptors, err := libpod.GetContainerPidInformationDescriptors()
+		descriptors, err := util.GetContainerPidInformationDescriptors()
 		if err != nil {
 			return err
 		}
@@ -67,11 +66,11 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		return errors.Errorf("you must provide the name or id of a running pod")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "error creating libpod runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
 	if c.Latest {
 		descriptors = args
@@ -85,8 +84,9 @@ func podTopCmd(c *cliconfig.PodTopValues) error {
 		return err
 	}
 	for _, proc := range psOutput {
-		fmt.Fprintln(w, proc)
+		if _, err := fmt.Fprintln(w, proc); err != nil {
+			return err
+		}
 	}
-	w.Flush()
-	return nil
+	return w.Flush()
 }

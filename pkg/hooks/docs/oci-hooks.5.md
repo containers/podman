@@ -21,11 +21,11 @@ The default directory is `/usr/share/containers/oci/hooks.d`, but tools consumin
 
 If multiple directories are configured, a JSON filename in a preferred directory masks entries with the same filename in directories with lower precedence.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then a hook definition in `/etc/containers/oci/hooks.d/01-my-hook.json` will mask any definition in `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
 
-Tools consuming this format may also opt to monitor the hook directries for changes, in which case they will notice additions, changes, and removals to JSON files without needing to be restarted or otherwise signaled.  When the tool monitors multiple hooks directories, the precedence discussed in the previous paragraph still applies.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then writing a new hook definition to `/etc/containers/oci/hooks.d/01-my-hook.json` will mask the hook previously loaded from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.  Subsequent changes to `/usr/share/containers/oci/hooks.d/01-my-hook.json` will have no effect on the consuming tool as long as `/etc/containers/oci/hooks.d/01-my-hook.json` exists.  Removing `/etc/containers/oci/hooks.d/01-my-hook.json` will reload the hook from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
+Tools consuming this format may also opt to monitor the hook directories for changes, in which case they will notice additions, changes, and removals to JSON files without needing to be restarted or otherwise signaled.  When the tool monitors multiple hooks directories, the precedence discussed in the previous paragraph still applies.  For example, if a consuming tool watches for hooks in `/etc/containers/oci/hooks.d` and `/usr/share/containers/oci/hooks.d` (in order of decreasing precedence), then writing a new hook definition to `/etc/containers/oci/hooks.d/01-my-hook.json` will mask the hook previously loaded from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.  Subsequent changes to `/usr/share/containers/oci/hooks.d/01-my-hook.json` will have no effect on the consuming tool as long as `/etc/containers/oci/hooks.d/01-my-hook.json` exists.  Removing `/etc/containers/oci/hooks.d/01-my-hook.json` will reload the hook from `/usr/share/containers/oci/hooks.d/01-my-hook.json`.
 
 Hooks are injected in the order obtained by sorting the JSON file names, after converting them to lower case, based on their Unicode code points.
 For example, a matching hook defined in `01-my-hook.json` would be injected before matching hooks defined in `02-another-hook.json` and `01-UPPERCASE.json`.
-It is strongly recommended to make the sort oder unambiguous depending on an ASCII-only prefix (like the `01`/`02` above).
+It is strongly recommended to make the sort order unambiguous depending on an ASCII-only prefix (like the `01`/`02` above).
 
 Each JSON file should contain an object with one of the following schemas.
 
@@ -88,9 +88,9 @@ $ cat /etc/containers/oci/hooks.d/oci-systemd-hook.json
   "version": "1.0.0",
   "hook": {
     "path": "/usr/libexec/oci/hooks.d/oci-systemd-hook"
-  }
+  },
   "when": {
-    "args": [".*/init$" , ".*/systemd$"],
+    "commands": [".*/init$" , ".*/systemd$"]
   },
   "stages": ["prestart", "poststop"]
 }
@@ -105,9 +105,9 @@ $ cat /etc/containers/oci/hooks.d/oci-umount.json
   "hook": {
     "path": "/usr/libexec/oci/hooks.d/oci-umount",
     "args": ["oci-umount", "--debug"],
-  }
+  },
   "when": {
-    "hasBindMounts": true,
+    "hasBindMounts": true
   },
   "stages": ["prestart"]
 }

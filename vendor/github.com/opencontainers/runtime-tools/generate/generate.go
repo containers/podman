@@ -54,17 +54,8 @@ func New(os string) (generator Generator, err error) {
 				"cmd",
 			},
 			Cwd: `C:\`,
-			ConsoleSize: &rspec.Box{
-				Width:  80,
-				Height: 20,
-			},
 		}
-		config.Windows = &rspec.Windows{
-			IgnoreFlushesDuringBoot: true,
-			Network: &rspec.WindowsNetwork{
-				AllowUnqualifiedDNSQuery: true,
-			},
-		}
+		config.Windows = &rspec.Windows{}
 	} else {
 		config.Root = &rspec.Root{
 			Path:     "rootfs",
@@ -366,6 +357,12 @@ func (g *Generator) SetRootReadonly(b bool) {
 func (g *Generator) SetHostname(s string) {
 	g.initConfig()
 	g.Config.Hostname = s
+}
+
+// SetOCIVersion sets g.Config.Version.
+func (g *Generator) SetOCIVersion(s string) {
+	g.initConfig()
+	g.Config.Version = s
 }
 
 // ClearAnnotations clears g.Config.Annotations.
@@ -1074,6 +1071,69 @@ func (g *Generator) ClearProcessCapabilities() {
 	g.Config.Process.Capabilities.Ambient = []string{}
 }
 
+// AddProcessCapability adds a process capability into all 5 capability sets.
+func (g *Generator) AddProcessCapability(c string) error {
+	cp := strings.ToUpper(c)
+	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+		return err
+	}
+
+	g.initConfigProcessCapabilities()
+
+	var foundAmbient, foundBounding, foundEffective, foundInheritable, foundPermitted bool
+	for _, cap := range g.Config.Process.Capabilities.Ambient {
+		if strings.ToUpper(cap) == cp {
+			foundAmbient = true
+			break
+		}
+	}
+	if !foundAmbient {
+		g.Config.Process.Capabilities.Ambient = append(g.Config.Process.Capabilities.Ambient, cp)
+	}
+
+	for _, cap := range g.Config.Process.Capabilities.Bounding {
+		if strings.ToUpper(cap) == cp {
+			foundBounding = true
+			break
+		}
+	}
+	if !foundBounding {
+		g.Config.Process.Capabilities.Bounding = append(g.Config.Process.Capabilities.Bounding, cp)
+	}
+
+	for _, cap := range g.Config.Process.Capabilities.Effective {
+		if strings.ToUpper(cap) == cp {
+			foundEffective = true
+			break
+		}
+	}
+	if !foundEffective {
+		g.Config.Process.Capabilities.Effective = append(g.Config.Process.Capabilities.Effective, cp)
+	}
+
+	for _, cap := range g.Config.Process.Capabilities.Inheritable {
+		if strings.ToUpper(cap) == cp {
+			foundInheritable = true
+			break
+		}
+	}
+	if !foundInheritable {
+		g.Config.Process.Capabilities.Inheritable = append(g.Config.Process.Capabilities.Inheritable, cp)
+	}
+
+	for _, cap := range g.Config.Process.Capabilities.Permitted {
+		if strings.ToUpper(cap) == cp {
+			foundPermitted = true
+			break
+		}
+	}
+	if !foundPermitted {
+		g.Config.Process.Capabilities.Permitted = append(g.Config.Process.Capabilities.Permitted, cp)
+	}
+
+	return nil
+}
+
 // AddProcessCapabilityAmbient adds a process capability into g.Config.Process.Capabilities.Ambient.
 func (g *Generator) AddProcessCapabilityAmbient(c string) error {
 	cp := strings.ToUpper(c)
@@ -1188,6 +1248,42 @@ func (g *Generator) AddProcessCapabilityPermitted(c string) error {
 	}
 
 	return nil
+}
+
+// DropProcessCapability drops a process capability from all 5 capability sets.
+func (g *Generator) DropProcessCapability(c string) error {
+	if g.Config == nil || g.Config.Process == nil || g.Config.Process.Capabilities == nil {
+		return nil
+	}
+
+	cp := strings.ToUpper(c)
+	for i, cap := range g.Config.Process.Capabilities.Ambient {
+		if strings.ToUpper(cap) == cp {
+			g.Config.Process.Capabilities.Ambient = removeFunc(g.Config.Process.Capabilities.Ambient, i)
+		}
+	}
+	for i, cap := range g.Config.Process.Capabilities.Bounding {
+		if strings.ToUpper(cap) == cp {
+			g.Config.Process.Capabilities.Bounding = removeFunc(g.Config.Process.Capabilities.Bounding, i)
+		}
+	}
+	for i, cap := range g.Config.Process.Capabilities.Effective {
+		if strings.ToUpper(cap) == cp {
+			g.Config.Process.Capabilities.Effective = removeFunc(g.Config.Process.Capabilities.Effective, i)
+		}
+	}
+	for i, cap := range g.Config.Process.Capabilities.Inheritable {
+		if strings.ToUpper(cap) == cp {
+			g.Config.Process.Capabilities.Inheritable = removeFunc(g.Config.Process.Capabilities.Inheritable, i)
+		}
+	}
+	for i, cap := range g.Config.Process.Capabilities.Permitted {
+		if strings.ToUpper(cap) == cp {
+			g.Config.Process.Capabilities.Permitted = removeFunc(g.Config.Process.Capabilities.Permitted, i)
+		}
+	}
+
+	return validate.CapValid(cp, false)
 }
 
 // DropProcessCapabilityAmbient drops a process capability from g.Config.Process.Capabilities.Ambient.
@@ -1533,14 +1629,82 @@ func (g *Generator) SetSolarisMilestone(milestone string) {
 	g.Config.Solaris.Milestone = milestone
 }
 
+// SetVMHypervisorPath sets g.Config.VM.Hypervisor.Path
+func (g *Generator) SetVMHypervisorPath(path string) error {
+	if !strings.HasPrefix(path, "/") {
+		return fmt.Errorf("hypervisorPath %v is not an absolute path", path)
+	}
+	g.initConfigVMHypervisor()
+	g.Config.VM.Hypervisor.Path = path
+	return nil
+}
+
+// SetVMHypervisorParameters sets g.Config.VM.Hypervisor.Parameters
+func (g *Generator) SetVMHypervisorParameters(parameters []string) {
+	g.initConfigVMHypervisor()
+	g.Config.VM.Hypervisor.Parameters = parameters
+}
+
+// SetVMKernelPath sets g.Config.VM.Kernel.Path
+func (g *Generator) SetVMKernelPath(path string) error {
+	if !strings.HasPrefix(path, "/") {
+		return fmt.Errorf("kernelPath %v is not an absolute path", path)
+	}
+	g.initConfigVMKernel()
+	g.Config.VM.Kernel.Path = path
+	return nil
+}
+
+// SetVMKernelParameters sets g.Config.VM.Kernel.Parameters
+func (g *Generator) SetVMKernelParameters(parameters []string) {
+	g.initConfigVMKernel()
+	g.Config.VM.Kernel.Parameters = parameters
+}
+
+// SetVMKernelInitRD sets g.Config.VM.Kernel.InitRD
+func (g *Generator) SetVMKernelInitRD(initrd string) error {
+	if !strings.HasPrefix(initrd, "/") {
+		return fmt.Errorf("kernelInitrd %v is not an absolute path", initrd)
+	}
+	g.initConfigVMKernel()
+	g.Config.VM.Kernel.InitRD = initrd
+	return nil
+}
+
+// SetVMImagePath sets g.Config.VM.Image.Path
+func (g *Generator) SetVMImagePath(path string) error {
+	if !strings.HasPrefix(path, "/") {
+		return fmt.Errorf("imagePath %v is not an absolute path", path)
+	}
+	g.initConfigVMImage()
+	g.Config.VM.Image.Path = path
+	return nil
+}
+
+// SetVMImageFormat sets g.Config.VM.Image.Format
+func (g *Generator) SetVMImageFormat(format string) error {
+	switch format {
+	case "raw":
+	case "qcow2":
+	case "vdi":
+	case "vmdk":
+	case "vhd":
+	default:
+		return fmt.Errorf("Commonly supported formats are: raw, qcow2, vdi, vmdk, vhd")
+	}
+	g.initConfigVMImage()
+	g.Config.VM.Image.Format = format
+	return nil
+}
+
 // SetWindowsHypervUntilityVMPath sets g.Config.Windows.HyperV.UtilityVMPath.
 func (g *Generator) SetWindowsHypervUntilityVMPath(path string) {
 	g.initConfigWindowsHyperV()
 	g.Config.Windows.HyperV.UtilityVMPath = path
 }
 
-// SetWinodwsIgnoreFlushesDuringBoot sets g.Config.Winodws.IgnoreFlushesDuringBoot.
-func (g *Generator) SetWinodwsIgnoreFlushesDuringBoot(ignore bool) {
+// SetWindowsIgnoreFlushesDuringBoot sets g.Config.Windows.IgnoreFlushesDuringBoot.
+func (g *Generator) SetWindowsIgnoreFlushesDuringBoot(ignore bool) {
 	g.initConfigWindows()
 	g.Config.Windows.IgnoreFlushesDuringBoot = ignore
 }
@@ -1551,10 +1715,43 @@ func (g *Generator) AddWindowsLayerFolders(folder string) {
 	g.Config.Windows.LayerFolders = append(g.Config.Windows.LayerFolders, folder)
 }
 
+// AddWindowsDevices adds or sets g.Config.Windwos.Devices
+func (g *Generator) AddWindowsDevices(id, idType string) error {
+	if idType != "class" {
+		return fmt.Errorf("Invalid idType value: %s. Windows only supports a value of class", idType)
+	}
+	device := rspec.WindowsDevice{
+		ID:     id,
+		IDType: idType,
+	}
+
+	g.initConfigWindows()
+	for i, device := range g.Config.Windows.Devices {
+		if device.ID == id {
+			g.Config.Windows.Devices[i].IDType = idType
+			return nil
+		}
+	}
+	g.Config.Windows.Devices = append(g.Config.Windows.Devices, device)
+	return nil
+}
+
 // SetWindowsNetwork sets g.Config.Windows.Network.
 func (g *Generator) SetWindowsNetwork(network rspec.WindowsNetwork) {
 	g.initConfigWindows()
 	g.Config.Windows.Network = &network
+}
+
+// SetWindowsNetworkAllowUnqualifiedDNSQuery sets g.Config.Windows.Network.AllowUnqualifiedDNSQuery
+func (g *Generator) SetWindowsNetworkAllowUnqualifiedDNSQuery(setting bool) {
+	g.initConfigWindowsNetwork()
+	g.Config.Windows.Network.AllowUnqualifiedDNSQuery = setting
+}
+
+// SetWindowsNetworkNamespace sets g.Config.Windows.Network.NetworkNamespace
+func (g *Generator) SetWindowsNetworkNamespace(path string) {
+	g.initConfigWindowsNetwork()
+	g.Config.Windows.Network.NetworkNamespace = path
 }
 
 // SetWindowsResourcesCPU sets g.Config.Windows.Resources.CPU.
@@ -1575,8 +1772,8 @@ func (g *Generator) SetWindowsResourcesStorage(storage rspec.WindowsStorageResou
 	g.Config.Windows.Resources.Storage = &storage
 }
 
-// SetWinodwsServicing sets g.Config.Winodws.Servicing.
-func (g *Generator) SetWinodwsServicing(servicing bool) {
+// SetWindowsServicing sets g.Config.Windows.Servicing.
+func (g *Generator) SetWindowsServicing(servicing bool) {
 	g.initConfigWindows()
 	g.Config.Windows.Servicing = servicing
 }

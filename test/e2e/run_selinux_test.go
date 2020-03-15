@@ -25,7 +25,7 @@ var _ = Describe("Podman run", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.SeedImages()
 		if !selinux.GetEnabled() {
 			Skip("SELinux not enabled")
 		}
@@ -151,6 +151,30 @@ var _ = Describe("Podman run", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		match, _ := session.GrepString("container_file_t")
 		Expect(match).Should(BeTrue())
+	})
+
+	It("podman run selinux file type setup test", func() {
+		session := podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:container_var_lib_t", fedoraMinimal, "ls", "-Z", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		match, _ := session.GrepString("container_var_lib_t")
+		Expect(match).Should(BeTrue())
+
+		session = podmanTest.Podman([]string{"run", "-it", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(126))
+	})
+
+	It("podman exec selinux check", func() {
+		setup := podmanTest.RunTopContainer("test1")
+		setup.WaitWithDefaultTimeout()
+		Expect(setup.ExitCode()).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/1/attr/current"})
+		session.WaitWithDefaultTimeout()
+		session1 := podmanTest.Podman([]string{"exec", "test1", "cat", "/proc/self/attr/current"})
+		session1.WaitWithDefaultTimeout()
+		Expect(session.OutputToString()).To(Equal(session1.OutputToString()))
 	})
 
 })

@@ -3,17 +3,21 @@
 package varlinkapi
 
 import (
+	"context"
+	"fmt"
+	"os"
 	goruntime "runtime"
-	"strings"
 	"time"
 
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/libpod/cmd/podman/varlink"
-	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/sirupsen/logrus"
 )
 
 // GetVersion ...
 func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
-	versionInfo, err := libpod.GetVersion()
+	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
 	}
@@ -30,13 +34,10 @@ func (i *LibpodAPI) GetVersion(call iopodman.VarlinkCall) error {
 
 // GetInfo returns details about the podman host and its stores
 func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
-	versionInfo, err := libpod.GetVersion()
+	versionInfo, err := define.GetVersion()
 	if err != nil {
 		return err
 	}
-	var (
-		registries, insecureRegistries []string
-	)
 	podmanInfo := iopodman.PodmanInfo{}
 	info, err := i.Runtime.Info()
 	if err != nil {
@@ -61,6 +62,7 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Kernel:          host["kernel"].(string),
 		Os:              host["os"].(string),
 		Uptime:          host["uptime"].(string),
+		Eventlogger:     host["eventlogger"].(string),
 	}
 	podmanInfo.Host = infoHost
 	store := info[1].Data
@@ -82,22 +84,45 @@ func (i *LibpodAPI) GetInfo(call iopodman.VarlinkCall) error {
 		Images:               int64(store["ImageStore"].(map[string]interface{})["number"].(int)),
 		Run_root:             store["RunRoot"].(string),
 		Graph_root:           store["GraphRoot"].(string),
-		Graph_driver_options: strings.Join(store["GraphOptions"].([]string), ", "),
+		Graph_driver_options: fmt.Sprintf("%v", store["GraphOptions"]),
 		Graph_status:         graphStatus,
 	}
 
-	registriesInterface := info[2].Data["registries"]
-	insecureRegistriesInterface := info[3].Data["registries"]
-	if registriesInterface != nil {
-		registries = registriesInterface.([]string)
-	}
-	if insecureRegistriesInterface != nil {
-		insecureRegistries = insecureRegistriesInterface.([]string)
-	}
+	// Registry information if any is stored as the second list item
+	if len(info) > 2 {
+		for key, val := range info[2].Data {
+			if key == "search" {
+				podmanInfo.Registries.Search = val.([]string)
+				continue
+			}
+			regData := val.(sysregistriesv2.Registry)
+			if regData.Insecure {
+				podmanInfo.Registries.Insecure = append(podmanInfo.Registries.Insecure, key)
+			}
+			if regData.Blocked {
+				podmanInfo.Registries.Blocked = append(podmanInfo.Registries.Blocked, key)
+			}
+		}
 
+	}
 	podmanInfo.Store = infoStore
 	podmanInfo.Podman = pmaninfo
-	podmanInfo.Registries = registries
-	podmanInfo.Insecure_registries = insecureRegistries
 	return call.ReplyGetInfo(podmanInfo)
+}
+
+// GetVersion ...
+func (i *LibpodAPI) Reset(call iopodman.VarlinkCall) error {
+	if err := i.Runtime.Reset(context.TODO()); err != nil {
+		logrus.Errorf("Reset Failed: %v", err)
+		if err := call.ReplyErrorOccurred(err.Error()); err != nil {
+			logrus.Errorf("Failed to send ReplyErrorOccurred: %v", err)
+		}
+		os.Exit(define.ExecErrorCodeGeneric)
+	}
+	if err := call.ReplyReset(); err != nil {
+		logrus.Errorf("Failed to send ReplyReset: %v", err)
+		os.Exit(define.ExecErrorCodeGeneric)
+	}
+	os.Exit(0)
+	return nil
 }

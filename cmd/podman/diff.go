@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/pkg/adapter"
@@ -60,8 +61,9 @@ func init() {
 
 	flags.BoolVar(&diffCommand.Archive, "archive", true, "Save the diff as a tar archive")
 	flags.StringVar(&diffCommand.Format, "format", "", "Change the output format")
-
-	flags.MarkHidden("archive")
+	flags.BoolVarP(&diffCommand.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
+	markFlagHidden(flags, "archive")
+	markFlagHiddenForRemoteClient("latest", flags)
 
 }
 
@@ -83,17 +85,26 @@ func formatJSON(output []diffOutputParams) (diffJSONOutput, error) {
 }
 
 func diffCmd(c *cliconfig.DiffValues) error {
-	if len(c.InputArgs) != 1 {
+	if len(c.InputArgs) != 1 && !c.Latest {
 		return errors.Errorf("container, image, or layer name must be specified: podman diff [options [...]] ID-NAME")
 	}
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 
-	to := c.InputArgs[0]
+	var to string
+	if c.Latest {
+		ctr, err := runtime.GetLatestContainer()
+		if err != nil {
+			return errors.Wrapf(err, "unable to get latest container")
+		}
+		to = ctr.ID()
+	} else {
+		to = c.InputArgs[0]
+	}
 	changes, err := runtime.Diff(c, to)
 	if err != nil {
 		return errors.Wrapf(err, "could not get changes for %q", to)
@@ -126,7 +137,5 @@ func diffCmd(c *cliconfig.DiffValues) error {
 	} else {
 		out = stdoutStruct{output: diffOutput}
 	}
-	formats.Writer(out).Out()
-
-	return nil
+	return out.Out()
 }

@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/rootless"
 	"github.com/containers/psgo"
 )
 
@@ -33,7 +35,7 @@ func (p *Pod) GetPodPidInformation(descriptors []string) ([]string, error) {
 			c.lock.Unlock()
 			return nil, err
 		}
-		if c.state.State == ContainerStateRunning {
+		if c.state.State == define.ContainerStateRunning {
 			pid := strconv.Itoa(c.state.PID)
 			pids = append(pids, pid)
 		}
@@ -43,7 +45,8 @@ func (p *Pod) GetPodPidInformation(descriptors []string) ([]string, error) {
 	//       filters on the data.  We need to change the API here and the
 	//       varlink API to return a [][]string if we want to make use of
 	//       filtering.
-	output, err := psgo.JoinNamespaceAndProcessInfoByPids(pids, descriptors)
+	opts := psgo.JoinNamespaceOpts{FillMappings: rootless.IsRootless()}
+	output, err := psgo.JoinNamespaceAndProcessInfoByPidsWithOptions(pids, descriptors, &opts)
 	if err != nil {
 		return nil, err
 	}

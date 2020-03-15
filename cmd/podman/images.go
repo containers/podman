@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
-	"strconv"
 	"strings"
 	"time"
 	"unicode"
 
 	"github.com/containers/buildah/pkg/formats"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/cmd/podman/imagefilters"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
@@ -23,21 +21,27 @@ import (
 )
 
 type imagesTemplateParams struct {
-	Repository  string
-	Tag         string
-	ID          string
-	Digest      digest.Digest
-	Created     string
-	CreatedTime time.Time
-	Size        string
+	Repository   string
+	Tag          string
+	ID           string
+	Digest       digest.Digest
+	Digests      []digest.Digest
+	CreatedAt    time.Time
+	CreatedSince string
+	Size         string
+	ReadOnly     bool
+	History      string
 }
 
 type imagesJSONParams struct {
-	ID      string        `json:"id"`
-	Name    []string      `json:"names"`
-	Digest  digest.Digest `json:"digest"`
-	Created time.Time     `json:"created"`
-	Size    *uint64       `json:"size"`
+	ID       string          `json:"id"`
+	Name     []string        `json:"names"`
+	Digest   digest.Digest   `json:"digest"`
+	Digests  []digest.Digest `json:"digests"`
+	Created  time.Time       `json:"created"`
+	Size     *uint64         `json:"size"`
+	ReadOnly bool            `json:"readonly"`
+	History  []string        `json:"history"`
 }
 
 type imagesOptions struct {
@@ -49,6 +53,7 @@ type imagesOptions struct {
 	outputformat string
 	sort         string
 	all          bool
+	history      bool
 }
 
 // Type declaration and functions for sorting the images output
@@ -60,7 +65,7 @@ func (a imagesSorted) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 type imagesSortedCreated struct{ imagesSorted }
 
 func (a imagesSortedCreated) Less(i, j int) bool {
-	return a.imagesSorted[i].CreatedTime.After(a.imagesSorted[j].CreatedTime)
+	return a.imagesSorted[i].CreatedAt.After(a.imagesSorted[j].CreatedAt)
 }
 
 type imagesSortedID struct{ imagesSorted }
@@ -120,6 +125,7 @@ func imagesInit(command *cliconfig.ImagesValues) {
 	flags.BoolVar(&command.NoTrunc, "no-trunc", false, "Do not truncate output")
 	flags.BoolVarP(&command.Quiet, "quiet", "q", false, "Display only image IDs")
 	flags.StringVar(&command.Sort, "sort", "created", "Sort by created, id, repository, size, or tag")
+	flags.BoolVarP(&command.History, "history", "", false, "Display the image name history")
 
 }
 
@@ -130,15 +136,15 @@ func init() {
 
 func imagesCmd(c *cliconfig.ImagesValues) error {
 	var (
-		filterFuncs []imagefilters.ResultFilter
-		image       string
+		image string
 	)
 
-	runtime, err := adapter.GetRuntime(&c.PodmanCommand)
+	ctx := getContext()
+	runtime, err := adapter.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "Could not get runtime")
 	}
-	defer runtime.Shutdown(false)
+	defer runtime.DeferredShutdown(false)
 	if len(c.InputArgs) == 1 {
 		image = c.InputArgs[0]
 	}
@@ -148,15 +154,24 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 	if len(c.Filter) > 0 && image != "" {
 		return errors.New("can not specify an image and a filter")
 	}
-	ctx := getContext()
-
-	if len(c.Filter) > 0 {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, c.Filter, nil)
-	} else {
-		filterFuncs, err = CreateFilterFuncs(ctx, runtime, []string{fmt.Sprintf("reference=%s", image)}, nil)
+	filters := c.Filter
+	if len(filters) < 1 && len(image) > 0 {
+		filters = append(filters, fmt.Sprintf("reference=%s", image))
 	}
-	if err != nil {
-		return err
+
+	var sortValues = map[string]bool{
+		"created":    true,
+		"id":         true,
+		"repository": true,
+		"size":       true,
+		"tag":        true,
+	}
+	if !sortValues[c.Sort] {
+		keys := make([]string, 0, len(sortValues))
+		for k := range sortValues {
+			keys = append(keys, k)
+		}
+		return errors.Errorf("invalid sort value %q,  required values: %s", c.Sort, strings.Join(keys, ", "))
 	}
 
 	opts := imagesOptions{
@@ -167,22 +182,31 @@ func imagesCmd(c *cliconfig.ImagesValues) error {
 		format:    c.Format,
 		sort:      c.Sort,
 		all:       c.All,
+		history:   c.History,
 	}
 
-	opts.outputformat = opts.setOutputFormat()
-	images, err := runtime.GetImages()
+	outputformat := opts.setOutputFormat()
+	// These fields were renamed, so we need to provide backward compat for
+	// the old names.
+	if strings.Contains(outputformat, "{{.Created}}") {
+		outputformat = strings.Replace(outputformat, "{{.Created}}", "{{.CreatedSince}}", -1)
+	}
+	if strings.Contains(outputformat, "{{.CreatedTime}}") {
+		outputformat = strings.Replace(outputformat, "{{.CreatedTime}}", "{{.CreatedAt}}", -1)
+	}
+	opts.outputformat = outputformat
+
+	filteredImages, err := runtime.GetFilteredImages(filters, false)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get images")
 	}
 
-	var filteredImages []*adapter.ContainerImage
-	//filter the images
-	if len(c.Filter) > 0 || len(c.InputArgs) == 1 {
-		filteredImages = imagefilters.FilterImages(images, filterFuncs)
-	} else {
-		filteredImages = images
+	for _, image := range filteredImages {
+		if image.IsReadOnly() {
+			opts.outputformat += "{{.ReadOnly}}\t"
+			break
+		}
 	}
-
 	return generateImagesOutput(ctx, filteredImages, opts)
 }
 
@@ -195,29 +219,33 @@ func (i imagesOptions) setOutputFormat() string {
 	if i.quiet {
 		return formats.IDString
 	}
-	format := "table {{.Repository}}\t{{.Tag}}\t"
+	format := "table {{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}\t"
 	if i.noHeading {
-		format = "{{.Repository}}\t{{.Tag}}\t"
+		format = "{{.Repository}}\t{{if .Tag}}{{.Tag}}{{else}}<none>{{end}}\t"
 	}
 	if i.digests {
 		format += "{{.Digest}}\t"
 	}
-	format += "{{.ID}}\t{{.Created}}\t{{.Size}}\t"
+	format += "{{.ID}}\t{{.CreatedSince}}\t{{.Size}}\t"
+	if i.history {
+		format += "{{if .History}}{{.History}}{{else}}<none>{{end}}\t"
+	}
 	return format
 }
 
 // imagesToGeneric creates an empty array of interfaces for output
-func imagesToGeneric(templParams []imagesTemplateParams, JSONParams []imagesJSONParams) (genericParams []interface{}) {
+func imagesToGeneric(templParams []imagesTemplateParams, jsonParams []imagesJSONParams) []interface{} {
+	genericParams := []interface{}{}
 	if len(templParams) > 0 {
 		for _, v := range templParams {
 			genericParams = append(genericParams, interface{}(v))
 		}
-		return
+		return genericParams
 	}
-	for _, v := range JSONParams {
+	for _, v := range jsonParams {
 		genericParams = append(genericParams, interface{}(v))
 	}
-	return
+	return genericParams
 }
 
 func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
@@ -238,12 +266,13 @@ func sortImagesOutput(sortBy string, imagesOutput imagesSorted) imagesSorted {
 }
 
 // getImagesTemplateOutput returns the images information to be printed in human readable format
-func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) (imagesOutput imagesSorted) {
+func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerImage, opts imagesOptions) imagesSorted {
+	var imagesOutput imagesSorted
 	for _, img := range images {
 		// If all is false and the image doesn't have a name, check to see if the top layer of the image is a parent
 		// to another image's top layer. If it is, then it is an intermediate image so don't print out if the --all flag
 		// is not set.
-		isParent, err := img.IsParent()
+		isParent, err := img.IsParent(ctx)
 		if err != nil {
 			logrus.Errorf("error checking if image is a parent %q: %v", img.ID(), err)
 		}
@@ -257,7 +286,7 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 			imageID = shortID(img.ID())
 		}
 
-		// get all specified repo:tag pairs and print them separately
+		// get all specified repo:tag and repo@digest pairs and print them separately
 		repopairs, err := image.ReposToMap(img.Names())
 		if err != nil {
 			logrus.Errorf("error finding tag/digest for %s", img.ID())
@@ -274,46 +303,59 @@ func getImagesTemplateOutput(ctx context.Context, images []*adapter.ContainerIma
 					lastNumIdx := strings.LastIndexFunc(sizeStr, unicode.IsNumber)
 					sizeStr = sizeStr[:lastNumIdx+1] + " " + sizeStr[lastNumIdx+1:]
 				}
+				var imageDigest digest.Digest
+				if len(tag) == 71 && strings.HasPrefix(tag, "sha256:") {
+					imageDigest = digest.Digest(tag)
+					tag = ""
+				} else if img.Digest() != "" {
+					imageDigest = img.Digest()
+				}
 				params := imagesTemplateParams{
-					Repository:  repo,
-					Tag:         tag,
-					ID:          imageID,
-					Digest:      img.Digest(),
-					CreatedTime: createdTime,
-					Created:     units.HumanDuration(time.Since((createdTime))) + " ago",
-					Size:        sizeStr,
+					Repository:   repo,
+					Tag:          tag,
+					ID:           imageID,
+					Digest:       imageDigest,
+					Digests:      img.Digests(),
+					CreatedAt:    createdTime,
+					CreatedSince: units.HumanDuration(time.Since(createdTime)) + " ago",
+					Size:         sizeStr,
+					ReadOnly:     img.IsReadOnly(),
+					History:      strings.Join(img.NamesHistory(), ", "),
 				}
 				imagesOutput = append(imagesOutput, params)
 				if opts.quiet { // Show only one image ID when quiet
 					break outer
 				}
-
 			}
 		}
 	}
 
 	// Sort images by created time
 	sortImagesOutput(opts.sort, imagesOutput)
-	return
+	return imagesOutput
 }
 
 // getImagesJSONOutput returns the images information in its raw form
-func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) (imagesOutput []imagesJSONParams) {
+func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) []imagesJSONParams {
+	imagesOutput := []imagesJSONParams{}
 	for _, img := range images {
 		size, err := img.Size(ctx)
 		if err != nil {
 			size = nil
 		}
 		params := imagesJSONParams{
-			ID:      img.ID(),
-			Name:    img.Names(),
-			Digest:  img.Digest(),
-			Created: img.Created(),
-			Size:    size,
+			ID:       img.ID(),
+			Name:     img.Names(),
+			Digest:   img.Digest(),
+			Digests:  img.Digests(),
+			Created:  img.Created(),
+			Size:     size,
+			ReadOnly: img.IsReadOnly(),
+			History:  img.NamesHistory(),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
-	return
+	return imagesOutput
 }
 
 // generateImagesOutput generates the images based on the format provided
@@ -324,17 +366,13 @@ func generateImagesOutput(ctx context.Context, images []*adapter.ContainerImage,
 
 	switch opts.format {
 	case formats.JSONString:
-		// If 0 images are present, print nothing for JSON
-		if len(images) == 0 {
-			return nil
-		}
 		imagesOutput := getImagesJSONOutput(ctx, images)
 		out = formats.JSONStructArray{Output: imagesToGeneric([]imagesTemplateParams{}, imagesOutput)}
 	default:
 		imagesOutput := getImagesTemplateOutput(ctx, images, opts)
 		out = formats.StdoutTemplateArray{Output: imagesToGeneric(imagesOutput, []imagesJSONParams{}), Template: opts.outputformat, Fields: templateMap}
 	}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 // GenImageOutputMap generates the map used for outputting the images header
@@ -351,51 +389,15 @@ func GenImageOutputMap() map[string]string {
 		if value == "ID" {
 			value = "Image" + value
 		}
+
+		if value == "ReadOnly" {
+			values[key] = "R/O"
+			continue
+		}
+		if value == "CreatedSince" {
+			value = "created"
+		}
 		values[key] = strings.ToUpper(splitCamelCase(value))
 	}
 	return values
-}
-
-// CreateFilterFuncs returns an array of filter functions based on the user inputs
-// and is later used to filter images for output
-func CreateFilterFuncs(ctx context.Context, r *adapter.LocalRuntime, filters []string, img *adapter.ContainerImage) ([]imagefilters.ResultFilter, error) {
-	var filterFuncs []imagefilters.ResultFilter
-	for _, filter := range filters {
-		splitFilter := strings.Split(filter, "=")
-		if len(splitFilter) != 2 {
-			return nil, errors.Errorf("invalid filter syntax %s", filter)
-		}
-		switch splitFilter[0] {
-		case "before":
-			before, err := r.NewImageFromLocal(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.CreatedBeforeFilter(before.Created()))
-		case "after":
-			after, err := r.NewImageFromLocal(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable to find image %s in local stores", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.CreatedAfterFilter(after.Created()))
-		case "dangling":
-			danglingImages, err := strconv.ParseBool(splitFilter[1])
-			if err != nil {
-				return nil, errors.Wrapf(err, "invalid filter dangling=%s", splitFilter[1])
-			}
-			filterFuncs = append(filterFuncs, imagefilters.DanglingFilter(danglingImages))
-		case "label":
-			labelFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, imagefilters.LabelFilter(ctx, labelFilter))
-		case "reference":
-			referenceFilter := strings.Join(splitFilter[1:], "=")
-			filterFuncs = append(filterFuncs, imagefilters.ReferenceFilter(ctx, referenceFilter))
-		default:
-			return nil, errors.Errorf("invalid filter %s ", splitFilter[0])
-		}
-	}
-	if img != nil {
-		filterFuncs = append(filterFuncs, imagefilters.OutputImageFilter(img))
-	}
-	return filterFuncs, nil
 }

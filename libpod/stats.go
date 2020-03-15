@@ -7,7 +7,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containerd/cgroups"
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/cgroups"
 	"github.com/pkg/errors"
 )
 
@@ -17,6 +18,10 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 	stats.ContainerID = c.ID()
 	stats.Name = c.Name()
 
+	if c.config.NoCgroups {
+		return nil, errors.Wrapf(define.ErrNoCgroups, "cannot run top on container %s as it did not create a cgroup", c.ID())
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -25,48 +30,45 @@ func (c *Container) GetContainerStats(previousStats *ContainerStats) (*Container
 		}
 	}
 
-	if c.state.State != ContainerStateRunning {
-		return stats, ErrCtrStateInvalid
+	if c.state.State != define.ContainerStateRunning {
+		return stats, define.ErrCtrStateInvalid
 	}
 
 	cgroupPath, err := c.CGroupPath()
 	if err != nil {
 		return nil, err
 	}
-	v1CGroups := GetV1CGroups(getExcludedCGroups())
-	cgroup, err := cgroups.Load(v1CGroups, cgroups.StaticPath(cgroupPath))
+	cgroup, err := cgroups.Load(cgroupPath)
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to load cgroup at %s", cgroupPath)
 	}
 
 	// Ubuntu does not have swap memory in cgroups because swap is often not enabled.
-	cgroupStats, err := cgroup.Stat(cgroups.IgnoreNotExist)
+	cgroupStats, err := cgroup.Stat()
 	if err != nil {
 		return stats, errors.Wrapf(err, "unable to obtain cgroup stats")
 	}
 	conState := c.state.State
-	if err != nil {
-		return stats, errors.Wrapf(err, "unable to determine container state")
-	}
-
 	netStats, err := getContainerNetIO(c)
 	if err != nil {
 		return nil, err
 	}
 
 	previousCPU := previousStats.CPUNano
-	previousSystem := previousStats.SystemNano
-	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, previousSystem)
+	now := uint64(time.Now().UnixNano())
+	stats.CPU = calculateCPUPercent(cgroupStats, previousCPU, now, previousStats.SystemNano)
 	stats.MemUsage = cgroupStats.Memory.Usage.Usage
 	stats.MemLimit = getMemLimit(cgroupStats.Memory.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
-	if conState == ContainerStateRunning {
+	if conState == define.ContainerStateRunning {
 		stats.PIDs = cgroupStats.Pids.Current
 	}
 	stats.BlockInput, stats.BlockOutput = calculateBlockIO(cgroupStats)
 	stats.CPUNano = cgroupStats.CPU.Usage.Total
-	stats.SystemNano = cgroupStats.CPU.Usage.Kernel
+	stats.CPUSystemNano = cgroupStats.CPU.Usage.Kernel
+	stats.SystemNano = now
+	stats.PerCPU = cgroupStats.CPU.Usage.PerCPU
 	// Handle case where the container is not in a network namespace
 	if netStats != nil {
 		stats.NetInput = netStats.TxBytes
@@ -89,6 +91,7 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 		return cgroupLimit
 	}
 
+	//nolint:unconvert
 	physicalLimit := uint64(si.Totalram)
 	if cgroupLimit > physicalLimit {
 		return physicalLimit
@@ -96,16 +99,19 @@ func getMemLimit(cgroupLimit uint64) uint64 {
 	return cgroupLimit
 }
 
-func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, previousSystem uint64) float64 {
+// calculateCPUPercent calculates the cpu usage using the latest measurement in stats.
+// previousCPU is the last value of stats.CPU.Usage.Total measured at the time previousSystem.
+//  (now - previousSystem) is the time delta in nanoseconds, between the measurement in previousCPU
+// and the updated value in stats.
+func calculateCPUPercent(stats *cgroups.Metrics, previousCPU, now, previousSystem uint64) float64 {
 	var (
 		cpuPercent  = 0.0
 		cpuDelta    = float64(stats.CPU.Usage.Total - previousCPU)
-		systemDelta = float64(uint64(time.Now().UnixNano()) - previousSystem)
+		systemDelta = float64(now - previousSystem)
 	)
 	if systemDelta > 0.0 && cpuDelta > 0.0 {
-		// gets a ratio of container cpu usage total, multiplies it by the number of cores (4 cores running
-		// at 100% utilization should be 400% utilization), and multiplies that by 100 to get a percentage
-		cpuPercent = (cpuDelta / systemDelta) * float64(len(stats.CPU.Usage.PerCPU)) * 100
+		// gets a ratio of container cpu usage total, and multiplies that by 100 to get a percentage
+		cpuPercent = (cpuDelta / systemDelta) * 100
 	}
 	return cpuPercent
 }

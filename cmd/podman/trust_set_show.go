@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/image/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/cmd/podman/libpodruntime"
 	"github.com/containers/libpod/libpod/image"
@@ -57,7 +56,7 @@ func init() {
 	showTrustCommand.SetUsageTemplate(UsageTemplate())
 	setFlags := setTrustCommand.Flags()
 	setFlags.StringVar(&setTrustCommand.PolicyPath, "policypath", "", "")
-	setFlags.MarkHidden("policypath")
+	markFlagHidden(setFlags, "policypath")
 	setFlags.StringSliceVarP(&setTrustCommand.PubKeysFile, "pubkeysfile", "f", []string{}, `Path of installed public key(s) to trust for TARGET.
 Absolute path to keys is added to policy.json. May
 used multiple times to define multiple public keys.
@@ -68,13 +67,13 @@ File(s) must exist before using this command`)
 	showFlags.BoolVarP(&showTrustCommand.Json, "json", "j", false, "Output as json")
 	showFlags.StringVar(&showTrustCommand.PolicyPath, "policypath", "", "")
 	showFlags.BoolVar(&showTrustCommand.Raw, "raw", false, "Output raw policy file")
-	showFlags.MarkHidden("policypath")
+	markFlagHidden(showFlags, "policypath")
 	showFlags.StringVar(&showTrustCommand.RegistryPath, "registrypath", "", "")
-	showFlags.MarkHidden("registrypath")
+	markFlagHidden(showFlags, "registrypath")
 }
 
 func showTrustCmd(c *cliconfig.ShowTrustValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
@@ -119,7 +118,7 @@ func showTrustCmd(c *cliconfig.ShowTrustValues) error {
 		}
 		outjson = policyJSON
 		out := formats.JSONStruct{Output: outjson}
-		return formats.Writer(out).Out()
+		return out.Out()
 	}
 
 	showOutputMap, err := getPolicyShowOutput(policyContentStruct, systemRegistriesDirPath)
@@ -127,11 +126,11 @@ func showTrustCmd(c *cliconfig.ShowTrustValues) error {
 		return errors.Wrapf(err, "could not show trust policies")
 	}
 	out := formats.StdoutTemplateArray{Output: showOutputMap, Template: "{{.Repo}}\t{{.Trusttype}}\t{{.GPGid}}\t{{.Sigstore}}"}
-	return formats.Writer(out).Out()
+	return out.Out()
 }
 
 func setTrustCmd(c *cliconfig.SetTrustValues) error {
-	runtime, err := libpodruntime.GetRuntime(&c.PodmanCommand)
+	runtime, err := libpodruntime.GetRuntime(getContext(), &c.PodmanCommand)
 	if err != nil {
 		return errors.Wrapf(err, "could not create runtime")
 	}
@@ -238,10 +237,6 @@ func isValidTrustType(t string) bool {
 	return false
 }
 
-func getDefaultPolicyPath() string {
-	return trust.DefaultPolicyPath(&types.SystemContext{})
-}
-
 func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirPath string) (map[string]map[string]interface{}, error) {
 	registryConfigs, err := trust.LoadAndMergeConfig(systemRegistriesDirPath)
 	if err != nil {
@@ -259,15 +254,12 @@ func getPolicyJSON(policyContentStruct trust.PolicyContent, systemRegistriesDirP
 			policyJSON[repo]["type"] = repoval[0].Type
 			policyJSON[repo]["transport"] = transname
 			keyarr := []string{}
-			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
 					keyarr = append(keyarr, repoele.KeyPath)
-					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					keyarr = append(keyarr, string(repoele.KeyData))
-					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+					keyarr = append(keyarr, repoele.KeyData)
 				}
 			}
 			policyJSON[repo]["keys"] = keyarr
@@ -313,16 +305,17 @@ func getPolicyShowOutput(policyContentStruct trust.PolicyContent, systemRegistri
 				Repo:      repo,
 				Trusttype: repoval[0].Type,
 			}
-			keyarr := []string{}
+			// TODO - keyarr is not used and I don't know its intent; commenting out for now for someone to fix later
+			//keyarr := []string{}
 			uids := []string{}
 			for _, repoele := range repoval {
 				if len(repoele.KeyPath) > 0 {
-					keyarr = append(keyarr, repoele.KeyPath)
+					//keyarr = append(keyarr, repoele.KeyPath)
 					uids = append(uids, trust.GetGPGIdFromKeyPath(repoele.KeyPath)...)
 				}
 				if len(repoele.KeyData) > 0 {
-					keyarr = append(keyarr, string(repoele.KeyData))
-					uids = append(uids, trust.GetGPGIdFromKeyData(string(repoele.KeyData))...)
+					//keyarr = append(keyarr, string(repoele.KeyData))
+					uids = append(uids, trust.GetGPGIdFromKeyData(repoele.KeyData)...)
 				}
 			}
 			tempTrustShowOutput.GPGid = strings.Join(uids, ", ")

@@ -24,7 +24,7 @@ var _ = Describe("Podman run exit", func() {
 		}
 		podmanTest = PodmanTestCreate(tempdir)
 		podmanTest.Setup()
-		podmanTest.RestoreAllArtifacts()
+		podmanTest.RestoreArtifact(ALPINE)
 	})
 
 	AfterEach(func() {
@@ -35,18 +35,39 @@ var _ = Describe("Podman run exit", func() {
 	})
 
 	It("podman run -d mount cleanup test", func() {
+		SkipIfRootless()
+
+		result := podmanTest.Podman([]string{"run", "-dt", ALPINE, "top"})
+		result.WaitWithDefaultTimeout()
+		cid := result.OutputToString()
+		Expect(result.ExitCode()).To(Equal(0))
+
 		mount := SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
+		Expect(mount.OutputToString()).To(ContainSubstring(cid))
 
-		out1 := mount.OutputToString()
-		result := podmanTest.Podman([]string{"create", "-dt", ALPINE, "echo", "hello"})
-		result.WaitWithDefaultTimeout()
-		Expect(result.ExitCode()).To(Equal(0))
+		pmount := podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount.WaitWithDefaultTimeout()
+		Expect(pmount.ExitCode()).To(Equal(0))
+		Expect(pmount.OutputToString()).To(ContainSubstring(cid))
+
+		stop := podmanTest.Podman([]string{"stop", cid})
+		stop.WaitWithDefaultTimeout()
+		Expect(stop.ExitCode()).To(Equal(0))
+
+		// We have to force cleanup so the unmount happens
+		podmanCleanupSession := podmanTest.Podman([]string{"container", "cleanup", cid})
+		podmanCleanupSession.WaitWithDefaultTimeout()
+		Expect(podmanCleanupSession.ExitCode()).To(Equal(0))
 
 		mount = SystemExec("mount", nil)
 		Expect(mount.ExitCode()).To(Equal(0))
+		Expect(mount.OutputToString()).NotTo(ContainSubstring(cid))
 
-		out2 := mount.OutputToString()
-		Expect(out1).To(Equal(out2))
+		pmount = podmanTest.Podman([]string{"mount", "--notruncate"})
+		pmount.WaitWithDefaultTimeout()
+		Expect(pmount.ExitCode()).To(Equal(0))
+		Expect(pmount.OutputToString()).NotTo(ContainSubstring(cid))
+
 	})
 })

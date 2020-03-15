@@ -6,109 +6,41 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/storage"
+	"github.com/hpcloud/tail"
 	"github.com/pkg/errors"
 )
 
-// Event describes the attributes of a libpod event
-type Event struct {
-	// ContainerExitCode is for storing the exit code of a container which can
-	// be used for "internal" event notification
-	ContainerExitCode int
-	// ID can be for the container, image, volume, etc
-	ID string
-	// Image used where applicable
-	Image string
-	// Name where applicable
-	Name string
-	// Status describes the event that occurred
-	Status Status
-	// Time the event occurred
-	Time time.Time
-	// Type of event that occurred
-	Type Type
+// ErrNoJournaldLogging indicates that there is no journald logging
+// supported (requires libsystemd)
+var ErrNoJournaldLogging = errors.New("No support for journald logging")
+
+// String returns a string representation of EventerType
+func (et EventerType) String() string {
+	switch et {
+	case LogFile:
+		return "file"
+	case Journald:
+		return "journald"
+	case Null:
+		return "none"
+	default:
+		return "invalid"
+	}
 }
 
-// Type of event that occurred (container, volume, image, pod, etc)
-type Type string
-
-// Status describes the actual event action (stop, start, create, kill)
-type Status string
-
-const (
-	// If you add or subtract any values to the following lists, make sure you also update
-	// the switch statements below and the enums for EventType or EventStatus in the
-	// varlink description file.
-
-	// Container - event is related to containers
-	Container Type = "container"
-	// Image - event is related to images
-	Image Type = "image"
-	// Pod - event is related to pods
-	Pod Type = "pod"
-	// Volume - event is related to volumes
-	Volume Type = "volume"
-
-	// Attach ...
-	Attach Status = "attach"
-	// Checkpoint ...
-	Checkpoint Status = "checkpoint"
-	// Cleanup ...
-	Cleanup Status = "cleanup"
-	// Commit ...
-	Commit Status = "commit"
-	// Create ...
-	Create Status = "create"
-	// Exec ...
-	Exec Status = "exec"
-	// Exited indicates that a container's process died
-	Exited Status = "died"
-	// Export ...
-	Export Status = "export"
-	// History ...
-	History Status = "history"
-	// Import ...
-	Import Status = "import"
-	// Init ...
-	Init Status = "init"
-	// Kill ...
-	Kill Status = "kill"
-	// LoadFromArchive ...
-	LoadFromArchive Status = "status"
-	// Mount ...
-	Mount Status = "mount"
-	// Pause ...
-	Pause Status = "pause"
-	// Prune ...
-	Prune Status = "prune"
-	// Pull ...
-	Pull Status = "pull"
-	// Push ...
-	Push Status = "push"
-	// Remove ...
-	Remove Status = "remove"
-	// Restore ...
-	Restore Status = "restore"
-	// Save ...
-	Save Status = "save"
-	// Start ...
-	Start Status = "start"
-	// Stop ...
-	Stop Status = "stop"
-	// Sync ...
-	Sync Status = "sync"
-	// Tag ...
-	Tag Status = "tag"
-	// Unmount ...
-	Unmount Status = "unmount"
-	// Unpause ...
-	Unpause Status = "unpause"
-	// Untag ...
-	Untag Status = "untag"
-)
-
-// EventFilter for filtering events
-type EventFilter func(*Event) bool
+// IsValidEventer checks if the given string is a valid eventer type.
+func IsValidEventer(eventer string) bool {
+	switch eventer {
+	case LogFile.String():
+		return true
+	case Journald.String():
+		return true
+	case Null.String():
+		return true
+	default:
+		return false
+	}
+}
 
 // NewEvent creates a event struct and populates with
 // the given status and time.
@@ -117,30 +49,6 @@ func NewEvent(status Status) Event {
 		Status: status,
 		Time:   time.Now(),
 	}
-}
-
-// Write will record the event to the given path
-func (e *Event) Write(path string) error {
-	// We need to lock events file
-	lock, err := storage.GetLockfile(path + ".lock")
-	if err != nil {
-		return err
-	}
-	lock.Lock()
-	defer lock.Unlock()
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0700)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	eventJSONString, err := e.ToJSONString()
-	if err != nil {
-		return err
-	}
-	if _, err := f.WriteString(fmt.Sprintf("%s\n", eventJSONString)); err != nil {
-		return err
-	}
-	return nil
 }
 
 // Recycle checks if the event log has reach a limit and if so
@@ -164,6 +72,8 @@ func (e *Event) ToHumanReadable() string {
 		humanFormat = fmt.Sprintf("%s %s %s %s (image=%s, name=%s)", e.Time, e.Type, e.Status, e.ID, e.Image, e.Name)
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, e.ID, e.Name)
+	case System:
+		humanFormat = fmt.Sprintf("%s %s %s", e.Time, e.Type, e.Status)
 	case Volume:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
 	}
@@ -172,7 +82,7 @@ func (e *Event) ToHumanReadable() string {
 
 // NewEventFromString takes stringified json and converts
 // it to an event
-func NewEventFromString(event string) (*Event, error) {
+func newEventFromJSONString(event string) (*Event, error) {
 	e := Event{}
 	if err := json.Unmarshal([]byte(event), &e); err != nil {
 		return nil, err
@@ -200,10 +110,14 @@ func StringToType(name string) (Type, error) {
 		return Image, nil
 	case Pod.String():
 		return Pod, nil
+	case System.String():
+		return System, nil
 	case Volume.String():
 		return Volume, nil
+	case "":
+		return "", ErrEventTypeBlank
 	}
-	return "", errors.Errorf("unknown event type %s", name)
+	return "", errors.Errorf("unknown event type %q", name)
 }
 
 // StringToStatus converts a string to an Event Status
@@ -215,8 +129,6 @@ func StringToStatus(name string) (Status, error) {
 		return Attach, nil
 	case Checkpoint.String():
 		return Checkpoint, nil
-	case Restore.String():
-		return Restore, nil
 	case Cleanup.String():
 		return Cleanup, nil
 	case Commit.String():
@@ -249,8 +161,16 @@ func StringToStatus(name string) (Status, error) {
 		return Pull, nil
 	case Push.String():
 		return Push, nil
+	case Refresh.String():
+		return Refresh, nil
 	case Remove.String():
 		return Remove, nil
+	case Renumber.String():
+		return Renumber, nil
+	case Restart.String():
+		return Restart, nil
+	case Restore.String():
+		return Restore, nil
 	case Save.String():
 		return Save, nil
 	case Start.String():
@@ -268,5 +188,19 @@ func StringToStatus(name string) (Status, error) {
 	case Untag.String():
 		return Untag, nil
 	}
-	return "", errors.Errorf("unknown event status %s", name)
+	return "", errors.Errorf("unknown event status %q", name)
+}
+
+func (e EventLogFile) getTail(options ReadOptions) (*tail.Tail, error) {
+	reopen := true
+	seek := tail.SeekInfo{Offset: 0, Whence: os.SEEK_END}
+	if options.FromStart || !options.Stream {
+		seek.Whence = 0
+		reopen = false
+	}
+	stream := options.Stream
+	if len(options.Until) > 0 {
+		stream = false
+	}
+	return tail.TailFile(e.options.LogFilePath, tail.Config{ReOpen: reopen, Follow: stream, Location: &seek, Logger: tail.DiscardingLogger})
 }
