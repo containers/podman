@@ -390,7 +390,7 @@ Choose one of the following:
   * Complete the build operation as a privileged user.
   * Install and configure fuse-overlayfs.
     * Install the fuse-overlayfs package for your Linux Distribution.
-    * Add `mount_program = "/usr/bin/fuse-overlayfs` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
+    * Add `mount_program = "/usr/bin/fuse-overlayfs"` under `[storage.options]` in your `~/.config/containers/storage.conf` file.
 
 ### 16) rhel7-init based images don't work with cgroups v2
 
