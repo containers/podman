@@ -52,7 +52,7 @@ a.codelink:hover   { background: #000; color: #999; }
 a.timing           { text-decoration: none; }
 
 /* BATS styles */
-.bats-ok        { color: #3f3; }
+.bats-ok        { color: #393; }
 .bats-notok     { color: #F00; font-weight: bold; }
 .bats-skip      { color: #F90; }
 .bats-log       { color: #900; }
@@ -286,7 +286,8 @@ END_HTML
             $previous_timestamp = '';
             next LINE;
         }
-        elsif ($line =~ /^Running:/) {
+        # (bindings test sometimes emits 'Running' with leading bullet char)
+        elsif ($line =~ /^•?Running:/) {
             # Highlight the important (non-boilerplate) podman command.
             # Strip out the global podman options, but show them on hover
             $line =~ s{(\S+\/podman)((\s+--(root|runroot|runtime|tmpdir|storage-opt|conmon|cgroup-manager|cni-config-dir|storage-driver|events-backend) \S+)*)(.*)}{
@@ -309,6 +310,9 @@ END_HTML
         }
         elsif ($line =~ /^Error:/ || $line =~ / level=(warning|error) /) {
             $line = "<span class='log-warn'>" . $line . "</span>";
+        }
+        elsif ($line =~ /^panic:/) {
+            $line = "<span class='log-error'>" . $line . "</span>";
         }
         else {
             $current_output .= ' ' . $line;
