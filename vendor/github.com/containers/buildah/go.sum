@@ -103,6 +103,14 @@ github.com/containers/common v0.4.1 h1:Uu7f2ZDM/5xsqOkZwIEVKSjUI3YxKjvNIY5x57kja
 github.com/containers/common v0.4.1/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/common v0.4.2 h1:O5d1gj/xdpQdZi0MEivRQ/7AeRaVeHdbSP/bvShw458=
 github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
+github.com/containers/common v0.4.3 h1:TJ7UQxB8wf//IY4LNZobswrTjbhIjXpidrRbCA2l+kg=
+github.com/containers/common v0.4.3/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
+github.com/containers/common v0.4.4 h1:oXQUPDQOIQ+XmQ2cWyLCs2TctDfISykAr1gEa3CNwlQ=
+github.com/containers/common v0.4.4/go.mod h1:vMkHkvczHslJbUj8xasSQmdNrLUgZYuUxVNGJDfjRIQ=
+github.com/containers/common v0.5.0 h1:ZAef7h3oO46PcbTyfooZf8XLHrYad+GkhSu3EhH6P24=
+github.com/containers/common v0.5.0/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
+github.com/containers/common v1.0.0 h1:sZB48LzGP4bP1CmrkQIFUzdUVBysqRv3kWVk4+qbaVA=
+github.com/containers/common v1.0.0/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/conmon v2.0.10+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/image/v4 v4.0.1 h1:idNGHChj0Pyv3vLrxul2oSVMZLeFqpoq3CjLeVgapSQ=
 github.com/containers/image/v4 v4.0.1/go.mod h1:0ASJH1YgJiX/eqFZObqepgsvIA4XjCgpyfwn9pDGafA=
@@ -149,6 +157,8 @@ github.com/containers/storage v1.16.0 h1:sD+s7BmiNBh61CuHN3j8PXGCwMtV9zPVJETAlsh
 github.com/containers/storage v1.16.0/go.mod h1:nqN09JSi1/RSI1UAUwDYXPRiGSlq5FPbNkN/xb0TfG0=
 github.com/containers/storage v1.16.1 h1:gVLVqbqaoyopLJbcQ9PQdsnm8SzVy6Vw24fofwMgkE0=
 github.com/containers/storage v1.16.1/go.mod h1:toFp72SLn/iyJ6YbrnrZ0bW63aH2Qw3dA8JVwL4ADPo=
+github.com/containers/storage v1.16.2 h1:S77Y+lmJcnGoPEZB2OOrTrRGyjT8viDCGyhVNNz78h8=
+github.com/containers/storage v1.16.2/go.mod h1:/RNmsK01ajCL+VtMSi3W8kHzpBwN+Q5gLYWgfw5wlMg=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-etcd v2.0.0+incompatible/go.mod h1:Jez6KQU2B/sWsbdaef3ED8NzMklzPG4d5KIOhIy30Tk=
@@ -281,6 +291,7 @@ github.com/google/go-cmp v0.2.0/go.mod h1:oXzfMopK8JAjlY9xF4vHSVASa0yLyX7SntLO5a
 github.com/google/go-cmp v0.3.0/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
 github.com/google/go-cmp v0.3.1 h1:Xye71clBPdm5HgqGwUkwhbynsUJZhDbS20FvLhQ2izg=
 github.com/google/go-cmp v0.3.1/go.mod h1:8QqcDgzrUqlUb/G2PQTWiueGozuR1884gddMywk6iLU=
+github.com/google/go-cmp v0.4.0 h1:xsAVV57WRhGj6kEIi8ReJzQlHHqcBYCElAvkovg3B/4=
 github.com/google/go-cmp v0.4.0/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
 github.com/google/gofuzz v0.0.0-20161122191042-44d81051d367/go.mod h1:HP5RmnzzSNb993RKQDq4+1A4ia9nllfqcQFTQJedwGI=
 github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf/go.mod h1:HP5RmnzzSNb993RKQDq4+1A4ia9nllfqcQFTQJedwGI=
@@ -495,6 +506,8 @@ github.com/opencontainers/selinux v1.3.2 h1:DR4lL9SYVjgcTZKEZIncvDU06fKSc/eygjmN
 github.com/opencontainers/selinux v1.3.2/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/opencontainers/selinux v1.3.3 h1:RX0wAeqtvVSYQcr017X3pFXPkLEtB6V4NjRD7gVQgg4=
 github.com/opencontainers/selinux v1.3.3/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
+github.com/opencontainers/selinux v1.4.0 h1:cpiX/2wWIju/6My60T6/z9CxNG7c8xTQyEmA9fChpUo=
+github.com/opencontainers/selinux v1.4.0/go.mod h1:yTcKuYAh6R95iDpefGLQaPaRwJFwyzAJufJyiTt7s0g=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316 h1:enQG2QUGwug4fR1yM6hL0Fjzx6Km/exZY6RbSPwMu3o=
 github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316/go.mod h1:dv+J0b/HWai0QnMVb37/H0v36klkLBi2TNpPeWDxX10=
 github.com/openshift/api v3.9.1-0.20190810003144-27fb16909b15+incompatible h1:s55wx8JIG/CKnewev892HifTBrtKzMdvgB3rm4rxC2s=

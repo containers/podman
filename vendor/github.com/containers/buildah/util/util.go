@@ -365,7 +365,7 @@ func GetHostIDs(uidmap, gidmap []specs.LinuxIDMapping, uid, gid uint32) (uint32,
 // GetHostRootIDs uses ID mappings in spec to compute the host-level IDs that will
 // correspond to UID/GID 0/0 in the container.
 func GetHostRootIDs(spec *specs.Spec) (uint32, uint32, error) {
-	if spec.Linux == nil {
+	if spec == nil || spec.Linux == nil {
 		return 0, 0, nil
 	}
 	return GetHostIDs(spec.Linux.UIDMappings, spec.Linux.GIDMappings, 0, 0)
@@ -455,7 +455,7 @@ func FindLocalRuntime(runtime string) string {
 		logrus.Debugf("Error loading container config when searching for local runtime.")
 		return localRuntime
 	}
-	for _, val := range conf.Libpod.OCIRuntimes[runtime] {
+	for _, val := range conf.Engine.OCIRuntimes[runtime] {
 		if fileExistsAndNotADir(val) {
 			localRuntime = val
 			break
