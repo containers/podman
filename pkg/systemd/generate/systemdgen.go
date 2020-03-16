@@ -164,6 +164,26 @@ func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, erro
 			"--cidfile", "%t/%n-cid",
 			"--cgroups=no-conmon",
 		}
+
+		// Enforce detaching
+		//
+		// since we use systemd `Type=forking` service
+		// @see https://www.freedesktop.org/software/systemd/man/systemd.service.html#Type=
+		// when we generated systemd service file with the --new param,
+		// `ExecStart` will have `/usr/bin/podman run ...`
+		// if `info.CreateCommand` has no `-d` or `--detach` param,
+		// podman will run the container in default attached mode,
+		// as a result, `systemd start` will wait the `podman run` command exit until failed with timeout error.
+		hasDetachParam := false
+		for _, p := range info.CreateCommand[index:] {
+			if p == "--detach" || p == "-d" {
+				hasDetachParam = true
+			}
+		}
+		if !hasDetachParam {
+			command = append(command, "-d")
+		}
+
 		command = append(command, info.CreateCommand[index:]...)
 		info.RunCommand = strings.Join(command, " ")
 		info.New = true
