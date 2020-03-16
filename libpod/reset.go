@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/rootless"
+	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -87,12 +88,22 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		}
 		prevError = err
 	}
-	if err := os.RemoveAll(r.config.TmpDir); err != nil {
+
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return err
+	}
+	tempDir := r.config.TmpDir
+	if r.config.TmpDir == runtimeDir {
+		tempDir = filepath.Join(r.config.TmpDir, "containers")
+	}
+	if err := os.RemoveAll(tempDir); err != nil {
 		if prevError != nil {
 			logrus.Error(prevError)
 		}
 		prevError = err
 	}
+
 	if rootless.IsRootless() {
 		configPath := filepath.Join(os.Getenv("HOME"), ".config/containers")
 		if err := os.RemoveAll(configPath); err != nil {
