@@ -136,21 +136,26 @@ echo $rand        |   0 | $rand
     run_podman rmi busybox
 }
 
-# 'run --rmi' deletes the image in the end unless it's used by another container.
-@test "podman run --rmi - remove image" {
-    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
-    run_podman 0 run --rmi --rm redis /bin/true
-    run_podman 1 image exists redis
-}
+# 'run --rmi' deletes the image in the end unless it's used by another container
+@test "podman run --rmi" {
+    skip_if_remote
 
+    # Name of a nonlocal image. It should be pulled in by the first 'run'
+    NONLOCAL_IMAGE=busybox
+    run_podman 1 image exists $NONLOCAL_IMAGE
 
-@test "podman run --rmi - not remove image" {
-    skip_if_remote "podman-remote does not emit 'Trying to pull' msgs"
-    run_podman run redis /bin/true
-    run_podman images | grep redis
-    run_podman run --rmi --rm redis /bin/true
-    run_podman images | grep redis
-    run_podman 0 rm -a
+    # Run a container, without --rm; this should block subsequent --rmi
+    run_podman run --name keepme $NONLOCAL_IMAGE /bin/true
+    run_podman image exists $NONLOCAL_IMAGE
+
+    # Now try running with --rmi : it should succeed, but not remove the image
+    run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    run_podman image exists $NONLOCAL_IMAGE
+
+    # Remove the stray container, and run one more time with --rmi.
+    run_podman rm keepme
+    run_podman run --rmi --rm $NONLOCAL_IMAGE /bin/true
+    run_podman 1 image exists $NONLOCAL_IMAGE
 }
 
 # vim: filetype=sh
