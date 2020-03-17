@@ -66,7 +66,7 @@ var (
 // A Decoder can be used in two modes:
 //
 // 1) As a stream, or
-// 2) For stateless decoding using DecodeAll or DecodeBuffer.
+// 2) For stateless decoding using DecodeAll.
 //
 // Only a single stream can be decoded concurrently, but the same decoder
 // can run multiple concurrent stateless decodes. It is even possible to
