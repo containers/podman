@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -158,23 +157,6 @@ func getRootlessStorageOpts(rootlessUID int) (StoreOptions, error) {
 	return opts, nil
 }
 
-func getTomlStorage(storeOptions *StoreOptions) *tomlConfig {
-	config := new(tomlConfig)
-
-	config.Storage.Driver = storeOptions.GraphDriverName
-	config.Storage.RunRoot = storeOptions.RunRoot
-	config.Storage.GraphRoot = storeOptions.GraphRoot
-	config.Storage.RootlessStoragePath = storeOptions.RootlessStoragePath
-	for _, i := range storeOptions.GraphDriverOptions {
-		s := strings.Split(i, "=")
-		if s[0] == "overlay.mount_program" {
-			config.Storage.Options.MountProgram = s[1]
-		}
-	}
-
-	return config
-}
-
 func getRootlessUID() int {
 	uidEnv := os.Getenv("_CONTAINERS_ROOTLESS_UID")
 	if uidEnv != "" {
@@ -243,23 +225,6 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 				}
 				rootlessStoragePath = strings.Replace(rootlessStoragePath, "$USER", usr.Username, -1)
 				storageOpts.GraphRoot = rootlessStoragePath
-			}
-		} else {
-			if err := os.MkdirAll(filepath.Dir(storageConf), 0755); err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot make directory %s", filepath.Dir(storageConf))
-			}
-			file, err := os.OpenFile(storageConf, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0666)
-			if err != nil {
-				return storageOpts, errors.Wrapf(err, "cannot open %s", storageConf)
-			}
-
-			tomlConfiguration := getTomlStorage(&storageOpts)
-			defer file.Close()
-			enc := toml.NewEncoder(file)
-			if err := enc.Encode(tomlConfiguration); err != nil {
-				os.Remove(storageConf)
-
-				return storageOpts, errors.Wrapf(err, "failed to encode %s", storageConf)
 			}
 		}
 	}
