@@ -140,7 +140,9 @@ type VolumeCreateConfig struct {
 	Opts map[string]string `schema:"opts"`
 }
 
+// swagger:model IDResponse
 type IDResponse struct {
+	// ID
 	ID string `json:"id"`
 }
 

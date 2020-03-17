@@ -51,6 +51,15 @@ type swagErrNoSuchPod struct {
 	}
 }
 
+// No such manifest
+// swagger:response NoSuchManifest
+type swagErrNoSuchManifest struct {
+	// in:body
+	Body struct {
+		utils.ErrorModel
+	}
+}
+
 // Internal server error
 // swagger:response InternalError
 type swagInternalError struct {
