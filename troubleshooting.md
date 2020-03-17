@@ -101,7 +101,7 @@ Next, edit the new local configuration file
 line starting with `cgroup_manager` by adding a `#` character at the beginning
 of the line, and change the path in the line starting with `tmp_dir` to point to
 the first path in the error message Podman gave (in this case,
-`/run/user/1000/run`).
+`/run/user/1000/tmp`).
 
 ---
 ### 5) rootless containers cannot ping hosts
