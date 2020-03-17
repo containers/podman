@@ -3308,6 +3308,9 @@ const defaultConfigFile = "/etc/containers/storage.conf"
 // DefaultConfigFile returns the path to the storage config file used
 func DefaultConfigFile(rootless bool) (string, error) {
 	if rootless {
+		if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
+			return filepath.Join(configHome, "containers/storage.conf"), nil
+		}
 		home := homedir.Get()
 		if home == "" {
 			return "", errors.New("cannot determine user's homedir")

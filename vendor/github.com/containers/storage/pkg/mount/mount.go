@@ -1,6 +1,7 @@
 package mount
 
 import (
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -56,10 +57,17 @@ func Mounted(mountpoint string) (bool, error) {
 		return false, err
 	}
 
-	mountpoint, err = fileutils.ReadSymlinkedDirectory(mountpoint)
+	info, err := os.Stat(mountpoint)
 	if err != nil {
 		return false, err
 	}
+	if info.IsDir() {
+		mountpoint, err = fileutils.ReadSymlinkedDirectory(mountpoint)
+		if err != nil {
+			return false, err
+		}
+	}
+
 	// Search the table for the mountpoint
 	for _, e := range entries {
 		if e.Mountpoint == mountpoint {

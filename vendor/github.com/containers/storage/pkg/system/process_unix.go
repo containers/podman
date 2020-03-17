@@ -20,5 +20,5 @@ func IsProcessAlive(pid int) bool {
 
 // KillProcess force-stops a process.
 func KillProcess(pid int) {
-	unix.Kill(pid, unix.SIGKILL)
+	_ = unix.Kill(pid, unix.SIGKILL)
 }
