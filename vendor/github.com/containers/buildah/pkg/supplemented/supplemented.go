@@ -296,6 +296,9 @@ func (s *supplementedImageSource) Close() error {
 		}
 		closed[sourceInstance] = struct{}{}
 	}
+	if returnErr == nil {
+		return nil
+	}
 	return returnErr.ErrorOrNil()
 }
 
@@ -340,13 +343,17 @@ func (s *supplementedImageSource) HasThreadSafeGetBlob() bool {
 }
 
 func (s *supplementedImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
-	var src types.ImageSource
+	var (
+		src    types.ImageSource
+		digest digest.Digest
+	)
 	requestInstanceDigest := instanceDigest
 	if instanceDigest == nil {
 		if sourceInstance, ok := s.sourceInstancesByInstance[""]; ok {
 			src = sourceInstance
 		}
 	} else {
+		digest = *instanceDigest
 		if sourceInstance, ok := s.sourceInstancesByInstance[*instanceDigest]; ok {
 			src = sourceInstance
 		}
@@ -357,7 +364,7 @@ func (s *supplementedImageSource) GetSignatures(ctx context.Context, instanceDig
 	if src != nil {
 		return src.GetSignatures(ctx, requestInstanceDigest)
 	}
-	return nil, errors.Wrapf(ErrDigestNotFound, "error finding instance for instance digest %q to read signatures", *instanceDigest)
+	return nil, errors.Wrapf(ErrDigestNotFound, "error finding instance for instance digest %q to read signatures", digest)
 }
 
 func (s *supplementedImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
