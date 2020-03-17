@@ -554,7 +554,7 @@ func (c *Config) checkCgroupsAndLogger() {
 	}
 
 	if !hasSession {
-		logrus.Warningf("The cgroups manager is set to systemd but there is no systemd user session available")
+		logrus.Warningf("The cgroup manager or the events logger is set to use systemd but there is no systemd user session available")
 		logrus.Warningf("For using systemd, you may need to login using an user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", rootless.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs and --events-backend=file")
