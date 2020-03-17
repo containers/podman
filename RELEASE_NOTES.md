@@ -1,5 +1,22 @@
 # Release Notes
 
+## 1.8.2
+
+### Bugfixes
+- Fixed a bug where unit files generates by `podman generate systemd --new` would not force containers to detach, causing the unit to time out when trying to start
+- Fixed a bug where `podman system reset` could delete important system directories if run as rootless on installations created by older Podman ([#4831](https://github.com/containers/libpod/issues/4831))
+- Fixed a bug where image built by `podman build` would not properly set the OS and Architecture they were built with ([#5503](https://github.com/containers/libpod/issues/5503))
+- Fixed a bug where attached `podman run` with `--sig-proxy` enabled (the default), when built with Go 1.14, would repeatedly send signal 23 to the process in the container and could generate errors when the container stopped ([#5483](https://github.com/containers/libpod/issues/5483))
+- Fixed a bug where rootless `podman run` commands could hang when forwarding ports
+
+### HTTP API
+- Initial support for Libpod endpoints related to creating and operating on image manifest lists has been added
+- The Libpod Healthcheck and Events API endpoints are now supported
+
+### Misc
+- Updated vendored containers/storage to v1.16.5
+- Several performance improvements have been made to creating containers, which should somewhat improve the performance of `podman create` and `podman run`
+
 ## 1.8.1
 ### Features
 - Many networking-related flags have been added to `podman pod create` to enable customization of pod networks, including `--add-host`, `--dns`, `--dns-opt`, `--dns-search`, `--ip`, `--mac-address`, `--network`, and `--no-hosts`
