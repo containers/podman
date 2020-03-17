@@ -1,3 +1,33 @@
+- Changelog for v1.8.2-rc1 (2020-03-17)
+  * Update release notes for v1.8.2-rc1
+  * Fix vendoring on master
+  * Update containers/storage to v1.16.5
+  * config: make warning clearer
+  * Four small CI fixes:
+  * fix systemd generate tests
+  * apiv2 addition of manifests
+  * add os|arch attributes when building
+  * Missing double quotes in troubleshooting guide.
+  * force run container detached if container CreateCommand missing the detach param
+  * Bump github.com/containers/common from 0.4.2 to 0.5.0
+  * Bump k8s.io/api from 0.17.3 to 0.17.4
+  * Bump github.com/fsnotify/fsnotify from 1.4.7 to 1.4.9
+  * eat signal 23 in signal proxy
+  * add apiv2 healthcheck code
+  * turn off color-mode for bindings
+  * remove imagefilter for varlink remote client
+  * Bump github.com/containers/storage from 1.16.2 to 1.16.3
+  * run --rmi test: make it work
+  * rootlessport: detect rootless-child exit
+  * create: do not calculate image size
+  * Follow up changes from #5244
+  * man page cross-reference fixes: part 2
+  * Update version in README to v1.8.1
+  * [CI:DOCS]Add libpod event endpoint
+  * Bump to v1.8.2-dev
+  * Update start stop api to use pod status function.
+  * Fix bug podman reset to not remove $XDG_RUNTIME_DIR
+
 - Changelog for v1.8.1 (2020-03-11)
   * man pages: fix inconsistencies
   * Update release notes for v1.8.1 final release
