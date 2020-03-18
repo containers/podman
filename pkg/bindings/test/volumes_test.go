@@ -3,11 +3,12 @@ package test_bindings
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/bindings/volumes"
-	"net/http"
-	"time"
 
 	"github.com/containers/libpod/pkg/bindings"
 	. "github.com/onsi/ginkgo"
