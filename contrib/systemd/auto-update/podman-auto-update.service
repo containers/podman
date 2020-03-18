@@ -1,0 +1,11 @@
+[Unit]
+Description=Podman auto-update service
+Documentation=man:podman-auto-update(1)
+Wants=network.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/podman auto-update
+
+[Install]
+WantedBy=multi-user.target default.target

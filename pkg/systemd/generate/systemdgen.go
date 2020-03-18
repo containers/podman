@@ -16,6 +16,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// EnvVariable "PODMAN_SYSTEMD_UNIT" is set in all generated systemd units and
+// is set to the unit's (unique) name.
+const EnvVariable = "PODMAN_SYSTEMD_UNIT"
+
 // ContainerInfo contains data required for generating a container's systemd
 // unit file.
 type ContainerInfo struct {
@@ -57,6 +61,8 @@ type ContainerInfo struct {
 	// RunCommand is a post-processed variant of CreateCommand and used for
 	// the ExecStart field in generic unit files.
 	RunCommand string
+	// EnvVariable is generate.EnvVariable and must not be set.
+	EnvVariable string
 }
 
 var restartPolicies = []string{"no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"}
@@ -94,6 +100,7 @@ Before={{- range $index, $value := .RequiredServices -}}{{if $index}} {{end}}{{ 
 {{- end}}
 
 [Service]
+Environment={{.EnvVariable}}=%n
 Restart={{.RestartPolicy}}
 {{- if .New}}
 ExecStartPre=/usr/bin/rm -f %t/%n-pid %t/%n-cid
@@ -137,6 +144,8 @@ func CreateContainerSystemdUnit(info *ContainerInfo, opts Options) (string, erro
 		}
 		info.Executable = executable
 	}
+
+	info.EnvVariable = EnvVariable
 
 	// Assemble the ExecStart command when creating a new container.
 	//

@@ -143,6 +143,10 @@ type ContainerStorageConfig struct {
 	// Conflicts with Rootfs.
 	// At least one of Image or Rootfs must be specified.
 	Image string `json:"image"`
+	// RawImageName is the unprocessed and not-normalized user-specified image
+	// name.  One use case for having this data at hand are auto-updates where
+	// the _exact_ user input is needed in order to look-up the correct image.
+	RawImageName string `json:"raw_image_name,omitempty"`
 	// Rootfs is the path to a directory that will be used as the
 	// container's root filesystem. No modification will be made to the
 	// directory, it will be directly mounted into the container as root.

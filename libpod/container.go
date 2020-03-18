@@ -239,6 +239,12 @@ type ContainerConfig struct {
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`
 
+	// RawImageName is the raw and unprocessed name of the image when creating
+	// the container (as specified by the user).  May or may not be set.  One
+	// use case to store this data are auto-updates where we need the _exact_
+	// name and not some normalized instance of it.
+	RawImageName string `json:"RawImageName,omitempty"`
+
 	// TODO consider breaking these subsections up into smaller structs
 
 	// UID/GID mappings used by the storage
@@ -503,9 +509,15 @@ func (c *Container) Namespace() string {
 	return c.config.Namespace
 }
 
-// Image returns the ID and name of the image used as the container's rootfs
+// Image returns the ID and name of the image used as the container's rootfs.
 func (c *Container) Image() (string, string) {
 	return c.config.RootfsImageID, c.config.RootfsImageName
+}
+
+// RawImageName returns the unprocessed and not-normalized user-specified image
+// name.
+func (c *Container) RawImageName() string {
+	return c.config.RawImageName
 }
 
 // ShmDir returns the sources path to be mounted on /dev/shm in container

@@ -4,49 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
-	"github.com/coreos/go-systemd/v22/dbus"
-	godbus "github.com/godbus/dbus/v5"
+	"github.com/containers/libpod/pkg/systemd"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
-
-func dbusAuthRootlessConnection(createBus func(opts ...godbus.ConnOption) (*godbus.Conn, error)) (*godbus.Conn, error) {
-	conn, err := createBus()
-	if err != nil {
-		return nil, err
-	}
-
-	methods := []godbus.Auth{godbus.AuthExternal(strconv.Itoa(rootless.GetRootlessUID()))}
-
-	err = conn.Auth(methods)
-	if err != nil {
-		conn.Close()
-		return nil, err
-	}
-
-	return conn, nil
-}
-
-func newRootlessConnection() (*dbus.Conn, error) {
-	return dbus.NewConnection(func() (*godbus.Conn, error) {
-		return dbusAuthRootlessConnection(func(opts ...godbus.ConnOption) (*godbus.Conn, error) {
-			path := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "systemd/private")
-			return godbus.Dial(fmt.Sprintf("unix:path=%s", path))
-		})
-	})
-}
-
-func getConnection() (*dbus.Conn, error) {
-	if rootless.IsRootless() {
-		return newRootlessConnection()
-	}
-	return dbus.NewSystemdConnection()
-}
 
 // createTimer systemd timers for healthchecks of a container
 func (c *Container) createTimer() error {
@@ -64,7 +28,7 @@ func (c *Container) createTimer() error {
 	}
 	cmd = append(cmd, "--unit", c.ID(), fmt.Sprintf("--on-unit-inactive=%s", c.HealthCheckConfig().Interval.String()), "--timer-property=AccuracySec=1s", podman, "healthcheck", "run", c.ID())
 
-	conn, err := getConnection()
+	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get systemd connection to add healthchecks")
 	}
@@ -83,7 +47,7 @@ func (c *Container) startTimer() error {
 	if c.disableHealthCheckSystemd() {
 		return nil
 	}
-	conn, err := getConnection()
+	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get systemd connection to start healthchecks")
 	}
@@ -98,7 +62,7 @@ func (c *Container) removeTimer() error {
 	if c.disableHealthCheckSystemd() {
 		return nil
 	}
-	conn, err := getConnection()
+	conn, err := systemd.ConnectToDBUS()
 	if err != nil {
 		return errors.Wrapf(err, "unable to get systemd connection to remove healthchecks")
 	}
