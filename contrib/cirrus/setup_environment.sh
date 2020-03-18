@@ -47,6 +47,15 @@ case "${OS_RELEASE_ID}" in
         fi
         ;;
     fedora)
+	# This is temporary and should be removed once conmon is in stable
+	# and the images can be rebuilt properly.
+	if [[ "$OS_RELEASE_VER" -eq "30" ]]; then
+		dnf -y install https://kojipkgs.fedoraproject.org//packages/conmon/2.0.13/1.fc30/x86_64/conmon-2.0.13-1.fc30.x86_64.rpm
+	else
+		dnf -y install https://kojipkgs.fedoraproject.org//packages/conmon/2.0.13/1.fc31/x86_64/conmon-2.0.13-1.fc31.x86_64.rpm
+	fi
+	# End of temporary patch
+
         # All SELinux distros need this for systemd-in-a-container
         setsebool container_manage_cgroup true
         if [[ "$ADD_SECOND_PARTITION" == "true" ]]; then
