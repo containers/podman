@@ -5,13 +5,14 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	. "github.com/containers/libpod/test/utils"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"text/template"
+
+	. "github.com/containers/libpod/test/utils"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type endpoint struct {

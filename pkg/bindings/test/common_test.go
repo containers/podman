@@ -152,7 +152,7 @@ func (b *bindingTest) startAPIService() *gexec.Session {
 	var (
 		cmd []string
 	)
-	cmd = append(cmd, "--log-level=debug", "system", "service", "--timeout=999999", b.sock)
+	cmd = append(cmd, "--log-level=debug", "system", "service", "--timeout=0", b.sock)
 	return b.runPodman(cmd)
 }
 

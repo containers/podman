@@ -83,10 +83,6 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 		ConnectionCh: make(chan int),
 	}
 
-	server.Timer = time.AfterFunc(server.Duration, func() {
-		server.ConnectionCh <- NOOPHandler
-	})
-
 	router.NotFoundHandler = http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			// We can track user errors...
@@ -139,36 +135,15 @@ func newServer(runtime *libpod.Runtime, duration time.Duration, listener *net.Li
 
 // Serve starts responding to HTTP requests
 func (s *APIServer) Serve() error {
-	// stalker to count the connections.  Should the timer expire it will shutdown the service.
-	go func() {
-		for delta := range s.ConnectionCh {
-			switch delta {
-			case EnterHandler:
-				s.Timer.Stop()
-				s.ActiveConnections += 1
-				s.TotalConnections += 1
-			case ExitHandler:
-				s.Timer.Stop()
-				s.ActiveConnections -= 1
-				if s.ActiveConnections == 0 {
-					// Server will be shutdown iff the timer expires before being reset or stopped
-					s.Timer = time.AfterFunc(s.Duration, func() {
-						if err := s.Shutdown(); err != nil {
-							logrus.Errorf("Failed to shutdown APIServer: %v", err)
-							os.Exit(1)
-						}
-					})
-				} else {
-					s.Timer.Reset(s.Duration)
-				}
-			case NOOPHandler:
-				// push the check out another duration...
-				s.Timer.Reset(s.Duration)
-			default:
-				logrus.Errorf("ConnectionCh received unsupported input %d", delta)
-			}
-		}
-	}()
+	// This is initialized here as Timer is not needed until Serve'ing
+	if s.Duration > 0 {
+		s.Timer = time.AfterFunc(s.Duration, func() {
+			s.ConnectionCh <- NOOPHandler
+		})
+		go s.ReadChannelWithTimeout()
+	} else {
+		go s.ReadChannelNoTimeout()
+	}
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
@@ -191,6 +166,53 @@ func (s *APIServer) Serve() error {
 	}
 
 	return nil
+}
+
+func (s *APIServer) ReadChannelWithTimeout() {
+	// stalker to count the connections.  Should the timer expire it will shutdown the service.
+	for delta := range s.ConnectionCh {
+		switch delta {
+		case EnterHandler:
+			s.Timer.Stop()
+			s.ActiveConnections += 1
+			s.TotalConnections += 1
+		case ExitHandler:
+			s.Timer.Stop()
+			s.ActiveConnections -= 1
+			if s.ActiveConnections == 0 {
+				// Server will be shutdown iff the timer expires before being reset or stopped
+				s.Timer = time.AfterFunc(s.Duration, func() {
+					if err := s.Shutdown(); err != nil {
+						logrus.Errorf("Failed to shutdown APIServer: %v", err)
+						os.Exit(1)
+					}
+				})
+			} else {
+				s.Timer.Reset(s.Duration)
+			}
+		case NOOPHandler:
+			// push the check out another duration...
+			s.Timer.Reset(s.Duration)
+		default:
+			logrus.Warnf("ConnectionCh received unsupported input %d", delta)
+		}
+	}
+}
+
+func (s *APIServer) ReadChannelNoTimeout() {
+	// stalker to count the connections.
+	for delta := range s.ConnectionCh {
+		switch delta {
+		case EnterHandler:
+			s.ActiveConnections += 1
+			s.TotalConnections += 1
+		case ExitHandler:
+			s.ActiveConnections -= 1
+		case NOOPHandler:
+		default:
+			logrus.Warnf("ConnectionCh received unsupported input %d", delta)
+		}
+	}
 }
 
 // Shutdown is a clean shutdown waiting on existing clients
