@@ -288,8 +288,12 @@ func NewBuilder(args map[string]string) *Builder {
 	for k, v := range builtinAllowedBuildArgs {
 		allowed[k] = v
 	}
+	provided := make(map[string]string)
+	for k, v := range args {
+		provided[k] = v
+	}
 	return &Builder{
-		Args:        args,
+		Args:        provided,
 		AllowedArgs: allowed,
 	}
 }
