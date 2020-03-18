@@ -124,7 +124,12 @@ func (d *childDriver) handleConnectRequest(c *net.UnixConn, req *msg.Request) er
 	if err != nil {
 		return err
 	}
-	err = unix.Sendmsg(int(f.Fd()), []byte("dummy"), oob, nil, 0)
+	for {
+		err = unix.Sendmsg(int(f.Fd()), []byte("dummy"), oob, nil, 0)
+		if err != unix.EINTR {
+			break
+		}
+	}
 	return err
 }
 
