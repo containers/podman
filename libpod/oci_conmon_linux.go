@@ -774,6 +774,10 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 	}()
 	attachToExecCalled = true
 
+	if err := execCmd.Wait(); err != nil {
+		return -1, nil, errors.Wrapf(err, "cannot run conmon")
+	}
+
 	pid, err := readConmonPipeData(parentSyncPipe, ociLog)
 
 	return pid, attachChan, err
