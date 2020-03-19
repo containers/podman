@@ -109,7 +109,7 @@ func NewConnection(ctx context.Context, uri string, identity ...string) (context
 		}
 		client, err = tcpClient(_url)
 	default:
-		return nil, errors.Errorf("%s is not a support schema", _url.Scheme)
+		return nil, errors.Errorf("'%s' is not a supported schema", _url.Scheme)
 	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to create %sClient", _url.Scheme)

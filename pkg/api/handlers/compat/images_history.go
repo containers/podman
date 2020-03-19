@@ -28,7 +28,7 @@ func HistoryImage(w http.ResponseWriter, r *http.Request) {
 	for _, h := range history {
 		l := handlers.HistoryResponse{
 			ID:        h.ID,
-			Created:   h.Created.UnixNano(),
+			Created:   h.Created.Unix(),
 			CreatedBy: h.CreatedBy,
 			Tags:      h.Tags,
 			Size:      h.Size,
