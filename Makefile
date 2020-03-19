@@ -383,6 +383,10 @@ docdir:
 .PHONY: docs
 docs: .install.md2man docdir $(MANPAGES) ## Generate documentation
 
+.PHONE: xref_helpmsgs_manpages
+xref_helpmsgs_manpages:
+	./hack/xref-helpmsgs-manpages
+
 install-podman-remote-%-docs: podman-remote docs $(MANPAGES)
 	rm -rf docs/build/remote
 	mkdir -p docs/build/remote
