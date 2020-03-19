@@ -134,7 +134,9 @@ func (c *Container) execPS(args []string) ([]string, error) {
 	}()
 
 	cmd := append([]string{"ps"}, args...)
-	ec, err := c.Exec(false, false, map[string]string{}, cmd, "", "", streams, 0, nil, "")
+	config := new(ExecConfig)
+	config.Command = cmd
+	ec, err := c.Exec(config, streams, nil)
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {

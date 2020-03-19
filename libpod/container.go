@@ -181,9 +181,13 @@ type ContainerState struct {
 	PID int `json:"pid,omitempty"`
 	// ConmonPID is the PID of the container's conmon
 	ConmonPID int `json:"conmonPid,omitempty"`
-	// ExecSessions contains active exec sessions for container
-	// Exec session ID is mapped to PID of exec process
-	ExecSessions map[string]*ExecSession `json:"execSessions,omitempty"`
+	// ExecSessions contains all exec sessions that are associated with this
+	// container.
+	ExecSessions map[string]*ExecSession `json:"newExecSessions,omitempty"`
+	// LegacyExecSessions are legacy exec sessions from older versions of
+	// Podman.
+	// These are DEPRECATED and will be removed in a future release.
+	LegacyExecSessions map[string]*legacyExecSession `json:"execSessions,omitempty"`
 	// NetworkStatus contains the configuration results for all networks
 	// the pod is attached to. Only populated if we created a network
 	// namespace for the container, and the network namespace is currently
@@ -212,13 +216,6 @@ type ContainerState struct {
 
 	// containerPlatformState holds platform-specific container state.
 	containerPlatformState
-}
-
-// ExecSession contains information on an active exec session
-type ExecSession struct {
-	ID      string   `json:"id"`
-	Command []string `json:"command"`
-	PID     int      `json:"pid"`
 }
 
 // ContainerConfig contains all information that was used to create the
@@ -944,13 +941,13 @@ func (c *Container) ExecSession(id string) (*ExecSession, error) {
 
 	session, ok := c.state.ExecSessions[id]
 	if !ok {
-		return nil, errors.Wrapf(define.ErrNoSuchCtr, "no exec session with ID %s found in container %s", id, c.ID())
+		return nil, errors.Wrapf(define.ErrNoSuchExecSession, "no exec session with ID %s found in container %s", id, c.ID())
 	}
 
 	returnSession := new(ExecSession)
-	returnSession.ID = session.ID
-	returnSession.Command = session.Command
-	returnSession.PID = session.PID
+	if err := JSONDeepCopy(session, returnSession); err != nil {
+		return nil, errors.Wrapf(err, "error copying contents of container %s exec session %s", c.ID(), session.ID())
+	}
 
 	return returnSession, nil
 }

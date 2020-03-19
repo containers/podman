@@ -16,7 +16,6 @@ import (
 // ExecAttachCtr execs and attaches to a container
 func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged bool, env map[string]string, cmd []string, user, workDir string, streams *libpod.AttachStreams, preserveFDs uint, detachKeys string) (int, error) {
 	resize := make(chan remotecommand.TerminalSize)
-
 	haveTerminal := terminal.IsTerminal(int(os.Stdin.Fd()))
 
 	// Check if we are attached to a terminal. If we are, generate resize
@@ -33,7 +32,18 @@ func ExecAttachCtr(ctx context.Context, ctr *libpod.Container, tty, privileged b
 			}
 		}()
 	}
-	return ctr.Exec(tty, privileged, env, cmd, user, workDir, streams, preserveFDs, resize, detachKeys)
+
+	execConfig := new(libpod.ExecConfig)
+	execConfig.Command = cmd
+	execConfig.Terminal = tty
+	execConfig.Privileged = privileged
+	execConfig.Environment = env
+	execConfig.User = user
+	execConfig.WorkDir = workDir
+	execConfig.DetachKeys = &detachKeys
+	execConfig.PreserveFDs = preserveFDs
+
+	return ctr.Exec(execConfig, streams, resize)
 }
 
 // StartAttachCtr starts and (if required) attaches to a container

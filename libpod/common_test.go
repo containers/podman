@@ -58,14 +58,12 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 			PID:        1234,
 			ExecSessions: map[string]*ExecSession{
 				"abcd": {
-					ID:      "1",
-					Command: []string{"2", "3"},
-					PID:     9876,
+					Id:  "1",
+					PID: 9876,
 				},
 				"ef01": {
-					ID:      "5",
-					Command: []string{"hello", "world"},
-					PID:     46765,
+					Id:  "5",
+					PID: 46765,
 				},
 			},
 			BindMounts: map[string]string{

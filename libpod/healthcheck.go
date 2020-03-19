@@ -143,7 +143,9 @@ func (c *Container) runHealthCheck() (HealthCheckStatus, error) {
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
 	timeStart := time.Now()
 	hcResult := HealthCheckSuccess
-	_, hcErr := c.Exec(false, false, map[string]string{}, newCommand, "", "", streams, 0, nil, "")
+	config := new(ExecConfig)
+	config.Command = newCommand
+	_, hcErr := c.Exec(config, streams, nil)
 	if hcErr != nil {
 		errCause := errors.Cause(hcErr)
 		hcResult = HealthCheckFailure
