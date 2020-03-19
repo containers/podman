@@ -1,3 +1,21 @@
+- Changelog for v1.8.2 (2020-03-19)
+  * fix reported compat issues
+  * Don't include SUBDIR in windows.zip
+  * rootless: fix usage with hidepid=1
+  * V2 podman command
+  * serve swagger when present
+  * swagger: more consistency fixes
+  * Vendor in containers/buildah v1.14.3
+  * Reduce CPU usage when --timeout=0
+  * New test: man page cross-ref against --help
+  * podman: avoid conmon zombie on exec
+  * Filter pods through pod list api
+  * Bump to v1.8.2-dev
+  * Fix vendoring on master
+  * fix timeout file flake
+  * auto updates
+  * pkg/systemd: add dbus support
+
 - Changelog for v1.8.2-rc1 (2020-03-17)
   * Update release notes for v1.8.2-rc1
   * Fix vendoring on master
