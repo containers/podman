@@ -141,7 +141,7 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 
 [func Ps(opts: PsOpts) PsContainer](#Ps)
 
-[func PullImage(name: string) MoreResponse](#PullImage)
+[func PullImage(name: string, creds: AuthConfig) MoreResponse](#PullImage)
 
 [func PushImage(name: string, tag: string, compress: bool, format: string, removeSignatures: bool, signBy: string) MoreResponse](#PushImage)
 
@@ -196,6 +196,8 @@ in the [API.md](https://github.com/containers/libpod/blob/master/API.md) file in
 [func VolumesPrune() []string, []string](#VolumesPrune)
 
 [func WaitContainer(name: string, interval: int) int](#WaitContainer)
+
+[type AuthConfig](#AuthConfig)
 
 [type BuildInfo](#BuildInfo)
 
@@ -1027,7 +1029,7 @@ method Ps(opts: [PsOpts](#PsOpts)) [PsContainer](#PsContainer)</div>
 ### <a name="PullImage"></a>func PullImage
 <div style="background-color: #E8E8E8; padding: 15px; margin: 10px; border-radius: 10px;">
 
-method PullImage(name: [string](https://godoc.org/builtin#string)) [MoreResponse](#MoreResponse)</div>
+method PullImage(name: [string](https://godoc.org/builtin#string), creds: [AuthConfig](#AuthConfig)) [MoreResponse](#MoreResponse)</div>
 PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
 are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
 status as it occurs.
@@ -1283,6 +1285,13 @@ WaitContainer takes the name or ID of a container and waits the given interval i
 stops.  Upon stopping, the return code of the container is returned. If the container container cannot be found by ID
 or name, a [ContainerNotFound](#ContainerNotFound) error is returned.
 ## Types
+### <a name="AuthConfig"></a>type AuthConfig
+
+
+
+username [string](https://godoc.org/builtin#string)
+
+password [string](https://godoc.org/builtin#string)
 ### <a name="BuildInfo"></a>type BuildInfo
 
 BuildInfo is used to describe user input for building images

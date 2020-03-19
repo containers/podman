@@ -288,7 +288,8 @@ func (r *LocalRuntime) NewImageFromLocal(name string) (*ContainerImage, error) {
 // LoadFromArchiveReference creates an image from a local archive
 func (r *LocalRuntime) LoadFromArchiveReference(ctx context.Context, srcRef types.ImageReference, signaturePolicyPath string, writer io.Writer) ([]*ContainerImage, error) {
 	var iid string
-	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, srcRef.DockerReference().String())
+	creds := iopodman.AuthConfig{}
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, srcRef.DockerReference().String(), creds)
 	if err != nil {
 		return nil, err
 	}
@@ -320,7 +321,12 @@ func (r *LocalRuntime) New(ctx context.Context, name, signaturePolicyPath, authf
 	if label != nil {
 		return nil, errors.New("the remote client function does not support checking a remote image for a label")
 	}
-	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, name)
+	creds := iopodman.AuthConfig{}
+	if dockeroptions.DockerRegistryCreds != nil {
+		creds.Username = dockeroptions.DockerRegistryCreds.Username
+		creds.Password = dockeroptions.DockerRegistryCreds.Password
+	}
+	reply, err := iopodman.PullImage().Send(r.Conn, varlink.More, name, creds)
 	if err != nil {
 		return nil, err
 	}
