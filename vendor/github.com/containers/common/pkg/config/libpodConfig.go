@@ -302,10 +302,9 @@ func rootlessLibpodConfigPath() (string, error) {
 
 func (c *Config) libpodConfig() *ConfigFromLibpod {
 	return &ConfigFromLibpod{
-		SignaturePolicyPath: c.Containers.SignaturePolicyPath,
-		InitPath:            c.Containers.InitPath,
-		MaxLogSize:          c.Containers.LogSizeMax,
-		EnableLabeling:      c.Containers.EnableLabeling,
+		InitPath:       c.Containers.InitPath,
+		MaxLogSize:     c.Containers.LogSizeMax,
+		EnableLabeling: c.Containers.EnableLabeling,
 
 		SetOptions:               c.Engine.SetOptions,
 		VolumePath:               c.Engine.VolumePath,
@@ -334,6 +333,7 @@ func (c *Config) libpodConfig() *ConfigFromLibpod {
 		DetachKeys:               c.Engine.DetachKeys,
 		SDNotify:                 c.Engine.SDNotify,
 		CgroupCheck:              c.Engine.CgroupCheck,
+		SignaturePolicyPath:      c.Engine.SignaturePolicyPath,
 
 		CNIConfigDir:      c.Network.NetworkConfigDir,
 		CNIPluginDir:      c.Network.CNIPluginDirs,
@@ -343,11 +343,11 @@ func (c *Config) libpodConfig() *ConfigFromLibpod {
 
 func (c *Config) libpodToContainersConfig(libpodConf *ConfigFromLibpod) {
 
-	c.Containers.SignaturePolicyPath = libpodConf.SignaturePolicyPath
 	c.Containers.InitPath = libpodConf.InitPath
 	c.Containers.LogSizeMax = libpodConf.MaxLogSize
 	c.Containers.EnableLabeling = libpodConf.EnableLabeling
 
+	c.Engine.SignaturePolicyPath = libpodConf.SignaturePolicyPath
 	c.Engine.SetOptions = libpodConf.SetOptions
 	c.Engine.VolumePath = libpodConf.VolumePath
 	c.Engine.ImageDefaultTransport = libpodConf.ImageDefaultTransport
