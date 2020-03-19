@@ -108,10 +108,9 @@ do_pause ()
 }
 
 static char **
-get_cmd_line_args (pid_t pid)
+get_cmd_line_args ()
 {
   int fd;
-  char path[PATH_MAX];
   char *buffer;
   size_t allocated;
   size_t used = 0;
@@ -119,11 +118,7 @@ get_cmd_line_args (pid_t pid)
   int i, argc = 0;
   char **argv;
 
-  if (pid)
-    sprintf (path, "/proc/%d/cmdline", pid);
-  else
-    strcpy (path, "/proc/self/cmdline");
-  fd = open (path, O_RDONLY);
+  fd = open ("/proc/self/cmdline", O_RDONLY);
   if (fd < 0)
     return NULL;
 
@@ -196,7 +191,7 @@ can_use_shortcut ()
   return false;
 #endif
 
-  argv = get_cmd_line_args (0);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     return false;
 
@@ -542,7 +537,6 @@ create_pause_process (const char *pause_pid_file_path, char **argv)
 int
 reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
 {
-  pid_t ppid = getpid ();
   char uid[16];
   char gid[16];
   char **argv;
@@ -559,7 +553,7 @@ reexec_userns_join (int userns, int mountns, char *pause_pid_file_path)
   sprintf (uid, "%d", geteuid ());
   sprintf (gid, "%d", getegid ());
 
-  argv = get_cmd_line_args (ppid);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
@@ -724,7 +718,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
   int ret;
   pid_t pid;
   char b;
-  pid_t ppid = getpid ();
   char **argv;
   char uid[16];
   char gid[16];
@@ -801,7 +794,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (EXIT_FAILURE);
     }
 
-  argv = get_cmd_line_args (ppid);
+  argv = get_cmd_line_args ();
   if (argv == NULL)
     {
       fprintf (stderr, "cannot read argv: %s\n", strerror (errno));
