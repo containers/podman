@@ -1,7 +1,6 @@
 package entities
 
 import (
-	"net/url"
 	"os/user"
 	"path/filepath"
 
@@ -20,11 +19,13 @@ func (m EngineMode) String() string {
 	return string(m)
 }
 
+// FIXME: merge EngineOptions and EngineFlags
 type EngineOptions struct {
-	Uri        *url.URL
+	Uri        string
 	Identities []string
-	FlagSet    pflag.FlagSet
+	FlagSet    *pflag.FlagSet
 	Flags      EngineFlags
+	EngineMode EngineMode
 }
 
 type EngineFlags struct {
@@ -58,8 +59,6 @@ type EngineFlags struct {
 	Port                 int
 	IdentityFile         string
 	IgnoreHosts          bool
-
-	EngineMode EngineMode
 }
 
 func NewEngineOptions() (EngineFlags, error) {

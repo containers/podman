@@ -16,18 +16,6 @@ type ContainerEngine struct {
 	ClientCxt context.Context
 }
 
-func (r *ContainerEngine) Shutdown(force bool) error {
-	return nil
-}
-
-func (r *ContainerEngine) ContainerDelete(ctx context.Context, opts entities.ContainerDeleteOptions) (*entities.ContainerDeleteReport, error) {
-	panic("implement me")
-}
-
-func (r *ContainerEngine) ContainerPrune(ctx context.Context) (*entities.ContainerPruneReport, error) {
-	panic("implement me")
-}
-
 func (r *ContainerEngine) PodDelete(ctx context.Context, opts entities.PodPruneOptions) (*entities.PodDeleteReport, error) {
 	panic("implement me")
 }

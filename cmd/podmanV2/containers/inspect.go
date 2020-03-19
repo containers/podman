@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	containerExistsDescription = `If the named container exists in local storage, podman container exists exits with 0, otherwise the exit code will be 1.`
+
 	// podman container _inspect_
 	inspectCmd = &cobra.Command{
 		Use:     "inspect [flags] CONTAINER",
