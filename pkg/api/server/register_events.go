@@ -63,6 +63,6 @@ func (s *APIServer) registerEventsHandlers(r *mux.Router) error {
 	//     description: returns a string of json data describing an event
 	//   500:
 	//     "$ref": "#/responses/InternalError"
-	r.Handle(VersionedPath("/events"), s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
+	r.Handle(VersionedPath("/libpod/events"), s.APIHandler(compat.GetEvents)).Methods(http.MethodGet)
 	return nil
 }

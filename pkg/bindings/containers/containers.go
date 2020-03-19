@@ -139,7 +139,6 @@ func Kill(ctx context.Context, nameOrID string, signal string) error {
 	return response.Process(nil)
 
 }
-func Logs() {}
 
 // Pause pauses a given container.  The nameOrID can be a container name
 // or a partial/full ID.
