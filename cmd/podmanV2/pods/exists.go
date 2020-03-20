@@ -1,0 +1,43 @@
+package pods
+
+import (
+	"context"
+	"os"
+
+	"github.com/containers/libpod/cmd/podmanV2/registry"
+	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/spf13/cobra"
+)
+
+var (
+	podExistsDescription = `If the named pod exists in local storage, podman pod exists exits with 0, otherwise the exit code will be 1.`
+
+	existsCommand = &cobra.Command{
+		Use:   "exists POD",
+		Short: "Check if a pod exists in local storage",
+		Long:  podExistsDescription,
+		RunE:  exists,
+		Args:  cobra.ExactArgs(1),
+		Example: `podman pod exists podID
+  podman pod exists mypod || podman pod create --name mypod`,
+	}
+)
+
+func init() {
+	registry.Commands = append(registry.Commands, registry.CliCommand{
+		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
+		Command: existsCommand,
+		Parent:  podCmd,
+	})
+}
+
+func exists(cmd *cobra.Command, args []string) error {
+	response, err := registry.ContainerEngine().PodExists(context.Background(), args[0])
+	if err != nil {
+		return err
+	}
+	if !response.Value {
+		os.Exit(1)
+	}
+	return nil
+}
