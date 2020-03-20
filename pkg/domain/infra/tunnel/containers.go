@@ -8,7 +8,7 @@ import (
 )
 
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
-	exists, err := containers.Exists(ctx, nameOrId)
+	exists, err := containers.Exists(ic.ClientCxt, nameOrId)
 	return &entities.BoolReport{Value: exists}, err
 }
 
