@@ -53,7 +53,7 @@ type ContainerBasicConfig struct {
 	Terminal bool `json:"terminal,omitempty"`
 	// Stdin is whether the container will keep its STDIN open.
 	Stdin bool `json:"stdin,omitempty"`
-	// Labels are key-valid labels that are used to add metadata to
+	// Labels are key-value pairs that are used to add metadata to
 	// containers.
 	// Optional.
 	Labels map[string]string `json:"labels,omitempty"`
