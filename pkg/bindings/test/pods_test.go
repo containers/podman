@@ -81,7 +81,7 @@ var _ = Describe("Podman pods", func() {
 	It("List pods with filters", func() {
 		var newpod2 string = "newpod2"
 		bt.Podcreate(&newpod2)
-		_, err = bt.RunTopContainer(nil, &trueFlag, &newpod)
+		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
 		Expect(err).To(BeNil())
 
 		// Expected err with invalid filter params
