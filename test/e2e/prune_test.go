@@ -87,7 +87,7 @@ var _ = Describe("Podman prune", func() {
 		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
 	})
 
-	It("podman image prune none images", func() {
+	It("podman image prune skip cache images", func() {
 		SkipIfRemote()
 		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
 
@@ -105,8 +105,33 @@ var _ = Describe("Podman prune", func() {
 		after.WaitWithDefaultTimeout()
 		Expect(none.ExitCode()).To(Equal(0))
 		hasNoneAfter, _ := after.GrepString("<none>")
-		Expect(hasNoneAfter).To(BeFalse())
+		Expect(hasNoneAfter).To(BeTrue())
 		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
+	})
+
+	It("podman image prune dangling images", func() {
+		SkipIfRemote()
+		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
+		podmanTest.BuildImage(pruneImage, "alpine_bash:latest", "true")
+
+		none := podmanTest.Podman([]string{"images", "-a"})
+		none.WaitWithDefaultTimeout()
+		Expect(none.ExitCode()).To(Equal(0))
+		hasNone, result := none.GrepString("<none>")
+		Expect(len(result)).To(Equal(2))
+		Expect(hasNone).To(BeTrue())
+
+		prune := podmanTest.Podman([]string{"image", "prune", "-f"})
+		prune.WaitWithDefaultTimeout()
+		Expect(prune.ExitCode()).To(Equal(0))
+
+		after := podmanTest.Podman([]string{"images", "-a"})
+		after.WaitWithDefaultTimeout()
+		Expect(none.ExitCode()).To(Equal(0))
+		hasNoneAfter, result := none.GrepString("<none>")
+		Expect(hasNoneAfter).To(BeTrue())
+		Expect(len(after.OutputToStringArray()) > 1).To(BeTrue())
+		Expect(len(result) > 0).To(BeTrue())
 	})
 
 	It("podman image prune unused images", func() {
