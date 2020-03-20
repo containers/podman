@@ -830,6 +830,24 @@ func (r *Runtime) GetLatestContainer() (*Container, error) {
 	return ctrs[lastCreatedIndex], nil
 }
 
+// GetExecSessionContainer gets the container that a given exec session ID is
+// attached to.
+func (r *Runtime) GetExecSessionContainer(id string) (*Container, error) {
+	r.lock.RLock()
+	defer r.lock.RUnlock()
+
+	if !r.valid {
+		return nil, define.ErrRuntimeStopped
+	}
+
+	ctrID, err := r.state.GetExecSession(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.state.Container(ctrID)
+}
+
 // PruneContainers removes stopped and exited containers from localstorage.  A set of optional filters
 // can be provided to be more granular.
 func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) (map[string]int64, map[string]error, error) {

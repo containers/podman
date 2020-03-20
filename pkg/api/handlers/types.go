@@ -177,6 +177,14 @@ type ImageTreeResponse struct {
 	Layers []ImageLayer `json:"layers"`
 }
 
+type ExecCreateConfig struct {
+	docker.ExecConfig
+}
+
+type ExecCreateResponse struct {
+	docker.IDResponse
+}
+
 func EventToApiEvent(e *events.Event) *Event {
 	return &Event{dockerEvents.Message{
 		Type:   e.Type.String(),
