@@ -1,0 +1,10 @@
+# vim: set syntax=dockerfile:
+FROM nixos/nix:latest
+
+RUN apk add --no-cache bash git
+
+COPY . /work
+WORKDIR work/nix
+RUN nix-build
+WORKDIR /
+RUN rm -rf work

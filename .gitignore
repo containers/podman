@@ -31,3 +31,4 @@ release.txt
 /test/copyimg/copyimg
 /test/goecho/goecho
 .vscode*
+result-bin
