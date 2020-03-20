@@ -10,7 +10,9 @@ import (
 )
 
 var (
-	containerExistsCommand = &cobra.Command{
+	containerExistsDescription = `If the named container exists in local storage, podman container exists exits with 0, otherwise the exit code will be 1.`
+
+	existsCommand = &cobra.Command{
 		Use:   "exists CONTAINER",
 		Short: "Check if a container exists in local storage",
 		Long:  containerExistsDescription,
@@ -23,7 +25,7 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: containerExistsCommand,
+		Command: existsCommand,
 		Parent:  containerCmd,
 	})
 }

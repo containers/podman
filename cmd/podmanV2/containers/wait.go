@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -25,7 +26,10 @@ var (
 	}
 )
 
-var waitFlags = entities.WaitOptions{}
+var (
+	waitFlags     = entities.WaitOptions{}
+	waitCondition string
+)
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -34,20 +38,30 @@ func init() {
 		Parent:  containerCmd,
 	})
 
-	waitCommand.SetHelpTemplate(registry.HelpTemplate())
-	waitCommand.SetUsageTemplate(registry.UsageTemplate())
 	flags := waitCommand.Flags()
 	flags.DurationVarP(&waitFlags.Interval, "interval", "i", time.Duration(250), "Milliseconds to wait before polling for completion")
 	flags.BoolVarP(&waitFlags.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	flags.StringVar(&waitFlags.Condition, "condition", "stopped", "Condition to wait on")
+	flags.StringVar(&waitCondition, "condition", "stopped", "Condition to wait on")
+	if registry.EngineOpts.EngineMode == entities.ABIMode {
+		// TODO: This is the same as V1.  We could skip creating the flag altogether in V2...
+		_ = flags.MarkHidden("latest")
+	}
 }
 
 func wait(cmd *cobra.Command, args []string) error {
+	var (
+		err error
+	)
 	if waitFlags.Latest && len(args) > 0 {
 		return errors.New("cannot combine latest flag and arguments")
 	}
 	if waitFlags.Interval == 0 {
 		return errors.New("interval must be greater then 0")
+	}
+
+	waitFlags.Condition, err = define.StringToContainerStatus(waitCondition)
+	if err != nil {
+		return err
 	}
 
 	responses, err := registry.ContainerEngine().ContainerWait(context.Background(), args, waitFlags)

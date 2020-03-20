@@ -25,7 +25,7 @@ func init() {
 	var dummyVersion bool
 	rootCmd.PersistentFlags().BoolVarP(&dummyVersion, "version", "v", false, "Version of podman")
 	rootCmd.PersistentFlags().StringVarP(&registry.EngineOpts.Uri, "remote", "r", "", "URL to access podman service")
-	rootCmd.PersistentFlags().StringSliceVarP(&registry.EngineOpts.Identities, "identity", "i", []string{}, "path to SSH identity file")
+	rootCmd.PersistentFlags().StringSliceVar(&registry.EngineOpts.Identities, "identity", []string{}, "path to SSH identity file")
 }
 
 func Execute() {

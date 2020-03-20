@@ -1,9 +1,13 @@
 package entities
 
-import "time"
+import (
+	"time"
+
+	"github.com/containers/libpod/libpod/define"
+)
 
 type WaitOptions struct {
-	Condition string
+	Condition define.ContainerStatus
 	Interval  time.Duration
 	Latest    bool
 }

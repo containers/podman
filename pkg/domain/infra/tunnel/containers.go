@@ -13,7 +13,24 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string)
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {
-	return nil, nil
+	var (
+		responses []entities.WaitReport
+	)
+	cons, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range cons {
+		response := entities.WaitReport{Id: c.ID}
+		exitCode, err := containers.Wait(ic.ClientCxt, c.ID, &options.Condition)
+		if err != nil {
+			response.Error = err
+		} else {
+			response.ExitCode = exitCode
+		}
+		responses = append(responses, response)
+	}
+	return responses, nil
 }
 
 func (r *ContainerEngine) ContainerDelete(ctx context.Context, opts entities.ContainerDeleteOptions) (*entities.ContainerDeleteReport, error) {

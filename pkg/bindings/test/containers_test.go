@@ -1,6 +1,7 @@
 package test_bindings
 
 import (
+	"github.com/containers/libpod/libpod/define"
 	"net/http"
 	"strconv"
 	"strings"
@@ -282,8 +283,8 @@ var _ = Describe("Podman containers ", func() {
 		var (
 			name           = "top"
 			exitCode int32 = -1
-			pause          = "paused"
-			unpause        = "running"
+			pause          = define.ContainerStatePaused
+			running        = define.ContainerStateRunning
 		)
 		errChan := make(chan error)
 		_, err := bt.RunTopContainer(&name, nil, nil)
@@ -301,7 +302,7 @@ var _ = Describe("Podman containers ", func() {
 
 		errChan = make(chan error)
 		go func() {
-			_, waitErr := containers.Wait(bt.conn, name, &unpause)
+			_, waitErr := containers.Wait(bt.conn, name, &running)
 			errChan <- waitErr
 			close(errChan)
 		}()

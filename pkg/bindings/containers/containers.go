@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	lpapiv2 "github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
 )
@@ -212,7 +213,7 @@ func Unpause(ctx context.Context, nameOrID string) error {
 // Wait blocks until the given container reaches a condition. If not provided, the condition will
 // default to stopped.  If the condition is stopped, an exit code for the container will be provided. The
 // nameOrID can be a container name or a partial/full ID.
-func Wait(ctx context.Context, nameOrID string, condition *string) (int32, error) {
+func Wait(ctx context.Context, nameOrID string, condition *define.ContainerStatus) (int32, error) { //nolint
 	var exitCode int32
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
@@ -220,7 +221,7 @@ func Wait(ctx context.Context, nameOrID string, condition *string) (int32, error
 	}
 	params := url.Values{}
 	if condition != nil {
-		params.Set("condition", *condition)
+		params.Set("condition", condition.String())
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/wait", params, nameOrID)
 	if err != nil {

@@ -3,6 +3,7 @@ package test_bindings
 import (
 	"context"
 	"fmt"
+	"github.com/containers/libpod/libpod/define"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -205,8 +206,8 @@ func (b *bindingTest) RunTopContainer(containerName *string, insidePod *bool, po
 	if err != nil {
 		return "", err
 	}
-	waiting := "running"
-	_, err = containers.Wait(b.conn, ctr.ID, &waiting)
+	wait := define.ContainerStateRunning
+	_, err = containers.Wait(b.conn, ctr.ID, &wait)
 	return ctr.ID, err
 }
 

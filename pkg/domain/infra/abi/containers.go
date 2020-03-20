@@ -24,18 +24,13 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	var (
 		responses []entities.WaitReport
 	)
-	condition, err := define.StringToContainerStatus(options.Condition)
-	if err != nil {
-		return nil, err
-	}
-
 	ctrs, err := shortcuts.GetContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
 	if err != nil {
 		return nil, err
 	}
 	for _, c := range ctrs {
 		response := entities.WaitReport{Id: c.ID()}
-		exitCode, err := c.WaitForConditionWithInterval(options.Interval, condition)
+		exitCode, err := c.WaitForConditionWithInterval(options.Interval, options.Condition)
 		if err != nil {
 			response.Error = err
 		} else {
