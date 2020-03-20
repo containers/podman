@@ -64,8 +64,8 @@ func (d *mergeDecorator) Base() Decorator {
 	return d.Decorator
 }
 
-func (d *mergeDecorator) Decor(st *Statistics) string {
-	msg := d.Decorator.Decor(st)
+func (d *mergeDecorator) Decor(s *Statistics) string {
+	msg := d.Decorator.Decor(s)
 	msgLen := utf8.RuneCountInString(msg)
 	if (d.wc.C & DextraSpace) != 0 {
 		msgLen++
@@ -101,6 +101,6 @@ type placeHolderDecorator struct {
 	WC
 }
 
-func (d *placeHolderDecorator) Decor(_ *Statistics) string {
+func (d *placeHolderDecorator) Decor(*Statistics) string {
 	return ""
 }

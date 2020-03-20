@@ -96,8 +96,8 @@ func PopCompletedMode() ContainerOption {
 	}
 }
 
-// ContainerOptOnCond returns option when condition evaluates to true.
-func ContainerOptOnCond(option ContainerOption, condition func() bool) ContainerOption {
+// ContainerOptOn returns option when condition evaluates to true.
+func ContainerOptOn(option ContainerOption, condition func() bool) ContainerOption {
 	if condition() {
 		return option
 	}

@@ -87,7 +87,7 @@ func logoutCmd(c *cliconfig.LogoutValues) error {
 		return nil
 	case config.ErrNotLoggedIn:
 		// username of user logged in to server (if one exists)
-		userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
+		userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server) // nolint
 		if err != nil {
 			return errors.Wrapf(err, "error reading auth file")
 		}

@@ -32,7 +32,14 @@ type OCI1 struct {
 	imgspecv1.Manifest
 }
 
-// SupportedOCI1MediaType checks if the specified string is a supported OCI1 media type.
+// SupportedOCI1MediaType checks if the specified string is a supported OCI1
+// media type.
+//
+// Deprecated: blindly rejecting unknown MIME types when the consumer does not
+// need to process the input just reduces interoperability (and violates the
+// standard) with no benefit, and that this function does not check that the
+// media type is appropriate for any specific purpose, so it’s not all that
+// useful for validation anyway.
 func SupportedOCI1MediaType(m string) error {
 	switch m {
 	case imgspecv1.MediaTypeDescriptor, imgspecv1.MediaTypeImageConfig, imgspecv1.MediaTypeImageLayer, imgspecv1.MediaTypeImageLayerGzip, imgspecv1.MediaTypeImageLayerNonDistributable, imgspecv1.MediaTypeImageLayerNonDistributableGzip, imgspecv1.MediaTypeImageLayerNonDistributableZstd, imgspecv1.MediaTypeImageLayerZstd, imgspecv1.MediaTypeImageManifest, imgspecv1.MediaTypeLayoutHeader, ociencspec.MediaTypeLayerEnc, ociencspec.MediaTypeLayerGzipEnc:
@@ -47,15 +54,6 @@ func OCI1FromManifest(manifest []byte) (*OCI1, error) {
 	oci1 := OCI1{}
 	if err := json.Unmarshal(manifest, &oci1); err != nil {
 		return nil, err
-	}
-	// Check manifest's and layers' media types.
-	if err := SupportedOCI1MediaType(oci1.Config.MediaType); err != nil {
-		return nil, err
-	}
-	for _, layer := range oci1.Layers {
-		if err := SupportedOCI1MediaType(layer.MediaType); err != nil {
-			return nil, err
-		}
 	}
 	return &oci1, nil
 }
@@ -128,11 +126,6 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 	m.Layers = make([]imgspecv1.Descriptor, len(layerInfos))
 	for i, info := range layerInfos {
 		mimeType := original[i].MediaType
-		// First make sure we support the media type of the original layer.
-		if err := SupportedOCI1MediaType(original[i].MediaType); err != nil {
-			return fmt.Errorf("Error preparing updated manifest: unknown media type of original layer: %q", original[i].MediaType)
-		}
-
 		if info.CryptoOperation == types.Decrypt {
 			decMimeType, err := getDecryptedMediaType(mimeType)
 			if err != nil {

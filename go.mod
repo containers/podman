@@ -12,7 +12,7 @@ require (
 	github.com/containers/buildah v1.14.3
 	github.com/containers/common v0.5.0
 	github.com/containers/conmon v2.0.10+incompatible
-	github.com/containers/image/v5 v5.2.1
+	github.com/containers/image/v5 v5.3.0
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.16.5
 	github.com/coreos/go-systemd/v22 v22.0.0
@@ -60,7 +60,7 @@ require (
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58
-	golang.org/x/sys v0.0.0-20191127021746-63cb32ae39b2
+	golang.org/x/sys v0.0.0-20200217220822-9197077df867
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.17.4

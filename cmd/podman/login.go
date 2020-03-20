@@ -95,7 +95,7 @@ func loginCmd(c *cliconfig.LoginValues) error {
 	}
 
 	// username of user logged in to server (if one exists)
-	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server)
+	userFromAuthFile, passFromAuthFile, err := config.GetAuthentication(sc, server) // nolint
 	// Do not return error if no credentials found in credHelpers, new credentials will be stored by config.SetAuthentication
 	if err != nil && err != credentials.NewErrCredentialsNotFound() {
 		return errors.Wrapf(err, "error reading auth file")
