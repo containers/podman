@@ -12,12 +12,12 @@ import (
 )
 
 // TODO: Should return *entities.ContainerExistsReport, error
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (bool, error) {
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.LookupContainer(nameOrId)
 	if err != nil && errors.Cause(err) != define.ErrNoSuchCtr {
-		return false, err
+		return nil, err
 	}
-	return err == nil, nil
+	return &entities.BoolReport{Value: err == nil}, nil
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {

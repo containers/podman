@@ -7,8 +7,9 @@ import (
 	"github.com/containers/libpod/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (bool, error) {
-	return containers.Exists(ctx, nameOrId)
+func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
+	exists, err := containers.Exists(ctx, nameOrId)
+	return &entities.BoolReport{Value: exists}, err
 }
 
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, options entities.WaitOptions) ([]entities.WaitReport, error) {

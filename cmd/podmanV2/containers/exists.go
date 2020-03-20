@@ -29,11 +29,11 @@ func init() {
 }
 
 func exists(cmd *cobra.Command, args []string) error {
-	exists, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0])
+	response, err := registry.ContainerEngine().ContainerExists(context.Background(), args[0])
 	if err != nil {
 		return err
 	}
-	if !exists {
+	if !response.Value {
 		os.Exit(1)
 	}
 	return nil

@@ -13,3 +13,7 @@ type WaitReport struct {
 	Error    error
 	ExitCode int32
 }
+
+type BoolReport struct {
+	Value bool
+}
