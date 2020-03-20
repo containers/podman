@@ -21,8 +21,12 @@ func ContainerExists(w http.ResponseWriter, r *http.Request) {
 	name := utils.GetName(r)
 	_, err := runtime.LookupContainer(name)
 	if err != nil {
-		utils.ContainerNotFound(w, name, err)
+		if errors.Cause(err) == define.ErrNoSuchCtr {
+			utils.ContainerNotFound(w, name, err)
+		}
+		utils.InternalServerError(w, err)
 		return
+
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }

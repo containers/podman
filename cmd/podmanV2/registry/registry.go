@@ -14,11 +14,13 @@ type CliCommand struct {
 }
 
 var (
-	Commands        []CliCommand
-	GlobalFlags     entities.EngineFlags
+	Commands []CliCommand
+
 	imageEngine     entities.ImageEngine
 	containerEngine entities.ContainerEngine
-	PodmanTunnel    bool
+
+	EngineOpts  entities.EngineOptions
+	GlobalFlags entities.EngineFlags
 )
 
 // HelpTemplate returns the help template for podman commands
@@ -63,7 +65,8 @@ func ImageEngine() entities.ImageEngine {
 // NewImageEngine is a wrapper for building an ImageEngine to be used for PreRunE functions
 func NewImageEngine(cmd *cobra.Command, args []string) (entities.ImageEngine, error) {
 	if imageEngine == nil {
-		engine, err := infra.NewImageEngine(GlobalFlags.EngineMode, entities.EngineOptions{})
+		EngineOpts.FlagSet = cmd.Flags()
+		engine, err := infra.NewImageEngine(EngineOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -79,7 +82,8 @@ func ContainerEngine() entities.ContainerEngine {
 // NewContainerEngine is a wrapper for building an ContainerEngine to be used for PreRunE functions
 func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEngine, error) {
 	if containerEngine == nil {
-		engine, err := infra.NewContainerEngine(GlobalFlags.EngineMode, entities.EngineOptions{})
+		EngineOpts.FlagSet = cmd.Flags()
+		engine, err := infra.NewContainerEngine(EngineOpts)
 		if err != nil {
 			return nil, err
 		}

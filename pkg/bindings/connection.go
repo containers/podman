@@ -165,8 +165,13 @@ func sshClient(_url *url.URL, identity string, secure bool) (*http.Client, error
 		}
 	}
 
+	port := _url.Port()
+	if port == "" {
+		port = "22"
+	}
+
 	bastion, err := ssh.Dial("tcp",
-		net.JoinHostPort(_url.Hostname(), _url.Port()),
+		net.JoinHostPort(_url.Hostname(), port),
 		&ssh.ClientConfig{
 			User:            _url.User.Username(),
 			Auth:            []ssh.AuthMethod{auth},

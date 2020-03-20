@@ -24,7 +24,8 @@ func init() {
 	// Override default --help information of `--version` global flag}
 	var dummyVersion bool
 	rootCmd.PersistentFlags().BoolVarP(&dummyVersion, "version", "v", false, "Version of podman")
-	rootCmd.PersistentFlags().BoolVarP(&registry.PodmanTunnel, "remote", "r", false, "Access service via SSH tunnel")
+	rootCmd.PersistentFlags().StringVarP(&registry.EngineOpts.Uri, "remote", "r", "", "URL to access podman service")
+	rootCmd.PersistentFlags().StringSliceVar(&registry.EngineOpts.Identities, "identity", []string{}, "path to SSH identity file")
 }
 
 func Execute() {
