@@ -115,6 +115,7 @@ type CommitValues struct {
 	Pause          bool
 	Quiet          bool
 	IncludeVolumes bool
+	ImageIDFile    string
 }
 
 type ContainersPrune struct {

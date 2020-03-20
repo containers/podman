@@ -1,7 +1,9 @@
 package integration
 
 import (
+	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/libpod/test/utils"
 	. "github.com/onsi/ginkgo"
@@ -233,5 +235,31 @@ var _ = Describe("Podman commit", func() {
 			envMap[v] = true
 		}
 		Expect(envMap["TEST=1=1-01=9.01"]).To(BeTrue())
+	})
+
+	It("podman commit container and print id to external file", func() {
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		targetPath := filepath.Join(os.TempDir(), "dir")
+		Expect(os.MkdirAll(targetPath, 0755)).To(BeNil())
+		targetFile := filepath.Join(targetPath, "idFile")
+		defer Expect(os.RemoveAll(targetFile)).To(BeNil())
+		defer Expect(os.Chdir(cwd)).To(BeNil())
+
+		_, ec, _ := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		session := podmanTest.Podman([]string{"commit", "test1", "foobar.com/test1-image:latest", "--iidfile", targetFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+
+		id, _ := ioutil.ReadFile(targetFile)
+		check := podmanTest.Podman([]string{"inspect", "foobar.com/test1-image:latest"})
+		check.WaitWithDefaultTimeout()
+		data := check.InspectImageJSON()
+		Expect(data[0].ID).To(Equal(string(id)))
 	})
 })

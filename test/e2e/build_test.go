@@ -152,4 +152,27 @@ var _ = Describe("Podman build", func() {
 		Expect(strings.Fields(session.OutputToString())).
 			To(ContainElement("scratch"))
 	})
+
+	It("podman build basic alpine and print id to external file", func() {
+
+		// Switch to temp dir and restore it afterwards
+		cwd, err := os.Getwd()
+		Expect(err).To(BeNil())
+		Expect(os.Chdir(os.TempDir())).To(BeNil())
+		defer Expect(os.Chdir(cwd)).To(BeNil())
+
+		targetPath := filepath.Join(os.TempDir(), "dir")
+		targetFile := filepath.Join(targetPath, "idFile")
+
+		session := podmanTest.PodmanNoCache([]string{"build", "build/basicalpine", "--iidfile", targetFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		id, _ := ioutil.ReadFile(targetFile)
+
+		// Verify that id is correct
+		inspect := podmanTest.PodmanNoCache([]string{"inspect", string(id)})
+		inspect.WaitWithDefaultTimeout()
+		data := inspect.InspectImageJSON()
+		Expect(data[0].ID).To(Equal(string(id)))
+	})
 })
