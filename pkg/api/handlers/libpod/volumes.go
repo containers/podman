@@ -8,8 +8,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -25,7 +25,7 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	}{
 		// override any golang type defaults
 	}
-	input := handlers.VolumeCreateConfig{}
+	input := entities.VolumeCreateOptions{}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
 			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
@@ -46,8 +46,8 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 	if len(input.Label) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(input.Label))
 	}
-	if len(input.Opts) > 0 {
-		parsedOptions, err := shared.ParseVolumeOptions(input.Opts)
+	if len(input.Options) > 0 {
+		parsedOptions, err := shared.ParseVolumeOptions(input.Options)
 		if err != nil {
 			utils.InternalServerError(w, err)
 			return
@@ -64,7 +64,17 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, config)
+	volResponse := entities.VolumeConfigResponse{
+		Name:        config.Name,
+		Labels:      config.Labels,
+		Driver:      config.Driver,
+		MountPoint:  config.MountPoint,
+		CreatedTime: config.CreatedTime,
+		Options:     config.Options,
+		UID:         config.UID,
+		GID:         config.GID,
+	}
+	utils.WriteResponse(w, http.StatusOK, volResponse)
 }
 
 func InspectVolume(w http.ResponseWriter, r *http.Request) {

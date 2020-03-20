@@ -128,18 +128,6 @@ type CreateContainerConfig struct {
 	NetworkingConfig dockerNetwork.NetworkingConfig
 }
 
-// swagger:model VolumeCreate
-type VolumeCreateConfig struct {
-	// New volume's name. Can be left blank
-	Name string `schema:"name"`
-	// Volume driver to use
-	Driver string `schema:"driver"`
-	// User-defined key/value metadata.
-	Label map[string]string `schema:"label"`
-	// Mapping of driver options and values.
-	Opts map[string]string `schema:"opts"`
-}
-
 // swagger:model IDResponse
 type IDResponse struct {
 	// ID

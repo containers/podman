@@ -11,6 +11,7 @@ type ContainerEngine interface {
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	PodDelete(ctx context.Context, opts PodPruneOptions) (*PodDeleteReport, error)
 	PodPrune(ctx context.Context) (*PodPruneReport, error)
+	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeDelete(ctx context.Context, opts VolumeDeleteOptions) (*VolumeDeleteReport, error)
 	VolumePrune(ctx context.Context) (*VolumePruneReport, error)
 }

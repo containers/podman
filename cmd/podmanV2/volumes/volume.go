@@ -1,4 +1,4 @@
-package images
+package volumes
 
 import (
 	"github.com/containers/libpod/cmd/podmanV2/registry"
@@ -8,7 +8,7 @@ import (
 
 var (
 	// Command: podman _volume_
-	cmd = &cobra.Command{
+	volumeCmd = &cobra.Command{
 		Use:               "volume",
 		Short:             "Manage volumes",
 		Long:              "Volumes are created in and can be shared between containers",
@@ -21,10 +21,10 @@ var (
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Mode:    []entities.EngineMode{entities.ABIMode, entities.TunnelMode},
-		Command: cmd,
+		Command: volumeCmd,
 	})
-	cmd.SetHelpTemplate(registry.HelpTemplate())
-	cmd.SetUsageTemplate(registry.UsageTemplate())
+	volumeCmd.SetHelpTemplate(registry.HelpTemplate())
+	volumeCmd.SetUsageTemplate(registry.UsageTemplate())
 }
 
 func preRunE(cmd *cobra.Command, args []string) error {
