@@ -8,15 +8,15 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 	jsoniter "github.com/json-iterator/go"
 )
 
 // Create creates a volume given its configuration.
-func Create(ctx context.Context, config handlers.VolumeCreateConfig) (*libpod.VolumeConfig, error) {
+func Create(ctx context.Context, config entities.VolumeCreateOptions) (*entities.VolumeConfigResponse, error) {
 	var (
-		v libpod.VolumeConfig
+		v entities.VolumeConfigResponse
 	)
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {

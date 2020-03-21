@@ -4,6 +4,7 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 )
 
 // No such image
@@ -155,7 +156,7 @@ type ok struct {
 type swagVolumeCreateResponse struct {
 	// in:body
 	Body struct {
-		libpod.VolumeConfig
+		entities.VolumeConfigResponse
 	}
 }
 

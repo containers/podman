@@ -12,6 +12,7 @@ type ContainerEngine interface {
 	PodDelete(ctx context.Context, opts PodPruneOptions) (*PodDeleteReport, error)
 	PodExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	PodPrune(ctx context.Context) (*PodPruneReport, error)
+	VolumeCreate(ctx context.Context, opts VolumeCreateOptions) (*IdOrNameResponse, error)
 	VolumeDelete(ctx context.Context, opts VolumeDeleteOptions) (*VolumeDeleteReport, error)
 	VolumePrune(ctx context.Context) (*VolumePruneReport, error)
 }
