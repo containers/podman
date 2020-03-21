@@ -151,6 +151,13 @@ type ok struct {
 	}
 }
 
+// Volume prune response
+// swagger:response VolumePruneResponse
+type swagVolumePruneResponse struct {
+	// in:body
+	Body []entities.VolumePruneReport
+}
+
 // Volume create response
 // swagger:response VolumeCreateResponse
 type swagVolumeCreateResponse struct {

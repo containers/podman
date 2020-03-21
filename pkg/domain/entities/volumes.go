@@ -1,6 +1,8 @@
 package entities
 
-import "time"
+import (
+	"time"
+)
 
 // swagger:model VolumeCreate
 type VolumeCreateOptions struct {
@@ -20,22 +22,71 @@ type IdOrNameResponse struct {
 }
 
 type VolumeConfigResponse struct {
-	// Name of the volume.
-	Name   string            `json:"name"`
-	Labels map[string]string `json:"labels"`
-	// The volume driver. Empty string or local does not activate a volume
-	// driver, all other volumes will.
-	Driver string `json:"volumeDriver"`
-	// The location the volume is mounted at.
-	MountPoint string `json:"mountPoint"`
-	// Time the volume was created.
-	CreatedTime time.Time `json:"createdAt,omitempty"`
-	// Options to pass to the volume driver. For the local driver, this is
-	// a list of mount options. For other drivers, they are passed to the
-	// volume driver handling the volume.
-	Options map[string]string `json:"volumeOptions,omitempty"`
-	// UID the volume will be created as.
-	UID int `json:"uid"`
-	// GID the volume will be created as.
-	GID int `json:"gid"`
+	// Name is the name of the volume.
+	Name string `json:"Name"`
+	// Driver is the driver used to create the volume.
+	// This will be properly implemented in a future version.
+	Driver string `json:"Driver"`
+	// Mountpoint is the path on the host where the volume is mounted.
+	Mountpoint string `json:"Mountpoint"`
+	// CreatedAt is the date and time the volume was created at. This is not
+	// stored for older Libpod volumes; if so, it will be omitted.
+	CreatedAt time.Time `json:"CreatedAt,omitempty"`
+	// Status is presently unused and provided only for Docker compatibility.
+	// In the future it will be used to return information on the volume's
+	// current state.
+	Status map[string]string `json:"Status,omitempty"`
+	// Labels includes the volume's configured labels, key:value pairs that
+	// can be passed during volume creation to provide information for third
+	// party tools.
+	Labels map[string]string `json:"Labels"`
+	// Scope is unused and provided solely for Docker compatibility. It is
+	// unconditionally set to "local".
+	Scope string `json:"Scope"`
+	// Options is a set of options that were used when creating the volume.
+	// It is presently not used.
+	Options map[string]string `json:"Options"`
+	// UID is the UID that the volume was created with.
+	UID int `json:"UID,omitempty"`
+	// GID is the GID that the volume was created with.
+	GID int `json:"GID,omitempty"`
+	// Anonymous indicates that the volume was created as an anonymous
+	// volume for a specific container, and will be be removed when any
+	// container using it is removed.
+	Anonymous bool `json:"Anonymous,omitempty"`
+}
+
+type VolumeRmOptions struct {
+	All   bool
+	Force bool
+}
+
+type VolumeRmReport struct {
+	Err error
+	Id  string
+}
+
+type VolumeInspectOptions struct {
+	All bool
+}
+
+type VolumeInspectReport struct {
+	*VolumeConfigResponse
+}
+
+type VolumePruneOptions struct {
+	Force bool
+}
+
+type VolumePruneReport struct {
+	Err error
+	Id  string
+}
+
+type VolumeListOptions struct {
+	Filter map[string][]string
+}
+
+type VolumeListReport struct {
+	VolumeConfigResponse
 }

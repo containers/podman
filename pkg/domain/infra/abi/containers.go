@@ -239,23 +239,3 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	return reports, nil
 }
-
-func (ic *ContainerEngine) ContainerPrune(ctx context.Context) (*entities.ContainerPruneReport, error) {
-	panic("implement me")
-}
-
-func (ic *ContainerEngine) PodDelete(ctx context.Context, opts entities.PodPruneOptions) (*entities.PodDeleteReport, error) {
-	panic("implement me")
-}
-
-func (ic *ContainerEngine) PodPrune(ctx context.Context) (*entities.PodPruneReport, error) {
-	panic("implement me")
-}
-
-func (ic *ContainerEngine) VolumeDelete(ctx context.Context, opts entities.VolumeDeleteOptions) (*entities.VolumeDeleteReport, error) {
-	panic("implement me")
-}
-
-func (ic *ContainerEngine) VolumePrune(ctx context.Context) (*entities.VolumePruneReport, error) {
-	panic("implement me")
-}

@@ -347,7 +347,23 @@ func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, opti
 
 // PruneVolumes is a wrapper function for libpod PruneVolumes
 func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
-	return r.Runtime.PruneVolumes(ctx)
+	var (
+		vids []string
+		errs []error
+	)
+	reports, err := r.Runtime.PruneVolumes(ctx)
+	if err != nil {
+		errs = append(errs, err)
+		return vids, errs
+	}
+	for _, r := range reports {
+		if r.Err == nil {
+			vids = append(vids, r.Id)
+		} else {
+			errs = append(errs, r.Err)
+		}
+	}
+	return vids, errs
 }
 
 // SaveImage is a wrapper function for saving an image to the local filesystem
