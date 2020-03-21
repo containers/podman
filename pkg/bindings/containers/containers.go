@@ -126,13 +126,13 @@ func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectC
 // Kill sends a given signal to a given container.  The signal should be the string
 // representation of a signal like 'SIGKILL'. The nameOrID can be a container name
 // or a partial/full ID
-func Kill(ctx context.Context, nameOrID string, signal string) error {
+func Kill(ctx context.Context, nameOrID string, sig string) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
 	params := url.Values{}
-	params.Set("signal", signal)
+	params.Set("signal", sig)
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/kill", params, nameOrID)
 	if err != nil {
 		return err
@@ -247,14 +247,14 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 
 // Stop stops a running container.  The timeout is optional. The nameOrID can be a container name
 // or a partial/full ID
-func Stop(ctx context.Context, nameOrID string, timeout *int) error {
+func Stop(ctx context.Context, nameOrID string, timeout *uint) error {
 	params := url.Values{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
 	}
 	if timeout != nil {
-		params.Set("t", strconv.Itoa(*timeout))
+		params.Set("t", strconv.Itoa(int(*timeout)))
 	}
 	response, err := conn.DoRequest(nil, http.MethodPost, "/containers/%s/stop", params, nameOrID)
 	if err != nil {

@@ -2,6 +2,7 @@ package tunnel
 
 import (
 	"context"
+	"strings"
 
 	"github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
@@ -27,7 +28,7 @@ func getContainersByContext(contextWithConnection context.Context, all bool, nam
 	for _, id := range namesOrIds {
 		var found bool
 		for _, con := range c {
-			if id == con.ID || util.StringInSlice(id, con.Names) {
+			if id == con.ID || strings.HasPrefix(con.ID, id) || util.StringInSlice(id, con.Names) {
 				cons = append(cons, con)
 				found = true
 				break

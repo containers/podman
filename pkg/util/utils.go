@@ -309,15 +309,15 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	// Strip off leading dash, to allow -1 or -HUP
 	basename := strings.TrimPrefix(rawSignal, "-")
 
-	signal, err := signal.ParseSignal(basename)
+	sig, err := signal.ParseSignal(basename)
 	if err != nil {
 		return -1, err
 	}
 	// 64 is SIGRTMAX; wish we could get this from a standard Go library
-	if signal < 1 || signal > 64 {
+	if sig < 1 || sig > 64 {
 		return -1, errors.Errorf("valid signals are 1 through 64")
 	}
-	return signal, nil
+	return sig, nil
 }
 
 // ParseIDMapping takes idmappings and subuid and subgid maps and returns a storage mapping
