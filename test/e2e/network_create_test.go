@@ -58,7 +58,7 @@ func genericPluginsToPortMap(plugins interface{}, pluginType string) (network.Po
 }
 
 func (p *PodmanTestIntegration) removeCNINetwork(name string) {
-	session := p.Podman([]string{"network", "rm", name})
+	session := p.Podman([]string{"network", "rm", "-f", name})
 	session.WaitWithDefaultTimeout()
 	Expect(session.ExitCode()).To(BeZero())
 }
