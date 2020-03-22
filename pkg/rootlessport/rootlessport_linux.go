@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -100,6 +101,28 @@ func parent() error {
 	if err != nil {
 		return err
 	}
+
+	sigC := make(chan os.Signal, 1)
+	signal.Notify(sigC, syscall.SIGPIPE)
+	defer func() {
+		// dummy signal to terminate the goroutine
+		sigC <- syscall.SIGKILL
+	}()
+	go func() {
+		defer func() {
+			signal.Stop(sigC)
+			close(sigC)
+		}()
+
+		s := <-sigC
+		if s == syscall.SIGPIPE {
+			if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
+				syscall.Dup2(int(f.Fd()), 1) // nolint:errcheck
+				syscall.Dup2(int(f.Fd()), 2) // nolint:errcheck
+				f.Close()
+			}
+		}
+	}()
 
 	// create the parent driver
 	stateDir, err := ioutil.TempDir(cfg.TmpDir, "rootlessport")
