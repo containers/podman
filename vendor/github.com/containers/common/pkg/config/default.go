@@ -123,7 +123,6 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 
-	var signaturePolicyPath string
 	netns := "bridge"
 	if unshare.IsRootless() {
 		home, err := unshare.HomeDir()
@@ -132,7 +131,7 @@ func DefaultConfig() (*Config, error) {
 		}
 		sigPath := filepath.Join(home, DefaultRootlessSignaturePolicyPath)
 		if _, err := os.Stat(sigPath); err == nil {
-			signaturePolicyPath = sigPath
+			defaultEngineConfig.SignaturePolicyPath = sigPath
 		}
 		netns = "slirp4netns"
 	}
@@ -154,23 +153,22 @@ func DefaultConfig() (*Config, error) {
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 			},
-			EnvHost:             false,
-			HTTPProxy:           false,
-			Init:                false,
-			InitPath:            "",
-			IPCNS:               "private",
-			LogDriver:           DefaultLogDriver,
-			LogSizeMax:          DefaultLogSizeMax,
-			NetNS:               netns,
-			NoHosts:             false,
-			PidsLimit:           DefaultPidsLimit,
-			PidNS:               "private",
-			SeccompProfile:      SeccompDefaultPath,
-			ShmSize:             DefaultShmSize,
-			SignaturePolicyPath: signaturePolicyPath,
-			UTSNS:               "private",
-			UserNS:              "private",
-			UserNSSize:          DefaultUserNSSize,
+			EnvHost:        false,
+			HTTPProxy:      false,
+			Init:           false,
+			InitPath:       "",
+			IPCNS:          "private",
+			LogDriver:      DefaultLogDriver,
+			LogSizeMax:     DefaultLogSizeMax,
+			NetNS:          netns,
+			NoHosts:        false,
+			PidsLimit:      DefaultPidsLimit,
+			PidNS:          "private",
+			SeccompProfile: SeccompDefaultPath,
+			ShmSize:        DefaultShmSize,
+			UTSNS:          "private",
+			UserNS:         "private",
+			UserNSSize:     DefaultUserNSSize,
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:   "podman",

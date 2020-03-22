@@ -160,11 +160,6 @@ type ContainersConfig struct {
 	// ShmSize holds the size of /dev/shm.
 	ShmSize string `toml:"shm_size"`
 
-	// SignaturePolicyPath is the path to a signature policy to use for
-	// validating images. If left empty, the containers/image default signature
-	// policy will be used.
-	SignaturePolicyPath string `toml:"_"`
-
 	// UTSNS indicates how to create a UTS namespace for the container
 	UTSNS string `toml:"utsns"`
 
@@ -282,6 +277,11 @@ type EngineConfig struct {
 	// overwritten by values from the database. This behavior guarantees
 	// backwards compat with older version of libpod and Podman.
 	SetOptions
+
+	// SignaturePolicyPath is the path to a signature policy to use for
+	// validating images. If left empty, the containers/image default signature
+	// policy will be used.
+	SignaturePolicyPath string `toml:"_"`
 
 	// SDNotify tells container engine to allow containers to notify the host systemd of
 	// readiness using the SD_NOTIFY mechanism.
@@ -827,6 +827,9 @@ func isDirectory(path string) error {
 }
 
 func rootlessConfigPath() (string, error) {
+	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
+		return filepath.Join(configHome, UserOverrideContainersConfig), nil
+	}
 	home, err := unshare.HomeDir()
 	if err != nil {
 		return "", err

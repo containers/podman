@@ -18,7 +18,7 @@ func isCgroup2UnifiedMode() (isUnified bool, isUnifiedErr error) {
 	if err := syscall.Statfs(cgroupRoot, &st); err != nil {
 		isUnified, isUnifiedErr = false, err
 	} else {
-		isUnified, isUnifiedErr = st.Type == unix.CGROUP2_SUPER_MAGIC, nil
+		isUnified, isUnifiedErr = int64(st.Type) == int64(unix.CGROUP2_SUPER_MAGIC), nil
 	}
 	return
 }

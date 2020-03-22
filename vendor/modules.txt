@@ -82,7 +82,7 @@ github.com/containers/buildah/pkg/secrets
 github.com/containers/buildah/pkg/supplemented
 github.com/containers/buildah/pkg/umask
 github.com/containers/buildah/util
-# github.com/containers/common v0.5.0
+# github.com/containers/common v0.6.1
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare
