@@ -27,11 +27,11 @@ load helpers
 @test "podman images - json" {
     # 'created': podman includes fractional seconds, podman-remote does not
     tests="
-names[0]   | $PODMAN_TEST_IMAGE_FQN
-id         |        [0-9a-f]\\\{64\\\}
-digest     | sha256:[0-9a-f]\\\{64\\\}
-created    | [0-9-]\\\+T[0-9:.]\\\+Z
-size       | [0-9]\\\+
+Names[0]    | $PODMAN_TEST_IMAGE_FQN
+ID          |        [0-9a-f]\\\{64\\\}
+Digest      | sha256:[0-9a-f]\\\{64\\\}
+CreatedAt   | [0-9-]\\\+T[0-9:.]\\\+Z
+Size        | [0-9]\\\+
 "
 
     run_podman images -a --format json

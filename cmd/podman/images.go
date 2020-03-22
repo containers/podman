@@ -13,8 +13,8 @@ import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter"
-	"github.com/docker/go-units"
-	"github.com/opencontainers/go-digest"
+	units "github.com/docker/go-units"
+	digest "github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -34,14 +34,15 @@ type imagesTemplateParams struct {
 }
 
 type imagesJSONParams struct {
-	ID       string          `json:"id"`
-	Name     []string        `json:"names"`
-	Digest   digest.Digest   `json:"digest"`
-	Digests  []digest.Digest `json:"digests"`
-	Created  time.Time       `json:"created"`
-	Size     *uint64         `json:"size"`
-	ReadOnly bool            `json:"readonly"`
-	History  []string        `json:"history"`
+	ID        string          `json:"ID"`
+	Name      []string        `json:"Names"`
+	Created   string          `json:"Created"`
+	Digest    digest.Digest   `json:"Digest"`
+	Digests   []digest.Digest `json:"Digests"`
+	CreatedAt time.Time       `json:"CreatedAt"`
+	Size      *uint64         `json:"Size"`
+	ReadOnly  bool            `json:"ReadOnly"`
+	History   []string        `json:"History"`
 }
 
 type imagesOptions struct {
@@ -344,14 +345,15 @@ func getImagesJSONOutput(ctx context.Context, images []*adapter.ContainerImage) 
 			size = nil
 		}
 		params := imagesJSONParams{
-			ID:       img.ID(),
-			Name:     img.Names(),
-			Digest:   img.Digest(),
-			Digests:  img.Digests(),
-			Created:  img.Created(),
-			Size:     size,
-			ReadOnly: img.IsReadOnly(),
-			History:  img.NamesHistory(),
+			ID:        img.ID(),
+			Name:      img.Names(),
+			Digest:    img.Digest(),
+			Digests:   img.Digests(),
+			Created:   units.HumanDuration(time.Since(img.Created())) + " ago",
+			CreatedAt: img.Created(),
+			Size:      size,
+			ReadOnly:  img.IsReadOnly(),
+			History:   img.NamesHistory(),
 		}
 		imagesOutput = append(imagesOutput, params)
 	}
