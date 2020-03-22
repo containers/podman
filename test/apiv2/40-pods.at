@@ -14,8 +14,8 @@ t GET  libpod/pods/foo/json        200 \
   .Config.id=$pod_id \
   .Containers=null
 t GET  libpod/pods/json            200 \
-  .[0].Config.name=foo \
-  .[0].Config.id=$pod_id \
+  .[0].Name=foo \
+  .[0].Id=$pod_id \
   .[0].Containers=null
 
 # Cannot create a dup pod with the same name
@@ -24,7 +24,7 @@ t POST libpod/pods/create name=foo 409 .cause="pod already exists"
 #t POST libpod/pods/create a=b 400 .cause='bad parameter'  # FIXME: unimplemented
 
 if root || have_cgroupsv2; then
-    t POST libpod/pods/foo/pause   '' 204
+    t POST libpod/pods/foo/pause   '' 200
 else
     # Rootless cgroupsv1 : unsupported
     t POST libpod/pods/foo/pause '' 500 \
@@ -44,7 +44,7 @@ t POST libpod/pods/bar/restart '' 404
 #t POST libpod/pods/prune 'a=b' 400     # FIXME: 2020-02-24 returns 200
 
 # Clean up; and try twice, making sure that the second time fails
-t DELETE libpod/pods/foo 204
+t DELETE libpod/pods/foo 200
 t DELETE libpod/pods/foo 404
 
 # vim: filetype=sh

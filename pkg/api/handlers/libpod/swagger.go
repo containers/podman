@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 
@@ -24,6 +25,55 @@ type swagInspectPodResponse struct {
 type swagInspectManifestResponse struct {
 	// in:body
 	Body manifest.List
+}
+
+// Kill Pod
+// swagger:response PodKillReport
+type swagKillPodResponse struct {
+	// in:body
+	Body entities.PodKillReport
+}
+
+// Pause pod
+// swagger:response PodPauseReport
+type swagPausePodResponse struct {
+	// in:body
+	Body entities.PodPauseReport
+}
+
+// Unpause pod
+// swagger:response PodUnpauseReport
+type swagUnpausePodResponse struct {
+	// in:body
+	Body entities.PodUnpauseReport
+}
+
+// Stop pod
+// swagger:response PodStopReport
+type swagStopPodResponse struct {
+	// in:body
+	Body entities.PodStopReport
+}
+
+// Restart pod
+// swagger:response PodRestartReport
+type swagRestartPodResponse struct {
+	// in:body
+	Body entities.PodRestartReport
+}
+
+// Start pod
+// swagger:response PodStartReport
+type swagStartPodResponse struct {
+	// in:body
+	Body entities.PodStartReport
+}
+
+// Rm pod
+// swagger:response PodRmReport
+type swagRmPodResponse struct {
+	// in:body
+	Body entities.PodRmReport
 }
 
 func ServeSwagger(w http.ResponseWriter, r *http.Request) {

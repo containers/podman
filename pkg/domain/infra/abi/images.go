@@ -46,7 +46,7 @@ func (ir *ImageEngine) Delete(ctx context.Context, nameOrId []string, opts entit
 			err = ir.deleteImage(ctx, img, opts, report)
 			report.Errors = append(report.Errors, err)
 		}
-		if len(targets) >= 0 || len(previousTargets) != 1 {
+		if len(previousTargets) != 1 {
 			goto repeatRun
 		}
 		return &report, nil
@@ -83,9 +83,7 @@ func (ir *ImageEngine) deleteImage(ctx context.Context, img *libpodImage.Image, 
 	}
 
 	report.Deleted = append(report.Deleted, results.Deleted)
-	for _, e := range results.Untagged {
-		report.Untagged = append(report.Untagged, e)
-	}
+	report.Untagged = append(report.Untagged, results.Untagged...)
 	return nil
 }
 

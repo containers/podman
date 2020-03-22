@@ -71,7 +71,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(len(podSummary)).To(Equal(2))
 		var names []string
 		for _, i := range podSummary {
-			names = append(names, i.Config.Name)
+			names = append(names, i.Name)
 		}
 		Expect(StringInSlice(newpod, names)).To(BeTrue())
 		Expect(StringInSlice("newpod2", names)).To(BeTrue())
@@ -107,13 +107,14 @@ var _ = Describe("Podman pods", func() {
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		var names []string
 		for _, i := range filteredPods {
-			names = append(names, i.Config.Name)
+			names = append(names, i.Name)
 		}
 		Expect(StringInSlice("newpod2", names)).To(BeTrue())
 
 		// Validate list pod with id filter
 		filters = make(map[string][]string)
 		response, err := pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		id := response.Config.ID
 		filters["id"] = []string{id}
 		filteredPods, err = pods.List(bt.conn, filters)
@@ -121,7 +122,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		names = names[:0]
 		for _, i := range filteredPods {
-			names = append(names, i.Config.Name)
+			names = append(names, i.Name)
 		}
 		Expect(StringInSlice("newpod", names)).To(BeTrue())
 
@@ -132,7 +133,7 @@ var _ = Describe("Podman pods", func() {
 		Expect(len(filteredPods)).To(BeNumerically("==", 1))
 		names = names[:0]
 		for _, i := range filteredPods {
-			names = append(names, i.Config.Name)
+			names = append(names, i.Name)
 		}
 		Expect(StringInSlice("newpod", names)).To(BeTrue())
 	})
@@ -155,7 +156,7 @@ var _ = Describe("Podman pods", func() {
 		// TODO fix this
 		Skip("Pod behavior is jacked right now.")
 		// Pause invalid container
-		err := pods.Pause(bt.conn, "dummyName")
+		_, err := pods.Pause(bt.conn, "dummyName")
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
@@ -167,9 +168,10 @@ var _ = Describe("Podman pods", func() {
 		// Binding needs to be modified to inspect the pod state.
 		// Since we don't have a pod state we inspect the states of the containers within the pod.
 		// Pause a valid container
-		err = pods.Pause(bt.conn, newpod)
+		_, err = pods.Pause(bt.conn, newpod)
 		Expect(err).To(BeNil())
 		response, err := pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStatePaused))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
@@ -177,9 +179,10 @@ var _ = Describe("Podman pods", func() {
 		}
 
 		// Unpause a valid container
-		err = pods.Unpause(bt.conn, newpod)
+		_, err = pods.Unpause(bt.conn, newpod)
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
@@ -189,28 +192,29 @@ var _ = Describe("Podman pods", func() {
 
 	It("start stop restart pod", func() {
 		// Start an invalid pod
-		err = pods.Start(bt.conn, "dummyName")
+		_, err = pods.Start(bt.conn, "dummyName")
 		Expect(err).ToNot(BeNil())
 		code, _ := bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Stop an invalid pod
-		err = pods.Stop(bt.conn, "dummyName", nil)
+		_, err = pods.Stop(bt.conn, "dummyName", nil)
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Restart an invalid pod
-		err = pods.Restart(bt.conn, "dummyName")
+		_, err = pods.Restart(bt.conn, "dummyName")
 		Expect(err).ToNot(BeNil())
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusNotFound))
 
 		// Start a valid pod and inspect status of each container
-		err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
 
 		response, err := pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStateRunning))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
@@ -218,11 +222,11 @@ var _ = Describe("Podman pods", func() {
 		}
 
 		// Start an already running  pod
-		err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
 
 		// Stop the running pods
-		err = pods.Stop(bt.conn, newpod, nil)
+		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(bt.conn, newpod)
 		Expect(response.State.Status).To(Equal(define.PodStateExited))
@@ -232,10 +236,10 @@ var _ = Describe("Podman pods", func() {
 		}
 
 		// Stop an already stopped pod
-		err = pods.Stop(bt.conn, newpod, nil)
+		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 
-		err = pods.Restart(bt.conn, newpod)
+		_, err = pods.Restart(bt.conn, newpod)
 		Expect(err).To(BeNil())
 		response, _ = pods.Inspect(bt.conn, newpod)
 		Expect(response.State.Status).To(Equal(define.PodStateRunning))
@@ -260,11 +264,12 @@ var _ = Describe("Podman pods", func() {
 		// Prune only one pod which is in exited state.
 		// Start then stop a pod.
 		// pod moves to exited state one pod should be pruned now.
-		err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		err = pods.Stop(bt.conn, newpod, nil)
+		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		response, err := pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStateExited))
 		err = pods.Prune(bt.conn)
 		Expect(err).To(BeNil())
@@ -274,21 +279,23 @@ var _ = Describe("Podman pods", func() {
 
 		// Test prune all pods in exited state.
 		bt.Podcreate(&newpod)
-		err = pods.Start(bt.conn, newpod)
+		_, err = pods.Start(bt.conn, newpod)
 		Expect(err).To(BeNil())
-		err = pods.Start(bt.conn, newpod2)
+		_, err = pods.Start(bt.conn, newpod2)
 		Expect(err).To(BeNil())
-		err = pods.Stop(bt.conn, newpod, nil)
+		_, err = pods.Stop(bt.conn, newpod, nil)
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).
 				To(Equal(define.ContainerStateStopped))
 		}
-		err = pods.Stop(bt.conn, newpod2, nil)
+		_, err = pods.Stop(bt.conn, newpod2, nil)
 		Expect(err).To(BeNil())
 		response, err = pods.Inspect(bt.conn, newpod2)
+		Expect(err).To(BeNil())
 		Expect(response.State.Status).To(Equal(define.PodStateExited))
 		for _, i := range response.Containers {
 			Expect(define.StringToContainerStatus(i.State)).

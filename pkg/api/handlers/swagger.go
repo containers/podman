@@ -3,6 +3,7 @@ package handlers
 import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/inspect"
 	"github.com/docker/docker/api/types"
 )
@@ -116,7 +117,7 @@ type swagLibpodInspectContainerResponse struct {
 // swagger:response ListPodsResponse
 type swagListPodsResponse struct {
 	// in:body
-	Body []libpod.PodInspect
+	Body []entities.ListPodsReport
 }
 
 // Inspect pod

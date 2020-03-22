@@ -81,8 +81,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    description : force removal of a running pod by first stopping all containers, then removing all containers in the pod
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodRmReport'
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:
@@ -146,8 +146,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    description: signal to be sent to pod
 	//    default: SIGKILL
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: "#/responses/PodKillReport"
 	//   400:
 	//     $ref: "#/responses/BadParamError"
 	//   404:
@@ -170,8 +170,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the pod
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodPauseReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
 	//   500:
@@ -189,8 +189,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the pod
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodRestartReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
 	//   500:
@@ -208,8 +208,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the pod
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodStartReport'
 	//   304:
 	//     $ref: "#/responses/PodAlreadyStartedError"
 	//   404:
@@ -233,8 +233,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    type: integer
 	//    description: timeout
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodStopReport'
 	//   304:
 	//     $ref: "#/responses/PodAlreadyStoppedError"
 	//   400:
@@ -256,8 +256,8 @@ func (s *APIServer) registerPodsHandlers(r *mux.Router) error {
 	//    required: true
 	//    description: the name or ID of the pod
 	// responses:
-	//   204:
-	//     description: no error
+	//   200:
+	//     $ref: '#/responses/PodUnpauseReport'
 	//   404:
 	//     $ref: "#/responses/NoSuchPod"
 	//   500:
