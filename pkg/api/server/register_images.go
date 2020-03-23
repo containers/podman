@@ -978,6 +978,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: container
 	//    type: string
 	//    description: the name or ID of a container
+	//    required: true
 	//  - in: query
 	//    name: repo
 	//    type: string
@@ -1000,8 +1001,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: pause the container before committing it
 	//  - in: query
 	//    name: changes
+	//    description: instructions to apply while committing in Dockerfile format (i.e. "CMD=/bin/foo")
+	//    type: array
+	//    items:
+	//       type: string
+	//  - in: query
+	//    name: format
 	//    type: string
-	//    description: instructions to apply while committing in Dockerfile format
+	//    description: format of the image manifest and metadata (default "oci")
 	// produces:
 	// - application/json
 	// responses:
@@ -1011,6 +1018,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: '#/responses/NoSuchImage'
 	//   500:
 	//     $ref: '#/responses/InternalError'
-	r.Handle(VersionedPath("/commit"), s.APIHandler(compat.CommitContainer)).Methods(http.MethodPost)
+	r.Handle(VersionedPath("/libpod/commit"), s.APIHandler(libpod.CommitContainer)).Methods(http.MethodPost)
 	return nil
 }

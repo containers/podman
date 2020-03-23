@@ -10,12 +10,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/buildah"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/image"
+	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/util"
@@ -415,4 +418,85 @@ func ImagesPull(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, res)
+}
+
+func CommitContainer(w http.ResponseWriter, r *http.Request) {
+	var (
+		destImage string
+		mimeType  string
+	)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+
+	query := struct {
+		Author    string   `schema:"author"`
+		Changes   []string `schema:"changes"`
+		Comment   string   `schema:"comment"`
+		Container string   `schema:"container"`
+		Format    string   `schema:"format"`
+		Pause     bool     `schema:"pause"`
+		Repo      string   `schema:"repo"`
+		Tag       string   `schema:"tag"`
+	}{
+		Format: "oci",
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		utils.Error(w, "failed to get runtime config", http.StatusInternalServerError, errors.Wrap(err, "failed to get runtime config"))
+		return
+	}
+	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	tag := "latest"
+	options := libpod.ContainerCommitOptions{
+		Pause: true,
+	}
+	switch query.Format {
+	case "oci":
+		mimeType = buildah.OCIv1ImageManifest
+		if len(query.Comment) > 0 {
+			utils.InternalServerError(w, errors.New("messages are only compatible with the docker image format (-f docker)"))
+			return
+		}
+	case "docker":
+		mimeType = manifest.DockerV2Schema2MediaType
+	default:
+		utils.InternalServerError(w, errors.Errorf("unrecognized image format %q", query.Format))
+		return
+	}
+	options.CommitOptions = buildah.CommitOptions{
+		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		ReportWriter:          os.Stderr,
+		SystemContext:         sc,
+		PreferredManifestType: mimeType,
+	}
+
+	if len(query.Tag) > 0 {
+		tag = query.Tag
+	}
+	options.Message = query.Comment
+	options.Author = query.Author
+	options.Pause = query.Pause
+	options.Changes = query.Changes
+	ctr, err := runtime.LookupContainer(query.Container)
+	if err != nil {
+		utils.Error(w, "failed to lookup container", http.StatusNotFound, err)
+		return
+	}
+
+	// I know mitr hates this ... but doing for now
+	if len(query.Repo) > 1 {
+		destImage = fmt.Sprintf("%s:%s", query.Repo, tag)
+	}
+
+	commitImage, err := ctr.Commit(r.Context(), destImage, options)
+	if err != nil && !strings.Contains(err.Error(), "is not running") {
+		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "CommitFailure"))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, handlers.IDResponse{ID: commitImage.ID()}) // nolint
 }
