@@ -2,7 +2,6 @@ package server
 
 import (
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 )
@@ -128,7 +127,7 @@ type swagPodAlreadyStopped struct {
 // swagger:response DockerImageSummary
 type swagImageSummary struct {
 	// in:body
-	Body []handlers.ImageSummary
+	Body []entities.ImageSummary
 }
 
 // List Containers

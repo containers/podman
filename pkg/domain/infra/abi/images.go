@@ -39,35 +39,6 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	return &report, nil
 }
 
-func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) (*entities.ImageListReport, error) {
-	var (
-		images []*libpodImage.Image
-		err    error
-	)
-
-	filters := utils.ToLibpodFilters(opts.Filters)
-	if len(filters) > 0 {
-		images, err = ir.Libpod.ImageRuntime().GetImagesWithFilters(filters)
-	} else {
-		images, err = ir.Libpod.ImageRuntime().GetImages()
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	report := entities.ImageListReport{
-		Images: make([]entities.ImageSummary, len(images)),
-	}
-	for i, img := range images {
-		hold := entities.ImageSummary{}
-		if err := utils.DeepCopy(&hold, img); err != nil {
-			return nil, err
-		}
-		report.Images[i] = hold
-	}
-	return &report, nil
-}
-
 func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
 	image, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
 	if err != nil {

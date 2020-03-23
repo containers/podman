@@ -13,6 +13,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
 	libpodImage "github.com/containers/libpod/libpod/image"
+	"github.com/containers/libpod/pkg/domain/entities"
 	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerEvents "github.com/docker/docker/api/types/events"
@@ -43,12 +44,6 @@ type LibpodImagesImportReport struct {
 
 type LibpodImagesPullReport struct {
 	ID string `json:"id"`
-}
-
-type ImageSummary struct {
-	docker.ImageSummary
-	CreatedTime time.Time `json:"CreatedTime,omitempty"`
-	ReadOnly    bool      `json:"ReadOnly,omitempty"`
 }
 
 type ContainersPruneReport struct {
@@ -195,22 +190,12 @@ func EventToApiEvent(e *events.Event) *Event {
 	}}
 }
 
-func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
+func ImageToImageSummary(l *libpodImage.Image) (*entities.ImageSummary, error) {
 	containers, err := l.Containers()
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to obtain Containers for image %s", l.ID())
 	}
 	containerCount := len(containers)
-
-	var digests []string
-	for _, d := range l.Digests() {
-		digests = append(digests, string(d))
-	}
-
-	tags, err := l.RepoTags()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", l.ID())
-	}
 
 	// FIXME: GetParent() panics
 	// parent, err := l.GetParent(context.TODO())
@@ -227,20 +212,43 @@ func ImageToImageSummary(l *libpodImage.Image) (*ImageSummary, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to obtain Size for image %s", l.ID())
 	}
-	dockerSummary := docker.ImageSummary{
-		Containers:  int64(containerCount),
-		Created:     l.Created().Unix(),
-		ID:          l.ID(),
-		Labels:      labels,
-		ParentID:    l.Parent,
-		RepoDigests: digests,
-		RepoTags:    tags,
-		SharedSize:  0,
-		Size:        int64(*size),
-		VirtualSize: int64(*size),
+
+	repoTags, err := l.RepoTags()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to obtain RepoTags for image %s", l.ID())
 	}
-	is := ImageSummary{
-		ImageSummary: dockerSummary,
+
+	history, err := l.History(context.TODO())
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to obtain History for image %s", l.ID())
+	}
+	historyIds := make([]string, len(history))
+	for i, h := range history {
+		historyIds[i] = h.ID
+	}
+
+	digests := make([]string, len(l.Digests()))
+	for i, d := range l.Digests() {
+		digests[i] = string(d)
+	}
+
+	is := entities.ImageSummary{
+		ID:           l.ID(),
+		ParentId:     l.Parent,
+		RepoTags:     repoTags,
+		Created:      l.Created().Unix(),
+		Size:         int64(*size),
+		SharedSize:   0,
+		VirtualSize:  l.VirtualSize,
+		Labels:       labels,
+		Containers:   containerCount,
+		ReadOnly:     l.IsReadOnly(),
+		Dangling:     l.Dangling(),
+		Names:        l.Names(),
+		Digest:       string(l.Digest()),
+		Digests:      digests,
+		ConfigDigest: string(l.ConfigDigest),
+		History:      historyIds,
 	}
 	return &is, nil
 }

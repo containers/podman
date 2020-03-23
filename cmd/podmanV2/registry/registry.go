@@ -21,6 +21,7 @@ var (
 
 	imageEngine     entities.ImageEngine
 	containerEngine entities.ContainerEngine
+	cliCtx          context.Context
 
 	EngineOptions entities.EngineOptions
 
@@ -124,4 +125,11 @@ func Options(cmd *cobra.Command) (*entities.EngineOptions, error) {
 		return f, errors.New("Command Context ")
 	}
 	return nil, nil
+}
+
+func GetContext() context.Context {
+	if cliCtx == nil {
+		cliCtx = context.TODO()
+	}
+	return cliCtx
 }
