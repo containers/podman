@@ -162,7 +162,7 @@ func FilterAllPodsWithFilterFunc(r *libpod.Runtime, filters ...libpod.PodFilter)
 func GenerateFilterFunction(r *libpod.Runtime, filters []string) ([]libpod.PodFilter, error) {
 	var filterFuncs []libpod.PodFilter
 	for _, f := range filters {
-		filterSplit := strings.Split(f, "=")
+		filterSplit := strings.SplitN(f, "=", 2)
 		if len(filterSplit) < 2 {
 			return nil, errors.Errorf("filter input must be in the form of filter=value: %s is invalid", f)
 		}
@@ -253,6 +253,22 @@ func generatePodFilterFuncs(filter, filterValue string) (
 			}
 			if strings.ToLower(status) == filterValue {
 				return true
+			}
+			return false
+		}, nil
+	case "label":
+		var filterArray = strings.SplitN(filterValue, "=", 2)
+		var filterKey = filterArray[0]
+		if len(filterArray) > 1 {
+			filterValue = filterArray[1]
+		} else {
+			filterValue = ""
+		}
+		return func(p *libpod.Pod) bool {
+			for labelKey, labelValue := range p.Labels() {
+				if labelKey == filterKey && ("" == filterValue || labelValue == filterValue) {
+					return true
+				}
 			}
 			return false
 		}, nil

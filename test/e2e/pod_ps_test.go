@@ -204,4 +204,27 @@ var _ = Describe("Podman ps", func() {
 		Expect(session.ExitCode()).To(Equal(0))
 		Expect(session.OutputToString()).To(BeEmpty())
 	})
+
+	It("podman pod ps filter labels", func() {
+		_, ec, podid1 := podmanTest.CreatePod("")
+		Expect(ec).To(Equal(0))
+
+		_, ec, podid2 := podmanTest.CreatePodWithLabels("", map[string]string{
+			"io.podman.test.label": "value1",
+			"io.podman.test.key":   "irrelevant-value",
+		})
+		Expect(ec).To(Equal(0))
+
+		_, ec, podid3 := podmanTest.CreatePodWithLabels("", map[string]string{
+			"io.podman.test.label": "value2",
+		})
+		Expect(ec).To(Equal(0))
+
+		session := podmanTest.Podman([]string{"pod", "ps", "--no-trunc", "--filter", "label=io.podman.test.key", "--filter", "label=io.podman.test.label=value1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session.ExitCode()).To(Equal(0))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid1)))
+		Expect(session.OutputToString()).To(ContainSubstring(podid2))
+		Expect(session.OutputToString()).To(Not(ContainSubstring(podid3)))
+	})
 })
