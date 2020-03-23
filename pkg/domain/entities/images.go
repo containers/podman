@@ -105,7 +105,7 @@ type ImageHistoryOptions struct{}
 
 type ImageHistoryLayer struct {
 	ID        string   `json:"Id"`
-	Created   int64    `json:"Created,omitempty"`
+	Created   int64    `json:",omitempty"`
 	CreatedBy string   `json:",omitempty"`
 	Tags      []string `json:",omitempty"`
 	Size      int64    `json:",omitempty"`
