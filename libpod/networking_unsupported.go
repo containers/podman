@@ -23,3 +23,7 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
 	return nil, define.ErrNotImplemented
 }
+
+func getCNINetworksDir() (string, error) {
+	return "", define.ErrNotImplemented
+}
