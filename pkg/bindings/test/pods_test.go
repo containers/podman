@@ -80,8 +80,7 @@ var _ = Describe("Podman pods", func() {
 	// The test validates the list pod endpoint with passing filters as the params.
 	It("List pods with filters", func() {
 		var (
-			newpod2  string = "newpod2"
-			trueFlag        = true
+			newpod2 string = "newpod2"
 		)
 		bt.Podcreate(&newpod2)
 		_, err = bt.RunTopContainer(nil, &bindings.PTrue, &newpod)
