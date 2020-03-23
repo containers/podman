@@ -19,16 +19,12 @@ func (m EngineMode) String() string {
 	return string(m)
 }
 
-// FIXME: merge EngineOptions and EngineFlags
 type EngineOptions struct {
 	Uri        string
 	Identities []string
 	FlagSet    *pflag.FlagSet
-	Flags      EngineFlags
 	EngineMode EngineMode
-}
 
-type EngineFlags struct {
 	CGroupManager     string
 	CniConfigDir      string
 	ConmonPath        string
@@ -61,9 +57,9 @@ type EngineFlags struct {
 	IgnoreHosts          bool
 }
 
-func NewEngineOptions() (EngineFlags, error) {
+func NewEngineOptions() (EngineOptions, error) {
 	u, _ := user.Current()
-	return EngineFlags{
+	return EngineOptions{
 		CGroupManager:        define.SystemdCgroupsManager,
 		CniConfigDir:         "",
 		Config:               "",

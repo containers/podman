@@ -11,25 +11,25 @@ import (
 	"github.com/containers/libpod/pkg/domain/infra/tunnel"
 )
 
-func NewContainerEngine(opts entities.EngineOptions) (entities.ContainerEngine, error) {
-	switch opts.EngineMode {
+func NewContainerEngine(facts entities.EngineOptions) (entities.ContainerEngine, error) {
+	switch facts.EngineMode {
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct runtime not supported")
 	case entities.TunnelMode:
-		ctx, err := bindings.NewConnection(context.Background(), opts.Uri, opts.Identities...)
+		ctx, err := bindings.NewConnection(context.Background(), facts.Uri, facts.Identities...)
 		return &tunnel.ContainerEngine{ClientCxt: ctx}, err
 	}
-	return nil, fmt.Errorf("runtime mode '%v' is not supported", opts.EngineMode)
+	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
 
 // NewImageEngine factory provides a libpod runtime for image-related operations
-func NewImageEngine(opts entities.EngineOptions) (entities.ImageEngine, error) {
-	switch opts.EngineMode {
+func NewImageEngine(facts entities.EngineOptions) (entities.ImageEngine, error) {
+	switch facts.EngineMode {
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct image runtime not supported")
 	case entities.TunnelMode:
-		ctx, err := bindings.NewConnection(context.Background(), opts.Uri, opts.Identities...)
+		ctx, err := bindings.NewConnection(context.Background(), facts.Uri, facts.Identities...)
 		return &tunnel.ImageEngine{ClientCxt: ctx}, err
 	}
-	return nil, fmt.Errorf("runtime mode '%v' is not supported", opts.EngineMode)
+	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
 }
