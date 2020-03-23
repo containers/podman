@@ -688,12 +688,18 @@ func (i *LibpodAPI) ExportImage(call iopodman.VarlinkCall, name, destination str
 }
 
 // PullImage pulls an image from a registry to the image store.
-func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string) error {
+func (i *LibpodAPI) PullImage(call iopodman.VarlinkCall, name string, creds iopodman.AuthConfig) error {
 	var (
 		imageID string
 		err     error
 	)
-	dockerRegistryOptions := image.DockerRegistryOptions{}
+	dockerRegistryOptions := image.DockerRegistryOptions{
+		DockerRegistryCreds: &types.DockerAuthConfig{
+			Username: creds.Username,
+			Password: creds.Password,
+		},
+	}
+
 	so := image.SigningOptions{}
 
 	if call.WantsMore() {

@@ -105,6 +105,11 @@ type ImageSearchFilter (
     star_count: int
 )
 
+type AuthConfig (
+    username: string,
+    password: string
+)
+
 type KubePodService (
     pod: string,
     service: string
@@ -932,7 +937,7 @@ method ExportImage(name: string, destination: string, compress: bool, tags: []st
 # PullImage pulls an image from a repository to local storage.  After a successful pull, the image id and logs
 # are returned as a [MoreResponse](#MoreResponse).  This connection also will handle a WantsMores request to send
 # status as it occurs.
-method PullImage(name: string) -> (reply: MoreResponse)
+method PullImage(name: string, creds: AuthConfig) -> (reply: MoreResponse)
 
 # CreatePod creates a new empty pod.  It uses a [PodCreate](#PodCreate) type for input.
 # On success, the ID of the newly created pod will be returned.
