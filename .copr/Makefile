@@ -10,6 +10,12 @@ srpm:
 	sh $(current_dir)/prepare.sh
 	rpmbuild -bs -D "dist %{nil}" -D "_sourcedir build/" -D "_srcrpmdir $(outdir)" -D "_topdir $(topdir)" --nodeps contrib/spec/podman.spec
 
+rpm:
+	mkdir -p $(topdir)
+	sh $(current_dir)/prepare.sh
+	yum install -y go-md2man
+	rpmbuild -ba -D "dist %{nil}" -D "_sourcedir $(outdir)/build/" -D "_rpmdir $(outdir)" -D "_builddir $(outdir)" --nodeps contrib/spec/podman.spec
+
 build_binary:
 	mkdir -p $(topdir)
 	rpmbuild --rebuild -D "_rpmdir $(outdir)" -D "_topdir $(topdir)" $(outdir)/podman-*.git$(SHORT_COMMIT).src.rpm

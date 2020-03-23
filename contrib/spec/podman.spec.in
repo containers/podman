@@ -359,6 +359,9 @@ sed -i 's/install.remote: podman-remote/install.remote:/' Makefile
 sed -i 's/install.bin: podman/install.bin:/' Makefile
 sed -i 's/install.man: docs/install.man:/' Makefile
 
+# define gopath
+%define gopath %{_datadir}/gocode
+
 %build
 mkdir _build
 pushd _build
@@ -366,11 +369,11 @@ mkdir -p src/%{provider}.%{provider_tld}/%{project}
 ln -s ../../../../ src/%{import_path}
 popd
 ln -s vendor src
-export GOPATH=$(pwd)/_build:$(pwd):$(pwd):%{gopath}
+export GOPATH=$(pwd)/_build:$(pwd):%{gopath}
 export BUILDTAGS="varlink selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) exclude_graphdriver_devicemapper"
 
 GOPATH=$GOPATH go generate ./cmd/podman/varlink/...
-BUILDTAGS=$BUILDTAGS make binaries docs
+BUILDTAGS=$BUILDTAGS GOMD2MAN=go-md2man make binaries docs
 
 # build conmon
 pushd conmon
