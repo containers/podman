@@ -231,6 +231,11 @@ func (c *Container) ExecStartAndAttach(sessionID string, streams *AttachStreams)
 		}
 	}
 
+	// Verify that we are in a good state to continue
+	if !c.ensureState(define.ContainerStateRunning) {
+		return errors.Wrapf(define.ErrCtrStateInvalid, "can only start exec sessions when their container is running")
+	}
+
 	session, ok := c.state.ExecSessions[sessionID]
 	if !ok {
 		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)

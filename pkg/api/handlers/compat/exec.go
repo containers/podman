@@ -12,6 +12,7 @@ import (
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 // ExecCreateHandler creates an exec session for a given container.
@@ -87,6 +88,8 @@ func ExecInspectHandler(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, fmt.Sprintf("No such exec session: %s", sessionID), http.StatusNotFound, err)
 		return
 	}
+
+	logrus.Debugf("Inspecting exec session %s of container %s", sessionID, sessionCtr.ID())
 
 	session, err := sessionCtr.ExecSession(sessionID)
 	if err != nil {
