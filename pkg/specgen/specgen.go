@@ -394,18 +394,18 @@ type SpecGenerator struct {
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
 func NewSpecGenerator(image string) *SpecGenerator {
-	net := ContainerNetworkConfig{
+	networkConfig := ContainerNetworkConfig{
 		NetNS: Namespace{
 			NSMode: Bridge,
 		},
 	}
 	csc := ContainerStorageConfig{Image: image}
 	if rootless.IsRootless() {
-		net.NetNS.NSMode = Slirp
+		networkConfig.NetNS.NSMode = Slirp
 	}
 	return &SpecGenerator{
 		ContainerStorageConfig: csc,
-		ContainerNetworkConfig: net,
+		ContainerNetworkConfig: networkConfig,
 	}
 }
 

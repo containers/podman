@@ -113,7 +113,20 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 }
 
 func (ic *ContainerEngine) VolumePrune(ctx context.Context, opts entities.VolumePruneOptions) ([]*entities.VolumePruneReport, error) {
-	return ic.Libpod.PruneVolumes(ctx)
+	var (
+		reports []*entities.VolumePruneReport
+	)
+	pruned, err := ic.Libpod.PruneVolumes(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range pruned {
+		reports = append(reports, &entities.VolumePruneReport{
+			Err: v,
+			Id:  k,
+		})
+	}
+	return reports, nil
 }
 
 func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeListOptions) ([]*entities.VolumeListReport, error) {

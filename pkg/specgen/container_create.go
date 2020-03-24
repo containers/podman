@@ -13,7 +13,7 @@ import (
 
 // MakeContainer creates a container based on the SpecGenerator
 func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, error) {
-	if err := s.validate(rt); err != nil {
+	if err := s.validate(); err != nil {
 		return nil, errors.Wrap(err, "invalid config provided")
 	}
 	rtc, err := rt.GetConfig()

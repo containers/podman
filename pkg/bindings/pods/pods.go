@@ -5,15 +5,33 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
+	jsoniter "github.com/json-iterator/go"
 )
 
-func CreatePod() error {
-	// TODO
-	return bindings.ErrNotImplemented
+func CreatePodFromSpec(ctx context.Context, s *specgen.PodSpecGenerator) (*entities.PodCreateReport, error) {
+	var (
+		pcr entities.PodCreateReport
+	)
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	specgenString, err := jsoniter.MarshalToString(s)
+	if err != nil {
+		return nil, err
+	}
+	stringReader := strings.NewReader(specgenString)
+	response, err := conn.DoRequest(stringReader, http.MethodPost, "/pods/create", nil)
+	if err != nil {
+		return nil, err
+	}
+	return &pcr, response.Process(&pcr)
 }
 
 // Exists is a lightweight method to determine if a pod exists in local storage

@@ -138,3 +138,16 @@ type PodCgroupConfig struct {
 	// Optional.
 	CgroupParent string `json:"cgroup_parent,omitempty"`
 }
+
+// PodSpecGenerator describes options to create a pod
+// swagger:model PodSpecGenerator
+type PodSpecGenerator struct {
+	PodBasicConfig
+	PodNetworkConfig
+	PodCgroupConfig
+}
+
+// NewPodSpecGenerator creates a new pod spec
+func NewPodSpecGenerator() *PodSpecGenerator {
+	return &PodSpecGenerator{}
+}

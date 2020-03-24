@@ -4,15 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
-	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/shared/parse"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -21,76 +19,14 @@ import (
 func PodCreate(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
-		options []libpod.PodCreateOption
 		err     error
 	)
-	labels := make(map[string]string)
-	input := handlers.PodCreateConfig{}
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
+	var psg specgen.PodSpecGenerator
+	if err := json.NewDecoder(r.Body).Decode(&psg); err != nil {
+		utils.Error(w, "Failed to decode specgen", http.StatusInternalServerError, errors.Wrap(err, "failed to decode specgen"))
 		return
 	}
-	if len(input.InfraCommand) > 0 || len(input.InfraImage) > 0 {
-		utils.Error(w, "Something went wrong.", http.StatusInternalServerError,
-			errors.New("infra-command and infra-image are not implemented yet"))
-		return
-	}
-	// TODO long term we should break the following out of adapter and into libpod proper
-	// so that the cli and api can share the creation of a pod with the same options
-	if len(input.CGroupParent) > 0 {
-		options = append(options, libpod.WithPodCgroupParent(input.CGroupParent))
-	}
-
-	if len(input.Labels) > 0 {
-		labels, err = parse.GetAllLabels([]string{}, input.Labels)
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	if len(labels) != 0 {
-		options = append(options, libpod.WithPodLabels(labels))
-	}
-
-	if len(input.Name) > 0 {
-		options = append(options, libpod.WithPodName(input.Name))
-	}
-
-	if len(input.Hostname) > 0 {
-		options = append(options, libpod.WithPodHostname(input.Hostname))
-	}
-
-	if input.Infra {
-		// TODO infra-image and infra-command are not supported in the libpod API yet.  Will fix
-		// when implemented in libpod
-		options = append(options, libpod.WithInfraContainer())
-		sharedNamespaces := shared.DefaultKernelNamespaces
-		if len(input.Share) > 0 {
-			sharedNamespaces = input.Share
-		}
-		nsOptions, err := shared.GetNamespaceOptions(strings.Split(sharedNamespaces, ","))
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-			return
-		}
-		options = append(options, nsOptions...)
-	}
-
-	if len(input.Publish) > 0 {
-		portBindings, err := shared.CreatePortBindings(input.Publish)
-		if err != nil {
-			utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
-			return
-		}
-		options = append(options, libpod.WithInfraContainerPorts(portBindings))
-
-	}
-	// always have containers use pod cgroups
-	// User Opt out is not yet supported
-	options = append(options, libpod.WithPodCgroups())
-
-	pod, err := runtime.NewPod(r.Context(), options...)
+	pod, err := psg.MakePod(runtime)
 	if err != nil {
 		http_code := http.StatusInternalServerError
 		if errors.Cause(err) == define.ErrPodExists {

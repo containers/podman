@@ -149,13 +149,20 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
+		reports []*entities.VolumePruneReport
 	)
 	pruned, err := runtime.PruneVolumes(r.Context())
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	utils.WriteResponse(w, http.StatusOK, pruned)
+	for k, v := range pruned {
+		reports = append(reports, &entities.VolumePruneReport{
+			Err: v,
+			Id:  k,
+		})
+	}
+	utils.WriteResponse(w, http.StatusOK, reports)
 }
 
 func RemoveVolume(w http.ResponseWriter, r *http.Request) {

@@ -15,7 +15,7 @@ type ContainerEngine interface {
 	ContainerStop(ctx context.Context, namesOrIds []string, options StopOptions) ([]*StopReport, error)
 	ContainerWait(ctx context.Context, namesOrIds []string, options WaitOptions) ([]WaitReport, error)
 	ContainerTop(ctx context.Context, options TopOptions) (*StringSliceReport, error)
-
+	PodCreate(ctx context.Context, opts PodCreateOptions) (*PodCreateReport, error)
 	PodExists(ctx context.Context, nameOrId string) (*BoolReport, error)
 	PodKill(ctx context.Context, namesOrIds []string, options PodKillOptions) ([]*PodKillReport, error)
 	PodPause(ctx context.Context, namesOrIds []string, options PodPauseOptions) ([]*PodPauseReport, error)
