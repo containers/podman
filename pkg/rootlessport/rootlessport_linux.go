@@ -20,7 +20,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"syscall"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/reexec"
@@ -30,6 +29,7 @@ import (
 	rkbuiltin "github.com/rootless-containers/rootlesskit/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -103,10 +103,10 @@ func parent() error {
 	}
 
 	sigC := make(chan os.Signal, 1)
-	signal.Notify(sigC, syscall.SIGPIPE)
+	signal.Notify(sigC, unix.SIGPIPE)
 	defer func() {
 		// dummy signal to terminate the goroutine
-		sigC <- syscall.SIGKILL
+		sigC <- unix.SIGKILL
 	}()
 	go func() {
 		defer func() {
@@ -115,10 +115,10 @@ func parent() error {
 		}()
 
 		s := <-sigC
-		if s == syscall.SIGPIPE {
+		if s == unix.SIGPIPE {
 			if f, err := os.OpenFile("/dev/null", os.O_WRONLY, 0755); err == nil {
-				syscall.Dup2(int(f.Fd()), 1) // nolint:errcheck
-				syscall.Dup2(int(f.Fd()), 2) // nolint:errcheck
+				unix.Dup2(int(f.Fd()), 1) // nolint:errcheck
+				unix.Dup2(int(f.Fd()), 2) // nolint:errcheck
 				f.Close()
 			}
 		}
@@ -191,7 +191,7 @@ func parent() error {
 	}()
 
 	defer func() {
-		if err := syscall.Kill(cmd.Process.Pid, syscall.SIGTERM); err != nil {
+		if err := unix.Kill(cmd.Process.Pid, unix.SIGTERM); err != nil {
 			logrus.WithError(err).Warn("kill child process")
 		}
 	}()
