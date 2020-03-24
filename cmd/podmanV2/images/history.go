@@ -4,12 +4,15 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"text/template"
+	"time"
 
 	"github.com/containers/libpod/cmd/podmanV2/registry"
 	"github.com/containers/libpod/cmd/podmanV2/report"
 	"github.com/containers/libpod/pkg/domain/entities"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -29,14 +32,14 @@ var (
 		PersistentPreRunE: preRunE,
 		RunE:              history,
 	}
-)
 
-var cmdFlags = struct {
-	Human   bool
-	NoTrunc bool
-	Quiet   bool
-	Format  string
-}{}
+	opts = struct {
+		human   bool
+		noTrunc bool
+		quiet   bool
+		format  string
+	}{}
+)
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -46,12 +49,13 @@ func init() {
 
 	historyCmd.SetHelpTemplate(registry.HelpTemplate())
 	historyCmd.SetUsageTemplate(registry.UsageTemplate())
+
 	flags := historyCmd.Flags()
-	flags.StringVar(&cmdFlags.Format, "format", "", "Change the output to JSON or a Go template")
-	flags.BoolVarP(&cmdFlags.Human, "human", "H", true, "Display sizes and dates in human readable format")
-	flags.BoolVar(&cmdFlags.NoTrunc, "no-trunc", false, "Do not truncate the output")
-	flags.BoolVar(&cmdFlags.NoTrunc, "notruncate", false, "Do not truncate the output")
-	flags.BoolVarP(&cmdFlags.Quiet, "quiet", "q", false, "Display the numeric IDs only")
+	flags.StringVar(&opts.format, "format", "", "Change the output to JSON or a Go template")
+	flags.BoolVarP(&opts.human, "human", "H", false, "Display sizes and dates in human readable format")
+	flags.BoolVar(&opts.noTrunc, "no-trunc", false, "Do not truncate the output")
+	flags.BoolVar(&opts.noTrunc, "notruncate", false, "Do not truncate the output")
+	flags.BoolVarP(&opts.quiet, "quiet", "q", false, "Display the numeric IDs only")
 }
 
 func history(cmd *cobra.Command, args []string) error {
@@ -60,11 +64,51 @@ func history(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	row := "{{slice $x.ID 0 12}}\t{{toRFC3339 $x.Created}}\t{{ellipsis $x.CreatedBy 45}}\t{{$x.Size}}\t{{$x.Comment}}\n"
-	if cmdFlags.Human {
-		row = "{{slice $x.ID 0 12}}\t{{toHumanDuration $x.Created}}\t{{ellipsis $x.CreatedBy 45}}\t{{toHumanSize $x.Size}}\t{{$x.Comment}}\n"
+	if opts.format == "json" {
+		var err error
+		if len(results.Layers) == 0 {
+			_, err = fmt.Fprintf(os.Stdout, "[]\n")
+		} else {
+			// ah-hoc change to "Created": type and format
+			type layer struct {
+				entities.ImageHistoryLayer
+				Created string `json:"Created"`
+			}
+
+			layers := make([]layer, len(results.Layers))
+			for i, l := range results.Layers {
+				layers[i].ImageHistoryLayer = l
+				layers[i].Created = time.Unix(l.Created, 0).Format(time.RFC3339)
+			}
+			json := jsoniter.ConfigCompatibleWithStandardLibrary
+			enc := json.NewEncoder(os.Stdout)
+			err = enc.Encode(layers)
+		}
+		return err
 	}
-	format := "{{range $y, $x := . }}" + row + "{{end}}"
+
+	// Defaults
+	hdr := "ID\tCREATED\tCREATED BY\tSIZE\tCOMMENT\n"
+	row := "{{slice .ID 0 12}}\t{{humanDuration .Created}}\t{{ellipsis .CreatedBy 45}}\t{{.Size}}\t{{.Comment}}\n"
+
+	if len(opts.format) > 0 {
+		hdr = ""
+		row = opts.format
+		if !strings.HasSuffix(opts.format, "\n") {
+			row += "\n"
+		}
+	} else {
+		switch {
+		case opts.human:
+			row = "{{slice .ID 0 12}}\t{{humanDuration .Created}}\t{{ellipsis .CreatedBy 45}}\t{{humanSize .Size}}\t{{.Comment}}\n"
+		case opts.noTrunc:
+			row = "{{.ID}}\t{{humanDuration .Created}}\t{{.CreatedBy}}\t{{humanSize .Size}}\t{{.Comment}}\n"
+		case opts.quiet:
+			hdr = ""
+			row = "{{.ID}}\n"
+		}
+	}
+	format := hdr + "{{range . }}" + row + "{{end}}"
 
 	tmpl := template.Must(template.New("report").Funcs(report.PodmanTemplateFuncs()).Parse(format))
 	w := tabwriter.NewWriter(os.Stdout, 8, 2, 2, ' ', 0)
