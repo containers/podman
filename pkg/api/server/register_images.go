@@ -967,7 +967,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/InternalError'
 	r.Handle(VersionedPath("/libpod/images/{name:.*}/tag"), s.APIHandler(compat.TagImage)).Methods(http.MethodPost)
-	// swagger:operation POST /commit libpod libpodCommitContainer
+	// swagger:operation POST /libpod/commit libpod libpodCommitContainer
 	// ---
 	// tags:
 	//  - containers
