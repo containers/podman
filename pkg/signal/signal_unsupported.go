@@ -26,3 +26,9 @@ func CatchAll(sigc chan os.Signal) {
 func StopCatch(sigc chan os.Signal) {
 	panic("Unsupported on non-linux platforms")
 }
+
+// ParseSignalNameOrNumber translates a string to a valid syscall signal.  Input
+// can be a name or number representation i.e. "KILL" "9"
+func ParseSignalNameOrNumber(rawSignal string) (syscall.Signal, error) {
+	return 0, fmt.Errorf("unsupported on non-linux platforms")
+}

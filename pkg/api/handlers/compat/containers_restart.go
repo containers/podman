@@ -1,11 +1,9 @@
 package compat
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -29,20 +27,6 @@ func RestartContainer(w http.ResponseWriter, r *http.Request) {
 	con, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
-		return
-	}
-
-	state, err := con.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
-	// FIXME: This is not in the swagger.yml...
-	// If the Container is stopped already, send a 409
-	if state == define.ContainerStateStopped || state == define.ContainerStateExited {
-		msg := fmt.Sprintf("Container %s is not running", name)
-		utils.Error(w, msg, http.StatusConflict, errors.New(msg))
 		return
 	}
 

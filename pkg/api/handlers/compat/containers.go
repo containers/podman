@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/containers/libpod/libpod"
@@ -15,6 +14,7 @@ import (
 	"github.com/containers/libpod/libpod/logs"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/signal"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
@@ -145,12 +145,18 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
-		Signal syscall.Signal `schema:"signal"`
+		Signal string `schema:"signal"`
 	}{
-		Signal: syscall.SIGKILL,
+		Signal: "KILL",
 	}
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusBadRequest, errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+
+	sig, err := signal.ParseSignalNameOrNumber(query.Signal)
+	if err != nil {
+		utils.InternalServerError(w, err)
 		return
 	}
 	name := utils.GetName(r)
@@ -172,7 +178,7 @@ func KillContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = con.Kill(uint(query.Signal))
+	err = con.Kill(uint(sig))
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrapf(err, "unable to kill Container %s", name))
 	}

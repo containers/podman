@@ -23,8 +23,9 @@ var rootCmd = &cobra.Command{
 func init() {
 	// Override default --help information of `--version` global flag}
 	var dummyVersion bool
-	rootCmd.PersistentFlags().BoolVarP(&dummyVersion, "version", "v", false, "Version of podman")
-	rootCmd.PersistentFlags().StringVarP(&registry.EngineOpts.Uri, "remote", "r", "", "URL to access podman service")
+	// TODO had to disable shorthand -v for version due to -v rm with volume
+	rootCmd.PersistentFlags().BoolVar(&dummyVersion, "version", false, "Version of Podman")
+	rootCmd.PersistentFlags().StringVarP(&registry.EngineOpts.Uri, "remote", "r", "", "URL to access Podman service")
 	rootCmd.PersistentFlags().StringSliceVar(&registry.EngineOpts.Identities, "identity", []string{}, "path to SSH identity file")
 }
 

@@ -40,3 +40,108 @@ func (r *ContainerEngine) ContainerDelete(ctx context.Context, opts entities.Con
 func (r *ContainerEngine) ContainerPrune(ctx context.Context) (*entities.ContainerPruneReport, error) {
 	panic("implement me")
 }
+func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
+	var (
+		reports []*entities.PauseUnpauseReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		err := containers.Pause(ic.ClientCxt, c.ID)
+		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerUnpause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
+	var (
+		reports []*entities.PauseUnpauseReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		err := containers.Unpause(ic.ClientCxt, c.ID)
+		reports = append(reports, &entities.PauseUnpauseReport{Id: c.ID, Err: err})
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []string, options entities.StopOptions) ([]*entities.StopReport, error) {
+	var (
+		reports []*entities.StopReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		report := entities.StopReport{Id: c.ID}
+		report.Err = containers.Stop(ic.ClientCxt, c.ID, &options.Timeout)
+		// TODO we need to associate errors returned by http with common
+		// define.errors so that we can equity tests. this will allow output
+		// to be the same as the native client
+		reports = append(reports, &report)
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerKill(ctx context.Context, namesOrIds []string, options entities.KillOptions) ([]*entities.KillReport, error) {
+	var (
+		reports []*entities.KillReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		reports = append(reports, &entities.KillReport{
+			Id:  c.ID,
+			Err: containers.Kill(ic.ClientCxt, c.ID, options.Signal),
+		})
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerRestart(ctx context.Context, namesOrIds []string, options entities.RestartOptions) ([]*entities.RestartReport, error) {
+	var (
+		reports []*entities.RestartReport
+		timeout *int
+	)
+	if options.Timeout != nil {
+		t := int(*options.Timeout)
+		timeout = &t
+	}
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		reports = append(reports, &entities.RestartReport{
+			Id:  c.ID,
+			Err: containers.Restart(ic.ClientCxt, c.ID, timeout),
+		})
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string, options entities.RmOptions) ([]*entities.RmReport, error) {
+	var (
+		reports []*entities.RmReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, options.All, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	// TODO there is no endpoint for container eviction.  Need to discuss
+	for _, c := range ctrs {
+		reports = append(reports, &entities.RmReport{
+			Id:  c.ID,
+			Err: containers.Remove(ic.ClientCxt, c.ID, &options.Force, &options.Volumes),
+		})
+	}
+	return reports, nil
+}
