@@ -30,6 +30,14 @@ func newReference(transport storageTransport, named reference.Named, id string) 
 	if named == nil && id == "" {
 		return nil, ErrInvalidReference
 	}
+	if named != nil && reference.IsNameOnly(named) {
+		return nil, errors.Wrapf(ErrInvalidReference, "reference %s has neither a tag nor a digest", named.String())
+	}
+	if id != "" {
+		if err := validateImageID(id); err != nil {
+			return nil, errors.Wrapf(ErrInvalidReference, "invalid ID value %q: %v", id, err)
+		}
+	}
 	// We take a copy of the transport, which contains a pointer to the
 	// store that it used for resolving this reference, so that the
 	// transport that we'll return from Transport() won't be affected by

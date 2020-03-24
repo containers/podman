@@ -399,6 +399,10 @@ type Image interface {
 	// This does not change the state of the original Image object.
 	UpdatedImage(ctx context.Context, options ManifestUpdateOptions) (Image, error)
 	// SupportsEncryption returns an indicator that the image supports encryption
+	//
+	// Deprecated: Initially used to determine if a manifest can be copied from a source manifest type since
+	// the process of updating a manifest between different manifest types was to update then convert.
+	// This resulted in some fields in the update being lost. This has been fixed by: https://github.com/containers/image/pull/836
 	SupportsEncryption(ctx context.Context) bool
 	// Size returns an approximation of the amount of disk space which is consumed by the image in its current
 	// location.  If the size is not known, -1 will be returned.
@@ -450,6 +454,11 @@ type ImageInspectInfo struct {
 type DockerAuthConfig struct {
 	Username string
 	Password string
+	// IdentityToken can be used as an refresh_token in place of username and
+	// password to obtain the bearer/access token in oauth2 flow. If identity
+	// token is set, password should not be set.
+	// Ref: https://docs.docker.com/registry/spec/auth/oauth/
+	IdentityToken string
 }
 
 // OptionalBool is a boolean with an additional undefined value, which is meant
@@ -497,6 +506,8 @@ type SystemContext struct {
 	RegistriesDirPath string
 	// Path to the system-wide registries configuration file
 	SystemRegistriesConfPath string
+	// Path to the system-wide registries configuration directory
+	SystemRegistriesConfDirPath string
 	// If not "", overrides the default path for the authentication file, but only new format files
 	AuthFilePath string
 	// if not "", overrides the default path for the authentication file, but with the legacy format;
@@ -510,6 +521,8 @@ type SystemContext struct {
 	ArchitectureChoice string
 	// If not "", overrides the use of platform.GOOS when choosing an image or verifying OS match.
 	OSChoice string
+	// If not "", overrides the use of detected ARM platform variant when choosing an image or verifying variant match.
+	VariantChoice string
 	// If not "", overrides the system's default directory containing a blob info cache.
 	BlobInfoCacheDir string
 	// Additional tags when creating or copying a docker-archive.
@@ -540,7 +553,10 @@ type SystemContext struct {
 	// Allow contacting docker registries over HTTP, or HTTPS with failed TLS verification. Note that this does not affect other TLS connections.
 	DockerInsecureSkipTLSVerify OptionalBool
 	// if nil, the library tries to parse ~/.docker/config.json to retrieve credentials
+	// Ignored if DockerBearerRegistryToken is non-empty.
 	DockerAuthConfig *DockerAuthConfig
+	// if not "", the library uses this registry token to authenticate to the registry
+	DockerBearerRegistryToken string
 	// if not "", an User-Agent header is added to each request when contacting a registry.
 	DockerRegistryUserAgent string
 	// if true, a V1 ping attempt isn't done to give users a better error. Default is false.

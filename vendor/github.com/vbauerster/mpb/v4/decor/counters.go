@@ -43,24 +43,7 @@ func CountersKiloByte(pairFmt string, wcc ...WC) Decorator {
 //	pairFmt="% d / % d"     output: "1 MB / 12 MB"
 //
 func Counters(unit int, pairFmt string, wcc ...WC) Decorator {
-	var wc WC
-	for _, widthConf := range wcc {
-		wc = widthConf
-	}
-	d := &countersDecorator{
-		WC:       wc.Init(),
-		producer: chooseSizeProducer(unit, pairFmt),
-	}
-	return d
-}
-
-type countersDecorator struct {
-	WC
-	producer func(*Statistics) string
-}
-
-func (d *countersDecorator) Decor(st *Statistics) string {
-	return d.FormatMsg(d.producer(st))
+	return Any(chooseSizeProducer(unit, pairFmt), wcc...)
 }
 
 func chooseSizeProducer(unit int, format string) func(*Statistics) string {
@@ -69,16 +52,16 @@ func chooseSizeProducer(unit int, format string) func(*Statistics) string {
 	}
 	switch unit {
 	case UnitKiB:
-		return func(st *Statistics) string {
-			return fmt.Sprintf(format, SizeB1024(st.Current), SizeB1024(st.Total))
+		return func(s *Statistics) string {
+			return fmt.Sprintf(format, SizeB1024(s.Current), SizeB1024(s.Total))
 		}
 	case UnitKB:
-		return func(st *Statistics) string {
-			return fmt.Sprintf(format, SizeB1000(st.Current), SizeB1000(st.Total))
+		return func(s *Statistics) string {
+			return fmt.Sprintf(format, SizeB1000(s.Current), SizeB1000(s.Total))
 		}
 	default:
-		return func(st *Statistics) string {
-			return fmt.Sprintf(format, st.Current, st.Total)
+		return func(s *Statistics) string {
+			return fmt.Sprintf(format, s.Current, s.Total)
 		}
 	}
 }

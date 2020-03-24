@@ -56,7 +56,7 @@ func (m *manifestSchema1) ConfigBlob(context.Context) ([]byte, error) {
 // layers in the resulting configuration isn't guaranteed to be returned to due how
 // old image manifests work (docker v2s1 especially).
 func (m *manifestSchema1) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) {
-	v2s2, err := m.convertToManifestSchema2(nil, nil)
+	v2s2, err := m.convertToManifestSchema2(ctx, types.ManifestUpdateInformation{})
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +107,24 @@ func (m *manifestSchema1) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUp
 // This does not change the state of the original Image object.
 func (m *manifestSchema1) UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error) {
 	copy := manifestSchema1{m: manifest.Schema1Clone(m.m)}
+
+	// We have 2 MIME types for schema 1, which are basically equivalent (even the un-"Signed" MIME type will be rejected if there isn’t a signature; so,
+	// handle conversions between them by doing nothing.
+	if options.ManifestMIMEType != manifest.DockerV2Schema1MediaType && options.ManifestMIMEType != manifest.DockerV2Schema1SignedMediaType {
+		converted, err := convertManifestIfRequiredWithUpdate(ctx, options, map[string]manifestConvertFn{
+			imgspecv1.MediaTypeImageManifest:  copy.convertToManifestOCI1,
+			manifest.DockerV2Schema2MediaType: copy.convertToManifestSchema2,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if converted != nil {
+			return converted, nil
+		}
+	}
+
+	// No conversion required, update manifest
 	if options.LayerInfos != nil {
 		if err := copy.m.UpdateLayerInfos(options.LayerInfos); err != nil {
 			return nil, err
@@ -121,36 +139,14 @@ func (m *manifestSchema1) UpdatedImage(ctx context.Context, options types.Manife
 		}
 	}
 
-	switch options.ManifestMIMEType {
-	case "": // No conversion, OK
-	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType:
-	// We have 2 MIME types for schema 1, which are basically equivalent (even the un-"Signed" MIME type will be rejected if there isn’t a signature; so,
-	// handle conversions between them by doing nothing.
-	case manifest.DockerV2Schema2MediaType:
-		m2, err := copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
-		if err != nil {
-			return nil, err
-		}
-		return memoryImageFromManifest(m2), nil
-	case imgspecv1.MediaTypeImageManifest:
-		// We can't directly convert to OCI, but we can transitively convert via a Docker V2.2 Distribution manifest
-		m2, err := copy.convertToManifestSchema2(options.InformationOnly.LayerInfos, options.InformationOnly.LayerDiffIDs)
-		if err != nil {
-			return nil, err
-		}
-		return m2.UpdatedImage(ctx, types.ManifestUpdateOptions{
-			ManifestMIMEType: imgspecv1.MediaTypeImageManifest,
-			InformationOnly:  options.InformationOnly,
-		})
-	default:
-		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema1SignedMediaType, options.ManifestMIMEType)
-	}
-
 	return memoryImageFromManifest(&copy), nil
 }
 
 // Based on github.com/docker/docker/distribution/pull_v2.go
-func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.BlobInfo, layerDiffIDs []digest.Digest) (genericManifest, error) {
+func (m *manifestSchema1) convertToManifestSchema2(_ context.Context, updateInfo types.ManifestUpdateInformation) (types.Image, error) {
+	uploadedLayerInfos := updateInfo.LayerInfos
+	layerDiffIDs := updateInfo.LayerDiffIDs
+
 	if len(m.m.ExtractedV1Compatibility) == 0 {
 		// What would this even mean?! Anyhow, the rest of the code depends on FSLayers[0] and ExtractedV1Compatibility[0] existing.
 		return nil, errors.Errorf("Cannot convert an image with 0 history entries to %s", manifest.DockerV2Schema2MediaType)
@@ -198,7 +194,21 @@ func (m *manifestSchema1) convertToManifestSchema2(uploadedLayerInfos []types.Bl
 		Digest:    digest.FromBytes(configJSON),
 	}
 
-	return manifestSchema2FromComponents(configDescriptor, nil, configJSON, layers), nil
+	m1 := manifestSchema2FromComponents(configDescriptor, nil, configJSON, layers)
+	return memoryImageFromManifest(m1), nil
+}
+
+func (m *manifestSchema1) convertToManifestOCI1(ctx context.Context, updateInfo types.ManifestUpdateInformation) (types.Image, error) {
+	// We can't directly convert to OCI, but we can transitively convert via a Docker V2.2 Distribution manifest
+	m2, err := m.convertToManifestSchema2(ctx, updateInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	return m2.UpdatedImage(ctx, types.ManifestUpdateOptions{
+		ManifestMIMEType: imgspecv1.MediaTypeImageManifest,
+		InformationOnly:  updateInfo,
+	})
 }
 
 // SupportsEncryption returns if encryption is supported for the manifest type

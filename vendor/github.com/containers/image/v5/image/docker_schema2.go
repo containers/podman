@@ -160,22 +160,27 @@ func (m *manifestSchema2) UpdatedImage(ctx context.Context, options types.Manife
 		configBlob: m.configBlob,
 		m:          manifest.Schema2Clone(m.m),
 	}
+
+	converted, err := convertManifestIfRequiredWithUpdate(ctx, options, map[string]manifestConvertFn{
+		manifest.DockerV2Schema1MediaType:       copy.convertToManifestSchema1,
+		manifest.DockerV2Schema1SignedMediaType: copy.convertToManifestSchema1,
+		imgspecv1.MediaTypeImageManifest:        copy.convertToManifestOCI1,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if converted != nil {
+		return converted, nil
+	}
+
+	// No conversion required, update manifest
 	if options.LayerInfos != nil {
 		if err := copy.m.UpdateLayerInfos(options.LayerInfos); err != nil {
 			return nil, err
 		}
 	}
 	// Ignore options.EmbeddedDockerReference: it may be set when converting from schema1 to schema2, but we really don't care.
-
-	switch options.ManifestMIMEType {
-	case "": // No conversion, OK
-	case manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema1MediaType:
-		return copy.convertToManifestSchema1(ctx, options.InformationOnly.Destination)
-	case imgspecv1.MediaTypeImageManifest:
-		return copy.convertToManifestOCI1(ctx)
-	default:
-		return nil, errors.Errorf("Conversion of image manifest from %s to %s is not implemented", manifest.DockerV2Schema2MediaType, options.ManifestMIMEType)
-	}
 
 	return memoryImageFromManifest(&copy), nil
 }
@@ -189,7 +194,7 @@ func oci1DescriptorFromSchema2Descriptor(d manifest.Schema2Descriptor) imgspecv1
 	}
 }
 
-func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context) (types.Image, error) {
+func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ types.ManifestUpdateInformation) (types.Image, error) {
 	configOCI, err := m.OCIConfig(ctx)
 	if err != nil {
 		return nil, err
@@ -227,7 +232,8 @@ func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context) (types.Imag
 }
 
 // Based on docker/distribution/manifest/schema1/config_builder.go
-func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, dest types.ImageDestination) (types.Image, error) {
+func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, updateInfo types.ManifestUpdateInformation) (types.Image, error) {
+	dest := updateInfo.Destination
 	configBytes, err := m.ConfigBlob(ctx)
 	if err != nil {
 		return nil, err

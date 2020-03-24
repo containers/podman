@@ -12,7 +12,7 @@ require (
 	github.com/containers/buildah v1.14.3
 	github.com/containers/common v0.6.1
 	github.com/containers/conmon v2.0.10+incompatible
-	github.com/containers/image/v5 v5.2.1
+	github.com/containers/image/v5 v5.3.0
 	github.com/containers/psgo v1.4.0
 	github.com/containers/storage v1.16.6
 	github.com/coreos/go-systemd/v22 v22.0.0
@@ -24,7 +24,6 @@ require (
 	github.com/docker/docker-credential-helpers v0.6.3
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0
-	github.com/etcd-io/bbolt v1.3.3
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/ghodss/yaml v1.0.0
 	github.com/godbus/dbus/v5 v5.0.3
@@ -58,6 +57,7 @@ require (
 	github.com/uber/jaeger-lib v2.2.0+incompatible // indirect
 	github.com/varlink/go v0.0.0-20190502142041-0f1d566d194b
 	github.com/vishvananda/netlink v1.1.0
+	go.etcd.io/bbolt v1.3.4
 	golang.org/x/crypto v0.0.0-20200220183623-bac4c82f6975
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58

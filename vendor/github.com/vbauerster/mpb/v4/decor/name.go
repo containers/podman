@@ -1,27 +1,12 @@
 package decor
 
-// Name returns name decorator.
+// Name decorator displays text that is set once and can't be changed
+// during decorator's lifetime.
 //
-//	`name` string to display
+//	`str` string to display
 //
 //	`wcc` optional WC config
-func Name(name string, wcc ...WC) Decorator {
-	var wc WC
-	for _, widthConf := range wcc {
-		wc = widthConf
-	}
-	d := &nameDecorator{
-		WC:  wc.Init(),
-		msg: name,
-	}
-	return d
-}
-
-type nameDecorator struct {
-	WC
-	msg string
-}
-
-func (d *nameDecorator) Decor(st *Statistics) string {
-	return d.FormatMsg(d.msg)
+//
+func Name(str string, wcc ...WC) Decorator {
+	return Any(func(*Statistics) string { return str }, wcc...)
 }
