@@ -32,9 +32,9 @@ func initCobra() {
 	case "darwin":
 		fallthrough
 	case "windows":
-		registry.EngineOpts.EngineMode = entities.TunnelMode
+		registry.EngineOptions.EngineMode = entities.TunnelMode
 	case "linux":
-		registry.EngineOpts.EngineMode = entities.ABIMode
+		registry.EngineOptions.EngineMode = entities.ABIMode
 	default:
 		logrus.Errorf("%s is not a supported OS", runtime.GOOS)
 		os.Exit(1)
@@ -43,7 +43,7 @@ func initCobra() {
 	// TODO: Is there a Cobra way to "peek" at os.Args?
 	for _, v := range os.Args {
 		if strings.HasPrefix(v, "--remote") {
-			registry.EngineOpts.EngineMode = entities.TunnelMode
+			registry.EngineOptions.EngineMode = entities.TunnelMode
 		}
 	}
 
@@ -53,7 +53,7 @@ func initCobra() {
 func main() {
 	fmt.Fprintf(os.Stderr, "Number of commands: %d\n", len(registry.Commands))
 	for _, c := range registry.Commands {
-		if Contains(registry.EngineOpts.EngineMode, c.Mode) {
+		if Contains(registry.EngineOptions.EngineMode, c.Mode) {
 			parent := rootCmd
 			if c.Parent != nil {
 				parent = c.Parent

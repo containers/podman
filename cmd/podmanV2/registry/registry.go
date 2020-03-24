@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"context"
+
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra"
@@ -20,8 +22,7 @@ var (
 	imageEngine     entities.ImageEngine
 	containerEngine entities.ContainerEngine
 
-	EngineOpts  entities.EngineOptions
-	GlobalFlags entities.EngineFlags
+	EngineOptions entities.EngineOptions
 
 	ExitCode = define.ExecErrorCodeGeneric
 )
@@ -76,8 +77,8 @@ func ImageEngine() entities.ImageEngine {
 // NewImageEngine is a wrapper for building an ImageEngine to be used for PreRunE functions
 func NewImageEngine(cmd *cobra.Command, args []string) (entities.ImageEngine, error) {
 	if imageEngine == nil {
-		EngineOpts.FlagSet = cmd.Flags()
-		engine, err := infra.NewImageEngine(EngineOpts)
+		EngineOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewImageEngine(EngineOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -93,8 +94,8 @@ func ContainerEngine() entities.ContainerEngine {
 // NewContainerEngine is a wrapper for building an ContainerEngine to be used for PreRunE functions
 func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEngine, error) {
 	if containerEngine == nil {
-		EngineOpts.FlagSet = cmd.Flags()
-		engine, err := infra.NewContainerEngine(EngineOpts)
+		EngineOptions.FlagSet = cmd.Flags()
+		engine, err := infra.NewContainerEngine(EngineOptions)
 		if err != nil {
 			return nil, err
 		}
@@ -108,4 +109,19 @@ func SubCommandExists(cmd *cobra.Command, args []string) error {
 		return errors.Errorf("unrecognized command `%[1]s %[2]s`\nTry '%[1]s --help' for more information.", cmd.CommandPath(), args[0])
 	}
 	return errors.Errorf("missing command '%[1]s COMMAND'\nTry '%[1]s --help' for more information.", cmd.CommandPath())
+}
+
+type podmanContextKey string
+
+var podmanFactsKey = podmanContextKey("engineOptions")
+
+func NewOptions(ctx context.Context, facts *entities.EngineOptions) context.Context {
+	return context.WithValue(ctx, podmanFactsKey, facts)
+}
+
+func Options(cmd *cobra.Command) (*entities.EngineOptions, error) {
+	if f, ok := cmd.Context().Value(podmanFactsKey).(*entities.EngineOptions); ok {
+		return f, errors.New("Command Context ")
+	}
+	return nil, nil
 }

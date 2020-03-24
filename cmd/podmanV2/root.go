@@ -26,12 +26,13 @@ func init() {
 	var dummyVersion bool
 	// TODO had to disable shorthand -v for version due to -v rm with volume
 	rootCmd.PersistentFlags().BoolVar(&dummyVersion, "version", false, "Version of Podman")
-	rootCmd.PersistentFlags().StringVarP(&registry.EngineOpts.Uri, "remote", "r", "", "URL to access Podman service")
-	rootCmd.PersistentFlags().StringSliceVar(&registry.EngineOpts.Identities, "identity", []string{}, "path to SSH identity file")
+	rootCmd.PersistentFlags().StringVarP(&registry.EngineOptions.Uri, "remote", "r", "", "URL to access Podman service")
+	rootCmd.PersistentFlags().StringSliceVar(&registry.EngineOptions.Identities, "identity", []string{}, "path to SSH identity file")
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	o := registry.NewOptions(rootCmd.Context(), &registry.EngineOptions)
+	if err := rootCmd.ExecuteContext(o); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err.Error())
 	} else if registry.GetExitCode() == define.ExecErrorCodeGeneric {
 		// The exitCode modified from define.ExecErrorCodeGeneric,

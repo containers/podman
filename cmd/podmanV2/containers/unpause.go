@@ -39,7 +39,7 @@ func unpause(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	if rootless.IsRootless() && !utils.IsRemote() {
+	if rootless.IsRootless() && !registry.IsRemote() {
 		return errors.New("unpause is not supported for rootless containers")
 	}
 	if len(args) < 1 && !unPauseOptions.All {

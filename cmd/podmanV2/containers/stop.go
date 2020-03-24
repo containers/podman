@@ -48,7 +48,7 @@ func init() {
 	flags.BoolVarP(&stopOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.UintVar(&stopTimeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVarP(&stopTimeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	if registry.EngineOpts.EngineMode == entities.ABIMode {
+	if registry.EngineOptions.EngineMode == entities.ABIMode {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("cidfile")
 		_ = flags.MarkHidden("ignore")

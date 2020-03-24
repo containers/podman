@@ -29,5 +29,6 @@ func init() {
 }
 
 func images(cmd *cobra.Command, args []string) error {
+	_, _ = registry.Options(cmd)
 	return nil
 }

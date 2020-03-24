@@ -12,7 +12,7 @@ import (
 
 // ContainerEngine Proxy will be EOL'ed after podmanV2 is separated from libpod repo
 
-func NewLibpodRuntime(flags *flag.FlagSet, opts entities.EngineFlags) (entities.ContainerEngine, error) {
+func NewLibpodRuntime(flags *flag.FlagSet, opts entities.EngineOptions) (entities.ContainerEngine, error) {
 	r, err := GetRuntime(context.Background(), flags, opts)
 	if err != nil {
 		return nil, err

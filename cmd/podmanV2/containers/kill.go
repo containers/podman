@@ -41,7 +41,7 @@ func init() {
 	flags.BoolVarP(&killOptions.All, "all", "a", false, "Signal all running containers")
 	flags.StringVarP(&killOptions.Signal, "signal", "s", "KILL", "Signal to send to the container")
 	flags.BoolVarP(&killOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
-	if utils.IsRemote() {
+	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
 }

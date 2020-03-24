@@ -47,7 +47,7 @@ func init() {
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
 	flags.UintVarP(&restartTimeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
 	flags.UintVar(&restartTimeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	if utils.IsRemote() {
+	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}
 }

@@ -50,7 +50,7 @@ func init() {
 	flags.BoolVar(&rmOptions.Storage, "storage", false, "Remove container from storage library")
 	flags.BoolVarP(&rmOptions.Volumes, "volumes", "v", false, "Remove anonymous volumes associated with the container")
 	flags.StringArrayVarP(&rmOptions.CIDFiles, "cidfile", "", nil, "Read the container ID from the file")
-	if utils.IsRemote() {
+	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 		_ = flags.MarkHidden("ignore")
 		_ = flags.MarkHidden("cidfile")

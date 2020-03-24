@@ -42,7 +42,7 @@ func pause(cmd *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)
-	if rootless.IsRootless() && !utils.IsRemote() {
+	if rootless.IsRootless() && !registry.IsRemote() {
 		return errors.New("pause is not supported for rootless containers")
 	}
 	if len(args) < 1 && !pauseOpts.All {

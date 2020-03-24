@@ -52,7 +52,7 @@ func init() {
 	flags.BoolVarP(&inspectOpts.Size, "size", "s", false, "Display total file size")
 	flags.StringVarP(&inspectOpts.Format, "format", "f", "", "Change the output format to a Go template")
 
-	if registry.EngineOpts.EngineMode == entities.ABIMode {
+	if registry.EngineOptions.EngineMode == entities.ABIMode {
 		// TODO: This is the same as V1.  We could skip creating the flag altogether in V2...
 		_ = flags.MarkHidden("latest")
 	}
