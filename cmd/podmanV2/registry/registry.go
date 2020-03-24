@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/domain/infra"
 	"github.com/pkg/errors"
@@ -21,7 +22,17 @@ var (
 
 	EngineOpts  entities.EngineOptions
 	GlobalFlags entities.EngineFlags
+
+	ExitCode = define.ExecErrorCodeGeneric
 )
+
+func SetExitCode(code int) {
+	ExitCode = code
+}
+
+func GetExitCode() int {
+	return ExitCode
+}
 
 // HelpTemplate returns the help template for podman commands
 // This uses the short and long options.
