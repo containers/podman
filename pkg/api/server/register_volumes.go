@@ -53,8 +53,8 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   '204':
-	//     description: no error
+	//   '200':
+	//      "$ref": "#/responses/VolumePruneResponse"
 	//   '500':
 	//      "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/prune"), s.APIHandler(libpod.PruneVolumes)).Methods(http.MethodPost)
@@ -71,11 +71,11 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	// - application/json
 	// responses:
 	//   '200':
-	//       "$ref": "#/responses/InspectVolumeResponse"
+	//     "$ref": "#/responses/VolumeCreateResponse"
 	//   '404':
-	//       "$ref": "#/responses/NoSuchVolume"
+	//     "$ref": "#/responses/NoSuchVolume"
 	//   '500':
-	//      "$ref": "#/responses/InternalError"
+	//     "$ref": "#/responses/InternalError"
 	r.Handle(VersionedPath("/libpod/volumes/{name}/json"), s.APIHandler(libpod.InspectVolume)).Methods(http.MethodGet)
 	// swagger:operation DELETE /libpod/volumes/{name} volumes removeVolume
 	// ---

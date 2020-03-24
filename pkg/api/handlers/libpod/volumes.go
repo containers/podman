@@ -3,16 +3,15 @@ package libpod
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/domain/filters"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 func CreateVolume(w http.ResponseWriter, r *http.Request) {
@@ -65,14 +64,14 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	volResponse := entities.VolumeConfigResponse{
-		Name:        config.Name,
-		Labels:      config.Labels,
-		Driver:      config.Driver,
-		MountPoint:  config.MountPoint,
-		CreatedTime: config.CreatedTime,
-		Options:     config.Options,
-		UID:         config.UID,
-		GID:         config.GID,
+		Name:       config.Name,
+		Driver:     config.Driver,
+		Mountpoint: config.MountPoint,
+		CreatedAt:  config.CreatedTime,
+		Labels:     config.Labels,
+		Options:    config.Options,
+		UID:        config.UID,
+		GID:        config.GID,
 	}
 	utils.WriteResponse(w, http.StatusOK, volResponse)
 }
@@ -85,21 +84,27 @@ func InspectVolume(w http.ResponseWriter, r *http.Request) {
 	vol, err := runtime.GetVolume(name)
 	if err != nil {
 		utils.VolumeNotFound(w, name, err)
+		return
 	}
-	inspect, err := vol.Inspect()
-	if err != nil {
-		utils.InternalServerError(w, err)
+	volResponse := entities.VolumeConfigResponse{
+		Name:       vol.Name(),
+		Driver:     vol.Driver(),
+		Mountpoint: vol.MountPoint(),
+		CreatedAt:  vol.CreatedTime(),
+		Labels:     vol.Labels(),
+		Scope:      vol.Scope(),
+		Options:    vol.Options(),
+		UID:        vol.UID(),
+		GID:        vol.GID(),
 	}
-	utils.WriteResponse(w, http.StatusOK, inspect)
+	utils.WriteResponse(w, http.StatusOK, volResponse)
 }
 
 func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
 		decoder       = r.Context().Value("decoder").(*schema.Decoder)
-		err           error
 		runtime       = r.Context().Value("runtime").(*libpod.Runtime)
-		volumeConfigs []*libpod.VolumeConfig
-		volumeFilters []libpod.VolumeFilter
+		volumeConfigs []*entities.VolumeListReport
 	)
 	query := struct {
 		Filters map[string][]string `schema:"filters"`
@@ -113,25 +118,30 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(query.Filters) > 0 {
-		volumeFilters, err = generateVolumeFilters(query.Filters)
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
+	volumeFilters, err := filters.GenerateVolumeFilters(query.Filters)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
 	}
+
 	vols, err := runtime.Volumes(volumeFilters...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
 	for _, v := range vols {
-		config, err := v.Config()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
+		config := entities.VolumeConfigResponse{
+			Name:       v.Name(),
+			Driver:     v.Driver(),
+			Mountpoint: v.MountPoint(),
+			CreatedAt:  v.CreatedTime(),
+			Labels:     v.Labels(),
+			Scope:      v.Scope(),
+			Options:    v.Options(),
+			UID:        v.UID(),
+			GID:        v.GID(),
 		}
-		volumeConfigs = append(volumeConfigs, config)
+		volumeConfigs = append(volumeConfigs, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}
 	utils.WriteResponse(w, http.StatusOK, volumeConfigs)
 }
@@ -140,14 +150,10 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	var (
 		runtime = r.Context().Value("runtime").(*libpod.Runtime)
 	)
-	pruned, errs := runtime.PruneVolumes(r.Context())
-	if errs != nil {
-		if len(errs) > 1 {
-			for _, err := range errs {
-				log.Infof("Request Failed(%s): %s", http.StatusText(http.StatusInternalServerError), err.Error())
-			}
-		}
-		utils.InternalServerError(w, errs[len(errs)-1])
+	pruned, err := runtime.PruneVolumes(r.Context())
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
 	}
 	utils.WriteResponse(w, http.StatusOK, pruned)
 }
@@ -183,66 +189,4 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
-}
-
-func generateVolumeFilters(filters map[string][]string) ([]libpod.VolumeFilter, error) {
-	var vf []libpod.VolumeFilter
-	for filter, v := range filters {
-		for _, val := range v {
-			switch filter {
-			case "name":
-				nameVal := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return nameVal == v.Name()
-				})
-			case "driver":
-				driverVal := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return v.Driver() == driverVal
-				})
-			case "scope":
-				scopeVal := val
-				vf = append(vf, func(v *libpod.Volume) bool {
-					return v.Scope() == scopeVal
-				})
-			case "label":
-				filterArray := strings.SplitN(val, "=", 2)
-				filterKey := filterArray[0]
-				var filterVal string
-				if len(filterArray) > 1 {
-					filterVal = filterArray[1]
-				} else {
-					filterVal = ""
-				}
-				vf = append(vf, func(v *libpod.Volume) bool {
-					for labelKey, labelValue := range v.Labels() {
-						if labelKey == filterKey && ("" == filterVal || labelValue == filterVal) {
-							return true
-						}
-					}
-					return false
-				})
-			case "opt":
-				filterArray := strings.SplitN(val, "=", 2)
-				filterKey := filterArray[0]
-				var filterVal string
-				if len(filterArray) > 1 {
-					filterVal = filterArray[1]
-				} else {
-					filterVal = ""
-				}
-				vf = append(vf, func(v *libpod.Volume) bool {
-					for labelKey, labelValue := range v.Options() {
-						if labelKey == filterKey && ("" == filterVal || labelValue == filterVal) {
-							return true
-						}
-					}
-					return false
-				})
-			default:
-				return nil, errors.Errorf("%q is in an invalid volume filter", filter)
-			}
-		}
-	}
-	return vf, nil
 }

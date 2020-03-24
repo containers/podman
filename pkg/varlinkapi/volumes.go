@@ -105,16 +105,20 @@ func (i *LibpodAPI) InspectVolume(call iopodman.VarlinkCall, name string) error 
 
 // VolumesPrune removes unused images via a varlink call
 func (i *LibpodAPI) VolumesPrune(call iopodman.VarlinkCall) error {
-	var errs []string
-	prunedNames, prunedErrors := i.Runtime.PruneVolumes(getContext())
-	if len(prunedErrors) == 0 {
-		return call.ReplyVolumesPrune(prunedNames, []string{})
+	var (
+		prunedErrors []string
+		prunedNames  []string
+	)
+	responses, err := i.Runtime.PruneVolumes(getContext())
+	if err != nil {
+		return call.ReplyVolumesPrune([]string{}, []string{err.Error()})
 	}
-
-	// We need to take the errors and capture their strings to go back over
-	// varlink
-	for _, e := range prunedErrors {
-		errs = append(errs, e.Error())
+	for _, i := range responses {
+		if i.Err == nil {
+			prunedNames = append(prunedNames, i.Id)
+		} else {
+			prunedErrors = append(prunedErrors, i.Err.Error())
+		}
 	}
-	return call.ReplyVolumesPrune(prunedNames, errs)
+	return call.ReplyVolumesPrune(prunedNames, prunedErrors)
 }

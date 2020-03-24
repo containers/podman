@@ -33,13 +33,6 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	return responses, nil
 }
 
-func (r *ContainerEngine) ContainerDelete(ctx context.Context, opts entities.ContainerDeleteOptions) (*entities.ContainerDeleteReport, error) {
-	panic("implement me")
-}
-
-func (r *ContainerEngine) ContainerPrune(ctx context.Context) (*entities.ContainerPruneReport, error) {
-	panic("implement me")
-}
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
 	var (
 		reports []*entities.PauseUnpauseReport
