@@ -199,7 +199,7 @@ func DefaultStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 		defaultRootlessRunRoot = storageOpts.RunRoot
 		defaultRootlessGraphRoot = storageOpts.GraphRoot
 		storageOpts = StoreOptions{}
-		ReloadConfigurationFile(storageConf, &storageOpts)
+		reloadConfigurationFileIfNeeded(storageConf, &storageOpts)
 	}
 
 	if rootless && rootlessUID != 0 {
