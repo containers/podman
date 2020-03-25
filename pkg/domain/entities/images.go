@@ -81,14 +81,18 @@ func (i *ImageSummary) IsDangling() bool {
 }
 
 type ImageDeleteOptions struct {
+	All   bool
 	Force bool
 }
 
-// ImageDeleteResponse is the response for removing an image from storage and containers
-// what was untagged vs actually removed
+// ImageDeleteResponse is the response for removing one or more image(s) from storage
+// and containers what was untagged vs actually removed
 type ImageDeleteReport struct {
-	Untagged []string `json:"untagged"`
-	Deleted  string   `json:"deleted"`
+	Untagged      []string `json:",omitempty"`
+	Deleted       []string `json:",omitempty"`
+	Errors        []error
+	ImageNotFound error
+	ImageInUse    error
 }
 
 type ImageHistoryOptions struct{}

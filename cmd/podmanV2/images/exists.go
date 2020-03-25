@@ -13,10 +13,10 @@ var (
 		Use:   "exists IMAGE",
 		Short: "Check if an image exists in local storage",
 		Long:  `If the named image exists in local storage, podman image exists exits with 0, otherwise the exit code will be 1.`,
+		Args:  cobra.ExactArgs(1),
+		RunE:  exists,
 		Example: `podman image exists ID
   podman image exists IMAGE && podman pull IMAGE`,
-		Args: cobra.ExactArgs(1),
-		RunE: exists,
 	}
 )
 

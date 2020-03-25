@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type CobraFuncs func(cmd *cobra.Command, args []string) error
+
 type CliCommand struct {
 	Mode    []entities.EngineMode
 	Command *cobra.Command

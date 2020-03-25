@@ -36,17 +36,23 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = runtime.RemoveImage(r.Context(), newImage, query.Force)
+	results, err := runtime.RemoveImage(r.Context(), newImage, query.Force)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return
 	}
-	// TODO
-	// This will need to be fixed for proper response, like Deleted: and Untagged:
-	m := make(map[string]string)
-	m["Deleted"] = newImage.ID()
-	foo := []map[string]string{}
-	foo = append(foo, m)
-	utils.WriteResponse(w, http.StatusOK, foo)
+
+	response := make([]map[string]string, 0, len(results.Untagged)+1)
+	deleted := make(map[string]string, 1)
+	deleted["Deleted"] = results.Deleted
+	response = append(response, deleted)
+
+	for _, u := range results.Untagged {
+		untagged := make(map[string]string, 1)
+		untagged["Untagged"] = u
+		response = append(response, untagged)
+	}
+
+	utils.WriteResponse(w, http.StatusOK, response)
 
 }
