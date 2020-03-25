@@ -4,10 +4,10 @@ package abi
 
 import (
 	"context"
-	"github.com/pkg/errors"
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {

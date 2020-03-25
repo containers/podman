@@ -4,6 +4,7 @@ run:
     - apparmor
     - seccomp
     - selinux
+    - ABISupport
   concurrency: 6
   deadline: 5m
   skip-dirs-use-default: true
