@@ -15,6 +15,7 @@ import (
 	image2 "github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/docker/docker/api/types"
 	"github.com/gorilla/schema"
@@ -305,7 +306,7 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Failed get images"))
 		return
 	}
-	var summaries = make([]*handlers.ImageSummary, len(images))
+	var summaries = make([]*entities.ImageSummary, len(images))
 	for j, img := range images {
 		is, err := handlers.ImageToImageSummary(img)
 		if err != nil {

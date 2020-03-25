@@ -32,23 +32,22 @@ func (ir *ImageEngine) Delete(ctx context.Context, nameOrId string, opts entitie
 	return &report, err
 }
 
-func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) (*entities.ImageListReport, error) {
+func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
 	images, err := images.List(ir.ClientCxt, &opts.All, opts.Filters)
+
 	if err != nil {
 		return nil, err
 	}
 
-	report := entities.ImageListReport{
-		Images: make([]entities.ImageSummary, len(images)),
-	}
+	is := make([]*entities.ImageSummary, len(images))
 	for i, img := range images {
 		hold := entities.ImageSummary{}
 		if err := utils.DeepCopy(&hold, img); err != nil {
 			return nil, err
 		}
-		report.Images[i] = hold
+		is[i] = &hold
 	}
-	return &report, nil
+	return is, nil
 }
 
 func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {

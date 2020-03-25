@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/inspect"
 )
 
@@ -29,8 +30,8 @@ func Exists(ctx context.Context, nameOrID string) (bool, error) {
 
 // List returns a list of images in local storage.  The all boolean and filters parameters are optional
 // ways to alter the image query.
-func List(ctx context.Context, all *bool, filters map[string][]string) ([]*handlers.ImageSummary, error) {
-	var imageSummary []*handlers.ImageSummary
+func List(ctx context.Context, all *bool, filters map[string][]string) ([]*entities.ImageSummary, error) {
+	var imageSummary []*entities.ImageSummary
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

@@ -4,6 +4,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode"
 
 	"github.com/docker/go-units"
 )
@@ -15,7 +16,24 @@ var defaultFuncMap = template.FuncMap{
 		}
 		return s
 	},
-	// TODO: Remove on Go 1.14 port
+	"humanDuration": func(t int64) string {
+		return units.HumanDuration(time.Since(time.Unix(t, 0))) + " ago"
+	},
+	"humanSize": func(sz int64) string {
+		s := units.HumanSizeWithPrecision(float64(sz), 3)
+		i := strings.LastIndexFunc(s, unicode.IsNumber)
+		return s[:i+1] + " " + s[i+1:]
+	},
+	"join":  strings.Join,
+	"lower": strings.ToLower,
+	"rfc3339": func(t int64) string {
+		return time.Unix(t, 0).Format(time.RFC3339)
+	},
+	"replace": strings.Replace,
+	"split":   strings.Split,
+	"title":   strings.Title,
+	"upper":   strings.ToUpper,
+	// TODO: Remove after Go 1.14 port
 	"slice": func(s string, i, j int) string {
 		if i > j || len(s) < i {
 			return s
@@ -24,15 +42,6 @@ var defaultFuncMap = template.FuncMap{
 			return s[i:]
 		}
 		return s[i:j]
-	},
-	"toRFC3339": func(t int64) string {
-		return time.Unix(t, 0).Format(time.RFC3339)
-	},
-	"toHumanDuration": func(t int64) string {
-		return units.HumanDuration(time.Since(time.Unix(t, 0))) + " ago"
-	},
-	"toHumanSize": func(sz int64) string {
-		return units.HumanSize(float64(sz))
 	},
 }
 

@@ -48,22 +48,24 @@ func (i *Image) Id() string {
 }
 
 type ImageSummary struct {
-	Identifier
-	ID          string   `json:"Id"`
-	ParentId    string   `json:",omitempty"`
-	RepoTags    []string `json:",omitempty"`
-	Created     int      `json:",omitempty"`
-	Size        int      `json:",omitempty"`
-	SharedSize  int      `json:",omitempty"`
-	VirtualSize int      `json:",omitempty"`
-	Labels      string   `json:",omitempty"`
-	Containers  int      `json:",omitempty"`
-	ReadOnly    bool     `json:",omitempty"`
-	Dangling    bool     `json:",omitempty"`
+	ID          string            `json:"Id"`
+	ParentId    string            `json:",omitempty"`
+	RepoTags    []string          `json:",omitempty"`
+	Created     int64             `json:",omitempty"`
+	Size        int64             `json:",omitempty"`
+	SharedSize  int               `json:",omitempty"`
+	VirtualSize int64             `json:",omitempty"`
+	Labels      map[string]string `json:",omitempty"`
+	Containers  int               `json:",omitempty"`
+	ReadOnly    bool              `json:",omitempty"`
+	Dangling    bool              `json:",omitempty"`
 
 	// Podman extensions
-	Digest       digest.Digest `json:",omitempty"`
-	ConfigDigest digest.Digest `json:",omitempty"`
+	Names        []string `json:",omitempty"`
+	Digest       string   `json:",omitempty"`
+	Digests      []string `json:",omitempty"`
+	ConfigDigest string   `json:",omitempty"`
+	History      []string `json:",omitempty"`
 }
 
 func (i *ImageSummary) Id() string {
@@ -76,18 +78,6 @@ func (i *ImageSummary) IsReadOnly() bool {
 
 func (i *ImageSummary) IsDangling() bool {
 	return i.Dangling
-}
-
-type ImageOptions struct {
-	All       bool
-	Digests   bool
-	Filter    []string
-	Format    string
-	Noheading bool
-	NoTrunc   bool
-	Quiet     bool
-	Sort      string
-	History   bool
 }
 
 type ImageDeleteOptions struct {
@@ -124,21 +114,14 @@ type ImageInspectOptions struct {
 }
 
 type ImageListOptions struct {
-	All       bool       `json:"all" schema:"all"`
-	Digests   bool       `json:"digests" schema:"digests"`
-	Filter    []string   `json:",omitempty"`
-	Filters   url.Values `json:"filters" schema:"filters"`
-	Format    string     `json:",omitempty"`
-	History   bool       `json:",omitempty"`
-	Noheading bool       `json:",omitempty"`
-	NoTrunc   bool       `json:",omitempty"`
-	Quiet     bool       `json:",omitempty"`
-	Sort      string     `json:",omitempty"`
+	All     bool       `json:"all" schema:"all"`
+	Filter  []string   `json:",omitempty"`
+	Filters url.Values `json:"filters" schema:"filters"`
 }
 
-type ImageListReport struct {
-	Images []ImageSummary
-}
+// type ImageListReport struct {
+// 	Images []ImageSummary
+// }
 
 type ImagePruneOptions struct {
 	All    bool
