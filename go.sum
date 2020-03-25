@@ -100,6 +100,8 @@ github.com/containers/storage v1.16.3 h1:bctiz1I+0TIivtXbrVmy02ZYlOA+IjKIJMzAMTB
 github.com/containers/storage v1.16.3/go.mod h1:dNTv0+BaebIAOGgH34dPtwGPR+Km2fObcfOlFxYFwA0=
 github.com/containers/storage v1.16.5 h1:eHeWEhUEWX3VMIG1Vn1rEjfRoLHUQev3cwtA5zd89wk=
 github.com/containers/storage v1.16.5/go.mod h1:SdysZeLKJOvfHYysUWg9OZUC3gdZWi5b2b7NC18VpPE=
+github.com/containers/storage v1.16.6 h1:G/thPW/LVRwJpQvve1V4DQXVZpxzSltC2fzc3yTEdi8=
+github.com/containers/storage v1.16.6/go.mod h1:Fws4I+U+C4DmJxDbBs1z9SKk50DzN4LtA+g1b+FmkTY=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5 h1:DpHb9vJrZQEFMcVLFKAAGMUVX0XoRC0ptCthinRYm38=
@@ -288,6 +290,8 @@ github.com/klauspost/pgzip v1.2.1 h1:oIPZROsWuPHpOdMVWLuJZXwgjhrW8r1yEX8UqMyeNHM
 github.com/klauspost/pgzip v1.2.1/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/klauspost/pgzip v1.2.2 h1:8d4I0LDiieuGngsqlqOih9ker/NS0LX4V0i+EhiFWg0=
 github.com/klauspost/pgzip v1.2.2/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
+github.com/klauspost/pgzip v1.2.3 h1:Ce2to9wvs/cuJ2b86/CKQoTYr9VHfpanYosZ0UBJqdw=
+github.com/klauspost/pgzip v1.2.3/go.mod h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=

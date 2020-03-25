@@ -3417,12 +3417,44 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) {
 	}
 }
 
+var prevReloadConfig = struct {
+	storeOptions *StoreOptions
+	mod          time.Time
+	mutex        sync.Mutex
+	configFile   string
+}{}
+
+func reloadConfigurationFileIfNeeded(configFile string, storeOptions *StoreOptions) {
+	prevReloadConfig.mutex.Lock()
+	defer prevReloadConfig.mutex.Unlock()
+
+	fi, err := os.Stat(configFile)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			fmt.Printf("Failed to read %s %v\n", configFile, err.Error())
+		}
+		return
+	}
+
+	mtime := fi.ModTime()
+	if prevReloadConfig.storeOptions != nil && prevReloadConfig.mod == mtime && prevReloadConfig.configFile == configFile {
+		*storeOptions = *prevReloadConfig.storeOptions
+		return
+	}
+
+	ReloadConfigurationFile(configFile, storeOptions)
+
+	prevReloadConfig.storeOptions = storeOptions
+	prevReloadConfig.mod = mtime
+	prevReloadConfig.configFile = configFile
+}
+
 func init() {
 	defaultStoreOptions.RunRoot = "/var/run/containers/storage"
 	defaultStoreOptions.GraphRoot = "/var/lib/containers/storage"
 	defaultStoreOptions.GraphDriverName = ""
 
-	ReloadConfigurationFile(defaultConfigFile, &defaultStoreOptions)
+	reloadConfigurationFileIfNeeded(defaultConfigFile, &defaultStoreOptions)
 }
 
 // GetDefaultMountOptions returns the default mountoptions defined in container/storage

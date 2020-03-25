@@ -85,7 +85,7 @@ func (z *Writer) SetConcurrency(blockSize, blocks int) error {
 	z.blockSize = blockSize
 	z.results = make(chan result, blocks)
 	z.blocks = blocks
-	z.dstPool = sync.Pool{New: func() interface{} { return make([]byte, 0, blockSize+(blockSize)>>4) }}
+	z.dstPool.New = func() interface{} { return make([]byte, 0, blockSize+(blockSize)>>4) }
 	return nil
 }
 
