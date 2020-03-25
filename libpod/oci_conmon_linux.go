@@ -793,7 +793,6 @@ func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, ne
 	}
 	defer controlFile.Close()
 
-	logrus.Debugf("Received a resize event for container %s exec session %s: %+v", ctr.ID(), sessionID, newSize)
 	if _, err = fmt.Fprintf(controlFile, "%d %d %d\n", 1, newSize.Height, newSize.Width); err != nil {
 		return errors.Wrapf(err, "failed to write to ctl file to resize terminal")
 	}
