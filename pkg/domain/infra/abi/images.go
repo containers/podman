@@ -10,6 +10,13 @@ import (
 	"github.com/containers/libpod/pkg/domain/utils"
 )
 
+func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
+	if _, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId); err != nil {
+		return &entities.BoolReport{}, nil
+	}
+	return &entities.BoolReport{Value: true}, nil
+}
+
 func (ir *ImageEngine) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
 	image, err := ir.Libpod.ImageRuntime().NewFromLocal(nameOrId)
 	if err != nil {

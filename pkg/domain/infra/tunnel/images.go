@@ -9,6 +9,11 @@ import (
 	"github.com/containers/libpod/pkg/domain/utils"
 )
 
+func (ir *ImageEngine) Exists(_ context.Context, nameOrId string) (*entities.BoolReport, error) {
+	found, err := images.Exists(ir.ClientCxt, nameOrId)
+	return &entities.BoolReport{Value: found}, err
+}
+
 func (ir *ImageEngine) Delete(ctx context.Context, nameOrId string, opts entities.ImageDeleteOptions) (*entities.ImageDeleteReport, error) {
 	results, err := images.Remove(ir.ClientCxt, nameOrId, &opts.Force)
 	if err != nil {
