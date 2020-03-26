@@ -255,3 +255,25 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.TopOptions) (*entities.StringSliceReport, error) {
+	var (
+		container *libpod.Container
+		err       error
+	)
+
+	// Look up the container.
+	if options.Latest {
+		container, err = ic.Libpod.GetLatestContainer()
+	} else {
+		container, err = ic.Libpod.LookupContainer(options.NameOrID)
+	}
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to lookup requested container")
+	}
+
+	// Run Top.
+	report := &entities.StringSliceReport{}
+	report.Value, err = container.Top(options.Descriptors)
+	return report, err
+}

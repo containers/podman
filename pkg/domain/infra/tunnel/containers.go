@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/pkg/errors"
 )
 
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -155,4 +156,19 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: data})
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.TopOptions) (*entities.StringSliceReport, error) {
+	switch {
+	case options.Latest:
+		return nil, errors.New("latest is not supported")
+	case options.NameOrID == "":
+		return nil, errors.New("NameOrID must be specified")
+	}
+
+	topOutput, err := containers.Top(ic.ClientCxt, options.NameOrID, options.Descriptors)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.StringSliceReport{Value: topOutput}, nil
 }

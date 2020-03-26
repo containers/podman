@@ -22,6 +22,11 @@ type BoolReport struct {
 	Value bool
 }
 
+// StringSliceReport wraps a string slice.
+type StringSliceReport struct {
+	Value []string
+}
+
 type PauseUnPauseOptions struct {
 	All bool
 }
@@ -42,6 +47,16 @@ type StopOptions struct {
 type StopReport struct {
 	Err error
 	Id  string
+}
+
+type TopOptions struct {
+	// CLI flags.
+	ListDescriptors bool
+	Latest          bool
+
+	// Options for the API.
+	Descriptors []string
+	NameOrID    string
 }
 
 type KillOptions struct {
