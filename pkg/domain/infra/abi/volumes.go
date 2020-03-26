@@ -107,7 +107,7 @@ func (ic *ContainerEngine) VolumeInspect(ctx context.Context, namesOrIds []strin
 			UID:        v.UID(),
 			GID:        v.GID(),
 		}
-		reports = append(reports, &entities.VolumeInspectReport{&config})
+		reports = append(reports, &entities.VolumeInspectReport{VolumeConfigResponse: &config})
 	}
 	return reports, nil
 }
@@ -140,7 +140,7 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 			UID:        v.UID(),
 			GID:        v.GID(),
 		}
-		reports = append(reports, &entities.VolumeListReport{config})
+		reports = append(reports, &entities.VolumeListReport{VolumeConfigResponse: config})
 	}
 	return reports, nil
 }
