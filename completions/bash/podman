@@ -2683,6 +2683,7 @@ _podman_play_kube() {
     --authfile
     --cert-dir
     --creds
+    --network
     "
 
     local boolean_options="
