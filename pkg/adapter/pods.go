@@ -343,7 +343,7 @@ func (r *LocalRuntime) CreatePod(ctx context.Context, cli *cliconfig.PodCreateVa
 			logrus.Debugf("Pod will use host networking")
 			options = append(options, libpod.WithPodHostNetwork())
 		case "":
-			return "", errors.Errorf("invalid value passed to --net: must provide a comma-separated list of CNI networks or host")
+			return "", errors.Errorf("invalid value passed to --network: must provide a comma-separated list of CNI networks or host")
 		default:
 			// We'll assume this is a comma-separated list of CNI
 			// networks.
