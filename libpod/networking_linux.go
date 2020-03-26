@@ -154,13 +154,25 @@ func (r *Runtime) createNetNS(ctr *Container) (n ns.NetNS, q []*cnitypes.Result,
 	return ctrNS, networkStatus, err
 }
 
-func checkSlirpFlags(path string) (bool, bool, bool, error) {
+type slirpFeatures struct {
+	HasDisableHostLoopback bool
+	HasMTU                 bool
+	HasEnableSandbox       bool
+	HasEnableSeccomp       bool
+}
+
+func checkSlirpFlags(path string) (*slirpFeatures, error) {
 	cmd := exec.Command(path, "--help")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return false, false, false, errors.Wrapf(err, "slirp4netns %q", out)
+		return nil, errors.Wrapf(err, "slirp4netns %q", out)
 	}
-	return strings.Contains(string(out), "--disable-host-loopback"), strings.Contains(string(out), "--mtu"), strings.Contains(string(out), "--enable-sandbox"), nil
+	return &slirpFeatures{
+		HasDisableHostLoopback: strings.Contains(string(out), "--disable-host-loopback"),
+		HasMTU:                 strings.Contains(string(out), "--mtu"),
+		HasEnableSandbox:       strings.Contains(string(out), "--enable-sandbox"),
+		HasEnableSeccomp:       strings.Contains(string(out), "--enable-seccomp"),
+	}, nil
 }
 
 // Configure the network namespace for a rootless container
@@ -187,18 +199,21 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	logPath := filepath.Join(ctr.runtime.config.TmpDir, fmt.Sprintf("slirp4netns-%s.log", ctr.config.ID))
 
 	cmdArgs := []string{}
-	dhp, mtu, sandbox, err := checkSlirpFlags(path)
+	slirpFeatures, err := checkSlirpFlags(path)
 	if err != nil {
 		return errors.Wrapf(err, "error checking slirp4netns binary %s: %q", path, err)
 	}
-	if dhp {
+	if slirpFeatures.HasDisableHostLoopback {
 		cmdArgs = append(cmdArgs, "--disable-host-loopback")
 	}
-	if mtu {
+	if slirpFeatures.HasMTU {
 		cmdArgs = append(cmdArgs, "--mtu", "65520")
 	}
-	if sandbox {
+	if slirpFeatures.HasEnableSandbox {
 		cmdArgs = append(cmdArgs, "--enable-sandbox")
+	}
+	if slirpFeatures.HasEnableSeccomp {
+		cmdArgs = append(cmdArgs, "--enable-seccomp")
 	}
 
 	// the slirp4netns arguments being passed are describes as follows:
@@ -230,7 +245,7 @@ func (r *Runtime) setupRootlessNetNS(ctr *Container) (err error) {
 	}
 
 	// workaround for https://github.com/rootless-containers/slirp4netns/pull/153
-	if sandbox {
+	if slirpFeatures.HasEnableSandbox {
 		cmd.SysProcAttr.Cloneflags = syscall.CLONE_NEWNS
 		cmd.SysProcAttr.Unshareflags = syscall.CLONE_NEWNS
 	}
