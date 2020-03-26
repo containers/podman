@@ -9,9 +9,9 @@ import (
 
 	"github.com/containers/image/v5/pkg/blobinfocache/internal/prioritize"
 	"github.com/containers/image/v5/types"
-	bolt "github.com/etcd-io/bbolt"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	bolt "go.etcd.io/bbolt"
 )
 
 var (

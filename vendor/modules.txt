@@ -88,7 +88,7 @@ github.com/containers/common/pkg/config
 github.com/containers/common/pkg/unshare
 # github.com/containers/conmon v2.0.10+incompatible
 github.com/containers/conmon/runner/config
-# github.com/containers/image/v5 v5.3.0
+# github.com/containers/image/v5 v5.3.0 => github.com/mtrmac/image/v5 v5.0.0-20200326142859-f6abfc1b19bf
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -266,8 +266,6 @@ github.com/docker/libnetwork/types
 # github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96
 github.com/docker/spdystream
 github.com/docker/spdystream/spdy
-# github.com/etcd-io/bbolt v1.3.3
-github.com/etcd-io/bbolt
 # github.com/fsnotify/fsnotify v1.4.9
 github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.6.3

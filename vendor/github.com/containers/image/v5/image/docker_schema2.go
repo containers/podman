@@ -50,7 +50,7 @@ func manifestSchema2FromManifest(src types.ImageSource, manifestBlob []byte) (ge
 }
 
 // manifestSchema2FromComponents builds a new manifestSchema2 from the supplied data:
-func manifestSchema2FromComponents(config manifest.Schema2Descriptor, src types.ImageSource, configBlob []byte, layers []manifest.Schema2Descriptor) genericManifest {
+func manifestSchema2FromComponents(config manifest.Schema2Descriptor, src types.ImageSource, configBlob []byte, layers []manifest.Schema2Descriptor) *manifestSchema2 {
 	return &manifestSchema2{
 		src:        src,
 		configBlob: configBlob,
@@ -194,7 +194,11 @@ func oci1DescriptorFromSchema2Descriptor(d manifest.Schema2Descriptor) imgspecv1
 	}
 }
 
-func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ types.ManifestUpdateInformation) (types.Image, error) {
+// convertToManifestOCI1 returns a genericManifest implementation converted to imgspecv1.MediaTypeImageManifest.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original manifestSchema2 object.
+func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ *types.ManifestUpdateOptions) (genericManifest, error) {
 	configOCI, err := m.OCIConfig(ctx)
 	if err != nil {
 		return nil, err
@@ -227,13 +231,27 @@ func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ types.Man
 		}
 	}
 
-	m1 := manifestOCI1FromComponents(config, m.src, configOCIBytes, layers)
-	return memoryImageFromManifest(m1), nil
+	return manifestOCI1FromComponents(config, m.src, configOCIBytes, layers), nil
 }
 
+// convertToManifestSchema1 returns a genericManifest implementation converted to manifest.DockerV2Schema1{Signed,}MediaType.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original manifestSchema2 object.
+//
 // Based on docker/distribution/manifest/schema1/config_builder.go
-func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, updateInfo types.ManifestUpdateInformation) (types.Image, error) {
-	dest := updateInfo.Destination
+func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error) {
+	dest := options.InformationOnly.Destination
+
+	var convertedLayerUpdates []types.BlobInfo // Only used if options.LayerInfos != nil
+	if options.LayerInfos != nil {
+		if len(options.LayerInfos) != len(m.m.LayersDescriptors) {
+			return nil, fmt.Errorf("Error converting image: layer edits for %d layers vs %d existing layers",
+				len(options.LayerInfos), len(m.m.LayersDescriptors))
+		}
+		convertedLayerUpdates = []types.BlobInfo{}
+	}
+
 	configBytes, err := m.ConfigBlob(ctx)
 	if err != nil {
 		return nil, err
@@ -260,23 +278,31 @@ func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, updateIn
 
 		var blobDigest digest.Digest
 		if historyEntry.EmptyLayer {
+			emptyLayerBlobInfo := types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}
+
 			if !haveGzippedEmptyLayer {
 				logrus.Debugf("Uploading empty layer during conversion to schema 1")
 				// Ideally we should update the relevant BlobInfoCache about this layer, but that would require passing it down here,
 				// and anyway this blob is so small that it’s easier to just copy it than to worry about figuring out another location where to get it.
-				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), types.BlobInfo{Digest: GzippedEmptyLayerDigest, Size: int64(len(GzippedEmptyLayer))}, none.NoCache, false)
+				info, err := dest.PutBlob(ctx, bytes.NewReader(GzippedEmptyLayer), emptyLayerBlobInfo, none.NoCache, false)
 				if err != nil {
 					return nil, errors.Wrap(err, "Error uploading empty layer")
 				}
-				if info.Digest != GzippedEmptyLayerDigest {
-					return nil, errors.Errorf("Internal error: Uploaded empty layer has digest %#v instead of %s", info.Digest, GzippedEmptyLayerDigest)
+				if info.Digest != emptyLayerBlobInfo.Digest {
+					return nil, errors.Errorf("Internal error: Uploaded empty layer has digest %#v instead of %s", info.Digest, emptyLayerBlobInfo.Digest)
 				}
 				haveGzippedEmptyLayer = true
 			}
-			blobDigest = GzippedEmptyLayerDigest
+			if options.LayerInfos != nil {
+				convertedLayerUpdates = append(convertedLayerUpdates, emptyLayerBlobInfo)
+			}
+			blobDigest = emptyLayerBlobInfo.Digest
 		} else {
 			if nonemptyLayerIndex >= len(m.m.LayersDescriptors) {
 				return nil, errors.Errorf("Invalid image configuration, needs more than the %d distributed layers", len(m.m.LayersDescriptors))
+			}
+			if options.LayerInfos != nil {
+				convertedLayerUpdates = append(convertedLayerUpdates, options.LayerInfos[nonemptyLayerIndex])
 			}
 			blobDigest = m.m.LayersDescriptors[nonemptyLayerIndex].Digest
 			nonemptyLayerIndex++
@@ -319,11 +345,14 @@ func (m *manifestSchema2) convertToManifestSchema1(ctx context.Context, updateIn
 	}
 	history[0].V1Compatibility = string(v1Config)
 
+	if options.LayerInfos != nil {
+		options.LayerInfos = convertedLayerUpdates
+	}
 	m1, err := manifestSchema1FromComponents(dest.Reference().DockerReference(), fsLayers, history, imageConfig.Architecture)
 	if err != nil {
 		return nil, err // This should never happen, we should have created all the components correctly.
 	}
-	return memoryImageFromManifest(m1), nil
+	return m1, nil
 }
 
 func v1IDFromBlobDigestAndComponents(blobDigest digest.Digest, others ...string) (string, error) {

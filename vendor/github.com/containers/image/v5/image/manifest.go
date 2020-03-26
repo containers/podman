@@ -81,9 +81,12 @@ func manifestLayerInfosToBlobInfos(layers []manifest.LayerInfo) []types.BlobInfo
 	return blobs
 }
 
-// manifestConvertFn is used to encapsulate helper manifest converstion functions
-// to perform applying of manifest update information.
-type manifestConvertFn func(context.Context, types.ManifestUpdateInformation) (types.Image, error)
+// manifestConvertFn (a method of genericManifest object) returns a genericManifest implementation
+// converted to a specific manifest MIME type.
+// It may use options.InformationOnly and also adjust *options to be appropriate for editing the returned
+// value.
+// This does not change the state of the original genericManifest object.
+type manifestConvertFn func(ctx context.Context, options *types.ManifestUpdateOptions) (genericManifest, error)
 
 // convertManifestIfRequiredWithUpdate will run conversion functions of a manifest if
 // required and re-apply the options to the converted type.
@@ -98,12 +101,13 @@ func convertManifestIfRequiredWithUpdate(ctx context.Context, options types.Mani
 		return nil, errors.Errorf("Unsupported conversion type: %v", options.ManifestMIMEType)
 	}
 
-	tmp, err := converter(ctx, options.InformationOnly)
+	optionsCopy := options
+	convertedManifest, err := converter(ctx, &optionsCopy)
 	if err != nil {
 		return nil, err
 	}
+	convertedImage := memoryImageFromManifest(convertedManifest)
 
-	optionsCopy := options
 	optionsCopy.ManifestMIMEType = ""
-	return tmp.UpdatedImage(ctx, optionsCopy)
+	return convertedImage.UpdatedImage(ctx, optionsCopy)
 }
