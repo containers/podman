@@ -18,10 +18,11 @@ var (
 
   A timeout to forcibly stop the container can also be set but defaults to 10 seconds otherwise.`
 	stopCommand = &cobra.Command{
-		Use:   "stop [flags] CONTAINER [CONTAINER...]",
-		Short: "Stop one or more containers",
-		Long:  stopDescription,
-		RunE:  stop,
+		Use:               "stop [flags] CONTAINER [CONTAINER...]",
+		Short:             "Stop one or more containers",
+		Long:              stopDescription,
+		RunE:              stop,
+		PersistentPreRunE: preRunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, true)
 		},

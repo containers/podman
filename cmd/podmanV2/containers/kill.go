@@ -15,10 +15,11 @@ import (
 var (
 	killDescription = "The main process inside each container specified will be sent SIGKILL, or any signal specified with option --signal."
 	killCommand     = &cobra.Command{
-		Use:   "kill [flags] CONTAINER [CONTAINER...]",
-		Short: "Kill one or more running containers with a specific signal",
-		Long:  killDescription,
-		RunE:  kill,
+		Use:               "kill [flags] CONTAINER [CONTAINER...]",
+		Short:             "Kill one or more running containers with a specific signal",
+		Long:              killDescription,
+		RunE:              kill,
+		PersistentPreRunE: preRunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},
