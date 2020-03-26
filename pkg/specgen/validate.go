@@ -3,6 +3,8 @@ package specgen
 import (
 	"strings"
 
+	"github.com/containers/libpod/pkg/rootless"
+
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
@@ -138,9 +140,6 @@ func (s *SpecGenerator) validate(rt *libpod.Runtime) error {
 	if err := s.IpcNS.validate(); err != nil {
 		return err
 	}
-	if err := validateNetNS(&s.NetNS); err != nil {
-		return err
-	}
 	if err := s.PidNS.validate(); err != nil {
 		return err
 	}
@@ -154,6 +153,17 @@ func (s *SpecGenerator) validate(rt *libpod.Runtime) error {
 	// The following are defaults as needed by container creation
 	if len(s.WorkDir) < 1 {
 		s.WorkDir = "/"
+	}
+
+	// Set defaults if network info is not provided
+	if s.NetNS.NSMode == "" {
+		s.NetNS.NSMode = Bridge
+		if rootless.IsRootless() {
+			s.NetNS.NSMode = Slirp
+		}
+	}
+	if err := validateNetNS(&s.NetNS); err != nil {
+		return err
 	}
 	return nil
 }
