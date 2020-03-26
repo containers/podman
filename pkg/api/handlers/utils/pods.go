@@ -6,10 +6,16 @@ import (
 
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/gorilla/schema"
 )
 
-func GetPods(w http.ResponseWriter, r *http.Request) ([]*libpod.Pod, error) {
+func GetPods(w http.ResponseWriter, r *http.Request) ([]*entities.ListPodsReport, error) {
+	var (
+		lps    []*entities.ListPodsReport
+		pods   []*libpod.Pod
+		podErr error
+	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 
@@ -37,9 +43,42 @@ func GetPods(w http.ResponseWriter, r *http.Request) ([]*libpod.Pod, error) {
 		if err != nil {
 			return nil, err
 		}
-		return shared.FilterAllPodsWithFilterFunc(runtime, filterFuncs...)
+		pods, podErr = shared.FilterAllPodsWithFilterFunc(runtime, filterFuncs...)
+	} else {
+		pods, podErr = runtime.GetAllPods()
 	}
-
-	return runtime.GetAllPods()
-
+	if podErr != nil {
+		return nil, podErr
+	}
+	for _, pod := range pods {
+		status, err := pod.GetPodStatus()
+		if err != nil {
+			return nil, err
+		}
+		ctrs, err := pod.AllContainers()
+		if err != nil {
+			return nil, err
+		}
+		lp := entities.ListPodsReport{
+			Cgroup:    pod.CgroupParent(),
+			Created:   pod.CreatedTime(),
+			Id:        pod.ID(),
+			Name:      pod.Name(),
+			Namespace: pod.Namespace(),
+			Status:    status,
+		}
+		for _, ctr := range ctrs {
+			state, err := ctr.State()
+			if err != nil {
+				return nil, err
+			}
+			lp.Containers = append(lp.Containers, &entities.ListPodContainer{
+				Id:     ctr.ID(),
+				Names:  ctr.Name(),
+				Status: state.String(),
+			})
+		}
+		lps = append(lps, &lp)
+	}
+	return lps, nil
 }
