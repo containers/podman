@@ -1,12 +1,12 @@
 package test_bindings
 
 import (
-	"github.com/containers/libpod/libpod/define"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/specgen"
