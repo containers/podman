@@ -239,3 +239,19 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.ContainerInspectOptions) ([]*entities.ContainerInspectReport, error) {
+	var reports []*entities.ContainerInspectReport
+	ctrs, err := shortcuts.GetContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range ctrs {
+		data, err := c.Inspect(options.Size)
+		if err != nil {
+			return nil, err
+		}
+		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: data})
+	}
+	return reports, nil
+}

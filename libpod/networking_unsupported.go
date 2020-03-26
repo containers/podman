@@ -20,7 +20,7 @@ func (r *Runtime) createNetNS(ctr *Container) (err error) {
 	return define.ErrNotImplemented
 }
 
-func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
+func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
 	return nil, define.ErrNotImplemented
 }
 

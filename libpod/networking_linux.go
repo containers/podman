@@ -573,8 +573,8 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 
 // Produce an InspectNetworkSettings containing information on the container
 // network.
-func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
-	settings := new(InspectNetworkSettings)
+func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, error) {
+	settings := new(define.InspectNetworkSettings)
 	settings.Ports = []ocicni.PortMapping{}
 	if c.config.PortMappings != nil {
 		// TODO: This may not be safe.
@@ -600,13 +600,13 @@ func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
 			return nil, errors.Wrapf(define.ErrInternal, "network inspection mismatch: asked to join %d CNI networks but have information on %d networks", len(c.config.Networks), len(c.state.NetworkStatus))
 		}
 
-		settings.Networks = make(map[string]*InspectAdditionalNetwork)
+		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
 
 		// CNI results should be in the same order as the list of
 		// networks we pass into CNI.
 		for index, name := range c.config.Networks {
 			cniResult := c.state.NetworkStatus[index]
-			addedNet := new(InspectAdditionalNetwork)
+			addedNet := new(define.InspectAdditionalNetwork)
 			addedNet.NetworkID = name
 
 			basicConfig, err := resultToBasicNetworkConfig(cniResult)
@@ -640,8 +640,8 @@ func (c *Container) getContainerNetworkInfo() (*InspectNetworkSettings, error) {
 
 // resultToBasicNetworkConfig produces an InspectBasicNetworkConfig from a CNI
 // result
-func resultToBasicNetworkConfig(result *cnitypes.Result) (InspectBasicNetworkConfig, error) {
-	config := InspectBasicNetworkConfig{}
+func resultToBasicNetworkConfig(result *cnitypes.Result) (define.InspectBasicNetworkConfig, error) {
+	config := define.InspectBasicNetworkConfig{}
 
 	for _, ctrIP := range result.IPs {
 		size, _ := ctrIP.Address.Mask.Size()

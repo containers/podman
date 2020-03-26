@@ -6,6 +6,7 @@ import (
 
 type ContainerEngine interface {
 	ContainerExists(ctx context.Context, nameOrId string) (*BoolReport, error)
+	ContainerInspect(ctx context.Context, namesOrIds []string, options ContainerInspectOptions) ([]*ContainerInspectReport, error)
 	ContainerKill(ctx context.Context, namesOrIds []string, options KillOptions) ([]*KillReport, error)
 	ContainerPause(ctx context.Context, namesOrIds []string, options PauseUnPauseOptions) ([]*PauseUnpauseReport, error)
 	ContainerRestart(ctx context.Context, namesOrIds []string, options RestartOptions) ([]*RestartReport, error)

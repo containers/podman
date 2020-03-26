@@ -32,12 +32,12 @@ import (
 )
 
 // Inspect returns an inspect struct from varlink
-func (c *Container) Inspect(size bool) (*libpod.InspectContainerData, error) {
+func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
 	reply, err := iopodman.ContainerInspectData().Call(c.Runtime.Conn, c.ID(), size)
 	if err != nil {
 		return nil, err
 	}
-	data := libpod.InspectContainerData{}
+	data := define.InspectContainerData{}
 	if err := json.Unmarshal([]byte(reply), &data); err != nil {
 		return nil, err
 	}
