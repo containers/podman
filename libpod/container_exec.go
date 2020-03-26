@@ -575,7 +575,7 @@ func (c *Container) ExecResize(sessionID string, newSize remotecommand.TerminalS
 		return errors.Wrapf(define.ErrNoSuchExecSession, "container %s has no exec session with ID %s", c.ID(), sessionID)
 	}
 
-	logrus.Infof("Removing container %s exec session %s", c.ID(), session.ID())
+	logrus.Infof("Resizing container %s exec session %s to %+v", c.ID(), session.ID(), newSize)
 
 	if session.State != define.ExecStateRunning {
 		return errors.Wrapf(define.ErrExecSessionStateInvalid, "cannot resize container %s exec session %s as it is not running", c.ID(), session.ID())
@@ -592,9 +592,6 @@ func (c *Container) Exec(config *ExecConfig, streams *AttachStreams, resize <-ch
 	if err != nil {
 		return -1, err
 	}
-	if err := c.ExecStartAndAttach(sessionID, streams); err != nil {
-		return -1, err
-	}
 
 	// Start resizing if we have a resize channel.
 	// This goroutine may likely leak, given that we cannot close it here.
@@ -605,6 +602,7 @@ func (c *Container) Exec(config *ExecConfig, streams *AttachStreams, resize <-ch
 	// session.
 	if resize != nil {
 		go func() {
+			logrus.Debugf("Sending resize events to exec session %s", sessionID)
 			for resizeRequest := range resize {
 				if err := c.ExecResize(sessionID, resizeRequest); err != nil {
 					// Assume the exec session went down.
@@ -613,6 +611,10 @@ func (c *Container) Exec(config *ExecConfig, streams *AttachStreams, resize <-ch
 				}
 			}
 		}()
+	}
+
+	if err := c.ExecStartAndAttach(sessionID, streams); err != nil {
+		return -1, err
 	}
 
 	session, err := c.ExecSession(sessionID)
