@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"runtime"
@@ -16,7 +15,6 @@ import (
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -24,10 +22,7 @@ func init() {
 		logrus.Errorf(err.Error())
 		os.Exit(1)
 	}
-	initCobra()
-}
 
-func initCobra() {
 	switch runtime.GOOS {
 	case "darwin":
 		fallthrough
@@ -46,12 +41,9 @@ func initCobra() {
 			registry.EngineOptions.EngineMode = entities.TunnelMode
 		}
 	}
-
-	cobra.OnInitialize(func() {})
 }
 
 func main() {
-	fmt.Fprintf(os.Stderr, "Number of commands: %d\n", len(registry.Commands))
 	for _, c := range registry.Commands {
 		if Contains(registry.EngineOptions.EngineMode, c.Mode) {
 			parent := rootCmd

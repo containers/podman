@@ -28,6 +28,8 @@ func init() {
 }
 
 func preRunE(cmd *cobra.Command, args []string) error {
-	_, err := registry.NewImageEngine(cmd, args)
-	return err
+	if _, err := registry.NewImageEngine(cmd, args); err != nil {
+		return err
+	}
+	return nil
 }
