@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/inspect"
@@ -109,7 +110,7 @@ type swagDockerTopResponse struct {
 type swagLibpodInspectContainerResponse struct {
 	// in:body
 	Body struct {
-		libpod.InspectContainerData
+		define.InspectContainerData
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	lpapiv2 "github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
@@ -106,7 +105,7 @@ func Remove(ctx context.Context, nameOrID string, force, volumes *bool) error {
 // or a partial/full ID.  The size bool determines whether the size of the container's root filesystem
 // should be calculated.  Calculating the size of a container requires extra work from the filesystem and
 // is therefore slower.
-func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectContainerData, error) {
+func Inspect(ctx context.Context, nameOrID string, size *bool) (*define.InspectContainerData, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
@@ -119,7 +118,7 @@ func Inspect(ctx context.Context, nameOrID string, size *bool) (*libpod.InspectC
 	if err != nil {
 		return nil, err
 	}
-	inspect := libpod.InspectContainerData{}
+	inspect := define.InspectContainerData{}
 	return &inspect, response.Process(&inspect)
 }
 

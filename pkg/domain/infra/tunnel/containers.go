@@ -138,3 +138,21 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	}
 	return reports, nil
 }
+
+func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []string, options entities.ContainerInspectOptions) ([]*entities.ContainerInspectReport, error) {
+	var (
+		reports []*entities.ContainerInspectReport
+	)
+	ctrs, err := getContainersByContext(ic.ClientCxt, false, namesOrIds)
+	if err != nil {
+		return nil, err
+	}
+	for _, con := range ctrs {
+		data, err := containers.Inspect(ic.ClientCxt, con.ID, &options.Size)
+		if err != nil {
+			return nil, err
+		}
+		reports = append(reports, &entities.ContainerInspectReport{InspectContainerData: data})
+	}
+	return reports, nil
+}

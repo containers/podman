@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
 	"github.com/containers/libpod/pkg/domain/entities"
 )
@@ -178,6 +179,6 @@ type swagVolumeListResponse struct {
 type swagHealthCheckRunResponse struct {
 	// in:body
 	Body struct {
-		libpod.HealthCheckResults
+		define.HealthCheckResults
 	}
 }
