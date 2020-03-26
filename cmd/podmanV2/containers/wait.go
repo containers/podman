@@ -18,10 +18,11 @@ var (
 	waitDescription = `Block until one or more containers stop and then print their exit codes.
 `
 	waitCommand = &cobra.Command{
-		Use:   "wait [flags] CONTAINER [CONTAINER...]",
-		Short: "Block on one or more containers",
-		Long:  waitDescription,
-		RunE:  wait,
+		Use:               "wait [flags] CONTAINER [CONTAINER...]",
+		Short:             "Block on one or more containers",
+		Long:              waitDescription,
+		RunE:              wait,
+		PersistentPreRunE: preRunE,
 		Args: func(cmd *cobra.Command, args []string) error {
 			return parse.CheckAllLatestAndCIDFile(cmd, args, false, false)
 		},

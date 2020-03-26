@@ -15,10 +15,11 @@ import (
 var (
 	pauseDescription = `Pauses one or more running containers.  The container name or ID can be used.`
 	pauseCommand     = &cobra.Command{
-		Use:   "pause [flags] CONTAINER [CONTAINER...]",
-		Short: "Pause all the processes in one or more containers",
-		Long:  pauseDescription,
-		RunE:  pause,
+		Use:               "pause [flags] CONTAINER [CONTAINER...]",
+		Short:             "Pause all the processes in one or more containers",
+		Long:              pauseDescription,
+		RunE:              pause,
+		PersistentPreRunE: preRunE,
 		Example: `podman pause mywebserver
   podman pause 860a4b23
   podman pause -a`,
