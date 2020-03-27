@@ -154,7 +154,7 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, format *string, c
 
 // Prune removes unused images from local storage.  The optional filters can be used to further
 // define which images should be pruned.
-func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
+func Prune(ctx context.Context, all *bool, filters map[string][]string) ([]string, error) {
 	var (
 		deleted []string
 	)
@@ -163,6 +163,9 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 		return nil, err
 	}
 	params := url.Values{}
+	if all != nil {
+		params.Set("all", strconv.FormatBool(*all))
+	}
 	if filters != nil {
 		stringFilter, err := bindings.FiltersToString(filters)
 		if err != nil {
@@ -174,7 +177,7 @@ func Prune(ctx context.Context, filters map[string][]string) ([]string, error) {
 	if err != nil {
 		return deleted, err
 	}
-	return deleted, response.Process(nil)
+	return deleted, response.Process(&deleted)
 }
 
 // Tag adds an additional name to locally-stored image. Both the tag and repo parameters are required.

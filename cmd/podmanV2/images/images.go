@@ -15,7 +15,7 @@ var (
 		Args:    listCmd.Args,
 		Short:   listCmd.Short,
 		Long:    listCmd.Long,
-		PreRunE: listCmd.PreRunE,
+		PreRunE: preRunE,
 		RunE:    listCmd.RunE,
 		Example: strings.Replace(listCmd.Example, "podman image list", "podman images", -1),
 	}

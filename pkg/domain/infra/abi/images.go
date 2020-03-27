@@ -88,13 +88,18 @@ func (ir *ImageEngine) deleteImage(ctx context.Context, img *libpodImage.Image, 
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
-	results, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, []string{})
+	results, err := ir.Libpod.ImageRuntime().PruneImages(ctx, opts.All, opts.Filter)
 	if err != nil {
 		return nil, err
 	}
 
-	report := entities.ImagePruneReport{}
-	copy(report.Report.Id, results)
+	report := entities.ImagePruneReport{
+		Report: entities.Report{
+			Id:  results,
+			Err: nil,
+		},
+		Size: 0,
+	}
 	return &report, nil
 }
 

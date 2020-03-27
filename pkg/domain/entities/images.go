@@ -119,7 +119,7 @@ type ImageInspectOptions struct {
 
 type ImageListOptions struct {
 	All     bool       `json:"all" schema:"all"`
-	Filter  []string   `json:",omitempty"`
+	Filter  []string   `json:"Filter,omitempty"`
 	Filters url.Values `json:"filters" schema:"filters"`
 }
 
@@ -128,8 +128,9 @@ type ImageListOptions struct {
 // }
 
 type ImagePruneOptions struct {
-	All    bool
-	Filter ImageFilter
+	All     bool       `json:"all" schema:"all"`
+	Filter  []string   `json:"filter" schema:"filter"`
+	Filters url.Values `json:"filters" schema:"filters"`
 }
 
 type ImagePruneReport struct {

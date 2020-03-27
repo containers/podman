@@ -64,6 +64,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 
 	query := struct {
+		All     bool
 		Filters map[string][]string `schema:"filters"`
 	}{
 		// This is where you can override the golang default value for one of fields
@@ -80,7 +81,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			filters = append(filters, fmt.Sprintf("%s=%s", k, val))
 		}
 	}
-	pruneCids, err := runtime.ImageRuntime().PruneImages(r.Context(), false, filters)
+	pruneCids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, filters)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
