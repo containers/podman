@@ -133,6 +133,23 @@ type ContainerTopOKBody struct {
 	dockerContainer.ContainerTopOKBody
 }
 
+type PodTopOKBody struct {
+	dockerContainer.ContainerTopOKBody
+}
+
+// swagger:model PodCreateConfig
+type PodCreateConfig struct {
+	Name         string   `json:"name"`
+	CGroupParent string   `json:"cgroup-parent"`
+	Hostname     string   `json:"hostname"`
+	Infra        bool     `json:"infra"`
+	InfraCommand string   `json:"infra-command"`
+	InfraImage   string   `json:"infra-image"`
+	Labels       []string `json:"labels"`
+	Publish      []string `json:"publish"`
+	Share        string   `json:"share"`
+}
+
 type ErrorModel struct {
 	Message string `json:"message"`
 }
