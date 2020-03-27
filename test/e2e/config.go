@@ -10,7 +10,7 @@ var (
 	ALPINEAMD64ID     = "961769676411f082461f9ef46626dd7a2d1e2b2a38e6a44364bcbecf51e66dd4"
 	ALPINEARM64DIGEST = "docker.io/library/alpine@sha256:db7f3dcef3d586f7dd123f107c93d7911515a5991c4b9e51fa2a43e46335a43e"
 	ALPINEARM64ID     = "915beeae46751fc564998c79e73a1026542e945ca4f73dc841d09ccc6c2c0672"
-	infra             = "k8s.gcr.io/pause:3.1"
+	infra             = "k8s.gcr.io/pause:3.2"
 	BB                = "docker.io/library/busybox:latest"
 	healthcheck       = "docker.io/libpod/alpine_healthcheck:latest"
 	ImageCacheDir     = "/tmp/podman/imagecachedir"
