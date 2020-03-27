@@ -1,16 +1,21 @@
 package libpod
 
 import (
+	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"time"
 
+	"github.com/containers/libpod/pkg/api/handlers/compat"
+
 	"github.com/containers/libpod/cmd/podman/shared"
 	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/api/handlers/utils"
+	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/gorilla/schema"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -324,4 +329,130 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts shared.P
 		ps.Namespaces = ns
 	}
 	return ps, nil
+}
+
+func Checkpoint(w http.ResponseWriter, r *http.Request) {
+	var targetFile string
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Keep           bool `schema:"keep"`
+		LeaveRunning   bool `schema:"leaveRunning"`
+		TCPEstablished bool `schema:"tcpEstablished"`
+		Export         bool `schema:"export"`
+		IgnoreRootFS   bool `schema:"ignoreRootFS"`
+	}{
+		// override any golang type defaults
+	}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	name := utils.GetName(r)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	if query.Export {
+		tmpFile, err := ioutil.TempFile("", "checkpoint")
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		defer os.Remove(tmpFile.Name())
+		if err := tmpFile.Close(); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		targetFile = tmpFile.Name()
+	}
+	options := libpod.ContainerCheckpointOptions{
+		Keep:           query.Keep,
+		KeepRunning:    query.LeaveRunning,
+		TCPEstablished: query.TCPEstablished,
+		IgnoreRootfs:   query.IgnoreRootFS,
+	}
+	if query.Export {
+		options.TargetFile = targetFile
+	}
+	err = ctr.Checkpoint(r.Context(), options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	if query.Export {
+		f, err := os.Open(targetFile)
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		defer f.Close()
+		utils.WriteResponse(w, http.StatusOK, f)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, entities.CheckpointReport{Id: ctr.ID()})
+}
+
+func Restore(w http.ResponseWriter, r *http.Request) {
+	var (
+		targetFile string
+	)
+	decoder := r.Context().Value("decoder").(*schema.Decoder)
+	query := struct {
+		Keep            bool   `schema:"keep"`
+		TCPEstablished  bool   `schema:"tcpEstablished"`
+		Import          bool   `schema:"import"`
+		Name            string `schema:"name"`
+		IgnoreRootFS    bool   `schema:"ignoreRootFS"`
+		IgnoreStaticIP  bool   `schema:"ignoreStaticIP"`
+		IgnoreStaticMAC bool   `schema:"ignoreStaticMAC"`
+	}{
+		// override any golang type defaults
+	}
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest,
+			errors.Wrapf(err, "Failed to parse parameters for %s", r.URL.String()))
+		return
+	}
+	name := utils.GetName(r)
+	runtime := r.Context().Value("runtime").(*libpod.Runtime)
+	ctr, err := runtime.LookupContainer(name)
+	if err != nil {
+		utils.ContainerNotFound(w, name, err)
+		return
+	}
+	if query.Import {
+		t, err := ioutil.TempFile("", "restore")
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		defer t.Close()
+		if err := compat.SaveFromBody(t, r); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+		targetFile = t.Name()
+	}
+
+	options := libpod.ContainerCheckpointOptions{
+		Keep:            query.Keep,
+		TCPEstablished:  query.TCPEstablished,
+		IgnoreRootfs:    query.IgnoreRootFS,
+		IgnoreStaticIP:  query.IgnoreStaticIP,
+		IgnoreStaticMAC: query.IgnoreStaticMAC,
+	}
+	if query.Import {
+		options.TargetFile = targetFile
+		options.Name = query.Name
+	}
+	err = ctr.Restore(r.Context(), options)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, entities.RestoreReport{Id: ctr.ID()})
 }

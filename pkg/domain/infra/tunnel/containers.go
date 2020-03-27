@@ -6,7 +6,8 @@ import (
 	"os"
 
 	"github.com/containers/image/v5/docker/reference"
-
+	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -225,4 +226,73 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string,
 		}
 	}
 	return containers.Export(ic.ClientCxt, nameOrId, w)
+}
+
+func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
+	var (
+		reports []*entities.CheckpointReport
+		err     error
+		ctrs    []libpod.ListContainer
+	)
+
+	if options.All {
+		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
+		if err != nil {
+			return nil, err
+		}
+		// narrow the list to running only
+		for _, c := range allCtrs {
+			if c.State == define.ContainerStateRunning.String() {
+				ctrs = append(ctrs, c)
+			}
+		}
+
+	} else {
+		ctrs, err = getContainersByContext(ic.ClientCxt, false, namesOrIds)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, c := range ctrs {
+		report, err := containers.Checkpoint(ic.ClientCxt, c.ID, &options.Keep, &options.LeaveRuninng, &options.TCPEstablished, &options.IgnoreRootFS, &options.Export)
+		if err != nil {
+			reports = append(reports, &entities.CheckpointReport{Id: c.ID, Err: err})
+		}
+		reports = append(reports, report)
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
+	var (
+		reports []*entities.RestoreReport
+		err     error
+		ctrs    []libpod.ListContainer
+	)
+	if options.All {
+		allCtrs, err := getContainersByContext(ic.ClientCxt, true, []string{})
+		if err != nil {
+			return nil, err
+		}
+		// narrow the list to exited only
+		for _, c := range allCtrs {
+			if c.State == define.ContainerStateExited.String() {
+				ctrs = append(ctrs, c)
+			}
+		}
+
+	} else {
+		ctrs, err = getContainersByContext(ic.ClientCxt, false, namesOrIds)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, c := range ctrs {
+		report, err := containers.Restore(ic.ClientCxt, c.ID, &options.Keep, &options.TCPEstablished, &options.IgnoreRootFS, &options.IgnoreStaticIP, &options.IgnoreStaticMAC, &options.Name, &options.Import)
+		if err != nil {
+			reports = append(reports, &entities.RestoreReport{Id: c.ID, Err: err})
+		}
+		reports = append(reports, report)
+	}
+	return reports, nil
 }

@@ -1,6 +1,4 @@
-// +build !remoteclient
-
-package adapter
+package checkpoint
 
 import (
 	"context"
@@ -42,9 +40,9 @@ func crImportFromJSON(filePath string, v interface{}) error {
 	return nil
 }
 
-// crImportCheckpoint it the function which imports the information
+// CRImportCheckpoint it the function which imports the information
 // from checkpoint tarball and re-creates the container from that information
-func crImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input string, name string) ([]*libpod.Container, error) {
+func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, input string, name string) ([]*libpod.Container, error) {
 	// First get the container definition from the
 	// tarball to a temporary directory
 	archiveFile, err := os.Open(input)

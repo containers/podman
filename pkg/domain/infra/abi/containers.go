@@ -13,11 +13,41 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/image"
 	"github.com/containers/libpod/pkg/adapter/shortcuts"
+	"github.com/containers/libpod/pkg/checkpoint"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
+
+// getContainersByContext gets pods whether all, latest, or a slice of names/ids
+// is specified.
+func getContainersByContext(all, latest bool, names []string, runtime *libpod.Runtime) (ctrs []*libpod.Container, err error) {
+	var ctr *libpod.Container
+	ctrs = []*libpod.Container{}
+
+	switch {
+	case all:
+		ctrs, err = runtime.GetAllContainers()
+	case latest:
+		ctr, err = runtime.GetLatestContainer()
+		ctrs = append(ctrs, ctr)
+	default:
+		for _, n := range names {
+			ctr, e := runtime.LookupContainer(n)
+			if e != nil {
+				// Log all errors here, so callers don't need to.
+				logrus.Debugf("Error looking up container %q: %v", n, e)
+				if err == nil {
+					err = e
+				}
+			} else {
+				ctrs = append(ctrs, ctr)
+			}
+		}
+	}
+	return
+}
 
 // TODO: Should return *entities.ContainerExistsReport, error
 func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -332,4 +362,83 @@ func (ic *ContainerEngine) ContainerExport(ctx context.Context, nameOrId string,
 		return err
 	}
 	return ctr.Export(options.Output)
+}
+
+func (ic *ContainerEngine) ContainerCheckpoint(ctx context.Context, namesOrIds []string, options entities.CheckpointOptions) ([]*entities.CheckpointReport, error) {
+	var (
+		err     error
+		cons    []*libpod.Container
+		reports []*entities.CheckpointReport
+	)
+	checkOpts := libpod.ContainerCheckpointOptions{
+		Keep:           options.Keep,
+		TCPEstablished: options.TCPEstablished,
+		TargetFile:     options.Export,
+		IgnoreRootfs:   options.IgnoreRootFS,
+	}
+
+	if options.All {
+		running := func(c *libpod.Container) bool {
+			state, _ := c.State()
+			return state == define.ContainerStateRunning
+		}
+		cons, err = ic.Libpod.GetContainers(running)
+	} else {
+		cons, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, con := range cons {
+		err = con.Checkpoint(ctx, checkOpts)
+		reports = append(reports, &entities.CheckpointReport{
+			Err: err,
+			Id:  con.ID(),
+		})
+	}
+	return reports, nil
+}
+
+func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []string, options entities.RestoreOptions) ([]*entities.RestoreReport, error) {
+	var (
+		cons        []*libpod.Container
+		err         error
+		filterFuncs []libpod.ContainerFilter
+		reports     []*entities.RestoreReport
+	)
+
+	restoreOptions := libpod.ContainerCheckpointOptions{
+		Keep:            options.Keep,
+		TCPEstablished:  options.TCPEstablished,
+		TargetFile:      options.Import,
+		Name:            options.Name,
+		IgnoreRootfs:    options.IgnoreRootFS,
+		IgnoreStaticIP:  options.IgnoreStaticIP,
+		IgnoreStaticMAC: options.IgnoreStaticMAC,
+	}
+
+	filterFuncs = append(filterFuncs, func(c *libpod.Container) bool {
+		state, _ := c.State()
+		return state == define.ContainerStateExited
+	})
+
+	switch {
+	case options.Import != "":
+		cons, err = checkpoint.CRImportCheckpoint(ctx, ic.Libpod, options.Import, options.Name)
+	case options.All:
+		cons, err = ic.Libpod.GetContainers(filterFuncs...)
+	default:
+		cons, err = getContainersByContext(false, options.Latest, namesOrIds, ic.Libpod)
+	}
+	if err != nil {
+		return nil, err
+	}
+	for _, con := range cons {
+		err := con.Restore(ctx, restoreOptions)
+		reports = append(reports, &entities.RestoreReport{
+			Err: err,
+			Id:  con.ID(),
+		})
+	}
+	return reports, nil
 }
