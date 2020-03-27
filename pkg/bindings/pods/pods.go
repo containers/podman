@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/libpod"
+	"github.com/containers/libpod/pkg/api/handlers"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/specgen"
@@ -213,9 +214,38 @@ func Stop(ctx context.Context, nameOrID string, timeout *int) (*entities.PodStop
 	return &report, response.Process(&report)
 }
 
-func Top() error {
-	// TODO
-	return bindings.ErrNotImplemented // nolint:typecheck
+// Top gathers statistics about the running processes in a pod. The nameOrID can be a pod name
+// or a partial/full ID.  The descriptors allow for specifying which data to collect from each process.
+func Top(ctx context.Context, nameOrID string, descriptors []string) ([]string, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+
+	if len(descriptors) > 0 {
+		// flatten the slice into one string
+		params.Set("ps_args", strings.Join(descriptors, ","))
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/pods/%s/top", params, nameOrID)
+	if err != nil {
+		return nil, err
+	}
+
+	body := handlers.PodTopOKBody{}
+	if err = response.Process(&body); err != nil {
+		return nil, err
+	}
+
+	// handlers.PodTopOKBody{} returns a slice of slices where each cell in the top table is an item.
+	// In libpod land, we're just using a slice with cells being split by tabs, which allows for an idiomatic
+	// usage of the tabwriter.
+	topOutput := []string{strings.Join(body.Titles, "\t")}
+	for _, out := range body.Processes {
+		topOutput = append(topOutput, strings.Join(out, "\t"))
+	}
+
+	return topOutput, err
 }
 
 // Unpause unpauses all paused containers in a Pod.
