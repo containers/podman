@@ -520,6 +520,21 @@ func (p *PodmanTestIntegration) CreatePod(name string) (*PodmanSessionIntegratio
 	return session, session.ExitCode(), session.OutputToString()
 }
 
+// CreatePod creates a pod with no infra container and some labels.
+// it optionally takes a pod name
+func (p *PodmanTestIntegration) CreatePodWithLabels(name string, labels map[string]string) (*PodmanSessionIntegration, int, string) {
+	var podmanArgs = []string{"pod", "create", "--infra=false", "--share", ""}
+	if name != "" {
+		podmanArgs = append(podmanArgs, "--name", name)
+	}
+	for labelKey, labelValue := range labels {
+		podmanArgs = append(podmanArgs, "--label", fmt.Sprintf("%s=%s", labelKey, labelValue))
+	}
+	session := p.Podman(podmanArgs)
+	session.WaitWithDefaultTimeout()
+	return session, session.ExitCode(), session.OutputToString()
+}
+
 func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSessionIntegration {
 	var podmanArgs = []string{"run", "--pod", pod}
 	if name != "" {
