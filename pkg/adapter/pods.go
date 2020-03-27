@@ -768,6 +768,12 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 	var infraPorts []ocicni.PortMapping
 	for _, container := range containers {
 		for _, p := range container.Ports {
+			if p.HostPort != 0 && p.ContainerPort == 0 {
+				p.ContainerPort = p.HostPort
+			}
+			if p.Protocol == "" {
+				p.Protocol = "tcp"
+			}
 			portBinding := ocicni.PortMapping{
 				HostPort:      p.HostPort,
 				ContainerPort: p.ContainerPort,
@@ -776,7 +782,12 @@ func getPodPorts(containers []v1.Container) []ocicni.PortMapping {
 			if p.HostIP != "" {
 				logrus.Debug("HostIP on port bindings is not supported")
 			}
-			infraPorts = append(infraPorts, portBinding)
+			// only hostPort is utilized in podman context, all container ports
+			// are accessible inside the shared network namespace
+			if p.HostPort != 0 {
+				infraPorts = append(infraPorts, portBinding)
+			}
+
 		}
 	}
 	return infraPorts
