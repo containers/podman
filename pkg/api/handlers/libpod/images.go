@@ -119,12 +119,12 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 
 func PruneImages(w http.ResponseWriter, r *http.Request) {
 	var (
-		all bool
 		err error
 	)
 	runtime := r.Context().Value("runtime").(*libpod.Runtime)
 	decoder := r.Context().Value("decoder").(*schema.Decoder)
 	query := struct {
+		All     bool                `schema:"all"`
 		Filters map[string][]string `schema:"filters"`
 	}{
 		// override any golang type defaults
@@ -140,7 +140,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	if _, found := r.URL.Query()["filters"]; found {
 		dangling := query.Filters["all"]
 		if len(dangling) > 0 {
-			all, err = strconv.ParseBool(query.Filters["all"][0])
+			query.All, err = strconv.ParseBool(query.Filters["all"][0])
 			if err != nil {
 				utils.InternalServerError(w, err)
 				return
@@ -152,7 +152,8 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 			libpodFilters = append(libpodFilters, fmt.Sprintf("%s=%s", k, v[0]))
 		}
 	}
-	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), all, libpodFilters)
+
+	cids, err := runtime.ImageRuntime().PruneImages(r.Context(), query.All, libpodFilters)
 	if err != nil {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, err)
 		return

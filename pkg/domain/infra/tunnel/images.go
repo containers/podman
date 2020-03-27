@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"context"
-	"net/url"
 
 	images "github.com/containers/libpod/pkg/bindings/images"
 	"github.com/containers/libpod/pkg/domain/entities"
@@ -72,12 +71,17 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrId string, opts entiti
 }
 
 func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) (*entities.ImagePruneReport, error) {
-	results, err := images.Prune(ir.ClientCxt, url.Values{})
+	results, err := images.Prune(ir.ClientCxt, &opts.All, opts.Filters)
 	if err != nil {
 		return nil, err
 	}
 
-	report := entities.ImagePruneReport{}
-	copy(report.Report.Id, results)
+	report := entities.ImagePruneReport{
+		Report: entities.Report{
+			Id:  results,
+			Err: nil,
+		},
+		Size: 0,
+	}
 	return &report, nil
 }

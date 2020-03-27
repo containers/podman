@@ -16,22 +16,22 @@ import (
 
 var _ = Describe("Podman images", func() {
 	var (
-		//tempdir    string
-		//err        error
-		//podmanTest *PodmanTestIntegration
+		// tempdir    string
+		// err        error
+		// podmanTest *PodmanTestIntegration
 		bt  *bindingTest
 		s   *gexec.Session
 		err error
 	)
 
 	BeforeEach(func() {
-		//tempdir, err = CreateTempDirInTempDir()
-		//if err != nil {
+		// tempdir, err = CreateTempDirInTempDir()
+		// if err != nil {
 		//	os.Exit(1)
-		//}
-		//podmanTest = PodmanTestCreate(tempdir)
-		//podmanTest.Setup()
-		//podmanTest.SeedImages()
+		// }
+		// podmanTest = PodmanTestCreate(tempdir)
+		// podmanTest.Setup()
+		// podmanTest.SeedImages()
 		bt = newBindingTest()
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
@@ -41,12 +41,13 @@ var _ = Describe("Podman images", func() {
 	})
 
 	AfterEach(func() {
-		//podmanTest.Cleanup()
-		//f := CurrentGinkgoTestDescription()
-		//processTestResult(f)
+		// podmanTest.Cleanup()
+		// f := CurrentGinkgoTestDescription()
+		// processTestResult(f)
 		s.Kill()
 		bt.cleanup()
 	})
+
 	It("inspect image", func() {
 		// Inspect invalid image be 404
 		_, err = images.GetImage(bt.conn, "foobar5000", nil)
@@ -71,7 +72,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		// TODO it looks like the images API alwaays returns size regardless
 		// of bool or not. What should we do ?
-		//Expect(data.Size).To(BeZero())
+		// Expect(data.Size).To(BeZero())
 
 		// Enabling the size parameter should result in size being populated
 		data, err = images.GetImage(bt.conn, alpine.name, &bindings.PTrue)
@@ -142,7 +143,7 @@ var _ = Describe("Podman images", func() {
 		err = images.Tag(bt.conn, alpine.shortName, "demo", alpine.shortName)
 		Expect(err).To(BeNil())
 
-		//Validates if name updates when the image is retagged.
+		// Validates if name updates when the image is retagged.
 		_, err := images.GetImage(bt.conn, "alpine:demo", nil)
 		Expect(err).To(BeNil())
 
@@ -165,7 +166,7 @@ var _ = Describe("Podman images", func() {
 		Expect(err).To(BeNil())
 		Expect(len(imageSummary)).To(Equal(3))
 
-		//Validate the image names.
+		// Validate the image names.
 		var names []string
 		for _, i := range imageSummary {
 			names = append(names, i.RepoTags...)
@@ -289,6 +290,7 @@ var _ = Describe("Podman images", func() {
 		Expect(data.Comment).To(Equal(testMessage))
 
 	})
+
 	It("History Image", func() {
 		// a bogus name should return a 404
 		_, err := images.History(bt.conn, "foobar")
@@ -341,6 +343,14 @@ var _ = Describe("Podman images", func() {
 		//	Search with a fqdn
 		imgs, err = images.Search(bt.conn, "quay.io/libpod/alpine_nginx", nil, nil)
 		Expect(len(imgs)).To(BeNumerically(">=", 1))
+	})
+
+	It("Prune images", func() {
+		trueBoxed := true
+		results, err := images.Prune(bt.conn, &trueBoxed, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(results)).To(BeNumerically(">", 0))
+		Expect(results).To(ContainElement("docker.io/library/alpine:latest"))
 	})
 
 })

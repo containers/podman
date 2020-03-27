@@ -212,7 +212,7 @@ func imageListFormat(flags listFlagType) (string, string) {
 		row += "\t{{.Digest}}"
 	}
 
-	hdr += "\tID"
+	hdr += "\tIMAGE ID"
 	if flags.noTrunc {
 		row += "\tsha256:{{.ID}}"
 	} else {
