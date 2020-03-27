@@ -12,11 +12,11 @@ t GET  libpod/pods/notfoo/exists   404
 t GET  libpod/pods/foo/json        200 \
   .Config.name=foo  \
   .Config.id=$pod_id \
-  .Containers=null
+  .Containers\|length=1
 t GET  libpod/pods/json            200 \
   .[0].Name=foo \
   .[0].Id=$pod_id \
-  .[0].Containers=null
+  .[0].Containers\|length=1
 
 # Cannot create a dup pod with the same name
 t POST libpod/pods/create name=foo 409 .cause="pod already exists"
@@ -34,7 +34,7 @@ fi
 t POST libpod/pods/foo/unpause '' 200
 t POST libpod/pods/foo/unpause '' 200   # (2nd time)
 t POST libpod/pods/foo/stop    '' 304
-t POST libpod/pods/foo/restart '' 500 .cause="no such container"
+t POST libpod/pods/foo/restart '' 200
 
 t POST libpod/pods/bar/restart '' 404
 

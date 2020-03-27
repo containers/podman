@@ -356,11 +356,11 @@ func (r *LocalRuntime) PruneVolumes(ctx context.Context) ([]string, []error) {
 		errs = append(errs, err)
 		return vids, errs
 	}
-	for _, r := range reports {
-		if r.Err == nil {
-			vids = append(vids, r.Id)
+	for k, v := range reports {
+		if v == nil {
+			vids = append(vids, k)
 		} else {
-			errs = append(errs, r.Err)
+			errs = append(errs, v)
 		}
 	}
 	return vids, errs

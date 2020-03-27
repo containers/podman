@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 
 	"github.com/containers/libpod/cmd/podman/shared"
-	"github.com/containers/libpod/cmd/podman/varlink"
+	iopodman "github.com/containers/libpod/cmd/podman/varlink"
 	"github.com/containers/libpod/libpod"
 )
 
@@ -113,11 +113,11 @@ func (i *LibpodAPI) VolumesPrune(call iopodman.VarlinkCall) error {
 	if err != nil {
 		return call.ReplyVolumesPrune([]string{}, []string{err.Error()})
 	}
-	for _, i := range responses {
-		if i.Err == nil {
-			prunedNames = append(prunedNames, i.Id)
+	for k, v := range responses {
+		if v == nil {
+			prunedNames = append(prunedNames, k)
 		} else {
-			prunedErrors = append(prunedErrors, i.Err.Error())
+			prunedErrors = append(prunedErrors, v.Error())
 		}
 	}
 	return call.ReplyVolumesPrune(prunedNames, prunedErrors)

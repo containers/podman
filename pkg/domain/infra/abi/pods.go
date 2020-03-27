@@ -9,6 +9,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/containers/libpod/pkg/signal"
+	"github.com/containers/libpod/pkg/specgen"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -238,4 +239,14 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 		reports = append(reports, &report)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
+	podSpec := specgen.NewPodSpecGenerator()
+	opts.ToPodSpecGen(podSpec)
+	pod, err := podSpec.MakePod(ic.Libpod)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.PodCreateReport{Id: pod.ID()}, nil
 }

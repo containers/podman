@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"github.com/containers/libpod/pkg/rootless"
-
-	"github.com/containers/libpod/libpod"
 	"github.com/containers/libpod/pkg/util"
 	"github.com/pkg/errors"
 )
@@ -25,7 +23,7 @@ func exclusiveOptions(opt1, opt2 string) error {
 
 // Validate verifies that the given SpecGenerator is valid and satisfies required
 // input for creating a container.
-func (s *SpecGenerator) validate(rt *libpod.Runtime) error {
+func (s *SpecGenerator) validate() error {
 
 	//
 	// ContainerBasicConfig

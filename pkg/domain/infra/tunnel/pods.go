@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/libpod/pkg/bindings/pods"
 	"github.com/containers/libpod/pkg/domain/entities"
+	"github.com/containers/libpod/pkg/specgen"
 )
 
 func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrId string) (*entities.BoolReport, error) {
@@ -169,4 +170,10 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 		reports = append(reports, response)
 	}
 	return reports, nil
+}
+
+func (ic *ContainerEngine) PodCreate(ctx context.Context, opts entities.PodCreateOptions) (*entities.PodCreateReport, error) {
+	podSpec := specgen.NewPodSpecGenerator()
+	opts.ToPodSpecGen(podSpec)
+	return pods.CreatePodFromSpec(ic.ClientCxt, podSpec)
 }

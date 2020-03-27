@@ -5,7 +5,6 @@ import (
 
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/events"
-	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
 )
 
@@ -130,10 +129,8 @@ func (r *Runtime) GetAllVolumes() ([]*Volume, error) {
 }
 
 // PruneVolumes removes unused volumes from the system
-func (r *Runtime) PruneVolumes(ctx context.Context) ([]*entities.VolumePruneReport, error) {
-	var (
-		reports []*entities.VolumePruneReport
-	)
+func (r *Runtime) PruneVolumes(ctx context.Context) (map[string]error, error) {
+	reports := make(map[string]error)
 	vols, err := r.GetAllVolumes()
 	if err != nil {
 		return nil, err
@@ -142,12 +139,12 @@ func (r *Runtime) PruneVolumes(ctx context.Context) ([]*entities.VolumePruneRepo
 	for _, vol := range vols {
 		if err := r.RemoveVolume(ctx, vol, false); err != nil {
 			if errors.Cause(err) != define.ErrVolumeBeingUsed && errors.Cause(err) != define.ErrVolumeRemoved {
-				reports = append(reports, &entities.VolumePruneReport{Id: vol.Name(), Err: err})
+				reports[vol.Name()] = err
 			}
 			continue
 		}
 		vol.newVolumeEvent(events.Prune)
-		reports = append(reports, &entities.VolumePruneReport{Id: vol.Name()})
+		reports[vol.Name()] = nil
 	}
 	return reports, nil
 }

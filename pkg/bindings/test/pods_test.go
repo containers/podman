@@ -7,6 +7,7 @@ import (
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/bindings"
 	"github.com/containers/libpod/pkg/bindings/pods"
+	"github.com/containers/libpod/pkg/specgen"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -306,5 +307,16 @@ var _ = Describe("Podman pods", func() {
 		podSummary, err = pods.List(bt.conn, nil)
 		Expect(err).To(BeNil())
 		Expect(len(podSummary)).To(Equal(0))
+	})
+
+	It("simple create pod", func() {
+		ps := specgen.PodSpecGenerator{}
+		ps.Name = "foobar"
+		_, err := pods.CreatePodFromSpec(bt.conn, &ps)
+		Expect(err).To(BeNil())
+
+		exists, err := pods.Exists(bt.conn, "foobar")
+		Expect(err).To(BeNil())
+		Expect(exists).To(BeTrue())
 	})
 })
