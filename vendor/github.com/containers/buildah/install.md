@@ -12,6 +12,8 @@ provides updated packages for CentOS 7 which can be used unmodified on Amazon Li
 ```bash
 cd /etc/yum.repos.d/
 sudo wget https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable/CentOS_7/devel:kubic:libcontainers:stable.repo
+sudo yum -y yum-plugin-copr
+sudo yum -y copr enable lsm5/container-selinux
 sudo yum -y install buildah
 ```
 

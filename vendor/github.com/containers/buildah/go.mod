@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/containernetworking/cni v0.7.2-0.20190904153231-83439463f784
-	github.com/containers/common v0.5.0
+	github.com/containers/common v0.6.1
 	github.com/containers/image/v5 v5.2.1
 	github.com/containers/storage v1.16.5
 	github.com/cyphar/filepath-securejoin v0.2.2
@@ -27,7 +27,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.0
 	github.com/opencontainers/selinux v1.4.0
 	github.com/openshift/api v0.0.0-20200106203948-7ab22a2c8316
-	github.com/openshift/imagebuilder v1.1.2
+	github.com/openshift/imagebuilder v1.1.3
 	github.com/pkg/errors v0.9.1
 	github.com/seccomp/containers-golang v0.0.0-20190312124753-8ca8945ccf5f
 	github.com/seccomp/libseccomp-golang v0.9.1

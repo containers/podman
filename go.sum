@@ -73,6 +73,8 @@ github.com/containers/buildah v1.14.3-0.20200313154200-d26f437b2a46 h1:Zw8xYI3HA
 github.com/containers/buildah v1.14.3-0.20200313154200-d26f437b2a46/go.mod h1:OCorIy7yUrQ2hIZY5z/LhJuPiH8bT8GUwC+9CarZK5o=
 github.com/containers/buildah v1.14.3 h1:GYH/o3ME76CI0bvjFp++Fr9mOTrqvK5FLGtLkCBrKic=
 github.com/containers/buildah v1.14.3/go.mod h1:OmsmT+HR5i1o2U/0qm81fvI+m71hjd57gyf02z1Q7YI=
+github.com/containers/buildah v1.14.4 h1:Odg+qst310+EeZHeqfbGfxOiVpZH+Li+vPNPf2bIpPI=
+github.com/containers/buildah v1.14.4/go.mod h1:2rfICEnpTtrMhWF6FZLnAL1Bh7SNmjhiKrjuIo0ZuN8=
 github.com/containers/common v0.4.2 h1:O5d1gj/xdpQdZi0MEivRQ/7AeRaVeHdbSP/bvShw458=
 github.com/containers/common v0.4.2/go.mod h1:m62kenckrWi5rZx32kaLje2Og0hpf6NsaTBn6+b+Oys=
 github.com/containers/common v0.5.0 h1:ZAef7h3oO46PcbTyfooZf8XLHrYad+GkhSu3EhH6P24=
@@ -384,6 +386,8 @@ github.com/openshift/imagebuilder v1.1.1 h1:KAUR31p8UBJdfVO42azWgb+LeMAed2zaKQ19
 github.com/openshift/imagebuilder v1.1.1/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/openshift/imagebuilder v1.1.2 h1:vCO8hZQR/4uzo+j0PceBH5aKFcvCDM43UzUGOYQN+Go=
 github.com/openshift/imagebuilder v1.1.2/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
+github.com/openshift/imagebuilder v1.1.3 h1:8TiphsD2wboU7tygtGZ5ZBfCP9FH2ZtvEAli67V2PJ4=
+github.com/openshift/imagebuilder v1.1.3/go.mod h1:9aJRczxCH0mvT6XQ+5STAQaPWz7OsWcU5/mRkt8IWeo=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
 github.com/ostreedev/ostree-go v0.0.0-20190702140239-759a8c1ac913 h1:TnbXhKzrTOyuvWrjI8W6pcoI9XPbLHFXCdN2dtUw7Rw=

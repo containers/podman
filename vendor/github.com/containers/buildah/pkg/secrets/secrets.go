@@ -340,7 +340,7 @@ func addFIPSModeSecret(mounts *[]rspec.Mount, containerWorkingDir, mountPoint, m
 		*mounts = append(*mounts, m)
 	}
 
-	srcBackendDir := "/usr/share/crypto-policies/back-ends/FIPS"
+	srcBackendDir := "/usr/share/crypto-policies/FIPS"
 	destDir := "/etc/crypto-policies/back-ends"
 	srcOnHost := filepath.Join(mountPoint, srcBackendDir)
 	if _, err := os.Stat(srcOnHost); err != nil {

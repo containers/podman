@@ -2,6 +2,18 @@
 
 # Changelog
 
+## v1.14.4 (2020-03-25)
+    Fix fips-mode check for RHEL8 boxes
+    Fix potential CVE in tarfile w/ symlink
+    Fix .dockerignore with globs and ! commands
+    update install steps for Amazon Linux 2
+    Bump github.com/openshift/imagebuilder from 1.1.2 to 1.1.3
+    Add comment for RUN command in volume ownership test
+    Run stat command directly for volume ownership test
+    vendor in containers/common v0.6.1
+    Cleanup go.sum
+    Bump back to v1.15.0-dev
+
 ## v1.14.3 (2020-03-17)
     Update containers/storage to v1.16.5
     Bump github.com/containers/storage from 1.16.2 to 1.16.4
