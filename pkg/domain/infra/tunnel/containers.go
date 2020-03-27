@@ -3,6 +3,8 @@ package tunnel
 import (
 	"context"
 
+	"github.com/containers/image/v5/docker/reference"
+
 	"github.com/containers/libpod/pkg/bindings/containers"
 	"github.com/containers/libpod/pkg/domain/entities"
 	"github.com/pkg/errors"
@@ -171,4 +173,40 @@ func (ic *ContainerEngine) ContainerTop(ctx context.Context, options entities.To
 		return nil, err
 	}
 	return &entities.StringSliceReport{Value: topOutput}, nil
+}
+
+func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrId string, options entities.CommitOptions) (*entities.CommitReport, error) {
+	var (
+		repo string
+		tag  string = "latest"
+	)
+	if len(options.ImageName) > 0 {
+		ref, err := reference.Parse(options.ImageName)
+		if err != nil {
+			return nil, err
+		}
+		if t, ok := ref.(reference.Tagged); ok {
+			tag = t.Tag()
+		}
+		if r, ok := ref.(reference.Named); ok {
+			repo = r.Name()
+		}
+		if len(repo) < 1 {
+			return nil, errors.Errorf("invalid image name %q", options.ImageName)
+		}
+	}
+	commitOpts := containers.CommitOptions{
+		Author:  &options.Author,
+		Changes: options.Changes,
+		Comment: &options.Message,
+		Format:  &options.Format,
+		Pause:   &options.Pause,
+		Repo:    &repo,
+		Tag:     &tag,
+	}
+	response, err := containers.Commit(ic.ClientCxt, nameOrId, commitOpts)
+	if err != nil {
+		return nil, err
+	}
+	return &entities.CommitReport{Id: response.ID}, nil
 }
