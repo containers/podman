@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/libpod/pkg/api/handlers"
 	lpapiv2 "github.com/containers/libpod/pkg/api/handlers/libpod"
 	"github.com/containers/libpod/pkg/bindings"
 )
@@ -193,7 +195,40 @@ func Start(ctx context.Context, nameOrID string, detachKeys *string) error {
 }
 
 func Stats() {}
-func Top()   {}
+
+// Top gathers statistics about the running processes in a container. The nameOrID can be a container name
+// or a partial/full ID.  The descriptors allow for specifying which data to collect from the process.
+func Top(ctx context.Context, nameOrID string, descriptors []string) ([]string, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params := url.Values{}
+
+	if len(descriptors) > 0 {
+		// flatten the slice into one string
+		params.Set("ps_args", strings.Join(descriptors, ","))
+	}
+	response, err := conn.DoRequest(nil, http.MethodGet, "/containers/%s/top", params, nameOrID)
+	if err != nil {
+		return nil, err
+	}
+
+	body := handlers.ContainerTopOKBody{}
+	if err = response.Process(&body); err != nil {
+		return nil, err
+	}
+
+	// handlers.ContainerTopOKBody{} returns a slice of slices where each cell in the top table is an item.
+	// In libpod land, we're just using a slice with cells being split by tabs, which allows for an idiomatic
+	// usage of the tabwriter.
+	topOutput := []string{strings.Join(body.Titles, "\t")}
+	for _, out := range body.Processes {
+		topOutput = append(topOutput, strings.Join(out, "\t"))
+	}
+
+	return topOutput, err
+}
 
 // Unpause resumes the given paused container.  The nameOrID can be a container name
 // or a partial/full ID.

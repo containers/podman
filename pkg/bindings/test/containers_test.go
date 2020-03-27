@@ -34,7 +34,7 @@ var _ = Describe("Podman containers ", func() {
 
 	AfterEach(func() {
 		s.Kill()
-		//bt.cleanup()
+		bt.cleanup()
 	})
 
 	It("podman pause a bogus container", func() {
@@ -378,6 +378,36 @@ var _ = Describe("Podman containers ", func() {
 		o := <-stdoutChan
 		o = strings.ReplaceAll(o, "\r", "")
 		_, err = time.Parse(time.RFC1123Z, o)
+		Expect(err).To(BeNil())
+	})
+
+	It("podman top", func() {
+		var name = "top"
+		cid, err := bt.RunTopContainer(&name, &bindings.PFalse, nil)
+		Expect(err).To(BeNil())
+
+		// By name
+		output, err := containers.Top(bt.conn, name, nil)
+		Expect(err).To(BeNil())
+
+		// By id
+		output, err = containers.Top(bt.conn, cid, nil)
+		Expect(err).To(BeNil())
+
+		// With descriptors
+		output, err = containers.Top(bt.conn, cid, []string{"user,pid,hpid"})
+		Expect(err).To(BeNil())
+		header := strings.Split(output[0], "\t")
+		for _, d := range []string{"USER", "PID", "HPID"} {
+			Expect(d).To(BeElementOf(header))
+		}
+
+		// With bogus ID
+		_, err = containers.Top(bt.conn, "IdoNotExist", nil)
+		Expect(err).ToNot(BeNil())
+
+		// With bogus descriptors
+		_, err = containers.Top(bt.conn, cid, []string{"Me,Neither"})
 		Expect(err).To(BeNil())
 	})
 })
