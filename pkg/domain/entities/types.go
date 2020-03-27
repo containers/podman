@@ -3,6 +3,7 @@ package entities
 import (
 	"net"
 
+	"github.com/containers/libpod/libpod/events"
 	"github.com/containers/libpod/pkg/specgen"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/ocicni/pkg/ocicni"
@@ -61,4 +62,13 @@ type DiffOptions struct {
 // DiffReport provides changes for object
 type DiffReport struct {
 	Changes []archive.Change
+}
+
+type EventsOptions struct {
+	FromStart bool
+	EventChan chan *events.Event
+	Filter    []string
+	Stream    bool
+	Since     string
+	Until     string
 }
