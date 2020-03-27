@@ -126,19 +126,14 @@ func signCmd(c *cliconfig.SignValues) error {
 		if err != nil {
 			return err
 		}
-		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.SignaturePolicyPath, "", os.Stderr, &dockerRegistryOptions, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
+		newImage, err := runtime.ImageRuntime().New(getContext(), signimage, rtc.Engine.SignaturePolicyPath, "", os.Stderr, &dockerRegistryOptions, image.SigningOptions{SignBy: signby}, nil, util.PullImageMissing)
 		if err != nil {
 			return errors.Wrapf(err, "error pulling image %s", signimage)
 		}
 
 		if rootless.IsRootless() {
 			if sigStoreDir == "" {
-				runtimeConfig, err := runtime.GetConfig()
-				if err != nil {
-					return err
-				}
-
-				sigStoreDir = filepath.Join(filepath.Dir(runtimeConfig.StorageConfig.GraphRoot), "sigstore")
+				sigStoreDir = filepath.Join(filepath.Dir(runtime.StorageConfig().GraphRoot), "sigstore")
 			}
 		} else {
 			registryInfo := trust.HaveMatchRegistry(rawSource.Reference().DockerReference().String(), registryConfigs)

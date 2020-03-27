@@ -452,7 +452,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "failed to get runtime config", http.StatusInternalServerError, errors.Wrap(err, "failed to get runtime config"))
 		return
 	}
-	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image2.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
@@ -471,7 +471,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	options.CommitOptions = buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
 		PreferredManifestType: mimeType,

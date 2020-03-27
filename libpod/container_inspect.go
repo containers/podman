@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/libpod/driver"
 	"github.com/containers/libpod/pkg/util"
@@ -769,10 +770,10 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	// CGroup parent
 	// Need to check if it's the default, and not print if so.
 	defaultCgroupParent := ""
-	switch c.runtime.config.CgroupManager {
-	case define.CgroupfsCgroupsManager:
+	switch c.runtime.config.Engine.CgroupManager {
+	case config.CgroupfsCgroupsManager:
 		defaultCgroupParent = CgroupfsDefaultCgroupParent
-	case define.SystemdCgroupsManager:
+	case config.SystemdCgroupsManager:
 		defaultCgroupParent = SystemdDefaultCgroupParent
 	}
 	if c.config.CgroupParent != defaultCgroupParent {

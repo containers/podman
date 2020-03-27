@@ -129,13 +129,13 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, "Something went wrong.", http.StatusInternalServerError, errors.Wrap(err, "Decode()"))
 		return
 	}
-	sc := image2.GetSystemContext(rtc.SignaturePolicyPath, "", false)
+	sc := image2.GetSystemContext(rtc.Engine.SignaturePolicyPath, "", false)
 	tag := "latest"
 	options := libpod.ContainerCommitOptions{
 		Pause: true,
 	}
 	options.CommitOptions = buildah.CommitOptions{
-		SignaturePolicyPath:   rtc.SignaturePolicyPath,
+		SignaturePolicyPath:   rtc.Engine.SignaturePolicyPath,
 		ReportWriter:          os.Stderr,
 		SystemContext:         sc,
 		PreferredManifestType: manifest.DockerV2Schema2MediaType,

@@ -245,3 +245,15 @@ func TestGetImageConfigMisc(t *testing.T) {
 	_, err = GetImageConfig([]string{"BADINST testvalue"})
 	assert.NotNil(t, err)
 }
+
+func TestValidateSysctls(t *testing.T) {
+	strSlice := []string{"net.core.test1=4", "kernel.msgmax=2"}
+	result, _ := ValidateSysctls(strSlice)
+	assert.Equal(t, result["net.core.test1"], "4")
+}
+
+func TestValidateSysctlBadSysctl(t *testing.T) {
+	strSlice := []string{"BLAU=BLUE", "GELB^YELLOW"}
+	_, err := ValidateSysctls(strSlice)
+	assert.Error(t, err)
+}

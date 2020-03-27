@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/errorhandling"
 	"github.com/containers/libpod/pkg/kubeutils"
@@ -104,7 +105,7 @@ func (c *Container) attachToExec(streams *AttachStreams, keys *string, sessionID
 	defer errorhandling.CloseQuiet(startFd)
 	defer errorhandling.CloseQuiet(attachFd)
 
-	detachString := define.DefaultDetachKeys
+	detachString := config.DefaultDetachKeys
 	if keys != nil {
 		detachString = *keys
 	}

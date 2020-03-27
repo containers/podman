@@ -4,9 +4,10 @@ import (
 	"context"
 	"os"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod"
-	"github.com/containers/libpod/libpod/config"
 	"github.com/containers/libpod/libpod/define"
+	"github.com/containers/storage"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -30,7 +31,7 @@ func (s *SpecGenerator) MakeContainer(rt *libpod.Runtime) (*libpod.Container, er
 	if err != nil {
 		return nil, err
 	}
-	options = append(options, s.createExitCommandOption(rtc, podmanPath))
+	options = append(options, s.createExitCommandOption(rt.StorageConfig(), rtc, podmanPath))
 	newImage, err := rt.ImageRuntime().NewFromLocal(s.Image)
 	if err != nil {
 		return nil, err
@@ -148,7 +149,7 @@ func (s *SpecGenerator) createContainerOptions(rt *libpod.Runtime) ([]libpod.Ctr
 	return options, nil
 }
 
-func (s *SpecGenerator) createExitCommandOption(config *config.Config, podmanPath string) libpod.CtrCreateOption {
+func (s *SpecGenerator) createExitCommandOption(storageConfig storage.StoreOptions, config *config.Config, podmanPath string) libpod.CtrCreateOption {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.
@@ -156,23 +157,23 @@ func (s *SpecGenerator) createExitCommandOption(config *config.Config, podmanPat
 	// still invoke a cleanup process.
 
 	command := []string{podmanPath,
-		"--root", config.StorageConfig.GraphRoot,
-		"--runroot", config.StorageConfig.RunRoot,
+		"--root", storageConfig.GraphRoot,
+		"--runroot", storageConfig.RunRoot,
 		"--log-level", logrus.GetLevel().String(),
-		"--cgroup-manager", config.CgroupManager,
-		"--tmpdir", config.TmpDir,
+		"--cgroup-manager", config.Engine.CgroupManager,
+		"--tmpdir", config.Engine.TmpDir,
 	}
-	if config.OCIRuntime != "" {
-		command = append(command, []string{"--runtime", config.OCIRuntime}...)
+	if config.Engine.OCIRuntime != "" {
+		command = append(command, []string{"--runtime", config.Engine.OCIRuntime}...)
 	}
-	if config.StorageConfig.GraphDriverName != "" {
-		command = append(command, []string{"--storage-driver", config.StorageConfig.GraphDriverName}...)
+	if storageConfig.GraphDriverName != "" {
+		command = append(command, []string{"--storage-driver", storageConfig.GraphDriverName}...)
 	}
-	for _, opt := range config.StorageConfig.GraphDriverOptions {
+	for _, opt := range storageConfig.GraphDriverOptions {
 		command = append(command, []string{"--storage-opt", opt}...)
 	}
-	if config.EventsLogger != "" {
-		command = append(command, []string{"--events-backend", config.EventsLogger}...)
+	if config.Engine.EventsLogger != "" {
+		command = append(command, []string{"--events-backend", config.Engine.EventsLogger}...)
 	}
 
 	// TODO Mheon wants to leave this for now

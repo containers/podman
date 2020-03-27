@@ -11,8 +11,8 @@ import (
 // newEventer returns an eventer that can be used to read/write events
 func (r *Runtime) newEventer() (events.Eventer, error) {
 	options := events.EventerOptions{
-		EventerType: r.config.EventsLogger,
-		LogFilePath: r.config.EventsLogFilePath,
+		EventerType: r.config.Engine.EventsLogger,
+		LogFilePath: r.config.Engine.EventsLogFilePath,
 	}
 	return events.NewEventer(options)
 }

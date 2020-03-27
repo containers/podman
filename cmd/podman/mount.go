@@ -68,11 +68,7 @@ func mountCmd(c *cliconfig.MountValues) error {
 	defer runtime.DeferredShutdown(false)
 
 	if os.Geteuid() != 0 {
-		rtc, err := runtime.GetConfig()
-		if err != nil {
-			return err
-		}
-		if driver := rtc.StorageConfig.GraphDriverName; driver != "vfs" {
+		if driver := runtime.StorageConfig().GraphDriverName; driver != "vfs" {
 			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
 			// of the mount command.
 			return fmt.Errorf("cannot mount using driver %s in rootless mode", driver)

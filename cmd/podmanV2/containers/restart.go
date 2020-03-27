@@ -46,8 +46,8 @@ func init() {
 	flags.BoolVarP(&restartOptions.All, "all", "a", false, "Restart all non-running containers")
 	flags.BoolVarP(&restartOptions.Latest, "latest", "l", false, "Act on the latest container podman is aware of")
 	flags.BoolVar(&restartOptions.Running, "running", false, "Restart only running containers when --all is used")
-	flags.UintVarP(&restartTimeout, "timeout", "t", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
-	flags.UintVar(&restartTimeout, "time", define.CtrRemoveTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVarP(&restartTimeout, "timeout", "t", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
+	flags.UintVar(&restartTimeout, "time", defaultContainerConfig.Engine.StopTimeout, "Seconds to wait for stop before killing the container")
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("latest")
 	}

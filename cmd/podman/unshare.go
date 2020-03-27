@@ -66,13 +66,8 @@ func unshareCmd(c *cliconfig.PodmanCommand) error {
 	if err != nil {
 		return err
 	}
-	runtimeConfig, err := runtime.GetConfig()
-	if err != nil {
-		return err
-	}
-
 	cmd := exec.Command(c.InputArgs[0], c.InputArgs[1:]...)
-	cmd.Env = unshareEnv(runtimeConfig.StorageConfig.GraphRoot, runtimeConfig.StorageConfig.RunRoot)
+	cmd.Env = unshareEnv(runtime.StorageConfig().GraphRoot, runtime.StorageConfig().RunRoot)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

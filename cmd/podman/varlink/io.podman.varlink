@@ -414,6 +414,8 @@ type BuildOptions (
 
 # BuildInfo is used to describe user input for building images
 type BuildInfo (
+    architecture: string,
+    addCapabilities: []string,
     additionalTags: []string,
     annotations: []string,
     buildArgs: [string]string,
@@ -423,13 +425,16 @@ type BuildInfo (
     compression: string,
     contextDir: string,
     defaultsMountFilePath: string,
+    devices: []string,
     dockerfiles: []string,
+    dropCapabilities: []string,
     err: string,
     forceRmIntermediateCtrs: bool,
     iidfile: string,
     label: []string,
     layers: bool,
     nocache: bool,
+    os: string,
     out: string,
     output: string,
     outputFormat: string,
@@ -438,7 +443,10 @@ type BuildInfo (
     remoteIntermediateCtrs: bool,
     reportWriter: string,
     runtimeArgs: []string,
-    squash: bool
+    signBy: string,
+    squash: bool,
+    target: string,
+    transientMounts: []string
 )
 
 # MoreResponse is a struct for when responses from varlink requires longer output

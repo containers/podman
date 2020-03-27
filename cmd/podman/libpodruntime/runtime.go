@@ -211,8 +211,6 @@ func getRuntime(ctx context.Context, c *cliconfig.PodmanCommand, opts *runtimeOp
 	if !opts.withFDS {
 		options = append(options, libpod.WithEnableSDNotify())
 	}
-	if c.Flags().Changed("config") {
-		return libpod.NewRuntimeFromConfig(ctx, c.GlobalFlags.Config, options...)
-	}
+
 	return libpod.NewRuntime(ctx, options...)
 }

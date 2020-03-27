@@ -13,7 +13,6 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	"github.com/containers/buildah/pkg/formats"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
@@ -296,37 +295,13 @@ func libpodVolumeToVolume(volumes []*libpod.Volume) []*Volume {
 
 // Build is the wrapper to build images
 func (r *LocalRuntime) Build(ctx context.Context, c *cliconfig.BuildValues, options imagebuildah.BuildOptions, dockerfiles []string) (string, reference.Canonical, error) {
-	namespaceOptions, networkPolicy, err := parse.NamespaceOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return "", nil, errors.Wrapf(err, "error parsing namespace-related options")
-	}
-	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command, options.Isolation)
-	if err != nil {
-		return "", nil, errors.Wrapf(err, "error parsing ID mapping options")
-	}
-	namespaceOptions.AddOrReplace(usernsOption...)
-
-	systemContext, err := parse.SystemContextFromOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return "", nil, errors.Wrapf(err, "error building system context")
-	}
 
 	authfile := c.Authfile
 	if len(c.Authfile) == 0 {
 		authfile = os.Getenv("REGISTRY_AUTH_FILE")
 	}
 
-	systemContext.AuthFilePath = authfile
-	commonOpts, err := parse.CommonBuildOptions(c.PodmanCommand.Command)
-	if err != nil {
-		return "", nil, err
-	}
-
-	options.NamespaceOptions = namespaceOptions
-	options.ConfigureNetwork = networkPolicy
-	options.IDMappingOptions = idmappingOptions
-	options.CommonBuildOpts = commonOpts
-	options.SystemContext = systemContext
+	options.SystemContext.AuthFilePath = authfile
 
 	if c.GlobalFlags.Runtime != "" {
 		options.Runtime = c.GlobalFlags.Runtime

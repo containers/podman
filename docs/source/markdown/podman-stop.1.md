@@ -38,9 +38,9 @@ to run containers such as CRI-O, the last started container could be from either
 
 The latest option is not supported on the remote client.
 
-**--timeout**, **--time**, **-t**=*time*
+**--time**, **-t**=*time*
 
-Timeout to wait before forcibly stopping the container
+Time to wait before forcibly stopping the container
 
 ## EXAMPLES
 

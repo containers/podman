@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -35,10 +34,7 @@ func init() {
 	execCommand.SetUsageTemplate(UsageTemplate())
 	flags := execCommand.Flags()
 	flags.SetInterspersed(false)
-	flags.StringVar(&execCommand.DetachKeys, "detach-keys", define.DefaultDetachKeys, "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
-	// Clear the default, the value specified in the config file should have the
-	// priority
-	execCommand.DetachKeys = ""
+	flags.StringVar(&execCommand.DetachKeys, "detach-keys", getDefaultDetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	flags.StringArrayVarP(&execCommand.Env, "env", "e", []string{}, "Set environment variables")
 	flags.StringSliceVar(&execCommand.EnvFile, "env-file", []string{}, "Read in a file of environment variables")
 	flags.BoolVarP(&execCommand.Interactive, "interactive", "i", false, "Keep STDIN open even if not attached")

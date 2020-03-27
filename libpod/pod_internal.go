@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/pkg/errors"
@@ -65,19 +66,19 @@ func (p *Pod) refresh() error {
 
 	// We need to recreate the pod's cgroup
 	if p.config.UsePodCgroup {
-		switch p.runtime.config.CgroupManager {
-		case define.SystemdCgroupsManager:
+		switch p.runtime.config.Engine.CgroupManager {
+		case config.SystemdCgroupsManager:
 			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()))
 			if err != nil {
 				logrus.Errorf("Error creating CGroup for pod %s: %v", p.ID(), err)
 			}
 			p.state.CgroupPath = cgroupPath
-		case define.CgroupfsCgroupsManager:
+		case config.CgroupfsCgroupsManager:
 			p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
 
 			logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
 		default:
-			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.CgroupManager)
+			return errors.Wrapf(define.ErrInvalidArg, "unknown cgroups manager %s specified", p.runtime.config.Engine.CgroupManager)
 		}
 	}
 

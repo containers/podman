@@ -99,7 +99,7 @@ func CreateContainer(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 			ArchitectureChoice: overrideArch,
 		}
 
-		newImage, err := runtime.ImageRuntime().New(ctx, rawImageName, rtc.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
+		newImage, err := runtime.ImageRuntime().New(ctx, rawImageName, rtc.Engine.SignaturePolicyPath, c.String("authfile"), writer, &dockerRegistryOptions, image.SigningOptions{}, nil, pullType)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -512,6 +512,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	}
 
 	// Start with env-host
+
 	if c.Bool("env-host") {
 		env = envLib.Join(env, osEnv)
 	}
@@ -635,7 +636,6 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to translate --shm-size")
 	}
-
 	// Verify the additional hosts are in correct format
 	for _, host := range c.StringSlice("add-host") {
 		if _, err := parse.ValidateExtraHost(host); err != nil {
@@ -643,24 +643,35 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		}
 	}
 
-	// Check for . and dns-search domains
-	if util.StringInSlice(".", c.StringSlice("dns-search")) && len(c.StringSlice("dns-search")) > 1 {
-		return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
-	}
-
-	// Check for explicit dns-search domain of ''
-	if c.Changed("dns-search") && len(c.StringSlice("dns-search")) == 0 {
-		return nil, errors.Errorf("'' is not a valid domain")
-	}
-
-	// Validate domains are good
-	for _, dom := range c.StringSlice("dns-search") {
-		if dom == "." {
-			continue
+	var (
+		dnsSearches []string
+		dnsServers  []string
+		dnsOptions  []string
+	)
+	if c.Changed("dns-search") {
+		dnsSearches = c.StringSlice("dns-search")
+		// Check for explicit dns-search domain of ''
+		if len(dnsSearches) == 0 {
+			return nil, errors.Errorf("'' is not a valid domain")
 		}
-		if _, err := parse.ValidateDomain(dom); err != nil {
-			return nil, err
+		// Validate domains are good
+		for _, dom := range dnsSearches {
+			if dom == "." {
+				if len(dnsSearches) > 1 {
+					return nil, errors.Errorf("cannot pass additional search domains when also specifying '.'")
+				}
+				continue
+			}
+			if _, err := parse.ValidateDomain(dom); err != nil {
+				return nil, err
+			}
 		}
+	}
+	if c.IsSet("dns") {
+		dnsServers = append(dnsServers, c.StringSlice("dns")...)
+	}
+	if c.IsSet("dns-opt") {
+		dnsOptions = c.StringSlice("dns-opt")
 	}
 
 	var ImageVolumes map[string]struct{}
@@ -706,7 +717,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 
 	pidsLimit := c.Int64("pids-limit")
 	if c.String("cgroups") == "disabled" && !c.Changed("pids-limit") {
-		pidsLimit = 0
+		pidsLimit = -1
 	}
 
 	pid := &cc.PidConfig{
@@ -736,11 +747,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		HostAdd:  c.StringSlice("add-host"),
 		Hostname: c.String("hostname"),
 	}
-
 	net := &cc.NetworkConfig{
-		DNSOpt:       c.StringSlice("dns-opt"),
-		DNSSearch:    c.StringSlice("dns-search"),
-		DNSServers:   c.StringSlice("dns"),
+		DNSOpt:       dnsOptions,
+		DNSSearch:    dnsSearches,
+		DNSServers:   dnsServers,
 		HTTPProxy:    c.Bool("http-proxy"),
 		MacAddress:   c.String("mac-address"),
 		Network:      c.String("network"),
@@ -751,9 +761,12 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		PortBindings: portBindings,
 	}
 
-	sysctl, err := validateSysctl(c.StringSlice("sysctl"))
-	if err != nil {
-		return nil, errors.Wrapf(err, "invalid value for sysctl")
+	sysctl := map[string]string{}
+	if c.Changed("sysctl") {
+		sysctl, err = util.ValidateSysctls(c.StringSlice("sysctl"))
+		if err != nil {
+			return nil, errors.Wrapf(err, "invalid value for sysctl")
+		}
 	}
 
 	secConfig := &cc.SecurityConfig{
@@ -765,8 +778,10 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Sysctl:         sysctl,
 	}
 
-	if err := secConfig.SetSecurityOpts(runtime, c.StringArray("security-opt")); err != nil {
-		return nil, err
+	if c.Changed("security-opt") {
+		if err := secConfig.SetSecurityOpts(runtime, c.StringArray("security-opt")); err != nil {
+			return nil, err
+		}
 	}
 
 	// SECCOMP
@@ -780,6 +795,19 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 	} else {
 		secConfig.SeccompPolicy = policy
 	}
+	rtc, err := runtime.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	volumes := rtc.Containers.Volumes
+	if c.Changed("volume") {
+		volumes = append(volumes, c.StringSlice("volume")...)
+	}
+
+	devices := rtc.Containers.Devices
+	if c.Changed("device") {
+		devices = append(devices, c.StringSlice("device")...)
+	}
 
 	config := &cc.CreateConfig{
 		Annotations:       annotations,
@@ -790,7 +818,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Command:           command,
 		UserCommand:       userCommand,
 		Detach:            c.Bool("detach"),
-		Devices:           c.StringSlice("device"),
+		Devices:           devices,
 		Entrypoint:        entrypoint,
 		Env:               env,
 		// ExposedPorts:   ports,
@@ -845,7 +873,7 @@ func ParseCreateOpts(ctx context.Context, c *GenericCLIResults, runtime *libpod.
 		Tmpfs:         c.StringArray("tmpfs"),
 		Tty:           tty,
 		MountsFlag:    c.StringArray("mount"),
-		Volumes:       c.StringArray("volume"),
+		Volumes:       volumes,
 		WorkDir:       workDir,
 		Rootfs:        rootfs,
 		VolumesFrom:   c.StringSlice("volumes-from"),

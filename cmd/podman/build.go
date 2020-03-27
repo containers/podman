@@ -9,9 +9,9 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/imagebuildah"
 	buildahcli "github.com/containers/buildah/pkg/cli"
-	"github.com/containers/image/v5/types"
+	"github.com/containers/buildah/pkg/parse"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/libpod/cmd/podman/cliconfig"
-	"github.com/containers/libpod/libpod/define"
 	"github.com/containers/libpod/pkg/adapter"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -86,6 +86,7 @@ func initBuild() {
 	fromAndBugFlags, err := buildahcli.GetFromAndBudFlags(&fromAndBudValues, &userNSValues, &namespaceValues)
 	if err != nil {
 		logrus.Errorf("failed to setup podman build flags: %v", err)
+		os.Exit(1)
 	}
 
 	flags.AddFlagSet(&budFlags)
@@ -267,14 +268,15 @@ func buildCmd(c *cliconfig.BuildValues) error {
 	if err != nil {
 		return err
 	}
-	if conf != nil && conf.CgroupManager == define.SystemdCgroupsManager {
+	if conf != nil && conf.Engine.CgroupManager == config.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
 	// end from buildah
 
 	defer runtime.DeferredShutdown(false)
 
-	var stdout, stderr, reporter *os.File
+	var stdin, stdout, stderr, reporter *os.File
+	stdin = os.Stdin
 	stdout = os.Stdout
 	stderr = os.Stderr
 	reporter = os.Stderr
@@ -310,6 +312,17 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		return err
 	}
 
+	networkPolicy := buildah.NetworkDefault
+	for _, ns := range nsValues {
+		if ns.Name == "none" {
+			networkPolicy = buildah.NetworkDisabled
+			break
+		} else if !filepath.IsAbs(ns.Path) {
+			networkPolicy = buildah.NetworkEnabled
+			break
+		}
+	}
+
 	buildOpts := buildah.CommonBuildOptions{
 		AddHost:      c.AddHost,
 		CgroupParent: c.CgroupParent,
@@ -341,21 +354,49 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		layers = false
 	}
 
+	compression := imagebuildah.Gzip
+	if c.DisableCompression {
+		compression = imagebuildah.Uncompressed
+	}
+
+	isolation, err := parse.IsolationOption(c.Isolation)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing ID mapping options")
+	}
+
+	usernsOption, idmappingOptions, err := parse.IDMappingOptions(c.PodmanCommand.Command, isolation)
+	if err != nil {
+		return errors.Wrapf(err, "error parsing ID mapping options")
+	}
+	nsValues = append(nsValues, usernsOption...)
+
+	systemContext, err := parse.SystemContextFromOptions(c.PodmanCommand.Command)
+	if err != nil {
+		return errors.Wrapf(err, "error building system context")
+	}
+
 	options := imagebuildah.BuildOptions{
-		Architecture:            c.Arch,
-		CommonBuildOpts:         &buildOpts,
+		AddCapabilities:         c.CapAdd,
 		AdditionalTags:          tags,
 		Annotations:             c.Annotation,
+		Architecture:            c.Arch,
 		Args:                    args,
+		BlobDirectory:           c.BlobCache,
 		CNIConfigDir:            c.CNIConfigDir,
 		CNIPluginPath:           c.CNIPlugInPath,
-		Compression:             imagebuildah.Gzip,
+		CommonBuildOpts:         &buildOpts,
+		Compression:             compression,
+		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
 		DefaultMountsFilePath:   c.GlobalFlags.DefaultMountsFile,
+		Devices:                 c.Devices,
+		DropCapabilities:        c.CapDrop,
 		Err:                     stderr,
-		In:                      os.Stdin,
 		ForceRmIntermediateCtrs: c.ForceRm,
+		IDMappingOptions:        idmappingOptions,
 		IIDFile:                 c.Iidfile,
+		In:                      stdin,
+		Isolation:               isolation,
 		Labels:                  c.Label,
 		Layers:                  layers,
 		NamespaceOptions:        nsValues,
@@ -369,13 +410,12 @@ func buildCmd(c *cliconfig.BuildValues) error {
 		RemoveIntermediateCtrs:  c.Rm,
 		ReportWriter:            reporter,
 		RuntimeArgs:             runtimeFlags,
+		SignBy:                  c.SignBy,
 		SignaturePolicyPath:     c.SignaturePolicy,
 		Squash:                  c.Squash,
-		SystemContext: &types.SystemContext{
-			OSChoice:           c.OverrideOS,
-			ArchitectureChoice: c.OverrideArch,
-		},
-		Target: c.Target,
+		SystemContext:           systemContext,
+		Target:                  c.Target,
+		TransientMounts:         c.Volumes,
 	}
 	_, _, err = runtime.Build(getContext(), c, options, containerfiles)
 	return err
